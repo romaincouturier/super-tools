@@ -102,6 +102,16 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
             ? "Fichier ajouté"
             : `${successCount} fichiers ajoutés`
         );
+
+        // Slack notification (fire-and-forget)
+        const entity = currentEntities().find((e) => e.id === selectedEntityId);
+        notifyMediaSlack({
+          fileCount: successCount,
+          sourceType: selectedSourceType,
+          sourceLabel: entity?.label || "Inconnu",
+          fileNames: validFiles.slice(0, 10).map((f) => f.name),
+        });
+
         setOpen(false);
         setSelectedEntityId("");
       }
