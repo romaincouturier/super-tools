@@ -222,19 +222,6 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
               return (
                 <div key={section.id}>
                   {/* Add section between */}
-                  {!section.is_resources && idx > 0 && !sortedSections[idx - 1]?.is_resources && (
-                    <div className="flex justify-center py-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-muted-foreground h-6 gap-1"
-                        onClick={() => handleAddSection(section.position)}
-                      >
-                        <Plus className="h-3 w-3" />
-                        Insérer ici
-                      </Button>
-                    </div>
-                  )}
 
                   <SupportSectionCard
                     section={section}
