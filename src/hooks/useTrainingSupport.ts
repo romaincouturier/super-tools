@@ -527,6 +527,17 @@ export const useAssignImportToSection = () => {
         position: 0,
       });
 
+      // Also register in the central media library
+      registerMediaEntry({
+        file_url: imp.file_url,
+        file_name: imp.file_name,
+        file_type: imp.file_type,
+        mime_type: imp.mime_type,
+        file_size: imp.file_size,
+        source_type: "training",
+        source_id: supportId,
+      });
+
       // Mark import as assigned
       await (supabase as any)
         .from("training_support_imports")
