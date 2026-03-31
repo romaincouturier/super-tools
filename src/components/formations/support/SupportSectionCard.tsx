@@ -12,7 +12,7 @@ import RichTextEditor from "@/components/content/RichTextEditor";
 import { resolveContentType, getFileType, formatFileSize } from "@/lib/file-utils";
 import {
   useUpdateSection, useDeleteSection, useAddSectionMedia,
-  useDeleteSectionMedia, uploadSupportFile,
+  useDeleteSectionMedia, useUnassignSectionMedia, uploadSupportFile,
 } from "@/hooks/useTrainingSupport";
 import type { SupportSection, SupportMedia, SupportImport } from "@/hooks/useTrainingSupport";
 
