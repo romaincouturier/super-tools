@@ -192,6 +192,19 @@ const SupportSectionCard = ({
         )}
 
         <div className="flex items-center gap-1 flex-shrink-0">
+          {!section.is_resources && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onInsertAbove} title="Ajouter une section au-dessus">
+              <Plus className="h-3.5 w-3.5" />
+              <ChevronUp className="h-3 w-3 -ml-1.5" />
+            </Button>
+          )}
+          {!section.is_resources && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onInsertBelow} title="Ajouter une section en-dessous">
+              <Plus className="h-3.5 w-3.5" />
+              <ChevronDown className="h-3 w-3 -ml-1.5" />
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
