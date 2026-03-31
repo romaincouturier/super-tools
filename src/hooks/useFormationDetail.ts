@@ -148,31 +148,40 @@ export function useFormationDetail() {
   }, [searchParams, loading, training]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
       if (!session?.user) {
         navigate("/auth");
         return;
       }
       setUser(session.user);
       await fetchTrainingData();
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
 
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (!session?.user) {
+        if (cancelled) return;
+        if (event === "SIGNED_OUT" || !session?.user) {
           navigate("/auth");
-        } else {
+        } else if (event === "SIGNED_IN") {
           setUser(session.user);
         }
+        // Ignore TOKEN_REFRESHED / other events to avoid unnecessary re-renders
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, [navigate, id]);
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const fetchTrainingData = async () => {
     if (!id) return;
