@@ -45,6 +45,7 @@ const SupportSectionCard = ({
   const deleteSection = useDeleteSection();
   const addMedia = useAddSectionMedia();
   const deleteMedia = useDeleteSectionMedia();
+  const unassignMedia = useUnassignSectionMedia();
 
   const handleTitleBlur = () => {
     if (title !== section.title) {
