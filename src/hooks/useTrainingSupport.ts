@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { registerMediaEntry } from "@/hooks/useMedia";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -344,6 +345,18 @@ export const useAddSectionMedia = () => {
         .single();
 
       if (error) throw error;
+
+      // Also register in the central media library
+      registerMediaEntry({
+        file_url: input.fileUrl,
+        file_name: input.fileName,
+        file_type: input.fileType,
+        mime_type: input.mimeType,
+        file_size: input.fileSize,
+        source_type: "training",
+        source_id: input.supportId,
+      });
+
       return data as SupportMedia;
     },
     onSuccess: () => {
@@ -512,6 +525,17 @@ export const useAssignImportToSection = () => {
         mime_type: imp.mime_type,
         file_size: imp.file_size,
         position: 0,
+      });
+
+      // Also register in the central media library
+      registerMediaEntry({
+        file_url: imp.file_url,
+        file_name: imp.file_name,
+        file_type: imp.file_type,
+        mime_type: imp.mime_type,
+        file_size: imp.file_size,
+        source_type: "training",
+        source_id: supportId,
       });
 
       // Mark import as assigned
