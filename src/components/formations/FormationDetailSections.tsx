@@ -13,6 +13,7 @@ import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
+import SupportEditor from "@/components/formations/support/SupportEditor";
 
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
@@ -176,6 +177,11 @@ const FormationDetailSections = ({
     {/* Photos & Videos */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <EntityMediaManager sourceType="training" sourceId={training.id} sourceLabel={training.training_name} />
+    </div>
+
+    {/* Support de formation */}
+    <div className="mb-6">
+      <SupportEditor trainingId={training.id} trainingName={training.training_name} />
     </div>
 
     {/* Funder Appreciation + Notes */}
