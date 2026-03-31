@@ -33,6 +33,7 @@ interface SupportSectionCardProps {
 const SupportSectionCard = ({
   section, sectionMedia, availableImports, supportId,
   isFirst, isLast, onMoveUp, onMoveDown, onAssignImport,
+  onInsertAbove, onInsertBelow,
 }: SupportSectionCardProps) => {
   const [title, setTitle] = useState(section.title);
   const [content, setContent] = useState(section.content);
