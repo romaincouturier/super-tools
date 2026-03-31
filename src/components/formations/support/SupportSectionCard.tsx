@@ -317,7 +317,7 @@ const SupportSectionCard = ({
                 <source src={m.file_url} type={m.mime_type || "video/mp4"} />
               </video>
               <button
-                onClick={() => handleDeleteMedia(m.id)}
+                onClick={() => handleDeleteMedia(m.id, "video")}
                 className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 className="h-3 w-3" />
