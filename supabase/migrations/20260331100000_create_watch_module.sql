@@ -2,6 +2,9 @@
 -- Module Veille (Watch) — Tables & indexes
 -- ============================================================
 
+-- 0. Enable pgvector extension (idempotent)
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+
 -- 1. Main content table
 CREATE TABLE IF NOT EXISTS public.watch_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.watch_items (
   duplicate_of uuid REFERENCES public.watch_items(id) ON DELETE SET NULL,
   -- Clustering
   cluster_id uuid,                                         -- assigned cluster (nullable)
-  embedding vector(1536),                                  -- OpenAI text-embedding-3-small
+  embedding extensions.vector(1536),                       -- OpenAI text-embedding-3-small
   -- Audit
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -38,6 +41,8 @@ CREATE INDEX idx_watch_items_relevance ON public.watch_items (relevance_score DE
 CREATE INDEX idx_watch_items_cluster ON public.watch_items (cluster_id) WHERE cluster_id IS NOT NULL;
 CREATE INDEX idx_watch_items_content_type ON public.watch_items (content_type);
 CREATE INDEX idx_watch_items_shared ON public.watch_items (is_shared) WHERE is_shared = true;
+CREATE INDEX idx_watch_items_embedding ON public.watch_items
+  USING hnsw (embedding extensions.vector_cosine_ops) WHERE embedding IS NOT NULL;
 
 -- 2. Clusters table — groups of related content
 CREATE TABLE IF NOT EXISTS public.watch_clusters (
@@ -128,11 +133,11 @@ BEGIN
   SELECT
     wi.id,
     wi.title,
-    1 - (wi.embedding <=> query_embedding::vector) AS similarity
+    1 - (wi.embedding <=> query_embedding::extensions.vector) AS similarity
   FROM public.watch_items wi
   WHERE wi.embedding IS NOT NULL
-    AND 1 - (wi.embedding <=> query_embedding::vector) > match_threshold
-  ORDER BY wi.embedding <=> query_embedding::vector
+    AND 1 - (wi.embedding <=> query_embedding::extensions.vector) > match_threshold
+  ORDER BY wi.embedding <=> query_embedding::extensions.vector
   LIMIT match_count;
 END;
 $$;
