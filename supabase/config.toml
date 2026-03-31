@@ -353,3 +353,9 @@ verify_jwt = false
 
 [functions.watch-weekly-digest]
 verify_jwt = false
+
+[functions.index-documents]
+verify_jwt = false
+
+[functions.agent-chat]
+verify_jwt = false
