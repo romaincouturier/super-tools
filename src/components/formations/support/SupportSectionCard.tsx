@@ -170,7 +170,8 @@ const SupportSectionCard = ({
         return;
       }
     }
-    deleteMedia.mutate(mediaId);
+    const media = sectionMedia.find((m) => m.id === mediaId);
+    deleteMedia.mutate({ id: mediaId, fileUrl: media?.file_url || "" });
   };
 
   const images = sectionMedia.filter((m) => m.file_type === "image");

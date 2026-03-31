@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
-import { registerMediaEntry } from "@/hooks/useMedia";
+import { registerMediaEntry, deleteMediaFile } from "@/hooks/useMedia";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -368,12 +368,13 @@ export const useAddSectionMedia = () => {
 export const useDeleteSectionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, fileUrl }: { id: string; fileUrl: string }) => {
       const { error } = await (supabase as any)
         .from("training_support_media")
         .delete()
         .eq("id", id);
       if (error) throw error;
+      await deleteMediaFile(fileUrl).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MEDIA_KEY] });
@@ -683,64 +684,16 @@ export const useSaveAsTemplate = () => {
 
 // ── File upload ─────────────────────────────────────────────────────
 
-/** Files above this size use a signed URL + direct fetch to bypass proxy limits. */
-const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
-
 export const uploadSupportFile = async (file: File, supportId: string) => {
   const safeName = sanitizeFileName(file.name);
   const path = `${supportId}/${Date.now()}_${safeName}`;
   const contentType = resolveContentType(file);
 
-  const normalizedFile = contentType !== file.type
-    ? new File([file], file.name, { type: contentType, lastModified: file.lastModified })
-    : file;
+  const { error } = await supabase.storage
+    .from("training-supports")
+    .upload(path, file, { contentType, upsert: false });
 
-  if (file.size > LARGE_FILE_THRESHOLD) {
-    // Large files: use signed URL + direct PUT (compatible iPad/Safari)
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from("training-supports")
-      .createSignedUploadUrl(path);
-
-    if (signedError || !signedData?.signedUrl) {
-      throw signedError || new Error("Failed to create signed upload URL");
-    }
-
-    const { data: session } = await supabase.auth.getSession();
-    const accessToken = session.session?.access_token;
-
-    const headers: Record<string, string> = {
-      "Content-Type": contentType,
-      "x-upsert": "false",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    };
-
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`;
-    }
-
-    let res: Response;
-    try {
-      res = await fetch(signedData.signedUrl, {
-        method: "PUT",
-        headers,
-        body: normalizedFile,
-      });
-    } catch (fetchError: any) {
-      throw new Error(`Upload réseau échoué: ${fetchError?.message || "Load failed"}`);
-    }
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      throw new Error(`Upload failed (${res.status}): ${errBody}`);
-    }
-  } else {
-    // Small files: standard SDK upload
-    const { error } = await supabase.storage
-      .from("training-supports")
-      .upload(path, normalizedFile, { contentType, upsert: false });
-
-    if (error) throw error;
-  }
+  if (error) throw error;
 
   const { data } = supabase.storage.from("training-supports").getPublicUrl(path);
   return data.publicUrl;

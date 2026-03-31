@@ -95,7 +95,7 @@ VALUES (
   'training-supports',
   'training-supports',
   true,
-  52428800,
+  209715200,
   ARRAY[
     'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/heic', 'image/heif',
     'video/mp4', 'video/webm', 'video/quicktime',
