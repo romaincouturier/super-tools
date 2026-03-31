@@ -300,7 +300,7 @@ const SupportSectionCard = ({
                 <div key={m.id} className="relative group aspect-video rounded overflow-hidden border">
                   <img src={m.file_url} alt={m.file_name} className="w-full h-full object-cover" loading="lazy" />
                   <button
-                    onClick={() => handleDeleteMedia(m.id)}
+                    onClick={() => handleDeleteMedia(m.id, "image")}
                     className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-3 w-3" />
