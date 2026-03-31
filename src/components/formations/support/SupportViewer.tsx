@@ -26,6 +26,8 @@ const useLazyVisible = (rootMargin = "200px") => {
 
 interface SupportViewerProps {
   trainingId: string;
+  allowUnpublished?: boolean;
+  showUnavailableState?: boolean;
   colors?: {
     primary: string;
     onPrimary: string;
@@ -40,7 +42,7 @@ interface SupportViewerProps {
  * Read-only viewer for training support materials.
  * Used in TrainingSummary and LearnerPortal.
  */
-const SupportViewer = ({ trainingId, colors }: SupportViewerProps) => {
+const SupportViewer = ({ trainingId, allowUnpublished = false, showUnavailableState = false, colors }: SupportViewerProps) => {
   const { data: support, isLoading } = useTrainingSupport(trainingId);
   const { data: sections = [] } = useSupportSections(support?.id);
   const { data: allMedia = [] } = useSectionMedia(support?.id);
@@ -70,8 +72,31 @@ const SupportViewer = ({ trainingId, colors }: SupportViewerProps) => {
     );
   }
 
-  if (!support || !support.is_published || sortedSections.length === 0) {
-    return null;
+  if (!support) {
+    return showUnavailableState ? (
+      <SupportUnavailableState
+        title="Support indisponible"
+        description="Aucun support n'est encore disponible pour cette formation."
+      />
+    ) : null;
+  }
+
+  if (!allowUnpublished && !support.is_published) {
+    return showUnavailableState ? (
+      <SupportUnavailableState
+        title="Support non publié"
+        description="Le support existe, mais il n'est pas encore publié pour les participants."
+      />
+    ) : null;
+  }
+
+  if (sortedSections.length === 0) {
+    return showUnavailableState ? (
+      <SupportUnavailableState
+        title="Support vide"
+        description="Le support est prêt, mais il ne contient encore aucune section."
+      />
+    ) : null;
   }
 
   const c = colors;
