@@ -281,41 +281,62 @@ const SupportSectionCard = ({
       {/* Available imports picker */}
       {showImports && availableImports.length > 0 && (
         <div className="border rounded-lg p-3 bg-muted/30">
-          <p className="text-xs text-muted-foreground mb-2">Cliquez sur une image importée pour l'affecter à cette section :</p>
-          <div className="flex flex-wrap gap-2">
-            {availableImports.map((imp) => (
-              <button
-                key={imp.id}
-                className="relative w-16 h-16 rounded border overflow-hidden hover:ring-2 ring-primary transition-all"
-                onClick={() => {
-                  onAssignImport(imp.id);
-                  setShowImports(false);
-                }}
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-muted-foreground">Sélectionnez les médias à affecter :</p>
+            <div className="flex items-center gap-2">
+              {selectedImportIds.size > 0 && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {selectedImportIds.size} sélectionné{selectedImportIds.size > 1 ? "s" : ""}
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                disabled={selectedImportIds.size === 0}
+                onClick={assignSelectedImports}
               >
-                {imp.file_type === "image" ? (
-                  <img src={imp.file_url} alt={imp.file_name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full relative bg-muted">
-                    <video
-                      src={`${imp.file_url}#t=0.1`}
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                      muted
-                      playsInline
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 gap-0.5">
-                      <Video className="h-4 w-4 text-white drop-shadow" />
-                      {imp.file_name.toLowerCase().endsWith(".mov") && (
-                        <span className="text-[9px] text-white/80">MOV</span>
-                      )}
+                <Plus className="h-3 w-3 mr-1" />
+                Affecter
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableImports.map((imp) => {
+              const isSelected = selectedImportIds.has(imp.id);
+              return (
+                <button
+                  key={imp.id}
+                  className={`relative w-16 h-16 rounded border overflow-hidden transition-all ${isSelected ? "ring-2 ring-primary border-primary" : "hover:ring-2 ring-primary/50"}`}
+                  onClick={() => toggleImportSelection(imp.id)}
+                >
+                  {imp.file_type === "image" ? (
+                    <img src={imp.file_url} alt={imp.file_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full relative bg-muted">
+                      <video
+                        src={`${imp.file_url}#t=0.1`}
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                        muted
+                        playsInline
+                        onError={(e) => { e.currentTarget.style.display = "none"; }}
+                      />
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 gap-0.5">
+                        <Video className="h-4 w-4 text-white drop-shadow" />
+                        {imp.file_name.toLowerCase().endsWith(".mov") && (
+                          <span className="text-[9px] text-white/80">MOV</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </button>
-            ))}
+                  )}
+                  {isSelected && (
+                    <div className="absolute top-0.5 left-0.5 bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center">
+                      <Check className="h-3 w-3" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
