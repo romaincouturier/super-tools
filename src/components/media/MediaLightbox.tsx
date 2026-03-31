@@ -124,8 +124,11 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
             src={item.file_url}
             controls
             autoPlay
+            playsInline
             className="max-w-full max-h-[85vh] rounded"
-          />
+          >
+            <source src={item.file_url} type={item.mime_type || "video/mp4"} />
+          </video>
         )}
       </div>
 

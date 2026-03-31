@@ -424,16 +424,23 @@ const EntityMediaManager = ({
                     )}
                   </div>
                 ) : (
-                  <div className="w-full h-full relative">
+                  <div className="w-full h-full relative bg-muted">
                     <video
                       src={`${item.file_url}#t=0.1`}
                       className="w-full h-full object-cover"
                       preload="metadata"
                       muted
                       playsInline
+                      onError={(e) => {
+                        const el = e.currentTarget;
+                        el.style.display = "none";
+                      }}
                     />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
                       <Play className="h-8 w-8 text-white drop-shadow" />
+                      {item.file_name.toLowerCase().endsWith(".mov") && (
+                        <span className="text-white/70 text-[10px] mt-1">MOV</span>
+                      )}
                     </div>
                   </div>
                 )}
