@@ -659,8 +659,8 @@ export const useSaveAsTemplate = () => {
 
 // ── File upload ─────────────────────────────────────────────────────
 
-/** Size threshold (6 MB) above which we switch to resumable (TUS) upload. */
-const RESUMABLE_THRESHOLD = 6 * 1024 * 1024;
+/** Threshold above which we use signed-URL upload to bypass proxy body limits. */
+const SIGNED_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5 MB
 
 export const uploadSupportFile = async (file: File, supportId: string) => {
   const safeName = sanitizeFileName(file.name);
@@ -671,18 +671,27 @@ export const uploadSupportFile = async (file: File, supportId: string) => {
     ? new File([file], file.name, { type: contentType, lastModified: file.lastModified })
     : file;
 
-  const uploadOptions: { contentType: string; duplex?: string } = { contentType };
+  if (file.size > SIGNED_UPLOAD_THRESHOLD) {
+    // Large files: use signed upload URL to bypass proxy body-size limits
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("training-supports")
+      .createSignedUploadUrl(path);
 
-  if (file.size > RESUMABLE_THRESHOLD) {
-    // Use chunked / resumable upload for large files
-    (uploadOptions as Record<string, unknown>).duplex = "half";
+    if (signedError) throw signedError;
+
+    const { error } = await supabase.storage
+      .from("training-supports")
+      .uploadToSignedUrl(path, signedData.token, normalizedFile, { contentType });
+
+    if (error) throw error;
+  } else {
+    // Small files: standard upload
+    const { error } = await supabase.storage
+      .from("training-supports")
+      .upload(path, normalizedFile, { contentType });
+
+    if (error) throw error;
   }
-
-  const { error } = await supabase.storage
-    .from("training-supports")
-    .upload(path, normalizedFile, uploadOptions);
-
-  if (error) throw error;
 
   const { data } = supabase.storage.from("training-supports").getPublicUrl(path);
   return data.publicUrl;
