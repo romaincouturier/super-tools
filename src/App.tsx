@@ -44,6 +44,7 @@ const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
+const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const Statistiques = lazy(() => import("./pages/Statistiques"));
