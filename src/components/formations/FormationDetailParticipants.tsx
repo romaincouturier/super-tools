@@ -199,7 +199,7 @@ const FormationDetailParticipants = ({
               Envoyer
             </Button>
           </div>
-          {!hasSupportsUrl && (
+          {!hasSupport && (
             <p className="text-xs text-destructive flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />Un support de formation doit être renseigné avant l'envoi
             </p>
