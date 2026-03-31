@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
-import { registerMediaEntry } from "@/hooks/useMedia";
+import { registerMediaEntry, deleteMediaFile } from "@/hooks/useMedia";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -368,12 +368,13 @@ export const useAddSectionMedia = () => {
 export const useDeleteSectionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, fileUrl }: { id: string; fileUrl: string }) => {
       const { error } = await (supabase as any)
         .from("training_support_media")
         .delete()
         .eq("id", id);
       if (error) throw error;
+      await deleteMediaFile(fileUrl).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MEDIA_KEY] });
@@ -683,62 +684,57 @@ export const useSaveAsTemplate = () => {
 
 // ── File upload ─────────────────────────────────────────────────────
 
-/** Files above this size use a signed URL + direct fetch to bypass proxy limits. */
-const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
+/** 6 MB — above this threshold we switch to TUS resumable upload (chunked). */
+const RESUMABLE_THRESHOLD = 6 * 1024 * 1024;
+const TUS_CHUNK_SIZE = 6 * 1024 * 1024;
 
-export const uploadSupportFile = async (file: File, supportId: string) => {
+export const uploadSupportFile = async (
+  file: File,
+  supportId: string,
+  onProgress?: (pct: number) => void,
+) => {
   const safeName = sanitizeFileName(file.name);
   const path = `${supportId}/${Date.now()}_${safeName}`;
   const contentType = resolveContentType(file);
 
-  const normalizedFile = contentType !== file.type
-    ? new File([file], file.name, { type: contentType, lastModified: file.lastModified })
-    : file;
-
-  if (file.size > LARGE_FILE_THRESHOLD) {
-    // Large files: use signed URL + direct PUT (compatible iPad/Safari)
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from("training-supports")
-      .createSignedUploadUrl(path);
-
-    if (signedError || !signedData?.signedUrl) {
-      throw signedError || new Error("Failed to create signed upload URL");
-    }
+  if (file.size > RESUMABLE_THRESHOLD) {
+    // TUS resumable upload — works for any file size, sends in 6 MB chunks
+    const { Upload } = await import("tus-js-client");
 
     const { data: session } = await supabase.auth.getSession();
-    const accessToken = session.session?.access_token;
+    const token = session.session?.access_token;
 
-    const headers: Record<string, string> = {
-      "Content-Type": contentType,
-      "x-upsert": "false",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    };
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`;
-    }
-
-    let res: Response;
-    try {
-      res = await fetch(signedData.signedUrl, {
-        method: "PUT",
-        headers,
-        body: normalizedFile,
+    await new Promise<void>((resolve, reject) => {
+      const upload = new Upload(file, {
+        endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+        retryDelays: [0, 1000, 3000, 5000],
+        chunkSize: TUS_CHUNK_SIZE,
+        headers: {
+          authorization: `Bearer ${token}`,
+          apikey: supabaseKey,
+        },
+        metadata: {
+          bucketName: "training-supports",
+          objectName: path,
+          contentType,
+          cacheControl: "3600",
+        },
+        onError: (err) => reject(new Error(err.message || "Upload réseau échoué")),
+        onProgress: (bytesUploaded, bytesTotal) => {
+          onProgress?.(Math.round((bytesUploaded / bytesTotal) * 100));
+        },
+        onSuccess: () => resolve(),
       });
-    } catch (fetchError: any) {
-      throw new Error(`Upload réseau échoué: ${fetchError?.message || "Load failed"}`);
-    }
-
-    if (!res.ok) {
-      const errBody = await res.text();
-      throw new Error(`Upload failed (${res.status}): ${errBody}`);
-    }
+      upload.start();
+    });
   } else {
-    // Small files: standard SDK upload
+    // Small files: standard single-request upload
     const { error } = await supabase.storage
       .from("training-supports")
-      .upload(path, normalizedFile, { contentType, upsert: false });
-
+      .upload(path, file, { contentType, upsert: false });
     if (error) throw error;
   }
 
