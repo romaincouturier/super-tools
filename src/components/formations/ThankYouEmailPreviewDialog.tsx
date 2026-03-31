@@ -89,6 +89,7 @@ const ThankYouEmailPreviewDialog = ({
   const [testEmail, setTestEmail] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [useTutoiement, setUseTutoiement] = useState(false);
+  const [effectiveSupportsUrl, setEffectiveSupportsUrl] = useState<string | null>(supportsUrl);
 
   useEffect(() => {
     if (open) {
