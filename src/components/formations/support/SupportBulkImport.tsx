@@ -41,9 +41,10 @@ const SupportBulkImport = ({ supportId, imports }: SupportBulkImportProps) => {
       }
 
       toast.success(`${count} fichier${count > 1 ? "s" : ""} importé${count > 1 ? "s" : ""}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Bulk import error:", error);
-      toast.error("Erreur lors de l'import");
+      const detail = error?.message || error?.statusCode || "Erreur inconnue";
+      toast.error(`Échec de l'import : ${detail}`);
     } finally {
       setUploading(false);
     }
