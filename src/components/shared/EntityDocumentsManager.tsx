@@ -112,8 +112,12 @@ const EntityDocumentsManager = ({
 
     setDeletingId(docId);
     try {
-      await deleteEntityDocumentFile(fileUrl, entityType);
+      // Delete DB row first (this is what matters), storage is best-effort
       await deleteDocument.mutateAsync({ id: docId, entityId });
+      // Best-effort storage cleanup (non-blocking)
+      deleteEntityDocumentFile(fileUrl, entityType).catch((err) =>
+        console.warn("Storage cleanup failed:", err)
+      );
       toast.success("Document supprimé", { description: fileName });
     } catch (err: unknown) {
       console.error("Delete error:", err);

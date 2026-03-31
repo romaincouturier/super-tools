@@ -189,6 +189,11 @@ export const deleteEntityDocumentFile = async (
   const config = configs[entityType];
   const filePath = extractStoragePath(fileUrl, config.bucket);
   if (filePath) {
-    await supabase.storage.from(config.bucket).remove([filePath]);
+    try {
+      await supabase.storage.from(config.bucket).remove([filePath]);
+    } catch (err) {
+      // Storage deletion is best-effort — don't block DB row removal
+      console.warn("[deleteEntityDocumentFile] Storage removal failed:", err);
+    }
   }
 };
