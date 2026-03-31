@@ -696,24 +696,38 @@ export const uploadSupportFile = async (file: File, supportId: string) => {
     : file;
 
   if (file.size > LARGE_FILE_THRESHOLD) {
-    // Large files: create a signed upload URL then PUT directly via fetch
-    // (the SDK's uploadToSignedUrl wraps in FormData which can hit proxy limits)
+    // Large files: use signed URL + direct PUT (compatible iPad/Safari)
     const { data: signedData, error: signedError } = await supabase.storage
       .from("training-supports")
       .createSignedUploadUrl(path);
 
-    if (signedError || !signedData) throw signedError || new Error("Failed to create signed URL");
+    if (signedError || !signedData?.signedUrl) {
+      throw signedError || new Error("Failed to create signed upload URL");
+    }
 
-    const uploadUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1${signedData.path}?token=${signedData.token}`;
+    const { data: session } = await supabase.auth.getSession();
+    const accessToken = session.session?.access_token;
 
-    const res = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": contentType,
-        "x-upsert": "false",
-      },
-      body: normalizedFile,
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+      "x-upsert": "false",
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    };
+
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(signedData.signedUrl, {
+        method: "PUT",
+        headers,
+        body: normalizedFile,
+      });
+    } catch (fetchError: any) {
+      throw new Error(`Upload réseau échoué: ${fetchError?.message || "Load failed"}`);
+    }
 
     if (!res.ok) {
       const errBody = await res.text();
