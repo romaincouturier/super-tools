@@ -318,15 +318,28 @@ const SupportSectionCard = ({
           {/* Videos */}
           {videos.map((m) => (
             <div key={m.id} className="relative group">
-              <video controls className="w-full rounded border" preload="metadata">
+              <video
+                controls
+                className="w-full rounded border"
+                preload="metadata"
+                muted
+                playsInline
+                src={`${m.file_url}#t=0.1`}
+              >
                 <source src={m.file_url} type={m.mime_type || "video/mp4"} />
               </video>
-              <button
-                onClick={() => handleDeleteMedia(m.id, "video")}
-                className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2 h-7 w-7 rounded-full opacity-70 hover:opacity-100 transition-opacity z-10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  handleDeleteMedia(m.id, "video");
+                }}
               >
                 <Trash2 className="h-3 w-3" />
-              </button>
+              </Button>
             </div>
           ))}
 
