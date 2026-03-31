@@ -119,6 +119,20 @@ const ThankYouEmailPreviewDialog = ({
       setParticipants(participantsData);
     }
 
+    // Resolve supports URL: if no explicit URL, check for editor-created support
+    let resolvedSupportsUrl = supportsUrl;
+    if (!resolvedSupportsUrl) {
+      const { data: supportRecord } = await (supabase as any)
+        .from("training_supports")
+        .select("id")
+        .eq("training_id", trainingId)
+        .maybeSingle();
+      if (supportRecord) {
+        resolvedSupportsUrl = `${window.location.origin}/formation-info/${trainingId}`;
+      }
+    }
+    setEffectiveSupportsUrl(resolvedSupportsUrl);
+
     // Fetch custom template if exists (with mode suffix)
     const templateType = `thank_you${isTutoiement ? "_tu" : "_vous"}`;
     const { data: templateData } = await supabase
