@@ -162,7 +162,7 @@ serve(async (req) => {
         .eq("training_id", trainingId)
         .maybeSingle();
       if (supportRecord) {
-        supportsUrl = `${baseUrl}/formation-info/${trainingId}`;
+        supportsUrl = `${baseUrl}/formation-info/${trainingId}#support`;
         console.log("Using training support viewer URL:", supportsUrl);
       }
     }
