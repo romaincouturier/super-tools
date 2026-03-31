@@ -26,6 +26,8 @@ interface SupportSectionCardProps {
   onMoveUp: () => void;
   onMoveDown: () => void;
   onAssignImport: (importId: string) => void;
+  onInsertAbove: () => void;
+  onInsertBelow: () => void;
 }
 
 const SupportSectionCard = ({
