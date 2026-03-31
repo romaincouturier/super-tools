@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
-import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
+import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
