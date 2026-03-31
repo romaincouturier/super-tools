@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { registerMediaEntry } from "@/hooks/useMedia";
 
 // ── Types ───────────────────────────────────────────────────────────
 
