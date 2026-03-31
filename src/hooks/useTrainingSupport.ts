@@ -217,12 +217,21 @@ export const useAddSection = () => {
       position: number;
     }) => {
       // Shift positions of existing sections at or after this position
-      await (supabase as any).rpc("shift_support_sections", {
-        _support_id: supportId,
-        _from_position: position,
-      }).catch(() => {
-        // Fallback: manual shift if RPC doesn't exist
-      });
+      const { data: existing } = await (supabase as any)
+        .from("training_support_sections")
+        .select("id, position")
+        .eq("support_id", supportId)
+        .gte("position", position)
+        .order("position", { ascending: false });
+
+      if (existing && existing.length > 0) {
+        for (const s of existing) {
+          await (supabase as any)
+            .from("training_support_sections")
+            .update({ position: s.position + 1 })
+            .eq("id", s.id);
+        }
+      }
 
       const { data, error } = await (supabase as any)
         .from("training_support_sections")
