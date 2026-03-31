@@ -345,6 +345,18 @@ export const useAddSectionMedia = () => {
         .single();
 
       if (error) throw error;
+
+      // Also register in the central media library
+      registerMediaEntry({
+        file_url: input.fileUrl,
+        file_name: input.fileName,
+        file_type: input.fileType,
+        mime_type: input.mimeType,
+        file_size: input.fileSize,
+        source_type: "training",
+        source_id: input.supportId,
+      });
+
       return data as SupportMedia;
     },
     onSuccess: () => {
