@@ -129,7 +129,7 @@ const ThankYouEmailPreviewDialog = ({
         .eq("training_id", trainingId)
         .maybeSingle();
       if (supportRecord) {
-        resolvedSupportsUrl = `${window.location.origin}/formation-info/${trainingId}#support`;
+        resolvedSupportsUrl = `${window.location.origin}/formation-support/${trainingId}`;
       }
     }
     setEffectiveSupportsUrl(resolvedSupportsUrl);
