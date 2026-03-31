@@ -683,6 +683,9 @@ export const useSaveAsTemplate = () => {
 
 // ── File upload ─────────────────────────────────────────────────────
 
+/** Files above this size use a signed URL + direct fetch to bypass proxy limits. */
+const LARGE_FILE_THRESHOLD = 5 * 1024 * 1024; // 5 MB
+
 export const uploadSupportFile = async (file: File, supportId: string) => {
   const safeName = sanitizeFileName(file.name);
   const path = `${supportId}/${Date.now()}_${safeName}`;
@@ -692,11 +695,38 @@ export const uploadSupportFile = async (file: File, supportId: string) => {
     ? new File([file], file.name, { type: contentType, lastModified: file.lastModified })
     : file;
 
-  const { error } = await supabase.storage
-    .from("training-supports")
-    .upload(path, normalizedFile, { contentType, upsert: false });
+  if (file.size > LARGE_FILE_THRESHOLD) {
+    // Large files: create a signed upload URL then PUT directly via fetch
+    // (the SDK's uploadToSignedUrl wraps in FormData which can hit proxy limits)
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from("training-supports")
+      .createSignedUploadUrl(path);
 
-  if (error) throw error;
+    if (signedError || !signedData) throw signedError || new Error("Failed to create signed URL");
+
+    const uploadUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1${signedData.path}?token=${signedData.token}`;
+
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+        "x-upsert": "false",
+      },
+      body: normalizedFile,
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`Upload failed (${res.status}): ${errBody}`);
+    }
+  } else {
+    // Small files: standard SDK upload
+    const { error } = await supabase.storage
+      .from("training-supports")
+      .upload(path, normalizedFile, { contentType, upsert: false });
+
+    if (error) throw error;
+  }
 
   const { data } = supabase.storage.from("training-supports").getPublicUrl(path);
   return data.publicUrl;
