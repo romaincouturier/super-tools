@@ -175,6 +175,11 @@ const FormationDetailSections = ({
       <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
     </div>
 
+    {/* Participant Evaluations */}
+    <div className="mb-6">
+      <ParticipantEvaluationsBlock trainingId={training.id} />
+    </div>
+
     {/* Photos & Videos */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <EntityMediaManager sourceType="training" sourceId={training.id} sourceLabel={training.training_name} />
