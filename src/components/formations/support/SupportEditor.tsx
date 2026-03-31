@@ -246,6 +246,8 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
                     onMoveUp={() => handleMoveSection(section.id, "up")}
                     onMoveDown={() => handleMoveSection(section.id, "down")}
                     onAssignImport={(importId) => handleAssignImport(importId, section.id)}
+                    onInsertAbove={() => handleAddSection(section.position)}
+                    onInsertBelow={() => handleAddSection(section.position + 1)}
                   />
                 </div>
               );
