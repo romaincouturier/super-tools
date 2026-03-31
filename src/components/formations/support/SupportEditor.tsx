@@ -103,13 +103,21 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
     await reorderSections.mutateAsync(updates);
   };
 
+  const [optimisticPublished, setOptimisticPublished] = useState<boolean | null>(null);
+  const isPublished = optimisticPublished ?? support?.is_published ?? false;
+
   const handleTogglePublished = async () => {
     if (!support) return;
+    const newValue = !isPublished;
+    setOptimisticPublished(newValue);
     try {
-      await updateSupport.mutateAsync({ id: support.id, is_published: !support.is_published });
-      toast.success(support.is_published ? "Support dépublié" : "Support publié");
+      await updateSupport.mutateAsync({ id: support.id, is_published: newValue });
+      toast.success(newValue ? "Support publié" : "Support dépublié");
     } catch {
+      setOptimisticPublished(null);
       toast.error("Erreur");
+    } finally {
+      setOptimisticPublished(null);
     }
   };
 
@@ -172,8 +180,8 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
           <CardTitle className="flex items-center gap-2 text-base">
             <BookOpen className="h-5 w-5" />
             Support de formation
-            <Badge variant={support.is_published ? "default" : "secondary"} className="text-[10px]">
-              {support.is_published ? "Publié" : "Brouillon"}
+            <Badge variant={isPublished ? "default" : "secondary"} className="text-[10px]">
+              {isPublished ? "Publié" : "Brouillon"}
             </Badge>
             <Badge variant="outline" className="text-[10px]">
               {sections.length} section{sections.length !== 1 ? "s" : ""}
@@ -189,7 +197,7 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch
-                checked={support.is_published}
+                checked={isPublished}
                 onCheckedChange={handleTogglePublished}
                 id="support-published"
               />
