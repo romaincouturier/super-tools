@@ -204,9 +204,6 @@ const LazySection = ({
         />
       )}
     </section>
-        );
-      })}
-    </div>
   );
 };
 
