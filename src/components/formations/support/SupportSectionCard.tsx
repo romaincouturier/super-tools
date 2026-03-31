@@ -39,6 +39,21 @@ const SupportSectionCard = ({
   const [content, setContent] = useState(section.content);
   const [uploading, setUploading] = useState(false);
   const [showImports, setShowImports] = useState(false);
+  const [selectedImportIds, setSelectedImportIds] = useState<Set<string>>(new Set());
+
+  const toggleImportSelection = (id: string) => {
+    setSelectedImportIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const assignSelectedImports = () => {
+    selectedImportIds.forEach((id) => onAssignImport(id));
+    setSelectedImportIds(new Set());
+    setShowImports(false);
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateSection = useUpdateSection();
