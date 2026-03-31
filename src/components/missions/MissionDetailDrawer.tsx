@@ -57,6 +57,7 @@ const MissionDetailDrawer = ({
 }: MissionDetailDrawerProps) => {
   const updateMission = useUpdateMission();
   const deleteMission = useDeleteMission();
+  const createActivity = useCreateMissionActivity();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [showDeliverables, setShowDeliverables] = useState(false);
