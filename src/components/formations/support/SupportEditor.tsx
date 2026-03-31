@@ -180,8 +180,8 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
           <CardTitle className="flex items-center gap-2 text-base">
             <BookOpen className="h-5 w-5" />
             Support de formation
-            <Badge variant={support.is_published ? "default" : "secondary"} className="text-[10px]">
-              {support.is_published ? "Publié" : "Brouillon"}
+            <Badge variant={isPublished ? "default" : "secondary"} className="text-[10px]">
+              {isPublished ? "Publié" : "Brouillon"}
             </Badge>
             <Badge variant="outline" className="text-[10px]">
               {sections.length} section{sections.length !== 1 ? "s" : ""}
