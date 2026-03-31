@@ -89,6 +89,7 @@ const ThankYouEmailPreviewDialog = ({
   const [testEmail, setTestEmail] = useState("");
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [useTutoiement, setUseTutoiement] = useState(false);
+  const [effectiveSupportsUrl, setEffectiveSupportsUrl] = useState<string | null>(supportsUrl);
 
   useEffect(() => {
     if (open) {
@@ -118,6 +119,20 @@ const ThankYouEmailPreviewDialog = ({
     if (participantsData) {
       setParticipants(participantsData);
     }
+
+    // Resolve supports URL: if no explicit URL, check for editor-created support
+    let resolvedSupportsUrl = supportsUrl;
+    if (!resolvedSupportsUrl) {
+      const { data: supportRecord } = await (supabase as any)
+        .from("training_supports")
+        .select("id")
+        .eq("training_id", trainingId)
+        .maybeSingle();
+      if (supportRecord) {
+        resolvedSupportsUrl = `${window.location.origin}/formation-info/${trainingId}`;
+      }
+    }
+    setEffectiveSupportsUrl(resolvedSupportsUrl);
 
     // Fetch custom template if exists (with mode suffix)
     const templateType = `thank_you${isTutoiement ? "_tu" : "_vous"}`;
@@ -177,9 +192,9 @@ const ThankYouEmailPreviewDialog = ({
     content = content.replace(/\{\{training_name\}\}/g, trainingName);
     content = content.replace(/\{\{evaluation_link\}\}/g, "[Lien d'évaluation personnalisé]");
     
-    if (supportsUrl) {
+    if (effectiveSupportsUrl) {
       content = content.replace(/\{\{#supports_url\}\}([\s\S]*?)\{\{\/supports_url\}\}/g, "$1");
-      content = content.replace(/\{\{supports_url\}\}/g, supportsUrl);
+      content = content.replace(/\{\{supports_url\}\}/g, effectiveSupportsUrl);
     } else {
       content = content.replace(/\{\{#supports_url\}\}[\s\S]*?\{\{\/supports_url\}\}/g, "");
     }
