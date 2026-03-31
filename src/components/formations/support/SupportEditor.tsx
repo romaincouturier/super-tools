@@ -197,7 +197,7 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch
-                checked={support.is_published}
+                checked={isPublished}
                 onCheckedChange={handleTogglePublished}
                 id="support-published"
               />
