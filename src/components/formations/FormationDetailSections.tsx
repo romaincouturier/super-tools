@@ -11,6 +11,7 @@ import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
+import ParticipantEvaluationsBlock from "@/components/formations/ParticipantEvaluationsBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
 import SupportEditor from "@/components/formations/support/SupportEditor";
@@ -172,6 +173,11 @@ const FormationDetailSections = ({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <TrainerAdequacy trainingId={training.id} trainerName={training.trainer_name} />
       <TrainerEvaluationBlock trainingId={training.id} trainerName={training.trainer_name} trainerId={(training as unknown as { trainer_id?: string | null }).trainer_id} />
+    </div>
+
+    {/* Participant Evaluations */}
+    <div className="mb-6">
+      <ParticipantEvaluationsBlock trainingId={training.id} />
     </div>
 
     {/* Photos & Videos */}
