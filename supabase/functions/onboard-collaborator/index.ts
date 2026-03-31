@@ -18,6 +18,22 @@ const MODULE_LABELS: Record<string, string> = {
   historique: "Historique",
   contenu: "Contenu",
   besoins: "Besoins participants",
+  emails: "Emails reçus",
+  statistiques: "Statistiques",
+  crm: "CRM",
+  missions: "Missions",
+  okr: "OKR",
+  medias: "Médiathèque",
+  events: "Événements",
+  monitoring: "Monitoring",
+  parametres: "Paramètres généraux",
+  arena: "AI Arena",
+  reclamations: "Réclamations",
+  support: "Support",
+  reseau: "Réseau",
+  lms: "E-learning",
+  screenshots: "Screenshots",
+  veille: "Veille",
 };
 
 // Generate a strong temporary password
