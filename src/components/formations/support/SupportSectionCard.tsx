@@ -12,7 +12,7 @@ import RichTextEditor from "@/components/content/RichTextEditor";
 import { resolveContentType, getFileType, formatFileSize } from "@/lib/file-utils";
 import {
   useUpdateSection, useDeleteSection, useAddSectionMedia,
-  useDeleteSectionMedia, uploadSupportFile,
+  useDeleteSectionMedia, useUnassignSectionMedia, uploadSupportFile,
 } from "@/hooks/useTrainingSupport";
 import type { SupportSection, SupportMedia, SupportImport } from "@/hooks/useTrainingSupport";
 
@@ -45,6 +45,7 @@ const SupportSectionCard = ({
   const deleteSection = useDeleteSection();
   const addMedia = useAddSectionMedia();
   const deleteMedia = useDeleteSectionMedia();
+  const unassignMedia = useUnassignSectionMedia();
 
   const handleTitleBlur = () => {
     if (title !== section.title) {
@@ -152,8 +153,24 @@ const SupportSectionCard = ({
     }
   };
 
-  const handleDeleteMedia = async (mediaId: string) => {
-    if (!confirm("Supprimer ce média ?")) return;
+  const handleDeleteMedia = async (mediaId: string, fileType: string) => {
+    if (!confirm("Retirer ce média ?")) return;
+    if (fileType === "image") {
+      const media = sectionMedia.find((m) => m.id === mediaId);
+      if (media) {
+        unassignMedia.mutate({
+          id: media.id,
+          support_id: media.support_id,
+          file_url: media.file_url,
+          file_name: media.file_name,
+          file_type: media.file_type,
+          mime_type: media.mime_type,
+          file_size: media.file_size,
+        });
+        toast.success("Image remise dans les images à affecter");
+        return;
+      }
+    }
     deleteMedia.mutate(mediaId);
   };
 
@@ -283,7 +300,7 @@ const SupportSectionCard = ({
                 <div key={m.id} className="relative group aspect-video rounded overflow-hidden border">
                   <img src={m.file_url} alt={m.file_name} className="w-full h-full object-cover" loading="lazy" />
                   <button
-                    onClick={() => handleDeleteMedia(m.id)}
+                    onClick={() => handleDeleteMedia(m.id, "image")}
                     className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="h-3 w-3" />
@@ -300,7 +317,7 @@ const SupportSectionCard = ({
                 <source src={m.file_url} type={m.mime_type || "video/mp4"} />
               </video>
               <button
-                onClick={() => handleDeleteMedia(m.id)}
+                onClick={() => handleDeleteMedia(m.id, "video")}
                 className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 className="h-3 w-3" />
@@ -316,7 +333,7 @@ const SupportSectionCard = ({
                   <source src={m.file_url} type={m.mime_type || "audio/mpeg"} />
                 </audio>
                 <button
-                  onClick={() => handleDeleteMedia(m.id)}
+                  onClick={() => handleDeleteMedia(m.id, "audio")}
                   className="bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 className="h-3 w-3" />

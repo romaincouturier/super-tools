@@ -368,6 +368,54 @@ export const useDeleteSectionMedia = () => {
   });
 };
 
+/** Remove image from section and put it back in unassigned imports */
+export const useUnassignSectionMedia = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (media: Pick<SupportMedia, "id" | "support_id" | "file_url" | "file_name" | "file_type" | "mime_type" | "file_size">) => {
+      // Find the import that was assigned for this file
+      const { data: imp } = await (supabase as any)
+        .from("training_support_imports")
+        .select("id")
+        .eq("support_id", media.support_id)
+        .eq("file_url", media.file_url)
+        .not("assigned_section_id", "is", null)
+        .maybeSingle();
+
+      if (imp) {
+        // Unmark the import so it reappears in available imports
+        await (supabase as any)
+          .from("training_support_imports")
+          .update({ assigned_section_id: null })
+          .eq("id", imp.id);
+      } else {
+        // No matching import found — recreate one
+        await (supabase as any)
+          .from("training_support_imports")
+          .insert({
+            support_id: media.support_id,
+            file_url: media.file_url,
+            file_name: media.file_name,
+            file_type: media.file_type,
+            mime_type: media.mime_type,
+            file_size: media.file_size,
+          });
+      }
+
+      // Delete the media entry from the section
+      const { error } = await (supabase as any)
+        .from("training_support_media")
+        .delete()
+        .eq("id", media.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [MEDIA_KEY] });
+      queryClient.invalidateQueries({ queryKey: [IMPORTS_KEY] });
+    },
+  });
+};
+
 export const useUpdateSectionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
