@@ -154,7 +154,6 @@ const SupportSectionCard = ({
   };
 
   const handleDeleteMedia = async (mediaId: string, fileType: string) => {
-    if (!confirm("Retirer ce média ?")) return;
     if (fileType === "image") {
       const media = sectionMedia.find((m) => m.id === mediaId);
       if (media) {
