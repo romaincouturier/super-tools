@@ -147,12 +147,25 @@ serve(async (req) => {
     ]);
 
     const trainingName = training.training_name;
-    const supportsUrl = training.supports_url || "";
 
     // Base URL for evaluation links
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const baseUrl = urls.app_url;
+
+    // Resolve supports URL: use explicit URL if set, otherwise check for editor-created support
+    let supportsUrl = training.supports_url || "";
+    if (!supportsUrl) {
+      const { data: supportRecord } = await supabase
+        .from("training_supports")
+        .select("id")
+        .eq("training_id", trainingId)
+        .maybeSingle();
+      if (supportRecord) {
+        supportsUrl = `${baseUrl}/formation-info/${trainingId}`;
+        console.log("Using training support viewer URL:", supportsUrl);
+      }
+    }
 
     // TEST MODE: Send only to the test email
     if (testEmail) {
