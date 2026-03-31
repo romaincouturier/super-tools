@@ -11,6 +11,7 @@ import ScheduledActionsEditor, { ScheduledAction } from "@/components/formations
 import AttendanceSignatureBlock from "@/components/formations/AttendanceSignatureBlock";
 import TrainerAdequacy from "@/components/formations/TrainerAdequacy";
 import TrainerEvaluationBlock from "@/components/formations/TrainerEvaluationBlock";
+import ParticipantEvaluationsBlock from "@/components/formations/ParticipantEvaluationsBlock";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import LiveMeetingsSection from "@/components/formations/LiveMeetingsSection";
 import SupportEditor from "@/components/formations/support/SupportEditor";
