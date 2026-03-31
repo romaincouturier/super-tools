@@ -6094,46 +6094,39 @@ export type Database = {
       }
       training_support_imports: {
         Row: {
-          id: string
-          support_id: string
-          file_url: string
-          file_name: string
-          file_type: string
-          mime_type: string | null
-          file_size: number | null
           assigned_section_id: string | null
           created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string | null
+          support_id: string
         }
         Insert: {
-          id?: string
-          support_id: string
-          file_url: string
-          file_name: string
-          file_type: string
-          mime_type?: string | null
-          file_size?: number | null
           assigned_section_id?: string | null
           created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          support_id: string
         }
         Update: {
-          id?: string
-          support_id?: string
-          file_url?: string
-          file_name?: string
-          file_type?: string
-          mime_type?: string | null
-          file_size?: number | null
           assigned_section_id?: string | null
           created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          support_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "training_support_imports_support_id_fkey"
-            columns: ["support_id"]
-            isOneToOne: false
-            referencedRelation: "training_supports"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "training_support_imports_assigned_section_id_fkey"
             columns: ["assigned_section_id"]
@@ -6141,50 +6134,57 @@ export type Database = {
             referencedRelation: "training_support_sections"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "training_support_imports_support_id_fkey"
+            columns: ["support_id"]
+            isOneToOne: false
+            referencedRelation: "training_supports"
+            referencedColumns: ["id"]
+          },
         ]
       }
       training_support_media: {
         Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string
+          file_url: string
           id: string
+          mime_type: string | null
+          position: number
           section_id: string
           support_id: string
-          file_url: string
-          file_name: string
-          file_type: string
-          mime_type: string | null
-          file_size: number | null
           transcript: string | null
           transcript_summary: string | null
-          position: number
-          created_at: string
         }
         Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type: string
+          file_url: string
           id?: string
+          mime_type?: string | null
+          position?: number
           section_id: string
           support_id: string
-          file_url: string
-          file_name: string
-          file_type: string
-          mime_type?: string | null
-          file_size?: number | null
           transcript?: string | null
           transcript_summary?: string | null
-          position?: number
-          created_at?: string
         }
         Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
           id?: string
+          mime_type?: string | null
+          position?: number
           section_id?: string
           support_id?: string
-          file_url?: string
-          file_name?: string
-          file_type?: string
-          mime_type?: string | null
-          file_size?: number | null
           transcript?: string | null
           transcript_summary?: string | null
-          position?: number
-          created_at?: string
         }
         Relationships: [
           {
@@ -6205,33 +6205,33 @@ export type Database = {
       }
       training_support_sections: {
         Row: {
+          content: string
+          created_at: string
           id: string
+          is_resources: boolean
+          position: number
           support_id: string
           title: string
-          content: string
-          position: number
-          is_resources: boolean
-          created_at: string
           updated_at: string
         }
         Insert: {
+          content?: string
+          created_at?: string
           id?: string
+          is_resources?: boolean
+          position?: number
           support_id: string
           title?: string
-          content?: string
-          position?: number
-          is_resources?: boolean
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          content?: string
+          created_at?: string
           id?: string
+          is_resources?: boolean
+          position?: number
           support_id?: string
           title?: string
-          content?: string
-          position?: number
-          is_resources?: boolean
-          created_at?: string
           updated_at?: string
         }
         Relationships: [
@@ -6246,28 +6246,28 @@ export type Database = {
       }
       training_support_template_sections: {
         Row: {
+          content: string
+          created_at: string
           id: string
+          position: number
           template_id: string
           title: string
-          content: string
-          position: number
-          created_at: string
         }
         Insert: {
+          content?: string
+          created_at?: string
           id?: string
+          position?: number
           template_id: string
           title?: string
-          content?: string
-          position?: number
-          created_at?: string
         }
         Update: {
+          content?: string
+          created_at?: string
           id?: string
+          position?: number
           template_id?: string
           title?: string
-          content?: string
-          position?: number
-          created_at?: string
         }
         Relationships: [
           {
@@ -6281,75 +6281,75 @@ export type Database = {
       }
       training_support_templates: {
         Row: {
+          created_at: string
+          created_by: string | null
+          description: string
           id: string
           name: string
-          description: string
-          created_by: string | null
-          created_at: string
           updated_at: string
         }
         Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
           id?: string
           name: string
-          description?: string
-          created_by?: string | null
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
           id?: string
           name?: string
-          description?: string
-          created_by?: string | null
-          created_at?: string
           updated_at?: string
         }
         Relationships: []
       }
       training_supports: {
         Row: {
-          id: string
-          training_id: string
-          title: string
-          template_id: string | null
-          is_published: boolean
-          created_by: string | null
           created_at: string
+          created_by: string | null
+          id: string
+          is_published: boolean
+          template_id: string | null
+          title: string
+          training_id: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          training_id: string
-          title?: string
-          template_id?: string | null
-          is_published?: boolean
-          created_by?: string | null
           created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          template_id?: string | null
+          title?: string
+          training_id: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          training_id?: string
-          title?: string
-          template_id?: string | null
-          is_published?: boolean
-          created_by?: string | null
           created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          template_id?: string | null
+          title?: string
+          training_id?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "training_supports_training_id_fkey"
-            columns: ["training_id"]
-            isOneToOne: true
-            referencedRelation: "trainings"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "training_supports_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "training_support_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_supports_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: true
+            referencedRelation: "trainings"
             referencedColumns: ["id"]
           },
         ]
@@ -6699,6 +6699,144 @@ export type Database = {
         }
         Relationships: []
       }
+      watch_clusters: {
+        Row: {
+          created_at: string
+          id: string
+          slack_posted_at: string | null
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          slack_posted_at?: string | null
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          slack_posted_at?: string | null
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      watch_digests: {
+        Row: {
+          created_at: string
+          id: string
+          item_ids: string[]
+          slack_posted_at: string | null
+          summary: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_ids?: string[]
+          slack_posted_at?: string | null
+          summary?: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_ids?: string[]
+          slack_posted_at?: string | null
+          summary?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      watch_items: {
+        Row: {
+          body: string
+          cluster_id: string | null
+          content_type: string
+          created_at: string
+          created_by: string | null
+          duplicate_of: string | null
+          embedding: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          is_duplicate: boolean
+          is_shared: boolean
+          mime_type: string | null
+          relevance_score: number
+          source_url: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          cluster_id?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          duplicate_of?: string | null
+          embedding?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_duplicate?: boolean
+          is_shared?: boolean
+          mime_type?: string | null
+          relevance_score?: number
+          source_url?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          cluster_id?: string | null
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          duplicate_of?: string | null
+          embedding?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_duplicate?: boolean
+          is_shared?: boolean
+          mime_type?: string | null
+          relevance_score?: number
+          source_url?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_watch_items_cluster"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "watch_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "watch_items_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "watch_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       woocommerce_coupons: {
         Row: {
           amount: number | null
@@ -6768,129 +6906,6 @@ export type Database = {
           },
         ]
       }
-      watch_clusters: {
-        Row: {
-          id: string
-          label: string
-          summary: string
-          item_ids: string[]
-          slack_article_status: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          label: string
-          summary?: string
-          item_ids?: string[]
-          slack_article_status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          label?: string
-          summary?: string
-          item_ids?: string[]
-          slack_article_status?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      watch_digests: {
-        Row: {
-          id: string
-          week_start: string
-          week_end: string
-          summary: string
-          item_ids: string[]
-          slack_sent: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          week_start: string
-          week_end: string
-          summary?: string
-          item_ids?: string[]
-          slack_sent?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          week_start?: string
-          week_end?: string
-          summary?: string
-          item_ids?: string[]
-          slack_sent?: boolean
-          created_at?: string
-        }
-        Relationships: []
-      }
-      watch_items: {
-        Row: {
-          id: string
-          title: string
-          body: string
-          source_url: string | null
-          content_type: string
-          tags: string[]
-          image_url: string | null
-          audio_url: string | null
-          transcript: string | null
-          embedding: string | null
-          relevance_score: number
-          is_shared: boolean
-          is_duplicate: boolean
-          duplicate_of: string | null
-          cluster_id: string | null
-          created_by: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title?: string
-          body?: string
-          source_url?: string | null
-          content_type: string
-          tags?: string[]
-          image_url?: string | null
-          audio_url?: string | null
-          transcript?: string | null
-          embedding?: string | null
-          relevance_score?: number
-          is_shared?: boolean
-          is_duplicate?: boolean
-          duplicate_of?: string | null
-          cluster_id?: string | null
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          body?: string
-          source_url?: string | null
-          content_type?: string
-          tags?: string[]
-          image_url?: string | null
-          audio_url?: string | null
-          transcript?: string | null
-          embedding?: string | null
-          relevance_score?: number
-          is_shared?: boolean
-          is_duplicate?: boolean
-          duplicate_of?: string | null
-          cluster_id?: string | null
-          created_by?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -6904,6 +6919,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
         Returns: string
@@ -7112,6 +7128,18 @@ export type Database = {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
       }
+      match_watch_items: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          id: string
+          similarity: number
+          title: string
+        }[]
+      }
       register_formulaire_orphan: {
         Args: {
           p_course_id: number
@@ -7160,22 +7188,6 @@ export type Database = {
         Returns: undefined
       }
       validate_learner_token: { Args: { p_token: string }; Returns: Json }
-      decay_watch_relevance: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      match_watch_items: {
-        Args: {
-          query_embedding: string
-          match_threshold: number
-          match_count: number
-        }
-        Returns: {
-          id: string
-          title: string
-          similarity: number
-        }[]
-      }
     }
     Enums: {
       app_module:
@@ -7201,7 +7213,6 @@ export type Database = {
         | "appreciations"
         | "lms"
         | "reseau"
-        | "veille"
       notification_type:
         | "review_requested"
         | "comment_added"
