@@ -103,13 +103,21 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
     await reorderSections.mutateAsync(updates);
   };
 
+  const [optimisticPublished, setOptimisticPublished] = useState<boolean | null>(null);
+  const isPublished = optimisticPublished ?? support?.is_published ?? false;
+
   const handleTogglePublished = async () => {
     if (!support) return;
+    const newValue = !isPublished;
+    setOptimisticPublished(newValue);
     try {
-      await updateSupport.mutateAsync({ id: support.id, is_published: !support.is_published });
-      toast.success(support.is_published ? "Support dépublié" : "Support publié");
+      await updateSupport.mutateAsync({ id: support.id, is_published: newValue });
+      toast.success(newValue ? "Support publié" : "Support dépublié");
     } catch {
+      setOptimisticPublished(null);
       toast.error("Erreur");
+    } finally {
+      setOptimisticPublished(null);
     }
   };
 
