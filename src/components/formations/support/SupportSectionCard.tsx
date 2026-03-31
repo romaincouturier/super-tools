@@ -333,7 +333,7 @@ const SupportSectionCard = ({
                   <source src={m.file_url} type={m.mime_type || "audio/mpeg"} />
                 </audio>
                 <button
-                  onClick={() => handleDeleteMedia(m.id)}
+                  onClick={() => handleDeleteMedia(m.id, "audio")}
                   className="bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 className="h-3 w-3" />
