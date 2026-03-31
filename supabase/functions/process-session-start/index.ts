@@ -19,6 +19,36 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
  * Uses session_start_notifications / activity_logs to prevent duplicate sends.
  */
 
+const formatScheduleDisplayDate = (scheduleDate: string) => {
+  const dateObj = new Date(`${scheduleDate}T12:00:00`);
+  return dateObj.toLocaleDateString("fr-FR", {
+    timeZone: "Europe/Paris",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatDisplayTime = (timeValue: string) => timeValue.slice(0, 5).replace(":", "h");
+
+const buildScheduleTimeRange = (startTime: string, endTime: string, period: "AM" | "PM") => {
+  const startHour = parseInt(startTime.slice(0, 2), 10);
+  const startMin = parseInt(startTime.slice(3, 5), 10);
+  const endHour = parseInt(endTime.slice(0, 2), 10);
+  const endMin = parseInt(endTime.slice(3, 5), 10);
+
+  const sessionDurationHours = ((endHour * 60 + endMin) - (startHour * 60 + startMin)) / 60;
+  const startTimeDisplay = formatDisplayTime(startTime);
+  const endTimeDisplay = formatDisplayTime(endTime);
+
+  if (sessionDurationHours <= 4) {
+    return `${startTimeDisplay} - ${endTimeDisplay}`;
+  }
+
+  return period === "AM" ? `${startTimeDisplay} - 12h30` : `14h00 - ${endTimeDisplay}`;
+};
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -86,15 +116,13 @@ serve(async (req) => {
       throw schedulesError;
     }
 
-    if (!schedules || schedules.length === 0) {
-      console.log("[process-session-start] No sessions starting now");
-      return new Response(
-        JSON.stringify({ success: true, message: "No sessions starting now" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const currentSchedules = schedules ?? [];
 
-    console.log(`[process-session-start] Found ${schedules.length} starting session(s)`);
+    if (currentSchedules.length === 0) {
+      console.log("[process-session-start] No sessions starting in the current window");
+    } else {
+      console.log(`[process-session-start] Found ${currentSchedules.length} starting session(s)`);
+    }
 
     const senderFrom = await getSenderFrom();
     const senderEmail = await getSenderEmail();
@@ -103,64 +131,42 @@ serve(async (req) => {
 
     let totalSignaturesSent = 0;
     let totalTrainerNotifications = 0;
+    let recoveredNotifications = 0;
 
-    for (const schedule of schedules) {
+    const processTrainingSchedulePeriod = async (schedule: any, period: "AM" | "PM") => {
       const training = schedule.trainings as any;
       const trainingId = schedule.training_id;
       const scheduleId = schedule.id;
       const scheduleDate = schedule.day_date;
 
-      // Determine which period to send NOW based on start_time
-      // Only send the period that matches the current window — don't send PM at morning start
-      const startHour = parseInt(schedule.start_time.slice(0, 2));
+      try {
+        const { data: participants, error: participantsError } = await supabase
+          .from("training_participants")
+          .select("id, first_name, last_name, email")
+          .eq("training_id", trainingId);
 
-      const periodsToProcess: string[] = [];
-      if (startHour < 13) {
-        periodsToProcess.push("AM");
-      } else {
-        periodsToProcess.push("PM");
-      }
+        if (participantsError) {
+          console.error(`[process-session-start] Error fetching participants for ${trainingId}:`, participantsError);
+          return { signaturesSent: 0, trainerNotified: false };
+        }
 
-      // Format date for display — add T12:00 to avoid UTC date shift
-      const dateObj = new Date(scheduleDate + "T12:00:00");
-      const formattedDate = dateObj.toLocaleDateString("fr-FR", {
-        timeZone: "Europe/Paris",
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
+        if (!participants || participants.length === 0) {
+          console.log(`[process-session-start] No participants for training ${trainingId}, skipping`);
+          return { signaturesSent: 0, trainerNotified: false };
+        }
 
-      const startTimeDisplay = schedule.start_time.slice(0, 5).replace(":", "h");
-      const endTimeDisplay = schedule.end_time.slice(0, 5).replace(":", "h");
-
-      // Fetch participants for this training
-      const { data: participants } = await supabase
-        .from("training_participants")
-        .select("id, first_name, last_name, email")
-        .eq("training_id", trainingId);
-
-      if (!participants || participants.length === 0) {
-        console.log(`[process-session-start] No participants for training ${trainingId}, skipping`);
-        continue;
-      }
-
-      // Process each period
-      for (const period of periodsToProcess) {
-        // Check if already processed (prevent duplicate sends)
         const { data: existing } = await supabase
           .from("session_start_notifications")
-          .select("id, signature_sent_at")
+          .select("id, signature_sent_at, trainer_notified_at")
           .eq("training_schedule_id", scheduleId)
           .eq("period", period)
           .maybeSingle();
 
         if (existing?.signature_sent_at) {
           console.log(`[process-session-start] Already processed ${scheduleId} ${period}, skipping`);
-          continue;
+          return { signaturesSent: 0, trainerNotified: false };
         }
 
-        // Reserve the slot (upsert) to prevent race conditions
         const { error: upsertError } = await supabase
           .from("session_start_notifications")
           .upsert({
@@ -171,29 +177,25 @@ serve(async (req) => {
 
         if (upsertError) {
           console.error(`[process-session-start] Error upserting notification record:`, upsertError);
-          continue;
+          return { signaturesSent: 0, trainerNotified: false };
         }
 
+        const formattedDate = formatScheduleDisplayDate(scheduleDate);
         const periodLabel = period === "AM" ? "Matin" : "Après-midi";
-        const sessionDurationHours = ((endHour * 60 + endMin) - (startHour * 60 + parseInt(schedule.start_time.slice(3, 5)))) / 60;
-        const timeRange = sessionDurationHours <= 4
-          ? `${startTimeDisplay} - ${endTimeDisplay}`
-          : (period === "AM" ? `${startTimeDisplay} - 12h30` : `14h00 - ${endTimeDisplay}`);
+        const timeRange = buildScheduleTimeRange(schedule.start_time, schedule.end_time, period);
 
-        // =============================================
-        // 1. Send signature requests to all participants
-        // =============================================
+        let pendingSignatureRequests = 0;
         let signaturesSent = 0;
 
         for (let i = 0; i < participants.length; i++) {
           const participant = participants[i];
+          if (!participant.email) continue;
 
           if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise((resolve) => setTimeout(resolve, 300));
           }
 
           try {
-            // Check if signature record already exists
             const { data: existingSignature } = await supabase
               .from("attendance_signatures")
               .select("id, signed_at, token, email_sent_at")
@@ -212,6 +214,8 @@ serve(async (req) => {
               console.log(`[process-session-start] Skipping ${participant.email} - request already sent`);
               continue;
             }
+
+            pendingSignatureRequests++;
 
             let token: string;
 
@@ -270,7 +274,6 @@ serve(async (req) => {
               continue;
             }
 
-            // Update email_sent_at after successful send
             await supabase
               .from("attendance_signatures")
               .update({ email_sent_at: new Date().toISOString() })
@@ -286,18 +289,14 @@ serve(async (req) => {
           }
         }
 
-        totalSignaturesSent += signaturesSent;
-
-        // =============================================
-        // 2. Notify the trainer
-        // =============================================
         const trainerData = training.trainers as any;
         const trainerEmail = trainerData?.email || null;
         const trainerFirstName = trainerData?.first_name || training.trainer_name || "Formateur";
+        let trainerNotified = false;
 
-        if (trainerEmail) {
+        if (trainerEmail && !existing?.trainer_notified_at) {
           try {
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise((resolve) => setTimeout(resolve, 300));
 
             const trainerHtml = `
               <p>Bonjour ${trainerFirstName},</p>
@@ -326,28 +325,32 @@ serve(async (req) => {
 
             if (trainerResult.success) {
               console.log(`[process-session-start] Trainer notified: ${trainerEmail}`);
-              totalTrainerNotifications++;
+              trainerNotified = true;
             } else {
               console.error(`[process-session-start] Error notifying trainer ${trainerEmail}:`, trainerResult.error);
             }
           } catch (err) {
             console.error(`[process-session-start] Error sending trainer notification:`, err);
           }
-        } else {
+        } else if (!trainerEmail) {
           console.warn(`[process-session-start] No trainer email for training ${trainingId}`);
         }
 
-        // Mark as processed
+        const fullyProcessed = pendingSignatureRequests === signaturesSent;
+
         await supabase
           .from("session_start_notifications")
           .update({
-            signature_sent_at: new Date().toISOString(),
-            trainer_notified_at: trainerEmail ? new Date().toISOString() : null,
+            signature_sent_at: fullyProcessed ? new Date().toISOString() : null,
+            trainer_notified_at: existing?.trainer_notified_at || (trainerNotified ? new Date().toISOString() : null),
           })
           .eq("training_schedule_id", scheduleId)
           .eq("period", period);
 
-        // Log activity
+        if (!fullyProcessed) {
+          console.warn(`[process-session-start] Partial send for ${scheduleId} ${period}: ${signaturesSent}/${pendingSignatureRequests}`);
+        }
+
         try {
           await supabase.from("activity_logs").insert({
             action_type: "session_start_processed",
@@ -358,11 +361,84 @@ serve(async (req) => {
               schedule_date: scheduleDate,
               period,
               signatures_sent: signaturesSent,
-              trainer_notified: !!trainerEmail,
+              trainer_notified: !!(existing?.trainer_notified_at || trainerNotified),
+              fully_processed: fullyProcessed,
             },
           });
         } catch (logError) {
           console.warn("[process-session-start] Failed to log activity:", logError);
+        }
+
+        return { signaturesSent, trainerNotified };
+      } catch (error) {
+        console.error(`[process-session-start] Error while processing schedule ${scheduleId} ${period}:`, error);
+        return { signaturesSent: 0, trainerNotified: false };
+      }
+    };
+
+    for (const schedule of currentSchedules) {
+      const startHour = parseInt(schedule.start_time.slice(0, 2), 10);
+      const period = startHour < 13 ? "AM" : "PM";
+      const result = await processTrainingSchedulePeriod(schedule, period);
+      totalSignaturesSent += result.signaturesSent;
+      if (result.trainerNotified) totalTrainerNotifications++;
+    }
+
+    const { data: pendingNotifications, error: pendingNotificationsError } = await supabase
+      .from("session_start_notifications")
+      .select("training_schedule_id, period")
+      .is("signature_sent_at", null);
+
+    if (pendingNotificationsError) {
+      console.error("[process-session-start] Error fetching pending notifications:", pendingNotificationsError);
+    } else {
+      const pendingScheduleIds = [...new Set((pendingNotifications ?? []).map((item) => item.training_schedule_id))];
+
+      if (pendingScheduleIds.length > 0) {
+        const { data: pendingSchedules, error: pendingSchedulesError } = await supabase
+          .from("training_schedules")
+          .select(`
+            id,
+            training_id,
+            day_date,
+            start_time,
+            end_time,
+            trainings!inner (
+              id,
+              training_name,
+              location,
+              format_formation,
+              trainer_id,
+              trainer_name,
+              trainers (
+                id,
+                email,
+                first_name,
+                last_name
+              )
+            )
+          `)
+          .in("id", pendingScheduleIds)
+          .eq("day_date", today)
+          .not("trainings.format_formation", "eq", "elearning");
+
+        if (pendingSchedulesError) {
+          console.error("[process-session-start] Error fetching schedules for pending notifications:", pendingSchedulesError);
+        } else {
+          const pendingScheduleMap = new Map((pendingSchedules ?? []).map((schedule) => [schedule.id, schedule]));
+
+          for (const pending of pendingNotifications ?? []) {
+            if (pending.period !== "AM" && pending.period !== "PM") continue;
+
+            const schedule = pendingScheduleMap.get(pending.training_schedule_id);
+            if (!schedule) continue;
+
+            console.log(`[process-session-start] Recovering pending ${pending.period} for schedule ${pending.training_schedule_id}`);
+            const result = await processTrainingSchedulePeriod(schedule, pending.period);
+            totalSignaturesSent += result.signaturesSent;
+            if (result.trainerNotified) totalTrainerNotifications++;
+            recoveredNotifications++;
+          }
         }
       }
     }
@@ -411,142 +487,9 @@ serve(async (req) => {
         console.log(`[process-session-start] Found ${fullDaySchedules.length} full-day schedule(s) needing PM`);
 
         for (const schedule of fullDaySchedules) {
-          const training = schedule.trainings as any;
-          const trainingId = schedule.training_id;
-          const scheduleId = schedule.id;
-          const scheduleDate = schedule.day_date;
-          const period = "PM";
-
-          // Check if PM already processed
-          const { data: existing } = await supabase
-            .from("session_start_notifications")
-            .select("id, signature_sent_at")
-            .eq("training_schedule_id", scheduleId)
-            .eq("period", period)
-            .maybeSingle();
-
-          if (existing?.signature_sent_at) {
-            console.log(`[process-session-start] PM already processed for ${scheduleId}, skipping`);
-            continue;
-          }
-
-          // Format date for display
-          const dateObj = new Date(scheduleDate + "T12:00:00");
-          const formattedDate = dateObj.toLocaleDateString("fr-FR", {
-            timeZone: "Europe/Paris",
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          });
-
-          const startTimeDisplay = schedule.start_time.slice(0, 5).replace(":", "h");
-          const endTimeDisplay = schedule.end_time.slice(0, 5).replace(":", "h");
-
-          // Fetch participants
-          const { data: participants } = await supabase
-            .from("training_participants")
-            .select("id, first_name, last_name, email")
-            .eq("training_id", trainingId);
-
-          if (!participants || participants.length === 0) continue;
-
-          // Reserve the slot
-          const { error: upsertError } = await supabase
-            .from("session_start_notifications")
-            .upsert({
-              training_schedule_id: scheduleId,
-              period,
-              participants_count: participants.length,
-            }, { onConflict: "training_schedule_id,period" });
-
-          if (upsertError) {
-            console.error(`[process-session-start] Error upserting PM notification:`, upsertError);
-            continue;
-          }
-
-          const periodLabel = "Après-midi";
-          const timeRange = `14h00 - ${endTimeDisplay}`;
-
-          let signaturesSent = 0;
-
-          for (const participant of participants) {
-            try {
-              const { data: existingSignature } = await supabase
-                .from("attendance_signatures")
-                .select("id, signed_at, email_sent_at, token")
-                .eq("training_id", trainingId)
-                .eq("participant_id", participant.id)
-                .eq("schedule_date", scheduleDate)
-                .eq("period", period)
-                .maybeSingle();
-
-              if (existingSignature?.signed_at || existingSignature?.email_sent_at) continue;
-
-              let token: string;
-              if (existingSignature) {
-                token = existingSignature.token;
-              } else {
-                token = crypto.randomUUID();
-                const { error: insertError } = await supabase
-                  .from("attendance_signatures")
-                  .insert({
-                    training_id: trainingId,
-                    participant_id: participant.id,
-                    schedule_date: scheduleDate,
-                    period,
-                    token,
-                  });
-                if (insertError) continue;
-              }
-
-              const signatureUrl = `${baseUrl}/emargement/${token}`;
-              const greeting = participant.first_name ? `Bonjour ${participant.first_name}` : "Bonjour";
-              const emailHtml = `
-                <p>${greeting},</p>
-                <p>Merci de bien vouloir signer votre feuille d'émargement pour la session <strong>${periodLabel}</strong> (${timeRange}) de la formation "<strong>${training.training_name}</strong>" du ${formattedDate}.</p>
-                ${emailButton(signatureUrl, "✍️ Signer ma feuille d'émargement")}
-                <p style="margin-top:16px;font-size:13px;color:#888;">Cette signature atteste de votre présence à la formation.</p>
-                ${signature}
-              `;
-
-              const result = await sendEmail({
-                from: senderFrom,
-                to: [participant.email],
-                bcc: bccList,
-                subject: `Émargement ${periodLabel} - ${training.training_name}`,
-                html: emailHtml,
-                _emailType: "attendance_signature_request",
-                _trainingId: trainingId,
-                _participantId: participant.id,
-              });
-
-              if (result.success) {
-                await supabase
-                  .from("attendance_signatures")
-                  .update({ email_sent_at: new Date().toISOString() })
-                  .eq("training_id", trainingId)
-                  .eq("participant_id", participant.id)
-                  .eq("schedule_date", scheduleDate)
-                  .eq("period", period);
-                signaturesSent++;
-                totalSignaturesSent++;
-              }
-            } catch (err) {
-              console.error(`[process-session-start] PM error for ${participant.email}:`, err);
-            }
-          }
-
-          // Mark PM as sent
-          await supabase
-            .from("session_start_notifications")
-            .update({
-              signature_sent_at: new Date().toISOString(),
-            })
-            .eq("training_schedule_id", scheduleId)
-            .eq("period", period);
-
-          console.log(`[process-session-start] PM signatures sent: ${signaturesSent} for ${training.training_name}`);
+          const result = await processTrainingSchedulePeriod(schedule, "PM");
+          totalSignaturesSent += result.signaturesSent;
+          if (result.trainerNotified) totalTrainerNotifications++;
         }
       }
     }
@@ -769,7 +712,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        sessions_processed: schedules.length,
+        sessions_processed: currentSchedules.length,
+        recovered_notifications: recoveredNotifications,
         lives_processed: livesProcessed,
         signatures_sent: totalSignaturesSent,
         trainer_notifications: totalTrainerNotifications,
