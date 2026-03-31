@@ -67,8 +67,8 @@ const SupportSectionCard = ({
       toast.error("La section Ressources ne peut pas être supprimée");
       return;
     }
-    if (!confirm(`Supprimer la section "${section.title}" ?`)) return;
     deleteSection.mutate(section.id);
+    toast.success("Section supprimée");
   };
 
   const handleFileUpload = async (files: FileList | null) => {
