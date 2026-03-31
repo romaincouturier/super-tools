@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Loader2, Megaphone } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
