@@ -61,11 +61,21 @@ const FormationDetailParticipants = ({
   fetchParticipants,
   toast,
 }: Props) => {
+  const [hasSupportRecord, setHasSupportRecord] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (supabase as any).from("training_supports").select("id").eq("training_id", training.id).maybeSingle()
+      .then(({ data }: { data: any }) => { if (!cancelled) setHasSupportRecord(!!data); });
+    return () => { cancelled = true; };
+  }, [training.id]);
+
   const effectiveEndDate = training.end_date || training.start_date;
   const endDate = effectiveEndDate ? parseISO(effectiveEndDate) : null;
   const isLastDayOrAfter = !endDate || isToday(endDate) || isBefore(endDate, startOfDay(new Date()));
   const hasSupportsUrl = !!training.supports_url?.trim();
-  const canSend = isLastDayOrAfter && hasSupportsUrl && participants.length > 0;
+  const hasSupport = hasSupportsUrl || hasSupportRecord;
+  const canSend = isLastDayOrAfter && hasSupport && participants.length > 0;
 
   return (
     <Card>
