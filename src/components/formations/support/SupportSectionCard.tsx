@@ -153,8 +153,24 @@ const SupportSectionCard = ({
     }
   };
 
-  const handleDeleteMedia = async (mediaId: string) => {
-    if (!confirm("Supprimer ce média ?")) return;
+  const handleDeleteMedia = async (mediaId: string, fileType: string) => {
+    if (!confirm("Retirer ce média ?")) return;
+    if (fileType === "image") {
+      const media = sectionMedia.find((m) => m.id === mediaId);
+      if (media) {
+        unassignMedia.mutate({
+          id: media.id,
+          support_id: media.support_id,
+          file_url: media.file_url,
+          file_name: media.file_name,
+          file_type: media.file_type,
+          mime_type: media.mime_type,
+          file_size: media.file_size,
+        });
+        toast.success("Image remise dans les images à affecter");
+        return;
+      }
+    }
     deleteMedia.mutate(mediaId);
   };
 
