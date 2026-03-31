@@ -684,16 +684,59 @@ export const useSaveAsTemplate = () => {
 
 // ── File upload ─────────────────────────────────────────────────────
 
-export const uploadSupportFile = async (file: File, supportId: string) => {
+/** 6 MB — above this threshold we switch to TUS resumable upload (chunked). */
+const RESUMABLE_THRESHOLD = 6 * 1024 * 1024;
+const TUS_CHUNK_SIZE = 6 * 1024 * 1024;
+
+export const uploadSupportFile = async (
+  file: File,
+  supportId: string,
+  onProgress?: (pct: number) => void,
+) => {
   const safeName = sanitizeFileName(file.name);
   const path = `${supportId}/${Date.now()}_${safeName}`;
   const contentType = resolveContentType(file);
 
-  const { error } = await supabase.storage
-    .from("training-supports")
-    .upload(path, file, { contentType, upsert: false });
+  if (file.size > RESUMABLE_THRESHOLD) {
+    // TUS resumable upload — works for any file size, sends in 6 MB chunks
+    const { Upload } = await import("tus-js-client");
 
-  if (error) throw error;
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    await new Promise<void>((resolve, reject) => {
+      const upload = new Upload(file, {
+        endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+        retryDelays: [0, 1000, 3000, 5000],
+        chunkSize: TUS_CHUNK_SIZE,
+        headers: {
+          authorization: `Bearer ${token}`,
+          apikey: supabaseKey,
+        },
+        metadata: {
+          bucketName: "training-supports",
+          objectName: path,
+          contentType,
+          cacheControl: "3600",
+        },
+        onError: (err) => reject(new Error(err.message || "Upload réseau échoué")),
+        onProgress: (bytesUploaded, bytesTotal) => {
+          onProgress?.(Math.round((bytesUploaded / bytesTotal) * 100));
+        },
+        onSuccess: () => resolve(),
+      });
+      upload.start();
+    });
+  } else {
+    // Small files: standard single-request upload
+    const { error } = await supabase.storage
+      .from("training-supports")
+      .upload(path, file, { contentType, upsert: false });
+    if (error) throw error;
+  }
 
   const { data } = supabase.storage.from("training-supports").getPublicUrl(path);
   return data.publicUrl;
