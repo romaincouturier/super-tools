@@ -30,6 +30,7 @@ import {
   Users,
   GraduationCap,
   Camera,
+  Eye,
 } from "lucide-react";
 import {
   DndContext,
@@ -270,6 +271,14 @@ const tools: Tool[] = [
     icon: <Camera />,
     path: "/screenshots",
     module: "screenshots",
+  },
+  {
+    id: "veille",
+    name: "Veille",
+    description: "Centraliser et organiser votre veille technologique",
+    icon: <Eye />,
+    path: "/veille",
+    module: "veille",
   },
 ];
 

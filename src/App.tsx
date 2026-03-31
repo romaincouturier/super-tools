@@ -81,6 +81,7 @@ const LmsCourses = lazy(() => import("./pages/LmsCourses"));
 const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const Reseau = lazy(() => import("./pages/Reseau"));
+const Watch = lazy(() => import("./pages/Watch"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -214,6 +215,8 @@ const App = () => (
               <Route path="/support" element={<Support />} />
               {/* Network module */}
               <Route path="/reseau" element={<Reseau />} />
+              {/* Watch module (veille) */}
+              <Route path="/veille" element={<Watch />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
