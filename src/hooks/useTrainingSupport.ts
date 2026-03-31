@@ -659,19 +659,28 @@ export const useSaveAsTemplate = () => {
 
 // ── File upload ─────────────────────────────────────────────────────
 
+/** Size threshold (6 MB) above which we switch to resumable (TUS) upload. */
+const RESUMABLE_THRESHOLD = 6 * 1024 * 1024;
+
 export const uploadSupportFile = async (file: File, supportId: string) => {
   const safeName = sanitizeFileName(file.name);
   const path = `${supportId}/${Date.now()}_${safeName}`;
   const contentType = resolveContentType(file);
 
-  const originalMime = resolveContentType(file);
-  const normalizedFile = originalMime !== contentType
+  const normalizedFile = contentType !== file.type
     ? new File([file], file.name, { type: contentType, lastModified: file.lastModified })
     : file;
 
+  const uploadOptions: { contentType: string; duplex?: string } = { contentType };
+
+  if (file.size > RESUMABLE_THRESHOLD) {
+    // Use chunked / resumable upload for large files
+    (uploadOptions as Record<string, unknown>).duplex = "half";
+  }
+
   const { error } = await supabase.storage
     .from("training-supports")
-    .upload(path, normalizedFile, { contentType });
+    .upload(path, normalizedFile, uploadOptions);
 
   if (error) throw error;
 
