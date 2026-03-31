@@ -7213,6 +7213,8 @@ export type Database = {
         | "appreciations"
         | "lms"
         | "reseau"
+        | "screenshots"
+        | "veille"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -7368,6 +7370,8 @@ export const Constants = {
         "appreciations",
         "lms",
         "reseau",
+        "screenshots",
+        "veille",
       ],
       notification_type: [
         "review_requested",
