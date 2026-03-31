@@ -192,9 +192,9 @@ const ThankYouEmailPreviewDialog = ({
     content = content.replace(/\{\{training_name\}\}/g, trainingName);
     content = content.replace(/\{\{evaluation_link\}\}/g, "[Lien d'évaluation personnalisé]");
     
-    if (supportsUrl) {
+    if (effectiveSupportsUrl) {
       content = content.replace(/\{\{#supports_url\}\}([\s\S]*?)\{\{\/supports_url\}\}/g, "$1");
-      content = content.replace(/\{\{supports_url\}\}/g, supportsUrl);
+      content = content.replace(/\{\{supports_url\}\}/g, effectiveSupportsUrl);
     } else {
       content = content.replace(/\{\{#supports_url\}\}[\s\S]*?\{\{\/supports_url\}\}/g, "");
     }
