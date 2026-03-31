@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { Mission } from "@/types/missions";
 import { useAddMedia, uploadMediaFile, MediaSourceType } from "@/hooks/useMedia";
+import { notifyMediaSlack } from "@/services/mediaSlack";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getFileType, resolveContentType } from "@/lib/file-utils";
