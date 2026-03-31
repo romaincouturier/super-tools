@@ -341,3 +341,15 @@ verify_jwt = false
 
 [functions.send-support-notification]
 verify_jwt = false
+
+[functions.watch-process-item]
+verify_jwt = false
+
+[functions.watch-check-duplicate]
+verify_jwt = false
+
+[functions.watch-cluster-analysis]
+verify_jwt = false
+
+[functions.watch-weekly-digest]
+verify_jwt = false

@@ -1,7 +1,8 @@
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MediaItem, useDeleteMedia, deleteMediaFile } from "@/hooks/useMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins, Tag } from "lucide-react";
+import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins, Tag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/file-utils";
 import MediaTagEditor from "./MediaTagEditor";
@@ -30,8 +31,42 @@ interface MediaGridProps {
   allTags: string[];
 }
 
+const PAGE_SIZE = 40;
+
 const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
   const deleteMutation = useDeleteMedia();
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset visible count when items change (e.g. filter applied)
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [items]);
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, items.length));
+  }, [items.length]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMore]);
+
+  const visibleItems = items.slice(0, visibleCount);
+  const hasMore = visibleCount < items.length;
 
   const downloadFile = async (url: string, fileName: string) => {
     try {
@@ -78,8 +113,9 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
   }
 
   return (
+    <>
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-      {items.map((item) => (
+      {visibleItems.map((item) => (
         <div
           key={item.id}
           className="group relative aspect-square rounded-lg overflow-hidden border bg-muted cursor-pointer"
@@ -189,6 +225,15 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
         </div>
       ))}
     </div>
+    {hasMore && (
+      <div ref={sentinelRef} className="flex items-center justify-center py-6">
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">
+          {visibleCount} / {items.length} médias
+        </span>
+      </div>
+    )}
+    </>
   );
 };
 

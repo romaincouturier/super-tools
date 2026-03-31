@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
 import { Loader2 } from "lucide-react";
+import SupportViewer from "@/components/formations/support/SupportViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -693,6 +694,12 @@ END:VCALENDAR`;
             )}
           </section>
         )}
+
+        {/* ═══ SECTION: Support de formation ═══ */}
+        <SupportViewer
+          trainingId={training.id}
+          colors={c}
+        />
 
         {/* ═══ SECTION: Formateur ═══ */}
         {trainer && (
