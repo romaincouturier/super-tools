@@ -6092,6 +6092,268 @@ export type Database = {
           },
         ]
       }
+      training_support_imports: {
+        Row: {
+          id: string
+          support_id: string
+          file_url: string
+          file_name: string
+          file_type: string
+          mime_type: string | null
+          file_size: number | null
+          assigned_section_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          support_id: string
+          file_url: string
+          file_name: string
+          file_type: string
+          mime_type?: string | null
+          file_size?: number | null
+          assigned_section_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          support_id?: string
+          file_url?: string
+          file_name?: string
+          file_type?: string
+          mime_type?: string | null
+          file_size?: number | null
+          assigned_section_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_support_imports_support_id_fkey"
+            columns: ["support_id"]
+            isOneToOne: false
+            referencedRelation: "training_supports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_support_imports_assigned_section_id_fkey"
+            columns: ["assigned_section_id"]
+            isOneToOne: false
+            referencedRelation: "training_support_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_support_media: {
+        Row: {
+          id: string
+          section_id: string
+          support_id: string
+          file_url: string
+          file_name: string
+          file_type: string
+          mime_type: string | null
+          file_size: number | null
+          transcript: string | null
+          transcript_summary: string | null
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          section_id: string
+          support_id: string
+          file_url: string
+          file_name: string
+          file_type: string
+          mime_type?: string | null
+          file_size?: number | null
+          transcript?: string | null
+          transcript_summary?: string | null
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          section_id?: string
+          support_id?: string
+          file_url?: string
+          file_name?: string
+          file_type?: string
+          mime_type?: string | null
+          file_size?: number | null
+          transcript?: string | null
+          transcript_summary?: string | null
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_support_media_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "training_support_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_support_media_support_id_fkey"
+            columns: ["support_id"]
+            isOneToOne: false
+            referencedRelation: "training_supports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_support_sections: {
+        Row: {
+          id: string
+          support_id: string
+          title: string
+          content: string
+          position: number
+          is_resources: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          support_id: string
+          title?: string
+          content?: string
+          position?: number
+          is_resources?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          support_id?: string
+          title?: string
+          content?: string
+          position?: number
+          is_resources?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_support_sections_support_id_fkey"
+            columns: ["support_id"]
+            isOneToOne: false
+            referencedRelation: "training_supports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_support_template_sections: {
+        Row: {
+          id: string
+          template_id: string
+          title: string
+          content: string
+          position: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          template_id: string
+          title?: string
+          content?: string
+          position?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          template_id?: string
+          title?: string
+          content?: string
+          position?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_support_template_sections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "training_support_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_support_templates: {
+        Row: {
+          id: string
+          name: string
+          description: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      training_supports: {
+        Row: {
+          id: string
+          training_id: string
+          title: string
+          template_id: string | null
+          is_published: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          training_id: string
+          title?: string
+          template_id?: string | null
+          is_published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          training_id?: string
+          title?: string
+          template_id?: string | null
+          is_published?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_supports_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: true
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_supports_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "training_support_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainings: {
         Row: {
           assigned_to: string | null
@@ -6506,6 +6768,129 @@ export type Database = {
           },
         ]
       }
+      watch_clusters: {
+        Row: {
+          id: string
+          label: string
+          summary: string
+          item_ids: string[]
+          slack_article_status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          label: string
+          summary?: string
+          item_ids?: string[]
+          slack_article_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          label?: string
+          summary?: string
+          item_ids?: string[]
+          slack_article_status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      watch_digests: {
+        Row: {
+          id: string
+          week_start: string
+          week_end: string
+          summary: string
+          item_ids: string[]
+          slack_sent: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          week_start: string
+          week_end: string
+          summary?: string
+          item_ids?: string[]
+          slack_sent?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          week_start?: string
+          week_end?: string
+          summary?: string
+          item_ids?: string[]
+          slack_sent?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      watch_items: {
+        Row: {
+          id: string
+          title: string
+          body: string
+          source_url: string | null
+          content_type: string
+          tags: string[]
+          image_url: string | null
+          audio_url: string | null
+          transcript: string | null
+          embedding: string | null
+          relevance_score: number
+          is_shared: boolean
+          is_duplicate: boolean
+          duplicate_of: string | null
+          cluster_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title?: string
+          body?: string
+          source_url?: string | null
+          content_type: string
+          tags?: string[]
+          image_url?: string | null
+          audio_url?: string | null
+          transcript?: string | null
+          embedding?: string | null
+          relevance_score?: number
+          is_shared?: boolean
+          is_duplicate?: boolean
+          duplicate_of?: string | null
+          cluster_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          body?: string
+          source_url?: string | null
+          content_type?: string
+          tags?: string[]
+          image_url?: string | null
+          audio_url?: string | null
+          transcript?: string | null
+          embedding?: string | null
+          relevance_score?: number
+          is_shared?: boolean
+          is_duplicate?: boolean
+          duplicate_of?: string | null
+          cluster_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -6775,6 +7160,22 @@ export type Database = {
         Returns: undefined
       }
       validate_learner_token: { Args: { p_token: string }; Returns: Json }
+      decay_watch_relevance: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      match_watch_items: {
+        Args: {
+          query_embedding: string
+          match_threshold: number
+          match_count: number
+        }
+        Returns: {
+          id: string
+          title: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       app_module:
@@ -6800,6 +7201,7 @@ export type Database = {
         | "appreciations"
         | "lms"
         | "reseau"
+        | "veille"
       notification_type:
         | "review_requested"
         | "comment_added"
