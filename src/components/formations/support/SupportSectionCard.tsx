@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   ChevronUp, ChevronDown, Trash2, Plus, Image, Video, Mic,
-  GripVertical, Loader2, Upload, BookOpen, ExternalLink,
+  GripVertical, Loader2, Upload, BookOpen, ExternalLink, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/content/RichTextEditor";
