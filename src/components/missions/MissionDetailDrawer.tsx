@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase } from "lucide-react";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
-import { useUpdateMission, useDeleteMission } from "@/hooks/useMissions";
+import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
@@ -57,6 +57,7 @@ const MissionDetailDrawer = ({
 }: MissionDetailDrawerProps) => {
   const updateMission = useUpdateMission();
   const deleteMission = useDeleteMission();
+  const createActivity = useCreateMissionActivity();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [showDeliverables, setShowDeliverables] = useState(false);
@@ -302,11 +303,29 @@ const MissionDetailDrawer = ({
             showForm={showScheduleForm}
             setShowForm={setShowScheduleForm}
             onSchedule={async () => {
-              if (!scheduledDate || !scheduledText.trim()) return;
+              if (!scheduledDate || !scheduledText.trim() || !mission) return;
               const selectedDate = startOfDay(new Date(scheduledDate));
               const today = startOfDay(new Date());
               if (!isAfter(selectedDate, today)) return;
-              // Autosave will pick it up via scheduledDate/scheduledText state
+              // Create a corresponding activity
+              try {
+                await createActivity.mutateAsync({
+                  mission_id: mission.id,
+                  description: scheduledText.trim(),
+                  activity_date: scheduledDate,
+                  duration_type: "hours",
+                  duration: 0,
+                  billable_amount: null,
+                  invoice_url: null,
+                  invoice_number: null,
+                  is_billed: false,
+                  notes: null,
+                  google_event_id: null,
+                  google_event_link: null,
+                });
+              } catch {
+                // Activity creation is best-effort
+              }
             }}
             onClear={() => {
               setScheduledDate("");
