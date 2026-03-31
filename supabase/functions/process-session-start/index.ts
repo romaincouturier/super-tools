@@ -507,7 +507,7 @@ serve(async (req) => {
 
       // Use UTC-based range instead for reliability
       const utcWindowStart = windowStart.toISOString();
-      const utcWindowEnd = windowEnd.toISOString();
+      const utcWindowEnd = now.toISOString();
 
       const { data: liveMeetings, error: livesError } = await supabase
         .from("training_live_meetings")
