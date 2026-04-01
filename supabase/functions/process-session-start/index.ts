@@ -109,7 +109,7 @@ serve(async (req) => {
       .eq("day_date", today)
       .gte("start_time", windowStartTime + ":00")
       .lte("start_time", windowEndTime + ":59")
-      .not("trainings.format_formation", "eq", "elearning");
+      .not("trainings.format_formation", "eq", "e_learning");
 
     if (schedulesError) {
       console.error("[process-session-start] Error fetching schedules:", schedulesError);
@@ -420,7 +420,7 @@ serve(async (req) => {
           `)
           .in("id", pendingScheduleIds)
           .eq("day_date", today)
-          .not("trainings.format_formation", "eq", "elearning");
+          .not("trainings.format_formation", "eq", "e_learning");
 
         if (pendingSchedulesError) {
           console.error("[process-session-start] Error fetching schedules for pending notifications:", pendingSchedulesError);
@@ -481,7 +481,7 @@ serve(async (req) => {
         .eq("day_date", today)
         .lt("start_time", "13:00:00")
         .gt("end_time", "13:00:00")
-        .not("trainings.format_formation", "eq", "elearning");
+        .not("trainings.format_formation", "eq", "e_learning");
 
       if (fullDaySchedules && fullDaySchedules.length > 0) {
         console.log(`[process-session-start] Found ${fullDaySchedules.length} full-day schedule(s) needing PM`);
@@ -547,7 +547,7 @@ serve(async (req) => {
           const liveId = live.id;
 
           // Skip e-learning
-          if (training.format_formation === "elearning") continue;
+          if (training.format_formation === "e_learning") continue;
 
           // Determine date and period from scheduled_at
           const liveDate = new Date(live.scheduled_at);
