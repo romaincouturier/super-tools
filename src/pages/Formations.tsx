@@ -39,6 +39,7 @@ interface Training {
   created_at: string;
   session_type: string | null;
   session_format: string | null;
+  is_cancelled: boolean | null;
   participant_count?: number;
 }
 
