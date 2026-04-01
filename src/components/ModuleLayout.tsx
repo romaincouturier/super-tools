@@ -1,7 +1,9 @@
 import { ReactNode, useState } from "react";
+import { Menu } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import AppSidebar from "@/components/AppSidebar";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 interface ModuleLayoutProps {
   children: ReactNode;
@@ -24,6 +26,7 @@ function getInitialCollapsed(): boolean {
 
 const ModuleLayout = ({ children, className = "", hideSidebar, hideFooter }: ModuleLayoutProps) => {
   const [collapsed, setCollapsed] = useState(getInitialCollapsed);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleToggle = () => {
     setCollapsed((prev) => {
@@ -37,8 +40,33 @@ const ModuleLayout = ({ children, className = "", hideSidebar, hideFooter }: Mod
 
   return (
     <div className={`h-screen bg-background flex flex-col overflow-hidden ${className}`}>
-      <AppHeader />
+      <AppHeader
+        sidebarSlot={
+          !hideSidebar ? (
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="md:hidden p-2 rounded-lg hover:bg-background/10 transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          ) : undefined
+        }
+      />
+
+      {/* Mobile sidebar drawer */}
+      {!hideSidebar && (
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="w-full p-0 sm:max-w-[280px]" hideCloseButton>
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <div className="h-full" onClick={() => setMobileOpen(false)}>
+              <AppSidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
+        {/* Desktop sidebar */}
         {!hideSidebar && (
           <div className="hidden md:block">
             <AppSidebar collapsed={collapsed} onToggle={handleToggle} />

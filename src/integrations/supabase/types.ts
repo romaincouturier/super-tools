@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          messages: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string | null
+          messages?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          messages?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_brand_settings: {
         Row: {
           content: string
@@ -1331,6 +1358,48 @@ export type Database = {
           snapshot_date?: string
           table_sizes?: Json | null
           total_size_bytes?: number
+        }
+        Relationships: []
+      }
+      document_embeddings: {
+        Row: {
+          id: string
+          source_type: string
+          source_id: string
+          chunk_index: number
+          content: string
+          embedding: string | null
+          source_title: string | null
+          source_date: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          source_type: string
+          source_id: string
+          chunk_index?: number
+          content: string
+          embedding?: string | null
+          source_title?: string | null
+          source_date?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          source_type?: string
+          source_id?: string
+          chunk_index?: number
+          content?: string
+          embedding?: string | null
+          source_title?: string | null
+          source_date?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

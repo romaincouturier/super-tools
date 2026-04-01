@@ -9,13 +9,20 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { MODULE_ICONS } from "@/components/moduleIcons";
 
+import { ReactNode } from "react";
+
 interface ModuleLayout {
   order: string[];
   sizes: Record<string, string>;
   favorites?: string[];
 }
 
-const AppHeader = () => {
+interface AppHeaderProps {
+  /** Optional slot rendered before the back arrow (e.g. mobile hamburger) */
+  sidebarSlot?: ReactNode;
+}
+
+const AppHeader = ({ sidebarSlot }: AppHeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -56,6 +63,7 @@ const AppHeader = () => {
     <header className="bg-foreground text-background py-3 px-6 shadow-lg">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
+          {sidebarSlot}
           {!isDashboard && (
             <TooltipProvider>
               <Tooltip>
