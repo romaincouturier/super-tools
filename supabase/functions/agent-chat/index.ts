@@ -43,7 +43,7 @@ crm_attachments (id UUID PK, card_id UUID FK, file_name TEXT, file_path TEXT, fi
 crm_revenue_targets (id UUID PK, year INT, month INT, target_amount NUMERIC)
 
 -- Formations
-trainings (id UUID PK, training_name TEXT, client_name TEXT, location TEXT, start_date DATE, end_date DATE, status TEXT, format_formation TEXT, prerequisites TEXT[], program_file_url TEXT, created_at, updated_at)
+trainings (id UUID PK, training_name TEXT, client_name TEXT, location TEXT, start_date DATE, end_date DATE, format_formation TEXT ['intra','inter-entreprises','classe_virtuelle'], prerequisites TEXT[], program_file_url TEXT, created_at, updated_at)
 training_participants (id UUID PK, training_id UUID FK→trainings, first_name TEXT, last_name TEXT, email TEXT, company TEXT, status TEXT, created_at)
 formation_dates (id UUID PK, date_label TEXT, is_default BOOL)
 training_schedules (id UUID PK, training_id UUID FK→trainings, day_date DATE, start_time TIME, end_time TIME)
