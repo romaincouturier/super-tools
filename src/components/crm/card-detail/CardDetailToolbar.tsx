@@ -23,8 +23,10 @@ import {
   XCircle,
   Undo2,
   Calculator,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 
@@ -36,6 +38,7 @@ interface Props {
 
 const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   const { trackFeature } = useFeatureTracking();
+  const navigate = useNavigate();
   const {
     card: _card, allColumns, columnId, estimatedValue, setEstimatedValue,
     confidenceScore, setConfidenceScore, salesStatus, setShowPricingDialog,
@@ -59,6 +62,13 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           <DropdownMenuItem onClick={() => { trackFeature("ai_suggestion", "crm"); handlers.handleSuggestNextAction(); }} disabled={nextActionSuggesting}>
             {nextActionSuggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
             Suggestion IA
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => {
+            const cardTitle = state.title || "cette carte";
+            navigate(`/agent?q=${encodeURIComponent(`Analyse la carte CRM "${cardTitle}" et donne-moi un résumé complet : historique, emails, commentaires, prochaines actions recommandées.`)}`);
+          }}>
+            <Bot className="h-4 w-4 mr-2" />
+            Demander à l'agent
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

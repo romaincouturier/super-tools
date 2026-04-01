@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Bug, Lightbulb, Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { Bug, Lightbulb, Loader2, Sparkles, Copy, Check, Bot } from "lucide-react";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   SUPPORT_COLUMNS,
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export default function TicketDetail({ ticket, onUpdate }: Props) {
+  const navigate = useNavigate();
   const typeConf = TICKET_TYPE_CONFIG[ticket.type];
   const [resolutionNotes, setResolutionNotes] = useState(ticket.resolution_notes || "");
   const [title, setTitle] = useState(ticket.title);
@@ -113,10 +115,21 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
             {typeConf.label}
           </Badge>
           <span className="text-sm font-mono text-muted-foreground">{ticket.ticket_number}</span>
-          <Button variant="ghost" size="sm" className="h-7 px-2 ml-auto gap-1.5 text-xs" onClick={handleCopyAll}>
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? "Copié" : "Tout copier"}
-          </Button>
+          <div className="flex items-center gap-1 ml-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 gap-1.5 text-xs"
+              onClick={() => navigate(`/agent?q=${encodeURIComponent(`Analyse le ticket support "${ticket.title}" (${ticket.ticket_number}) : description, statut, et propose une solution ou prochaine action.`)}`)}
+              title="Demander à l'agent"
+            >
+              <Bot className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 gap-1.5 text-xs" onClick={handleCopyAll}>
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? "Copié" : "Tout copier"}
+            </Button>
+          </div>
         </div>
         <SheetTitle className="text-left sr-only">{ticket.title}</SheetTitle>
       </SheetHeader>

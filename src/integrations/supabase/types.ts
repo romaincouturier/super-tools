@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          messages: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string | null
+          messages?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          messages?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_brand_settings: {
         Row: {
           content: string
@@ -1334,6 +1361,48 @@ export type Database = {
         }
         Relationships: []
       }
+      document_embeddings: {
+        Row: {
+          id: string
+          source_type: string
+          source_id: string
+          chunk_index: number
+          content: string
+          embedding: string | null
+          source_title: string | null
+          source_date: string | null
+          metadata: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          source_type: string
+          source_id: string
+          chunk_index?: number
+          content: string
+          embedding?: string | null
+          source_title?: string | null
+          source_date?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          source_type?: string
+          source_id?: string
+          chunk_index?: number
+          content?: string
+          embedding?: string | null
+          source_title?: string | null
+          source_date?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       devis_signatures: {
         Row: {
           activity_log_id: string
@@ -2148,6 +2217,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      indexation_queue: {
+        Row: {
+          id: string
+          source_type: string
+          source_id: string
+          operation: string
+          created_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          source_type: string
+          source_id: string
+          operation?: string
+          created_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          source_type?: string
+          source_id?: string
+          operation?: string
+          created_at?: string
+          processed_at?: string | null
+        }
+        Relationships: []
       }
       inbound_emails: {
         Row: {
@@ -6912,6 +7008,10 @@ export type Database = {
     }
     Functions: {
       adjust_cron_timezones: { Args: never; Returns: Json }
+      agent_sql_query: {
+        Args: { query_text: string }
+        Returns: Json
+      }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -7128,6 +7228,25 @@ export type Database = {
       mark_devis_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
+      }
+      match_documents: {
+        Args: {
+          filter_source_types?: string[] | null
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+          source_date: string | null
+          source_id: string
+          source_title: string | null
+          source_type: string
+        }[]
       }
       match_watch_items: {
         Args: {

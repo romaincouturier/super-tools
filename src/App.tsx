@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import AgentCommandDialog from "@/components/AgentCommandDialog";
 import "@/i18n";
 import { registerToast } from "@/lib/offlineMutationGuard";
 import { toast } from "@/hooks/use-toast";
@@ -83,6 +84,7 @@ const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
+const AgentChat = lazy(() => import("./pages/AgentChat"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -115,11 +117,13 @@ const App = () => (
       <OfflineBanner />
       <BrowserRouter>
         <PageViewTracker />
+        <AgentCommandDialog />
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/agent" element={<AgentChat />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
               <Route path="/historique" element={<Historique />} />
