@@ -171,7 +171,7 @@ async function postDigestToSlack(summary: string, weekStart: string, weekEnd: st
       method: "POST",
       headers,
       body: JSON.stringify({ channel: channelTarget }),
-    }).catch(() => {});
+    }).catch((err) => console.error("Slack conversations.join failed:", err));
   }
 
   const blocks = [

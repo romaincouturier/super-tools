@@ -215,7 +215,7 @@ serve(async (req) => {
         headers: gatewayHeaders,
         body: JSON.stringify({ channel: channelTarget }),
       });
-      joinData = await joinRes.json().catch(() => ({}));
+      joinData = await joinRes.json().catch((err) => { console.error("Slack conversations.join JSON parse error:", err); return {}; });
     }
 
     const slackResponse = await fetch(`${GATEWAY_URL}/chat.postMessage`, {
@@ -230,7 +230,7 @@ serve(async (req) => {
       }),
     });
 
-    const slackData = await slackResponse.json().catch(() => ({}));
+    const slackData = await slackResponse.json().catch((err) => { console.error("Slack chat.postMessage JSON parse error:", err); return {}; });
 
     if (!slackResponse.ok || (slackData as { ok?: boolean }).ok === false) {
       const slackError = (slackData as { error?: string })?.error || `HTTP ${slackResponse.status}`;

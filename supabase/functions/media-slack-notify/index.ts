@@ -107,7 +107,7 @@ serve(async (req) => {
       if (cursor) url.searchParams.set("cursor", cursor);
 
       const res = await fetch(url.toString(), { headers: gatewayHeaders });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch((err) => { console.error("Slack conversations.list JSON parse error:", err); return {}; });
       if (!res.ok || data?.ok === false) break;
 
       const match = data?.channels?.find(
@@ -126,7 +126,7 @@ serve(async (req) => {
         method: "POST",
         headers: gatewayHeaders,
         body: JSON.stringify({ channel: channelTarget }),
-      }).catch(() => {});
+      }).catch((err) => console.error("Slack conversations.join failed:", err));
     }
 
     const message = buildSlackMessage(body);
@@ -143,7 +143,7 @@ serve(async (req) => {
       }),
     });
 
-    const slackData = await slackResponse.json().catch(() => ({}));
+    const slackData = await slackResponse.json().catch((err) => { console.error("Slack chat.postMessage JSON parse error:", err); return {}; });
 
     if (!slackResponse.ok || (slackData as { ok?: boolean }).ok === false) {
       const slackError = (slackData as { error?: string })?.error || `HTTP ${slackResponse.status}`;

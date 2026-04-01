@@ -292,7 +292,7 @@ serve(async (req: Request): Promise<Response> => {
         console.log(`Trainer notified: ${trainerEmail} (${signed.length} signed, ${pending.length} pending)`);
       }
     } catch (trainerNotifyErr) {
-      console.warn("Failed to notify trainer of signature:", trainerNotifyErr);
+      console.error("Failed to notify trainer of signature:", trainerNotifyErr);
     }
 
     console.log(`Attendance signature submitted for token ${token} from IP ${ipAddress}`);

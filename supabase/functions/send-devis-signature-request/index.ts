@@ -164,7 +164,7 @@ serve(async (req: Request): Promise<Response> => {
         },
       });
     } catch (logError) {
-      console.warn("Failed to log activity:", logError);
+      console.error("Failed to log activity:", logError);
     }
 
     return new Response(
