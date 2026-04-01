@@ -164,6 +164,11 @@ else
   check "011" "globPatterns dans vite.config.ts ne contient pas 'js'" \
     "grep 'globPatterns' vite.config.ts | grep '\.js'"
 
+  # [014] Pas d'accès données direct dans les pages agent-chat (nouveaux modules doivent respecter la séparation)
+  # Known pre-existing: nombreux composants legacy (crm, content, quotes, events, settings) — hors scope
+  check "014" "Pas de supabase.from() ou fetch() direct dans les pages/composants agent" \
+    "grep -rn 'supabase\.from\|\.fetch(' src/components/agent* src/pages/Agent* --include='*.tsx' 2>/dev/null | grep -v 'use[A-Z].*\.ts' | grep -v node_modules | grep -v '// safe:'"
+
   # [012] Composants UI morts (0 imports hors de leur propre fichier)
   check "012" "Pas de composants UI non importés" \
     "for f in src/components/ui/*.tsx; do name=\$(basename \"\$f\" .tsx); count=\$(grep -r \"from.*ui/\$name\" src/ --include='*.tsx' --include='*.ts' -l 2>/dev/null | grep -v \"ui/\$name.tsx\" | wc -l); [ \"\$count\" -eq 0 ] && echo \"DEAD: \$name\"; done"
