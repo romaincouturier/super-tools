@@ -202,6 +202,7 @@ const Formations = () => {
   const upcomingTrainings = useMemo(() =>
     trainings.filter((t) => {
       if (!t.start_date) return false; // Permanent → not "upcoming"
+      if (t.is_cancelled) return false; // Exclude cancelled trainings
       const startDate = parseISO(t.start_date);
       return (isFuture(startDate) && !isToday(startDate)) && matchesFilters(t);
     }),
