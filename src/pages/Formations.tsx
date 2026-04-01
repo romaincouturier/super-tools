@@ -39,6 +39,7 @@ interface Training {
   created_at: string;
   session_type: string | null;
   session_format: string | null;
+  is_cancelled: boolean | null;
   participant_count?: number;
 }
 
@@ -202,6 +203,7 @@ const Formations = () => {
   const upcomingTrainings = useMemo(() =>
     trainings.filter((t) => {
       if (!t.start_date) return false; // Permanent → not "upcoming"
+      if (t.is_cancelled) return false; // Exclude cancelled trainings
       const startDate = parseISO(t.start_date);
       return (isFuture(startDate) && !isToday(startDate)) && matchesFilters(t);
     }),
@@ -209,7 +211,7 @@ const Formations = () => {
   );
 
   const ongoingTrainings = useMemo(() =>
-    trainings.filter((t) => isOngoing(t) && matchesFilters(t)),
+    trainings.filter((t) => !t.is_cancelled && isOngoing(t) && matchesFilters(t)),
     [trainings, matchesFilters]
   );
 
