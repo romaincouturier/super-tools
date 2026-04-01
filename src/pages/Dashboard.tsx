@@ -65,6 +65,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import DailyTodoPanel from "@/components/dashboard/DailyTodoPanel";
 import UpcomingCalendarPanel from "@/components/dashboard/UpcomingCalendarPanel";
 
