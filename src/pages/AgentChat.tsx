@@ -24,6 +24,7 @@ const AgentChat = () => {
     messages,
     isLoading,
     conversationId,
+    toolStatus,
     sendMessage,
     newConversation,
     loadConversation,
@@ -176,9 +177,15 @@ const AgentChat = () => {
               ) : (
                 <div className="space-y-6">
                   {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
+                    <MessageBubble key={msg.id} message={msg} isStreaming={isLoading && msg === messages[messages.length - 1] && msg.role === "assistant"} />
                   ))}
-                  {isLoading && <ThinkingIndicator />}
+                  {isLoading && !messages.length && <ThinkingIndicator toolStatus={toolStatus} />}
+                  {isLoading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && !messages[messages.length - 1].content && (
+                    <ThinkingIndicator toolStatus={toolStatus} />
+                  )}
+                  {isLoading && toolStatus && messages[messages.length - 1]?.content && (
+                    <ToolStatusBadge status={toolStatus} />
+                  )}
                 </div>
               )}
             </div>
@@ -256,8 +263,10 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
   );
 }
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStreaming?: boolean }) {
   const isUser = message.role === "user";
+
+  if (!isUser && !message.content) return null;
 
   return (
     <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
@@ -280,6 +289,9 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         ) : (
           <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_th]:px-2 [&_td]:px-2">
             <ReactMarkdown>{message.content}</ReactMarkdown>
+            {isStreaming && (
+              <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
+            )}
           </div>
         )}
       </div>
@@ -287,7 +299,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   );
 }
 
-function ThinkingIndicator() {
+function ThinkingIndicator({ toolStatus }: { toolStatus: string | null }) {
   return (
     <div className="flex gap-3">
       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -295,7 +307,18 @@ function ThinkingIndicator() {
       </div>
       <div className="bg-muted rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Réflexion en cours...
+        {toolStatus || "Réflexion en cours..."}
+      </div>
+    </div>
+  );
+}
+
+function ToolStatusBadge({ status }: { status: string }) {
+  return (
+    <div className="flex gap-3 ml-11">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs text-primary">
+        <Loader2 className="w-3 h-3 animate-spin" />
+        {status}
       </div>
     </div>
   );

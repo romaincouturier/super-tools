@@ -288,7 +288,144 @@ const extractors: Record<string, Extractor> = {
         };
       });
   },
+
+  async crm_attachment(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "crm_attachments",
+      "id, card_id, file_name, file_path, file_size, mime_type, created_at",
+      sourceId,
+    );
+    const results: ExtractedDoc[] = [];
+    for (const r of data || []) {
+      const fileText = await extractTextFromStorage("crm-attachments", r.file_path, r.mime_type || "");
+      const content = [
+        `Pièce jointe CRM: ${r.file_name}`,
+        `Type: ${r.mime_type}`,
+        fileText,
+      ].filter(Boolean).join("\n");
+
+      results.push({
+        source_id: r.id,
+        content,
+        source_title: r.file_name,
+        source_date: r.created_at,
+        metadata: { card_id: r.card_id, mime_type: r.mime_type, file_size: r.file_size },
+      });
+    }
+    return results;
+  },
+
+  async support_attachment(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "support_ticket_attachments",
+      "id, ticket_id, file_name, file_path, file_size, mime_type, created_at",
+      sourceId,
+    );
+    const results: ExtractedDoc[] = [];
+    for (const r of data || []) {
+      const fileText = await extractTextFromStorage("support-attachments", r.file_path, r.mime_type || "");
+      const content = [
+        `Pièce jointe Support: ${r.file_name}`,
+        `Type: ${r.mime_type}`,
+        fileText,
+      ].filter(Boolean).join("\n");
+
+      results.push({
+        source_id: r.id,
+        content,
+        source_title: r.file_name,
+        source_date: r.created_at,
+        metadata: { ticket_id: r.ticket_id, mime_type: r.mime_type, file_size: r.file_size },
+      });
+    }
+    return results;
+  },
 };
+
+// ── File content extraction from Storage ────────────────────
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+/** Download a file from Supabase Storage and extract text content */
+async function extractTextFromStorage(bucketId: string, filePath: string, mimeType: string): Promise<string> {
+  const url = `${SUPABASE_URL}/storage/v1/object/${bucketId}/${filePath}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+  });
+
+  if (!res.ok) {
+    console.warn(`Failed to download ${bucketId}/${filePath}: ${res.status}`);
+    return "";
+  }
+
+  // Plain text and CSV: read directly
+  if (mimeType === "text/plain" || mimeType === "text/csv") {
+    return await res.text();
+  }
+
+  // PDF: basic text extraction from PDF stream objects
+  if (mimeType === "application/pdf") {
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return extractTextFromPdfBytes(buf);
+  }
+
+  // For Word, Excel, images — we can't extract text easily in Deno
+  // Just return empty (metadata will still be indexed)
+  return "";
+}
+
+/** Basic PDF text extraction: finds text between BT/ET operators in PDF streams */
+function extractTextFromPdfBytes(bytes: Uint8Array): string {
+  const text: string[] = [];
+
+  // Decode the raw bytes as latin1 to preserve all byte values
+  let raw = "";
+  for (let i = 0; i < bytes.length; i++) {
+    raw += String.fromCharCode(bytes[i]);
+  }
+
+  // Look for text in PDF literal strings within BT..ET blocks
+  const btEtRegex = /BT\s([\s\S]*?)ET/g;
+  let match;
+  while ((match = btEtRegex.exec(raw)) !== null) {
+    const block = match[1];
+
+    // Extract literal strings: (text here) Tj or (text here) TJ or (text here) '
+    const stringRegex = /\(([^)]*)\)\s*(?:Tj|TJ|')/g;
+    let strMatch;
+    while ((strMatch = stringRegex.exec(block)) !== null) {
+      const decoded = strMatch[1]
+        .replace(/\\n/g, "\n")
+        .replace(/\\r/g, "\r")
+        .replace(/\\t/g, "\t")
+        .replace(/\\\(/g, "(")
+        .replace(/\\\)/g, ")")
+        .replace(/\\\\/g, "\\");
+      if (decoded.trim()) {
+        text.push(decoded.trim());
+      }
+    }
+
+    // Also extract hex strings: <hex> Tj
+    const hexRegex = /<([0-9A-Fa-f]+)>\s*(?:Tj|TJ|')/g;
+    let hexMatch;
+    while ((hexMatch = hexRegex.exec(block)) !== null) {
+      const hex = hexMatch[1];
+      let decoded = "";
+      for (let i = 0; i < hex.length; i += 2) {
+        decoded += String.fromCharCode(parseInt(hex.substring(i, i + 2), 16));
+      }
+      if (decoded.trim()) {
+        text.push(decoded.trim());
+      }
+    }
+  }
+
+  return text.join(" ").replace(/\s+/g, " ").trim();
+}
 
 // ── Embedding generation ─────────────────────────────────────
 

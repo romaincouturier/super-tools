@@ -19,6 +19,8 @@ const SOURCE_TYPES = [
   { key: "content_card", label: "Contenu éditorial", description: "Cartes de contenu" },
   { key: "lms_lesson", label: "Leçons e-learning", description: "Cours, transcripts" },
   { key: "activity_log", label: "Micro-devis", description: "Historique des devis envoyés" },
+  { key: "crm_attachment", label: "Pièces jointes CRM", description: "PDF, documents, images des cartes CRM" },
+  { key: "support_attachment", label: "Pièces jointes Support", description: "Fichiers joints aux tickets support" },
 ];
 
 type BackfillStatus = "idle" | "running" | "done" | "error";

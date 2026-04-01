@@ -2,25 +2,24 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
-  createJsonResponse,
   getSupabaseClient,
   verifyAuth,
+  corsHeaders,
 } from "../_shared/mod.ts";
 
 /**
  * Agent Chat — AI assistant with access to all SuperTools data.
  *
+ * Streams responses via SSE:
+ *   - event: status   → { text: "..." }           tool execution status
+ *   - event: delta    → { text: "..." }           text chunk from Claude
+ *   - event: done     → { conversation_id: "..." } final metadata
+ *   - event: error    → { text: "..." }           error message
+ *
  * Tools:
  *   1. query_database  — Execute read-only SQL queries
- *   2. search_content   — Semantic search via RAG (document_embeddings)
- *   3. execute_action   — Perform write actions (with confirmation)
- *
- * Flow:
- *   Frontend sends { message, conversation_id? }
- *   → We load/create conversation history
- *   → Call Claude API with tools
- *   → Execute tool calls in a loop until Claude produces a final response
- *   → Save conversation & return response
+ *   2. search_content  — Semantic search via RAG (document_embeddings)
+ *   3. execute_action  — Perform write actions (with confirmation)
  */
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -145,7 +144,7 @@ const TOOLS = [
   {
     name: "search_content",
     description:
-      "Semantic search across all indexed content (CRM emails, comments, notes, training descriptions, mission details, quotes, inbound emails, coaching summaries, support tickets, etc.). Use this when the user asks about the meaning or context of content, not just structured fields. Returns the most semantically similar documents.",
+      "Semantic search across all indexed content (CRM emails, comments, notes, training descriptions, mission details, quotes, inbound emails, coaching summaries, support tickets, file attachments, etc.). Use this when the user asks about the meaning or context of content, not just structured fields. Returns the most semantically similar documents.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -157,7 +156,7 @@ const TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log",
+            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, crm_attachment, support_attachment",
         },
         max_results: {
           type: "number",
@@ -197,6 +196,14 @@ const TOOLS = [
   },
 ];
 
+// ── Tool labels for streaming status ────────────────────────
+
+const TOOL_LABELS: Record<string, string> = {
+  query_database: "Requête base de données",
+  search_content: "Recherche dans les contenus",
+  execute_action: "Exécution d'une action",
+};
+
 // ── Tool execution ───────────────────────────────────────────
 
 async function executeTool(
@@ -227,7 +234,6 @@ async function executeTool(
       const sourceTypes = toolInput.source_types as string[] | undefined;
       const maxResults = Math.min((toolInput.max_results as number) || 10, 20);
 
-      // Generate query embedding
       if (!OPENAI_API_KEY) {
         return JSON.stringify({ error: "OPENAI_API_KEY not configured for search" });
       }
@@ -266,7 +272,6 @@ async function executeTool(
           return JSON.stringify({ error: error.message });
         }
 
-        // Format results for Claude
         const results = (data || []).map((r: Record<string, unknown>) => ({
           source_type: r.source_type,
           title: r.source_title,
@@ -290,9 +295,7 @@ async function executeTool(
 
       try {
         switch (action) {
-          // ── CRM ──────────────────────────────────────────
           case "move_crm_card": {
-            // params: { card_id, column_id }
             const { error } = await supabase
               .from("crm_cards")
               .update({ column_id: params.column_id, updated_at: new Date().toISOString() })
@@ -302,7 +305,6 @@ async function executeTool(
           }
 
           case "update_crm_card": {
-            // params: { card_id, ...fields to update }
             const { card_id, ...updates } = params;
             const { error } = await supabase
               .from("crm_cards")
@@ -313,7 +315,6 @@ async function executeTool(
           }
 
           case "add_crm_comment": {
-            // params: { card_id, content, author_email }
             const { error } = await supabase
               .from("crm_comments")
               .insert({
@@ -325,9 +326,7 @@ async function executeTool(
             return JSON.stringify({ success: true, message: "Commentaire ajouté" });
           }
 
-          // ── Missions ─────────────────────────────────────
           case "update_mission_status": {
-            // params: { mission_id, status }
             const validStatuses = ["not_started", "in_progress", "completed", "cancelled"];
             if (!validStatuses.includes(params.status as string)) {
               return JSON.stringify({ error: `Statut invalide. Valeurs: ${validStatuses.join(", ")}` });
@@ -340,9 +339,7 @@ async function executeTool(
             return JSON.stringify({ success: true, message: "Statut de la mission mis à jour" });
           }
 
-          // ── Support Tickets ──────────────────────────────
           case "update_ticket_status": {
-            // params: { ticket_id, status, resolution_notes? }
             const validTicketStatuses = ["nouveau", "en_cours", "en_attente", "resolu", "ferme"];
             if (!validTicketStatuses.includes(params.status as string)) {
               return JSON.stringify({ error: `Statut invalide. Valeurs: ${validTicketStatuses.join(", ")}` });
@@ -362,9 +359,7 @@ async function executeTool(
             return JSON.stringify({ success: true, message: "Ticket mis à jour" });
           }
 
-          // ── Quotes ───────────────────────────────────────
           case "update_quote_status": {
-            // params: { quote_id, status }
             const validQuoteStatuses = ["draft", "generated", "sent", "signed", "expired", "canceled"];
             if (!validQuoteStatuses.includes(params.status as string)) {
               return JSON.stringify({ error: `Statut invalide. Valeurs: ${validQuoteStatuses.join(", ")}` });
@@ -377,10 +372,7 @@ async function executeTool(
             return JSON.stringify({ success: true, message: "Statut du devis mis à jour" });
           }
 
-          // ── Formations ───────────────────────────────────
           case "add_training_note": {
-            // params: { training_id, content, author_email }
-            // Uses formation_configs as a note store
             const { error } = await supabase
               .from("formation_configs")
               .insert({
@@ -411,25 +403,36 @@ async function executeTool(
   }
 }
 
-// ── Claude API call with tool loop ───────────────────────────
+// ── SSE helpers ─────────────────────────────────────────────
+
+function sseEvent(event: string, data: Record<string, unknown>): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+// ── Streaming agent with tool loop ──────────────────────────
 
 interface Message {
   role: string;
   content: unknown;
 }
 
-async function runAgent(
+async function runAgentStreaming(
   messages: Message[],
   supabase: ReturnType<typeof getSupabaseClient>,
-): Promise<{ response: string; updatedMessages: Message[] }> {
+  writer: WritableStreamDefaultWriter<Uint8Array>,
+): Promise<{ fullResponse: string; updatedMessages: Message[] }> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY not configured");
   }
 
+  const encoder = new TextEncoder();
+  const write = (text: string) => writer.write(encoder.encode(text));
+
   const conversationMessages = [...messages];
-  let finalResponse = "";
+  let fullResponse = "";
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    // Call Claude with streaming
     const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -440,6 +443,7 @@ async function runAgent(
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 4096,
+        stream: true,
         system: SYSTEM_PROMPT,
         tools: TOOLS,
         messages: conversationMessages,
@@ -452,26 +456,116 @@ async function runAgent(
       throw new Error(`Claude API error: ${apiRes.status}`);
     }
 
-    const result = await apiRes.json();
-    const stopReason = result.stop_reason;
-    const contentBlocks = result.content || [];
+    // Parse SSE stream from Claude
+    const reader = apiRes.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let stopReason = "";
+    const contentBlocks: Array<Record<string, unknown>> = [];
+    let currentBlockIndex = -1;
+    let currentBlockType = "";
+    let currentText = "";
+    let currentToolName = "";
+    let currentToolId = "";
+    let currentToolInput = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]" || !jsonStr) continue;
+
+        let event;
+        try {
+          event = JSON.parse(jsonStr);
+        } catch {
+          continue;
+        }
+
+        switch (event.type) {
+          case "content_block_start": {
+            currentBlockIndex = event.index;
+            const block = event.content_block;
+            currentBlockType = block.type;
+            if (block.type === "text") {
+              currentText = block.text || "";
+            } else if (block.type === "tool_use") {
+              currentToolName = block.name;
+              currentToolId = block.id;
+              currentToolInput = "";
+              // Send status to client
+              const label = TOOL_LABELS[block.name] || block.name;
+              await write(sseEvent("status", { text: label }));
+            }
+            break;
+          }
+
+          case "content_block_delta": {
+            if (currentBlockType === "text" && event.delta?.text) {
+              currentText += event.delta.text;
+              // Stream text delta to client
+              await write(sseEvent("delta", { text: event.delta.text }));
+            } else if (currentBlockType === "tool_use" && event.delta?.partial_json) {
+              currentToolInput += event.delta.partial_json;
+            }
+            break;
+          }
+
+          case "content_block_stop": {
+            if (currentBlockType === "text") {
+              contentBlocks[currentBlockIndex] = {
+                type: "text",
+                text: currentText,
+              };
+            } else if (currentBlockType === "tool_use") {
+              let parsedInput = {};
+              try {
+                parsedInput = JSON.parse(currentToolInput);
+              } catch {
+                // empty
+              }
+              contentBlocks[currentBlockIndex] = {
+                type: "tool_use",
+                id: currentToolId,
+                name: currentToolName,
+                input: parsedInput,
+              };
+            }
+            break;
+          }
+
+          case "message_delta": {
+            if (event.delta?.stop_reason) {
+              stopReason = event.delta.stop_reason;
+            }
+            break;
+          }
+        }
+      }
+    }
 
     // Add assistant response to conversation
-    conversationMessages.push({ role: "assistant", content: contentBlocks });
+    const validBlocks = contentBlocks.filter(Boolean);
+    conversationMessages.push({ role: "assistant", content: validBlocks });
 
-    // If Claude is done (no more tool use), extract text response
+    // If Claude is done, extract full text
     if (stopReason === "end_turn" || stopReason !== "tool_use") {
-      finalResponse = contentBlocks
-        .filter((b: Record<string, unknown>) => b.type === "text")
-        .map((b: Record<string, unknown>) => b.text)
+      fullResponse = validBlocks
+        .filter((b) => b.type === "text")
+        .map((b) => b.text as string)
         .join("\n");
       break;
     }
 
     // Execute tool calls
-    const toolUseBlocks = contentBlocks.filter(
-      (b: Record<string, unknown>) => b.type === "tool_use",
-    );
+    const toolUseBlocks = validBlocks.filter((b) => b.type === "tool_use");
 
     const toolResults: Array<{
       type: "tool_result";
@@ -492,11 +586,10 @@ async function runAgent(
       });
     }
 
-    // Add tool results to conversation
     conversationMessages.push({ role: "user", content: toolResults });
   }
 
-  return { response: finalResponse, updatedMessages: conversationMessages };
+  return { fullResponse, updatedMessages: conversationMessages };
 }
 
 // ── Main handler ─────────────────────────────────────────────
@@ -538,37 +631,70 @@ serve(async (req) => {
     // Add user message
     messages.push({ role: "user", content: message });
 
-    // Run the agent
-    const { response, updatedMessages } = await runAgent(messages, supabase);
+    // Set up SSE stream
+    const { readable, writable } = new TransformStream<Uint8Array>();
+    const writer = writable.getWriter();
 
-    // Save conversation
-    const conversationData = {
-      user_id: userId,
-      title: !conversationId ? message.slice(0, 100) : undefined,
-      messages: updatedMessages,
-      updated_at: new Date().toISOString(),
-    };
+    // Run agent in background, writing to the stream
+    (async () => {
+      const encoder = new TextEncoder();
+      try {
+        const { fullResponse, updatedMessages } = await runAgentStreaming(
+          messages,
+          supabase,
+          writer,
+        );
 
-    if (conversationId) {
-      await supabase
-        .from("agent_conversations")
-        .update({
+        // Save conversation
+        const conversationData = {
+          user_id: userId,
+          title: !conversationId ? message.slice(0, 100) : undefined,
           messages: updatedMessages,
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", conversationId);
-    } else {
-      const { data: newConv } = await supabase
-        .from("agent_conversations")
-        .insert(conversationData)
-        .select("id")
-        .single();
-      conversationId = newConv?.id;
-    }
+        };
 
-    return createJsonResponse({
-      response,
-      conversation_id: conversationId,
+        if (conversationId) {
+          await supabase
+            .from("agent_conversations")
+            .update({
+              messages: updatedMessages,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", conversationId);
+        } else {
+          const { data: newConv } = await supabase
+            .from("agent_conversations")
+            .insert(conversationData)
+            .select("id")
+            .single();
+          conversationId = newConv?.id;
+        }
+
+        // Send done event
+        await writer.write(
+          encoder.encode(
+            sseEvent("done", {
+              conversation_id: conversationId,
+              response: fullResponse,
+            }),
+          ),
+        );
+      } catch (error: unknown) {
+        console.error("Agent streaming error:", error);
+        const msg = error instanceof Error ? error.message : "Erreur interne";
+        await writer.write(encoder.encode(sseEvent("error", { text: msg })));
+      } finally {
+        await writer.close();
+      }
+    })();
+
+    return new Response(readable, {
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
     });
   } catch (error: unknown) {
     console.error("Agent chat error:", error);
