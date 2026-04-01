@@ -83,6 +83,7 @@ const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
+const AgentChat = lazy(() => import("./pages/AgentChat"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -120,6 +121,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/agent" element={<AgentChat />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
               <Route path="/historique" element={<Historique />} />
