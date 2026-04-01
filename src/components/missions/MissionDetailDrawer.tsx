@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +60,7 @@ const MissionDetailDrawer = ({
   const deleteMission = useDeleteMission();
   const createActivity = useCreateMissionActivity();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
@@ -255,6 +257,14 @@ const MissionDetailDrawer = ({
       </Button>
       <Button size="sm" variant="outline" onClick={handleShareLink} title="Copier le lien de partage">
         {copied ? <Check className="h-4 w-4 text-green-600" /> : <Share2 className="h-4 w-4" />}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => navigate(`/agent?q=${encodeURIComponent(`Analyse la mission "${mission.title}" : activité récente, heures consommées, état d'avancement et recommandations.`)}`)}
+        title="Demander à l'agent"
+      >
+        <Bot className="h-4 w-4" />
       </Button>
     </>
   );

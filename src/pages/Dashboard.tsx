@@ -31,6 +31,8 @@ import {
   GraduationCap,
   Camera,
   Eye,
+  Bot,
+  Send,
 } from "lucide-react";
 import {
   DndContext,
@@ -513,6 +515,40 @@ const SortableToolCard = ({
   );
 };
 
+// ---------- Agent Quick Input ----------
+
+function AgentQuickInput() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const handleSend = () => {
+    if (!query.trim()) return;
+    navigate(`/agent?q=${encodeURIComponent(query.trim())}`);
+  };
+
+  return (
+    <Card className="p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Bot className="h-4 w-4 text-primary" />
+        <span className="text-sm font-medium">Agent IA</span>
+        <span className="text-[10px] text-muted-foreground ml-auto">⌘K</span>
+      </div>
+      <div className="flex gap-1.5">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          placeholder="Posez une question..."
+          className="flex-1 text-sm bg-muted/50 rounded-md px-2.5 py-1.5 outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30"
+        />
+        <Button size="sm" variant="ghost" className="h-8 px-2 shrink-0" disabled={!query.trim()} onClick={handleSend}>
+          <Send className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 // ---------- Dashboard ----------
 
 const DEFAULT_SIZE: ModuleSize = "normal";
@@ -722,6 +758,7 @@ const Dashboard = () => {
 
           {/* Daily TODO + Calendar — right column */}
           <aside className="hidden lg:flex lg:flex-col w-80 shrink-0 gap-4 sticky top-6 self-start max-h-[calc(100vh-6rem)]">
+            <AgentQuickInput />
             <Card className="p-4 min-h-0 flex-1 flex flex-col overflow-hidden">
               <UpcomingCalendarPanel />
             </Card>

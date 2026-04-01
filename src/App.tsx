@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import AgentCommandDialog from "@/components/AgentCommandDialog";
 import "@/i18n";
 import { registerToast } from "@/lib/offlineMutationGuard";
 import { toast } from "@/hooks/use-toast";
@@ -116,6 +117,7 @@ const App = () => (
       <OfflineBanner />
       <BrowserRouter>
         <PageViewTracker />
+        <AgentCommandDialog />
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
