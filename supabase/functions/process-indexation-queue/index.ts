@@ -9,9 +9,8 @@ import {
 /**
  * Process pending indexation queue items.
  *
- * Called by pg_net from the enqueue_indexation() trigger after each data change.
- * NOT called from the frontend — no user auth required.
- * Authentication relies on the SERVICE_ROLE_KEY.
+ * Called automatically by pg_net from the enqueue_indexation() trigger,
+ * or manually from the admin settings UI as a fallback if pg_net is unavailable.
  *
  * For each pending item, calls the index-documents function internally,
  * then marks it as processed. For 'delete' operations, removes embeddings directly.

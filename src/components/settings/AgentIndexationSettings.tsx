@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, CheckCircle2, AlertCircle, Database } from "lucide-react";
+import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 const SOURCE_TYPES = [
@@ -29,6 +29,52 @@ export default function AgentIndexationSettings() {
   const [statuses, setStatuses] = useState<Record<string, BackfillStatus>>({});
   const [results, setResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
+  const [stuckCount, setStuckCount] = useState<number | null>(null);
+  const [processingQueue, setProcessingQueue] = useState(false);
+
+  // Check for stuck queue items (pending > 5 min = pg_net likely not working)
+  useEffect(() => {
+    const checkQueueHealth = async () => {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from("indexation_queue")
+        .select("*", { count: "exact", head: true })
+        .is("processed_at", null)
+        .lt("created_at", fiveMinAgo);
+
+      if (!error) setStuckCount(count ?? 0);
+    };
+    checkQueueHealth();
+  }, [statuses]); // re-check after backfills
+
+  const processQueue = async () => {
+    setProcessingQueue(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Non authentifié");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({}),
+        },
+      );
+
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      toast.success(`Queue traitée : ${data.processed} éléments indexés`);
+      setStuckCount(0);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur de traitement");
+    } finally {
+      setProcessingQueue(false);
+    }
+  };
 
   const runBackfill = async (sourceType: string) => {
     setStatuses((prev) => ({ ...prev, [sourceType]: "running" }));
@@ -88,10 +134,30 @@ export default function AgentIndexationSettings() {
         </CardTitle>
         <CardDescription>
           Indexez vos contenus existants pour que l'agent puisse les rechercher.
-          L'indexation continue est automatique (toutes les 2 min via les triggers).
+          L'indexation continue est automatique via les triggers de base de données.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {stuckCount !== null && stuckCount > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900">
+            <TriangleAlert className="h-5 w-5 shrink-0" />
+            <div className="flex-1 text-sm">
+              <strong>{stuckCount} élément{stuckCount > 1 ? "s" : ""}</strong> en attente depuis plus de 5 min.
+              L'indexation automatique ne fonctionne peut-être pas (pg_net indisponible).
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={processQueue}
+              disabled={processingQueue}
+              className="shrink-0 gap-1.5"
+            >
+              {processingQueue ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              Traiter maintenant
+            </Button>
+          </div>
+        )}
+
         <Button onClick={runAllBackfill} disabled={runningAll} className="gap-2">
           {runningAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           Tout indexer
