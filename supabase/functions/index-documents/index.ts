@@ -351,7 +351,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "
 
 /** Download a file from Supabase Storage and extract text content */
 async function extractTextFromStorage(bucketId: string, filePath: string, mimeType: string): Promise<string> {
-  const url = `${SUPABASE_URL}/storage/v1/object/${bucketId}/${filePath}`;
+  const url = `${SUPABASE_URL}/storage/v1/object/authenticated/${bucketId}/${filePath}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
   });

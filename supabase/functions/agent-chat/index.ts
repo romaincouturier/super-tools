@@ -34,7 +34,7 @@ Tables principales (PostgreSQL / Supabase) :
 
 -- CRM
 crm_cards (id UUID PK, title TEXT, description_html TEXT, sales_status TEXT ['OPEN','WON','LOST','CANCELED'], status_operational TEXT ['TODAY','WAITING'], estimated_value NUMERIC, contact_email TEXT, contact_phone TEXT, column_id UUID FK→crm_columns, waiting_next_action_text TEXT, waiting_next_action_date TIMESTAMPTZ, created_at, updated_at)
-crm_columns (id UUID PK, name TEXT, display_order INT, pipeline_type TEXT)
+crm_columns (id UUID PK, name TEXT, position INT, is_archived BOOL)
 crm_comments (id UUID PK, card_id UUID FK→crm_cards, content TEXT, author_email TEXT, is_deleted BOOL, created_at)
 crm_card_emails (id UUID PK, card_id UUID FK→crm_cards, subject TEXT, body_html TEXT, sender_email TEXT, recipient_email TEXT, sent_at TIMESTAMPTZ, attachment_names TEXT[], delivery_status TEXT, opened_at TIMESTAMPTZ, open_count INT, clicked_at TIMESTAMPTZ, click_count INT)
 crm_card_tags (card_id UUID FK, tag_id UUID FK)

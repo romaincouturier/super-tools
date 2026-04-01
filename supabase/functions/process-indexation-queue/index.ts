@@ -54,8 +54,8 @@ serve(async (req) => {
       const existing = dedupMap.get(key);
       if (existing) {
         existing.ids.push(item.id);
-        // If any operation is 'delete', the final op is 'delete'
-        if (item.operation === "delete") existing.operation = "delete";
+        // Last operation in chronological order wins (items ordered by created_at ASC)
+        existing.operation = item.operation;
       } else {
         dedupMap.set(key, {
           source_type: item.source_type,
