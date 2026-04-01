@@ -96,7 +96,19 @@ events (id UUID PK, title TEXT, description TEXT, event_type TEXT, start_date TI
 
 // ── System prompt ────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Tu es l'assistant IA de SuperTools, une application de gestion pour un organisme de formation professionnelle.
+function buildSystemPrompt(): string {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+  return `Tu es l'assistant IA de SuperTools, une application de gestion pour un organisme de formation professionnelle.
+
+Date et heure actuelles : ${dateStr}, ${timeStr}.
 
 Tu aides l'utilisateur à :
 - Analyser ses données (CRM, formations, devis, missions, emails, etc.)
@@ -115,9 +127,11 @@ Règles :
 - Ne retourne jamais de données brutes JSON — synthétise toujours pour l'utilisateur
 - IMPORTANT : avant toute action d'écriture, décris ce que tu vas faire et demande confirmation à l'utilisateur. N'exécute l'action que si l'utilisateur confirme explicitement (oui, ok, vas-y, confirme, etc.)
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
+- Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 
 Schéma de la base de données :
 ${DB_SCHEMA}`;
+}
 
 // ── Tool definitions ─────────────────────────────────────────
 
@@ -444,7 +458,7 @@ async function runAgentStreaming(
         model: CLAUDE_MODEL,
         max_tokens: 4096,
         stream: true,
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(),
         tools: TOOLS,
         messages: conversationMessages,
       }),

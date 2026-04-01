@@ -239,6 +239,30 @@ export function useAgentChat() {
     setToolStatus(null);
   }, []);
 
+  const regenerateLastResponse = useCallback(() => {
+    if (isLoading) return;
+    // Find the last user message
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+
+    // Remove the last assistant message
+    setMessages((prev) => {
+      const idx = prev.findLastIndex((m) => m.role === "assistant");
+      if (idx >= 0) return prev.filter((_, i) => i !== idx);
+      return prev;
+    });
+
+    // Re-send
+    // We need to temporarily clear the last user msg too since sendMessage will add it again
+    setMessages((prev) => {
+      const lastUserIdx = prev.findLastIndex((m) => m.role === "user");
+      if (lastUserIdx >= 0) return prev.filter((_, i) => i !== lastUserIdx);
+      return prev;
+    });
+
+    sendMessage(lastUserMsg.content);
+  }, [messages, isLoading, sendMessage]);
+
   const cancelRequest = useCallback(() => {
     abortRef.current?.abort();
     setIsLoading(false);
@@ -255,5 +279,6 @@ export function useAgentChat() {
     newConversation,
     loadConversation,
     cancelRequest,
+    regenerateLastResponse,
   };
 }

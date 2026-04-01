@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
-import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare } from "lucide-react";
+import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -30,12 +30,14 @@ const AgentChat = () => {
     newConversation,
     loadConversation,
     cancelRequest,
+    regenerateLastResponse,
   } = useAgentChat();
   const { conversations, deleteConversation } = useAgentConversations();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [input, setInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSentRef = useRef(false);
@@ -118,6 +120,19 @@ const AgentChat = () => {
               Nouveau
             </Button>
           </div>
+          {conversations.length > 3 && (
+            <div className="px-3 py-2 border-b min-w-[288px]">
+              <div className="flex items-center gap-2 bg-muted/50 rounded-md px-2.5 py-1.5">
+                <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <input
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="Rechercher..."
+                  className="flex-1 bg-transparent outline-none text-xs placeholder:text-muted-foreground"
+                />
+              </div>
+            </div>
+          )}
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-1 min-w-[288px]">
               {conversations.length === 0 ? (
@@ -125,7 +140,9 @@ const AgentChat = () => {
                   Aucune conversation
                 </p>
               ) : (
-                conversations.map((conv) => (
+                conversations.filter((c) =>
+                  !historySearch || (c.title || "").toLowerCase().includes(historySearch.toLowerCase())
+                ).map((conv) => (
                   <div
                     key={conv.id}
                     className={cn(
@@ -189,8 +206,14 @@ const AgentChat = () => {
                 <EmptyState onSuggestion={handleSuggestion} />
               ) : (
                 <div className="space-y-6">
-                  {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} isStreaming={isLoading && msg === messages[messages.length - 1] && msg.role === "assistant"} />
+                  {messages.map((msg, idx) => (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      isStreaming={isLoading && msg === messages[messages.length - 1] && msg.role === "assistant"}
+                      isLastAssistant={!isLoading && msg.role === "assistant" && idx === messages.findLastIndex((m) => m.role === "assistant")}
+                      onRegenerate={regenerateLastResponse}
+                    />
                   ))}
                   {isLoading && !messages.length && <ThinkingIndicator toolStatus={toolStatus} />}
                   {isLoading && messages.length > 0 && messages[messages.length - 1].role === "assistant" && !messages[messages.length - 1].content && (
@@ -276,13 +299,30 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
   );
 }
 
-function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStreaming?: boolean }) {
+function MessageBubble({
+  message,
+  isStreaming,
+  isLastAssistant,
+  onRegenerate,
+}: {
+  message: ChatMessage;
+  isStreaming?: boolean;
+  isLastAssistant?: boolean;
+  onRegenerate?: () => void;
+}) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
 
   if (!isUser && !message.content) return null;
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className={cn("flex gap-3", isUser && "flex-row-reverse")}>
+    <div className={cn("group flex gap-3", isUser && "flex-row-reverse")}>
       <div
         className={cn(
           "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
@@ -291,19 +331,42 @@ function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStrea
       >
         {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
       </div>
-      <div
-        className={cn(
-          "rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 max-w-[90%] sm:max-w-[85%] text-sm",
-          isUser ? "bg-foreground text-background" : "bg-muted",
-        )}
-      >
-        {isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
-        ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-            {isStreaming && (
-              <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
+      <div className="flex flex-col gap-1 max-w-[90%] sm:max-w-[85%]">
+        <div
+          className={cn(
+            "rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-sm",
+            isUser ? "bg-foreground text-background" : "bg-muted",
+          )}
+        >
+          {isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+              {isStreaming && (
+                <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
+              )}
+            </div>
+          )}
+        </div>
+        {/* Action buttons — visible on hover for assistant messages */}
+        {!isUser && !isStreaming && message.content && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleCopy}
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title="Copier"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+            {isLastAssistant && onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                title="Régénérer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
         )}
