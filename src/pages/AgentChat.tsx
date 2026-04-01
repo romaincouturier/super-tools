@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, type KeyboardEvent } from "react";
+import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
 import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useAgentChat, type ChatMessage } from "@/hooks/useAgentChat";
 import { useAgentConversations } from "@/hooks/useAgentConversations";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
@@ -32,10 +33,22 @@ const AgentChat = () => {
   } = useAgentChat();
   const { conversations, deleteConversation } = useAgentConversations();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [input, setInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSentRef = useRef(false);
+
+  // Auto-send message from ?q= query parameter
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && !autoSentRef.current && messages.length === 0) {
+      autoSentRef.current = true;
+      setSearchParams({}, { replace: true });
+      sendMessage(q);
+    }
+  }, [searchParams, setSearchParams, sendMessage, messages.length]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -95,7 +108,7 @@ const AgentChat = () => {
         <div
           className={cn(
             "border-r bg-muted/30 flex flex-col transition-all duration-200 overflow-hidden shrink-0",
-            showHistory ? "w-72" : "w-0",
+            showHistory ? "w-72 max-md:absolute max-md:inset-y-0 max-md:left-0 max-md:z-20 max-md:shadow-xl" : "w-0",
           )}
         >
           <div className="p-3 border-b flex items-center justify-between min-w-[288px]">
@@ -280,14 +293,14 @@ function MessageBubble({ message, isStreaming }: { message: ChatMessage; isStrea
       </div>
       <div
         className={cn(
-          "rounded-xl px-4 py-3 max-w-[85%] text-sm",
+          "rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 max-w-[90%] sm:max-w-[85%] text-sm",
           isUser ? "bg-foreground text-background" : "bg-muted",
         )}
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_th]:px-2 [&_td]:px-2">
+          <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
             <ReactMarkdown>{message.content}</ReactMarkdown>
             {isStreaming && (
               <span className="inline-block w-2 h-4 bg-primary/60 animate-pulse ml-0.5 -mb-0.5 rounded-sm" />

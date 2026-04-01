@@ -592,6 +592,41 @@ async function runAgentStreaming(
   return { fullResponse, updatedMessages: conversationMessages };
 }
 
+// ── Title generation ────────────────────────────────────────
+
+async function generateTitle(userMessage: string, assistantResponse: string): Promise<string> {
+  if (!ANTHROPIC_API_KEY) return userMessage.slice(0, 80);
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "content-type": "application/json",
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 60,
+        messages: [
+          {
+            role: "user",
+            content: `Génère un titre court (max 60 caractères, en français) pour cette conversation. Réponds UNIQUEMENT avec le titre, sans guillemets ni ponctuation finale.\n\nQuestion: ${userMessage.slice(0, 200)}\nRéponse: ${assistantResponse.slice(0, 300)}`,
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) return userMessage.slice(0, 80);
+
+    const data = await res.json();
+    const title = data.content?.[0]?.text?.trim();
+    return title || userMessage.slice(0, 80);
+  } catch {
+    return userMessage.slice(0, 80);
+  }
+}
+
 // ── Main handler ─────────────────────────────────────────────
 
 serve(async (req) => {
@@ -646,12 +681,7 @@ serve(async (req) => {
         );
 
         // Save conversation
-        const conversationData = {
-          user_id: userId,
-          title: !conversationId ? message.slice(0, 100) : undefined,
-          messages: updatedMessages,
-          updated_at: new Date().toISOString(),
-        };
+        let title: string | undefined;
 
         if (conversationId) {
           await supabase
@@ -662,9 +692,17 @@ serve(async (req) => {
             })
             .eq("id", conversationId);
         } else {
+          // Generate a smart title for new conversations
+          title = await generateTitle(message, fullResponse);
+
           const { data: newConv } = await supabase
             .from("agent_conversations")
-            .insert(conversationData)
+            .insert({
+              user_id: userId,
+              title,
+              messages: updatedMessages,
+              updated_at: new Date().toISOString(),
+            })
             .select("id")
             .single();
           conversationId = newConv?.id;
@@ -676,6 +714,7 @@ serve(async (req) => {
             sseEvent("done", {
               conversation_id: conversationId,
               response: fullResponse,
+              ...(title ? { title } : {}),
             }),
           ),
         );
