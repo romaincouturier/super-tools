@@ -481,7 +481,7 @@ serve(async (req) => {
         .eq("day_date", today)
         .lt("start_time", "13:00:00")
         .gt("end_time", "13:00:00")
-        .not("trainings.format_formation", "eq", "elearning");
+        .not("trainings.format_formation", "eq", "e_learning");
 
       if (fullDaySchedules && fullDaySchedules.length > 0) {
         console.log(`[process-session-start] Found ${fullDaySchedules.length} full-day schedule(s) needing PM`);
