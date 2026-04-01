@@ -133,7 +133,7 @@ BEGIN
 
   -- Execute in read-only mode with a row limit to prevent huge results
   SET LOCAL transaction_read_only = true;
-  EXECUTE format('SELECT jsonb_agg(row_to_json(t)) FROM (%s) _inner LIMIT 100', clean_query) INTO result;
+  EXECUTE format('SELECT jsonb_agg(row_to_json(sub)) FROM (SELECT * FROM (%s) _inner LIMIT 100) sub', clean_query) INTO result;
 
   RETURN COALESCE(result, '[]'::jsonb);
 END;

@@ -62,12 +62,13 @@ function buildQuery(
   table: string,
   columns: string,
   sourceId?: string,
+  orderColumn = "created_at",
 ) {
   let q = supabase.from(table).select(columns);
   if (sourceId) {
     q = q.eq("id", sourceId);
   } else {
-    q = q.order("created_at", { ascending: false }).limit(500);
+    q = q.order(orderColumn, { ascending: false }).limit(500);
   }
   return q;
 }
@@ -113,6 +114,7 @@ const extractors: Record<string, Extractor> = {
       "crm_card_emails",
       "id, subject, body_html, sender_email, recipient_email, card_id, sent_at",
       sourceId,
+      "sent_at",
     );
     return (data || []).map((r) => ({
       source_id: r.id,

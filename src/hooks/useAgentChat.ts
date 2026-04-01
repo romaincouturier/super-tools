@@ -168,14 +168,7 @@ export function useAgentChat() {
         let buffer = "";
         let accumulatedText = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const [events, remaining] = parseSSEBuffer(buffer);
-          buffer = remaining;
-
+        const processEvents = (events: Array<{ event: string; data: Record<string, unknown> }>) => {
           for (const { event, data } of events) {
             switch (event) {
               case "status":
@@ -211,6 +204,22 @@ export function useAgentChat() {
                 throw new Error(data.text as string);
             }
           }
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const [events, remaining] = parseSSEBuffer(buffer);
+          buffer = remaining;
+          processEvents(events);
+        }
+
+        // Flush remaining buffer after stream ends
+        if (buffer.trim()) {
+          const [finalEvents] = parseSSEBuffer(buffer + "\n\n");
+          processEvents(finalEvents);
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
