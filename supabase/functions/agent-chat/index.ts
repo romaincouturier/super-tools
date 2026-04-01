@@ -570,7 +570,7 @@ async function runAgentStreaming(
     conversationMessages.push({ role: "assistant", content: validBlocks });
 
     // If Claude is done, extract full text
-    if (stopReason === "end_turn" || stopReason !== "tool_use") {
+    if (stopReason !== "tool_use") {
       fullResponse = validBlocks
         .filter((b) => b.type === "text")
         .map((b) => b.text as string)
@@ -658,7 +658,7 @@ serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
-    const userId = authResult.sub || authResult.user_id;
+    const userId = authResult.id;
 
     // Load or create conversation
     let conversationId = conversation_id;
@@ -709,7 +709,7 @@ serve(async (req) => {
           // Generate a smart title for new conversations
           title = await generateTitle(message, fullResponse);
 
-          const { data: newConv } = await supabase
+          const { data: newConv, error: insertError } = await supabase
             .from("agent_conversations")
             .insert({
               user_id: userId,
@@ -719,6 +719,9 @@ serve(async (req) => {
             })
             .select("id")
             .single();
+          if (insertError) {
+            console.error("Failed to create conversation:", insertError);
+          }
           conversationId = newConv?.id;
         }
 

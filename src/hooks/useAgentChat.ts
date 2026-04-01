@@ -245,19 +245,11 @@ export function useAgentChat() {
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (!lastUserMsg) return;
 
-    // Remove the last assistant message
+    // Remove the last assistant message and the last user message (sendMessage will re-add it)
     setMessages((prev) => {
-      const idx = prev.findLastIndex((m) => m.role === "assistant");
-      if (idx >= 0) return prev.filter((_, i) => i !== idx);
-      return prev;
-    });
-
-    // Re-send
-    // We need to temporarily clear the last user msg too since sendMessage will add it again
-    setMessages((prev) => {
+      const lastAssistantIdx = prev.findLastIndex((m) => m.role === "assistant");
       const lastUserIdx = prev.findLastIndex((m) => m.role === "user");
-      if (lastUserIdx >= 0) return prev.filter((_, i) => i !== lastUserIdx);
-      return prev;
+      return prev.filter((_, i) => i !== lastAssistantIdx && i !== lastUserIdx);
     });
 
     sendMessage(lastUserMsg.content);

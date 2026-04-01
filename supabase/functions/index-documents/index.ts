@@ -95,7 +95,7 @@ const extractors: Record<string, Extractor> = {
     const { data } = await buildQuery(
       supabase,
       "crm_comments",
-      "id, content, card_id, author_email, created_at",
+      "id, content, card_id, author_email, is_deleted, created_at",
       sourceId,
     );
     return (data || []).filter((r) => !r.is_deleted).map((r) => ({
@@ -252,12 +252,12 @@ const extractors: Record<string, Extractor> = {
     const { data } = await buildQuery(
       supabase,
       "lms_lessons",
-      "id, title, description, content, transcript, created_at",
+      "id, title, content_html, created_at",
       sourceId,
     );
     return (data || []).map((r) => ({
       source_id: r.id,
-      content: [r.title, r.description, stripHtml(r.content || ""), r.transcript].filter(Boolean).join("\n"),
+      content: [r.title, stripHtml(r.content_html || "")].filter(Boolean).join("\n"),
       source_title: r.title,
       source_date: r.created_at,
       metadata: {},

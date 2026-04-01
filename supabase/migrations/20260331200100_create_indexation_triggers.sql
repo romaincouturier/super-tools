@@ -127,7 +127,7 @@ CREATE TRIGGER trg_index_content_card
 
 -- LMS Lessons
 CREATE TRIGGER trg_index_lms_lesson
-  AFTER INSERT OR UPDATE OF title, description, content, transcript
+  AFTER INSERT OR UPDATE OF title, content_html
   ON public.lms_lessons
   FOR EACH ROW EXECUTE FUNCTION public.enqueue_indexation('lms_lesson');
 

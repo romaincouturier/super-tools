@@ -50,7 +50,8 @@ const AgentChat = () => {
       setSearchParams({}, { replace: true });
       sendMessage(q);
     }
-  }, [searchParams, setSearchParams, sendMessage, messages.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, setSearchParams, messages.length]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
