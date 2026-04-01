@@ -210,7 +210,7 @@ const Formations = () => {
   );
 
   const ongoingTrainings = useMemo(() =>
-    trainings.filter((t) => isOngoing(t) && matchesFilters(t)),
+    trainings.filter((t) => !t.is_cancelled && isOngoing(t) && matchesFilters(t)),
     [trainings, matchesFilters]
   );
 
