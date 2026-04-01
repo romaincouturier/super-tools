@@ -1,10 +1,10 @@
 -- ============================================================
 -- Auto-indexation triggers for document_embeddings
 --
--- Strategy: lightweight DB triggers that insert into a queue table.
--- A periodic edge function (or pg_cron) picks up the queue and
--- calls index-documents for each pending item.
--- This avoids calling HTTP from triggers (unreliable in PG).
+-- Strategy: lightweight DB triggers that insert into a queue table,
+-- then fire an async HTTP call via pg_net to process the queue.
+-- pg_net sends the request AFTER the transaction commits, so the
+-- queue item is always visible when the edge function runs.
 -- ============================================================
 
 -- 1. Queue table for pending indexation jobs
@@ -41,6 +41,8 @@ DECLARE
   _source_type text;
   _source_id uuid;
   _op text;
+  _supabase_url text;
+  _service_role_key text;
 BEGIN
   -- Determine source_type from trigger argument
   _source_type := TG_ARGV[0];
@@ -55,6 +57,31 @@ BEGIN
 
   INSERT INTO public.indexation_queue (source_type, source_id, operation)
   VALUES (_source_type, _source_id, _op);
+
+  -- Fire async HTTP call via pg_net to process the queue.
+  -- pg_net sends the request AFTER the transaction commits,
+  -- so the queue item is guaranteed to be visible.
+  BEGIN
+    SELECT decrypted_secret INTO _supabase_url
+      FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL';
+    SELECT decrypted_secret INTO _service_role_key
+      FROM vault.decrypted_secrets WHERE name = 'SUPABASE_SERVICE_ROLE_KEY';
+
+    IF _supabase_url IS NOT NULL AND _service_role_key IS NOT NULL THEN
+      PERFORM net.http_post(
+        url := _supabase_url || '/functions/v1/process-indexation-queue',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || _service_role_key
+        ),
+        body := '{}'::jsonb
+      );
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    -- pg_net not available or vault secrets missing — silently skip.
+    -- Queue items will be processed on the next successful trigger or manual backfill.
+    RAISE WARNING 'enqueue_indexation: pg_net call failed: %', SQLERRM;
+  END;
 
   IF TG_OP = 'DELETE' THEN
     RETURN OLD;
