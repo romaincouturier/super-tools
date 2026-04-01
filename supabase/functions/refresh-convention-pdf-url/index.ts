@@ -191,7 +191,7 @@ async function uploadToPermanentStorage(
 
     return publicUrl;
   } catch (err) {
-    console.warn("Storage upload error:", err);
+    console.error("Storage upload error:", err);
     return null;
   }
 }

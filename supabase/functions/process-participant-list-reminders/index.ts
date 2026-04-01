@@ -87,7 +87,7 @@ serve(async (req) => {
         const parsed = JSON.parse(wdData.setting_value);
         if (Array.isArray(parsed) && parsed.length === 7) workingDays = parsed;
       }
-    } catch (_e) { /* use default */ }
+    } catch (e) { console.error("Failed to parse working days config, using default:", e); }
 
     // Check if today is a working day
     if (!workingDays[now.getDay()]) {

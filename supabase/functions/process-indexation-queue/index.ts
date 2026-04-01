@@ -9,12 +9,12 @@ import {
 /**
  * Process pending indexation queue items.
  *
- * Called periodically by pg_cron (every 2 minutes) via pg_net.
- * NOT called from the frontend — no user auth required.
- * Authentication relies on the SERVICE_ROLE_KEY used by pg_net.
+ * Called automatically by pg_net from the enqueue_indexation() trigger,
+ * or manually from the admin settings UI as a fallback if pg_net is unavailable.
  *
  * For each pending item, calls the index-documents function internally,
  * then marks it as processed. For 'delete' operations, removes embeddings directly.
+ * Also cleans up processed queue items older than 7 days.
  */
 
 const BATCH_SIZE = 50;
@@ -107,6 +107,17 @@ serve(async (req) => {
         console.error(`Error processing ${entry.source_type}/${entry.source_id}:`, e);
         errors++;
       }
+    }
+
+    // Cleanup: purge processed items older than 7 days
+    const { error: cleanupError } = await supabase
+      .from("indexation_queue")
+      .delete()
+      .not("processed_at", "is", null)
+      .lt("processed_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (cleanupError) {
+      console.warn("Queue cleanup error:", cleanupError.message);
     }
 
     return createJsonResponse({

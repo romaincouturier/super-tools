@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { PanelLeftClose, PanelLeft, Bot, LayoutDashboard } from "lucide-react";
+import { PanelLeftClose, PanelLeft, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -56,10 +56,10 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
     <aside
       className={cn(
         "h-full bg-muted/40 border-r flex flex-col transition-all duration-200 shrink-0",
-        collapsed ? "w-14" : "w-56",
+        collapsed ? "w-0 overflow-hidden" : "w-56",
       )}
     >
-      {/* Top: Agent + Dashboard */}
+      {/* Top: Agent */}
       <div className="p-2 space-y-1">
         <SidebarItem
           icon={Bot}
@@ -69,14 +69,6 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
           collapsed={collapsed}
           onClick={() => navigate("/agent")}
           highlight
-        />
-        <SidebarItem
-          icon={LayoutDashboard}
-          label="Dashboard"
-          path="/dashboard"
-          active={isActive("/dashboard")}
-          collapsed={collapsed}
-          onClick={() => navigate("/dashboard")}
         />
       </div>
 

@@ -165,7 +165,7 @@ async function notifySlackCluster(clusterId: string, title: string, summary: str
       method: "POST",
       headers,
       body: JSON.stringify({ channel: channelTarget }),
-    }).catch(() => {});
+    }).catch((err) => console.error("Slack conversations.join failed:", err));
   }
 
   const blocks = [

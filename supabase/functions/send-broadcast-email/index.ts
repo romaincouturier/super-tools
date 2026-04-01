@@ -91,7 +91,7 @@ serve(async (req) => {
         },
       });
     } catch (logErr) {
-      console.warn("Failed to log broadcast activity:", logErr);
+      console.error("Failed to log broadcast activity:", logErr);
     }
 
     const successCount = results.filter((r) => r.success).length;

@@ -29,7 +29,7 @@ const AppHeader = ({ sidebarSlot }: AppHeaderProps) => {
   const { hasAccess, isAdmin } = useModuleAccess();
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
-  const isDashboard = location.pathname === "/";
+  const isDashboard = location.pathname === "/" || location.pathname === "/agent";
 
   // Load saved layout to find favorite modules (shortcuts)
   const { value: savedLayout } = useUserPreference<ModuleLayout>("module_layout", {
@@ -69,20 +69,20 @@ const AppHeader = ({ sidebarSlot }: AppHeaderProps) => {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => navigate("/dashboard")}
+                    onClick={() => navigate("/agent")}
                     className="p-2 rounded-lg hover:bg-background/10 transition-colors"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Retour au tableau de bord</p>
+                  <p>Retour à l'agent</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/agent")}
             className="text-xl font-bold hover:opacity-80 transition-opacity"
           >
             SuperTools

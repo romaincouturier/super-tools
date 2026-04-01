@@ -264,7 +264,7 @@ serve(async (req) => {
             },
           });
         } catch (logError) {
-          console.warn("Failed to log activity:", logError);
+          console.error("Failed to log activity:", logError);
         }
       } catch (err) {
         console.error(`Error processing participant ${participant.email}:`, err);
