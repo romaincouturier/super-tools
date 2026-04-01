@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Menu } from "lucide-react";
+import { Menu, PanelLeft } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AppFooter from "@/components/AppFooter";
 import AppSidebar from "@/components/AppSidebar";
@@ -72,7 +72,16 @@ const ModuleLayout = ({ children, className = "", hideSidebar, hideFooter }: Mod
             <AppSidebar collapsed={collapsed} onToggle={handleToggle} />
           </div>
         )}
-        <div className="flex-1 flex flex-col overflow-y-auto">
+        <div className="flex-1 flex flex-col overflow-y-auto relative">
+          {/* Expand sidebar button when collapsed */}
+          {!hideSidebar && collapsed && (
+            <button
+              onClick={handleToggle}
+              className="hidden md:flex absolute top-2 left-2 z-10 p-1.5 rounded-md hover:bg-muted border bg-background transition-colors text-muted-foreground"
+            >
+              <PanelLeft className="w-4 h-4" />
+            </button>
+          )}
           <main className="flex-1">{children}</main>
           {!hideFooter && <AppFooter />}
         </div>
