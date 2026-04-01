@@ -44,17 +44,18 @@ crm_revenue_targets (id UUID PK, year INT, month INT, target_amount NUMERIC)
 
 -- Formations
 trainings (id UUID PK, training_name TEXT, client_name TEXT, location TEXT, start_date DATE, end_date DATE, status TEXT, format_formation TEXT, prerequisites TEXT[], program_file_url TEXT, created_at, updated_at)
-participants (id UUID PK, training_id UUID FK→trainings, first_name TEXT, last_name TEXT, email TEXT, company TEXT, position TEXT, status TEXT, created_at)
-formation_dates (id UUID PK, training_id UUID FK, date DATE, start_time TIME, end_time TIME)
-formation_configs (id UUID PK, training_id UUID FK, config_type TEXT, config_data JSONB)
+training_participants (id UUID PK, training_id UUID FK→trainings, first_name TEXT, last_name TEXT, email TEXT, company TEXT, status TEXT, created_at)
+formation_dates (id UUID PK, date_label TEXT, is_default BOOL)
+training_schedules (id UUID PK, training_id UUID FK→trainings, day_date DATE, start_time TIME, end_time TIME)
+formation_configs (id UUID PK, formation_name TEXT UNIQUE, prix DECIMAL, duree_heures INT, programme_url TEXT)
 
 -- Évaluations & Questionnaires
-evaluation_analyses (id UUID PK, training_id UUID FK, analysis_data JSONB, created_at)
+evaluation_analyses (id UUID PK, training_id UUID FK, strengths JSONB, weaknesses JSONB, recommendations JSONB, summary TEXT, evaluations_count INT, created_at)
 questionnaire_besoins (id UUID PK, training_id UUID FK, participant_id UUID FK, experience_details TEXT, competences_actuelles TEXT, competences_visees TEXT, besoins_accessibilite TEXT, commentaires_libres TEXT, created_at)
 
 -- Missions
 missions (id UUID PK, title TEXT, description TEXT, client_name TEXT, client_contact TEXT, status TEXT ['not_started','in_progress','completed','cancelled'], tags TEXT[], start_date DATE, end_date DATE, daily_rate NUMERIC, total_days NUMERIC, created_at)
-mission_activities (id UUID PK, mission_id UUID FK, date DATE, hours NUMERIC, description TEXT, is_billable BOOL)
+mission_activities (id UUID PK, mission_id UUID FK, activity_date DATE, duration DECIMAL, duration_type TEXT ['hours','days'], description TEXT, billable_amount DECIMAL, is_billed BOOL)
 mission_pages (id UUID PK, mission_id UUID FK, title TEXT, content TEXT)
 
 -- Devis / Quotes
@@ -75,23 +76,23 @@ coaching_summaries (id UUID PK, booking_id UUID FK, participant_id UUID FK, trai
 
 -- Contenu / Éditorial
 content_cards (id UUID PK, title TEXT, description TEXT, column_id UUID FK→content_columns, tags JSONB, display_order INT, created_at)
-content_columns (id UUID PK, title TEXT, display_order INT)
+content_columns (id UUID PK, name TEXT, display_order INT)
 
 -- OKR
-okr_objectives (id UUID PK, title TEXT, description TEXT, period TEXT, status TEXT, progress NUMERIC, created_at)
+okr_objectives (id UUID PK, title TEXT, description TEXT, time_target TEXT ['Q1','Q2','Q3','Q4','S1','S2','annual'], target_year INT, status TEXT ['draft','active','completed','cancelled'], progress_percentage INT, created_at)
 okr_key_results (id UUID PK, objective_id UUID FK, title TEXT, target_value NUMERIC, current_value NUMERIC, unit TEXT)
 okr_initiatives (id UUID PK, key_result_id UUID FK, title TEXT, status TEXT, due_date DATE)
 
 -- E-learning (LMS)
 lms_courses (id UUID PK, title TEXT, description TEXT, status TEXT, created_at)
-lms_modules (id UUID PK, course_id UUID FK, title TEXT, description TEXT, display_order INT)
-lms_lessons (id UUID PK, module_id UUID FK, title TEXT, description TEXT, content TEXT, transcript TEXT, lesson_type TEXT, display_order INT)
+lms_modules (id UUID PK, course_id UUID FK, title TEXT, description TEXT, position INT)
+lms_lessons (id UUID PK, module_id UUID FK, title TEXT, lesson_type TEXT, content_html TEXT, video_url TEXT, position INT, is_mandatory BOOL, created_at)
 
 -- Statistiques
-daily_action_analytics (id UUID PK, date DATE, total_actions INT, completed_actions INT, data JSONB)
+daily_action_analytics (id UUID PK, user_id UUID FK, action_date DATE, total_actions INT, completed_count INT, auto_completed_count INT, manual_completed_count INT, category_stats JSONB)
 
 -- Événements
-events (id UUID PK, title TEXT, description TEXT, event_type TEXT, start_date TIMESTAMPTZ, end_date TIMESTAMPTZ, location TEXT, status TEXT, created_at)
+events (id UUID PK, title TEXT, description TEXT, event_date DATE, event_time TIME, location TEXT, location_type TEXT ['physical','visio'], created_at)
 `.trim();
 
 // ── System prompt ────────────────────────────────────────────
@@ -183,7 +184,7 @@ const TOOLS = [
   {
     name: "execute_action",
     description:
-      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, update_mission_status, update_ticket_status, update_quote_status, add_training_note.",
+      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, update_mission_status, update_ticket_status, update_quote_status.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -196,7 +197,6 @@ const TOOLS = [
             "update_mission_status",
             "update_ticket_status",
             "update_quote_status",
-            "add_training_note",
           ],
           description: "The action to execute",
         },
@@ -387,19 +387,9 @@ async function executeTool(
           }
 
           case "add_training_note": {
-            const { error } = await supabase
-              .from("formation_configs")
-              .insert({
-                training_id: params.training_id,
-                config_type: "agent_note",
-                config_data: {
-                  content: params.content,
-                  author: params.author_email || "agent@supertools.ai",
-                  created_at: new Date().toISOString(),
-                },
-              });
-            if (error) return JSON.stringify({ error: error.message });
-            return JSON.stringify({ success: true, message: "Note ajoutée à la formation" });
+            return JSON.stringify({
+              error: "Action non disponible : le module de notes de formation n'est pas encore implémenté. Utilisez query_database pour consulter les formations.",
+            });
           }
 
           default:

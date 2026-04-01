@@ -160,7 +160,10 @@ export function useAgentChat() {
         }
 
         // Read SSE stream
-        const reader = res.body!.getReader();
+        if (!res.body) {
+          throw new Error("Réponse vide du serveur");
+        }
+        const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
         let accumulatedText = "";

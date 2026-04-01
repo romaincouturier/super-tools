@@ -38,7 +38,7 @@ const AgentChat = () => {
   const [input, setInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSentRef = useRef(false);
 
@@ -48,16 +48,15 @@ const AgentChat = () => {
     if (q && !autoSentRef.current && messages.length === 0) {
       autoSentRef.current = true;
       setSearchParams({}, { replace: true });
+      newConversation();
       sendMessage(q);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, setSearchParams, messages.length]);
+  }, [searchParams]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
   // Auto-focus textarea
@@ -201,7 +200,7 @@ const AgentChat = () => {
           </div>
 
           {/* Messages area */}
-          <ScrollArea className="flex-1" ref={scrollRef}>
+          <ScrollArea className="flex-1">
             <div className="max-w-3xl mx-auto px-4 py-6">
               {isEmpty ? (
                 <EmptyState onSuggestion={handleSuggestion} />
@@ -223,6 +222,7 @@ const AgentChat = () => {
                   {isLoading && toolStatus && messages[messages.length - 1]?.content && (
                     <ToolStatusBadge status={toolStatus} />
                   )}
+                  <div ref={scrollEndRef} />
                 </div>
               )}
             </div>
@@ -313,13 +313,17 @@ function MessageBubble({
 }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => () => clearTimeout(copyTimerRef.current), []);
 
   if (!isUser && !message.content) return null;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
   };
 
   return (
