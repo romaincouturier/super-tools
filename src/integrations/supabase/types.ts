@@ -6911,6 +6911,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_cron_timezones: { Args: never; Returns: Json }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
