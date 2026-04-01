@@ -211,7 +211,7 @@ const AgentChat = () => {
                       key={msg.id}
                       message={msg}
                       isStreaming={isLoading && msg === messages[messages.length - 1] && msg.role === "assistant"}
-                      isLastAssistant={!isLoading && msg.role === "assistant" && idx === messages.findLastIndex((m) => m.role === "assistant")}
+                      isLastAssistant={!isLoading && msg.role === "assistant" && idx === (() => { for (let i = messages.length - 1; i >= 0; i--) { if (messages[i].role === "assistant") return i; } return -1; })()}
                       onRegenerate={regenerateLastResponse}
                     />
                   ))}
