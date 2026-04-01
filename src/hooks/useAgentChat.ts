@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 export interface ChatMessage {
   id: string;
@@ -13,12 +14,70 @@ interface AgentResponse {
   conversation_id: string;
 }
 
+/** Extract user/assistant text messages from the raw conversation JSON */
+function parseStoredMessages(raw: Json): ChatMessage[] {
+  if (!Array.isArray(raw)) return [];
+  const result: ChatMessage[] = [];
+
+  for (const msg of raw) {
+    if (!msg || typeof msg !== "object" || Array.isArray(msg)) continue;
+    const role = (msg as Record<string, unknown>).role as string;
+    const content = (msg as Record<string, unknown>).content;
+
+    if (role !== "user" && role !== "assistant") continue;
+
+    // Content can be a string or an array of content blocks
+    let text = "";
+    if (typeof content === "string") {
+      text = content;
+    } else if (Array.isArray(content)) {
+      // Extract text blocks, skip tool_use / tool_result blocks
+      text = (content as Array<Record<string, unknown>>)
+        .filter((b) => b.type === "text")
+        .map((b) => b.text as string)
+        .join("\n");
+    }
+
+    if (!text) continue;
+
+    result.push({
+      id: crypto.randomUUID(),
+      role: role as "user" | "assistant",
+      content: text,
+      timestamp: new Date(),
+    });
+  }
+
+  return result;
+}
+
 export function useAgentChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const loadConversation = useCallback(async (id: string) => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from("agent_conversations")
+        .select("id, messages")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !data) {
+        console.error("Failed to load conversation:", fetchError);
+        return;
+      }
+
+      setConversationId(data.id);
+      setMessages(parseStoredMessages(data.messages));
+      setError(null);
+    } catch (e) {
+      console.error("Error loading conversation:", e);
+    }
+  }, []);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -123,6 +182,7 @@ export function useAgentChat() {
     conversationId,
     sendMessage,
     newConversation,
+    loadConversation,
     cancelRequest,
   };
 }

@@ -1,12 +1,16 @@
 import { useRef, useEffect, useState, type KeyboardEvent } from "react";
-import { Bot, Send, Square, Plus, Loader2, User } from "lucide-react";
+import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useAgentChat, type ChatMessage } from "@/hooks/useAgentChat";
+import { useAgentConversations } from "@/hooks/useAgentConversations";
+import { useQueryClient } from "@tanstack/react-query";
 import ModuleLayout from "@/components/ModuleLayout";
 import ReactMarkdown from "react-markdown";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const SUGGESTIONS = [
   "Combien de devis ai-je envoyés ce mois-ci ?",
@@ -16,9 +20,19 @@ const SUGGESTIONS = [
 ];
 
 const AgentChat = () => {
-  const { messages, isLoading, sendMessage, newConversation, cancelRequest } =
-    useAgentChat();
+  const {
+    messages,
+    isLoading,
+    conversationId,
+    sendMessage,
+    newConversation,
+    loadConversation,
+    cancelRequest,
+  } = useAgentChat();
+  const { conversations, deleteConversation } = useAgentConversations();
+  const queryClient = useQueryClient();
   const [input, setInput] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -34,11 +48,17 @@ const AgentChat = () => {
     textareaRef.current?.focus();
   }, []);
 
+  // Invalidate conversation list when we get a new conversation
+  useEffect(() => {
+    if (conversationId) {
+      queryClient.invalidateQueries({ queryKey: ["agent-conversations"] });
+    }
+  }, [conversationId, queryClient]);
+
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
     sendMessage(input);
     setInput("");
-    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -55,76 +75,153 @@ const AgentChat = () => {
     sendMessage(text);
   };
 
+  const handleLoadConversation = (id: string) => {
+    loadConversation(id);
+    setShowHistory(false);
+  };
+
+  const handleNewConversation = () => {
+    newConversation();
+    setShowHistory(false);
+  };
+
   const isEmpty = messages.length === 0;
 
   return (
     <ModuleLayout hideFooter>
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
-        <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-primary" />
-          <h1 className="font-semibold text-sm">Agent SuperTools</h1>
-        </div>
-        <Button variant="ghost" size="sm" onClick={newConversation} className="gap-1.5">
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Nouvelle conversation</span>
-        </Button>
-      </div>
-
-      {/* Messages area */}
-      <ScrollArea className="flex-1" ref={scrollRef}>
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          {isEmpty ? (
-            <EmptyState onSuggestion={handleSuggestion} />
-          ) : (
-            <div className="space-y-6">
-              {messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
-              ))}
-              {isLoading && <ThinkingIndicator />}
+      <div className="flex h-full">
+        {/* History sidebar */}
+        <div
+          className={cn(
+            "border-r bg-muted/30 flex flex-col transition-all duration-200 overflow-hidden shrink-0",
+            showHistory ? "w-72" : "w-0",
+          )}
+        >
+          <div className="p-3 border-b flex items-center justify-between min-w-[288px]">
+            <span className="text-sm font-medium">Conversations</span>
+            <Button variant="ghost" size="sm" onClick={handleNewConversation} className="h-7 px-2 gap-1">
+              <Plus className="w-3.5 h-3.5" />
+              Nouveau
+            </Button>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1 min-w-[288px]">
+              {conversations.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">
+                  Aucune conversation
+                </p>
+              ) : (
+                conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={cn(
+                      "group flex items-start gap-2 p-2 rounded-md cursor-pointer hover:bg-muted transition-colors",
+                      conv.id === conversationId && "bg-muted",
+                    )}
+                    onClick={() => handleLoadConversation(conv.id)}
+                  >
+                    <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">
+                        {conv.title || "Sans titre"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {format(new Date(conv.updated_at), "d MMM yyyy HH:mm", { locale: fr })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversation.mutate(conv.id);
+                        if (conv.id === conversationId) newConversation();
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
-          )}
+          </ScrollArea>
         </div>
-      </ScrollArea>
 
-      {/* Input area */}
-      <div className="border-t bg-background px-4 py-3">
-        <div className="max-w-3xl mx-auto flex gap-2 items-end">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Posez une question sur vos données..."
-            className="resize-none min-h-[44px] max-h-[200px]"
-            rows={1}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = "auto";
-              target.style.height = `${target.scrollHeight}px`;
-            }}
-          />
-          {isLoading ? (
-            <Button variant="destructive" size="icon" onClick={cancelRequest} className="shrink-0">
-              <Square className="w-4 h-4" />
+        {/* Main chat area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-background">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                <History className="w-4 h-4" />
+              </Button>
+              <Bot className="w-5 h-5 text-primary" />
+              <h1 className="font-semibold text-sm">Agent SuperTools</h1>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleNewConversation} className="gap-1.5">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nouvelle conversation</span>
             </Button>
-          ) : (
-            <Button
-              size="icon"
-              onClick={handleSend}
-              disabled={!input.trim()}
-              className="shrink-0"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
-          )}
+          </div>
+
+          {/* Messages area */}
+          <ScrollArea className="flex-1" ref={scrollRef}>
+            <div className="max-w-3xl mx-auto px-4 py-6">
+              {isEmpty ? (
+                <EmptyState onSuggestion={handleSuggestion} />
+              ) : (
+                <div className="space-y-6">
+                  {messages.map((msg) => (
+                    <MessageBubble key={msg.id} message={msg} />
+                  ))}
+                  {isLoading && <ThinkingIndicator />}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* Input area */}
+          <div className="border-t bg-background px-4 py-3">
+            <div className="max-w-3xl mx-auto flex gap-2 items-end">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Posez une question sur vos données..."
+                className="resize-none min-h-[44px] max-h-[200px]"
+                rows={1}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+              />
+              {isLoading ? (
+                <Button variant="destructive" size="icon" onClick={cancelRequest} className="shrink-0">
+                  <Square className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  size="icon"
+                  onClick={handleSend}
+                  disabled={!input.trim()}
+                  className="shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center mt-2">
+              L'agent peut faire des erreurs. Vérifiez les informations importantes.
+            </p>
+          </div>
         </div>
-        <p className="text-[10px] text-muted-foreground text-center mt-2">
-          L'agent peut faire des erreurs. Vérifiez les informations importantes.
-        </p>
       </div>
-    </div>
     </ModuleLayout>
   );
 };
@@ -175,9 +272,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       <div
         className={cn(
           "rounded-xl px-4 py-3 max-w-[85%] text-sm",
-          isUser
-            ? "bg-foreground text-background"
-            : "bg-muted",
+          isUser ? "bg-foreground text-background" : "bg-muted",
         )}
       >
         {isUser ? (

@@ -2218,6 +2218,33 @@ export type Database = {
           },
         ]
       }
+      indexation_queue: {
+        Row: {
+          id: string
+          source_type: string
+          source_id: string
+          operation: string
+          created_at: string
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          source_type: string
+          source_id: string
+          operation?: string
+          created_at?: string
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          source_type?: string
+          source_id?: string
+          operation?: string
+          created_at?: string
+          processed_at?: string | null
+        }
+        Relationships: []
+      }
       inbound_emails: {
         Row: {
           attachments: Json | null
