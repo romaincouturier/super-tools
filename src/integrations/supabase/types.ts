@@ -43,28 +43,28 @@ export type Database = {
       }
       agent_conversations: {
         Row: {
-          id: string
-          user_id: string
-          title: string | null
-          messages: Json
           created_at: string
+          id: string
+          messages: Json
+          title: string | null
           updated_at: string
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          title?: string | null
-          messages?: Json
           created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
           updated_at?: string
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          title?: string | null
-          messages?: Json
           created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1361,48 +1361,6 @@ export type Database = {
         }
         Relationships: []
       }
-      document_embeddings: {
-        Row: {
-          id: string
-          source_type: string
-          source_id: string
-          chunk_index: number
-          content: string
-          embedding: string | null
-          source_title: string | null
-          source_date: string | null
-          metadata: Json
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          source_type: string
-          source_id: string
-          chunk_index?: number
-          content: string
-          embedding?: string | null
-          source_title?: string | null
-          source_date?: string | null
-          metadata?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          source_type?: string
-          source_id?: string
-          chunk_index?: number
-          content?: string
-          embedding?: string | null
-          source_title?: string | null
-          source_date?: string | null
-          metadata?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       devis_signatures: {
         Row: {
           activity_log_id: string
@@ -1488,6 +1446,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      document_embeddings: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          embedding: string | null
+          id: string
+          metadata: Json
+          source_date: string | null
+          source_id: string
+          source_title: string | null
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          chunk_index?: number
+          content: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          source_date?: string | null
+          source_id: string
+          source_title?: string | null
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json
+          source_date?: string | null
+          source_id?: string
+          source_title?: string | null
+          source_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       edge_function_health: {
         Row: {
@@ -2218,33 +2218,6 @@ export type Database = {
           },
         ]
       }
-      indexation_queue: {
-        Row: {
-          id: string
-          source_type: string
-          source_id: string
-          operation: string
-          created_at: string
-          processed_at: string | null
-        }
-        Insert: {
-          id?: string
-          source_type: string
-          source_id: string
-          operation?: string
-          created_at?: string
-          processed_at?: string | null
-        }
-        Update: {
-          id?: string
-          source_type?: string
-          source_id?: string
-          operation?: string
-          created_at?: string
-          processed_at?: string | null
-        }
-        Relationships: []
-      }
       inbound_emails: {
         Row: {
           attachments: Json | null
@@ -2328,6 +2301,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      indexation_queue: {
+        Row: {
+          created_at: string
+          id: string
+          operation: string
+          processed_at: string | null
+          source_id: string
+          source_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operation?: string
+          processed_at?: string | null
+          source_id: string
+          source_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operation?: string
+          processed_at?: string | null
+          source_id?: string
+          source_type?: string
+        }
+        Relationships: []
       }
       learner_magic_links: {
         Row: {
@@ -7008,10 +7008,7 @@ export type Database = {
     }
     Functions: {
       adjust_cron_timezones: { Args: never; Returns: Json }
-      agent_sql_query: {
-        Args: { query_text: string }
-        Returns: Json
-      }
+      agent_sql_query: { Args: { query_text: string }; Returns: Json }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -7231,7 +7228,7 @@ export type Database = {
       }
       match_documents: {
         Args: {
-          filter_source_types?: string[] | null
+          filter_source_types?: string[]
           match_count?: number
           match_threshold?: number
           query_embedding: string
@@ -7242,9 +7239,9 @@ export type Database = {
           id: string
           metadata: Json
           similarity: number
-          source_date: string | null
+          source_date: string
           source_id: string
-          source_title: string | null
+          source_title: string
           source_type: string
         }[]
       }
