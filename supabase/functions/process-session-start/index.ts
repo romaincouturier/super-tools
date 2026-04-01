@@ -109,7 +109,7 @@ serve(async (req) => {
       .eq("day_date", today)
       .gte("start_time", windowStartTime + ":00")
       .lte("start_time", windowEndTime + ":59")
-      .not("trainings.format_formation", "eq", "elearning");
+      .not("trainings.format_formation", "eq", "e_learning");
 
     if (schedulesError) {
       console.error("[process-session-start] Error fetching schedules:", schedulesError);
