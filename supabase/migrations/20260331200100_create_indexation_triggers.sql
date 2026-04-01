@@ -63,6 +63,10 @@ BEGIN
 END;
 $$;
 
+-- Prevent direct calls from users (only triggers should invoke this)
+REVOKE EXECUTE ON FUNCTION public.enqueue_indexation() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.enqueue_indexation() FROM authenticated;
+
 -- 3. Attach triggers to source tables
 
 -- CRM Cards

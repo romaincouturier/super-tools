@@ -109,22 +109,31 @@ AS $$
 DECLARE
   result jsonb;
   normalized text;
+  clean_query text;
 BEGIN
+  -- Strip trailing semicolons and whitespace
+  clean_query := regexp_replace(trim(query_text), ';\s*$', '');
   -- Normalize: trim and lowercase for validation
-  normalized := lower(trim(query_text));
+  normalized := lower(clean_query);
 
   -- Only allow SELECT statements
   IF NOT (normalized LIKE 'select%' OR normalized LIKE 'with%') THEN
     RAISE EXCEPTION 'Only SELECT queries are allowed';
   END IF;
 
-  -- Block dangerous keywords
-  IF normalized ~ '(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|execute|do\s)' THEN
+  -- Block dangerous keywords (word boundaries to avoid matching column names like updated_at)
+  IF normalized ~ '\m(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|execute)\M' THEN
     RAISE EXCEPTION 'Write operations are not allowed';
   END IF;
 
-  -- Execute with a row limit to prevent huge results
-  EXECUTE format('SELECT jsonb_agg(row_to_json(t)) FROM (%s LIMIT 100) t', query_text) INTO result;
+  -- Block multiple statements
+  IF clean_query ~ ';' THEN
+    RAISE EXCEPTION 'Multiple statements are not allowed';
+  END IF;
+
+  -- Execute in read-only mode with a row limit to prevent huge results
+  SET LOCAL transaction_read_only = true;
+  EXECUTE format('SELECT jsonb_agg(row_to_json(t)) FROM (%s) _inner LIMIT 100', clean_query) INTO result;
 
   RETURN COALESCE(result, '[]'::jsonb);
 END;
