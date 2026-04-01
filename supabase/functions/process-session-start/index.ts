@@ -547,7 +547,7 @@ serve(async (req) => {
           const liveId = live.id;
 
           // Skip e-learning
-          if (training.format_formation === "elearning") continue;
+          if (training.format_formation === "e_learning") continue;
 
           // Determine date and period from scheduled_at
           const liveDate = new Date(live.scheduled_at);
