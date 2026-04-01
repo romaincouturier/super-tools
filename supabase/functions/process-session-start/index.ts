@@ -420,7 +420,7 @@ serve(async (req) => {
           `)
           .in("id", pendingScheduleIds)
           .eq("day_date", today)
-          .not("trainings.format_formation", "eq", "elearning");
+          .not("trainings.format_formation", "eq", "e_learning");
 
         if (pendingSchedulesError) {
           console.error("[process-session-start] Error fetching schedules for pending notifications:", pendingSchedulesError);
