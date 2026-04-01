@@ -1,4 +1,4 @@
-import { Loader2, Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic } from "lucide-react";
+import { Loader2, Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import BillingSection from "@/components/settings/BillingSection";
 import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 import VoiceSettings from "@/components/settings/VoiceSettings";
+import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
 
 const Parametres = () => {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ const Parametres = () => {
             <TabsTrigger value="arena" className="flex items-center gap-2"><Sparkles className="h-4 w-4" />AI Arena</TabsTrigger>
             <TabsTrigger value="devis" className="flex items-center gap-2"><FileText className="h-4 w-4" />Devis</TabsTrigger>
             <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />Voix IA</TabsTrigger>
+            {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />Agent IA</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">
@@ -113,6 +115,7 @@ const Parametres = () => {
           <TabsContent value="voice">
             <VoiceSettings />
           </TabsContent>
+          {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
         </Tabs>
       </main>
     </ModuleLayout>

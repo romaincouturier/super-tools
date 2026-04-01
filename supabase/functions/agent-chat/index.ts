@@ -103,15 +103,19 @@ Tu aides l'utilisateur à :
 - Analyser ses données (CRM, formations, devis, missions, emails, etc.)
 - Retrouver des informations spécifiques dans n'importe quel contenu
 - Produire des synthèses, recommandations et analyses
+- Exécuter des actions sur les modules (créer, modifier, déplacer, envoyer)
 
 Règles :
 - Réponds en français, de manière concise et professionnelle
 - Utilise query_database pour les questions sur des données structurées (comptages, listes, agrégations, filtres par date/statut/montant)
 - Utilise search_content pour rechercher dans le contenu textuel (emails, notes, descriptions, commentaires) quand la question porte sur le sens ou le contexte plutôt que sur des valeurs exactes
-- Tu peux combiner les deux tools dans une même réponse
+- Utilise execute_action pour effectuer des modifications (créer, mettre à jour, supprimer)
+- Tu peux combiner les tools dans une même réponse
 - Formate les montants en euros (€) et les dates en français
 - Si une requête SQL échoue, analyse l'erreur et corrige la requête
 - Ne retourne jamais de données brutes JSON — synthétise toujours pour l'utilisateur
+- IMPORTANT : avant toute action d'écriture, décris ce que tu vas faire et demande confirmation à l'utilisateur. N'exécute l'action que si l'utilisateur confirme explicitement (oui, ok, vas-y, confirme, etc.)
+- Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
 
 Schéma de la base de données :
 ${DB_SCHEMA}`;
@@ -161,6 +165,34 @@ const TOOLS = [
         },
       },
       required: ["query"],
+    },
+  },
+  {
+    name: "execute_action",
+    description:
+      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, update_mission_status, update_ticket_status, update_quote_status, add_training_note.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        action: {
+          type: "string",
+          enum: [
+            "move_crm_card",
+            "update_crm_card",
+            "add_crm_comment",
+            "update_mission_status",
+            "update_ticket_status",
+            "update_quote_status",
+            "add_training_note",
+          ],
+          description: "The action to execute",
+        },
+        params: {
+          type: "object",
+          description: "Action-specific parameters",
+        },
+      },
+      required: ["action", "params"],
     },
   },
 ];
@@ -248,6 +280,128 @@ async function executeTool(
       } catch (e) {
         return JSON.stringify({
           error: e instanceof Error ? e.message : "Search failed",
+        });
+      }
+    }
+
+    case "execute_action": {
+      const action = toolInput.action as string;
+      const params = (toolInput.params || {}) as Record<string, unknown>;
+
+      try {
+        switch (action) {
+          // ── CRM ──────────────────────────────────────────
+          case "move_crm_card": {
+            // params: { card_id, column_id }
+            const { error } = await supabase
+              .from("crm_cards")
+              .update({ column_id: params.column_id, updated_at: new Date().toISOString() })
+              .eq("id", params.card_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Carte CRM déplacée" });
+          }
+
+          case "update_crm_card": {
+            // params: { card_id, ...fields to update }
+            const { card_id, ...updates } = params;
+            const { error } = await supabase
+              .from("crm_cards")
+              .update({ ...updates, updated_at: new Date().toISOString() })
+              .eq("id", card_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Carte CRM mise à jour" });
+          }
+
+          case "add_crm_comment": {
+            // params: { card_id, content, author_email }
+            const { error } = await supabase
+              .from("crm_comments")
+              .insert({
+                card_id: params.card_id,
+                content: params.content,
+                author_email: params.author_email || "agent@supertools.ai",
+              });
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Commentaire ajouté" });
+          }
+
+          // ── Missions ─────────────────────────────────────
+          case "update_mission_status": {
+            // params: { mission_id, status }
+            const validStatuses = ["not_started", "in_progress", "completed", "cancelled"];
+            if (!validStatuses.includes(params.status as string)) {
+              return JSON.stringify({ error: `Statut invalide. Valeurs: ${validStatuses.join(", ")}` });
+            }
+            const { error } = await supabase
+              .from("missions")
+              .update({ status: params.status, updated_at: new Date().toISOString() })
+              .eq("id", params.mission_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Statut de la mission mis à jour" });
+          }
+
+          // ── Support Tickets ──────────────────────────────
+          case "update_ticket_status": {
+            // params: { ticket_id, status, resolution_notes? }
+            const validTicketStatuses = ["nouveau", "en_cours", "en_attente", "resolu", "ferme"];
+            if (!validTicketStatuses.includes(params.status as string)) {
+              return JSON.stringify({ error: `Statut invalide. Valeurs: ${validTicketStatuses.join(", ")}` });
+            }
+            const ticketUpdate: Record<string, unknown> = {
+              status: params.status,
+              updated_at: new Date().toISOString(),
+            };
+            if (params.resolution_notes) ticketUpdate.resolution_notes = params.resolution_notes;
+            if (params.status === "resolu") ticketUpdate.resolved_at = new Date().toISOString();
+
+            const { error } = await supabase
+              .from("support_tickets")
+              .update(ticketUpdate)
+              .eq("id", params.ticket_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Ticket mis à jour" });
+          }
+
+          // ── Quotes ───────────────────────────────────────
+          case "update_quote_status": {
+            // params: { quote_id, status }
+            const validQuoteStatuses = ["draft", "generated", "sent", "signed", "expired", "canceled"];
+            if (!validQuoteStatuses.includes(params.status as string)) {
+              return JSON.stringify({ error: `Statut invalide. Valeurs: ${validQuoteStatuses.join(", ")}` });
+            }
+            const { error } = await supabase
+              .from("quotes")
+              .update({ status: params.status, updated_at: new Date().toISOString() })
+              .eq("id", params.quote_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Statut du devis mis à jour" });
+          }
+
+          // ── Formations ───────────────────────────────────
+          case "add_training_note": {
+            // params: { training_id, content, author_email }
+            // Uses formation_configs as a note store
+            const { error } = await supabase
+              .from("formation_configs")
+              .insert({
+                training_id: params.training_id,
+                config_type: "agent_note",
+                config_data: {
+                  content: params.content,
+                  author: params.author_email || "agent@supertools.ai",
+                  created_at: new Date().toISOString(),
+                },
+              });
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Note ajoutée à la formation" });
+          }
+
+          default:
+            return JSON.stringify({ error: `Action inconnue: ${action}` });
+        }
+      } catch (e) {
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : "Action execution failed",
         });
       }
     }
