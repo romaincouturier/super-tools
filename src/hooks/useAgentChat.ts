@@ -259,8 +259,13 @@ export function useAgentChat() {
 
     // Remove the last assistant message and the last user message (sendMessage will re-add it)
     setMessages((prev) => {
-      const lastAssistantIdx = prev.findLastIndex((m) => m.role === "assistant");
-      const lastUserIdx = prev.findLastIndex((m) => m.role === "user");
+      let lastAssistantIdx = -1;
+      let lastUserIdx = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (lastAssistantIdx === -1 && prev[i].role === "assistant") lastAssistantIdx = i;
+        if (lastUserIdx === -1 && prev[i].role === "user") lastUserIdx = i;
+        if (lastAssistantIdx !== -1 && lastUserIdx !== -1) break;
+      }
       return prev.filter((_, i) => i !== lastAssistantIdx && i !== lastUserIdx);
     });
 
