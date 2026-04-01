@@ -7008,6 +7008,10 @@ export type Database = {
     }
     Functions: {
       adjust_cron_timezones: { Args: never; Returns: Json }
+      agent_sql_query: {
+        Args: { query_text: string }
+        Returns: Json
+      }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -7224,6 +7228,25 @@ export type Database = {
       mark_devis_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
+      }
+      match_documents: {
+        Args: {
+          filter_source_types?: string[] | null
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+          source_date: string | null
+          source_id: string
+          source_title: string | null
+          source_type: string
+        }[]
       }
       match_watch_items: {
         Args: {

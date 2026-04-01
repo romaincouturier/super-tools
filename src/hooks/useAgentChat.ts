@@ -10,7 +10,7 @@ export interface ChatMessage {
 }
 
 /** Extract user/assistant text messages from the raw conversation JSON */
-function parseStoredMessages(raw: Json): ChatMessage[] {
+export function parseStoredMessages(raw: Json): ChatMessage[] {
   if (!Array.isArray(raw)) return [];
   const result: ChatMessage[] = [];
 
@@ -45,7 +45,7 @@ function parseStoredMessages(raw: Json): ChatMessage[] {
 }
 
 /** Parse SSE lines from a buffer, returns [parsed events, remaining buffer] */
-function parseSSEBuffer(buffer: string): [Array<{ event: string; data: Record<string, unknown> }>, string] {
+export function parseSSEBuffer(buffer: string): [Array<{ event: string; data: Record<string, unknown> }>, string] {
   const events: Array<{ event: string; data: Record<string, unknown> }> = [];
   const blocks = buffer.split("\n\n");
   const remaining = blocks.pop() || "";

@@ -9,11 +9,12 @@ import {
 /**
  * Process pending indexation queue items.
  *
- * Called periodically (e.g. every 2 minutes via pg_cron or external cron).
- * For each pending item, calls the index-documents function internally,
- * then marks it as processed.
+ * Called periodically by pg_cron (every 2 minutes) via pg_net.
+ * NOT called from the frontend — no user auth required.
+ * Authentication relies on the SERVICE_ROLE_KEY used by pg_net.
  *
- * For 'delete' operations, removes embeddings directly.
+ * For each pending item, calls the index-documents function internally,
+ * then marks it as processed. For 'delete' operations, removes embeddings directly.
  */
 
 const BATCH_SIZE = 50;
