@@ -27,77 +27,35 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 const MAX_TOOL_ROUNDS = 10;
 
-// ── Database schema for the system prompt ────────────────────
+// ── Database schema — loaded dynamically from agent_schema_registry ──
 
-const DB_SCHEMA = `
-Tables principales (PostgreSQL / Supabase) :
+let _cachedSchema: { text: string; fetchedAt: number } | null = null;
+const SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min cache
 
--- CRM
-crm_cards (id UUID PK, title TEXT, description_html TEXT, sales_status TEXT ['OPEN','WON','LOST','CANCELED'], status_operational TEXT ['TODAY','WAITING'], estimated_value NUMERIC, contact_email TEXT, contact_phone TEXT, column_id UUID FK→crm_columns, waiting_next_action_text TEXT, waiting_next_action_date TIMESTAMPTZ, created_at, updated_at)
-crm_columns (id UUID PK, name TEXT, position INT, is_archived BOOL)
-crm_comments (id UUID PK, card_id UUID FK→crm_cards, content TEXT, author_email TEXT, is_deleted BOOL, created_at)
-crm_card_emails (id UUID PK, card_id UUID FK→crm_cards, subject TEXT, body_html TEXT, sender_email TEXT, recipient_email TEXT, sent_at TIMESTAMPTZ, attachment_names TEXT[], delivery_status TEXT, opened_at TIMESTAMPTZ, open_count INT, clicked_at TIMESTAMPTZ, click_count INT)
-crm_card_tags (card_id UUID FK, tag_id UUID FK)
-crm_tags (id UUID PK, name TEXT, color TEXT)
-crm_attachments (id UUID PK, card_id UUID FK, file_name TEXT, file_path TEXT, file_size BIGINT, mime_type TEXT, created_at)
-crm_revenue_targets (id UUID PK, year INT, month INT, target_amount NUMERIC)
+async function getDbSchema(supabase: ReturnType<typeof getSupabaseClient>): Promise<string> {
+  const now = Date.now();
+  if (_cachedSchema && now - _cachedSchema.fetchedAt < SCHEMA_CACHE_TTL_MS) {
+    return _cachedSchema.text;
+  }
 
--- Formations
-trainings (id UUID PK, training_name TEXT, client_name TEXT, location TEXT, start_date DATE, end_date DATE, format_formation TEXT ['intra','inter-entreprises','classe_virtuelle'], prerequisites TEXT[], program_file_url TEXT, created_at, updated_at)
-training_participants (id UUID PK, training_id UUID FK→trainings, first_name TEXT, last_name TEXT, email TEXT, company TEXT, needs_survey_status TEXT ['non_envoye','envoye','en_cours','complete','valide_formateur','expire'], added_at TIMESTAMPTZ)
-formation_dates (id UUID PK, date_label TEXT, is_default BOOL)
-training_schedules (id UUID PK, training_id UUID FK→trainings, day_date DATE, start_time TIME, end_time TIME)
-formation_configs (id UUID PK, formation_name TEXT UNIQUE, prix DECIMAL, duree_heures INT, programme_url TEXT)
+  try {
+    const { data, error } = await supabase.rpc("get_agent_schema_prompt");
+    if (error) throw error;
+    if (data) {
+      _cachedSchema = { text: data as string, fetchedAt: now };
+      return data as string;
+    }
+  } catch (e) {
+    console.error("Failed to load schema from registry, using cache or fallback:", e);
+    if (_cachedSchema) return _cachedSchema.text;
+  }
 
--- Évaluations & Questionnaires
-evaluation_analyses (id UUID PK, training_id UUID FK, strengths JSONB, weaknesses JSONB, recommendations JSONB, summary TEXT, evaluations_count INT, created_at)
-questionnaire_besoins (id UUID PK, training_id UUID FK, participant_id UUID FK, experience_details TEXT, competences_actuelles TEXT, competences_visees TEXT, besoins_accessibilite TEXT, commentaires_libres TEXT, created_at)
-
--- Missions
-missions (id UUID PK, title TEXT, description TEXT, client_name TEXT, client_contact TEXT, status TEXT ['not_started','in_progress','completed','cancelled'], tags TEXT[], start_date DATE, end_date DATE, daily_rate NUMERIC, total_days NUMERIC, created_at)
-mission_activities (id UUID PK, mission_id UUID FK, activity_date DATE, duration DECIMAL, duration_type TEXT ['hours','days'], description TEXT, billable_amount DECIMAL, is_billed BOOL)
-mission_pages (id UUID PK, mission_id UUID FK, title TEXT, content TEXT)
-
--- Devis / Quotes
-quotes (id UUID PK, quote_number TEXT, crm_card_id UUID FK, status TEXT ['draft','generated','sent','signed','expired','canceled'], synthesis TEXT, instructions TEXT, email_subject TEXT, email_body TEXT, client_company TEXT, client_address TEXT, total_ht NUMERIC, total_ttc NUMERIC, line_items JSONB, pdf_path TEXT, email_sent_at TIMESTAMPTZ, created_at, updated_at)
-activity_logs (id UUID PK, action_type TEXT, recipient_email TEXT, details JSONB, user_id UUID, created_at)
--- activity_logs with action_type='micro_devis_sent' contains micro-devis history in details JSONB (formation_name, client_name, nb_participants, type_subrogation, etc.)
-
--- Emails
-inbound_emails (id UUID PK, subject TEXT, text_body TEXT, html_body TEXT, from_email TEXT, from_name TEXT, to_email TEXT, notes TEXT, status TEXT ['received','processed','archived','spam'], received_at TIMESTAMPTZ)
-email_templates (id UUID PK, template_type TEXT, template_name TEXT, subject TEXT, html_content TEXT, is_default BOOL)
-
--- Support
-support_tickets (id UUID PK, ticket_number TEXT, title TEXT, description TEXT, resolution_notes TEXT, type TEXT ['bug','evolution'], priority TEXT, status TEXT ['nouveau','en_cours','en_attente','resolu','ferme'], created_at)
-
--- Coaching
-coaching_bookings (id UUID PK, participant_id UUID FK, training_id UUID FK, status TEXT, instructor_notes TEXT, learner_notes TEXT, requested_date TIMESTAMPTZ)
-coaching_summaries (id UUID PK, booking_id UUID FK, participant_id UUID FK, training_id UUID FK, summary_text TEXT, key_topics JSONB, action_items JSONB, created_at)
-
--- Contenu / Éditorial
-content_cards (id UUID PK, title TEXT, description TEXT, column_id UUID FK→content_columns, tags JSONB, display_order INT, created_at)
-content_columns (id UUID PK, name TEXT, display_order INT)
-
--- OKR
-okr_objectives (id UUID PK, title TEXT, description TEXT, time_target TEXT ['Q1','Q2','Q3','Q4','S1','S2','annual'], target_year INT, status TEXT ['draft','active','completed','cancelled'], progress_percentage INT, created_at)
-okr_key_results (id UUID PK, objective_id UUID FK, title TEXT, target_value NUMERIC, current_value NUMERIC, unit TEXT)
-okr_initiatives (id UUID PK, key_result_id UUID FK, title TEXT, status TEXT, due_date DATE)
-
--- E-learning (LMS)
-lms_courses (id UUID PK, title TEXT, description TEXT, status TEXT, created_at)
-lms_modules (id UUID PK, course_id UUID FK, title TEXT, description TEXT, position INT)
-lms_lessons (id UUID PK, module_id UUID FK, title TEXT, lesson_type TEXT, content_html TEXT, video_url TEXT, position INT, is_mandatory BOOL, created_at)
-
--- Statistiques
-daily_action_analytics (id UUID PK, user_id UUID FK, action_date DATE, total_actions INT, completed_count INT, auto_completed_count INT, manual_completed_count INT, category_stats JSONB)
-
--- Événements
-events (id UUID PK, title TEXT, description TEXT, event_date DATE, event_time TIME, location TEXT, location_type TEXT ['physical','visio'], created_at)
-`.trim();
+  return "(schema unavailable — ask the user to check the agent_schema_registry table)";
+}
 
 // ── System prompt ────────────────────────────────────────────
 
-function buildSystemPrompt(): string {
+function buildSystemPrompt(dbSchema: string): string {
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -129,9 +87,10 @@ Règles :
 - IMPORTANT : avant toute action d'écriture, décris ce que tu vas faire et demande confirmation à l'utilisateur. N'exécute l'action que si l'utilisateur confirme explicitement (oui, ok, vas-y, confirme, etc.)
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
+- Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
 
 Schéma de la base de données :
-${DB_SCHEMA}`;
+${dbSchema}`;
 }
 
 // ── Tool definitions ─────────────────────────────────────────
@@ -224,13 +183,17 @@ async function executeTool(
   toolName: string,
   toolInput: Record<string, unknown>,
   supabase: ReturnType<typeof getSupabaseClient>,
+  userId?: string,
 ): Promise<string> {
   switch (toolName) {
     case "query_database": {
       const sql = toolInput.sql as string;
+      const explanation = (toolInput.explanation as string) || null;
       try {
         const { data, error } = await supabase.rpc("agent_sql_query", {
           query_text: sql,
+          p_user_id: userId || null,
+          p_explanation: explanation,
         });
         if (error) {
           return JSON.stringify({ error: error.message });
@@ -424,6 +387,7 @@ async function runAgentStreaming(
   messages: Message[],
   supabase: ReturnType<typeof getSupabaseClient>,
   writer: WritableStreamDefaultWriter<Uint8Array>,
+  userId?: string,
 ): Promise<{ fullResponse: string; updatedMessages: Message[] }> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY not configured");
@@ -431,6 +395,9 @@ async function runAgentStreaming(
 
   const encoder = new TextEncoder();
   const write = (text: string) => writer.write(encoder.encode(text));
+
+  // Load schema dynamically from registry (cached 5 min)
+  const dbSchema = await getDbSchema(supabase);
 
   const conversationMessages = [...messages];
   let fullResponse = "";
@@ -448,7 +415,7 @@ async function runAgentStreaming(
         model: CLAUDE_MODEL,
         max_tokens: 4096,
         stream: true,
-        system: buildSystemPrompt(),
+        system: buildSystemPrompt(dbSchema),
         tools: TOOLS,
         messages: conversationMessages,
       }),
@@ -582,6 +549,7 @@ async function runAgentStreaming(
         toolBlock.name as string,
         toolBlock.input as Record<string, unknown>,
         supabase,
+        userId,
       );
       toolResults.push({
         type: "tool_result",
@@ -682,6 +650,7 @@ serve(async (req) => {
           messages,
           supabase,
           writer,
+          userId,
         );
 
         // Save conversation
