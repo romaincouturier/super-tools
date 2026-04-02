@@ -1,4 +1,4 @@
-import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Send, Clock } from "lucide-react";
+import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Send, Clock, Linkedin } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -127,6 +127,23 @@ const ParticipantTable = ({
                     </TooltipTrigger>
                     <TooltipContent><p>Copier {participant.email}</p></TooltipContent>
                   </Tooltip>
+                  {(participant.first_name || participant.last_name) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(
+                            [participant.first_name, participant.last_name, participant.company].filter(Boolean).join(" ")
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-[#0A66C2] hover:bg-muted transition-colors shrink-0"
+                        >
+                          <Linkedin className="h-3 w-3" />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent><p>Rechercher sur LinkedIn</p></TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </TableCell>
               {actionsProps.isInterEntreprise && (

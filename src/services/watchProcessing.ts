@@ -10,13 +10,19 @@ import type { WatchContentType } from "@/hooks/useWatch";
  * - Duplicate detection
  * - Clustering check
  */
-export async function processWatchItem(itemId: string) {
+export async function processWatchItem(itemId: string): Promise<boolean> {
   try {
-    await supabase.functions.invoke("watch-process-item", {
+    const { error } = await supabase.functions.invoke("watch-process-item", {
       body: { item_id: itemId },
     });
-  } catch {
-    console.warn("[Watch] Failed to process item:", itemId);
+    if (error) {
+      console.error("[Watch] Processing error:", error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[Watch] Failed to process item:", itemId, e);
+    return false;
   }
 }
 
