@@ -1,14 +1,17 @@
 import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
-import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search } from "lucide-react";
+import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAgentChat, type ChatMessage } from "@/hooks/useAgentChat";
 import { useAgentConversations } from "@/hooks/useAgentConversations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
+import DailyTodoPanel from "@/components/dashboard/DailyTodoPanel";
+import UpcomingCalendarPanel from "@/components/dashboard/UpcomingCalendarPanel";
 import ReactMarkdown from "react-markdown";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -38,6 +41,7 @@ const AgentChat = () => {
   const [input, setInput] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
+  const [showRightPanel, setShowRightPanel] = useState(true);
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSentRef = useRef(false);
@@ -193,10 +197,20 @@ const AgentChat = () => {
               <Bot className="w-5 h-5 text-primary" />
               <h1 className="font-semibold text-sm">Agent SuperTools</h1>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleNewConversation} className="gap-1.5">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Nouvelle conversation</span>
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={handleNewConversation} className="gap-1.5">
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Nouvelle conversation</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hidden lg:flex"
+                onClick={() => setShowRightPanel(!showRightPanel)}
+              >
+                <PanelRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages area */}
@@ -265,6 +279,18 @@ const AgentChat = () => {
             </p>
           </div>
         </div>
+
+        {/* Right panel: Todo + Calendar */}
+        {showRightPanel && (
+          <aside className="hidden lg:flex flex-col w-80 shrink-0 border-l bg-muted/20 p-4 gap-4 overflow-y-auto">
+            <Card className="p-4 min-h-0 flex flex-col overflow-hidden">
+              <UpcomingCalendarPanel />
+            </Card>
+            <Card className="p-4 min-h-0 flex flex-col overflow-hidden">
+              <DailyTodoPanel />
+            </Card>
+          </aside>
+        )}
       </div>
     </ModuleLayout>
   );
