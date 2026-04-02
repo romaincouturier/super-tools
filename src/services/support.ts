@@ -62,7 +62,29 @@ export async function createSupportTicket(
     }
   }
 
+  // Notify admin of new ticket (fire-and-forget)
+  notifyNewTicket(data);
+
   return data;
+}
+
+/** Best-effort email to admin when a new ticket is submitted. */
+async function notifyNewTicket(ticket: SupportTicket): Promise<void> {
+  try {
+    await supabase.functions.invoke("send-support-notification", {
+      body: {
+        type: "new_ticket",
+        ticketNumber: ticket.ticket_number,
+        ticketTitle: ticket.title,
+        ticketType: ticket.type,
+        ticketPriority: ticket.priority,
+        description: ticket.description,
+        submittedByEmail: ticket.submitted_by_email,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to send new ticket notification:", err);
+  }
 }
 
 const RESOLVED_STATUSES: TicketStatus[] = ["resolu", "ferme"];

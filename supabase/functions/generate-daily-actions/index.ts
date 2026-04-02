@@ -323,6 +323,48 @@ serve(async (req) => {
       });
     }
 
+    // 14. Tickets support en attente (global — visible par tous)
+    const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
+    const statusLabels: Record<string, string> = { nouveau: "Nouveau", en_cours: "En cours", en_attente: "En attente" };
+    for (const t of data.supportTickets) {
+      const emoji = priorityEmojis[t.priority] || "🎫";
+      const statusLabel = statusLabels[t.status] || t.status;
+      const typeLabel = t.type === "bug" ? "Bug" : "Évolution";
+      const daysLabel = t.daysOpen === 0 ? "Aujourd'hui" : `Ouvert depuis ${t.daysOpen}j`;
+      actions.push({
+        category: "support_tickets",
+        title: `${emoji} ${t.ticketNumber} — ${t.title}`,
+        description: `${typeLabel} · ${statusLabel} · ${daysLabel}`,
+        link: `${appUrl}/support`,
+        entityType: "support_ticket", entityId: t.id,
+        scope: "global",
+      });
+    }
+
+    // 15. Email drafts pending validation (assigned to comms manager)
+    if (data.pendingEmailDrafts.length > 0) {
+      // Fetch comms manager user ID
+      const { data: settingRow } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "communication_manager_user_id")
+        .maybeSingle();
+      const commsManagerId = settingRow?.setting_value || null;
+
+      const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
+      for (const draft of data.pendingEmailDrafts) {
+        const typeLabel = typeLabels[draft.emailType] || draft.emailType;
+        actions.push({
+          category: "emails_a_valider",
+          title: `📧 ${draft.missionTitle} — ${typeLabel}`,
+          description: `Email à valider pour ${draft.contactName || draft.contactEmail}`,
+          link: `${appUrl}/missions/${draft.missionId}`,
+          entityType: "mission_email_draft", entityId: draft.id,
+          assignedTo: commsManagerId, scope: "perUser",
+        });
+      }
+    }
+
     const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
 
     for (const recipient of recipients) {
