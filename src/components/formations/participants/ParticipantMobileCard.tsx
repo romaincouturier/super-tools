@@ -1,4 +1,4 @@
-import { Send, Clock } from "lucide-react";
+import { Send, Clock, Linkedin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusConfig } from "./statusConfig";
 import ParticipantActions from "./ParticipantActions";
@@ -30,7 +30,21 @@ const ParticipantMobileCard = ({
                     ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
                     : "\u2014"}
                 </p>
-                <p className="text-xs text-muted-foreground truncate">{participant.email}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs text-muted-foreground truncate">{participant.email}</p>
+                  {(participant.first_name || participant.last_name) && (
+                    <a
+                      href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(
+                        [participant.first_name, participant.last_name, participant.company].filter(Boolean).join(" ")
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-[#0A66C2] transition-colors shrink-0"
+                    >
+                      <Linkedin className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
                 {participant.company && (
                   <p className="text-xs text-muted-foreground">{participant.company}</p>
                 )}
