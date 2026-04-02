@@ -1,11 +1,12 @@
 import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
-import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight } from "lucide-react";
+import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAgentChat, type ChatMessage } from "@/hooks/useAgentChat";
+import { useAgentFeedback } from "@/hooks/useAgentFeedback";
 import { useAgentConversations } from "@/hooks/useAgentConversations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -36,6 +37,7 @@ const AgentChat = () => {
     regenerateLastResponse,
   } = useAgentChat();
   const { conversations, deleteConversation } = useAgentConversations();
+  const { submitFeedback } = useAgentFeedback();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [input, setInput] = useState("");
@@ -104,6 +106,22 @@ const AgentChat = () => {
     newConversation();
     setShowHistory(false);
   };
+
+  const handleFeedback = useCallback(async (messageIdx: number, rating: "up" | "down") => {
+    let userPrompt = "";
+    for (let i = messageIdx - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        userPrompt = messages[i].content;
+        break;
+      }
+    }
+    await submitFeedback({
+      conversationId,
+      rating,
+      userPrompt,
+      assistantResponse: messages[messageIdx].content,
+    });
+  }, [messages, conversationId, submitFeedback]);
 
   const isEmpty = messages.length === 0;
 
@@ -227,6 +245,7 @@ const AgentChat = () => {
                       isStreaming={isLoading && msg === messages[messages.length - 1] && msg.role === "assistant"}
                       isLastAssistant={!isLoading && msg.role === "assistant" && idx === (() => { for (let i = messages.length - 1; i >= 0; i--) { if (messages[i].role === "assistant") return i; } return -1; })()}
                       onRegenerate={regenerateLastResponse}
+                      onFeedback={(rating) => handleFeedback(idx, rating)}
                     />
                   ))}
                   {isLoading && !messages.length && <ThinkingIndicator toolStatus={toolStatus} />}
@@ -331,14 +350,17 @@ function MessageBubble({
   isStreaming,
   isLastAssistant,
   onRegenerate,
+  onFeedback,
 }: {
   message: ChatMessage;
   isStreaming?: boolean;
   isLastAssistant?: boolean;
   onRegenerate?: () => void;
+  onFeedback?: (rating: "up" | "down") => void;
 }) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState<"up" | "down" | null>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => () => clearTimeout(copyTimerRef.current), []);
@@ -350,6 +372,12 @@ function MessageBubble({
     setCopied(true);
     clearTimeout(copyTimerRef.current);
     copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleFeedback = (rating: "up" | "down") => {
+    if (feedbackGiven) return;
+    setFeedbackGiven(rating);
+    onFeedback?.(rating);
   };
 
   return (
@@ -380,9 +408,12 @@ function MessageBubble({
             </div>
           )}
         </div>
-        {/* Action buttons — visible on hover for assistant messages */}
-        {!isUser && !isStreaming && message.content && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Action buttons — visible on hover */}
+        {!isStreaming && message.content && (
+          <div className={cn(
+            "flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+            isUser && "flex-row-reverse",
+          )}>
             <button
               onClick={handleCopy}
               className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -390,14 +421,46 @@ function MessageBubble({
             >
               {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
-            {isLastAssistant && onRegenerate && (
-              <button
-                onClick={onRegenerate}
-                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title="Régénérer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
+            {!isUser && (
+              <>
+                <button
+                  onClick={() => handleFeedback("up")}
+                  disabled={!!feedbackGiven}
+                  className={cn(
+                    "p-1 rounded transition-colors",
+                    feedbackGiven === "up"
+                      ? "text-green-600"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    feedbackGiven && feedbackGiven !== "up" && "opacity-30",
+                  )}
+                  title="Bonne réponse"
+                >
+                  <ThumbsUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleFeedback("down")}
+                  disabled={!!feedbackGiven}
+                  className={cn(
+                    "p-1 rounded transition-colors",
+                    feedbackGiven === "down"
+                      ? "text-red-600"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    feedbackGiven && feedbackGiven !== "down" && "opacity-30",
+                  )}
+                  title="Mauvaise réponse"
+                >
+                  <ThumbsDown className="w-3.5 h-3.5" />
+                </button>
+                {isLastAssistant && onRegenerate && (
+                  <button
+                    onClick={onRegenerate}
+                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    title="Régénérer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
