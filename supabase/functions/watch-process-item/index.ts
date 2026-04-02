@@ -65,7 +65,9 @@ serve(async (req) => {
     if (item.content_type === "image" && item.file_url) {
       // OCR via OpenAI Vision
       const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-      if (OPENAI_API_KEY) {
+      if (!OPENAI_API_KEY) {
+        console.error("OCR skipped: OPENAI_API_KEY is not configured");
+      } else {
         try {
           const ocrRes = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
@@ -94,10 +96,14 @@ serve(async (req) => {
             if (extractedText.trim()) {
               body = extractedText;
               updates.body = body;
+              console.log(`OCR extracted ${extractedText.length} chars from image`);
             }
+          } else {
+            const errText = await ocrRes.text();
+            console.error(`OCR API error ${ocrRes.status}:`, errText);
           }
         } catch (e) {
-          console.warn("OCR failed:", e);
+          console.error("OCR failed:", e);
         }
       }
     }

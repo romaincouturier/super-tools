@@ -113,9 +113,13 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       });
 
       // Trigger async processing (AI title/tags, scraping, OCR, transcription)
-      processWatchItem(item.id);
+      const processed = await processWatchItem(item.id);
 
-      toast.success("Contenu ajouté à la veille");
+      if (processed) {
+        toast.success("Contenu ajouté et traité");
+      } else {
+        toast.warning("Contenu ajouté mais le traitement IA a échoué (OCR, tags, etc.). Vérifiez la configuration OPENAI_API_KEY.");
+      }
       reset();
       setOpen(false);
     } catch (error) {
@@ -155,8 +159,12 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         tags,
       });
 
-      processWatchItem(item.id);
-      toast.success("Contenu ajouté (doublon ignoré)");
+      const processed = await processWatchItem(item.id);
+      if (processed) {
+        toast.success("Contenu ajouté et traité (doublon ignoré)");
+      } else {
+        toast.warning("Contenu ajouté mais le traitement IA a échoué. Vérifiez la configuration OPENAI_API_KEY.");
+      }
       reset();
       setOpen(false);
     } catch {
