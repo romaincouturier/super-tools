@@ -57,20 +57,20 @@ function stripHtml(html: string): string {
 }
 
 /** Build a query — either a single record or all records */
-function buildQuery(
+async function buildQuery(
   supabase: ReturnType<typeof getSupabaseClient>,
   table: string,
   columns: string,
   sourceId?: string,
   orderColumn = "created_at",
-) {
+): Promise<{ data: any[] | null }> {
   let q = supabase.from(table).select(columns);
   if (sourceId) {
     q = q.eq("id", sourceId);
   } else {
     q = q.order(orderColumn, { ascending: false }).limit(500);
   }
-  return q;
+  return q as any;
 }
 
 // ── Extractors per source type ───────────────────────────────

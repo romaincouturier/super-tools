@@ -362,3 +362,18 @@ verify_jwt = false
 
 [functions.process-indexation-queue]
 verify_jwt = false
+
+[functions.capture-screenshots]
+verify_jwt = false
+
+[functions.media-slack-notify]
+verify_jwt = false
+
+[functions.send-broadcast-email]
+verify_jwt = false
+
+[functions.transcribe-audio-long]
+verify_jwt = false
+
+[functions.index-documents]
+verify_jwt = false
