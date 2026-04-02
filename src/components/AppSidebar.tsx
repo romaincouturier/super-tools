@@ -36,6 +36,7 @@ const SIDEBAR_MODULE_ORDER = [
   "ameliorations",
   "support",
   "reseau",
+  "supertilt",
   "veille",
   "arena",
 ];

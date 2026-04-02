@@ -22,6 +22,7 @@ import {
   Users,
   GraduationCap,
   Eye,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,4 +56,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   reseau: { icon: Users, label: "Réseau", path: "/reseau" },
   lms: { icon: GraduationCap, label: "E-learning", path: "/lms" },
   veille: { icon: Eye, label: "Veille", path: "/veille" },
+  supertilt: { icon: Zap, label: "SuperTilt", path: "/supertilt" },
 };

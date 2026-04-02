@@ -85,6 +85,7 @@ const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
 const AgentChat = lazy(() => import("./pages/AgentChat"));
+const SuperTilt = lazy(() => import("./pages/SuperTilt"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -223,6 +224,8 @@ const App = () => (
               <Route path="/reseau" element={<Reseau />} />
               {/* Watch module (veille) */}
               <Route path="/veille" element={<Watch />} />
+              {/* SuperTilt (plan d'action) */}
+              <Route path="/supertilt" element={<SuperTilt />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, FileText, Send, Eye } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import PageHeader from "@/components/PageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -299,34 +300,30 @@ const MicroDevis = () => {
   };
 
   if (loading) {
-    return (<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>);
+    return (<ModuleLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></ModuleLayout>);
   }
 
   return (
     <ModuleLayout>
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+        <PageHeader
+          icon={FileText}
+          title="Micro-devis"
+          subtitle="Créez des devis rapides et simplifiés"
+          actions={
+            <DevisHistoryDialog
+              historyDialogOpen={historyHook.historyDialogOpen}
+              setHistoryDialogOpen={historyHook.setHistoryDialogOpen}
+              historySearch={historyHook.historySearch}
+              setHistorySearch={historyHook.setHistorySearch}
+              loadingHistory={historyHook.loadingHistory}
+              filteredHistory={historyHook.filteredHistory}
+              onDuplicate={handleDuplicateDevis}
+              onDelete={historyHook.handleDeleteDevis}
+            />
+          }
+        />
         <Card className="border-2 shadow-xl">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <FileText className="w-6 h-6 text-primary" />
-                  Micro-devis
-                </CardTitle>
-                <CardDescription>Créez des devis rapides et simplifiés</CardDescription>
-              </div>
-              <DevisHistoryDialog
-                historyDialogOpen={historyHook.historyDialogOpen}
-                setHistoryDialogOpen={historyHook.setHistoryDialogOpen}
-                historySearch={historyHook.historySearch}
-                setHistorySearch={historyHook.setHistorySearch}
-                loadingHistory={historyHook.loadingHistory}
-                filteredHistory={historyHook.filteredHistory}
-                onDuplicate={handleDuplicateDevis}
-                onDelete={historyHook.handleDeleteDevis}
-              />
-            </div>
-          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
               <ClientInfoSection

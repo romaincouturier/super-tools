@@ -25,7 +25,8 @@ export type AppModule =
   | "reseau"
   | "lms"
   | "screenshots"
-  | "veille";
+  | "veille"
+  | "supertilt";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -52,6 +53,7 @@ export const ALL_MODULES: AppModule[] = [
   "lms",
   "screenshots",
   "veille",
+  "supertilt",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
