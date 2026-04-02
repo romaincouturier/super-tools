@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Award, Loader2, Send } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import {
@@ -309,23 +310,14 @@ const Index = () => {
   return (
     <ModuleLayout>
 
-      {/* Main content */}
-      <main className="max-w-4xl mx-auto p-6">
+      <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+        <PageHeader
+          icon={Award}
+          title="Certificats de formation"
+          subtitle="Remplissez les informations et la liste des participants"
+          actions={<GoogleDriveConnect />}
+        />
         <Card className="border-2 shadow-xl">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl flex items-center gap-2">
-                  <Award className="w-6 h-6 text-primary" />
-                  Génération de certificats de formation
-                </CardTitle>
-                <CardDescription>
-                  Remplissez les informations de la formation et la liste des participants
-                </CardDescription>
-              </div>
-              <GoogleDriveConnect />
-            </div>
-          </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Formation details */}

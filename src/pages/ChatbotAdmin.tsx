@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bot } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
 import { KnowledgeBaseManager } from "@/components/chatbot/KnowledgeBaseManager";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +67,8 @@ export default function ChatbotAdmin() {
 
   return (
     <ModuleLayout>
-      <main className="container mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+        <PageHeader icon={Bot} title="Base de connaissances" subtitle="Gestion du chatbot IA" />
         <KnowledgeBaseManager />
       </main>
     </ModuleLayout>
