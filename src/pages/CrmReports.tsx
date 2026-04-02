@@ -1,26 +1,67 @@
-import { Loader2, TrendingUp, TrendingDown, Target, DollarSign, BarChart3 } from "lucide-react";
+import { useState, useMemo } from "react";
+import {
+  Loader2,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  DollarSign,
+  BarChart3,
+  CalendarDays,
+} from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
-import { useCrmReports } from "@/hooks/useCrmBoard";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { useCrmReports, type CrmReportFilters } from "@/hooks/crm/useCrmReports";
 import ModuleLayout from "@/components/ModuleLayout";
+import { format, startOfYear, startOfQuarter, startOfMonth, endOfMonth, endOfQuarter, endOfYear } from "date-fns";
+import { fr } from "date-fns/locale";
+import type { CrmTag } from "@/types/crm";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
+// ── Period helpers ──────────────────────────────────────────
+
+type PeriodPreset = "year" | "quarter" | "month" | "custom";
+
+function getPresetDates(preset: PeriodPreset, now: Date): { start: string; end: string } | null {
+  if (preset === "custom") return null;
+  if (preset === "year") return { start: format(startOfYear(now), "yyyy-MM-dd"), end: format(endOfYear(now), "yyyy-MM-dd") };
+  if (preset === "quarter") return { start: format(startOfQuarter(now), "yyyy-MM-dd"), end: format(endOfQuarter(now), "yyyy-MM-dd") };
+  return { start: format(startOfMonth(now), "yyyy-MM-dd"), end: format(endOfMonth(now), "yyyy-MM-dd") };
+}
+
+const fmt = (v: number) => v.toLocaleString("fr-FR");
+
+// ── Page ────────────────────────────────────────────────────
 
 const CrmReports = () => {
-  const { data: reports, isLoading } = useCrmReports();
+  const [preset, setPreset] = useState<PeriodPreset>("year");
+  const [customStart, setCustomStart] = useState<Date | undefined>();
+  const [customEnd, setCustomEnd] = useState<Date | undefined>();
+
+  const filters: CrmReportFilters = useMemo(() => {
+    if (preset === "custom") {
+      return {
+        startDate: customStart ? format(customStart, "yyyy-MM-dd") : null,
+        endDate: customEnd ? format(customEnd, "yyyy-MM-dd") : null,
+      };
+    }
+    const dates = getPresetDates(preset, new Date());
+    return { startDate: dates?.start ?? null, endDate: dates?.end ?? null };
+  }, [preset, customStart, customEnd]);
+
+  const { data: reports, isLoading } = useCrmReports(filters);
 
   if (isLoading) {
     return (
@@ -36,7 +77,7 @@ const CrmReports = () => {
     return (
       <ModuleLayout>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Aucune donnée disponible</p>
+          <p className="text-muted-foreground">Aucune donnee disponible</p>
         </div>
       </ModuleLayout>
     );
@@ -49,172 +90,333 @@ const CrmReports = () => {
 
   return (
     <ModuleLayout>
+      <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+        <PageHeader
+          icon={BarChart3}
+          title="Reporting CRM"
+          subtitle="Statistiques du pipeline commercial"
+          backTo="/crm"
+          actions={<PeriodSelector preset={preset} onPresetChange={setPreset} customStart={customStart} customEnd={customEnd} onCustomStartChange={setCustomStart} onCustomEndChange={setCustomEnd} />}
+        />
 
-      <main className="max-w-7xl mx-auto p-6 space-y-6">
-        <PageHeader icon={BarChart3} title="Reporting CRM" subtitle="Statistiques du pipeline commercial" backTo="/crm" />
+        {/* KPIs — value-first layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <KpiCard
+            title="Pipeline ouvert"
+            icon={<Target className="h-4 w-4 text-muted-foreground" />}
+            mainValue={`${fmt(reports.openValue)} \u20ac`}
+            secondary={`${reports.openCount} opportunite${reports.openCount > 1 ? "s" : ""}`}
+          />
+          <KpiCard
+            title="Pipeline pondere"
+            icon={<DollarSign className="h-4 w-4 text-amber-600" />}
+            mainValue={`${fmt(Math.round(reports.weightedPipeline))} \u20ac`}
+            secondary="confiance \u00d7 valeur"
+            mainColor="text-amber-600"
+          />
+          <KpiCard
+            title="Gagne"
+            icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+            mainValue={`${fmt(reports.wonValue)} \u20ac`}
+            secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
+            mainColor="text-green-600"
+          />
+          <KpiCard
+            title="Perdu"
+            icon={<TrendingDown className="h-4 w-4 text-red-600" />}
+            mainValue={`${fmt(reports.lostValue)} \u20ac`}
+            secondary={`${reports.lostCount} opportunite${reports.lostCount > 1 ? "s" : ""}`}
+            mainColor="text-red-600"
+          />
+          <KpiCard
+            title="Taux de conversion"
+            icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
+            mainValue={`${winRate}%`}
+            secondary={`sur ${reports.wonCount + reports.lostCount} cloturee${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
+          />
+        </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pipeline ouvert</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{reports.openCount}</div>
-            <p className="text-xs text-muted-foreground">
-              {reports.openValue.toLocaleString("fr-FR")} € en cours
-            </p>
-          </CardContent>
-        </Card>
+        {/* Pivot table */}
+        {reports.categories.length >= 2 && (
+          <PivotTable
+            cardsWithTags={reports.cardsWithTags}
+            categories={reports.categories}
+          />
+        )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventes gagnées</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{reports.wonCount}</div>
-            <p className="text-xs text-muted-foreground">
-              {reports.wonValue.toLocaleString("fr-FR")} € total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventes perdues</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{reports.lostCount}</div>
-            <p className="text-xs text-muted-foreground">opportunités</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taux de conversion</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{winRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              sur {reports.wonCount + reports.lostCount} clôturées
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Cards per Column */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Répartition par colonne</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={reports.cardsPerColumn}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="columnName" tick={{ fontSize: 12 }} />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#3b82f6" name="Opportunités" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Breakdown by Category */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Répartition par catégorie de tag</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {reports.breakdownByCategory.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                Aucun tag avec catégorie
-              </p>
-            ) : (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reports.breakdownByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ category, count }) => `${category}: ${count}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="count"
-                      nameKey="category"
-                    >
-                      {reports.breakdownByCategory.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, _name, props) => [
-                        `${value} opportunités (${(props.payload.totalValue ?? 0).toLocaleString("fr-FR")} €)`,
-                        props.payload.category,
-                      ]}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Summary Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Résumé</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Métrique</th>
-                  <th className="text-right py-2">Valeur</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b">
-                  <td className="py-2">Total opportunités</td>
-                  <td className="text-right font-medium">{reports.totalCards}</td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-2">Pipeline ouvert (valeur)</td>
-                  <td className="text-right font-medium">
-                    {reports.openValue.toLocaleString("fr-FR")} €
-                  </td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-2">Ventes gagnées (valeur)</td>
-                  <td className="text-right font-medium text-green-600">
-                    {reports.wonValue.toLocaleString("fr-FR")} €
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2">Taux de conversion</td>
-                  <td className="text-right font-medium">{winRate}%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+        {reports.categories.length < 2 && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              Le tableau croise necessite au moins 2 categories de tags pour fonctionner.
+              Ajoutez des categories dans les parametres CRM.
+            </CardContent>
+          </Card>
+        )}
       </main>
     </ModuleLayout>
   );
 };
+
+// ── KPI Card ────────────────────────────────────────────────
+
+function KpiCard({
+  title,
+  icon,
+  mainValue,
+  secondary,
+  mainColor,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  mainValue: string;
+  secondary: string;
+  mainColor?: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className={`text-2xl font-bold ${mainColor ?? ""}`}>{mainValue}</div>
+        <p className="text-xs text-muted-foreground">{secondary}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Period Selector ─────────────────────────────────────────
+
+function PeriodSelector({
+  preset,
+  onPresetChange,
+  customStart,
+  customEnd,
+  onCustomStartChange,
+  onCustomEndChange,
+}: {
+  preset: PeriodPreset;
+  onPresetChange: (p: PeriodPreset) => void;
+  customStart?: Date;
+  customEnd?: Date;
+  onCustomStartChange: (d: Date | undefined) => void;
+  onCustomEndChange: (d: Date | undefined) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <Select value={preset} onValueChange={(v) => onPresetChange(v as PeriodPreset)}>
+        <SelectTrigger className="w-36 h-9 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="year">Cette annee</SelectItem>
+          <SelectItem value="quarter">Ce trimestre</SelectItem>
+          <SelectItem value="month">Ce mois</SelectItem>
+          <SelectItem value="custom">Personnalise</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {preset === "custom" && (
+        <>
+          <DatePickerButton label="Debut" date={customStart} onChange={onCustomStartChange} />
+          <DatePickerButton label="Fin" date={customEnd} onChange={onCustomEndChange} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function DatePickerButton({
+  label,
+  date,
+  onChange,
+}: {
+  label: string;
+  date?: Date;
+  onChange: (d: Date | undefined) => void;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5 text-sm h-9">
+          <CalendarDays className="h-3.5 w-3.5" />
+          {date ? format(date, "d MMM yyyy", { locale: fr }) : label}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar mode="single" selected={date} onSelect={onChange} locale={fr} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// ── Pivot Table ─────────────────────────────────────────────
+
+interface CardWithTags {
+  id: string;
+  estimated_value: number | null;
+  sales_status: string;
+  tagObjects: CrmTag[];
+}
+
+function PivotTable({
+  cardsWithTags,
+  categories,
+}: {
+  cardsWithTags: CardWithTags[];
+  categories: string[];
+}) {
+  const [rowCat, setRowCat] = useState(categories[0]);
+  const [colCat, setColCat] = useState(categories.length > 1 ? categories[1] : categories[0]);
+
+  // Unique tag values per category
+  const rowTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of cardsWithTags) {
+      for (const t of c.tagObjects) {
+        if (t.category === rowCat) set.add(t.name);
+      }
+    }
+    return [...set].sort();
+  }, [cardsWithTags, rowCat]);
+
+  const colTags = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of cardsWithTags) {
+      for (const t of c.tagObjects) {
+        if (t.category === colCat) set.add(t.name);
+      }
+    }
+    return [...set].sort();
+  }, [cardsWithTags, colCat]);
+
+  // Build pivot matrix
+  const { matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
+    const mat: Record<string, Record<string, number>> = {};
+    const rTotals: Record<string, number> = {};
+    const cTotals: Record<string, number> = {};
+    let total = 0;
+
+    for (const rt of rowTags) {
+      mat[rt] = {};
+      rTotals[rt] = 0;
+      for (const ct of colTags) {
+        mat[rt][ct] = 0;
+      }
+    }
+    for (const ct of colTags) cTotals[ct] = 0;
+
+    for (const card of cardsWithTags) {
+      const val = card.estimated_value || 0;
+      const cardRowTags = card.tagObjects.filter((t) => t.category === rowCat).map((t) => t.name);
+      const cardColTags = card.tagObjects.filter((t) => t.category === colCat).map((t) => t.name);
+
+      for (const rt of cardRowTags) {
+        for (const ct of cardColTags) {
+          if (mat[rt] && ct in mat[rt]) {
+            mat[rt][ct] += val;
+            rTotals[rt] += val;
+            cTotals[ct] += val;
+            total += val;
+          }
+        }
+      }
+    }
+
+    return { matrix: mat, rowTotals: rTotals, colTotals: cTotals, grandTotal: total };
+  }, [cardsWithTags, rowCat, colCat, rowTags, colTags]);
+
+  if (rowTags.length === 0 || colTags.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground text-sm">
+          Pas assez de donnees pour croiser ces categories.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <CardTitle className="text-base">Tableau croise par tags</CardTitle>
+          <div className="flex items-center gap-2 flex-wrap text-sm">
+            <span className="text-muted-foreground">Lignes</span>
+            <Select value={rowCat} onValueChange={setRowCat}>
+              <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground">Colonnes</span>
+            <Select value={colCat} onValueChange={setColCat}>
+              <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr>
+                <th className="text-left py-2 px-2 border-b font-medium text-muted-foreground">
+                  {rowCat} \\ {colCat}
+                </th>
+                {colTags.map((ct) => (
+                  <th key={ct} className="text-right py-2 px-2 border-b font-medium text-muted-foreground">
+                    {ct}
+                  </th>
+                ))}
+                <th className="text-right py-2 px-2 border-b font-semibold">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rowTags.map((rt) => (
+                <tr key={rt} className="border-b hover:bg-muted/30">
+                  <td className="py-2 px-2 font-medium">{rt}</td>
+                  {colTags.map((ct) => (
+                    <td key={ct} className="text-right py-2 px-2 tabular-nums">
+                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} \u20ac` : <span className="text-muted-foreground">-</span>}
+                    </td>
+                  ))}
+                  <td className="text-right py-2 px-2 font-semibold tabular-nums">
+                    {fmt(rowTotals[rt])} \u20ac
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="border-t-2">
+                <td className="py-2 px-2 font-semibold">Total</td>
+                {colTags.map((ct) => (
+                  <td key={ct} className="text-right py-2 px-2 font-semibold tabular-nums">
+                    {fmt(colTotals[ct])} \u20ac
+                  </td>
+                ))}
+                <td className="text-right py-2 px-2 font-bold tabular-nums">
+                  {fmt(grandTotal)} \u20ac
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default CrmReports;
