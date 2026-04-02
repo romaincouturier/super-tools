@@ -57,7 +57,10 @@ export function useSupertiltActions() {
       qc.invalidateQueries({ queryKey: key });
       toast.success("Action ajoutée");
     },
-    onError: () => toast.error("Erreur lors de l'ajout"),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      toast.error(`Erreur lors de l'ajout : ${msg}`);
+    },
   });
 
   const updateAction = useMutation({
@@ -70,7 +73,10 @@ export function useSupertiltActions() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
-    onError: () => toast.error("Erreur lors de la mise à jour"),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      toast.error(`Erreur lors de la mise à jour : ${msg}`);
+    },
   });
 
   const deleteAction = useMutation({
@@ -82,7 +88,10 @@ export function useSupertiltActions() {
       qc.invalidateQueries({ queryKey: key });
       toast.success("Action supprimée");
     },
-    onError: () => toast.error("Erreur lors de la suppression"),
+    onError: (err: unknown) => {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      toast.error(`Erreur lors de la suppression : ${msg}`);
+    },
   });
 
   return {

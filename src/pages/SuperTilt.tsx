@@ -11,6 +11,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { useSupertiltActions, type SupertiltAction } from "@/hooks/useSupertilt";
@@ -48,7 +59,7 @@ const SuperTilt = () => {
 
   return (
     <ModuleLayout>
-      <main className="max-w-3xl mx-auto p-6 space-y-6">
+      <main className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
         <PageHeader icon={Zap} title="SuperTilt" subtitle={`${pendingActions.length} action${pendingActions.length > 1 ? "s" : ""} en cours`} />
 
         {/* Quick add */}
@@ -63,7 +74,7 @@ const SuperTilt = () => {
             autoFocus
           />
           <Button onClick={handleAdd} disabled={!newTitle.trim() || addAction.isPending} className="gap-1.5 shrink-0">
-            <Plus className="w-4 h-4" />
+            {addAction.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Ajouter
           </Button>
         </div>
@@ -82,6 +93,7 @@ const SuperTilt = () => {
               onToggle={(checked) => updateAction.mutate({ id: action.id, is_completed: checked })}
               onUpdate={(updates) => updateAction.mutate({ id: action.id, ...updates })}
               onDelete={() => deleteAction.mutate(action.id)}
+              isDeleting={deleteAction.isPending}
             />
           ))}
         </section>
@@ -100,6 +112,7 @@ const SuperTilt = () => {
                   onToggle={(checked) => updateAction.mutate({ id: action.id, is_completed: checked })}
                   onUpdate={(updates) => updateAction.mutate({ id: action.id, ...updates })}
                   onDelete={() => deleteAction.mutate(action.id)}
+                  isDeleting={deleteAction.isPending}
                 />
               ))}
             </div>
@@ -117,9 +130,10 @@ interface ActionRowProps {
   onToggle: (checked: boolean) => void;
   onUpdate: (updates: Partial<Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline">>) => void;
   onDelete: () => void;
+  isDeleting: boolean;
 }
 
-function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
+function ActionRow({ action, onToggle, onUpdate, onDelete, isDeleting }: ActionRowProps) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(action.title);
   const [editDesc, setEditDesc] = useState(action.description || "");
@@ -129,8 +143,9 @@ function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
   const isOverdue = deadlineDate && isPast(deadlineDate) && !isToday(deadlineDate) && !action.is_completed;
 
   const handleSaveEdit = () => {
+    if (!editTitle.trim()) return;
     onUpdate({
-      title: editTitle.trim() || action.title,
+      title: editTitle.trim(),
       description: editDesc.trim() || null,
       assigned_to: editAssigned.trim() || null,
     });
@@ -143,7 +158,7 @@ function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
         <Input
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
-          placeholder="Titre"
+          placeholder="Titre *"
           autoFocus
           onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
         />
@@ -151,14 +166,16 @@ function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
           value={editDesc}
           onChange={(e) => setEditDesc(e.target.value)}
           placeholder="Description (optionnel)"
+          onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
         />
         <Input
           value={editAssigned}
           onChange={(e) => setEditAssigned(e.target.value)}
           placeholder="Assigné à (optionnel)"
+          onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
         />
         <div className="flex gap-2">
-          <Button size="sm" onClick={handleSaveEdit} className="gap-1">
+          <Button size="sm" onClick={handleSaveEdit} disabled={!editTitle.trim()} className="gap-1">
             <Check className="w-3.5 h-3.5" /> Enregistrer
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setEditing(false)} className="gap-1">
@@ -177,11 +194,11 @@ function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
         className="mt-0.5"
       />
       <div className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium", action.is_completed && "line-through text-muted-foreground")}>
+        <p className={cn("text-sm font-medium truncate", action.is_completed && "line-through text-muted-foreground")}>
           {action.title}
         </p>
         {action.description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{action.description}</p>
         )}
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {action.assigned_to && (
@@ -206,7 +223,10 @@ function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Choisir une date limite"
+            >
               <CalendarDays className="w-3.5 h-3.5" />
             </button>
           </PopoverTrigger>
@@ -227,15 +247,35 @@ function ActionRow({ action, onToggle, onUpdate, onDelete }: ActionRowProps) {
             setEditing(true);
           }}
           className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Modifier l'action"
         >
           <Pencil className="w-3.5 h-3.5" />
         </button>
-        <button
-          onClick={onDelete}
-          className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              aria-label="Supprimer l'action"
+              disabled={isDeleting}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                L'action « {action.title} » sera définitivement supprimée.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

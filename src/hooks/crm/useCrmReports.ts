@@ -19,6 +19,11 @@ export const useCrmReports = (filters?: CrmReportFilters) => {
         supabase.from("crm_card_tags").select("*"),
       ]);
 
+      if (columnsRes.error) throw columnsRes.error;
+      if (cardsRes.error) throw cardsRes.error;
+      if (tagsRes.error) throw tagsRes.error;
+      if (cardTagsRes.error) throw cardTagsRes.error;
+
       const columns = (columnsRes.data || []) as unknown as CrmColumn[];
       const allCards = (cardsRes.data || []) as unknown as CrmCard[];
       const tags = (tagsRes.data || []) as unknown as CrmTag[];

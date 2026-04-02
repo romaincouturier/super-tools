@@ -77,7 +77,7 @@ const CrmReports = () => {
     return (
       <ModuleLayout>
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Aucune donnee disponible</p>
+          <p className="text-muted-foreground">Aucune donnée disponible</p>
         </div>
       </ModuleLayout>
     );
@@ -105,17 +105,17 @@ const CrmReports = () => {
             title="Pipeline ouvert"
             icon={<Target className="h-4 w-4 text-muted-foreground" />}
             mainValue={`${fmt(reports.openValue)} \u20ac`}
-            secondary={`${reports.openCount} opportunite${reports.openCount > 1 ? "s" : ""}`}
+            secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
           />
           <KpiCard
-            title="Pipeline pondere"
+            title="Pipeline pondéré"
             icon={<DollarSign className="h-4 w-4 text-amber-600" />}
             mainValue={`${fmt(Math.round(reports.weightedPipeline))} \u20ac`}
             secondary="confiance \u00d7 valeur"
             mainColor="text-amber-600"
           />
           <KpiCard
-            title="Gagne"
+            title="Gagné"
             icon={<TrendingUp className="h-4 w-4 text-green-600" />}
             mainValue={`${fmt(reports.wonValue)} \u20ac`}
             secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
@@ -125,14 +125,14 @@ const CrmReports = () => {
             title="Perdu"
             icon={<TrendingDown className="h-4 w-4 text-red-600" />}
             mainValue={`${fmt(reports.lostValue)} \u20ac`}
-            secondary={`${reports.lostCount} opportunite${reports.lostCount > 1 ? "s" : ""}`}
+            secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
             mainColor="text-red-600"
           />
           <KpiCard
             title="Taux de conversion"
             icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
             mainValue={`${winRate}%`}
-            secondary={`sur ${reports.wonCount + reports.lostCount} cloturee${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
+            secondary={`sur ${reports.wonCount + reports.lostCount} clôturée${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
           />
         </div>
 
@@ -147,8 +147,8 @@ const CrmReports = () => {
         {reports.categories.length < 2 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Le tableau croise necessite au moins 2 categories de tags pour fonctionner.
-              Ajoutez des categories dans les parametres CRM.
+              Le tableau croisé nécessite au moins 2 catégories de tags pour fonctionner.
+              Ajoutez des catégories dans les paramètres CRM.
             </CardContent>
           </Card>
         )}
@@ -210,16 +210,16 @@ function PeriodSelector({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="year">Cette annee</SelectItem>
+          <SelectItem value="year">Cette année</SelectItem>
           <SelectItem value="quarter">Ce trimestre</SelectItem>
           <SelectItem value="month">Ce mois</SelectItem>
-          <SelectItem value="custom">Personnalise</SelectItem>
+          <SelectItem value="custom">Personnalisé</SelectItem>
         </SelectContent>
       </Select>
 
       {preset === "custom" && (
         <>
-          <DatePickerButton label="Debut" date={customStart} onChange={onCustomStartChange} />
+          <DatePickerButton label="Début" date={customStart} onChange={onCustomStartChange} />
           <DatePickerButton label="Fin" date={customEnd} onChange={onCustomEndChange} />
         </>
       )}
@@ -307,6 +307,13 @@ function PivotTable({
     }
     for (const ct of colTags) cTotals[ct] = 0;
 
+    // Track card IDs per cell/row/col to avoid double-counting when a card
+    // has multiple tags in the same category.
+    const cellSeen = new Map<string, Set<string>>();
+    const rowSeen = new Map<string, Set<string>>();
+    const colSeen = new Map<string, Set<string>>();
+    const totalSeen = new Set<string>();
+
     for (const card of cardsWithTags) {
       const val = card.estimated_value || 0;
       const cardRowTags = card.tagObjects.filter((t) => t.category === rowCat).map((t) => t.name);
@@ -314,10 +321,32 @@ function PivotTable({
 
       for (const rt of cardRowTags) {
         for (const ct of cardColTags) {
-          if (mat[rt] && ct in mat[rt]) {
-            mat[rt][ct] += val;
+          if (!(mat[rt] && ct in mat[rt])) continue;
+
+          // Cell dedup
+          const cellKey = `${rt}||${ct}`;
+          if (!cellSeen.has(cellKey)) cellSeen.set(cellKey, new Set());
+          if (cellSeen.get(cellKey)!.has(card.id)) continue;
+          cellSeen.get(cellKey)!.add(card.id);
+          mat[rt][ct] += val;
+
+          // Row dedup
+          if (!rowSeen.has(rt)) rowSeen.set(rt, new Set());
+          if (!rowSeen.get(rt)!.has(card.id)) {
+            rowSeen.get(rt)!.add(card.id);
             rTotals[rt] += val;
+          }
+
+          // Col dedup
+          if (!colSeen.has(ct)) colSeen.set(ct, new Set());
+          if (!colSeen.get(ct)!.has(card.id)) {
+            colSeen.get(ct)!.add(card.id);
             cTotals[ct] += val;
+          }
+
+          // Grand total dedup
+          if (!totalSeen.has(card.id)) {
+            totalSeen.add(card.id);
             total += val;
           }
         }
@@ -331,7 +360,7 @@ function PivotTable({
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground text-sm">
-          Pas assez de donnees pour croiser ces categories.
+          Pas assez de données pour croiser ces catégories.
         </CardContent>
       </Card>
     );
@@ -341,7 +370,7 @@ function PivotTable({
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <CardTitle className="text-base">Tableau croise par tags</CardTitle>
+          <CardTitle className="text-base">Tableau croisé par tags</CardTitle>
           <div className="flex items-center gap-2 flex-wrap text-sm">
             <span className="text-muted-foreground">Lignes</span>
             <Select value={rowCat} onValueChange={setRowCat}>
