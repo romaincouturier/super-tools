@@ -214,6 +214,7 @@ serve(async (req) => {
             .select("recipient_email")
             .eq("action_type", "today_reminder_participant_sent")
             .in("recipient_email", participantLogKeys)
+            .gte("created_at", today + "T00:00:00")
         : { data: [] as { recipient_email: string }[] };
       const alreadySentParticipants = new Set(
         (existingParticipantLogs || []).map((row: any) => row.recipient_email)
