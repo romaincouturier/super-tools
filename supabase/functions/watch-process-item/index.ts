@@ -28,6 +28,19 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
 
+    const saveUpdates = async (patch: Record<string, unknown>) => {
+      if (Object.keys(patch).length === 0) return;
+
+      const { error } = await supabase
+        .from("watch_items")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", item_id);
+
+      if (error) {
+        throw new Error(`Failed to update watch item ${item_id}: ${error.message}`);
+      }
+    };
+
     // Fetch the item
     const { data: item, error: fetchError } = await supabase
       .from("watch_items")
@@ -82,7 +95,7 @@ serve(async (req) => {
                   role: "user",
                   content: [
                     { type: "text", text: "Extract all text from this image. Return only the extracted text, nothing else. If no text is found, return an empty string." },
-                    { type: "image_url", image_url: { url: item.file_url } },
+                    { type: "image_url", image_url: { url: item.file_url, detail: "high" } },
                   ],
                 },
               ],
@@ -97,6 +110,7 @@ serve(async (req) => {
               body = extractedText;
               updates.body = body;
               console.log(`OCR extracted ${extractedText.length} chars from image`);
+              await saveUpdates({ body });
             }
           } else {
             const errText = await ocrRes.text();
@@ -145,6 +159,9 @@ serve(async (req) => {
                 if (result.status === "completed") {
                   body = result.text || "";
                   updates.body = body;
+                  if (body.trim()) {
+                    await saveUpdates({ body });
+                  }
                   break;
                 }
                 if (result.status === "error") break;
@@ -192,12 +209,16 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
           const aiContent = aiData.choices?.[0]?.message?.content || "";
           try {
             const parsed = JSON.parse(aiContent);
+            const enrichmentUpdates: Record<string, unknown> = {};
             if (parsed.title && (!item.title || item.title === "(Sans titre)")) {
               updates.title = parsed.title;
+              enrichmentUpdates.title = parsed.title;
             }
             if (parsed.tags?.length && (!item.tags || item.tags.length === 0)) {
               updates.tags = parsed.tags;
+              enrichmentUpdates.tags = parsed.tags;
             }
+            await saveUpdates(enrichmentUpdates);
           } catch {
             console.warn("Failed to parse AI response:", aiContent);
           }
@@ -226,6 +247,7 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
           const embedding = embData.data?.[0]?.embedding;
           if (embedding) {
             updates.embedding = JSON.stringify(embedding);
+            await saveUpdates({ embedding: updates.embedding });
           }
         }
       } catch (e) {
@@ -234,11 +256,6 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
     }
 
     // ── Step 4: Save updates ────────────────────────────────────────
-
-    if (Object.keys(updates).length > 0) {
-      updates.updated_at = new Date().toISOString();
-      await supabase.from("watch_items").update(updates).eq("id", item_id);
-    }
 
     return createJsonResponse({ success: true, updates: Object.keys(updates) });
   } catch (error: unknown) {

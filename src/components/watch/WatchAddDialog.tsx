@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addMutation = useAddWatchItem();
+  const queryClient = useQueryClient();
 
   const reset = () => {
     setTitle("");
@@ -114,6 +116,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
 
       // Trigger async processing (AI title/tags, scraping, OCR, transcription)
       const processed = await processWatchItem(item.id);
+      await queryClient.invalidateQueries({ queryKey: ["watch-items"] });
+      await queryClient.invalidateQueries({ queryKey: ["watch-tags"] });
 
       if (processed) {
         toast.success("Contenu ajouté et traité");
@@ -160,6 +164,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       });
 
       const processed = await processWatchItem(item.id);
+      await queryClient.invalidateQueries({ queryKey: ["watch-items"] });
+      await queryClient.invalidateQueries({ queryKey: ["watch-tags"] });
       if (processed) {
         toast.success("Contenu ajouté et traité (doublon ignoré)");
       } else {
