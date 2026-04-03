@@ -19,7 +19,7 @@ export interface MissionEmailDraft {
   created_at: string;
 }
 
-const sb = sb as any;
+const sb = supabase as any;
 const TABLE = "mission_email_drafts";
 const KEY = ["mission-email-drafts"];
 
