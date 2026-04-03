@@ -430,26 +430,32 @@ ON CONFLICT (table_name) DO NOTHING;
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.get_agent_schema_prompt()
 RETURNS text
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 AS $$
+DECLARE
+  result text;
+BEGIN
   SELECT string_agg(
-    table_name || ' (' ||
+    r.table_name || ' (' ||
     (SELECT string_agg(
-      col->>'name' || ' ' || col->>'type' ||
-      CASE WHEN col->>'description' IS NOT NULL
-        THEN ' [' || col->>'description' || ']'
+      (c.value->>'name') || ' ' || (c.value->>'type') ||
+      CASE WHEN (c.value->>'description') IS NOT NULL
+        THEN ' [' || (c.value->>'description') || ']'
         ELSE ''
       END,
       ', '
-    ) FROM jsonb_array_elements(columns) AS col) ||
+    ) FROM jsonb_array_elements(r.columns) AS c(value)) ||
     ')' ||
-    CASE WHEN description IS NOT NULL THEN '  -- ' || description ELSE '' END,
+    CASE WHEN r.description IS NOT NULL THEN '  -- ' || r.description ELSE '' END,
     E'\n'
-    ORDER BY display_order, table_name
+    ORDER BY r.display_order, r.table_name
   )
-  FROM public.agent_schema_registry
-  WHERE is_queryable = true;
+  INTO result
+  FROM public.agent_schema_registry r
+  WHERE r.is_queryable = true;
+  RETURN result;
+END;
 $$;
 
 -- ============================================================

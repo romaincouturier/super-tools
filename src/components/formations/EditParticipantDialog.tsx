@@ -1,4 +1,5 @@
-import { Pencil, Loader2, Check } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Loader2, Check, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import type { FormationFormula } from "@/types/training";
 import { useEditParticipant } from "@/hooks/useEditParticipant";
 import type { Participant } from "@/hooks/useEditParticipant";
 import { ParticipantFormFields, SponsorFormFields, ParticipantFiles } from "./edit-participant";
+import { formatDateRange } from "@/lib/dateFormatters";
 
 export type { Participant };
 
@@ -27,6 +29,9 @@ interface EditParticipantDialogProps {
   isInterEntreprise?: boolean;
   trainingElearningDuration?: number | null;
   availableFormulas?: FormationFormula[];
+  trainingDuree?: string;
+  trainingDates?: [string | null, string | null];
+  trainingLocation?: string | null;
   onParticipantUpdated: () => void;
 }
 
@@ -37,6 +42,9 @@ const EditParticipantDialog = ({
   isInterEntreprise: isInterEntrepriseProp,
   trainingElearningDuration,
   availableFormulas = [],
+  trainingDuree,
+  trainingDates,
+  trainingLocation,
   onParticipantUpdated,
 }: EditParticipantDialogProps) => {
   const isInterEntreprise =
@@ -179,7 +187,16 @@ const EditParticipantDialog = ({
           )}
         </div>
 
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-between pt-4 border-t">
+          {isInterEntreprise && trainingDuree && trainingDates ? (
+            <CopyParticipantInfoButton
+              firstName={hook.firstName}
+              lastName={hook.lastName}
+              duree={trainingDuree}
+              dates={formatDateRange(trainingDates[0], trainingDates[1])}
+              lieu={trainingLocation || ""}
+            />
+          ) : <div />}
           <Button type="button" variant="outline" onClick={hook.handleClose}>
             Fermer
           </Button>
@@ -188,5 +205,43 @@ const EditParticipantDialog = ({
     </Dialog>
   );
 };
+
+function CopyParticipantInfoButton({
+  firstName,
+  lastName,
+  duree,
+  dates,
+  lieu,
+}: {
+  firstName: string;
+  lastName: string;
+  duree: string;
+  dates: string;
+  lieu: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const participantName = [firstName, lastName].filter(Boolean).join(" ") || "—";
+    const text = `Durée : ${duree}\nParticipants : ${participantName}\nDates : ${dates}\nLieu : ${lieu || "—"}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
+          {copied ? <Check className="h-4 w-4 mr-1 text-green-600" /> : <Copy className="h-4 w-4 mr-1" />}
+          {copied ? "Copié" : "Copier infos"}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Copier durée, participant, dates et lieu</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export default EditParticipantDialog;

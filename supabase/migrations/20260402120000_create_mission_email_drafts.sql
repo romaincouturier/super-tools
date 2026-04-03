@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS public.mission_email_drafts (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_mission_email_drafts_status ON public.mission_email_drafts(status, created_at DESC);
-CREATE INDEX idx_mission_email_drafts_mission ON public.mission_email_drafts(mission_id);
+CREATE INDEX IF NOT EXISTS idx_mission_email_drafts_status ON public.mission_email_drafts(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mission_email_drafts_mission ON public.mission_email_drafts(mission_id);
 
 -- RLS
 ALTER TABLE public.mission_email_drafts ENABLE ROW LEVEL SECURITY;

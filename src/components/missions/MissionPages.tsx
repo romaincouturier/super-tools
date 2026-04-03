@@ -51,6 +51,7 @@ import {
   ArrowDownUp,
   Sparkles,
   X,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,6 +91,7 @@ interface PageTreeItemProps {
   onSelect: (page: MissionPage) => void;
   onAddChild: (parentId: string) => void;
   onDelete: (page: MissionPage) => void;
+  onDuplicate: (page: MissionPage) => void;
   onToggleExpand: (page: MissionPage) => void;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
@@ -150,6 +152,7 @@ const PageTreeItem = ({
   onSelect,
   onAddChild,
   onDelete,
+  onDuplicate,
   onToggleExpand,
   selectedPageId,
   sortFn,
@@ -213,7 +216,16 @@ const PageTreeItem = ({
                 <MoreHorizontal className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent
+              align="end"
+              className="w-40"
+              onClick={(e) => e.stopPropagation()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              <DropdownMenuItem onClick={() => onDuplicate(page)}>
+                <Copy className="h-3.5 w-3.5 mr-2" />
+                Dupliquer
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(page)}
                 className="text-red-600"
@@ -237,6 +249,7 @@ const PageTreeItem = ({
               onSelect={onSelect}
               onAddChild={onAddChild}
               onDelete={onDelete}
+              onDuplicate={onDuplicate}
               onToggleExpand={onToggleExpand}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
@@ -804,6 +817,21 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     }
   };
 
+  const handleDuplicatePage = async (page: MissionPage) => {
+    try {
+      const newPage = await createPage.mutateAsync({
+        mission_id: mission.id,
+        parent_page_id: page.parent_page_id,
+        title: `${page.title || "Sans titre"} (copie)`,
+        content: page.content || undefined,
+      });
+      setSelectedPage(newPage);
+      toast({ title: "Page dupliquée" });
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+    }
+  };
+
   const handlePageUpdated = (updatedPage: MissionPage) => {
     setSelectedPage((prev) => (prev?.id === updatedPage.id ? { ...prev, ...updatedPage } : prev));
   };
@@ -933,6 +961,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               onSelect={setSelectedPage}
               onAddChild={handleCreatePage}
               onDelete={handleDeletePage}
+              onDuplicate={handleDuplicatePage}
               onToggleExpand={handleToggleExpand}
               selectedPageId={selectedPage?.id || null}
               sortFn={sortFn}

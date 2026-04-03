@@ -150,6 +150,7 @@ const FormationDetailParticipants = ({
           trainingName={training.training_name}
           trainingStartDate={training.start_date}
           trainingEndDate={training.end_date}
+          trainingLocation={training.location}
           formatFormation={training.format_formation}
           isInterEntreprise={isInterSession}
           elearningDuration={training.elearning_duration}

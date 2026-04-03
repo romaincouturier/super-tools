@@ -34,6 +34,7 @@ const ParticipantActions = ({
   formatFormation,
   isInterEntreprise,
   isIndividualConvention,
+  trainingLocation,
   elearningDuration,
   availableFormulas,
   sendingId,
@@ -253,6 +254,9 @@ const ParticipantActions = ({
         isInterEntreprise={isInterEntreprise}
         trainingElearningDuration={elearningDuration}
         availableFormulas={availableFormulas}
+        trainingDuree={trainingDuree}
+        trainingDates={[trainingStartDate, trainingEndDate]}
+        trainingLocation={trainingLocation}
         onParticipantUpdated={onParticipantUpdated}
       />
 

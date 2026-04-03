@@ -11,7 +11,7 @@ import {
 import type { Participant, ParticipantListProps, SortField, SortDirection } from "./participants";
 
 const ParticipantList = ({
-  participants, trainingId, trainingName, trainingStartDate, trainingEndDate,
+  participants, trainingId, trainingName, trainingStartDate, trainingEndDate, trainingLocation,
   formatFormation, isInterEntreprise: isInterEntrepriseProp, elearningDuration,
   availableFormulas = [], attendanceSheetsUrls, clientName, trainingDuree, onParticipantUpdated,
 }: ParticipantListProps) => {
@@ -74,7 +74,7 @@ const ParticipantList = ({
     computeEvaluationStats(data.evaluationsByParticipant, participants.length);
 
   const sharedActionsProps = {
-    trainingId, trainingName, trainingStartDate, trainingEndDate, formatFormation,
+    trainingId, trainingName, trainingStartDate, trainingEndDate, trainingLocation, formatFormation,
     isInterEntreprise, isIndividualConvention, elearningDuration, availableFormulas,
     clientName, trainingDuree, attendanceSheetsUrls,
     sendingId: actions.sendingId, remindingId: actions.remindingId,
