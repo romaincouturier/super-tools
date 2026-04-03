@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { notifyContentUser } from "@/services/contentNotifications";
 import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,12 @@ export interface Column {
   display_order: number;
   is_system: boolean;
 }
+
+/** Column-to-reviewer mapping for "à relire" columns (mirrors backend REVIEW_COLUMN_ASSIGNMENTS) */
+const REVIEW_COLUMN_ASSIGNMENTS: Record<string, { userId: string; email: string }> = {
+  "290ab277-6f1a-48b4-8641-d8b033d667de": { userId: "81d0328b-7651-4deb-95c0-c7ac81eb952e", email: "romain@supertilt.fr" },
+  "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": { userId: "c894a7ec-4680-4a9e-bed7-4aad7af12909", email: "emmanuelle@supertilt.fr" },
+};
 
 // Mapped types for GenericKanbanBoard
 type ContentKanbanCard = Card & KanbanCardDef;
@@ -377,7 +384,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   // --- Card actions ---
 
-  const handleCardMove = useCallback(async ({ card, targetColumnId, newPosition }: { card: ContentKanbanCard; sourceColumnId: string; targetColumnId: string; newPosition: number }) => {
+  const handleCardMove = useCallback(async ({ card, sourceColumnId, targetColumnId, newPosition }: { card: ContentKanbanCard; sourceColumnId: string; targetColumnId: string; newPosition: number }) => {
     // Optimistic update
     setCards((prev) =>
       prev.map((c) =>
@@ -395,6 +402,26 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           display_order: newPosition >= 0 ? newPosition : 0,
         })
         .eq("id", card.id);
+
+      // Notify reviewer when card moves INTO a review column (not within the same column)
+      const reviewer = REVIEW_COLUMN_ASSIGNMENTS[targetColumnId];
+      if (reviewer && sourceColumnId !== targetColumnId) {
+        notifyContentUser(
+          {
+            userId: reviewer.userId,
+            notificationType: "review_requested",
+            referenceId: card.id,
+            cardId: card.id,
+            message: `Nouveau contenu à relire : ${card.title}`,
+          },
+          {
+            type: "review_requested",
+            recipientEmail: reviewer.email,
+            cardTitle: card.title,
+            cardId: card.id,
+          },
+        ).catch((err) => console.error("Error sending review notification:", err));
+      }
     } catch (error) {
       console.error("Error updating card position:", error);
       toast.error("Erreur lors du déplacement de la carte");
