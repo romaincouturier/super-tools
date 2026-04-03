@@ -1207,6 +1207,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   reglement_interieur_url: { default: "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
   slack_crm_channel: { default: "general", description: "Nom du canal Slack pour les notifications CRM (ex: crm, general)" },
   crm_inbound_email: { default: "", description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
+  openai_api_key: { default: "", description: "Clé API OpenAI utilisée pour l'OCR, les embeddings RAG et les analyses automatiques" },
   insee_api_key: { default: "", description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
   google_search_api_key: { default: "", description: "Clé API Google Custom Search pour la recherche de SIREN par nom d'entreprise (fallback)" },
   google_search_engine_id: { default: "", description: "ID du moteur de recherche personnalisé Google (cx) pour la recherche de SIREN" },
