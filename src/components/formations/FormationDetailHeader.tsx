@@ -159,7 +159,12 @@ const FormationDetailHeader = ({
 
       <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2 md:gap-4 min-w-0">
-        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/formations")}>
+        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => {
+          // Preserve the tab the user came from via URL search params
+          const params = new URLSearchParams(window.location.search);
+          const tab = params.get("tab");
+          navigate(tab ? `/formations?tab=${tab}` : "/formations");
+        }}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
