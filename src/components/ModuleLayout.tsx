@@ -72,7 +72,7 @@ const ModuleLayout = ({ children, className = "", hideSidebar, hideFooter }: Mod
             <AppSidebar collapsed={collapsed} onToggle={handleToggle} />
           </div>
         )}
-        <div className="flex-1 flex flex-col overflow-y-auto relative">
+        <div className={`flex-1 flex flex-col ${hideFooter ? "overflow-hidden" : "overflow-y-auto"} relative`}>
           {/* Expand sidebar button when collapsed */}
           {!hideSidebar && collapsed && (
             <button
@@ -82,7 +82,7 @@ const ModuleLayout = ({ children, className = "", hideSidebar, hideFooter }: Mod
               <PanelLeft className="w-4 h-4" />
             </button>
           )}
-          <main className="flex-1">{children}</main>
+          <main className={`flex-1${hideFooter ? " min-h-0" : ""}`}>{children}</main>
           {!hideFooter && <AppFooter />}
         </div>
       </div>
