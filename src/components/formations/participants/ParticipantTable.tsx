@@ -96,7 +96,7 @@ const ParticipantTable = ({
                           {participant.formula}
                         </Badge>
                       )}
-                      {actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && (
+                      {actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="inline-block w-2 h-2 rounded-full bg-warning" />

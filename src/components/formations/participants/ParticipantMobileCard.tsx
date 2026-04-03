@@ -76,7 +76,7 @@ const ParticipantMobileCard = ({
             {actionsProps.isInterEntreprise && participant.sold_price_ht != null && (
               <p className="text-xs text-muted-foreground">
                 {participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT
-                {participant.payment_mode === "invoice" && (
+                {participant.payment_mode === "invoice" && !participant.invoice_file_url && (
                   <span className="ml-1.5 text-amber-600">• À facturer</span>
                 )}
               </p>
