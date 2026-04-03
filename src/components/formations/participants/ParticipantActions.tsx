@@ -200,11 +200,16 @@ const ParticipantActions = ({
 
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" disabled={sendingCertId === participant.id}>
-                {sendingCertId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
-              </Button>
-            </DropdownMenuTrigger>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" disabled={sendingCertId === participant.id}>
+                    {sendingCertId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Award className="h-3.5 w-3.5" />}
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent><p>Attestation</p></TooltipContent>
+            </Tooltip>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => window.open(cert!.certificateUrl!, "_blank")}>
                 <Download className="h-4 w-4 mr-2" />Télécharger
