@@ -681,7 +681,7 @@ serve(async (req) => {
     const authResult = await verifyAuth(req.headers.get("Authorization"));
     if (!authResult) return createErrorResponse("Non autorisé", 401);
 
-    const { message, conversation_id } = await req.json();
+    const { message, conversation_id, attachments } = await req.json();
 
     if (!message || typeof message !== "string") {
       return createErrorResponse("message is required", 400);
@@ -707,8 +707,27 @@ serve(async (req) => {
       }
     }
 
-    // Add user message
-    messages.push({ role: "user", content: message });
+    // Add user message (with optional image/document attachments)
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      const contentBlocks: unknown[] = [];
+      for (const att of attachments) {
+        if (att.type === "image" && att.url) {
+          contentBlocks.push({
+            type: "image",
+            source: { type: "url", url: att.url },
+          });
+        } else if (att.type === "document" && att.url) {
+          contentBlocks.push({
+            type: "document",
+            source: { type: "url", url: att.url },
+          });
+        }
+      }
+      contentBlocks.push({ type: "text", text: message });
+      messages.push({ role: "user", content: contentBlocks });
+    } else {
+      messages.push({ role: "user", content: message });
+    }
 
     // Set up SSE stream
     const { readable, writable } = new TransformStream<Uint8Array>();

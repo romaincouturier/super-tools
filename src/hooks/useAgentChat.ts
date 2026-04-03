@@ -2,11 +2,19 @@ import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 
+export interface ChatAttachment {
+  url: string;
+  name: string;
+  type: "image" | "document";
+  mimeType: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  attachments?: ChatAttachment[];
 }
 
 /** Extract user/assistant text messages from the raw conversation JSON */
@@ -106,7 +114,7 @@ export function useAgentChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, attachments?: ChatAttachment[]) => {
       if (!content.trim() || isLoading) return;
 
       setError(null);
@@ -117,6 +125,7 @@ export function useAgentChat() {
         role: "user",
         content: content.trim(),
         timestamp: new Date(),
+        attachments: attachments?.length ? attachments : undefined,
       };
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
@@ -149,6 +158,7 @@ export function useAgentChat() {
             body: JSON.stringify({
               message: content.trim(),
               conversation_id: conversationId,
+              attachments: attachments?.length ? attachments.map((a) => ({ url: a.url, name: a.name, type: a.type, mimeType: a.mimeType })) : undefined,
             }),
             signal: abortRef.current.signal,
           },
