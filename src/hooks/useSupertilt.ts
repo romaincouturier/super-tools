@@ -21,7 +21,8 @@ type InsertAction = Pick<SupertiltAction, "title"> &
 
 type UpdateAction = Partial<Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline" | "is_completed">>;
 
-const TABLE = "supertilt_actions" as string;
+const sb = supabase as any;
+const TABLE = "supertilt_actions";
 
 export function useSupertiltActions() {
   const { user } = useAuth();
