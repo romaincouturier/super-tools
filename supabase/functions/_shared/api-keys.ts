@@ -15,19 +15,29 @@ async function getAppSetting(key: string): Promise<string | null> {
     return cachedKeys[key];
   }
 
-  const supabase = getSupabaseClient();
-  const { data } = await supabase
-    .from("app_settings")
-    .select("setting_value")
-    .eq("setting_key", key)
-    .maybeSingle();
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", key)
+      .maybeSingle();
 
-  const value = data?.setting_value || null;
-  if (value) {
-    cachedKeys[key] = value;
-    cacheTimestamp = now;
+    if (error) {
+      console.error(`[api-keys] Error fetching ${key}:`, error.message);
+      return null;
+    }
+
+    const value = data?.setting_value || null;
+    if (value) {
+      cachedKeys[key] = value;
+      cacheTimestamp = now;
+    }
+    return value;
+  } catch (e) {
+    console.error(`[api-keys] Exception fetching ${key}:`, e);
+    return null;
   }
-  return value;
 }
 
 /**
@@ -35,7 +45,15 @@ async function getAppSetting(key: string): Promise<string | null> {
  */
 export async function getOpenAIApiKey(): Promise<string | null> {
   const fromSettings = await getAppSetting("openai_api_key");
-  if (fromSettings) return fromSettings;
-  // Fallback to env var for backward compatibility
-  return Deno.env.get("OPENAI_API_KEY") || null;
+  if (fromSettings) {
+    console.log("[api-keys] OpenAI key resolved from app_settings");
+    return fromSettings;
+  }
+  const envKey = Deno.env.get("OPENAI_API_KEY") || null;
+  if (envKey) {
+    console.log("[api-keys] OpenAI key resolved from env var");
+  } else {
+    console.warn("[api-keys] OpenAI key NOT found in app_settings nor env var");
+  }
+  return envKey;
 }
