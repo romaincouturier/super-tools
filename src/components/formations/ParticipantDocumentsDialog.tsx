@@ -269,6 +269,7 @@ const ParticipantDocumentsDialog = ({
           attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
           certificateUrls: (type === "certificates" || type === "all") && certificateUrl ? [certificateUrl] : [],
           ccEmail: ccEmail || null,
+          participantId: participant.id,
           formalAddress: true, // default for inter-enterprise
         },
       });
@@ -379,13 +380,13 @@ const ParticipantDocumentsDialog = ({
             </div>
             
             {invoiceFileUrl && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0">
                 <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 <a
                   href={invoiceFileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 text-sm text-primary hover:underline truncate"
+                  className="flex-1 text-sm text-primary hover:underline truncate min-w-0"
                 >
                   {getFileNameFromUrl(invoiceFileUrl)}
                 </a>

@@ -198,6 +198,8 @@ serve(async (req) => {
         to: [testEmail],
         subject,
         html: htmlContent,
+        _emailType: "thank_you_test",
+        _trainingId: trainingId,
       });
 
       if (!result.success) {
@@ -286,6 +288,9 @@ serve(async (req) => {
         bcc: bccList,
         subject,
         html: htmlContent,
+        _emailType: "thank_you",
+        _trainingId: trainingId,
+        _participantId: participant.id,
       });
 
       if (!result.success) {
@@ -669,6 +674,8 @@ serve(async (req) => {
               to: [trainerEmail],
               subject: `Votre retour sur la formation « ${trainingName} »`,
               html: trainerHtml,
+              _emailType: "trainer_evaluation",
+              _trainingId: trainingId,
             });
 
             if (trainerResult.success) {
