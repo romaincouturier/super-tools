@@ -81,6 +81,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   lms: "E-learning",
   screenshots: "Screenshots",
   veille: "Veille",
+  supertilt: "Supertilt",
 };
 
 export function useModuleAccess() {
