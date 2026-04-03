@@ -21,7 +21,7 @@ const EvaluationSummaryBar = ({
   return (
     <div className="flex flex-wrap items-center gap-3 mb-3 p-3 bg-muted/50 rounded-lg text-sm">
       <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-      <span className="font-medium">{"\u00c9"}valuations :</span>
+      <span className="font-medium">Évaluations :</span>
       <Badge variant={evalSoumis === participantCount ? "default" : "secondary"} className="gap-1">
         <CheckCircle className="h-3 w-3" />
         {evalSoumis} soumise{evalSoumis !== 1 ? "s" : ""}
@@ -34,7 +34,7 @@ const EvaluationSummaryBar = ({
       )}
       {participantCount - evalTotal > 0 && (
         <span className="text-muted-foreground">
-          {participantCount - evalTotal} non envoy{"\u00e9"}e{participantCount - evalTotal !== 1 ? "s" : ""}
+          {participantCount - evalTotal} non envoyée{participantCount - evalTotal !== 1 ? "s" : ""}
         </span>
       )}
       {avgRating > 0 && (

@@ -214,7 +214,7 @@ export function useEditParticipant({
           toast({
             title: "Email en double",
             description:
-              "Un autre participant avec cet email est d\u00e9j\u00e0 inscrit \u00e0 cette formation.",
+              "Un autre participant avec cet email est déjà inscrit à cette formation.",
             variant: "destructive",
           });
         } else {

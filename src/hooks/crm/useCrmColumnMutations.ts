@@ -18,7 +18,7 @@ export const useCreateColumn = () =>
       .single();
     if (error) throw error;
     return data;
-  }, { successMessage: "Colonne cr\u00e9\u00e9e" });
+  }, { successMessage: "Colonne créée" });
 
 export const useUpdateColumn = () =>
   useCrmMutation(
@@ -38,7 +38,7 @@ export const useArchiveColumn = () =>
       .update({ is_archived: true })
       .eq("id", id);
     if (error) throw error;
-  }, { successMessage: "Colonne archiv\u00e9e" });
+  }, { successMessage: "Colonne archivée" });
 
 export const useReorderColumns = () =>
   useCrmMutation(async (columns: { id: string; position: number }[]) => {

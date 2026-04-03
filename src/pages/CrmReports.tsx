@@ -104,27 +104,27 @@ const CrmReports = () => {
           <KpiCard
             title="Pipeline ouvert"
             icon={<Target className="h-4 w-4 text-muted-foreground" />}
-            mainValue={`${fmt(reports.openValue)} \u20ac`}
+            mainValue={`${fmt(reports.openValue)} €`}
             secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
           />
           <KpiCard
             title="Pipeline pondéré"
             icon={<DollarSign className="h-4 w-4 text-amber-600" />}
-            mainValue={`${fmt(Math.round(reports.weightedPipeline))} \u20ac`}
-            secondary="confiance \u00d7 valeur"
+            mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
+            secondary="confiance × valeur"
             mainColor="text-amber-600"
           />
           <KpiCard
             title="Gagné"
             icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-            mainValue={`${fmt(reports.wonValue)} \u20ac`}
+            mainValue={`${fmt(reports.wonValue)} €`}
             secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
             mainColor="text-green-600"
           />
           <KpiCard
             title="Perdu"
             icon={<TrendingDown className="h-4 w-4 text-red-600" />}
-            mainValue={`${fmt(reports.lostValue)} \u20ac`}
+            mainValue={`${fmt(reports.lostValue)} €`}
             secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
             mainColor="text-red-600"
           />
@@ -419,11 +419,11 @@ function PivotTable({
                   <td className="py-2 px-2 font-medium">{rt}</td>
                   {colTags.map((ct) => (
                     <td key={ct} className="text-right py-2 px-2 tabular-nums">
-                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} \u20ac` : <span className="text-muted-foreground">-</span>}
+                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} €` : <span className="text-muted-foreground">-</span>}
                     </td>
                   ))}
                   <td className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(rowTotals[rt])} \u20ac
+                    {fmt(rowTotals[rt])} €
                   </td>
                 </tr>
               ))}
@@ -433,11 +433,11 @@ function PivotTable({
                 <td className="py-2 px-2 font-semibold">Total</td>
                 {colTags.map((ct) => (
                   <td key={ct} className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(colTotals[ct])} \u20ac
+                    {fmt(colTotals[ct])} €
                   </td>
                 ))}
                 <td className="text-right py-2 px-2 font-bold tabular-nums">
-                  {fmt(grandTotal)} \u20ac
+                  {fmt(grandTotal)} €
                 </td>
               </tr>
             </tfoot>

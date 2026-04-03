@@ -16,13 +16,13 @@ export const useCreateTag = () =>
       .single();
     if (error) throw error;
     return data;
-  }, { successMessage: "Tag cr\u00e9\u00e9" });
+  }, { successMessage: "Tag créé" });
 
 export const useDeleteTag = () =>
   useCrmMutation(async (id: string) => {
     const { error } = await supabase.from("crm_tags").delete().eq("id", id);
     if (error) throw error;
-  }, { successMessage: "Tag supprim\u00e9" });
+  }, { successMessage: "Tag supprimé" });
 
 export const useAssignTag = () =>
   useCrmMutation(

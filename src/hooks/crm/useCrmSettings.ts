@@ -63,7 +63,7 @@ export const useUpdateCrmSettings = () =>
       if (error) throw error;
     },
     {
-      successMessage: "Param\u00e8tres enregistr\u00e9s",
+      successMessage: "Paramètres enregistrés",
       invalidateKey: [CRM_QUERY_KEY, "settings"],
     }
   );

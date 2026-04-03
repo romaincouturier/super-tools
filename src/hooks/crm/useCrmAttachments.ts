@@ -31,7 +31,7 @@ export const useAddAttachment = () =>
       if (error) throw error;
       await logCrmActivity(cardId, "attachment_added", actorEmail, null, file.name);
     },
-    { successMessage: "Fichier ajout\u00e9" }
+    { successMessage: "Fichier ajouté" }
   );
 
 export const useDeleteAttachment = () =>
@@ -57,5 +57,5 @@ export const useDeleteAttachment = () =>
       if (error) throw error;
       await logCrmActivity(cardId, "attachment_removed", actorEmail, fileName, null);
     },
-    { successMessage: "Fichier supprim\u00e9" }
+    { successMessage: "Fichier supprimé" }
   );

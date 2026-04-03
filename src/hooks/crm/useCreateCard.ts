@@ -61,7 +61,7 @@ export const useCreateCard = () => {
     },
     onSuccess: async () => {
       await queryClient.refetchQueries({ queryKey: [CRM_QUERY_KEY], exact: true });
-      toast({ title: "Opportunit\u00e9 cr\u00e9\u00e9e" });
+      toast({ title: "Opportunité créée" });
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Erreur inconnue";
