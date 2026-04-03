@@ -1,37 +1,48 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, ExternalLink, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Save, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import type { ApiKeys } from "@/lib/arena/types";
 
 export default function ArenaKeySettings() {
-  const { toast } = useToast();
   const [keys, setKeys] = useState<ApiKeys>({ claude: "", openai: "", gemini: "" });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [showKeys, setShowKeys] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const initialLoadDoneRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadArenaApiKeys().then((loaded) => {
       setKeys(loaded);
       setLoading(false);
+      // Mark initial load done after a tick so the first setState doesn't trigger save
+      setTimeout(() => { initialLoadDoneRef.current = true; }, 0);
     });
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
+  const doSave = useCallback(async (currentKeys: ApiKeys) => {
+    setAutoSaveStatus("saving");
     try {
-      await saveArenaApiKeys(keys);
-      toast({ title: "Cles API sauvegardees", description: "Les cles AI Arena ont ete mises a jour." });
+      await saveArenaApiKeys(currentKeys);
+      setAutoSaveStatus("saved");
+      setTimeout(() => setAutoSaveStatus("idle"), 2000);
     } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder les cles.", variant: "destructive" });
+      console.error("Auto-save arena keys error");
+      setAutoSaveStatus("idle");
     }
-    setSaving(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!initialLoadDoneRef.current) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setAutoSaveStatus("idle");
+    timerRef.current = setTimeout(() => doSave(keys), 1500);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [keys, doSave]);
 
   const hasAnyKey = true; // Claude is always available via server key
 
