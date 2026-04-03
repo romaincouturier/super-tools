@@ -78,7 +78,7 @@ const ParticipantTable = ({
             : participant.email;
 
           return (
-            <TableRow key={participant.id}>
+            <TableRow key={participant.id} className={actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url ? "text-red-600" : ""}>
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="min-w-0">
