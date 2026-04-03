@@ -166,6 +166,9 @@ function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleti
   const [editTitle, setEditTitle] = useState(action.title);
   const [editDesc, setEditDesc] = useState(action.description || "");
   const [editAssigned, setEditAssigned] = useState(action.assigned_to || "");
+  const [editDeadline, setEditDeadline] = useState<Date | undefined>(
+    action.deadline ? new Date(action.deadline + "T00:00:00") : undefined
+  );
 
   const deadlineDate = action.deadline ? new Date(action.deadline + "T00:00:00") : undefined;
   const isOverdue = deadlineDate && isPast(deadlineDate) && !isToday(deadlineDate) && !action.is_completed;
@@ -176,6 +179,7 @@ function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleti
       title: editTitle.trim(),
       description: editDesc.trim() || null,
       assigned_to: editAssigned && editAssigned !== "__none__" ? editAssigned : null,
+      deadline: editDeadline ? format(editDeadline, "yyyy-MM-dd") : null,
     });
     setEditing(false);
   };
@@ -209,6 +213,30 @@ function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleti
             ))}
           </SelectContent>
         </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !editDeadline && "text-muted-foreground"
+              )}
+            >
+              <CalendarDays className="mr-2 h-4 w-4" />
+              {editDeadline ? format(editDeadline, "d MMMM yyyy", { locale: fr }) : "Date attendue (optionnel)"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={editDeadline}
+              onSelect={setEditDeadline}
+              locale={fr}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
         <div className="flex gap-2">
           <Button size="sm" onClick={handleSaveEdit} disabled={!editTitle.trim()} className="gap-1">
             <Check className="w-3.5 h-3.5" /> Enregistrer
