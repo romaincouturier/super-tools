@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/sb/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -19,7 +19,7 @@ export interface MissionEmailDraft {
   created_at: string;
 }
 
-const sb = supabase as any;
+const sb = sb as any;
 const TABLE = "mission_email_drafts";
 const KEY = ["mission-email-drafts"];
 
@@ -30,7 +30,7 @@ export function useMissionEmailDrafts(missionId?: string) {
   const query = useQuery({
     queryKey: missionId ? [...KEY, missionId] : KEY,
     queryFn: async () => {
-      let q = supabase
+      let q = sb
         .from(TABLE)
         .select("*")
         .order("created_at", { ascending: false });
@@ -46,7 +46,7 @@ export function useMissionEmailDrafts(missionId?: string) {
 
   const approveDraft = useMutation({
     mutationFn: async (draftId: string) => {
-      const { error } = await supabase
+      const { error } = await sb
         .from(TABLE)
         .update({
           status: "approved",
@@ -68,7 +68,7 @@ export function useMissionEmailDrafts(missionId?: string) {
 
   const rejectDraft = useMutation({
     mutationFn: async (draftId: string) => {
-      const { error } = await supabase
+      const { error } = await sb
         .from(TABLE)
         .update({
           status: "rejected",
@@ -90,7 +90,7 @@ export function useMissionEmailDrafts(missionId?: string) {
 
   const updateDraftContent = useMutation({
     mutationFn: async ({ draftId, subject, html_content }: { draftId: string; subject: string; html_content: string }) => {
-      const { error } = await supabase
+      const { error } = await sb
         .from(TABLE)
         .update({ subject, html_content } as any)
         .eq("id", draftId);
@@ -127,7 +127,7 @@ export function useMissionEmailDrafts(missionId?: string) {
   const approveAndSend = useMutation({
     mutationFn: async (draftId: string) => {
       // First approve
-      const { error: approveError } = await supabase
+      const { error: approveError } = await sb
         .from(TABLE)
         .update({
           status: "approved",
@@ -156,7 +156,7 @@ export function useMissionEmailDrafts(missionId?: string) {
 
   const scheduleDraft = useMutation({
     mutationFn: async ({ draftId, scheduledFor }: { draftId: string; scheduledFor: string }) => {
-      const { error } = await supabase
+      const { error } = await sb
         .from(TABLE)
         .update({
           status: "scheduled",
