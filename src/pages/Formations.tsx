@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
@@ -41,6 +41,10 @@ interface Training {
   session_format: string | null;
   is_cancelled: boolean | null;
   participant_count?: number;
+  /** Number of participants with payment_mode=invoice and no invoice_file_url */
+  unbilled_count?: number;
+  /** true if session_type is "intra" (billing at training level, not per-participant) */
+  is_intra?: boolean;
 }
 
 interface TrainingAction {
@@ -57,6 +61,8 @@ interface ParticipantSearchData {
   sponsor_first_name: string | null;
   sponsor_last_name: string | null;
   sponsor_email: string | null;
+  invoice_file_url: string | null;
+  payment_mode: string | null;
 }
 
 type SortField = "date" | "title" | "client" | "location";
@@ -69,7 +75,6 @@ const Formations = () => {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
   const [participantsByTraining, setParticipantsByTraining] = useState<Map<string, ParticipantSearchData[]>>(new Map());
-  const [filter, setFilter] = useState<"upcoming" | "ongoing" | "past" | "permanent">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSessionType, setFilterSessionType] = useState<string>("all");
   const [filterSessionFormat, setFilterSessionFormat] = useState<string>("all");
@@ -83,6 +88,16 @@ const Formations = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Initialize tab from URL search params
+  const initialTab = (searchParams.get("tab") as "upcoming" | "ongoing" | "past" | "permanent") || "upcoming";
+  const [filter, setFilterState] = useState<"upcoming" | "ongoing" | "past" | "permanent">(initialTab);
+
+  const setFilter = (value: "upcoming" | "ongoing" | "past" | "permanent") => {
+    setFilterState(value);
+    setSearchParams(value === "upcoming" ? {} : { tab: value }, { replace: true });
+  };
 
   useEffect(() => {
     if (user) {
@@ -102,7 +117,7 @@ const Formations = () => {
         .eq("status", "pending"),
       supabase
         .from("training_participants")
-        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email"),
+        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode"),
     ]);
 
     if (trainingsResult.error) {
@@ -119,10 +134,18 @@ const Formations = () => {
       });
       setParticipantsByTraining(pMap);
 
-      const trainingsWithCount = (trainingsResult.data || []).map((t) => ({
-        ...t,
-        participant_count: countMap.get(t.id) || 0,
-      }));
+      const trainingsWithCount = (trainingsResult.data || []).map((t) => {
+        const participants = pMap.get(t.id) || [];
+        const unbilledCount = participants.filter(
+          (p) => p.payment_mode === "invoice" && !p.invoice_file_url
+        ).length;
+        return {
+          ...t,
+          participant_count: countMap.get(t.id) || 0,
+          unbilled_count: unbilledCount,
+          is_intra: t.session_type === "intra",
+        };
+      });
       setTrainings(trainingsWithCount);
     }
 
@@ -296,6 +319,22 @@ const Formations = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return differenceInDays(start, today);
+  };
+
+  // Billing status styling for past trainings
+  const getPastTrainingStyle = (training: Training) => {
+    if (filter !== "past") return "";
+    // Intra: billing is at training level, not per-participant → no red styling
+    if (training.is_intra) return "";
+    if ((training.unbilled_count ?? 0) > 0) return "border-red-300 bg-red-50/50";
+    return "opacity-60";
+  };
+
+  const getPastRowStyle = (training: Training) => {
+    if (filter !== "past") return "";
+    if (training.is_intra) return "";
+    if ((training.unbilled_count ?? 0) > 0) return "bg-red-50/50 hover:bg-red-50/70";
+    return "opacity-60";
   };
 
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
@@ -500,8 +539,8 @@ const Formations = () => {
                     return (
                       <div
                         key={training.id}
-                        className="p-3 rounded-lg border bg-card cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors"
-                        onClick={() => navigate(`/formations/${training.id}`)}
+                        className={`p-3 rounded-lg border bg-card cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors ${getPastTrainingStyle(training)}`}
+                        onClick={() => navigate(`/formations/${training.id}${filter !== "upcoming" ? `?tab=${filter}` : ""}`)}
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <p className="font-medium text-sm leading-tight">
@@ -511,6 +550,11 @@ const Formations = () => {
                             {(training.participant_count ?? 0) > 0 && (
                               <Badge variant="secondary" className="text-xs px-1.5 py-0">
                                 {training.participant_count}
+                              </Badge>
+                            )}
+                            {filter === "past" && !training.is_intra && (training.unbilled_count ?? 0) > 0 && (
+                              <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                {training.unbilled_count} non facturé{(training.unbilled_count ?? 0) > 1 ? "s" : ""}
                               </Badge>
                             )}
                             {hasActions(training.id) && (
@@ -604,8 +648,8 @@ const Formations = () => {
                       return (
                         <TableRow
                           key={training.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/formations/${training.id}`)}
+                          className={`cursor-pointer hover:bg-muted/50 ${getPastRowStyle(training)}`}
+                          onClick={() => navigate(`/formations/${training.id}${filter !== "upcoming" ? `?tab=${filter}` : ""}`)}
                         >
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
@@ -629,6 +673,11 @@ const Formations = () => {
                               {(training.participant_count ?? 0) > 0 && (
                                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
                                   {training.participant_count}
+                                </Badge>
+                              )}
+                              {filter === "past" && !training.is_intra && (training.unbilled_count ?? 0) > 0 && (
+                                <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                  {training.unbilled_count} non facturé{(training.unbilled_count ?? 0) > 1 ? "s" : ""}
                                 </Badge>
                               )}
                               {hasActions(training.id) && (

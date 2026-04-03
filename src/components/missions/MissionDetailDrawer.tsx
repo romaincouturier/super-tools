@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot, Mail } from "lucide-react";
+import MissionEmailDrafts from "./MissionEmailDrafts";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
@@ -407,6 +408,10 @@ const MissionDetailDrawer = ({
               <Clock className="h-4 w-4" />
               Activités
             </TabsTrigger>
+            <TabsTrigger value="emails" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Emails
+            </TabsTrigger>
           </TabsList>
 
           {/* Activities Tab */}
@@ -448,6 +453,11 @@ const MissionDetailDrawer = ({
               variant="bare"
               enablePaste
             />
+          </TabsContent>
+
+          {/* Emails Tab */}
+          <TabsContent value="emails" className="mt-4">
+            <MissionEmailDrafts missionId={mission.id} />
           </TabsContent>
 
           {/* Settings Tab */}

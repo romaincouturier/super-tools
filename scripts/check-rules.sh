@@ -169,6 +169,12 @@ else
   check "014" "Pas de supabase.from() ou fetch() direct dans les pages/composants agent" \
     "grep -rn 'supabase\.from\|\.fetch(' src/components/agent* src/pages/Agent* --include='*.tsx' 2>/dev/null | grep -v 'use[A-Z].*\.ts' | grep -v node_modules | grep -v '// safe:'"
 
+  # [015] Pages authentifiées doivent utiliser ModuleLayout + PageHeader
+  # Exceptions : pages publiques, auth, learner, error, full-screen spécialisées
+  EXEMPT_PAGES="Auth|Signup|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LearnerAccess|LmsCoursePlayer|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis"
+  check "015" "Pages authentifiées utilisent ModuleLayout + PageHeader" \
+    "for f in src/pages/*.tsx; do name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$EXEMPT_PAGES)\$\" && continue; has_layout=\$(grep -l 'ModuleLayout' \"\$f\" 2>/dev/null | wc -l); has_header=\$(grep -l 'PageHeader' \"\$f\" 2>/dev/null | wc -l); if [ \"\$has_layout\" -eq 0 ] || [ \"\$has_header\" -eq 0 ]; then echo \"VIOLATION: \$name (ModuleLayout=\$has_layout, PageHeader=\$has_header)\"; fi; done"
+
   # [012] Composants UI morts (0 imports hors de leur propre fichier)
   check "012" "Pas de composants UI non importés" \
     "for f in src/components/ui/*.tsx; do name=\$(basename \"\$f\" .tsx); count=\$(grep -r \"from.*ui/\$name\" src/ --include='*.tsx' --include='*.ts' -l 2>/dev/null | grep -v \"ui/\$name.tsx\" | wc -l); [ \"\$count\" -eq 0 ] && echo \"DEAD: \$name\"; done"

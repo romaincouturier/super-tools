@@ -1,31 +1,25 @@
 /**
  * Process Mission Testimonials
  *
- * Cron-triggered function that checks completed missions and sends
- * testimonial request emails to ALL mission contacts:
+ * Cron-triggered function that checks completed missions and creates
+ * EMAIL DRAFTS for testimonial requests (requires comms manager validation).
  *
- * - Wait X days after mission end_date before sending (configurable via app_settings)
- * - Step 1: Send Google review request email to all contacts
- * - Step 2: Y days later, send video testimonial request email to all contacts
+ * - Wait X days after mission end_date before creating drafts (configurable)
+ * - Step 1: Create Google review request email drafts for all contacts
+ * - Step 2: Y days later, create video testimonial request email drafts
  *
- * Delays are read from app_settings:
- *   delay_mission_google_review_days (default: 2)
- *   delay_mission_video_testimonial_days (default: 4, days after google review)
- *
- * Email templates are read from email_templates table (mission_google_review / mission_video_testimonial)
+ * Drafts must be approved via the UI before being sent.
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   getSupabaseClient,
-  sendEmail,
   getSigniticSignature,
   wrapEmailHtml,
   textToHtml,
   corsHeaders,
   handleCorsPreflightIfNeeded,
 } from "../_shared/mod.ts";
-import { getBccList } from "../_shared/email-settings.ts";
 
 serve(async (req: Request) => {
   const cors = handleCorsPreflightIfNeeded(req);
@@ -89,51 +83,48 @@ serve(async (req: Request) => {
       });
     }
 
-    let googleReviewsSent = 0;
-    let testimonialsSent = 0;
-    const bccList = await getBccList();
+    let googleReviewDrafts = 0;
+    let testimonialDrafts = 0;
 
-    for (let mi = 0; mi < missionsToProcess.length; mi++) {
-      const mission = missionsToProcess[mi];
-
-      if (mi > 0) {
-        await new Promise(resolve => setTimeout(resolve, 400));
-      }
-
+    for (const mission of missionsToProcess) {
       const endDate = new Date(mission.end_date);
       const daysSinceEnd = Math.floor((today.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
 
-      // Fetch ALL contacts for this mission (not just primary)
+      // Fetch ALL contacts for this mission
       const { data: contacts } = await (supabase as any)
         .from("mission_contacts")
         .select("first_name, last_name, email, language")
         .eq("mission_id", mission.id);
 
       const validContacts = (contacts || []).filter((c: any) => c.email);
-      if (validContacts.length === 0) {
-        console.log(`Mission ${mission.id}: no contacts with email, skipping`);
-        continue;
-      }
+      if (validContacts.length === 0) continue;
 
-      // STEP 1: Send Google Review request
+      // STEP 1: Create Google Review drafts
       if (mission.testimonial_status === "pending" && daysSinceEnd >= delayGoogleReview) {
-        // Try custom template from email_templates (tu/vous variants)
+        // Check if drafts already exist for this mission + type
+        const { data: existingDrafts } = await supabase
+          .from("mission_email_drafts")
+          .select("id")
+          .eq("mission_id", mission.id)
+          .eq("email_type", "google_review")
+          .in("status", ["pending", "approved"]);
+
+        if (existingDrafts && existingDrafts.length > 0) {
+          console.log(`Mission ${mission.id}: google_review drafts already exist, skipping`);
+          continue;
+        }
+
         const { data: customTemplates } = await supabase
           .from("email_templates")
           .select("subject, html_content, template_type")
           .in("template_type", ["mission_google_review_tu", "mission_google_review_vous", "mission_google_review"]);
 
-        let allSent = true;
-        for (let ci = 0; ci < validContacts.length; ci++) {
-          const contact = validContacts[ci];
-          if (ci > 0) await new Promise(r => setTimeout(r, 400));
-
+        const drafts: any[] = [];
+        for (const contact of validContacts) {
           const clientName = contact.first_name || mission.client_name || "";
           const isFrench = contact.language === "fr" || !contact.language;
 
-          // Determine tu/vous — default to vous
-          const addressMode = "vous";
-          const templateKey = `mission_google_review_${addressMode}`;
+          const templateKey = "mission_google_review_vous";
           const customTemplate = customTemplates?.find((t: any) => t.template_type === templateKey)
             || customTemplates?.find((t: any) => t.template_type === "mission_google_review");
 
@@ -154,86 +145,68 @@ serve(async (req: Request) => {
               : `🌟 Your feedback on our collaboration "${mission.title}"`;
 
             const bodyText = isFrench
-              ? `Bonjour${clientName ? ` ${clientName}` : ""},
-
-Notre collaboration sur "${mission.title}" touche à sa fin, et je tenais à vous remercier pour votre confiance.
-
-Pour continuer à améliorer nos services et partager des retours d'expérience, votre avis serait très précieux. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?
-
-👉 Laisser un avis : ${googleReviewUrl || siteUrl}
-
-Votre retour est essentiel pour nous permettre de progresser et d'aider d'autres organisations à découvrir nos services.
-
-Merci infiniment pour votre soutien !
-
-À bientôt,`
-              : `Hello${clientName ? ` ${clientName}` : ""},
-
-Our collaboration on "${mission.title}" is coming to an end, and I wanted to thank you for your trust.
-
-To continue improving our services, your feedback would be invaluable. Could you spare 1 minute to leave a review on our Google page?
-
-👉 Leave a review: ${googleReviewUrl || siteUrl}
-
-Your feedback is essential in helping us grow and helping other organizations discover our services.
-
-Thank you for your support!
-
-Best regards,`;
+              ? `Bonjour${clientName ? ` ${clientName}` : ""},\n\nNotre collaboration sur "${mission.title}" touche à sa fin, et je tenais à vous remercier pour votre confiance.\n\nPour continuer à améliorer nos services, votre avis serait très précieux. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?\n\n👉 Laisser un avis : ${googleReviewUrl || siteUrl}\n\nVotre retour est essentiel pour nous permettre de progresser.\n\nMerci infiniment pour votre soutien !\n\nÀ bientôt,`
+              : `Hello${clientName ? ` ${clientName}` : ""},\n\nOur collaboration on "${mission.title}" is coming to an end. Could you spare 1 minute to leave a review on our Google page?\n\n👉 Leave a review: ${googleReviewUrl || siteUrl}\n\nThank you for your support!\n\nBest regards,`;
 
             body = textToHtml(bodyText);
           }
 
-          const html = wrapEmailHtml(body, signature);
-          const result = await sendEmail({
-            to: contact.email,
-            bcc: ci === 0 ? bccList : undefined, // BCC only on first contact
+          const htmlContent = wrapEmailHtml(body, signature);
+          drafts.push({
+            mission_id: mission.id,
+            email_type: "google_review",
+            contact_email: contact.email,
+            contact_name: [contact.first_name, contact.last_name].filter(Boolean).join(" ") || null,
             subject,
-            html,
-            _emailType: "mission_google_review",
+            html_content: htmlContent,
+            status: "pending",
           });
-
-          if (!result.success) {
-            console.error(`Failed to send google review email to ${contact.email} for mission ${mission.id}:`, result.error);
-            allSent = false;
-          }
         }
 
-        if (allSent) {
-          await (supabase as any)
-            .from("missions")
-            .update({
-              testimonial_status: "google_review_sent",
-              testimonial_last_sent_at: new Date().toISOString(),
-            })
-            .eq("id", mission.id);
-
-          googleReviewsSent++;
-          console.log(`Google review emails sent for mission ${mission.id} (${validContacts.length} contacts)`);
+        if (drafts.length > 0) {
+          const { error: insertError } = await supabase
+            .from("mission_email_drafts")
+            .insert(drafts);
+          if (insertError) {
+            console.error(`Error creating drafts for mission ${mission.id}:`, insertError.message);
+          } else {
+            // Move to intermediate status so we don't re-create drafts
+            await (supabase as any)
+              .from("missions")
+              .update({ testimonial_status: "google_review_draft" })
+              .eq("id", mission.id);
+            googleReviewDrafts += drafts.length;
+            console.log(`Created ${drafts.length} google_review drafts for mission ${mission.id}`);
+          }
         }
       }
 
-      // STEP 2: Send Video Testimonial request
+      // STEP 2: Create Video Testimonial drafts
       if (mission.testimonial_status === "google_review_sent" && mission.testimonial_last_sent_at) {
         const lastSent = new Date(mission.testimonial_last_sent_at);
         const daysSinceLastEmail = Math.floor((today.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24));
 
         if (daysSinceLastEmail >= delayVideoTestimonial) {
+          const { data: existingDrafts } = await supabase
+            .from("mission_email_drafts")
+            .select("id")
+            .eq("mission_id", mission.id)
+            .eq("email_type", "video_testimonial")
+            .in("status", ["pending", "approved"]);
+
+          if (existingDrafts && existingDrafts.length > 0) continue;
+
           const { data: customTemplates } = await supabase
             .from("email_templates")
             .select("subject, html_content, template_type")
             .in("template_type", ["mission_video_testimonial_tu", "mission_video_testimonial_vous", "mission_video_testimonial"]);
 
-          let allSent = true;
-          for (let ci = 0; ci < validContacts.length; ci++) {
-            const contact = validContacts[ci];
-            if (ci > 0) await new Promise(r => setTimeout(r, 400));
-
+          const drafts: any[] = [];
+          for (const contact of validContacts) {
             const clientName = contact.first_name || mission.client_name || "";
             const isFrench = contact.language === "fr" || !contact.language;
 
-            const addressMode = "vous";
-            const templateKey = `mission_video_testimonial_${addressMode}`;
+            const templateKey = "mission_video_testimonial_vous";
             const customTemplate = customTemplates?.find((t: any) => t.template_type === templateKey)
               || customTemplates?.find((t: any) => t.template_type === "mission_video_testimonial");
 
@@ -254,62 +227,38 @@ Best regards,`;
                 : `🎥 Share your experience about "${mission.title}"`;
 
               const bodyText = isFrench
-                ? `Bonjour${clientName ? ` ${clientName}` : ""},
-
-Je me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "${mission.title}".
-
-Ce témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte qui sera publié sur ${siteUrl}.
-
-Votre retour serait précieux pour inspirer d'autres organisations et valoriser votre analyse.
-
-Si vous êtes partant(e), répondez simplement à cet email pour que nous puissions convenir d'un moment ensemble.
-
-Merci d'avance pour votre temps !
-
-Bonne journée,`
-                : `Hello${clientName ? ` ${clientName}` : ""},
-
-I'm reaching out to invite you to share your feedback about our collaboration on "${mission.title}".
-
-This testimonial could be a short video call interview (10 minutes max) or a written text that will be published on ${siteUrl}.
-
-Your feedback would be invaluable in inspiring other organizations.
-
-If you're interested, simply reply to this email so we can find a convenient time.
-
-Thank you for your time!
-
-Best regards,`;
+                ? `Bonjour${clientName ? ` ${clientName}` : ""},\n\nJe me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "${mission.title}".\n\nCe témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte publié sur ${siteUrl}.\n\nSi vous êtes partant(e), répondez simplement à cet email.\n\nMerci d'avance !\n\nBonne journée,`
+                : `Hello${clientName ? ` ${clientName}` : ""},\n\nI'm reaching out to invite you to share feedback about "${mission.title}".\n\nThis could be a short video call (10 min max) or written text published on ${siteUrl}.\n\nIf interested, simply reply to this email.\n\nThank you!\n\nBest regards,`;
 
               body = textToHtml(bodyText);
             }
 
-            const html = wrapEmailHtml(body, signature);
-            const result = await sendEmail({
-              to: contact.email,
-              bcc: ci === 0 ? bccList : undefined,
+            const htmlContent = wrapEmailHtml(body, signature);
+            drafts.push({
+              mission_id: mission.id,
+              email_type: "video_testimonial",
+              contact_email: contact.email,
+              contact_name: [contact.first_name, contact.last_name].filter(Boolean).join(" ") || null,
               subject,
-              html,
-              _emailType: "mission_video_testimonial",
+              html_content: htmlContent,
+              status: "pending",
             });
-
-            if (!result.success) {
-              console.error(`Failed to send testimonial email to ${contact.email} for mission ${mission.id}:`, result.error);
-              allSent = false;
-            }
           }
 
-          if (allSent) {
-            await (supabase as any)
-              .from("missions")
-              .update({
-                testimonial_status: "completed",
-                testimonial_last_sent_at: new Date().toISOString(),
-              })
-              .eq("id", mission.id);
-
-            testimonialsSent++;
-            console.log(`Video testimonial emails sent for mission ${mission.id} (${validContacts.length} contacts)`);
+          if (drafts.length > 0) {
+            const { error: insertError } = await supabase
+              .from("mission_email_drafts")
+              .insert(drafts);
+            if (insertError) {
+              console.error(`Error creating video testimonial drafts for mission ${mission.id}:`, insertError.message);
+            } else {
+              await (supabase as any)
+                .from("missions")
+                .update({ testimonial_status: "video_testimonial_draft" })
+                .eq("id", mission.id);
+              testimonialDrafts += drafts.length;
+              console.log(`Created ${drafts.length} video_testimonial drafts for mission ${mission.id}`);
+            }
           }
         }
       }
@@ -319,8 +268,8 @@ Best regards,`;
       JSON.stringify({
         message: "Mission testimonials processed",
         processed: missionsToProcess.length,
-        googleReviewsSent,
-        testimonialsSent,
+        googleReviewDrafts,
+        testimonialDrafts,
       }),
       {
         status: 200,

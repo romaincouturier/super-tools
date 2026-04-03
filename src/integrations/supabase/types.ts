@@ -47,6 +47,8 @@ export type Database = {
           id: string
           messages: Json
           title: string | null
+          total_input_tokens: number
+          total_output_tokens: number
           updated_at: string
           user_id: string
         }
@@ -55,6 +57,8 @@ export type Database = {
           id?: string
           messages?: Json
           title?: string | null
+          total_input_tokens?: number
+          total_output_tokens?: number
           updated_at?: string
           user_id: string
         }
@@ -63,8 +67,103 @@ export type Database = {
           id?: string
           messages?: Json
           title?: string | null
+          total_input_tokens?: number
+          total_output_tokens?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      agent_embedding_cache: {
+        Row: {
+          created_at: string
+          embedding: Json
+          query_hash: string
+          query_text: string
+        }
+        Insert: {
+          created_at?: string
+          embedding: Json
+          query_hash: string
+          query_text: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: Json
+          query_hash?: string
+          query_text?: string
+        }
+        Relationships: []
+      }
+      agent_query_audit_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          execution_ms: number | null
+          explanation: string | null
+          id: string
+          query_text: string
+          row_count: number | null
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          execution_ms?: number | null
+          explanation?: string | null
+          id?: string
+          query_text: string
+          row_count?: number | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          execution_ms?: number | null
+          explanation?: string | null
+          id?: string
+          query_text?: string
+          row_count?: number | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      agent_schema_registry: {
+        Row: {
+          columns: Json
+          created_at: string
+          description: string | null
+          display_order: number
+          hidden_columns: string[]
+          id: string
+          is_queryable: boolean
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          columns?: Json
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          hidden_columns?: string[]
+          id?: string
+          is_queryable?: boolean
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          columns?: Json
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          hidden_columns?: string[]
+          id?: string
+          is_queryable?: boolean
+          table_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3381,6 +3480,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "mission_contacts_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_email_drafts: {
+        Row: {
+          contact_email: string
+          contact_name: string | null
+          created_at: string
+          email_type: string
+          html_content: string
+          id: string
+          mission_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          contact_email: string
+          contact_name?: string | null
+          created_at?: string
+          email_type: string
+          html_content: string
+          id?: string
+          mission_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          contact_email?: string
+          contact_name?: string | null
+          created_at?: string
+          email_type?: string
+          html_content?: string
+          id?: string
+          mission_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_email_drafts_mission_id_fkey"
             columns: ["mission_id"]
             isOneToOne: false
             referencedRelation: "missions"
@@ -7008,7 +7163,15 @@ export type Database = {
     }
     Functions: {
       adjust_cron_timezones: { Args: never; Returns: Json }
-      agent_sql_query: { Args: { query_text: string }; Returns: Json }
+      agent_sql_query: {
+        Args: {
+          query_text: string
+          p_user_id?: string
+          p_explanation?: string
+        }
+        Returns: Json
+      }
+      cleanup_agent_embedding_cache: { Args: Record<string, never>; Returns: number }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -7026,6 +7189,8 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
+      get_agent_allowed_tables: { Args: Record<string, never>; Returns: string[] }
+      get_agent_schema_prompt: { Args: Record<string, never>; Returns: string }
       get_app_setting_public: { Args: { p_key: string }; Returns: string }
       get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
       get_convention_signature_by_token: {
@@ -7224,6 +7389,15 @@ export type Database = {
       }
       mark_devis_opened: {
         Args: { p_timestamp: string; p_token: string }
+        Returns: undefined
+      }
+      increment_agent_tokens: {
+        Args: {
+          p_conversation_id: string
+          p_input_tokens: number
+          p_output_tokens: number
+          p_messages: Json
+        }
         Returns: undefined
       }
       match_documents: {
