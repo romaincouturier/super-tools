@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DOMPurify from "dompurify";
 import { Mail, Send, Eye, Loader2, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -181,7 +182,7 @@ function DraftCard({
           {expanded && !editing && (
             <div
               className="text-xs border rounded p-3 bg-muted/20 max-h-48 overflow-y-auto prose prose-xs"
-              dangerouslySetInnerHTML={{ __html: draft.html_content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }}
             />
           )}
 
@@ -297,7 +298,7 @@ function DraftCard({
               <p className="text-sm font-medium">{draft.subject}</p>
             </div>
             <div className="border rounded p-4 bg-white">
-              <div dangerouslySetInnerHTML={{ __html: draft.html_content }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(draft.html_content) }} />
             </div>
             {isActionable && onApproveAndSend && (
               <div className="flex justify-end gap-2 pt-2">
