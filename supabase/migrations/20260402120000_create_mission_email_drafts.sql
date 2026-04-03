@@ -6,7 +6,7 @@
 
 CREATE TABLE IF NOT EXISTS public.mission_email_drafts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  mission_id uuid NOT NULL REFERENCES public.missions(id) ON DELETE CASCADE,
+  mission_id uuid NOT NULL,
   email_type text NOT NULL,  -- 'google_review' | 'video_testimonial'
   contact_email text NOT NULL,
   contact_name text,
