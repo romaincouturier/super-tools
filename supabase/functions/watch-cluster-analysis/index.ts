@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 
 /**
  * Analyze watch items for clusters of related content.
@@ -23,7 +24,7 @@ serve(async (req) => {
     const authResult = await verifyAuth(req.headers.get("Authorization"));
     if (!authResult) return createErrorResponse("Non autorisé", 401);
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_API_KEY = await getOpenAIApiKey();
     if (!OPENAI_API_KEY) {
       return createJsonResponse({ success: true, skipped: true, reason: "OPENAI_API_KEY not configured" });
     }

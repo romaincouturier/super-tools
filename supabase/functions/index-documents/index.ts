@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 
 /**
  * Universal document indexing edge function.
@@ -21,7 +22,11 @@ import {
  *   - Upserts into document_embeddings
  */
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+let _openaiApiKey: string | null = null;
+async function resolveOpenAIKey(): Promise<string | null> {
+  if (!_openaiApiKey) _openaiApiKey = await getOpenAIApiKey();
+  return _openaiApiKey;
+}
 const MAX_CHUNK_CHARS = 6000;
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
@@ -588,13 +593,14 @@ function extractTextFromPdfBytes(bytes: Uint8Array): string {
 // ── Embedding generation ─────────────────────────────────────
 
 async function generateEmbedding(text: string): Promise<number[] | null> {
-  if (!OPENAI_API_KEY || !text.trim()) return null;
+  const apiKey = await resolveOpenAIKey();
+  if (!apiKey || !text.trim()) return null;
 
   try {
     const res = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -668,7 +674,8 @@ serve(async (req) => {
       return createErrorResponse("source_id is required (or set backfill: true)", 400);
     }
 
-    if (!OPENAI_API_KEY) {
+    const openaiKey = await resolveOpenAIKey();
+    if (!openaiKey) {
       return createErrorResponse("OPENAI_API_KEY not configured", 500);
     }
 

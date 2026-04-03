@@ -177,6 +177,28 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">OpenAI</CardTitle>
+          <CardDescription>Clé API OpenAI utilisée pour l'OCR (images veille), les embeddings RAG et les analyses automatiques.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="openai-api-key">Clé API OpenAI</Label>
+            <Input
+              id="openai-api-key"
+              type="password"
+              value={settings.openai_api_key}
+              onChange={(e) => updateSetting("openai_api_key", e.target.value)}
+              placeholder="sk-..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Obtenez une clé sur <code>platform.openai.com/api-keys</code>. Utilisée pour l'OCR des images (veille), les embeddings de recherche sémantique et les analyses IA.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Recherche SIREN</CardTitle>
           <CardDescription>Clés API pour la recherche d'entreprises par SIREN (micro-devis).</CardDescription>
         </CardHeader>

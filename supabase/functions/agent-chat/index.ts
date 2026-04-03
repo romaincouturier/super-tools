@@ -22,8 +22,14 @@ import {
  *   3. execute_action  — Perform write actions (with confirmation)
  */
 
+import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+let _openaiApiKey: string | null = null;
+async function resolveOpenAIKey(): Promise<string | null> {
+  if (!_openaiApiKey) _openaiApiKey = await getOpenAIApiKey();
+  return _openaiApiKey;
+}
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 const MAX_TOOL_ROUNDS = 10;
 
@@ -253,7 +259,8 @@ async function executeTool(
       const sourceTypes = toolInput.source_types as string[] | undefined;
       const maxResults = Math.min((toolInput.max_results as number) || 10, 20);
 
-      if (!OPENAI_API_KEY) {
+      const openaiKey = await resolveOpenAIKey();
+      if (!openaiKey) {
         return JSON.stringify({ error: "OPENAI_API_KEY not configured for search" });
       }
 
@@ -266,7 +273,7 @@ async function executeTool(
           const embRes = await fetch("https://api.openai.com/v1/embeddings", {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${OPENAI_API_KEY}`,
+              Authorization: `Bearer ${openaiKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
