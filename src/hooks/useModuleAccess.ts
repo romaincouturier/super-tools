@@ -26,7 +26,8 @@ export type AppModule =
   | "lms"
   | "screenshots"
   | "veille"
-  | "supertilt";
+  | "supertilt"
+  | "catalogue";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -54,6 +55,7 @@ export const ALL_MODULES: AppModule[] = [
   "screenshots",
   "veille",
   "supertilt",
+  "catalogue",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -82,6 +84,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   screenshots: "Screenshots",
   veille: "Veille",
   supertilt: "Supertilt",
+  catalogue: "Catalogue",
 };
 
 export function useModuleAccess() {

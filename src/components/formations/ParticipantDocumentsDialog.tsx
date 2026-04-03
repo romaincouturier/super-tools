@@ -100,8 +100,7 @@ const ParticipantDocumentsDialog = ({
         supabase
           .from("attendance_signatures")
           .select("id", { count: "exact", head: true })
-          .eq("training_id", trainingId)
-          .not("signed_at", "is", null),
+          .eq("training_id", trainingId),
       ]);
 
       setCertificateUrl(certResult.data?.certificate_url as string | null ?? null);
@@ -382,7 +381,7 @@ const ParticipantDocumentsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md overflow-hidden">
         <DialogHeader>
           <DialogTitle>Documents - {participantName}</DialogTitle>
           <DialogDescription>
@@ -443,13 +442,13 @@ const ParticipantDocumentsDialog = ({
             </div>
             
             {invoiceFileUrl && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0 overflow-hidden">
                 <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 <a
                   href={invoiceFileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 text-sm text-primary hover:underline truncate min-w-0"
+                  className="flex-1 text-sm text-primary hover:underline truncate min-w-0 block"
                 >
                   {getFileNameFromUrl(invoiceFileUrl)}
                 </a>
