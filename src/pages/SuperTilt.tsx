@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Plus, Trash2, Pencil, CalendarDays, User, Check, X, Loader2, Zap } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -12,6 +12,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -24,12 +31,30 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { useSupertiltActions, type SupertiltAction } from "@/hooks/useSupertilt";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 
+interface SystemUser {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+}
+
+function useSystemUsers() {
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  useEffect(() => {
+    supabase.from("profiles").select("user_id, email, display_name").order("email").then(({ data }) => {
+      if (data) setUsers(data as SystemUser[]);
+    });
+  }, []);
+  return users;
+}
+
 const SuperTilt = () => {
   const { actions, isLoading, addAction, updateAction, deleteAction } = useSupertiltActions();
+  const systemUsers = useSystemUsers();
   const [newTitle, setNewTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -90,6 +115,7 @@ const SuperTilt = () => {
             <ActionRow
               key={action.id}
               action={action}
+              systemUsers={systemUsers}
               onToggle={(checked) => updateAction.mutate({ id: action.id, is_completed: checked })}
               onUpdate={(updates) => updateAction.mutate({ id: action.id, ...updates })}
               onDelete={() => deleteAction.mutate(action.id)}
@@ -109,6 +135,7 @@ const SuperTilt = () => {
                 <ActionRow
                   key={action.id}
                   action={action}
+                  systemUsers={systemUsers}
                   onToggle={(checked) => updateAction.mutate({ id: action.id, is_completed: checked })}
                   onUpdate={(updates) => updateAction.mutate({ id: action.id, ...updates })}
                   onDelete={() => deleteAction.mutate(action.id)}
@@ -127,13 +154,14 @@ const SuperTilt = () => {
 
 interface ActionRowProps {
   action: SupertiltAction;
+  systemUsers: SystemUser[];
   onToggle: (checked: boolean) => void;
   onUpdate: (updates: Partial<Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline">>) => void;
   onDelete: () => void;
   isDeleting: boolean;
 }
 
-function ActionRow({ action, onToggle, onUpdate, onDelete, isDeleting }: ActionRowProps) {
+function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleting }: ActionRowProps) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(action.title);
   const [editDesc, setEditDesc] = useState(action.description || "");
@@ -147,7 +175,7 @@ function ActionRow({ action, onToggle, onUpdate, onDelete, isDeleting }: ActionR
     onUpdate({
       title: editTitle.trim(),
       description: editDesc.trim() || null,
-      assigned_to: editAssigned.trim() || null,
+      assigned_to: editAssigned && editAssigned !== "__none__" ? editAssigned : null,
     });
     setEditing(false);
   };
@@ -168,12 +196,19 @@ function ActionRow({ action, onToggle, onUpdate, onDelete, isDeleting }: ActionR
           placeholder="Description (optionnel)"
           onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
         />
-        <Input
-          value={editAssigned}
-          onChange={(e) => setEditAssigned(e.target.value)}
-          placeholder="Assigné à (optionnel)"
-          onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
-        />
+        <Select value={editAssigned} onValueChange={setEditAssigned}>
+          <SelectTrigger>
+            <SelectValue placeholder="Assigné à (optionnel)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— Aucun —</SelectItem>
+            {systemUsers.map((u) => (
+              <SelectItem key={u.user_id} value={u.display_name || u.email}>
+                {u.display_name || u.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex gap-2">
           <Button size="sm" onClick={handleSaveEdit} disabled={!editTitle.trim()} className="gap-1">
             <Check className="w-3.5 h-3.5" /> Enregistrer
