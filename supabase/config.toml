@@ -377,6 +377,3 @@ verify_jwt = false
 
 [functions.transcribe-audio-long]
 verify_jwt = false
-
-[functions.index-documents]
-verify_jwt = false
