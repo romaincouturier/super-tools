@@ -32,7 +32,7 @@ export function useSupertiltActions() {
   const query = useQuery({
     queryKey: key,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from(TABLE)
         .select("*")
         .order("is_completed", { ascending: true })
@@ -46,7 +46,7 @@ export function useSupertiltActions() {
 
   const addAction = useMutation({
     mutationFn: async (action: InsertAction) => {
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from(TABLE)
         .insert({ ...action, user_id: user!.id })
         .select()
@@ -70,7 +70,7 @@ export function useSupertiltActions() {
       if (updates.is_completed === true) payload.completed_at = new Date().toISOString();
       if (updates.is_completed === false) payload.completed_at = null;
 
-      const { error } = await supabase.from(TABLE).update(payload).eq("id", id);
+      const { error } = await sb.from(TABLE).update(payload).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: key }),
@@ -82,7 +82,7 @@ export function useSupertiltActions() {
 
   const deleteAction = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(TABLE).delete().eq("id", id);
+      const { error } = await sb.from(TABLE).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
