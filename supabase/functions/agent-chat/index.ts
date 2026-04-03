@@ -27,6 +27,48 @@ const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 const MAX_TOOL_ROUNDS = 10;
 
+// ── Embedding cache helpers ─────────────────────────────────
+
+async function sha256(text: string): Promise<string> {
+  const encoded = new TextEncoder().encode(text.trim().toLowerCase());
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function getCachedEmbedding(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  queryText: string,
+): Promise<number[] | null> {
+  const hash = await sha256(queryText);
+  const { data } = await supabase
+    .from("agent_embedding_cache")
+    .select("embedding")
+    .eq("query_hash", hash)
+    .single();
+  if (data?.embedding) {
+    return data.embedding as number[];
+  }
+  return null;
+}
+
+async function storeCachedEmbedding(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  queryText: string,
+  embedding: number[],
+): Promise<void> {
+  const hash = await sha256(queryText);
+  await supabase.from("agent_embedding_cache").upsert(
+    {
+      query_hash: hash,
+      query_text: queryText.slice(0, 500),
+      embedding,
+    },
+    { onConflict: "query_hash" },
+  );
+}
+
 // ── Database schema — loaded dynamically from agent_schema_registry ──
 
 let _cachedSchema: { text: string; fetchedAt: number } | null = null;
@@ -216,26 +258,35 @@ async function executeTool(
       }
 
       try {
-        const embRes = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "text-embedding-3-small",
-            input: query,
-          }),
-        });
+        // Check embedding cache first
+        let queryEmbedding = await getCachedEmbedding(supabase, query);
 
-        if (!embRes.ok) {
-          return JSON.stringify({ error: `Embedding API error: ${embRes.status}` });
-        }
-
-        const embData = await embRes.json();
-        const queryEmbedding = embData.data?.[0]?.embedding;
         if (!queryEmbedding) {
-          return JSON.stringify({ error: "Failed to generate query embedding" });
+          // Cache miss — call OpenAI
+          const embRes = await fetch("https://api.openai.com/v1/embeddings", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${OPENAI_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "text-embedding-3-small",
+              input: query,
+            }),
+          });
+
+          if (!embRes.ok) {
+            return JSON.stringify({ error: `Embedding API error: ${embRes.status}` });
+          }
+
+          const embData = await embRes.json();
+          queryEmbedding = embData.data?.[0]?.embedding;
+          if (!queryEmbedding) {
+            return JSON.stringify({ error: "Failed to generate query embedding" });
+          }
+
+          // Store in cache (fire-and-forget)
+          storeCachedEmbedding(supabase, query, queryEmbedding).catch(() => {});
         }
 
         const { data, error } = await supabase.rpc("match_documents", {
@@ -388,7 +439,7 @@ async function runAgentStreaming(
   supabase: ReturnType<typeof getSupabaseClient>,
   writer: WritableStreamDefaultWriter<Uint8Array>,
   userId?: string,
-): Promise<{ fullResponse: string; updatedMessages: Message[] }> {
+): Promise<{ fullResponse: string; updatedMessages: Message[]; totalInputTokens: number; totalOutputTokens: number }> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY not configured");
   }
@@ -401,6 +452,8 @@ async function runAgentStreaming(
 
   const conversationMessages = [...messages];
   let fullResponse = "";
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     // Call Claude with streaming
@@ -512,9 +565,21 @@ async function runAgentStreaming(
             break;
           }
 
+          case "message_start": {
+            // Capture input tokens from the message start event
+            if (event.message?.usage?.input_tokens) {
+              totalInputTokens += event.message.usage.input_tokens;
+            }
+            break;
+          }
+
           case "message_delta": {
             if (event.delta?.stop_reason) {
               stopReason = event.delta.stop_reason;
+            }
+            // Capture output tokens from the message delta event
+            if (event.usage?.output_tokens) {
+              totalOutputTokens += event.usage.output_tokens;
             }
             break;
           }
@@ -561,7 +626,7 @@ async function runAgentStreaming(
     conversationMessages.push({ role: "user", content: toolResults });
   }
 
-  return { fullResponse, updatedMessages: conversationMessages };
+  return { fullResponse, updatedMessages: conversationMessages, totalInputTokens, totalOutputTokens };
 }
 
 // ── Title generation ────────────────────────────────────────
@@ -646,24 +711,24 @@ serve(async (req) => {
     (async () => {
       const encoder = new TextEncoder();
       try {
-        const { fullResponse, updatedMessages } = await runAgentStreaming(
+        const { fullResponse, updatedMessages, totalInputTokens, totalOutputTokens } = await runAgentStreaming(
           messages,
           supabase,
           writer,
           userId,
         );
 
-        // Save conversation
+        // Save conversation with token usage
         let title: string | undefined;
 
         if (conversationId) {
-          await supabase
-            .from("agent_conversations")
-            .update({
-              messages: updatedMessages,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", conversationId);
+          // Increment token counters on existing conversation
+          await supabase.rpc("increment_agent_tokens", {
+            p_conversation_id: conversationId,
+            p_input_tokens: totalInputTokens,
+            p_output_tokens: totalOutputTokens,
+            p_messages: updatedMessages,
+          });
         } else {
           // Generate a smart title for new conversations
           title = await generateTitle(message, fullResponse);
@@ -674,6 +739,8 @@ serve(async (req) => {
               user_id: userId,
               title,
               messages: updatedMessages,
+              total_input_tokens: totalInputTokens,
+              total_output_tokens: totalOutputTokens,
               updated_at: new Date().toISOString(),
             })
             .select("id")
