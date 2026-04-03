@@ -115,6 +115,7 @@ const SuperTilt = () => {
             <ActionRow
               key={action.id}
               action={action}
+              systemUsers={systemUsers}
               onToggle={(checked) => updateAction.mutate({ id: action.id, is_completed: checked })}
               onUpdate={(updates) => updateAction.mutate({ id: action.id, ...updates })}
               onDelete={() => deleteAction.mutate(action.id)}
