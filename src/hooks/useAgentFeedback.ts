@@ -12,7 +12,7 @@ export function useAgentFeedback() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from("agent_feedback" as string).insert({
+    const { error } = await (supabase as any).from("agent_feedback").insert({
       user_id: user.id,
       conversation_id: params.conversationId,
       rating: params.rating,

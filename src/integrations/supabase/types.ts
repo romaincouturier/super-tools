@@ -95,6 +95,44 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_feedback: {
+        Row: {
+          assistant_response: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          rating: string
+          user_id: string
+          user_prompt: string
+        }
+        Insert: {
+          assistant_response: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          rating: string
+          user_id: string
+          user_prompt: string
+        }
+        Update: {
+          assistant_response?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          rating?: string
+          user_id?: string
+          user_prompt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_feedback_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "agent_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_query_audit_log: {
         Row: {
           created_at: string
@@ -3487,6 +3525,47 @@ export type Database = {
           },
         ]
       }
+      mission_documents: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          is_deliverable: boolean
+          mission_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_deliverable?: boolean
+          mission_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_deliverable?: boolean
+          mission_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_documents_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mission_email_drafts: {
         Row: {
           contact_email: string
@@ -3536,47 +3615,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "mission_email_drafts_mission_id_fkey"
-            columns: ["mission_id"]
-            isOneToOne: false
-            referencedRelation: "missions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      mission_documents: {
-        Row: {
-          created_at: string | null
-          file_name: string
-          file_size: number | null
-          file_url: string
-          id: string
-          is_deliverable: boolean
-          mission_id: string
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          file_name: string
-          file_size?: number | null
-          file_url: string
-          id?: string
-          is_deliverable?: boolean
-          mission_id: string
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          file_name?: string
-          file_size?: number | null
-          file_url?: string
-          id?: string
-          is_deliverable?: boolean
-          mission_id?: string
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mission_documents_mission_id_fkey"
             columns: ["mission_id"]
             isOneToOne: false
             referencedRelation: "missions"
@@ -7163,15 +7201,16 @@ export type Database = {
     }
     Functions: {
       adjust_cron_timezones: { Args: never; Returns: Json }
-      agent_sql_query: {
-        Args: {
-          query_text: string
-          p_user_id?: string
-          p_explanation?: string
-        }
-        Returns: Json
-      }
-      cleanup_agent_embedding_cache: { Args: Record<string, never>; Returns: number }
+      agent_sql_query:
+        | { Args: { query_text: string }; Returns: Json }
+        | {
+            Args: {
+              p_explanation?: string
+              p_user_id?: string
+              query_text: string
+            }
+            Returns: Json
+          }
       check_formulaire_rate_limit: {
         Args: {
           p_ip_address: string
@@ -7180,6 +7219,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_agent_embedding_cache: { Args: never; Returns: number }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
@@ -7189,8 +7229,8 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
-      get_agent_allowed_tables: { Args: Record<string, never>; Returns: string[] }
-      get_agent_schema_prompt: { Args: Record<string, never>; Returns: string }
+      get_agent_allowed_tables: { Args: never; Returns: string[] }
+      get_agent_schema_prompt: { Args: never; Returns: string }
       get_app_setting_public: { Args: { p_key: string }; Returns: string }
       get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
       get_convention_signature_by_token: {
@@ -7368,6 +7408,15 @@ export type Database = {
         Args: { _module: string; _user_id: string }
         Returns: boolean
       }
+      increment_agent_tokens: {
+        Args: {
+          p_conversation_id: string
+          p_input_tokens: number
+          p_messages: Json
+          p_output_tokens: number
+        }
+        Returns: undefined
+      }
       insert_questionnaire_event: {
         Args: {
           p_metadata?: Json
@@ -7389,15 +7438,6 @@ export type Database = {
       }
       mark_devis_opened: {
         Args: { p_timestamp: string; p_token: string }
-        Returns: undefined
-      }
-      increment_agent_tokens: {
-        Args: {
-          p_conversation_id: string
-          p_input_tokens: number
-          p_output_tokens: number
-          p_messages: Json
-        }
         Returns: undefined
       }
       match_documents: {
