@@ -196,12 +196,19 @@ function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleti
           placeholder="Description (optionnel)"
           onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
         />
-        <Input
-          value={editAssigned}
-          onChange={(e) => setEditAssigned(e.target.value)}
-          placeholder="Assigné à (optionnel)"
-          onKeyDown={(e) => e.key === "Enter" && handleSaveEdit()}
-        />
+        <Select value={editAssigned} onValueChange={setEditAssigned}>
+          <SelectTrigger>
+            <SelectValue placeholder="Assigné à (optionnel)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— Aucun —</SelectItem>
+            {systemUsers.map((u) => (
+              <SelectItem key={u.user_id} value={u.display_name || u.email}>
+                {u.display_name || u.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex gap-2">
           <Button size="sm" onClick={handleSaveEdit} disabled={!editTitle.trim()} className="gap-1">
             <Check className="w-3.5 h-3.5" /> Enregistrer
