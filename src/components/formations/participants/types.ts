@@ -46,6 +46,7 @@ export interface ParticipantListProps {
   trainingName: string;
   trainingStartDate: string | null;
   trainingEndDate: string | null;
+  trainingLocation: string | null;
   formatFormation: string | null;
   isInterEntreprise?: boolean;
   elearningDuration?: number | null;
@@ -63,6 +64,7 @@ export interface ParticipantActionsProps {
   trainingName: string;
   trainingStartDate: string | null;
   trainingEndDate: string | null;
+  trainingLocation: string | null;
   formatFormation: string | null;
   isInterEntreprise: boolean;
   isIndividualConvention: boolean;
