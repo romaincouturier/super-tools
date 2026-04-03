@@ -234,13 +234,13 @@ const ParticipantActions = ({
             <Button
               variant="ghost"
               size="icon"
-              className={`h-7 w-7 ${participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+              className={`h-7 w-7 ${participant.payment_mode === "online" || participant.invoice_file_url ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
               onClick={() => onOpenDocuments(participant)}
             >
               <Receipt className="h-3.5 w-3.5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent><p>{participant.invoice_file_url ? "Facture uploadée" : "Gérer la facture"}</p></TooltipContent>
+          <TooltipContent><p>{participant.payment_mode === "online" ? "Payé en ligne" : participant.invoice_file_url ? "Facture uploadée" : "Gérer la facture"}</p></TooltipContent>
         </Tooltip>
       )}
 
