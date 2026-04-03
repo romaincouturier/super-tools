@@ -1,17 +1,18 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   FileText, Link, Image, Mic, ExternalLink, Trash2,
-  Share2, MoreVertical, Copy, Clock,
+  Share2, MoreVertical, Copy, Clock, Plus, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { WatchItem } from "@/hooks/useWatch";
-import { useDeleteWatchItem, useToggleWatchShared } from "@/hooks/useWatch";
+import { useDeleteWatchItem, useToggleWatchShared, useUpdateWatchItem, useWatchTags } from "@/hooks/useWatch";
 
 interface WatchItemCardProps {
   item: WatchItem;
@@ -26,8 +27,17 @@ const contentTypeConfig: Record<string, { icon: typeof FileText; label: string; 
 
 const WatchItemCard = ({ item }: WatchItemCardProps) => {
   const [expanded, setExpanded] = useState(false);
+  const [editingTags, setEditingTags] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const tagInputRef = useRef<HTMLInputElement>(null);
   const deleteMutation = useDeleteWatchItem();
   const toggleSharedMutation = useToggleWatchShared();
+  const updateMutation = useUpdateWatchItem();
+  const { data: allTags } = useWatchTags();
+
+  useEffect(() => {
+    if (editingTags) tagInputRef.current?.focus();
+  }, [editingTags]);
 
   const config = contentTypeConfig[item.content_type] || contentTypeConfig.text;
   const Icon = config.icon;
@@ -56,11 +66,49 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
     toast.success("Copié dans le presse-papiers");
   };
 
+  const handleAddTag = async () => {
+    const tag = tagInput.trim().toLowerCase();
+    if (!tag) return;
+    const currentTags = item.tags || [];
+    if (currentTags.includes(tag)) {
+      setTagInput("");
+      return;
+    }
+    try {
+      await updateMutation.mutateAsync({ id: item.id, tags: [...currentTags, tag] });
+      setTagInput("");
+    } catch {
+      toast.error("Erreur lors de l'ajout du tag");
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove: string) => {
+    const newTags = (item.tags || []).filter((t) => t !== tagToRemove);
+    try {
+      await updateMutation.mutateAsync({ id: item.id, tags: newTags });
+    } catch {
+      toast.error("Erreur lors de la suppression du tag");
+    }
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
+    } else if (e.key === "Escape") {
+      setEditingTags(false);
+      setTagInput("");
+    }
+  };
+
   const bodyPreview = item.body?.length > 200 && !expanded
     ? item.body.slice(0, 200) + "..."
     : item.body;
 
   const freshness = Math.round(item.relevance_score);
+
+  // Suggestions: all tags not already on this item
+  const suggestions = (allTags || []).filter((t) => !(item.tags || []).includes(t));
 
   return (
     <Card className="p-4 space-y-3 hover:shadow-md transition-shadow">
@@ -159,12 +207,44 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
 
       {/* Footer: tags + meta */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {(item.tags || []).map((tag) => (
-            <Badge key={tag} variant="outline" className="text-[10px] px-1.5 py-0">
+            <Badge
+              key={tag}
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 gap-0.5 cursor-pointer hover:bg-destructive/10 hover:border-destructive/50 group"
+              onClick={() => handleRemoveTag(tag)}
+            >
               {tag}
+              <X className="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Badge>
           ))}
+          {editingTags ? (
+            <div className="flex items-center gap-1">
+              <Input
+                ref={tagInputRef}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                onBlur={() => { handleAddTag(); setEditingTags(false); }}
+                placeholder="Nouveau tag..."
+                className="h-5 w-24 text-[10px] px-1.5 py-0"
+                list="watch-tag-suggestions"
+              />
+              <datalist id="watch-tag-suggestions">
+                {suggestions.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingTags(true)}
+              className="h-5 px-1 rounded border border-dashed border-muted-foreground/30 text-[10px] text-muted-foreground hover:border-foreground/50 hover:text-foreground transition-colors flex items-center"
+            >
+              <Plus className="h-2.5 w-2.5" />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
