@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Tag, Plus, Pencil, Trash2, Save, X } from "lucide-react";
+import { Loader2, Tag, Plus, Pencil, Trash2, Save, X, FolderOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -25,11 +25,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 interface CrmTag {
   id: string;
@@ -39,7 +34,12 @@ interface CrmTag {
   created_at: string;
 }
 
-// Predefined color palette
+interface CategoryInfo {
+  name: string;
+  color: string;
+  tags: CrmTag[];
+}
+
 const COLOR_PALETTE = [
   { name: "Rouge", value: "#ef4444" },
   { name: "Orange", value: "#f97316" },
@@ -52,37 +52,33 @@ const COLOR_PALETTE = [
   { name: "Gris", value: "#6b7280" },
 ];
 
-// Default suggested categories
-const DEFAULT_CATEGORIES = [
-  "Secteur",
-  "Priorité",
-  "Source",
-  "Type de client",
-  "Budget",
-  "Autre",
-];
-
 export default function CrmTagManager() {
   const [tags, setTags] = useState<CrmTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [tagToDelete, setTagToDelete] = useState<CrmTag | null>(null);
-  const [editingTag, setEditingTag] = useState<CrmTag | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  // Form state
-  const [name, setName] = useState("");
-  const [color, setColor] = useState("#3b82f6");
-  const [category, setCategory] = useState<string>("");
-  const [customCategory, setCustomCategory] = useState("");
-  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  // Category dialog
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryColor, setCategoryColor] = useState("#3b82f6");
+
+  // Tag dialog
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [editingTag, setEditingTag] = useState<CrmTag | null>(null);
+  const [tagName, setTagName] = useState("");
+  const [tagCategory, setTagCategory] = useState("");
+
+  // Delete dialogs
+  const [deleteTagDialogOpen, setDeleteTagDialogOpen] = useState(false);
+  const [tagToDelete, setTagToDelete] = useState<CrmTag | null>(null);
+  const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
+  useEffect(() => { fetchTags(); }, []);
 
   const fetchTags = async () => {
     try {
@@ -91,156 +87,167 @@ export default function CrmTagManager() {
         .select("*")
         .order("category")
         .order("name");
-
       if (error) throw error;
       setTags(data || []);
-    } catch (error) {
-      console.error("Error fetching tags:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les tags CRM.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de charger les tags.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  // Compute all categories: defaults + any custom ones from existing tags
-  const allCategories = Array.from(
-    new Set([
-      ...DEFAULT_CATEGORIES,
-      ...tags.map((t) => t.category).filter(Boolean) as string[],
-    ])
-  ).sort();
-
-  const resetForm = () => {
-    setName("");
-    setColor("#3b82f6");
-    setCategory("");
-    setCustomCategory("");
-    setEditingTag(null);
-  };
-
-  const openDialog = (tag?: CrmTag) => {
-    if (tag) {
-      setEditingTag(tag);
-      setName(tag.name);
-      setColor(tag.color);
-      setCategory(tag.category || "");
-      setCustomCategory("");
-    } else {
-      resetForm();
+  // Build categories from tags — color = first tag's color in that category
+  const categories = useMemo(() => {
+    const map = new Map<string, CategoryInfo>();
+    for (const tag of tags) {
+      const cat = tag.category || "Sans catégorie";
+      if (!map.has(cat)) {
+        map.set(cat, { name: cat, color: tag.color, tags: [] });
+      }
+      map.get(cat)!.tags.push(tag);
     }
-    setDialogOpen(true);
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.name === "Sans catégorie") return 1;
+      if (b.name === "Sans catégorie") return -1;
+      return a.name.localeCompare(b.name, "fr");
+    });
+  }, [tags]);
+
+  const toggleCategory = (name: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
   };
 
-  const handleSelectCategory = (cat: string) => {
-    setCategory(cat);
-    setCustomCategory("");
-    setCategoryPopoverOpen(false);
+  // ── Category actions ──────────────────────────────────────────
+
+  const openCategoryDialog = (existingName?: string) => {
+    if (existingName) {
+      setEditingCategory(existingName);
+      setCategoryName(existingName);
+      const cat = categories.find((c) => c.name === existingName);
+      setCategoryColor(cat?.color || "#3b82f6");
+    } else {
+      setEditingCategory(null);
+      setCategoryName("");
+      setCategoryColor("#3b82f6");
+    }
+    setCategoryDialogOpen(true);
   };
 
-  const handleAddCustomCategory = () => {
-    const trimmed = customCategory.trim();
-    if (!trimmed) return;
-    setCategory(trimmed);
-    setCustomCategory("");
-    setCategoryPopoverOpen(false);
-  };
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast({
-        title: "Champ requis",
-        description: "Le nom du tag est obligatoire.",
-        variant: "destructive",
-      });
+  const handleSaveCategory = async () => {
+    const trimmed = categoryName.trim();
+    if (!trimmed) {
+      toast({ title: "Champ requis", description: "Le nom de la catégorie est obligatoire.", variant: "destructive" });
       return;
     }
 
     setSaving(true);
     try {
-      if (editingTag) {
-        const { error } = await supabase
-          .from("crm_tags")
-          .update({
-            name: name.trim(),
-            color: color,
-            category: category || null,
-          })
-          .eq("id", editingTag.id);
-
-        if (error) throw error;
-        toast({
-          title: "Tag modifié",
-          description: "Le tag a été mis à jour.",
-        });
+      if (editingCategory) {
+        // Rename category + update color on all tags of this category
+        const tagsInCat = tags.filter((t) => t.category === editingCategory);
+        for (const tag of tagsInCat) {
+          await supabase.from("crm_tags").update({ category: trimmed, color: categoryColor }).eq("id", tag.id);
+        }
+        toast({ title: "Catégorie modifiée" });
       } else {
-        const { error } = await supabase.from("crm_tags").insert({
-          name: name.trim(),
-          color: color,
-          category: category || null,
-        });
-
-        if (error) throw error;
-        toast({
-          title: "Tag créé",
-          description: "Le tag a été ajouté avec succès.",
-        });
+        // Just close — category is created when first tag is added
+        toast({ title: "Catégorie prête", description: "Ajoutez maintenant des tags dans cette catégorie." });
       }
-
-      setDialogOpen(false);
-      resetForm();
+      setCategoryDialogOpen(false);
+      // Expand the new/renamed category
+      setExpandedCategories((prev) => new Set([...prev, trimmed]));
       fetchTags();
-    } catch (error) {
-      console.error("Error saving tag:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder le tag.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder la catégorie.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!tagToDelete) return;
-
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
     try {
-      const { error } = await supabase
-        .from("crm_tags")
-        .delete()
-        .eq("id", tagToDelete.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Tag supprimé",
-        description: "Le tag a été supprimé.",
-      });
-
-      setDeleteDialogOpen(false);
-      setTagToDelete(null);
+      const tagsInCat = tags.filter((t) => t.category === categoryToDelete);
+      for (const tag of tagsInCat) {
+        await supabase.from("crm_tags").delete().eq("id", tag.id);
+      }
+      toast({ title: "Catégorie supprimée", description: `${tagsInCat.length} tag(s) supprimé(s).` });
+      setDeleteCategoryDialogOpen(false);
+      setCategoryToDelete(null);
       fetchTags();
-    } catch (error) {
-      console.error("Error deleting tag:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le tag. Il est peut-être utilisé par des cartes CRM.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de supprimer la catégorie.", variant: "destructive" });
     }
   };
 
-  // Group tags by category
-  const tagsByCategory = tags.reduce((acc, tag) => {
-    const cat = tag.category || "Sans catégorie";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(tag);
-    return acc;
-  }, {} as Record<string, CrmTag[]>);
+  // ── Tag actions ────────────────────────────────────────────────
+
+  const openTagDialog = (categoryForTag: string, tag?: CrmTag) => {
+    if (tag) {
+      setEditingTag(tag);
+      setTagName(tag.name);
+      setTagCategory(tag.category || categoryForTag);
+    } else {
+      setEditingTag(null);
+      setTagName("");
+      setTagCategory(categoryForTag);
+    }
+    setTagDialogOpen(true);
+  };
+
+  const handleSaveTag = async () => {
+    if (!tagName.trim()) {
+      toast({ title: "Champ requis", description: "Le nom du tag est obligatoire.", variant: "destructive" });
+      return;
+    }
+
+    // Get color from the category
+    const cat = categories.find((c) => c.name === tagCategory);
+    const tagColor = cat?.color || categoryColor || "#3b82f6";
+
+    setSaving(true);
+    try {
+      if (editingTag) {
+        await supabase.from("crm_tags").update({
+          name: tagName.trim(),
+          category: tagCategory || null,
+          color: tagColor,
+        }).eq("id", editingTag.id);
+        toast({ title: "Tag modifié" });
+      } else {
+        await supabase.from("crm_tags").insert({
+          name: tagName.trim(),
+          category: tagCategory || null,
+          color: tagColor,
+        });
+        toast({ title: "Tag créé" });
+      }
+      setTagDialogOpen(false);
+      fetchTags();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder le tag.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTag = async () => {
+    if (!tagToDelete) return;
+    try {
+      await supabase.from("crm_tags").delete().eq("id", tagToDelete.id);
+      toast({ title: "Tag supprimé" });
+      setDeleteTagDialogOpen(false);
+      setTagToDelete(null);
+      fetchTags();
+    } catch {
+      toast({ title: "Erreur", description: "Impossible de supprimer le tag.", variant: "destructive" });
+    }
+  };
 
   if (loading) {
     return (
@@ -261,179 +268,135 @@ export default function CrmTagManager() {
                 Tags CRM
               </CardTitle>
               <CardDescription className="mt-1">
-                Gérez les tags disponibles pour catégoriser vos opportunités commerciales.
-                Les catégories vous permettent de regrouper les tags par thème.
+                Organisez vos tags par catégorie. La couleur s'applique à toute la catégorie.
               </CardDescription>
             </div>
-            <Button onClick={() => openDialog()}>
+            <Button onClick={() => openCategoryDialog()}>
               <Plus className="h-4 w-4 mr-2" />
-              Ajouter un tag
+              Nouvelle catégorie
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {tags.length === 0 ? (
+          {categories.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <Tag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Aucun tag configuré.</p>
-              <p className="text-sm mt-2">
-                Ajoutez des tags pour organiser vos opportunités CRM.
-              </p>
+              <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune catégorie configurée.</p>
+              <p className="text-sm mt-2">Créez une catégorie puis ajoutez des tags à l'intérieur.</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {Object.entries(tagsByCategory).map(([categoryName, categoryTags]) => (
-                <div key={categoryName}>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    {categoryName}
-                    <span className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                      {categoryTags.length}
-                    </span>
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {categoryTags.map((tag) => (
+            <div className="space-y-2">
+              {categories.map((cat) => {
+                const isExpanded = expandedCategories.has(cat.name);
+                return (
+                  <div key={cat.name} className="border rounded-lg overflow-hidden">
+                    {/* Category header */}
+                    <div
+                      className="flex items-center gap-3 px-4 py-3 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => toggleCategory(cat.name)}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
                       <div
-                        key={tag.id}
-                        className="group flex items-center gap-1 border rounded-full pr-1"
-                        style={{ borderColor: tag.color + "40" }}
-                      >
-                        <Badge
-                          style={{ backgroundColor: tag.color + "20", color: tag.color }}
-                          className="rounded-full"
-                        >
-                          {tag.name}
-                        </Badge>
-                        <div className="hidden group-hover:flex items-center">
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: cat.color }}
+                      />
+                      <span className="font-medium text-sm flex-1">{cat.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {cat.tags.length} tag{cat.tags.length > 1 ? "s" : ""}
+                      </span>
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openCategoryDialog(cat.name)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        {cat.name !== "Sans catégorie" && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-5 w-5"
-                            onClick={() => openDialog(tag)}
+                            className="h-7 w-7"
+                            onClick={() => { setCategoryToDelete(cat.name); setDeleteCategoryDialogOpen(true); }}
                           >
-                            <Pencil className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => {
-                              setTagToDelete(tag);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                          </Button>
-                        </div>
+                        )}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Tags inside category */}
+                    {isExpanded && (
+                      <div className="px-4 py-3 space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {cat.tags.map((tag) => (
+                            <div
+                              key={tag.id}
+                              className="group flex items-center gap-1 border rounded-full pr-1"
+                              style={{ borderColor: cat.color + "40" }}
+                            >
+                              <Badge
+                                style={{ backgroundColor: cat.color + "20", color: cat.color }}
+                                className="rounded-full"
+                              >
+                                {tag.name}
+                              </Badge>
+                              <div className="hidden group-hover:flex items-center">
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => openTagDialog(cat.name, tag)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => { setTagToDelete(tag); setDeleteTagDialogOpen(true); }}
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => openTagDialog(cat.name)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Ajouter un tag
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Edit/Create Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Category Dialog */}
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editingTag ? "Modifier le tag" : "Ajouter un tag"}
-            </DialogTitle>
+            <DialogTitle>{editingCategory ? "Modifier la catégorie" : "Nouvelle catégorie"}</DialogTitle>
             <DialogDescription>
-              Définissez le nom, la couleur et la catégorie du tag.
+              {editingCategory
+                ? "Modifiez le nom ou la couleur. La couleur s'applique à tous les tags de cette catégorie."
+                : "Créez une catégorie puis ajoutez des tags à l'intérieur."}
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-4 py-4">
-            {/* Tag name */}
             <div className="space-y-2">
-              <Label htmlFor="tagName">Nom du tag *</Label>
+              <Label htmlFor="catName">Nom de la catégorie *</Label>
               <Input
-                id="tagName"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: PME, Urgent, LinkedIn..."
+                id="catName"
+                value={categoryName}
+                onChange={(e) => setCategoryName(e.target.value)}
+                placeholder="Ex: Priorité, Secteur, Source..."
               />
             </div>
-
-            {/* Category - with custom input */}
-            <div className="space-y-2">
-              <Label>Catégorie</Label>
-              <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start font-normal"
-                  >
-                    {category || "Choisir ou créer une catégorie"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[300px] p-2 space-y-2" align="start">
-                  <p className="text-xs text-muted-foreground px-2 pb-1">Catégories existantes</p>
-                  <div className="flex flex-wrap gap-1">
-                    {allCategories.map((cat) => (
-                      <Badge
-                        key={cat}
-                        variant={category === cat ? "default" : "outline"}
-                        className="cursor-pointer text-xs"
-                        onClick={() => handleSelectCategory(cat)}
-                      >
-                        {cat}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="border-t pt-2">
-                    <p className="text-xs text-muted-foreground px-2 pb-1">Créer une nouvelle catégorie</p>
-                    <div className="flex gap-1">
-                      <Input
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                        placeholder="Nom de la catégorie..."
-                        className="h-8 text-sm"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleAddCustomCategory();
-                          }
-                        }}
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 shrink-0"
-                        disabled={!customCategory.trim()}
-                        onClick={handleAddCustomCategory}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  {category && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs text-muted-foreground"
-                      onClick={() => {
-                        setCategory("");
-                        setCategoryPopoverOpen(false);
-                      }}
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Retirer la catégorie
-                    </Button>
-                  )}
-                </PopoverContent>
-              </Popover>
-              {category && (
-                <p className="text-xs text-muted-foreground">
-                  Catégorie sélectionnée : <strong>{category}</strong>
-                </p>
-              )}
-            </div>
-
-            {/* Color picker */}
             <div className="space-y-2">
               <Label>Couleur</Label>
               <div className="flex flex-wrap gap-2">
@@ -442,71 +405,114 @@ export default function CrmTagManager() {
                     key={c.value}
                     type="button"
                     className={`w-8 h-8 rounded-full border-2 transition-all ${
-                      color === c.value
-                        ? "border-foreground scale-110"
-                        : "border-transparent hover:scale-105"
+                      categoryColor === c.value ? "border-foreground scale-110" : "border-transparent hover:scale-105"
                     }`}
                     style={{ backgroundColor: c.value }}
-                    onClick={() => setColor(c.value)}
+                    onClick={() => setCategoryColor(c.value)}
                     title={c.name}
                   />
                 ))}
               </div>
             </div>
-
-            {/* Preview */}
             <div className="space-y-2">
               <Label>Aperçu</Label>
-              <div className="p-4 bg-muted rounded-lg">
-                <Badge
-                  style={{ backgroundColor: color + "20", color: color }}
-                  className="text-sm"
-                >
-                  {name || "Nom du tag"}
-                </Badge>
-                {category && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    dans « {category} »
-                  </span>
-                )}
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: categoryColor }} />
+                <span className="font-medium text-sm">{categoryName || "Nom de la catégorie"}</span>
               </div>
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>
               <X className="h-4 w-4 mr-2" />
               Annuler
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
+            <Button onClick={handleSaveCategory} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {editingCategory ? "Modifier" : "Créer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tag Dialog */}
+      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingTag ? "Modifier le tag" : "Ajouter un tag"}</DialogTitle>
+            <DialogDescription>
+              Tag dans la catégorie « {tagCategory} ».
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="tagName">Nom du tag *</Label>
+              <Input
+                id="tagName"
+                value={tagName}
+                onChange={(e) => setTagName(e.target.value)}
+                placeholder="Ex: PME, Urgent, LinkedIn..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Aperçu</Label>
+              <div className="p-3 bg-muted rounded-lg">
+                {(() => {
+                  const cat = categories.find((c) => c.name === tagCategory);
+                  const color = cat?.color || categoryColor || "#3b82f6";
+                  return (
+                    <Badge style={{ backgroundColor: color + "20", color }} className="text-sm">
+                      {tagName || "Nom du tag"}
+                    </Badge>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTagDialogOpen(false)}>
+              <X className="h-4 w-4 mr-2" />
+              Annuler
+            </Button>
+            <Button onClick={handleSaveTag} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               {editingTag ? "Modifier" : "Ajouter"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      {/* Delete Tag */}
+      <AlertDialog open={deleteTagDialogOpen} onOpenChange={setDeleteTagDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer le tag ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer le tag "{tagToDelete?.name}" ?
-              Cette action est irréversible et le tag sera retiré de toutes les
-              cartes CRM auxquelles il est associé.
+              Le tag « {tagToDelete?.name} » sera retiré de toutes les cartes CRM.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
+            <AlertDialogAction onClick={handleDeleteTag} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Category */}
+      <AlertDialog open={deleteCategoryDialogOpen} onOpenChange={setDeleteCategoryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la catégorie ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La catégorie « {categoryToDelete} » et tous ses tags seront supprimés.
+              Les tags seront retirés de toutes les cartes CRM.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>

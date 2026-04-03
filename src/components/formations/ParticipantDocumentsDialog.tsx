@@ -99,12 +99,13 @@ const ParticipantDocumentsDialog = ({
           .maybeSingle(),
         supabase
           .from("attendance_signatures")
-          .select("id", { count: "exact", head: true })
-          .eq("training_id", trainingId),
+          .select("id")
+          .eq("training_id", trainingId)
+          .limit(1),
       ]);
 
       setCertificateUrl(certResult.data?.certificate_url as string | null ?? null);
-      setHasDigitalSignatures((sigResult.count ?? 0) > 0);
+      setHasDigitalSignatures((sigResult.data?.length ?? 0) > 0);
     };
 
     if (open) fetchData();
