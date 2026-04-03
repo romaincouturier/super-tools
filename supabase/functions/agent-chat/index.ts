@@ -130,7 +130,7 @@ const TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, crm_attachment, support_attachment",
+            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment",
         },
         max_results: {
           type: "number",

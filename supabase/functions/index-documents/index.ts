@@ -291,6 +291,146 @@ const extractors: Record<string, Extractor> = {
       });
   },
 
+  async mission_page(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "mission_pages",
+      "id, mission_id, title, content, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [r.title, r.content].filter(Boolean).join("\n"),
+      source_title: r.title || "Page de mission",
+      source_date: r.created_at,
+      metadata: { mission_id: r.mission_id },
+    }));
+  },
+
+  async mission_activity(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "mission_activities",
+      "id, mission_id, activity_date, duration, duration_type, description, billable_amount, is_billed, created_at",
+      sourceId,
+    );
+    return (data || []).filter((r) => r.description?.trim()).map((r) => ({
+      source_id: r.id,
+      content: [
+        r.description,
+        `Durée: ${r.duration} ${r.duration_type === "days" ? "jour(s)" : "heure(s)"}`,
+        r.billable_amount ? `Montant: ${r.billable_amount} €` : "",
+      ].filter(Boolean).join("\n"),
+      source_title: `Activité mission — ${r.activity_date}`,
+      source_date: r.activity_date || r.created_at,
+      metadata: { mission_id: r.mission_id, is_billed: r.is_billed },
+    }));
+  },
+
+  async evaluation_analysis(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "evaluation_analyses",
+      "id, training_id, summary, strengths, weaknesses, recommendations, evaluations_count, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => {
+      const parts = [r.summary];
+      if (r.strengths) parts.push(`Points forts: ${JSON.stringify(r.strengths)}`);
+      if (r.weaknesses) parts.push(`Points faibles: ${JSON.stringify(r.weaknesses)}`);
+      if (r.recommendations) parts.push(`Recommandations: ${JSON.stringify(r.recommendations)}`);
+      return {
+        source_id: r.id,
+        content: parts.filter(Boolean).join("\n"),
+        source_title: `Analyse évaluation (${r.evaluations_count} réponses)`,
+        source_date: r.created_at,
+        metadata: { training_id: r.training_id, evaluations_count: r.evaluations_count },
+      };
+    });
+  },
+
+  async questionnaire_besoins(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "questionnaire_besoins",
+      "id, training_id, participant_id, experience_details, competences_actuelles, competences_visees, besoins_accessibilite, commentaires_libres, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [
+        r.experience_details ? `Expérience: ${r.experience_details}` : "",
+        r.competences_actuelles ? `Compétences actuelles: ${r.competences_actuelles}` : "",
+        r.competences_visees ? `Compétences visées: ${r.competences_visees}` : "",
+        r.besoins_accessibilite ? `Accessibilité: ${r.besoins_accessibilite}` : "",
+        r.commentaires_libres ? `Commentaires: ${r.commentaires_libres}` : "",
+      ].filter(Boolean).join("\n"),
+      source_title: "Questionnaire de besoins",
+      source_date: r.created_at,
+      metadata: { training_id: r.training_id, participant_id: r.participant_id },
+    }));
+  },
+
+  async okr_objective(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "okr_objectives",
+      "id, title, description, time_target, target_year, status, progress_percentage, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [
+        r.title,
+        r.description,
+        `Période: ${r.time_target} ${r.target_year}`,
+        `Statut: ${r.status} — ${r.progress_percentage}%`,
+      ].filter(Boolean).join("\n"),
+      source_title: r.title,
+      source_date: r.created_at,
+      metadata: { status: r.status, target_year: r.target_year, time_target: r.time_target },
+    }));
+  },
+
+  async okr_key_result(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "okr_key_results",
+      "id, objective_id, title, target_value, current_value, unit, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [
+        r.title,
+        `Progression: ${r.current_value}/${r.target_value} ${r.unit || ""}`,
+      ].filter(Boolean).join("\n"),
+      source_title: r.title,
+      source_date: r.created_at,
+      metadata: { objective_id: r.objective_id },
+    }));
+  },
+
+  async okr_initiative(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "okr_initiatives",
+      "id, key_result_id, title, status, due_date, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [
+        r.title,
+        `Statut: ${r.status}`,
+        r.due_date ? `Échéance: ${r.due_date}` : "",
+      ].filter(Boolean).join("\n"),
+      source_title: r.title,
+      source_date: r.created_at,
+      metadata: { key_result_id: r.key_result_id, status: r.status },
+    }));
+  },
+
   async crm_attachment(supabase, sourceId) {
     const { data } = await buildQuery(
       supabase,
