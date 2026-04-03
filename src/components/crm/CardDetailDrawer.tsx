@@ -61,6 +61,7 @@ interface CardDetailDrawerProps {
   onOpenChange: (open: boolean) => void;
   allTags: CrmTag[];
   allColumns: CrmColumn[];
+  tagUsageCounts: Record<string, number>;
 }
 
 const CardDetailDrawer = ({
@@ -69,6 +70,7 @@ const CardDetailDrawer = ({
   onOpenChange,
   allTags,
   allColumns,
+  tagUsageCounts,
 }: CardDetailDrawerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -690,7 +692,7 @@ const CardDetailDrawer = ({
   if (!card) return null;
 
   const state: CardDetailState = {
-    card, allTags, allColumns,
+    card, allTags, allColumns, tagUsageCounts,
     title, setTitle, cardEmoji, setCardEmoji, descriptionHtml, salesStatus,
     estimatedValue, setEstimatedValue, quoteUrl, setQuoteUrl, columnId,
     contactExpanded, setContactExpanded,

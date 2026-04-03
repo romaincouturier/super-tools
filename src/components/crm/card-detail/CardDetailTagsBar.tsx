@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Plus, X, Tag } from "lucide-react";
 import type { CrmTag } from "@/types/crm";
@@ -11,15 +11,41 @@ interface Props {
 
 const CardDetailTagsBar = ({ state, handlers }: Props) => {
   const [expanded, setExpanded] = useState(false);
-  const { card, allTags } = state;
+  const { card, allTags, tagUsageCounts } = state;
   const cardTags = card.tags || [];
 
-  const tagsByCategory = allTags.reduce((acc, tag) => {
-    const cat = tag.category || "Autre";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(tag);
+  // Categories already represented on this card
+  const usedCategories = useMemo(() => {
+    const cats = new Set<string>();
+    for (const t of cardTags) {
+      cats.add(t.category || "Autre");
+    }
+    return cats;
+  }, [cardTags]);
+
+  // Sort tags by usage frequency (descending)
+  const sortByFrequency = (a: CrmTag, b: CrmTag) =>
+    (tagUsageCounts[b.id] || 0) - (tagUsageCounts[a.id] || 0);
+
+  // Card tags sorted by frequency
+  const sortedCardTags = useMemo(
+    () => [...cardTags].sort(sortByFrequency),
+    [cardTags, tagUsageCounts],
+  );
+
+  const tagsByCategory = useMemo(() => {
+    const acc: Record<string, CrmTag[]> = {};
+    for (const tag of allTags) {
+      const cat = tag.category || "Autre";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(tag);
+    }
+    // Sort tags inside each category by frequency
+    for (const cat of Object.keys(acc)) {
+      acc[cat].sort(sortByFrequency);
+    }
     return acc;
-  }, {} as Record<string, CrmTag[]>);
+  }, [allTags, tagUsageCounts]);
 
   const availableTags = allTags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
 
@@ -36,10 +62,10 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
         </button>
 
         <div className="flex flex-wrap items-center gap-1 min-w-0">
-          {cardTags.length === 0 && (
+          {sortedCardTags.length === 0 && (
             <span className="text-xs text-muted-foreground">Aucun tag</span>
           )}
-          {cardTags.map((tag) => (
+          {sortedCardTags.map((tag) => (
             <Badge
               key={tag.id}
               style={{ backgroundColor: tag.color + "20", color: tag.color }}
@@ -61,10 +87,12 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
         </div>
       </div>
 
-      {/* Expanded: show available tags by category */}
+      {/* Expanded: show available tags by category (hide categories already used) */}
       {expanded && (
         <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5 pb-1">
           {Object.entries(tagsByCategory).map(([category, tags]) => {
+            // Hide category if card already has a tag from it
+            if (usedCategories.has(category)) return null;
             const available = tags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
             if (available.length === 0) return null;
             return (

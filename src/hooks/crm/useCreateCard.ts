@@ -6,6 +6,12 @@ import { logCrmActivity } from "@/services/crmActivity";
 import type { CreateCardInput } from "@/types/crm";
 import { CRM_QUERY_KEY } from "./useCrmMutation";
 
+const RANDOM_EMOJIS = [
+  "🚀", "💡", "🎯", "⭐", "🔥", "💎", "🏆", "📈", "🤝", "💼",
+  "🎪", "🌟", "⚡", "🎲", "🎸", "🌈", "🦁", "🐙", "🎨", "🍀",
+  "🧩", "🔮", "🎁", "🛸", "🌊", "🏔️", "🎵", "🦊", "🐝", "🌻",
+];
+
 export const useCreateCard = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -25,6 +31,8 @@ export const useCreateCard = () => {
         .order("position", { ascending: false })
         .limit(1);
       const maxPos = cards?.[0]?.position ?? -1;
+
+      const randomEmoji = RANDOM_EMOJIS[Math.floor(Math.random() * RANDOM_EMOJIS.length)];
 
       const insertData = {
         column_id: input.column_id,
@@ -47,6 +55,7 @@ export const useCreateCard = () => {
         acquisition_source: input.acquisition_source || null,
         brief_questions: (input.brief_questions || null) as unknown as null,
         raw_input: input.raw_input || null,
+        emoji: input.emoji || randomEmoji,
       };
 
       const { data, error } = await supabase

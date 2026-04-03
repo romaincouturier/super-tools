@@ -20,6 +20,7 @@ interface CrmCardProps {
   isDragging?: boolean;
   onClick?: () => void;
   serviceTypeColors?: ServiceTypeColors;
+  tagUsageCounts?: Record<string, number>;
 }
 
 const DEFAULT_COLORS: ServiceTypeColors = {
@@ -28,7 +29,7 @@ const DEFAULT_COLORS: ServiceTypeColors = {
   default: "#6b7280",
 };
 
-const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTypeColors }: CrmCardProps) => {
+const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTypeColors, tagUsageCounts = {} }: CrmCardProps) => {
   const { user } = useAuth();
   const updateCard = useUpdateCard();
   const [isEditingValue, setIsEditingValue] = useState(false);
@@ -85,11 +86,13 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
     onClick?.();
   };
 
-  const tags = (card.tags || []).map((tag) => ({
-    key: tag.id,
-    label: tag.name,
-    style: { backgroundColor: tag.color + "20", color: tag.color },
-  }));
+  const tags = [...(card.tags || [])]
+    .sort((a, b) => (tagUsageCounts[b.id] || 0) - (tagUsageCounts[a.id] || 0))
+    .map((tag) => ({
+      key: tag.id,
+      label: tag.name,
+      style: { backgroundColor: tag.color + "20", color: tag.color },
+    }));
 
   return (
     <Card

@@ -13,6 +13,7 @@ export interface CardDetailState {
   card: CrmCard;
   allTags: CrmTag[];
   allColumns: CrmColumn[];
+  tagUsageCounts: Record<string, number>;
 
   // Core fields
   title: string;
