@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -14,6 +16,7 @@ import {
 import {
   Loader2,
   Calendar,
+  CalendarPlus,
   Trophy,
   GraduationCap,
   Rocket,
@@ -81,6 +84,10 @@ const CardDetailDialogs = (props: Props) => {
   } = props;
 
   const [showAttachTraining, setShowAttachTraining] = useState(false);
+  const [showFirstAction, setShowFirstAction] = useState(false);
+  const [firstActionDate, setFirstActionDate] = useState("");
+  const [firstActionText, setFirstActionText] = useState("");
+  const [savingFirstAction, setSavingFirstAction] = useState(false);
   const [interTrainings, setInterTrainings] = useState<Array<{
     id: string;
     training_name: string;
@@ -93,6 +100,9 @@ const CardDetailDialogs = (props: Props) => {
   useEffect(() => {
     if (!showWinChoiceDialog) {
       setShowAttachTraining(false);
+      setShowFirstAction(false);
+      setFirstActionDate("");
+      setFirstActionText("");
       return;
     }
     const fetchInterTrainings = async () => {
@@ -110,6 +120,22 @@ const CardDetailDialogs = (props: Props) => {
     };
     fetchInterTrainings();
   }, [showWinChoiceDialog]);
+
+  const handleCreateMissionWithAction = async () => {
+    if (firstActionDate && cardId) {
+      setSavingFirstAction(true);
+      await supabase
+        .from("crm_cards")
+        .update({
+          waiting_next_action_date: firstActionDate,
+          waiting_next_action_text: firstActionText.trim() || null,
+          status_operational: "WAITING",
+        })
+        .eq("id", cardId);
+      setSavingFirstAction(false);
+    }
+    handleConfirmCreateMission();
+  };
 
   const handleAttachToTraining = (trainingId: string) => {
     setShowWinChoiceDialog(false);
@@ -189,15 +215,69 @@ const CardDetailDialogs = (props: Props) => {
               <span className="font-medium">Créer une formation</span>
               <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
             </Button>
-            <Button
-              variant="outline"
-              className="h-auto flex flex-col items-center gap-2 p-4 hover:border-purple-500 hover:bg-purple-50"
-              onClick={handleConfirmCreateMission}
-            >
-              <Rocket className="h-8 w-8 text-purple-600" />
-              <span className="font-medium">Créer une mission</span>
-              <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-auto flex flex-col items-center gap-2 p-4 hover:border-purple-500 hover:bg-purple-50",
+                  showFirstAction && "border-purple-500 bg-purple-50"
+                )}
+                onClick={() => {
+                  if (serviceType === "mission") {
+                    setShowFirstAction(!showFirstAction);
+                  } else {
+                    handleConfirmCreateMission();
+                  }
+                }}
+              >
+                <Rocket className="h-8 w-8 text-purple-600" />
+                <span className="font-medium">Créer une mission</span>
+                <span className="text-xs text-muted-foreground text-center">Préremplir avec les infos de l'opportunité</span>
+              </Button>
+              {showFirstAction && (
+                <div className="border rounded-lg p-3 space-y-2 bg-purple-50/50">
+                  <div className="flex items-center gap-2 text-sm font-medium text-purple-700">
+                    <CalendarPlus className="h-4 w-4" />
+                    Première action
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Date</Label>
+                    <Input
+                      type="date"
+                      value={firstActionDate}
+                      onChange={(e) => setFirstActionDate(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Description (optionnel)</Label>
+                    <Input
+                      placeholder="Ex: Appeler pour cadrer la mission"
+                      value={firstActionText}
+                      onChange={(e) => setFirstActionText(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    onClick={handleCreateMissionWithAction}
+                    disabled={!firstActionDate || savingFirstAction}
+                  >
+                    {savingFirstAction ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : null}
+                    Créer la mission
+                  </Button>
+                  <button
+                    className="w-full text-xs text-muted-foreground hover:text-foreground text-center"
+                    onClick={handleConfirmCreateMission}
+                  >
+                    Créer sans programmer d'action
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Attach to existing inter-entreprise */}
