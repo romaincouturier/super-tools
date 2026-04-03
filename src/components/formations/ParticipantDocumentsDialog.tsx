@@ -89,7 +89,7 @@ const ParticipantDocumentsDialog = ({
   // Fetch certificate + check digital signatures
   useEffect(() => {
     const fetchData = async () => {
-      const [certResult, sigResult] = await Promise.all([
+      const [certResult, sigResult, trainingResult] = await Promise.all([
         supabase
           .from("training_evaluations")
           .select("certificate_url")
@@ -101,10 +101,16 @@ const ParticipantDocumentsDialog = ({
           .from("attendance_signatures")
           .select("id", { count: "exact", head: true })
           .eq("training_id", trainingId),
+        supabase
+          .from("trainings")
+          .select("attendance_sheets_urls")
+          .eq("id", trainingId)
+          .single(),
       ]);
 
       setCertificateUrl(certResult.data?.certificate_url as string | null ?? null);
       setHasDigitalSignatures((sigResult.count ?? 0) > 0);
+      setLocalSheetsUrls((trainingResult.data?.attendance_sheets_urls as string[]) || []);
     };
 
     if (open) fetchData();
