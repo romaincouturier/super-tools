@@ -386,18 +386,44 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send confirmation email to signataire
     try {
-      const [signature, bccList] = await Promise.all([
+      const [signature, bccList, trainingData] = await Promise.all([
         getSigniticSignature(),
         getBccSettings(supabase),
+        supabase
+          .from("trainings")
+          .select("training_name, start_date, end_date, location, schedules")
+          .eq("id", conventionSig.training_id)
+          .maybeSingle()
+          .then((r) => r.data),
       ]);
+
+      // Build training details block
+      const trainingDetails: string[] = [];
+      if (trainingData) {
+        trainingDetails.push(`<li><strong>Formation :</strong> ${trainingData.training_name}</li>`);
+        if (trainingData.start_date) {
+          const startStr = formatDateTime(trainingData.start_date).split(" ")[0] || formatDateTime(trainingData.start_date);
+          const start = new Date(trainingData.start_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+          const end = trainingData.end_date ? new Date(trainingData.end_date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : null;
+          trainingDetails.push(`<li><strong>Date${end && end !== start ? "s" : ""} :</strong> ${end && end !== start ? `du ${start} au ${end}` : start}</li>`);
+        }
+        if (trainingData.location) {
+          trainingDetails.push(`<li><strong>Lieu :</strong> ${trainingData.location}</li>`);
+        }
+        if (trainingData.schedules) {
+          trainingDetails.push(`<li><strong>Horaires :</strong> ${trainingData.schedules}</li>`);
+        }
+      } else {
+        trainingDetails.push(`<li><strong>Formation :</strong> ${conventionSig.formation_name}</li>`);
+      }
+      trainingDetails.push(`<li><strong>Client :</strong> ${conventionSig.client_name}</li>`);
+      trainingDetails.push(`<li><strong>Signée le :</strong> ${formatDateTime(signedAt)}</li>`);
 
       const confirmationHtml = `
 <p>Bonjour ${signerName},</p>
 <p>Nous confirmons la bonne réception de votre signature électronique pour la convention de formation suivante :</p>
 <ul>
-  <li><strong>Formation :</strong> ${conventionSig.formation_name}</li>
-  <li><strong>Client :</strong> ${conventionSig.client_name}</li>
-  <li><strong>Signée le :</strong> ${formatDateTime(signedAt)}</li>
+  ${trainingDetails.join("\n  ")}
 </ul>
 <p>Vous pouvez consulter la convention signée en cliquant sur le lien ci-dessous :</p>
 <p>
