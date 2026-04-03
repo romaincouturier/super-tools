@@ -175,7 +175,7 @@ function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleti
     onUpdate({
       title: editTitle.trim(),
       description: editDesc.trim() || null,
-      assigned_to: editAssigned.trim() || null,
+      assigned_to: editAssigned && editAssigned !== "__none__" ? editAssigned : null,
     });
     setEditing(false);
   };
