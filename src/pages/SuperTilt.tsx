@@ -54,6 +54,7 @@ function useSystemUsers() {
 
 const SuperTilt = () => {
   const { actions, isLoading, addAction, updateAction, deleteAction } = useSupertiltActions();
+  const systemUsers = useSystemUsers();
   const [newTitle, setNewTitle] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
