@@ -100,8 +100,7 @@ const ParticipantDocumentsDialog = ({
         supabase
           .from("attendance_signatures")
           .select("id", { count: "exact", head: true })
-          .eq("training_id", trainingId)
-          .not("signed_at", "is", null),
+          .eq("training_id", trainingId),
       ]);
 
       setCertificateUrl(certResult.data?.certificate_url as string | null ?? null);
