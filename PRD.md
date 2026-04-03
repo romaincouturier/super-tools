@@ -1,407 +1,863 @@
-# Super Tools — Product Requirements Document (PRD)
+# Super Tools - Product Requirements Document
 
-> Reverse-engineered from the codebase — March 2026
+> Version reconstruite à partir du code réel
+> Référence auditée sur `main` GitHub le 2026-04-03
 
----
+## 1. Pourquoi ce document existe
 
-## 1. Executive Summary
+Ce PRD sert d'onboarding produit pour une personne qui arrive sur `super-tools`.
 
-**Super Tools** is a multi-module SaaS platform for training organizations, consultants, and service providers. It combines formation management, CRM, mission tracking, content marketing, AI-powered coaching, quote generation, support ticketing, event management, and professional networking into a single PWA.
+Il ne décrit pas une vision théorique ou une roadmap marketing. Il décrit :
 
-**Stack**: React 18 + TypeScript + Vite + Tailwind CSS + Supabase (PostgreSQL, Auth, Edge Functions, Storage)
+- ce que le produit fait réellement aujourd'hui
+- les modules visibles dans l'application
+- les parcours majeurs
+- les intégrations et dépendances importantes
+- l'état de maturité observé dans le code
+- les angles morts et dettes structurelles à connaître avant de développer
 
----
-
-## 2. Modules & Features
-
-### 2.1 Formations (Training Management) — 95%
-
-**Purpose**: Manage training sessions (presentiel, inter-entreprises, classe virtuelle, e-learning) with full participant lifecycle.
-
-#### Entities
-| Table | Role |
-|-------|------|
-| `formation_configs` | Catalog templates (name, duration, price, program URL, WooCommerce product ID) |
-| `formation_formulas` | 3 pricing/delivery models per config: solo, communaute, coachee |
-| `trainings` | Formation instances (dates, location, format, assigned trainer) |
-| `training_participants` | Learners with formula assignment |
-| `training_schedules` | Day-by-day timetables |
-| `training_live_meetings` | Collective e-learning sessions (meeting URL, scheduled time) |
-| `training_coaching_slots` | 1:1 coaching availability (available/booked/completed) |
-| `questionnaire_besoins` | Needs assessment (public token-based form) |
-| `evaluations` | Post-training evaluations (participant, sponsor, trainer, cold) |
-| `attendance_signatures` | Digital signature records |
-| `training_documents` | Supports, programs |
-| `training_media` | Photos/videos |
-
-#### Workflows
-1. **Creation** — From scratch or duplicate existing. Attach to catalog or standalone. Define dates, schedules, trainer, max participants.
-2. **E-Learning** — Formulas with `learndash_course_id`, WooCommerce coupon generation for free access, live meetings, coaching slots with quota (`coaching_sessions_count`).
-3. **Participant Lifecycle** — Add (bulk or individual) → auto-send needs survey → track attendance (signature pad) → auto-send evaluations → send thank-you emails with documents.
-4. **Questionnaires & Evaluations** — Public token-based forms. Multi-section: identity, positioning, objectives, adaptations, accessibility, RGPD. Evaluation types: participant, sponsor, trainer, cold.
-5. **Documents** — Certificate generation (variables: name, date, duration, signatures), attendance sheets (PDF), convention files (PDF + signing).
-
-#### Business Rules
-- Unique email per formation (`UNIQUE(training_id, email)`)
-- Needs survey flags: if `necessite_amenagement=true`, trainer must validate
-- Coaching quota per formula must not be exceeded
-- Questionnaire submission statuses: `non_envoye → envoye → complete`
-
-#### Unfinished
-- Coaching slot reservation UI (backend ready, frontend ~40%)
-- Live meeting reminder automation (structure in place, scheduler incomplete)
-- Full e-learning onboarding orchestration (coupon generation works, full flow ~60%)
+Le document fait foi comme vue d'ensemble produit, mais le code reste la source finale de vérité.
 
 ---
 
-### 2.2 CRM (Opportunity Pipeline) — 80%
+## 2. Résumé exécutif
 
-**Purpose**: Kanban-based sales pipeline with AI-powered opportunity extraction and commercial coaching.
+`Super Tools` est une plateforme SaaS modulaire orientée organisme de formation, conseil et pilotage d'activité.
 
-#### Entities
-| Table | Role |
-|-------|------|
-| `crm_columns` | Kanban columns (OPEN, WON, LOST, etc.) |
-| `crm_cards` | Opportunities (contact, value, status, confidence) |
-| `crm_tags` / `crm_card_tags` | Categorization (N:M) |
-| `crm_comments` | Activity log |
-| `crm_attachments` | Files |
-| `crm_card_emails` | Outbound email tracking (open tracking) |
-| `crm_email_templates` | Email templates |
-| `crm_scheduled_emails` | Scheduled sending |
+Le produit rassemble dans une seule application :
 
-#### Workflows
-1. **Opportunity Tracking** — Create cards manually or via AI extraction (`crm-extract-opportunity` Edge Function). Kanban drag-drop. Contact fields, estimated value, acquisition source, confidence score (0-100).
-2. **Commercial Status** — TODAY (active) or WAITING (scheduled follow-up with mandatory date + text).
-3. **AI Commercial Coaching** — `commercial-challenge` Edge Function generates health score, pipeline analysis, contextual coaching.
-4. **Email Integration** — Send from card, track opens via pixel, template selection, scheduled sending.
-5. **Quote Integration** — Each card can generate associated quotes (draft → generated → sent → signed).
-6. **Mission Link** — `linked_mission_id` FK to missions.
+- gestion des formations et de l'e-learning
+- CRM commercial et génération de devis
+- suivi de missions et rentabilité
+- marketing de contenu
+- support interne
+- événements et prise de parole
+- cartographie de réseau professionnel
+- OKR
+- veille structurée
+- outils IA
+- monitoring, administration et automatisation email
 
-#### Business Rules
-- WAITING requires `waiting_next_action_date IS NOT NULL AND waiting_next_action_text IS NOT NULL`
-- `next_action_type`: email, phone, rdv_physique, rdv_visio
-- Confidence score: 0-100, AI-generated
+Le produit est aujourd'hui plus proche d'un "workspace opérationnel unifié" que d'un simple LMS ou d'un simple CRM.
 
-#### Unfinished
-- AI extraction pipeline needs reliability refinement
-- Email template UX polish
-- Advanced forecasting dashboards
+Point important sur l'état actuel :
+
+- l'application est large et déjà utilisable sur de nombreux flux métier
+- l'expérience a récemment basculé vers un point d'entrée centré sur un agent IA
+- la profondeur fonctionnelle est réelle, mais la cohérence documentaire et architecturale n'est pas encore au niveau de la richesse produit
 
 ---
 
-### 2.3 Missions (Project Tracking & Profitability) — 85%
+## 3. Positionnement produit
 
-**Purpose**: Track consulting missions with profitability, contacts, activities, and documentation.
+### 3.1 Cible principale
 
-#### Entities
-| Table | Role |
-|-------|------|
-| `missions` | Projects (title, status, dates, daily rate, total days) |
-| `mission_contacts` | Stakeholders with roles |
-| `mission_activities` | Time entries / deliverables (hours, amounts) |
-| `mission_documents` | Project files |
-| `mission_media` | Photos |
-| `mission_pages` | Rich content notes (Tiptap editor) |
+Le produit semble conçu d'abord pour une structure de type :
 
-#### Workflows
-1. **Lifecycle** — `not_started → in_progress → completed` (or cancelled). Kanban board view.
-2. **Financial Tracking** — `daily_rate × total_days = total_amount` (generated column). `consumed_amount = SUM(activities.amount)`. Real-time P&L per mission.
-3. **Logistics** — Track train_booked, hotel_booked. Google Calendar integration for activities.
-4. **Documentation** — Rich text pages, image uploads, SVG support for diagrams.
-5. **Follow-up** — Testimonial request tracking, waiting next action (date + text).
+- organisme de formation
+- consultant ou cabinet
+- prestataire de services B2B
+- activité mêlant relation commerciale, livraison, contenu, suivi administratif et automatisations
 
-#### Business Rules
-- `total_amount = daily_rate × total_days` (GENERATED ALWAYS AS)
-- `consumed_amount` computed on-read from activities sum
-- Status workflow enforced: not_started → in_progress → completed/cancelled
+### 3.2 Problème adressé
 
-#### Unfinished
-- Invoice PDF generation (templates exist, rendering incomplete)
-- Advanced profitability forecasting
+Le produit cherche à éviter la dispersion entre plusieurs outils séparés :
+
+- CRM
+- LMS
+- agenda et logistique
+- devis
+- suivi des missions
+- emailing
+- support
+- contenus
+- veille
+- IA métier
+
+L'ambition produit visible dans le code est de faire de `super-tools` un système d'exploitation métier interne.
 
 ---
 
-### 2.4 Content Marketing — 75%
+## 4. Vue d'ensemble du produit
 
-**Purpose**: Editorial calendar with peer review workflow.
+### 4.1 Entrée actuelle dans l'application
 
-#### Entities
-| Table | Role |
-|-------|------|
-| `content_cards` | Editorial items (type, status, deadline) |
-| `content_reviews` | Peer review instances |
-| `review_comments` | Threaded comments with proposed corrections |
-| `review_images` | Annotated screenshots |
+L'ancien point d'entrée `/dashboard` redirige désormais vers `/agent`.
 
-#### Workflows
-1. **Kanban Board** — Columns: Idees, En cours, Relecture, Approuve, Publie. Drag-drop.
-2. **Review** — Request from teammates, threaded comments, proposed corrections, image annotations.
-3. **Newsletters** — Group content, track publishing.
+Cela signifie qu'en avril 2026, le produit se présente de plus en plus comme :
 
-#### Unfinished
-- Advanced scheduling
-- Publishing platform integration
+- une application métier classique
+- augmentée par un agent conversationnel capable d'explorer les données, rechercher du contenu et déclencher certaines actions
 
----
+### 4.2 Grandes familles de fonctionnalités
 
-### 2.5 Quotes / Devis (French Legal Compliance) — 70%
+Le produit peut être lu en 6 blocs :
 
-**Purpose**: Generate legally compliant French business quotes with PDF, signature, and email workflow.
-
-#### Entities
-| Table | Role |
-|-------|------|
-| `quote_settings` | Singleton: company details, legal info, payment terms, bank details |
-| `quotes` | Quote instances (line items as JSONB, totals, signatures) |
-
-#### Workflows
-1. **Generation** — Create from CRM card. Line items with product, quantity, unit price, VAT rate. Auto-calculate HT, VAT, TTC. IP cession clause with rate calculation.
-2. **Legal Settings** — SIREN, VAT number, legal form, share capital, RCS, APE, training declaration number, insurance, payment terms, late penalties, recovery indemnity.
-3. **Lifecycle** — `draft → generated → sent → signed → expired/cancelled`. Email tracking. Client signature capture (signature pad). PDF storage.
-4. **Extras** — Loom video embedding for sales walkthrough. SIREN API lookup. Travel expense calculator.
-
-#### Business Rules
-- Quote number: `{prefix}-{year}-{seq:4d}` (e.g., D-2026-0001), auto-incremented
-- Expiry: default +30 days from issue_date
-- VAT per line item, configurable rate
-- IP cession: optional, at `rights_transfer_rate` % of HT total
-
-#### Unfinished
-- Mobile signature UX
-- Signed PDF storage workflow
+1. Acquisition et vente
+2. Delivery et opérations
+3. Contenu, image et réseau
+4. IA et automatisations
+5. Administration et monitoring
+6. Portails publics ou semi-publics
 
 ---
 
-### 2.6 Support Ticketing — 75%
+## 5. Carte fonctionnelle par domaine
 
-**Purpose**: Internal bug reports and feature requests.
+## 5.1 Agent IA et recherche unifiée
 
-#### Entities
-- `support_tickets` — Title, description, priority (low/medium/high/critical), status, assignee
-- `support_attachments` — Screenshots, files
+### Finalité
 
-#### Workflow
-- Submit from any page (screenshot auto-capture). Kanban: `nouveau → en_cours → en_attente → resolu → ferme`. AI-suggested related tickets.
+Fournir un point d'accès conversationnel aux données et contenus de l'application.
 
----
+### Présence dans le produit
 
-### 2.7 Events — 60%
+- route principale : `/agent`
+- page : `AgentChat.tsx`
+- edge functions : `agent-chat`, `index-documents`, `process-indexation-queue`
 
-**Purpose**: Track presentations, conferences, webinars with logistics and CFP deadlines.
+### Capacités visibles
 
-#### Entities
-- `events` — Title, date, location, type (internal/external), status
-- `event_media` — Images, video links
-- `event_cfp` — Call for Papers (deadline, URL, days left auto-calculated)
+- conversation persistée
+- historique de conversations
+- exécution de requêtes structurées
+- recherche sémantique dans du contenu indexé
+- préparation d'actions avec confirmation utilisateur
 
-#### Workflow
-- Create events, track logistics (train/hotel/room/restaurant), CFP deadlines, media gallery, cancellation with reason.
+### Ce que cela change dans le produit
 
-#### Unfinished
-- Attendee management, reminders
+L'agent n'est plus un gadget latéral. Il devient une couche transverse qui ambitionne de lire :
 
----
+- CRM
+- formations
+- devis
+- missions
+- emails
+- support
+- contenus
+- LMS
 
-### 2.8 Reseau (Professional Network) — v0.1 80%
+### Maturité estimée
 
-**Purpose**: AI-assisted professional network mapping and relationship maintenance.
+`Moyenne à élevée sur la surface visible`, mais encore sensible sur le plan sécurité et architecture.
 
-#### Entities
-| Table | Role |
-|-------|------|
-| `user_positioning` | One-liner pitch, key skills, target client |
-| `network_contacts` | Name, context, warmth (hot/warm/cold), LinkedIn, last contact |
-| `network_actions` | Planned actions — v0.2 (type, message_draft, scheduled_week) |
-| `network_conversation` | Chat history (onboarding & cartography) |
-| `network_cooling_tracking` | Cooling thresholds per warmth level |
+### Point d'attention
 
-#### Workflows
-1. **Onboarding** — AI asks 3 blocks: identity, value proposition, target client. Claude reformulates, user validates. Stores positioning.
-2. **Cartography** — Sequential questionnaire about existing contacts. AI extracts names, context, warmth. User validates.
-3. **Dashboard** — Contact list with warmth badges, positioning card, stats, cooling alerts.
-
-#### Business Rules
-- Onboarding is one-time (`onboarding_completed_at` immutable once set)
-- Warmth: hot/warm/cold enum only
-- Cooling thresholds configurable (e.g., 30d hot, 60d warm, 90d cold)
-
-#### Unfinished (v0.2)
-- Action generation (suggest LinkedIn messages, emails, calls)
-- Weekly action scheduling
-- Email/Slack integration for send
+Ce module est récent et a une portée transverse très forte. Toute évolution dessus peut impacter la sécurité globale du produit.
 
 ---
 
-### 2.9 OKR — 50%
+## 5.2 Formations
 
-- Basic CRUD, Kanban view, progress tracking per quarter.
-- **Unfinished**: Forecasting, alignment visualization, reporting.
+### Finalité
 
----
+Gérer des formations de bout en bout, depuis leur création jusqu'au suivi des participants, des questionnaires, des documents, des signatures et de certains flux e-learning.
 
-### 2.10 Arena (Collaborative Discussion) — 70%
+### Écrans principaux
 
-- Multi-party debate with AI facilitation. Participants submit arguments. AI suggests experts (`arena-suggest-experts`). Multi-turn orchestration (`arena-orchestrator`). Final synthesis.
-- **Unfinished**: Advanced moderation, publication features.
+- `/formations`
+- `/formations/new`
+- `/formations/:id`
+- `/formations/:id/edit`
+- `/besoins`
+- `/evaluations`
+- `/certificates`
+- `/historique`
 
----
+### Capacités visibles
 
-### 2.11 Admin & Monitoring — 85%
+- création et duplication de sessions
+- gestion des dates, du format et du lieu
+- assignation formateur
+- ajout unitaire ou en masse de participants
+- questionnaires de besoins
+- évaluations multiples
+- signatures d'émargement
+- génération de certificats
+- documents liés à la formation
+- conventions et envois d'emails liés aux parcours
+- supports de formation structurés
 
-- User management, audit logs (hourly DB snapshots), scheduled email dashboard, failed email retry queue, inbound email parsing (Resend webhook → CRM extraction), daily screenshots, DB size/query monitoring, cron health.
+### Composantes proches
 
----
+- catalogue de formation
+- formules de formation
+- sessions live
+- coaching individuel
+- envois programmés
+- traçabilité via historique d'activité
 
-## 3. External Integrations
+### Maturité estimée
 
-| Integration | Usage |
-|-------------|-------|
-| **WooCommerce / LearnDash** | Product IDs in `formation_configs`. Coupon generation (`generate-woocommerce-coupon`). Webhook creates LearnDash enrollments on order. |
-| **Google Calendar** | OAuth tokens in `google_calendar_tokens`. Mission activities & training invites sync. |
-| **Resend** | Inbound webhook → `inbound_emails`. Outbound transactional & marketing emails. Open/click/bounce tracking. |
-| **Claude AI / OpenAI** | CRM extraction, commercial coaching, content assist, network assistant, quiz generation, evaluation analysis. |
-| **SIREN API** | French company lookup for quote generation. |
-| **Google Maps** | Training location embed, directions links. |
-| **Loom** | Sales video embed in quotes, script stored in `quotes.loom_script`. |
+`Élevée`
 
----
+C'est le cœur fonctionnel le plus dense du produit.
 
-## 4. Email System
+### Gaps probables
 
-20+ email types orchestrated via `scheduled_emails` table:
-
-| Category | Types |
-|----------|-------|
-| Formation | `needs_survey`, `evaluation_reminder`, `training_documents`, `elearning_access`, `live_reminder`, `coaching_reminder` |
-| CRM | Card emails, template-based sends |
-| Support | Ticket notifications |
-| Network | v0.2 action emails |
-
-Auto-scheduling on events (e.g., participant added → needs survey). Manual force-send via `force-send-scheduled-email`. Failed emails stored with retry count.
-
----
-
-## 5. Auth & Permissions (RLS)
-
-All RLS policies use `auth.uid()` for multi-tenant isolation.
-
-| Role | Access |
-|------|--------|
-| **Authenticated** | Read/write own entities across all modules. View all tickets. |
-| **Admin** | Manage all users' entities, configure settings, monitoring, audit. |
-| **Public/Anon** | Token-based access only: questionnaires, evaluations, complaint forms. |
-
-**Security notes**: RLS policies with `USING (true)` for anon are unsafe — all public forms must validate token. CORS headers in Edge Functions should restrict to production domain.
+- expérience coaching encore incomplète
+- orchestration e-learning non totalement finalisée
+- dette de complexité dans plusieurs composants formations
 
 ---
 
-## 6. Technical Architecture
+## 5.3 LMS / Portail apprenant
 
-### Frontend
-- React 18.3 + React Router 6.30
-- TanStack Query v5.83 (24h persistent cache via IndexedDB)
-- Tailwind CSS v3.4 + shadcn/ui
-- Tiptap v3 (rich text editor)
-- React Hook Form + Zod validation
-- @dnd-kit (Kanban drag-drop)
-- PWA: Service Worker (Vite PWA plugin), offline support
+### Finalité
 
-### Backend
-- Supabase PostgreSQL + Auth (email/password, MFA via TOTP)
-- 116 Deno-based Edge Functions
-- Supabase Storage (S3-compatible) — 10 buckets
-- Real-time via PostgreSQL listen/notify
+Prolonger la brique formation vers l'accès apprenant et les contenus e-learning.
 
-### Code Structure
-```
-src/
-├── components/    # React UI components by feature
-├── pages/         # Page components
-├── hooks/         # 84+ React Query/custom hooks
-├── lib/           # Utilities, Edge Function clients
-├── types/         # TypeScript interfaces
-├── i18n/          # French/English
-└── index.css      # Tailwind
+### Écrans principaux
 
-supabase/
-├── migrations/    # 500+ SQL migrations
-└── functions/     # 116 Edge Functions
-```
+- `/apprenant`
+- `/espace-apprenant`
+- `/lms`
+- `/lms/:courseId`
+- `/lms/:courseId/player`
 
----
+### Capacités visibles
 
-## 7. Routes
+- accès apprenant
+- portail d'apprentissage
+- listing de cours
+- builder de cours
+- player de cours
+- quiz
+- progression
+- badges / complétion
+- contenus LMS stockés et rejoués dans l'application
 
-| Route | Page |
-|-------|------|
-| `/` | Landing (public) |
-| `/auth` | Login/signup |
-| `/dashboard` | Overview |
-| `/formations` | Training list |
-| `/formations/new` | Create training |
-| `/formations/:id` | Training detail (participants, schedules) |
-| `/formations/:id/edit` | Edit training |
-| `/besoins` | Needs survey summary |
-| `/evaluations` | Evaluation dashboard |
-| `/crm` | CRM Kanban |
-| `/crm/reports` | Sales reporting |
-| `/missions` | Mission Kanban |
-| `/missions/:missionId` | Mission detail |
-| `/contenu` | Content marketing board |
-| `/events` | Event list |
-| `/events/new` / `:id` / `:id/edit` | Event CRUD |
-| `/reseau` | Network module |
-| `/okr` | OKR |
-| `/micro-devis` | Quick quote |
-| `/devis-workflow` | Quote wizard |
-| `/support` | Ticketing |
-| `/statistiques` | Analytics |
-| `/arena` | Collaborative discussion |
-| `/arena/setup` / `:id/discussion` / `:id/results` | Arena flows |
-| `/catalogue` | Catalog management |
-| `/admin` | Admin panel |
-| `/monitoring` | System health |
-| `/questionnaire/:token` | Public needs survey |
-| `/evaluation/:token` | Public evaluation |
-| `/reclamation/:token` | Public complaint |
-| `/learner-access` | Public e-learning access |
-| `/learner-portal` | E-learning dashboard |
-| `/lms-courses` | Course listing |
-| `/lms-course-builder/:id` | Course editor |
-| `/lms-course-player/:id` | Course player |
+### Maturité estimée
+
+`Moyenne`
+
+Le module est réel et assez avancé, mais moins stabilisé que le bloc Formations historique.
+
+### Point d'attention
+
+Le portail apprenant repose aujourd'hui sur un modèle d'accès à auditer sérieusement côté sécurité.
 
 ---
 
-## 8. Storage Buckets
+## 5.4 CRM
 
-| Bucket | Purpose |
-|--------|---------|
-| `training-documents` | Supports, programs |
-| `training-media` | Training images/videos |
-| `mission-documents` | Project files (SVG support) |
-| `mission-media` | Project photos |
-| `crm-attachments` | Opportunity files (public) |
-| `certificate-storage` | Generated certificates |
-| `devis-pdfs` | Quote PDFs |
-| `review-images` | Review screenshots |
-| `event-media` | Event images/videos |
-| `app-screenshots` | Documentation screenshots |
+### Finalité
+
+Piloter les opportunités commerciales, les relances, les échanges et le pipe.
+
+### Écrans principaux
+
+- `/crm`
+- `/crm/card/:cardId`
+- `/crm/reports`
+
+### Capacités visibles
+
+- kanban commercial
+- colonnes personnalisées
+- cartes d'opportunité
+- tags
+- commentaires
+- pièces jointes
+- emails depuis une opportunité
+- score de confiance
+- statut opérationnel `TODAY` / `WAITING`
+- coaching commercial IA
+- rapports CRM
+- lien vers missions et devis
+
+### Maturité estimée
+
+`Élevée sur le cœur`, `moyenne sur les raffinements`
+
+### Gaps probables
+
+- prévisions et analyses avancées
+- fiabilité de certains flux IA
+- simplification de hooks et composants encore monolithiques
 
 ---
 
-## 9. Module Completion Summary
+## 5.5 Devis et micro-devis
 
-| Module | Status | Key Gap |
-|--------|--------|---------|
-| Formations | 95% | Coaching UI, e-learning automation |
-| CRM | 80% | Forecasting, email template UX |
-| Missions | 85% | Invoice PDF generation |
-| Content | 75% | Scheduling, publishing integration |
-| Quotes | 70% | Signed PDF storage, mobile UX |
-| Support | 75% | SLA tracking, automation |
-| Events | 60% | Attendee management, reminders |
-| Network | 80% (v0.1) | Action generation (v0.2) |
-| OKR | 50% | Forecasting, alignment |
-| Arena | 70% | Moderation, publication |
-| Admin | 85% | Advanced analytics |
+### Finalité
+
+Transformer une opportunité commerciale en proposition formalisée et signable.
+
+### Écrans principaux
+
+- `/micro-devis`
+- `/devis/:cardId`
+- `/signature-devis/:token`
+
+### Capacités visibles
+
+- micro-devis rapide
+- workflow de devis plus complet
+- génération de lignes et synthèses via IA
+- PDF
+- email de devis
+- signature
+- paramétrage légal et administratif
+- intégration avec le CRM
+
+### Maturité estimée
+
+`Moyenne à élevée`
+
+### Gaps probables
+
+- UX mobile et signature
+- robustesse du stockage des PDF signés
+
+---
+
+## 5.6 Missions
+
+### Finalité
+
+Suivre les missions client, leur rentabilité, leurs activités, leurs contenus et leur logistique.
+
+### Écrans principaux
+
+- `/missions`
+- `/missions/:missionId`
+- `/mission-info/:missionId`
+
+### Capacités visibles
+
+- kanban ou pilotage de missions
+- statut mission
+- contacts mission
+- activités / consommé
+- rentabilité
+- pages de mission riches
+- documents et médias
+- import Google Calendar
+- livrables
+- résumé mission
+
+### Maturité estimée
+
+`Élevée`
+
+### Gaps probables
+
+- facture mission / rendu PDF
+- forecasting plus avancé
+
+---
+
+## 5.7 Contenu et relecture
+
+### Finalité
+
+Organiser la production éditoriale et sa relecture collaborative.
+
+### Écrans principaux
+
+- `/contenu`
+
+### Capacités visibles
+
+- board éditorial
+- cartes de contenu
+- commentaires de review
+- annotations d'images
+- assistance IA
+- newsletters
+
+### Maturité estimée
+
+`Moyenne`
+
+### Gaps probables
+
+- scheduling plus poussé
+- diffusion vers plateformes externes
+
+---
+
+## 5.8 Veille
+
+### Finalité
+
+Centraliser des contenus de veille, les taguer, les regrouper par clusters et produire des digests.
+
+### Écran principal
+
+- `/veille`
+
+### Capacités visibles
+
+- ajout de contenus de veille
+- recherche et filtres
+- tags
+- types de contenus
+- clusters automatiques
+- digests hebdomadaires
+- partage Slack visible dans les digests
+
+### Maturité estimée
+
+`Moyenne`
+
+C'est un vrai module métier désormais, absent de l'ancien PRD.
+
+---
+
+## 5.9 Réseau professionnel
+
+### Finalité
+
+Aider l'utilisateur à clarifier son positionnement et entretenir sa cartographie de contacts.
+
+### Écran principal
+
+- `/reseau`
+
+### Capacités visibles
+
+- onboarding de positionnement
+- cartographie conversationnelle
+- contacts réseau
+- température relationnelle
+- dashboard réseau
+- signaux de refroidissement
+
+### Maturité estimée
+
+`Moyenne à élevée pour la v0.1`
+
+### Gaps probables
+
+- génération d'actions
+- scheduling hebdomadaire
+- intégrations d'envoi
+
+---
+
+## 5.10 Arena
+
+### Finalité
+
+Faciliter des discussions structurées ou des débats assistés par IA.
+
+### Écrans principaux
+
+- `/arena`
+- `/arena/discussion`
+- `/arena/results`
+
+### Capacités visibles
+
+- setup de discussion
+- orchestration
+- synthèse finale
+- suggestion d'experts
+
+### Maturité estimée
+
+`Moyenne`
+
+---
+
+## 5.11 Support
+
+### Finalité
+
+Gérer les bugs, demandes et tickets internes.
+
+### Écrans principaux
+
+- `/support`
+- `/reclamations`
+- `/reclamation/:token`
+
+### Capacités visibles
+
+- tickets support
+- statuts et priorités
+- pièces jointes
+- analyse IA
+- notification support
+- réclamations publiques
+
+### Maturité estimée
+
+`Moyenne à élevée`
+
+---
+
+## 5.12 Événements
+
+### Finalité
+
+Suivre conférences, prises de parole, déplacements et opportunités de type CFP.
+
+### Écrans principaux
+
+- `/events`
+- `/events/new`
+- `/events/:id`
+- `/events/:id/edit`
+
+### Capacités visibles
+
+- création et édition d'événements
+- logistique
+- partage
+- lien possible avec le contenu
+- suivi CFP
+
+### Maturité estimée
+
+`Moyenne`
+
+---
+
+## 5.13 OKR
+
+### Finalité
+
+Piloter des objectifs, résultats clés et initiatives.
+
+### Écran principal
+
+- `/okr`
+
+### Capacités visibles
+
+- objectifs
+- key results
+- initiatives
+- suivi d'avancement
+- assistance IA
+
+### Maturité estimée
+
+`Moyenne`
+
+---
+
+## 5.14 Outils IA dédiés
+
+### Finalité
+
+Exposer des assistants IA spécialisés hors de l'agent principal.
+
+### Écran principal
+
+- `/ia`
+
+### Capacités visibles
+
+- génération de programme de formation
+- génération de quiz
+- synthèse de coaching
+- score de santé activité / business
+
+### Maturité estimée
+
+`Moyenne`
+
+### Relation avec l'agent
+
+L'écran `/ia` reste une boîte à outils spécialisée, tandis que `/agent` devient la couche conversationnelle transverse.
+
+---
+
+## 5.15 Administration, paramètres et exploitation
+
+### Écrans principaux
+
+- `/parametres`
+- `/admin`
+- `/monitoring`
+- `/emails`
+- `/emails-erreur`
+- `/screenshots`
+- `/chatbot-admin`
+- `/medias`
+- `/historique`
+- `/statistiques`
+- `/ameliorations`
+
+### Ce bloc couvre
+
+- paramètres généraux
+- gestion des formateurs
+- réglages CRM
+- modèles email et snippets
+- accès utilisateurs
+- intégrations
+- sauvegarde
+- abonnement
+- clés Arena
+- paramètres devis
+- voix IA
+- paramètres d'indexation agent
+- monitoring base, crons, functions et usage
+- emails entrants
+- emails en erreur
+- médiathèque globale
+- base de connaissance chatbot
+- historique d'activité
+- statistiques
+- suivi d'améliorations
+
+### Maturité estimée
+
+`Élevée sur la présence fonctionnelle`, `moyenne sur la cohérence d'ensemble`
+
+Ce bloc est très riche, mais encore sous-documenté.
+
+---
+
+## 6. Parcours majeurs
+
+## 6.1 Parcours commercial vers delivery
+
+1. Une opportunité est créée dans le CRM
+2. Des échanges email et relances sont suivis
+3. Un devis ou micro-devis est généré
+4. La mission ou la formation est ensuite pilotée dans son module dédié
+
+## 6.2 Parcours formation
+
+1. Une formation est créée depuis le catalogue ou from scratch
+2. Des participants sont ajoutés
+3. Les questionnaires sont envoyés
+4. La session est opérée
+5. Les signatures, évaluations et documents sont gérés
+6. L'éventuel accès e-learning est activé
+
+## 6.3 Parcours apprenant
+
+1. L'apprenant reçoit un accès
+2. Il rejoint son espace apprenant
+3. Il consulte les contenus LMS
+4. Il progresse, répond à des quiz et accède à ses ressources
+
+## 6.4 Parcours agent IA
+
+1. L'utilisateur arrive sur `/agent`
+2. Il pose une question métier
+3. L'agent interroge les données ou recherche du contenu indexé
+4. L'agent synthétise ou prépare une action
+
+## 6.5 Parcours veille / contenu
+
+1. Des contenus ou événements sont créés
+2. Ils nourrissent éventuellement le board contenu ou la veille
+3. La veille produit clusters et digests
+4. Le contenu suit un cycle de review et publication
+
+---
+
+## 7. Intégrations externes
+
+Les intégrations visibles dans le code incluent :
+
+- Supabase
+- OpenAI
+- Anthropic / Claude
+- Resend
+- Stripe
+- WooCommerce
+- LearnDash
+- Google Calendar
+- Google Drive
+- Google Maps / Routes
+- Slack
+- SIREN
+- Zapier
+- Loom
+
+### Rôle global des intégrations
+
+- IA générative et embeddings
+- envoi et réception d'emails
+- paiements et portail client
+- synchronisation agenda
+- génération et stockage de documents
+- onboarding e-learning
+- automatisations externes
+
+---
+
+## 8. Architecture technique
+
+## 8.1 Frontend
+
+- React 18
+- TypeScript
+- Vite
+- React Router
+- TanStack Query avec persistance IndexedDB
+- Tailwind CSS
+- shadcn/ui
+- Tiptap
+- dnd-kit
+- Vitest
+- Playwright présent dans la stack
+
+## 8.2 Backend
+
+- Supabase PostgreSQL
+- Auth Supabase
+- Storage Supabase
+- Edge Functions en Deno
+- RPC SQL
+- indexation sémantique et recherche vectorielle
+
+## 8.3 Échelle observée dans le code
+
+À date d'audit :
+
+- 65 pages React
+- 68 routes déclarées
+- 126 Edge Functions
+- 303 migrations SQL
+
+Ces chiffres traduisent un produit déjà large, avec une dette de coordination naturelle.
+
+---
+
+## 9. Routes importantes
+
+## 9.1 Routes authentifiées principales
+
+- `/agent`
+- `/formations`
+- `/crm`
+- `/missions`
+- `/contenu`
+- `/events`
+- `/reseau`
+- `/okr`
+- `/support`
+- `/veille`
+- `/ia`
+- `/lms`
+- `/parametres`
+- `/monitoring`
+- `/admin`
+
+## 9.2 Routes publiques ou semi-publiques
+
+- `/`
+- `/auth`
+- `/signup`
+- `/questionnaire/:token`
+- `/evaluation/:token`
+- `/evaluation-commanditaire/:token`
+- `/evaluation-formateur/:token`
+- `/emargement/:token`
+- `/signature-devis/:token`
+- `/signature-convention/:token`
+- `/reclamation/:token`
+- `/formulaire/besoins`
+- `/formulaire/evaluation`
+- `/formation-info/:trainingId`
+- `/formation-support/:trainingId`
+- `/mission-info/:missionId`
+- `/apprenant`
+- `/espace-apprenant`
+
+---
+
+## 10. État du produit par maturité
+
+### Modules les plus solides
+
+- Formations
+- CRM
+- Missions
+- Paramètres / exploitation
+
+### Modules en croissance claire
+
+- LMS
+- Agent IA
+- Veille
+- Réseau
+- Arena
+
+### Modules utiles mais encore hétérogènes
+
+- Événements
+- Support
+- OKR
+- IA dédiée
+
+---
+
+## 11. Ce qu'un nouvel arrivant doit savoir tout de suite
+
+1. Le produit est plus large que ce que l'ancien PRD laissait penser.
+2. `/agent` est désormais la porte d'entrée principale.
+3. Le cœur historique reste le triptyque `formations + CRM + missions`.
+4. Plusieurs briques transverses existent déjà mais étaient peu documentées :
+   - veille
+   - agent
+   - médiathèque
+   - emails entrants
+   - monitoring
+   - chatbot admin
+5. Le produit est fonctionnel, mais il existe une dette de sécurité et d'architecture importante à traiter avant d'accélérer davantage.
+
+---
+
+## 12. Risques et dettes à connaître
+
+### 12.1 Documentation
+
+- Le repo contient encore des documents concurrents ou partiels.
+- Le README n'est pas encore au niveau du produit.
+
+### 12.2 Architecture
+
+- logique métier encore trop présente dans certains composants et hooks
+- accès Supabase très diffus dans le front
+- forte largeur fonctionnelle, donc coût de maintenance élevé
+
+### 12.3 Sécurité
+
+- trop de fonctions exposées publiquement
+- modèle CORS trop large
+- nouvelles briques agent / indexation à auditer finement
+- certaines surfaces publiques ou semi-publiques demandent une revue approfondie
+
+### 12.4 Produit
+
+- l'étendue fonctionnelle est une force, mais aussi une source de dispersion
+- certains modules coexistent sans hiérarchie produit totalement lisible pour un nouveau venu
+
+---
+
+## 13. Recommandation documentaire
+
+Ce PRD doit être complété par trois autres documents de référence :
+
+- un `README.md` fiable orienté installation et architecture
+- un document `docs/cleanup-plan.md` pour la remise à plat technique
+- un document d'architecture de sécurité centré sur les accès publics, apprenants, authentifiés et agent IA
+
+---
+
+## 14. Conclusion
+
+`Super Tools` est un produit plus ambitieux qu'un simple outil métier vertical.
+
+C'est déjà une plateforme opérationnelle unifiée qui combine :
+
+- exécution métier
+- automatisation
+- contenus
+- intelligence artificielle
+- pilotage
+
+Le vrai sujet pour la suite n'est pas de "prouver qu'il y a un produit". Il est déjà là.
+Le sujet est maintenant de le rendre plus lisible, plus sûr et plus maintenable, afin que sa largeur fonctionnelle devienne un avantage durable plutôt qu'une source de fragilité.
+
