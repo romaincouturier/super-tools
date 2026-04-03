@@ -307,6 +307,7 @@ function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleti
             setEditTitle(action.title);
             setEditDesc(action.description || "");
             setEditAssigned(action.assigned_to || "");
+            setEditDeadline(action.deadline ? new Date(action.deadline + "T00:00:00") : undefined);
             setEditing(true);
           }}
           className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
