@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
 import { useContentCardData } from "@/hooks/useContentCardData";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
 
@@ -424,59 +425,110 @@ const ContentCardDialog = ({
               />
             </div>
 
-            {/* Image */}
+            {/* Images */}
             <div className="space-y-2">
-              <Label>Image</Label>
-              {imageUrl ? (
-                <div className="relative group">
-                  <img
-                    src={imageUrl}
-                    alt="Preview"
-                    className="w-full max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setImageLightboxOpen(true)}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 left-2 h-8 w-8 bg-black/50 text-white hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setImageLightboxOpen(true)}
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8"
-                    onClick={() => setImageUrl("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  {imageLightboxOpen && (
-                    <ImageLightbox
-                      src={imageUrl}
-                      alt={title || "Image du contenu"}
-                      onClose={() => setImageLightboxOpen(false)}
-                    />
+              <Label>{card ? "Images" : "Image de couverture"}</Label>
+              {card ? (
+                <>
+                  {/* Cover image */}
+                  {imageUrl && (
+                    <div className="relative group mb-2">
+                      <img
+                        src={imageUrl}
+                        alt="Preview"
+                        className="w-full max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setImageLightboxOpen(true)}
+                      />
+                      <Badge className="absolute top-2 left-2 text-[10px]" variant="secondary">Couverture</Badge>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8"
+                        onClick={() => setImageUrl("")}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      {imageLightboxOpen && (
+                        <ImageLightbox
+                          src={imageUrl}
+                          alt={title || "Image du contenu"}
+                          onClose={() => setImageLightboxOpen(false)}
+                        />
+                      )}
+                    </div>
                   )}
-                </div>
+                  {!imageUrl && (
+                    <div
+                      className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary transition-colors mb-2"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-xs text-muted-foreground">
+                        {uploading ? "Téléchargement..." : "Ajouter une image de couverture"}
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                  {/* Multi-image gallery via EntityMediaManager */}
+                  <EntityMediaManager
+                    sourceType="content"
+                    sourceId={card.id}
+                    sourceLabel={title || "Contenu"}
+                    variant="bare"
+                  />
+                </>
               ) : (
-                <div
-                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                  <p className="text-sm text-muted-foreground">
-                    {uploading ? "Téléchargement..." : "Cliquez pour ajouter une image"}
-                  </p>
-                </div>
+                <>
+                  {imageUrl ? (
+                    <div className="relative group">
+                      <img
+                        src={imageUrl}
+                        alt="Preview"
+                        className="w-full max-h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setImageLightboxOpen(true)}
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8"
+                        onClick={() => setImageUrl("")}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      {imageLightboxOpen && (
+                        <ImageLightbox
+                          src={imageUrl}
+                          alt={title || "Image du contenu"}
+                          onClose={() => setImageLightboxOpen(false)}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                      <p className="text-sm text-muted-foreground">
+                        {uploading ? "Téléchargement..." : "Cliquez pour ajouter une image"}
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </>
               )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
             </div>
 
             {/* Tags */}
