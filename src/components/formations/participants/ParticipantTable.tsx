@@ -96,12 +96,12 @@ const ParticipantTable = ({
                           {participant.formula}
                         </Badge>
                       )}
-                      {actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && (
+                      {actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="inline-block w-2 h-2 rounded-full bg-warning" />
                           </TooltipTrigger>
-                          <TooltipContent><p>\u00c0 facturer</p></TooltipContent>
+                          <TooltipContent><p>À facturer</p></TooltipContent>
                         </Tooltip>
                       )}
                       {participant.notes && (
@@ -209,9 +209,9 @@ const ParticipantTable = ({
                               </button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>S\u00e9ance {i + 1}/{participant.coaching_sessions_total} {isCompleted ? "(r\u00e9alis\u00e9e)" : "(\u00e0 programmer)"}</p>
+                              <p>Séance {i + 1}/{participant.coaching_sessions_total} {isCompleted ? "(réalisée)" : "(à programmer)"}</p>
                               {participant.coaching_deadline && (
-                                <p className="text-xs">Validit\u00e9 : {new Date(participant.coaching_deadline).toLocaleDateString("fr-FR")}</p>
+                                <p className="text-xs">Validité : {new Date(participant.coaching_deadline).toLocaleDateString("fr-FR")}</p>
                               )}
                             </TooltipContent>
                           </Tooltip>

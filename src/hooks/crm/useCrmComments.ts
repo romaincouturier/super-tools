@@ -25,7 +25,7 @@ export const useAddComment = () =>
         content.substring(0, 100)
       );
     },
-    { successMessage: "Commentaire ajout\u00e9" }
+    { successMessage: "Commentaire ajouté" }
   );
 
 export const useDeleteComment = () =>

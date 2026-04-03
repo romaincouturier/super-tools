@@ -30,7 +30,7 @@ export const useSendEmail = () =>
       );
 
       if (error) {
-        throw new Error(error.message || "\u00c9chec de l'envoi de l'email");
+        throw new Error(error.message || "Échec de l'envoi de l'email");
       }
       if (!data?.success) {
         throw new Error(
@@ -40,5 +40,5 @@ export const useSendEmail = () =>
       }
       return data as { success: boolean };
     },
-    { successMessage: "Email envoy\u00e9" }
+    { successMessage: "Email envoyé" }
   );

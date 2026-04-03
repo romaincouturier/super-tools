@@ -68,7 +68,7 @@ export function useParticipantFiles({
         if (uploadedFiles.length > 0) {
           setParticipantFiles((prev) => [...uploadedFiles, ...prev]);
           toast({
-            title: `${uploadedFiles.length} fichier${uploadedFiles.length > 1 ? "s" : ""} ajout\u00e9${uploadedFiles.length > 1 ? "s" : ""}`,
+            title: `${uploadedFiles.length} fichier${uploadedFiles.length > 1 ? "s" : ""} ajouté${uploadedFiles.length > 1 ? "s" : ""}`,
             ...(errorCount > 0 && {
               description: `${errorCount} fichier${errorCount > 1 ? "s" : ""} en erreur.`,
               variant: "destructive" as const,
@@ -77,7 +77,7 @@ export function useParticipantFiles({
         } else if (errorCount > 0) {
           toast({
             title: "Erreur d'upload",
-            description: "Aucun fichier n'a pu \u00eatre upload\u00e9.",
+            description: "Aucun fichier n'a pu être uploadé.",
             variant: "destructive",
           });
         }
@@ -96,7 +96,7 @@ export function useParticipantFiles({
         setParticipantFiles((prev) =>
           prev.filter((f) => f.id !== fileToDelete.id),
         );
-        toast({ title: "Fichier supprim\u00e9" });
+        toast({ title: "Fichier supprimé" });
       } catch (error: unknown) {
         console.error(
           "Delete file error:",

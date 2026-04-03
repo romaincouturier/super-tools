@@ -62,8 +62,8 @@ export function useParticipantConvention({
       if (!file) return;
       if (!resolveContentType(file).includes("pdf")) {
         toast({
-          title: "Format non support\u00e9",
-          description: "Seuls les fichiers PDF sont accept\u00e9s.",
+          title: "Format non supporté",
+          description: "Seuls les fichiers PDF sont acceptés.",
           variant: "destructive",
         });
         return;
@@ -77,7 +77,7 @@ export function useParticipantConvention({
         );
         setSignedConventionUrl(publicUrl);
         onParticipantUpdated();
-        toast({ title: "Convention upload\u00e9e" });
+        toast({ title: "Convention uploadée" });
       } catch (error: unknown) {
         console.error(
           error instanceof Error ? error.message : "Erreur inconnue",
@@ -101,7 +101,7 @@ export function useParticipantConvention({
       await deleteSignedConvention(participantId, signedConventionUrl);
       setSignedConventionUrl(null);
       onParticipantUpdated();
-      toast({ title: "Convention supprim\u00e9e" });
+      toast({ title: "Convention supprimée" });
     } catch (error: unknown) {
       console.error(
         error instanceof Error ? error.message : "Erreur inconnue",
