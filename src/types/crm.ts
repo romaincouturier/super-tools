@@ -187,6 +187,7 @@ export interface CreateCardInput {
   acquisition_source?: AcquisitionSource;
   brief_questions?: BriefQuestion[];
   raw_input?: string;
+  emoji?: string;
 }
 
 export interface UpdateCardInput {
