@@ -131,10 +131,16 @@ export default function ArenaKeySettings() {
           </div>
         </div>
 
-        <Button onClick={handleSave} disabled={saving} className="w-full">
-          <Save className="mr-2 h-4 w-4" />
-          {saving ? "Sauvegarde..." : "Sauvegarder les cles"}
-        </Button>
+        {autoSaveStatus === "saving" && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
+            <Loader2 className="h-3 w-3 animate-spin" /> Sauvegarde en cours...
+          </div>
+        )}
+        {autoSaveStatus === "saved" && (
+          <div className="flex items-center gap-2 text-xs text-primary justify-center">
+            <Check className="h-3 w-3" /> Clés sauvegardées
+          </div>
+        )}
       </CardContent>
     </Card>
   );
