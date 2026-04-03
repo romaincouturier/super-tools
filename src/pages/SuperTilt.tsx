@@ -154,13 +154,14 @@ const SuperTilt = () => {
 
 interface ActionRowProps {
   action: SupertiltAction;
+  systemUsers: SystemUser[];
   onToggle: (checked: boolean) => void;
   onUpdate: (updates: Partial<Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline">>) => void;
   onDelete: () => void;
   isDeleting: boolean;
 }
 
-function ActionRow({ action, onToggle, onUpdate, onDelete, isDeleting }: ActionRowProps) {
+function ActionRow({ action, systemUsers, onToggle, onUpdate, onDelete, isDeleting }: ActionRowProps) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(action.title);
   const [editDesc, setEditDesc] = useState(action.description || "");
