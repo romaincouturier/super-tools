@@ -1,4 +1,4 @@
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Plus, Trash2, Pencil, CalendarDays, User, Check, X, Loader2, Zap } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -12,6 +12,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -24,9 +31,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { useSupertiltActions, type SupertiltAction } from "@/hooks/useSupertilt";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
+
+interface SystemUser {
+  user_id: string;
+  email: string;
+  display_name: string | null;
+}
+
+function useSystemUsers() {
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  useEffect(() => {
+    supabase.from("profiles").select("user_id, email, display_name").order("email").then(({ data }) => {
+      if (data) setUsers(data as SystemUser[]);
+    });
+  }, []);
+  return users;
+}
 
 const SuperTilt = () => {
   const { actions, isLoading, addAction, updateAction, deleteAction } = useSupertiltActions();
