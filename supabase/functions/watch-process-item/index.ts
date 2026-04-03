@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 
 /**
  * Process a newly added watch item:
@@ -77,7 +78,7 @@ serve(async (req) => {
 
     if (item.content_type === "image" && item.file_url) {
       // OCR via OpenAI Vision
-      const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+      const OPENAI_API_KEY = await getOpenAIApiKey();
       if (!OPENAI_API_KEY) {
         console.error("OCR skipped: OPENAI_API_KEY is not configured");
       } else {
@@ -176,14 +177,14 @@ serve(async (req) => {
 
     // ── Step 2: AI title & tags ─────────────────────────────────────
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (OPENAI_API_KEY && body) {
+    const OPENAI_API_KEY_FOR_AI = await getOpenAIApiKey();
+    if (OPENAI_API_KEY_FOR_AI && body) {
       try {
         const textForAI = body.slice(0, 3000);
         const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            Authorization: `Bearer ${OPENAI_API_KEY_FOR_AI}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -233,7 +234,7 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
         const embeddingRes = await fetch("https://api.openai.com/v1/embeddings", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
+            Authorization: `Bearer ${OPENAI_API_KEY_FOR_AI}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({

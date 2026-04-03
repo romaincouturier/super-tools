@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 
 /**
  * Check if a new watch item is a potential duplicate of an existing one.
@@ -62,7 +63,7 @@ serve(async (req) => {
     }
 
     // Embedding-based similarity check
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_API_KEY = await getOpenAIApiKey();
     if (OPENAI_API_KEY && searchText.length > 20) {
       try {
         const embRes = await fetch("https://api.openai.com/v1/embeddings", {
