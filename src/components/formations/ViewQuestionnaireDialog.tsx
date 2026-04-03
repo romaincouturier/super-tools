@@ -393,7 +393,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
           </DialogTrigger>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Voir les réponses</p>
+          <p>Recueil des besoins</p>
         </TooltipContent>
       </Tooltip>
       <DialogContent className="w-full sm:max-w-2xl max-h-[85vh]">

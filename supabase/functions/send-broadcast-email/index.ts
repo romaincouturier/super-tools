@@ -66,6 +66,9 @@ serve(async (req) => {
         bcc: bccList,
         subject: personalizedSubject,
         html,
+        _emailType: "broadcast",
+        _trainingId: trainingId,
+        _participantId: participant.id,
       });
 
       results.push({ email: participant.email, success: result.success });

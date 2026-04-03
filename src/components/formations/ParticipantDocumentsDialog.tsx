@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList, Award } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList, Award, RefreshCw } from "lucide-react";
 import { resolveContentType } from "@/lib/file-utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -31,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { exportAttendancePdf } from "./attendance/attendancePdfExport";
 
 interface Participant {
   id: string;
@@ -72,28 +73,76 @@ const ParticipantDocumentsDialog = ({
   const [sendingDocuments, setSendingDocuments] = useState(false);
   const [ccEmail, setCcEmail] = useState("");
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [hasDigitalSignatures, setHasDigitalSignatures] = useState(false);
+  const [generatingSheetsPdf, setGeneratingSheetsPdf] = useState(false);
+  const [localSheetsUrls, setLocalSheetsUrls] = useState<string[]>(attendanceSheetsUrls);
   const { toast } = useToast();
 
   useEffect(() => {
     setInvoiceFileUrl(participant.invoice_file_url);
   }, [participant.invoice_file_url]);
 
-  // Fetch certificate for this participant
   useEffect(() => {
-    const fetchCertificate = async () => {
-      const { data } = await supabase
-        .from("training_evaluations")
-        .select("certificate_url")
-        .eq("training_id", trainingId)
-        .eq("participant_id", participant.id)
-        .not("certificate_url", "is", null)
-        .maybeSingle();
+    setLocalSheetsUrls(attendanceSheetsUrls);
+  }, [attendanceSheetsUrls]);
 
-      setCertificateUrl(data?.certificate_url as string | null ?? null);
+  // Fetch certificate + check digital signatures
+  useEffect(() => {
+    const fetchData = async () => {
+      const [certResult, sigResult] = await Promise.all([
+        supabase
+          .from("training_evaluations")
+          .select("certificate_url")
+          .eq("training_id", trainingId)
+          .eq("participant_id", participant.id)
+          .not("certificate_url", "is", null)
+          .maybeSingle(),
+        supabase
+          .from("attendance_signatures")
+          .select("id", { count: "exact", head: true })
+          .eq("training_id", trainingId)
+          .not("signed_at", "is", null),
+      ]);
+
+      setCertificateUrl(certResult.data?.certificate_url as string | null ?? null);
+      setHasDigitalSignatures((sigResult.count ?? 0) > 0);
     };
 
-    if (open) fetchCertificate();
+    if (open) fetchData();
   }, [trainingId, participant.id, open]);
+
+  const handleGenerateSheetsPdf = useCallback(async () => {
+    setGeneratingSheetsPdf(true);
+    try {
+      const result = await exportAttendancePdf({
+        trainingId,
+        trainingName,
+        startDate,
+        onUpdate: () => {
+          // Refetch the updated URLs
+          supabase
+            .from("trainings")
+            .select("attendance_sheets_urls")
+            .eq("id", trainingId)
+            .single()
+            .then(({ data }) => {
+              const urls = (data?.attendance_sheets_urls as string[]) || [];
+              setLocalSheetsUrls(urls);
+              onUpdate();
+            });
+        },
+      });
+      if (result.success) {
+        toast({ title: "PDF généré", description: "La feuille d'émargement numérique a été générée." });
+      } else {
+        toast({ title: "Aucune donnée", description: result.message, variant: "destructive" });
+      }
+    } catch (error: unknown) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+    } finally {
+      setGeneratingSheetsPdf(false);
+    }
+  }, [trainingId, trainingName, startDate, onUpdate, toast]);
 
   const sanitizeFileName = (name: string): string => {
     return name
@@ -113,10 +162,10 @@ const ParticipantDocumentsDialog = ({
     : null;
 
   const hasInvoice = Boolean(invoiceFileUrl);
-  const hasSheets = attendanceSheetsUrls.length > 0;
+  const hasSheets = localSheetsUrls.length > 0;
   const hasCertificate = Boolean(certificateUrl);
   const hasSponsorEmail = Boolean(participant.sponsor_email);
-  const canSendDocuments = hasSponsorEmail && (hasInvoice || hasSheets || hasCertificate);
+  const canSendDocuments = hasSponsorEmail && (hasInvoice || hasSheets || hasDigitalSignatures || hasCertificate);
 
   const handleInvoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -234,7 +283,7 @@ const ParticipantDocumentsDialog = ({
       return;
     }
 
-    if (type === "sheets" && !hasSheets) {
+    if (type === "sheets" && !hasSheets && !hasDigitalSignatures) {
       toast({
         title: "Pas de feuilles",
         description: "Aucune feuille d'émargement n'a été uploadée pour cette formation.",
@@ -243,7 +292,7 @@ const ParticipantDocumentsDialog = ({
       return;
     }
 
-    if (type === "all" && !hasInvoice && !hasSheets && !hasCertificate) {
+    if (type === "all" && !hasInvoice && !hasSheets && !hasDigitalSignatures && !hasCertificate) {
       toast({
         title: "Pas de documents",
         description: "Aucun document n'est disponible.",
@@ -255,6 +304,20 @@ const ParticipantDocumentsDialog = ({
     setSendingDocuments(true);
 
     try {
+      // Auto-generate digital attendance PDF if needed
+      let sheetsToSend = type === "invoice" || type === "certificates" ? [] : [...localSheetsUrls];
+      if ((type === "sheets" || type === "all") && sheetsToSend.length === 0 && hasDigitalSignatures) {
+        await handleGenerateSheetsPdf();
+        // Refetch URLs after generation
+        const { data: refreshed } = await supabase
+          .from("trainings")
+          .select("attendance_sheets_urls")
+          .eq("id", trainingId)
+          .single();
+        sheetsToSend = (refreshed?.attendance_sheets_urls as string[]) || [];
+        setLocalSheetsUrls(sheetsToSend);
+      }
+
       const { error } = await supabase.functions.invoke("send-training-documents", {
         body: {
           trainingId,
@@ -266,9 +329,10 @@ const ParticipantDocumentsDialog = ({
           recipientFirstName: participant.sponsor_first_name,
           documentType: type,
           invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
-          attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
+          attendanceSheetsUrls: sheetsToSend,
           certificateUrls: (type === "certificates" || type === "all") && certificateUrl ? [certificateUrl] : [],
           ccEmail: ccEmail || null,
+          participantId: participant.id,
           formalAddress: true, // default for inter-enterprise
         },
       });
@@ -379,13 +443,13 @@ const ParticipantDocumentsDialog = ({
             </div>
             
             {invoiceFileUrl && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0">
                 <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                 <a
                   href={invoiceFileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 text-sm text-primary hover:underline truncate"
+                  className="flex-1 text-sm text-primary hover:underline truncate min-w-0"
                 >
                   {getFileNameFromUrl(invoiceFileUrl)}
                 </a>
@@ -421,12 +485,32 @@ const ParticipantDocumentsDialog = ({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
-              Feuilles d'émargement ({attendanceSheetsUrls.length})
+              Feuilles d'émargement ({localSheetsUrls.length})
             </Label>
             {hasSheets ? (
               <p className="text-xs text-muted-foreground">
                 Les feuilles d'émargement sont partagées pour toute la formation.
               </p>
+            ) : hasDigitalSignatures ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Des émargements numériques existent. Générez le PDF pour l'envoyer.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={generatingSheetsPdf}
+                  onClick={handleGenerateSheetsPdf}
+                >
+                  {generatingSheetsPdf ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Générer le PDF d'émargement
+                </Button>
+              </div>
             ) : (
               <p className="text-xs text-muted-foreground italic">
                 Aucune feuille uploadée (utilisez la section Documents de la formation)
@@ -476,7 +560,7 @@ const ParticipantDocumentsDialog = ({
                     Facture uniquement
                   </DropdownMenuItem>
                 )}
-                {hasSheets && (
+                {(hasSheets || hasDigitalSignatures) && (
                   <DropdownMenuItem onClick={() => handleSendDocuments("sheets")}>
                     <ClipboardList className="h-4 w-4 mr-2" />
                     Émargements uniquement
@@ -488,7 +572,7 @@ const ParticipantDocumentsDialog = ({
                     Certificat uniquement
                   </DropdownMenuItem>
                 )}
-                {((hasInvoice ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificate ? 1 : 0)) >= 2 && (
+                {((hasInvoice ? 1 : 0) + ((hasSheets || hasDigitalSignatures) ? 1 : 0) + (hasCertificate ? 1 : 0)) >= 2 && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleSendDocuments("all")}>
@@ -516,7 +600,7 @@ const ParticipantDocumentsDialog = ({
               Définissez un email de commanditaire pour pouvoir envoyer les documents
             </p>
           )}
-          {hasSponsorEmail && !hasInvoice && !hasSheets && !hasCertificate && (
+          {hasSponsorEmail && !hasInvoice && !hasSheets && !hasDigitalSignatures && !hasCertificate && (
             <p className="text-xs text-muted-foreground text-center">
               Uploadez une facture ou des feuilles d'émargement
             </p>

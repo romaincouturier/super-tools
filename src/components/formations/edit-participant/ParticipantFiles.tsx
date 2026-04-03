@@ -74,7 +74,7 @@ const ParticipantFiles = ({
           {participantFiles.map((pf) => (
             <div
               key={pf.id}
-              className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+              className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0"
             >
               <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
               <a
