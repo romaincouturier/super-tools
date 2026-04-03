@@ -1,11 +1,13 @@
 import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
-import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight, ThumbsUp, ThumbsDown, Paperclip, X, FileText, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useAgentChat, type ChatMessage } from "@/hooks/useAgentChat";
+import { useAgentChat, type ChatMessage, type ChatAttachment } from "@/hooks/useAgentChat";
+import { supabase } from "@/integrations/supabase/client";
+import { resolveContentType } from "@/lib/file-utils";
 import { useAgentFeedback } from "@/hooks/useAgentFeedback";
 import { useAgentConversations } from "@/hooks/useAgentConversations";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,11 +43,14 @@ const AgentChat = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [input, setInput] = useState("");
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const autoSentRef = useRef(false);
 
   // Auto-send message from ?q= query parameter
@@ -77,10 +82,38 @@ const AgentChat = () => {
     }
   }, [conversationId, queryClient]);
 
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const mimeType = resolveContentType(file);
+        const isImage = mimeType.startsWith("image/");
+        const ext = file.name.split(".").pop() || "bin";
+        const path = `agent/${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from("media").upload(path, file, { contentType: mimeType });
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+        setAttachments((prev) => [...prev, {
+          url: urlData.publicUrl,
+          name: file.name,
+          type: isImage ? "image" : "document",
+          mimeType,
+        }]);
+      }
+    } catch {
+      // silently ignore upload errors
+    }
+    setUploading(false);
+    if (e.target) e.target.value = "";
+  }, []);
+
   const handleSend = () => {
-    if (!input.trim() || isLoading) return;
-    sendMessage(input);
+    if ((!input.trim() && !attachments.length) || isLoading) return;
+    sendMessage(input || "Analyse ces fichiers", attachments.length ? attachments : undefined);
     setInput("");
+    setAttachments([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -263,7 +296,38 @@ const AgentChat = () => {
 
           {/* Input area */}
           <div className="border-t bg-background px-4 py-3">
+            {/* Attachment previews */}
+            {attachments.length > 0 && (
+              <div className="max-w-3xl mx-auto flex flex-wrap gap-2 mb-2">
+                {attachments.map((att, i) => (
+                  <div key={i} className="flex items-center gap-1.5 bg-muted rounded-md px-2 py-1 text-xs">
+                    {att.type === "image" ? <ImageIcon className="h-3 w-3 text-purple-600" /> : <FileText className="h-3 w-3 text-blue-600" />}
+                    <span className="truncate max-w-[120px]">{att.name}</span>
+                    <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-foreground">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="max-w-3xl mx-auto flex gap-2 items-end">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
+                multiple
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-[44px]"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading || uploading}
+              >
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+              </Button>
               <Textarea
                 ref={textareaRef}
                 value={input}
@@ -286,7 +350,7 @@ const AgentChat = () => {
                 <Button
                   size="icon"
                   onClick={handleSend}
-                  disabled={!input.trim()}
+                  disabled={!input.trim() && !attachments.length}
                   className="shrink-0"
                 >
                   <Send className="w-4 h-4" />
@@ -398,7 +462,23 @@ function MessageBubble({
           )}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <div>
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {message.attachments.map((att, i) => (
+                    att.type === "image" ? (
+                      <img key={i} src={att.url} alt={att.name} className="max-h-32 rounded-md" />
+                    ) : (
+                      <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs underline opacity-80">
+                        <FileText className="h-3 w-3" />
+                        {att.name}
+                      </a>
+                    )
+                  ))}
+                </div>
+              )}
+              <p className="whitespace-pre-wrap">{message.content}</p>
+            </div>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_table]:w-full [&_table]:border-collapse [&_th]:px-2 [&_th]:py-1 [&_th]:border [&_th]:border-border [&_th]:bg-muted/50 [&_th]:text-left [&_td]:px-2 [&_td]:py-1 [&_td]:border [&_td]:border-border [&_pre]:bg-muted [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-xs [&_a]:text-primary [&_a]:underline [&_ul]:pl-4 [&_ol]:pl-4">
               <ReactMarkdown>{message.content}</ReactMarkdown>

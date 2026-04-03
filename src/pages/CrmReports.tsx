@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Loader2,
   TrendingUp,
@@ -8,6 +8,15 @@ import {
   BarChart3,
   CalendarDays,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,11 +33,37 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { useCrmReports, type CrmReportFilters } from "@/hooks/crm/useCrmReports";
+import { useCrmReports, type CrmReportFilters, type WeeklyPoint } from "@/hooks/crm/useCrmReports";
 import ModuleLayout from "@/components/ModuleLayout";
 import { format, startOfYear, startOfQuarter, startOfMonth, endOfMonth, endOfQuarter, endOfYear } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { CrmTag } from "@/types/crm";
+
+// ── Persistence ────────────────────────────────────────────
+
+const STORAGE_KEY = "crm-reports-prefs";
+
+interface StoredPrefs {
+  preset?: string;
+  pivot1Row?: string;
+  pivot1Col?: string;
+  pivot2Row?: string;
+  pivot2Col?: string;
+}
+
+function loadPrefs(): StoredPrefs {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePrefs(partial: Partial<StoredPrefs>) {
+  const current = loadPrefs();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...partial }));
+}
 
 // ── Period helpers ──────────────────────────────────────────
 
@@ -46,9 +81,15 @@ const fmt = (v: number) => v.toLocaleString("fr-FR");
 // ── Page ────────────────────────────────────────────────────
 
 const CrmReports = () => {
-  const [preset, setPreset] = useState<PeriodPreset>("year");
+  const prefs = useMemo(() => loadPrefs(), []);
+  const [preset, setPreset] = useState<PeriodPreset>((prefs.preset as PeriodPreset) || "year");
   const [customStart, setCustomStart] = useState<Date | undefined>();
   const [customEnd, setCustomEnd] = useState<Date | undefined>();
+
+  const handlePresetChange = useCallback((p: PeriodPreset) => {
+    setPreset(p);
+    savePrefs({ preset: p });
+  }, []);
 
   const filters: CrmReportFilters = useMemo(() => {
     if (preset === "custom") {
@@ -88,6 +129,18 @@ const CrmReports = () => {
       ? Math.round((reports.wonCount / (reports.wonCount + reports.lostCount)) * 100)
       : 0;
 
+  const hasPivot = reports.categories.length >= 2;
+  const [activeChart, setActiveChart] = useState<string | null>(null);
+  const toggleChart = (key: string) => setActiveChart((prev) => (prev === key ? null : key));
+
+  const kpiChartConfig: Record<string, { dataKey: keyof WeeklyPoint; color: string; label: string; suffix: string }> = {
+    open: { dataKey: "openValue", color: "#6b7280", label: "Pipeline ouvert", suffix: " \u20AC" },
+    weighted: { dataKey: "weightedValue", color: "#d97706", label: "Pipeline pond\u00E9r\u00E9", suffix: " \u20AC" },
+    won: { dataKey: "wonValue", color: "#16a34a", label: "Gagn\u00E9", suffix: " \u20AC" },
+    lost: { dataKey: "lostValue", color: "#dc2626", label: "Perdu", suffix: " \u20AC" },
+    conversion: { dataKey: "conversionRate", color: "#6b7280", label: "Taux de conversion", suffix: "%" },
+  };
+
   return (
     <ModuleLayout>
       <main className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
@@ -96,7 +149,6 @@ const CrmReports = () => {
           title="Reporting CRM"
           subtitle="Statistiques du pipeline commercial"
           backTo="/crm"
-          actions={<PeriodSelector preset={preset} onPresetChange={setPreset} customStart={customStart} customEnd={customEnd} onCustomStartChange={setCustomStart} onCustomEndChange={setCustomEnd} />}
         />
 
         {/* KPIs — value-first layout */}
@@ -104,51 +156,91 @@ const CrmReports = () => {
           <KpiCard
             title="Pipeline ouvert"
             icon={<Target className="h-4 w-4 text-muted-foreground" />}
-            mainValue={`${fmt(reports.openValue)} €`}
-            secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
+            mainValue={`${fmt(reports.openValue)} \u20AC`}
+            secondary={`${reports.openCount} opportunit\u00E9${reports.openCount > 1 ? "s" : ""}`}
+            active={activeChart === "open"}
+            onClick={() => toggleChart("open")}
           />
           <KpiCard
-            title="Pipeline pondéré"
+            title="Pipeline pond\u00E9r\u00E9"
             icon={<DollarSign className="h-4 w-4 text-amber-600" />}
-            mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
-            secondary="confiance × valeur"
+            mainValue={`${fmt(Math.round(reports.weightedPipeline))} \u20AC`}
+            secondary="confiance \u00D7 valeur"
             mainColor="text-amber-600"
+            active={activeChart === "weighted"}
+            onClick={() => toggleChart("weighted")}
           />
           <KpiCard
-            title="Gagné"
+            title="Gagn\u00E9"
             icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-            mainValue={`${fmt(reports.wonValue)} €`}
+            mainValue={`${fmt(reports.wonValue)} \u20AC`}
             secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
             mainColor="text-green-600"
+            active={activeChart === "won"}
+            onClick={() => toggleChart("won")}
           />
           <KpiCard
             title="Perdu"
             icon={<TrendingDown className="h-4 w-4 text-red-600" />}
-            mainValue={`${fmt(reports.lostValue)} €`}
-            secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
+            mainValue={`${fmt(reports.lostValue)} \u20AC`}
+            secondary={`${reports.lostCount} opportunit\u00E9${reports.lostCount > 1 ? "s" : ""}`}
             mainColor="text-red-600"
+            active={activeChart === "lost"}
+            onClick={() => toggleChart("lost")}
           />
           <KpiCard
             title="Taux de conversion"
             icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
             mainValue={`${winRate}%`}
-            secondary={`sur ${reports.wonCount + reports.lostCount} clôturée${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
+            secondary={`sur ${reports.wonCount + reports.lostCount} cl\u00F4tur\u00E9e${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
+            active={activeChart === "conversion"}
+            onClick={() => toggleChart("conversion")}
           />
         </div>
 
-        {/* Pivot table */}
-        {reports.categories.length >= 2 && (
+        {/* Weekly chart for selected KPI */}
+        {activeChart && kpiChartConfig[activeChart] && (
+          <WeeklyChart
+            data={reports.weeklyData}
+            config={kpiChartConfig[activeChart]}
+          />
+        )}
+
+        {/* Pivot 1: Historical — all cards filtered by period */}
+        {hasPivot && (
           <PivotTable
+            storageKey="pivot1"
+            title="Tableau crois\u00E9 par tags"
             cardsWithTags={reports.cardsWithTags}
+            categories={reports.categories}
+            periodSelector={
+              <PeriodSelector
+                preset={preset}
+                onPresetChange={handlePresetChange}
+                customStart={customStart}
+                customEnd={customEnd}
+                onCustomStartChange={setCustomStart}
+                onCustomEndChange={setCustomEnd}
+              />
+            }
+          />
+        )}
+
+        {/* Pivot 2: Pipeline — OPEN cards only, no period */}
+        {hasPivot && (
+          <PivotTable
+            storageKey="pivot2"
+            title="Pipeline en cours"
+            cardsWithTags={reports.pipelineCardsWithTags}
             categories={reports.categories}
           />
         )}
 
-        {reports.categories.length < 2 && (
+        {!hasPivot && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Le tableau croisé nécessite au moins 2 catégories de tags pour fonctionner.
-              Ajoutez des catégories dans les paramètres CRM.
+              Le tableau crois\u00E9 n\u00E9cessite au moins 2 cat\u00E9gories de tags pour fonctionner.
+              Ajoutez des cat\u00E9gories dans les param\u00E8tres CRM.
             </CardContent>
           </Card>
         )}
@@ -165,15 +257,22 @@ function KpiCard({
   mainValue,
   secondary,
   mainColor,
+  active,
+  onClick,
 }: {
   title: string;
   icon: React.ReactNode;
   mainValue: string;
   secondary: string;
   mainColor?: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <Card>
+    <Card
+      className={`cursor-pointer transition-all hover:shadow-md ${active ? "ring-2 ring-primary" : ""}`}
+      onClick={onClick}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
@@ -181,6 +280,59 @@ function KpiCard({
       <CardContent>
         <div className={`text-2xl font-bold ${mainColor ?? ""}`}>{mainValue}</div>
         <p className="text-xs text-muted-foreground">{secondary}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Weekly Chart ────────────────────────────────────────────
+
+function WeeklyChart({
+  data,
+  config,
+}: {
+  data: WeeklyPoint[];
+  config: { dataKey: keyof WeeklyPoint; color: string; label: string; suffix: string };
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Suivi hebdomadaire — {config.label}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+              <defs>
+                <linearGradient id={`gradient-${config.dataKey}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={config.color} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={config.color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="week" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+              <YAxis
+                tick={{ fontSize: 12 }}
+                className="text-muted-foreground"
+                tickFormatter={(v) => config.suffix === "%" ? `${v}%` : `${fmt(v)}`}
+              />
+              <Tooltip
+                formatter={(value: number) =>
+                  config.suffix === "%" ? [`${value}%`, config.label] : [`${fmt(value)} \u20AC`, config.label]
+                }
+                labelFormatter={(label) => `Semaine du ${label}`}
+                contentStyle={{ borderRadius: 8, fontSize: 13 }}
+              />
+              <Area
+                type="monotone"
+                dataKey={config.dataKey}
+                stroke={config.color}
+                strokeWidth={2}
+                fill={`url(#gradient-${config.dataKey})`}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );
@@ -206,20 +358,20 @@ function PeriodSelector({
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Select value={preset} onValueChange={(v) => onPresetChange(v as PeriodPreset)}>
-        <SelectTrigger className="w-36 h-9 text-sm">
+        <SelectTrigger className="w-36 h-8 text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="year">Cette année</SelectItem>
+          <SelectItem value="year">Cette ann\u00E9e</SelectItem>
           <SelectItem value="quarter">Ce trimestre</SelectItem>
           <SelectItem value="month">Ce mois</SelectItem>
-          <SelectItem value="custom">Personnalisé</SelectItem>
+          <SelectItem value="custom">Personnalis\u00E9</SelectItem>
         </SelectContent>
       </Select>
 
       {preset === "custom" && (
         <>
-          <DatePickerButton label="Début" date={customStart} onChange={onCustomStartChange} />
+          <DatePickerButton label="D\u00E9but" date={customStart} onChange={onCustomStartChange} />
           <DatePickerButton label="Fin" date={customEnd} onChange={onCustomEndChange} />
         </>
       )}
@@ -239,7 +391,7 @@ function DatePickerButton({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5 text-sm h-9">
+        <Button variant="outline" size="sm" className="gap-1.5 text-sm h-8">
           <CalendarDays className="h-3.5 w-3.5" />
           {date ? format(date, "d MMM yyyy", { locale: fr }) : label}
         </Button>
@@ -261,14 +413,37 @@ interface CardWithTags {
 }
 
 function PivotTable({
+  storageKey,
+  title,
   cardsWithTags,
   categories,
+  periodSelector,
 }: {
+  storageKey: string;
+  title: string;
   cardsWithTags: CardWithTags[];
   categories: string[];
+  periodSelector?: React.ReactNode;
 }) {
-  const [rowCat, setRowCat] = useState(categories[0]);
-  const [colCat, setColCat] = useState(categories.length > 1 ? categories[1] : categories[0]);
+  const prefs = useMemo(() => loadPrefs(), []);
+  const rowKey = `${storageKey}Row` as keyof StoredPrefs;
+  const colKey = `${storageKey}Col` as keyof StoredPrefs;
+
+  const defaultRow = prefs[rowKey] && categories.includes(prefs[rowKey]!) ? prefs[rowKey]! : categories[0];
+  const defaultCol = prefs[colKey] && categories.includes(prefs[colKey]!) ? prefs[colKey]! : (categories.length > 1 ? categories[1] : categories[0]);
+
+  const [rowCat, setRowCat] = useState(defaultRow);
+  const [colCat, setColCat] = useState(defaultCol);
+
+  const handleRowChange = useCallback((v: string) => {
+    setRowCat(v);
+    savePrefs({ [rowKey]: v });
+  }, [rowKey]);
+
+  const handleColChange = useCallback((v: string) => {
+    setColCat(v);
+    savePrefs({ [colKey]: v });
+  }, [colKey]);
 
   // Unique tag values per category
   const rowTags = useMemo(() => {
@@ -307,8 +482,6 @@ function PivotTable({
     }
     for (const ct of colTags) cTotals[ct] = 0;
 
-    // Track card IDs per cell/row/col to avoid double-counting when a card
-    // has multiple tags in the same category.
     const cellSeen = new Map<string, Set<string>>();
     const rowSeen = new Map<string, Set<string>>();
     const colSeen = new Map<string, Set<string>>();
@@ -323,28 +496,24 @@ function PivotTable({
         for (const ct of cardColTags) {
           if (!(mat[rt] && ct in mat[rt])) continue;
 
-          // Cell dedup
           const cellKey = `${rt}||${ct}`;
           if (!cellSeen.has(cellKey)) cellSeen.set(cellKey, new Set());
           if (cellSeen.get(cellKey)!.has(card.id)) continue;
           cellSeen.get(cellKey)!.add(card.id);
           mat[rt][ct] += val;
 
-          // Row dedup
           if (!rowSeen.has(rt)) rowSeen.set(rt, new Set());
           if (!rowSeen.get(rt)!.has(card.id)) {
             rowSeen.get(rt)!.add(card.id);
             rTotals[rt] += val;
           }
 
-          // Col dedup
           if (!colSeen.has(ct)) colSeen.set(ct, new Set());
           if (!colSeen.get(ct)!.has(card.id)) {
             colSeen.get(ct)!.add(card.id);
             cTotals[ct] += val;
           }
 
-          // Grand total dedup
           if (!totalSeen.has(card.id)) {
             totalSeen.add(card.id);
             total += val;
@@ -359,8 +528,14 @@ function PivotTable({
   if (rowTags.length === 0 || colTags.length === 0) {
     return (
       <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <CardTitle className="text-base">{title}</CardTitle>
+            {periodSelector}
+          </div>
+        </CardHeader>
         <CardContent className="py-8 text-center text-muted-foreground text-sm">
-          Pas assez de données pour croiser ces catégories.
+          Pas assez de donn\u00E9es pour croiser ces cat\u00E9gories.
         </CardContent>
       </Card>
     );
@@ -370,10 +545,13 @@ function PivotTable({
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <CardTitle className="text-base">Tableau croisé par tags</CardTitle>
+          <div className="flex items-center gap-3 flex-wrap">
+            <CardTitle className="text-base">{title}</CardTitle>
+            {periodSelector}
+          </div>
           <div className="flex items-center gap-2 flex-wrap text-sm">
             <span className="text-muted-foreground">Lignes</span>
-            <Select value={rowCat} onValueChange={setRowCat}>
+            <Select value={rowCat} onValueChange={handleRowChange}>
               <SelectTrigger className="w-32 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
@@ -384,7 +562,7 @@ function PivotTable({
               </SelectContent>
             </Select>
             <span className="text-muted-foreground">Colonnes</span>
-            <Select value={colCat} onValueChange={setColCat}>
+            <Select value={colCat} onValueChange={handleColChange}>
               <SelectTrigger className="w-32 h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
@@ -419,11 +597,11 @@ function PivotTable({
                   <td className="py-2 px-2 font-medium">{rt}</td>
                   {colTags.map((ct) => (
                     <td key={ct} className="text-right py-2 px-2 tabular-nums">
-                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} €` : <span className="text-muted-foreground">-</span>}
+                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} \u20AC` : <span className="text-muted-foreground">-</span>}
                     </td>
                   ))}
                   <td className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(rowTotals[rt])} €
+                    {fmt(rowTotals[rt])} \u20AC
                   </td>
                 </tr>
               ))}
@@ -433,11 +611,11 @@ function PivotTable({
                 <td className="py-2 px-2 font-semibold">Total</td>
                 {colTags.map((ct) => (
                   <td key={ct} className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(colTotals[ct])} €
+                    {fmt(colTotals[ct])} \u20AC
                   </td>
                 ))}
                 <td className="text-right py-2 px-2 font-bold tabular-nums">
-                  {fmt(grandTotal)} €
+                  {fmt(grandTotal)} \u20AC
                 </td>
               </tr>
             </tfoot>
