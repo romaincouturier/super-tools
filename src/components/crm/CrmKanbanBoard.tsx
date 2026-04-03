@@ -524,7 +524,6 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
             card={card}
             isDragging={isDragging}
             serviceTypeColors={serviceTypeColors}
-            tagUsageCounts={tagUsageCounts}
           />
         )}
         renderColumnHeader={(col, colCards) => (
