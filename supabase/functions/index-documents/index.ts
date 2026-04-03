@@ -458,6 +458,22 @@ const extractors: Record<string, Extractor> = {
     return results;
   },
 
+  async mission_page(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "mission_pages",
+      "id, mission_id, title, content, created_at",
+      sourceId,
+    );
+    return (data || []).map((r) => ({
+      source_id: r.id,
+      content: [r.title, r.content ? stripHtml(r.content) : ""].filter(Boolean).join("\n"),
+      source_title: r.title || "Page mission",
+      source_date: r.created_at,
+      metadata: { mission_id: r.mission_id },
+    }));
+  },
+
   async support_attachment(supabase, sourceId) {
     const { data } = await buildQuery(
       supabase,
