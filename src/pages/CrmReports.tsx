@@ -446,6 +446,8 @@ function PivotTable({
   }, [colKey]);
 
   // Unique tag values per category
+  const safeCards = cardsWithTags ?? [];
+
   const rowTags = useMemo(() => {
     const set = new Set<string>();
     for (const c of cardsWithTags) {
