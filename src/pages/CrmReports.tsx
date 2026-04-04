@@ -466,7 +466,7 @@ function PivotTable({
       }
     }
     return [...set].sort();
-  }, [cardsWithTags, colCat]);
+  }, [safeCards, colCat]);
 
   // Build pivot matrix
   const { matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
