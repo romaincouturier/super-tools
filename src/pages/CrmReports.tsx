@@ -213,6 +213,7 @@ const CrmReports = () => {
             title="Tableau croisé par tags"
             cardsWithTags={reports.cardsWithTags}
             categories={reports.categories}
+            allTags={reports.tags}
             periodSelector={
               <PeriodSelector
                 preset={preset}
