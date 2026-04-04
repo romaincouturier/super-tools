@@ -451,24 +451,35 @@ function PivotTable({
   const safeCards = cardsWithTags ?? [];
 
   const rowTags = useMemo(() => {
-    const set = new Set<string>();
+    const fromCards = new Set<string>();
     for (const c of safeCards) {
       for (const t of c.tagObjects) {
-        if (t.category === rowCat) set.add(t.name);
+        if (t.category === rowCat) fromCards.add(t.name);
       }
     }
-    return [...set].sort();
-  }, [safeCards, rowCat]);
+    // Also include tags from allTags that have no cards
+    if (allTags) {
+      for (const t of allTags) {
+        if (t.category === rowCat) fromCards.add(t.name);
+      }
+    }
+    return [...fromCards].sort();
+  }, [safeCards, rowCat, allTags]);
 
   const colTags = useMemo(() => {
-    const set = new Set<string>();
+    const fromCards = new Set<string>();
     for (const c of safeCards) {
       for (const t of c.tagObjects) {
-        if (t.category === colCat) set.add(t.name);
+        if (t.category === colCat) fromCards.add(t.name);
       }
     }
-    return [...set].sort();
-  }, [safeCards, colCat]);
+    if (allTags) {
+      for (const t of allTags) {
+        if (t.category === colCat) fromCards.add(t.name);
+      }
+    }
+    return [...fromCards].sort();
+  }, [safeCards, colCat, allTags]);
 
   // Build pivot matrix
   const { matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
