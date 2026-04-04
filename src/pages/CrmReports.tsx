@@ -417,12 +417,14 @@ function PivotTable({
   title,
   cardsWithTags,
   categories,
+  allTags,
   periodSelector,
 }: {
   storageKey: string;
   title: string;
   cardsWithTags: CardWithTags[];
   categories: string[];
+  allTags?: CrmTag[];
   periodSelector?: React.ReactNode;
 }) {
   const prefs = useMemo(() => loadPrefs(), []);
