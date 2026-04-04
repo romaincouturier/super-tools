@@ -134,10 +134,10 @@ const CrmReports = () => {
   const hasPivot = reports.categories.length >= 2;
 
   const kpiChartConfig: Record<string, { dataKey: keyof WeeklyPoint; color: string; label: string; suffix: string }> = {
-    open: { dataKey: "openValue", color: "#6b7280", label: "Pipeline ouvert", suffix: " \u20AC" },
-    weighted: { dataKey: "weightedValue", color: "#d97706", label: "Pipeline pond\u00E9r\u00E9", suffix: " \u20AC" },
-    won: { dataKey: "wonValue", color: "#16a34a", label: "Gagn\u00E9", suffix: " \u20AC" },
-    lost: { dataKey: "lostValue", color: "#dc2626", label: "Perdu", suffix: " \u20AC" },
+    open: { dataKey: "openValue", color: "#6b7280", label: "Pipeline ouvert", suffix: " €" },
+    weighted: { dataKey: "weightedValue", color: "#d97706", label: "Pipeline pondéré", suffix: " €" },
+    won: { dataKey: "wonValue", color: "#16a34a", label: "Gagné", suffix: " €" },
+    lost: { dataKey: "lostValue", color: "#dc2626", label: "Perdu", suffix: " €" },
     conversion: { dataKey: "conversionRate", color: "#6b7280", label: "Taux de conversion", suffix: "%" },
   };
 
@@ -156,24 +156,24 @@ const CrmReports = () => {
           <KpiCard
             title="Pipeline ouvert"
             icon={<Target className="h-4 w-4 text-muted-foreground" />}
-            mainValue={`${fmt(reports.openValue)} \u20AC`}
-            secondary={`${reports.openCount} opportunit\u00E9${reports.openCount > 1 ? "s" : ""}`}
+            mainValue={`${fmt(reports.openValue)} €`}
+            secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
             active={activeChart === "open"}
             onClick={() => toggleChart("open")}
           />
           <KpiCard
-            title="Pipeline pond\u00E9r\u00E9"
+            title="Pipeline pondéré"
             icon={<DollarSign className="h-4 w-4 text-amber-600" />}
-            mainValue={`${fmt(Math.round(reports.weightedPipeline))} \u20AC`}
-            secondary="confiance \u00D7 valeur"
+            mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
+            secondary="confiance × valeur"
             mainColor="text-amber-600"
             active={activeChart === "weighted"}
             onClick={() => toggleChart("weighted")}
           />
           <KpiCard
-            title="Gagn\u00E9"
+            title="Gagné"
             icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-            mainValue={`${fmt(reports.wonValue)} \u20AC`}
+            mainValue={`${fmt(reports.wonValue)} €`}
             secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
             mainColor="text-green-600"
             active={activeChart === "won"}
@@ -182,8 +182,8 @@ const CrmReports = () => {
           <KpiCard
             title="Perdu"
             icon={<TrendingDown className="h-4 w-4 text-red-600" />}
-            mainValue={`${fmt(reports.lostValue)} \u20AC`}
-            secondary={`${reports.lostCount} opportunit\u00E9${reports.lostCount > 1 ? "s" : ""}`}
+            mainValue={`${fmt(reports.lostValue)} €`}
+            secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
             mainColor="text-red-600"
             active={activeChart === "lost"}
             onClick={() => toggleChart("lost")}
@@ -192,7 +192,7 @@ const CrmReports = () => {
             title="Taux de conversion"
             icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
             mainValue={`${winRate}%`}
-            secondary={`sur ${reports.wonCount + reports.lostCount} cl\u00F4tur\u00E9e${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
+            secondary={`sur ${reports.wonCount + reports.lostCount} clôturée${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
             active={activeChart === "conversion"}
             onClick={() => toggleChart("conversion")}
           />
@@ -210,7 +210,7 @@ const CrmReports = () => {
         {hasPivot && (
           <PivotTable
             storageKey="pivot1"
-            title="Tableau crois\u00E9 par tags"
+            title="Tableau croisé par tags"
             cardsWithTags={reports.cardsWithTags}
             categories={reports.categories}
             periodSelector={
@@ -239,8 +239,8 @@ const CrmReports = () => {
         {!hasPivot && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Le tableau crois\u00E9 n\u00E9cessite au moins 2 cat\u00E9gories de tags pour fonctionner.
-              Ajoutez des cat\u00E9gories dans les param\u00E8tres CRM.
+              Le tableau croisé nécessite au moins 2 catégories de tags pour fonctionner.
+              Ajoutez des catégories dans les param\u00E8tres CRM.
             </CardContent>
           </Card>
         )}
@@ -318,7 +318,7 @@ function WeeklyChart({
               />
               <Tooltip
                 formatter={(value: number) =>
-                  config.suffix === "%" ? [`${value}%`, config.label] : [`${fmt(value)} \u20AC`, config.label]
+                  config.suffix === "%" ? [`${value}%`, config.label] : [`${fmt(value)} €`, config.label]
                 }
                 labelFormatter={(label) => `Semaine du ${label}`}
                 contentStyle={{ borderRadius: 8, fontSize: 13 }}
@@ -362,16 +362,16 @@ function PeriodSelector({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="year">Cette ann\u00E9e</SelectItem>
+          <SelectItem value="year">Cette année</SelectItem>
           <SelectItem value="quarter">Ce trimestre</SelectItem>
           <SelectItem value="month">Ce mois</SelectItem>
-          <SelectItem value="custom">Personnalis\u00E9</SelectItem>
+          <SelectItem value="custom">Personnalisé</SelectItem>
         </SelectContent>
       </Select>
 
       {preset === "custom" && (
         <>
-          <DatePickerButton label="D\u00E9but" date={customStart} onChange={onCustomStartChange} />
+          <DatePickerButton label="Début" date={customStart} onChange={onCustomStartChange} />
           <DatePickerButton label="Fin" date={customEnd} onChange={onCustomEndChange} />
         </>
       )}
@@ -537,7 +537,7 @@ function PivotTable({
           </div>
         </CardHeader>
         <CardContent className="py-8 text-center text-muted-foreground text-sm">
-          Pas assez de donn\u00E9es pour croiser ces cat\u00E9gories.
+          Pas assez de données pour croiser ces catégories.
         </CardContent>
       </Card>
     );
@@ -599,11 +599,11 @@ function PivotTable({
                   <td className="py-2 px-2 font-medium">{rt}</td>
                   {colTags.map((ct) => (
                     <td key={ct} className="text-right py-2 px-2 tabular-nums">
-                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} \u20AC` : <span className="text-muted-foreground">-</span>}
+                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} €` : <span className="text-muted-foreground">-</span>}
                     </td>
                   ))}
                   <td className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(rowTotals[rt])} \u20AC
+                    {fmt(rowTotals[rt])} €
                   </td>
                 </tr>
               ))}
@@ -613,11 +613,11 @@ function PivotTable({
                 <td className="py-2 px-2 font-semibold">Total</td>
                 {colTags.map((ct) => (
                   <td key={ct} className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(colTotals[ct])} \u20AC
+                    {fmt(colTotals[ct])} €
                   </td>
                 ))}
                 <td className="text-right py-2 px-2 font-bold tabular-nums">
-                  {fmt(grandTotal)} \u20AC
+                  {fmt(grandTotal)} €
                 </td>
               </tr>
             </tfoot>
