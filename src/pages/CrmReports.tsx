@@ -103,6 +103,8 @@ const CrmReports = () => {
   }, [preset, customStart, customEnd]);
 
   const { data: reports, isLoading } = useCrmReports(filters);
+  const [activeChart, setActiveChart] = useState<string | null>(null);
+  const toggleChart = useCallback((key: string) => setActiveChart((prev) => (prev === key ? null : key)), []);
 
   if (isLoading) {
     return (
@@ -130,8 +132,6 @@ const CrmReports = () => {
       : 0;
 
   const hasPivot = reports.categories.length >= 2;
-  const [activeChart, setActiveChart] = useState<string | null>(null);
-  const toggleChart = (key: string) => setActiveChart((prev) => (prev === key ? null : key));
 
   const kpiChartConfig: Record<string, { dataKey: keyof WeeklyPoint; color: string; label: string; suffix: string }> = {
     open: { dataKey: "openValue", color: "#6b7280", label: "Pipeline ouvert", suffix: " \u20AC" },
