@@ -456,7 +456,7 @@ function PivotTable({
       }
     }
     return [...set].sort();
-  }, [cardsWithTags, rowCat]);
+  }, [safeCards, rowCat]);
 
   const colTags = useMemo(() => {
     const set = new Set<string>();
