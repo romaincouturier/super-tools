@@ -446,25 +446,27 @@ function PivotTable({
   }, [colKey]);
 
   // Unique tag values per category
+  const safeCards = cardsWithTags ?? [];
+
   const rowTags = useMemo(() => {
     const set = new Set<string>();
-    for (const c of cardsWithTags) {
+    for (const c of safeCards) {
       for (const t of c.tagObjects) {
         if (t.category === rowCat) set.add(t.name);
       }
     }
     return [...set].sort();
-  }, [cardsWithTags, rowCat]);
+  }, [safeCards, rowCat]);
 
   const colTags = useMemo(() => {
     const set = new Set<string>();
-    for (const c of cardsWithTags) {
+    for (const c of safeCards) {
       for (const t of c.tagObjects) {
         if (t.category === colCat) set.add(t.name);
       }
     }
     return [...set].sort();
-  }, [cardsWithTags, colCat]);
+  }, [safeCards, colCat]);
 
   // Build pivot matrix
   const { matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
@@ -487,7 +489,7 @@ function PivotTable({
     const colSeen = new Map<string, Set<string>>();
     const totalSeen = new Set<string>();
 
-    for (const card of cardsWithTags) {
+    for (const card of safeCards) {
       const val = card.estimated_value || 0;
       const cardRowTags = card.tagObjects.filter((t) => t.category === rowCat).map((t) => t.name);
       const cardColTags = card.tagObjects.filter((t) => t.category === colCat).map((t) => t.name);
