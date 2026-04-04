@@ -489,7 +489,7 @@ function PivotTable({
     const colSeen = new Map<string, Set<string>>();
     const totalSeen = new Set<string>();
 
-    for (const card of cardsWithTags) {
+    for (const card of safeCards) {
       const val = card.estimated_value || 0;
       const cardRowTags = card.tagObjects.filter((t) => t.category === rowCat).map((t) => t.name);
       const cardColTags = card.tagObjects.filter((t) => t.category === colCat).map((t) => t.name);
