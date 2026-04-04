@@ -460,7 +460,7 @@ function PivotTable({
 
   const colTags = useMemo(() => {
     const set = new Set<string>();
-    for (const c of cardsWithTags) {
+    for (const c of safeCards) {
       for (const t of c.tagObjects) {
         if (t.category === colCat) set.add(t.name);
       }
