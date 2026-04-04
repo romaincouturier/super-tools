@@ -234,6 +234,7 @@ const CrmReports = () => {
             title="Pipeline en cours"
             cardsWithTags={reports.pipelineCardsWithTags}
             categories={reports.categories}
+            allTags={reports.tags}
           />
         )}
 
