@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import DetailDrawer from "@/components/shared/DetailDrawer";
@@ -210,16 +210,44 @@ const CardDetailDrawer = ({
   }, [open]);
 
   // ═══ AUTO-SAVE ═══
-  const parseValue = () => parseFloat(estimatedValue) || 0;
+  // Memoize the updates object to avoid rebuilding trim/parse on every render
+  const autoSaveUpdates = useMemo(() => ({
+    title: title.trim(), estimated_value: parseFloat(estimatedValue) || 0,
+    quote_url: quoteUrl.trim() || null,
+    waiting_next_action_date: scheduledDate || null, waiting_next_action_text: scheduledText.trim() || null,
+    first_name: firstName.trim() || null, last_name: lastName.trim() || null,
+    company: company.trim() || null, email: email.trim() || null,
+    phone: phone.trim() || null, linkedin_url: linkedinUrl.trim() || null,
+    website_url: websiteUrl.trim() || null, service_type: serviceType,
+    next_action_text: nextActionText.trim() || null, next_action_done: nextActionDone,
+    next_action_type: nextActionType, linked_mission_id: linkedMissionId,
+    emoji: cardEmoji, confidence_score: confidenceScore,
+    acquisition_source: acquisitionSource, assigned_to: assignedTo,
+  }), [title, estimatedValue, quoteUrl, scheduledDate, scheduledText,
+      firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
+      nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
 
-  const autoSaveField = useCallback((updates: Record<string, unknown>) => {
-    if (!card || !user?.email) return;
+  // Use refs for values that shouldn't re-create the timeout callback
+  const cardRef = useRef(card);
+  cardRef.current = card;
+  const userEmailRef = useRef(user?.email);
+  userEmailRef.current = user?.email;
+
+  useEffect(() => {
+    if (!cardLoadedRef.current || !cardRef.current || !userEmailRef.current) return;
+    // Note: sales_status and column_id are NOT included here because they are
+    // saved immediately by their dedicated handlers (handleSalesStatusChange,
+    // handleColumnChange). Including them would cause duplicate mutations and
+    // duplicate Slack notifications when an opportunity is won.
     if (fieldTimeoutRef.current) clearTimeout(fieldTimeoutRef.current);
     fieldTimeoutRef.current = setTimeout(async () => {
+      const currentCard = cardRef.current;
+      const currentEmail = userEmailRef.current;
+      if (!currentCard || !currentEmail) return;
       setFieldSaving(true);
       setFieldSaved(false);
       try {
-        await updateCard.mutateAsync({ id: card.id, updates: updates as Record<string, unknown>, actorEmail: user.email!, oldCard: card });
+        await updateCard.mutateAsync({ id: currentCard.id, updates: autoSaveUpdates, actorEmail: currentEmail, oldCard: currentCard });
         setFieldSaved(true);
         setTimeout(() => setFieldSaved(false), 2000);
       } catch (error) {
@@ -228,30 +256,8 @@ const CardDetailDrawer = ({
         setFieldSaving(false);
       }
     }, 1000);
-  }, [card, user?.email, updateCard]);
-
-  useEffect(() => {
-    if (!cardLoadedRef.current || !card) return;
-    // Note: sales_status and column_id are NOT included here because they are
-    // saved immediately by their dedicated handlers (handleSalesStatusChange,
-    // handleColumnChange). Including them would cause duplicate mutations and
-    // duplicate Slack notifications when an opportunity is won.
-    autoSaveField({
-      title: title.trim(), estimated_value: parseValue(),
-      quote_url: quoteUrl.trim() || null,
-      waiting_next_action_date: scheduledDate || null, waiting_next_action_text: scheduledText.trim() || null,
-      first_name: firstName.trim() || null, last_name: lastName.trim() || null,
-      company: company.trim() || null, email: email.trim() || null,
-      phone: phone.trim() || null, linkedin_url: linkedinUrl.trim() || null,
-      website_url: websiteUrl.trim() || null, service_type: serviceType,
-      next_action_text: nextActionText.trim() || null, next_action_done: nextActionDone,
-      next_action_type: nextActionType, linked_mission_id: linkedMissionId,
-      emoji: cardEmoji, confidence_score: confidenceScore,
-      acquisition_source: acquisitionSource, assigned_to: assignedTo,
-    });
-  }, [title, estimatedValue, quoteUrl, scheduledDate, scheduledText,
-      firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
-      nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
+    return () => { if (fieldTimeoutRef.current) clearTimeout(fieldTimeoutRef.current); };
+  }, [autoSaveUpdates, updateCard]);
 
   const saveDescription = useCallback(async (newDescription: string) => {
     if (!card || !user?.email) return;
