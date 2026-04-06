@@ -759,7 +759,7 @@ export async function fetchPastTrainingsNoInvoice(supabase: SupabaseClient, toda
       const allPaidOnline = participants.every((p: any) => p.payment_mode === "online");
       if (allPaidOnline) continue;
 
-      const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(t.format_formation);
+      const isInterOrElearning = ["inter-entreprises", "e_learning"].includes(t.format_formation) || t.session_type === "inter";
       if (isInterOrElearning) {
         const invoiceParticipants = participants.filter((p: any) => p.payment_mode !== "online");
         const allInvoiced = invoiceParticipants.length > 0 && invoiceParticipants.every((p: any) => p.invoice_file_url);
