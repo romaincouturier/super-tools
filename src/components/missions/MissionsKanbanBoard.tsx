@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { closestCenter } from "@dnd-kit/core";
 import { Plus } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
@@ -56,11 +56,14 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const [showStats, setShowStats] = useState(false);
 
   // Auto-open mission drawer when openMissionId is provided (deep link from emails)
+  // Only consume the deep link once to avoid overwriting user's subsequent selections
+  const deepLinkConsumedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (openMissionId && data?.length) {
+    if (openMissionId && data?.length && deepLinkConsumedRef.current !== openMissionId) {
       const mission = data.find((m) => m.id === openMissionId);
       if (mission) {
-        setSelectedMission((prev) => prev?.id === mission.id ? prev : mission);
+        deepLinkConsumedRef.current = openMissionId;
+        setSelectedMission(mission);
       }
     }
   }, [openMissionId, data]);
