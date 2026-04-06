@@ -18,6 +18,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
 import {
   Loader2,
   RefreshCw,
@@ -27,6 +29,7 @@ import {
   ChevronRight,
   TrendingUp,
   Clock,
+  CalendarClock,
 } from "lucide-react";
 
 // ── Helpers ──
@@ -83,6 +86,34 @@ const DailyTodoPanel = () => {
     new Set()
   );
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showAgenda, setShowAgenda] = useState(false);
+  const [agendaContent, setAgendaContent] = useState<string | null>(null);
+  const [agendaLoading, setAgendaLoading] = useState(false);
+
+  const generateAgenda = useCallback(async () => {
+    const pending = actions.filter((a) => !a.is_completed);
+    if (pending.length === 0) return;
+    setAgendaLoading(true);
+    setShowAgenda(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-daily-agenda", {
+        body: {
+          actions: pending.map((a) => ({
+            category: getCategoryConfig(a.category).label,
+            title: a.title,
+            description: a.description,
+          })),
+        },
+      });
+      if (error) throw error;
+      setAgendaContent(data?.agenda || "Impossible de générer l'agenda.");
+    } catch (err) {
+      console.error("Agenda generation failed:", err);
+      setAgendaContent("Erreur lors de la génération de l'agenda.");
+    } finally {
+      setAgendaLoading(false);
+    }
+  }, [actions]);
 
   const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => {
@@ -138,22 +169,39 @@ const DailyTodoPanel = () => {
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold">TODO du jour</h2>
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={autoDetect}
-                disabled={refreshing}
-                className="p-1.5 rounded-md hover:bg-muted transition-colors"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`}
-                />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Vérifier les actions résolues</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-1">
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={generateAgenda}
+                  disabled={agendaLoading}
+                  className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                >
+                  {agendaLoading
+                    ? <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                    : <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                  }
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Proposer un agenda priorisé</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={autoDetect}
+                  disabled={refreshing}
+                  className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Vérifier les actions résolues</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -166,6 +214,33 @@ const DailyTodoPanel = () => {
         </div>
         <Progress value={progressPercent} className="h-2" />
       </div>
+
+      {/* AI Agenda */}
+      {showAgenda && (
+        <div className="shrink-0 border rounded-lg bg-primary/5 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-primary flex items-center gap-1">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Agenda proposé
+            </span>
+            <button
+              onClick={() => setShowAgenda(false)}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Fermer
+            </button>
+          </div>
+          {agendaLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            </div>
+          ) : agendaContent ? (
+            <div className="text-xs leading-relaxed prose prose-xs max-w-none [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:text-xs [&_li]:text-xs [&_strong]:text-foreground">
+              <ReactMarkdown>{agendaContent}</ReactMarkdown>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Actions list */}
       <div className="flex-1 min-h-0 overflow-y-auto">
