@@ -720,7 +720,7 @@ export async function fetchCfpReminders(supabase: SupabaseClient, today: string)
 export async function fetchPastTrainingsNoInvoice(supabase: SupabaseClient, today: string): Promise<TrainingInvoiceItem[]> {
   const { data: pastTrainings } = await supabase
     .from("trainings")
-    .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, is_cancelled")
+    .select("id, training_name, start_date, end_date, invoice_file_url, assigned_to, format_formation, session_type, is_cancelled")
     .lt("start_date", today)
     .is("invoice_file_url", null)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
