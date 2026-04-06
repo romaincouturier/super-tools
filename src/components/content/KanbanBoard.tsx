@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
-import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3 } from "lucide-react";
+import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3, Users } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -62,13 +63,8 @@ export interface Column {
   name: string;
   display_order: number;
   is_system: boolean;
+  assigned_user_ids: string[];
 }
-
-/** Column-to-reviewer mapping for "à relire" columns (mirrors backend REVIEW_COLUMN_ASSIGNMENTS) */
-const REVIEW_COLUMN_ASSIGNMENTS: Record<string, { userId: string; email: string }> = {
-  "290ab277-6f1a-48b4-8641-d8b033d667de": { userId: "81d0328b-7651-4deb-95c0-c7ac81eb952e", email: "romain@supertilt.fr" },
-  "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": { userId: "c894a7ec-4680-4a9e-bed7-4aad7af12909", email: "emmanuelle@supertilt.fr" },
-};
 
 // Mapped types for GenericKanbanBoard
 type ContentKanbanCard = Card & KanbanCardDef;
@@ -95,6 +91,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   const [newCardColumnId, setNewCardColumnId] = useState<string | null>(null);
   const [renameColumn, setRenameColumn] = useState<Column | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [assignColumn, setAssignColumn] = useState<Column | null>(null);
+  const [collaborators, setCollaborators] = useState<{ id: string; email: string; displayName: string | null }[]>([]);
 
   const {
     value: typeColors,
@@ -129,6 +127,18 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     return () => {
       supabase.removeChannel(channel);
     };
+  }, []);
+
+  // Load collaborators with access to content module
+  useEffect(() => {
+    (async () => {
+      const { data: access } = await supabase.from("user_module_access").select("user_id").eq("module", "contenu");
+      if (!access?.length) return;
+      const { data: profiles } = await supabase.from("profiles").select("user_id, email, display_name").in("user_id", access.map((a) => a.user_id));
+      if (profiles) {
+        setCollaborators(profiles.map((p) => ({ id: p.user_id, email: p.email, displayName: p.display_name })));
+      }
+    })();
   }, []);
 
   // Open card from URL parameter
@@ -356,6 +366,31 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     }
   };
 
+  const handleToggleColumnUser = async (columnId: string, userId: string) => {
+    const col = columns.find((c) => c.id === columnId);
+    if (!col) return;
+    const current = col.assigned_user_ids || [];
+    const updated = current.includes(userId)
+      ? current.filter((id) => id !== userId)
+      : [...current, userId];
+
+    // Optimistic update
+    setColumns((prev) => prev.map((c) => c.id === columnId ? { ...c, assigned_user_ids: updated } : c));
+
+    try {
+      const { error } = await supabase
+        .from("content_columns")
+        .update({ assigned_user_ids: updated })
+        .eq("id", columnId);
+      if (error) throw error;
+      toast.success("Affectation mise à jour");
+    } catch (error) {
+      console.error("Error updating column assignments:", error);
+      toast.error("Erreur lors de la mise à jour");
+      fetchData();
+    }
+  };
+
   const handleColumnReorder = useCallback(async (columnIds: string[]) => {
     const newColumns = columnIds
       .map((id, idx) => {
@@ -403,31 +438,37 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         })
         .eq("id", card.id);
 
-      // Notify reviewer when card moves INTO a review column (not within the same column)
-      const reviewer = REVIEW_COLUMN_ASSIGNMENTS[targetColumnId];
-      if (reviewer && sourceColumnId !== targetColumnId) {
-        notifyContentUser(
-          {
-            userId: reviewer.userId,
-            notificationType: "review_requested",
-            referenceId: card.id,
-            cardId: card.id,
-            message: `Nouveau contenu à relire : ${card.title}`,
-          },
-          {
-            type: "review_requested",
-            recipientEmail: reviewer.email,
-            cardTitle: card.title,
-            cardId: card.id,
-          },
-        ).catch((err) => console.error("Error sending review notification:", err));
+      // Notify assigned users when card moves INTO their column
+      if (sourceColumnId !== targetColumnId) {
+        const targetCol = columns.find((c) => c.id === targetColumnId);
+        const assignedIds = targetCol?.assigned_user_ids || [];
+        if (assignedIds.length > 0) {
+          const assignedCollabs = collaborators.filter((c) => assignedIds.includes(c.id));
+          for (const collab of assignedCollabs) {
+            notifyContentUser(
+              {
+                userId: collab.id,
+                notificationType: "review_requested",
+                referenceId: card.id,
+                cardId: card.id,
+                message: `Nouveau contenu à relire : ${card.title}`,
+              },
+              {
+                type: "review_requested",
+                recipientEmail: collab.email,
+                cardTitle: card.title,
+                cardId: card.id,
+              },
+            ).catch((err) => console.error("Error sending review notification:", err));
+          }
+        }
       }
     } catch (error) {
       console.error("Error updating card position:", error);
       toast.error("Erreur lors du déplacement de la carte");
       fetchData();
     }
-  }, []);
+  }, [columns, collaborators]);
 
   const handleSaveCard = async (cardData: Partial<Card>, options?: { newsletterId?: string; initialComment?: string }) => {
     try {
@@ -613,54 +654,71 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             onEmojiChange={handleCardEmojiChange}
           />
         )}
-        renderColumnHeader={(column, colCards, dragHandle) => (
-          <div className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              {dragHandle}
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                {column.name}
-                <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">
-                  {colCards.length}
-                </span>
-              </h3>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setNewCardColumnId(column.id)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              {!column.is_system && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {
-                      setRenameColumn(column);
-                      setRenameValue(column.name);
-                    }}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Renommer
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDeleteColumn(column.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Supprimer
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+        renderColumnHeader={(column, colCards, dragHandle) => {
+          const assignedNames = (column.assigned_user_ids || [])
+            .map((uid) => collaborators.find((c) => c.id === uid))
+            .filter(Boolean)
+            .map((c) => c!.displayName || c!.email.split("@")[0]);
+          return (
+            <div className="p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {dragHandle}
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    {column.name}
+                    <span className="bg-muted text-muted-foreground text-xs px-1.5 py-0.5 rounded-full">
+                      {colCards.length}
+                    </span>
+                  </h3>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setNewCardColumnId(column.id)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  {!column.is_system && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setRenameColumn(column);
+                          setRenameValue(column.name);
+                        }}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Renommer
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAssignColumn(column)}>
+                          <Users className="h-4 w-4 mr-2" />
+                          Affecter
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDeleteColumn(column.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </div>
+              {assignedNames.length > 0 && (
+                <p className="text-[10px] text-muted-foreground truncate pl-6">
+                  {assignedNames.join(", ")}
+                </p>
               )}
             </div>
-          </div>
-        )}
+          );
+        }}
         renderEmptyColumn={() => (
           <div className="text-center py-8 text-muted-foreground text-sm">
             Aucune carte
@@ -747,6 +805,48 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             </Button>
             <Button onClick={handleRenameColumn}>Renommer</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Collaborators Dialog */}
+      <Dialog open={!!assignColumn} onOpenChange={(open) => !open && setAssignColumn(null)}>
+        <DialogContent className="w-full sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Affecter des collaborateurs — {assignColumn?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <p className="text-xs text-muted-foreground">Les cartes de cette colonne apparaîtront dans les alertes quotidiennes des collaborateurs affectés.</p>
+            {collaborators.map((collab) => {
+              const isAssigned = (assignColumn?.assigned_user_ids || []).includes(collab.id);
+              return (
+                <label key={collab.id} className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer">
+                  <Checkbox
+                    checked={isAssigned}
+                    onCheckedChange={() => {
+                      if (assignColumn) {
+                        handleToggleColumnUser(assignColumn.id, collab.id);
+                        // Update local assignColumn state for immediate UI feedback
+                        const current = assignColumn.assigned_user_ids || [];
+                        setAssignColumn({
+                          ...assignColumn,
+                          assigned_user_ids: isAssigned
+                            ? current.filter((id) => id !== collab.id)
+                            : [...current, collab.id],
+                        });
+                      }
+                    }}
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{collab.displayName || collab.email.split("@")[0]}</p>
+                    <p className="text-xs text-muted-foreground">{collab.email}</p>
+                  </div>
+                </label>
+              );
+            })}
+            {collaborators.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Aucun collaborateur avec accès au module contenu</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

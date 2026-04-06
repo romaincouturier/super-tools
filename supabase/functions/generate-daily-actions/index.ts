@@ -8,7 +8,6 @@ import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import {
   fetchAllDailyData,
   userCanSee,
-  REVIEW_COLUMN_ASSIGNMENTS,
   type Recipient,
 } from "../_shared/daily-data-fetchers.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
@@ -187,16 +186,18 @@ serve(async (req) => {
       });
     }
 
-    // 6. Articles en relecture (strictAssigned)
+    // 6. Articles en relecture (strictAssigned, one per assigned user)
     for (const card of data.reviewArticles) {
-      actions.push({
-        category: "articles_relire",
-        title: card.title,
-        description: `En relecture — ${card.columnName}`,
-        link: `${appUrl}/contenu?card=${card.id}`,
-        entityType: "content_card", entityId: card.id,
-        assignedTo: card.assignedUserId, scope: "strictAssigned",
-      });
+      for (const userId of card.assignedUserIds) {
+        actions.push({
+          category: "articles_relire",
+          title: card.title,
+          description: `En relecture — ${card.columnName}`,
+          link: `${appUrl}/contenu?card=${card.id}`,
+          entityType: "content_card", entityId: card.id,
+          assignedTo: userId, scope: "strictAssigned",
+        });
+      }
     }
 
     // 6bis. Commentaires non résolus — groupés par article (strictAssigned, one per target user)

@@ -92,7 +92,7 @@ export interface ReviewArticleItem {
   columnId: string;
   columnName: string;
   createdAt: string;
-  assignedUserId: string;
+  assignedUserIds: string[];
 }
 
 export interface BlockedArticleItem {
@@ -196,12 +196,22 @@ export interface SupportTicketItem {
   daysOpen: number;
 }
 
-/** Column-to-user mapping for content review assignments */
-export const REVIEW_COLUMN_ASSIGNMENTS: Record<string, { userId: string; email: string }> = {
-  "290ab277-6f1a-48b4-8641-d8b033d667de": { userId: "81d0328b-7651-4deb-95c0-c7ac81eb952e", email: "romain@supertilt.fr" },
-  "2ea6b47e-9d87-41d7-9eaa-95f57ba379da": { userId: "c894a7ec-4680-4a9e-bed7-4aad7af12909", email: "emmanuelle@supertilt.fr" },
-};
-export const REVIEW_COLUMN_IDS = Object.keys(REVIEW_COLUMN_ASSIGNMENTS);
+/** Fetch columns that have at least one assigned user (dynamic review columns) */
+export async function fetchAssignedColumns(supabase: SupabaseClient): Promise<Map<string, string[]>> {
+  const { data } = await supabase
+    .from("content_columns")
+    .select("id, assigned_user_ids")
+    .not("assigned_user_ids", "eq", "{}");
+  const map = new Map<string, string[]>();
+  if (data) {
+    for (const col of data as any[]) {
+      if (col.assigned_user_ids?.length) {
+        map.set(col.id, col.assigned_user_ids);
+      }
+    }
+  }
+  return map;
+}
 
 // ─── Data Fetchers ───────────────────────────────────────────────────
 
@@ -529,22 +539,25 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
   return results;
 }
 
-export async function fetchReviewArticles(supabase: SupabaseClient): Promise<ReviewArticleItem[]> {
+export async function fetchReviewArticles(supabase: SupabaseClient, assignedColumns: Map<string, string[]>): Promise<ReviewArticleItem[]> {
+  const columnIds = [...assignedColumns.keys()];
+  if (columnIds.length === 0) return [];
+
   const { data } = await supabase
     .from("content_cards")
     .select("id, title, column_id, created_at, content_columns:column_id(name)")
-    .in("column_id", REVIEW_COLUMN_IDS);
+    .in("column_id", columnIds);
 
   if (!data) return [];
   return data
-    .filter((card: any) => REVIEW_COLUMN_ASSIGNMENTS[card.column_id])
+    .filter((card: any) => assignedColumns.has(card.column_id))
     .map((card: any) => ({
       id: card.id,
       title: card.title,
       columnId: card.column_id,
       columnName: (card as any).content_columns?.name || "",
       createdAt: card.created_at,
-      assignedUserId: REVIEW_COLUMN_ASSIGNMENTS[card.column_id].userId,
+      assignedUserIds: assignedColumns.get(card.column_id) || [],
     }));
 }
 
@@ -567,7 +580,7 @@ export async function fetchBlockedArticles(supabase: SupabaseClient): Promise<Bl
     }));
 }
 
-export async function fetchUnresolvedComments(supabase: SupabaseClient): Promise<UnresolvedCommentItem[]> {
+export async function fetchUnresolvedComments(supabase: SupabaseClient, assignedColumns: Map<string, string[]>): Promise<UnresolvedCommentItem[]> {
   const { data } = await supabase
     .from("review_comments")
     .select("id, card_id, author_id, content, mentioned_user_ids, assigned_to, content_cards:card_id(title, column_id, content_columns:column_id(name))")
@@ -581,8 +594,8 @@ export async function fetchUnresolvedComments(supabase: SupabaseClient): Promise
   for (const c of data as any[]) {
     const card = c.content_cards;
     if (!card?.column_id) continue;
-    const assignment = REVIEW_COLUMN_ASSIGNMENTS[card.column_id];
-    if (!assignment) continue;
+    const columnUserIds = assignedColumns.get(card.column_id);
+    if (!columnUserIds?.length) continue;
 
     const cardId = c.card_id as string;
     let group = byCard.get(cardId);
@@ -591,7 +604,7 @@ export async function fetchUnresolvedComments(supabase: SupabaseClient): Promise
       byCard.set(cardId, group);
     }
     group.commentCount++;
-    group.targetUserIds.add(assignment.userId);
+    for (const uid of columnUserIds) group.targetUserIds.add(uid);
     if (c.author_id) group.targetUserIds.add(c.author_id);
     if (c.assigned_to) group.targetUserIds.add(c.assigned_to);
     if (c.mentioned_user_ids && Array.isArray(c.mentioned_user_ids)) {
@@ -1038,6 +1051,9 @@ export interface DailyData {
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
+  // Fetch dynamic column assignments first (needed by review & comment fetchers)
+  const assignedColumns = await fetchAssignedColumns(supabase);
+
   const [
     recipients,
     missionActions,
@@ -1068,9 +1084,9 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchMissionsNoStartDate(supabase, today),
     fetchCrmAlerts(supabase, today),
     fetchTrainingConventions(supabase, today),
-    fetchReviewArticles(supabase),
+    fetchReviewArticles(supabase, assignedColumns),
     fetchBlockedArticles(supabase),
-    fetchUnresolvedComments(supabase),
+    fetchUnresolvedComments(supabase, assignedColumns),
     fetchUpcomingEvents(supabase, today),
     fetchCfpAlerts(supabase, today),
     fetchCfpReminders(supabase, today),

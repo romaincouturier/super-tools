@@ -8,7 +8,6 @@ import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 import {
   fetchAllDailyData,
   userCanSee,
-  REVIEW_COLUMN_ASSIGNMENTS,
   type Recipient,
   type DailyData,
   type CrmCardItem,
@@ -131,14 +130,18 @@ serve(async (req) => {
     logDataCounts(data);
 
     // ── Build email-specific lookups ──
-    // Review articles by email
+    // Review articles by email (match assignedUserIds → recipient email)
+    const userIdToEmail = new Map<string, string>();
+    for (const r of recipients) userIdToEmail.set(r.userId, r.email);
     const reviewCardsByEmail = new Map<string, typeof data.reviewArticles>();
     for (const card of data.reviewArticles) {
-      const assignment = REVIEW_COLUMN_ASSIGNMENTS[card.columnId];
-      if (!assignment) continue;
-      const list = reviewCardsByEmail.get(assignment.email) || [];
-      list.push(card);
-      reviewCardsByEmail.set(assignment.email, list);
+      for (const uid of card.assignedUserIds) {
+        const email = userIdToEmail.get(uid);
+        if (!email) continue;
+        const list = reviewCardsByEmail.get(email) || [];
+        list.push(card);
+        reviewCardsByEmail.set(email, list);
+      }
     }
 
     // Unresolved comments by userId

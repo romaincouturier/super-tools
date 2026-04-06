@@ -759,6 +759,7 @@ export type Database = {
       }
       content_columns: {
         Row: {
+          assigned_user_ids: string[]
           created_at: string
           created_by: string | null
           display_order: number
@@ -767,6 +768,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          assigned_user_ids?: string[]
           created_at?: string
           created_by?: string | null
           display_order?: number
@@ -775,6 +777,7 @@ export type Database = {
           name: string
         }
         Update: {
+          assigned_user_ids?: string[]
           created_at?: string
           created_by?: string | null
           display_order?: number
