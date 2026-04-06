@@ -44,11 +44,15 @@ Deno.serve(async (req) => {
     // Fetch training details
     const { data: training, error: tErr } = await supabase
       .from("trainings")
-      .select("training_name, start_date, end_date, location, max_participants, client_name")
+      .select("training_name, start_date, end_date, location, max_participants, client_name, is_cancelled")
       .eq("id", trainingId)
       .single();
 
     if (tErr || !training) return createErrorResponse("Training not found", 404);
+
+    if (training.is_cancelled) {
+      return createJsonResponse({ skipped: true, reason: "training_is_cancelled" });
+    }
 
     // Count participants
     const { count } = await supabase

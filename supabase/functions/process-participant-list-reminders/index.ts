@@ -60,9 +60,10 @@ serve(async (req) => {
 
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
-      .select("id, training_name, client_name, start_date, location, trainer_id")
+      .select("id, training_name, client_name, start_date, location, trainer_id, is_cancelled")
       .gte("start_date", tomorrowStr)
-      .lte("start_date", maxDate);
+      .lte("start_date", maxDate)
+      .or("is_cancelled.is.null,is_cancelled.eq.false");
 
     if (trainingsError) throw trainingsError;
 
