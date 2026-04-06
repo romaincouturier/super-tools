@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CalendarDays, Send, Loader2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -139,7 +139,7 @@ const EventEdit = () => {
     }
   }, [id, values.title, values.eventDate, updateEvent, buildNewValues]);
 
-  const formValues = { ...values, assignedTo };
+  const formValues = useMemo(() => ({ ...values, assignedTo }), [values, assignedTo]);
 
   const { autoSaving, resetTracking, flushAndGetPending } = useAutoSaveForm({
     open: !!event,

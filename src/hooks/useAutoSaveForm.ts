@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 
 export interface AutoSaveFormValues {
   [key: string]: unknown;
@@ -39,18 +39,14 @@ export function useAutoSaveForm({
   // Always keep latest values in ref
   formValuesRef.current = formValues;
 
-  const formHash = JSON.stringify(formValuesRef.current);
+  // Compute hash only when formValues object reference changes (caller should useMemo)
+  const formHash = useMemo(() => JSON.stringify(formValues), [formValues]);
 
   const resetTracking = useCallback(() => {
     lastSavedHashRef.current = "";
     setLastSaved(null);
   }, []);
 
-  /**
-   * If there is a pending (unsaved) change, cancel the timer and return
-   * the current form values so the caller can perform a final save.
-   * Returns null if there is nothing pending.
-   */
   const flushAndGetPending = useCallback((): AutoSaveFormValues | null => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);

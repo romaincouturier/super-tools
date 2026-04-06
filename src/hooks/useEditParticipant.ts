@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { capitalizeName } from "@/lib/stringUtils";
 import type { FormationFormula } from "@/types/training";
@@ -180,7 +180,7 @@ export function useEditParticipant({
   );
 
   // --- Compose form values for auto-save tracking ---
-  const formValues: AutoSaveFormValues = {
+  const formValues: AutoSaveFormValues = useMemo(() => ({
     firstName: participantForm.firstName,
     lastName: participantForm.lastName,
     email: participantForm.email,
@@ -197,7 +197,7 @@ export function useEditParticipant({
     notes,
     formula,
     coachingSessionsTotal,
-  };
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(

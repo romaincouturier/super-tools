@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -162,8 +162,8 @@ const MissionDetailDrawer = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId]);
 
-  // Build form values for auto-save
-  const formValues = {
+  // Build form values for auto-save (memoized to avoid JSON.stringify on every keystroke)
+  const formValues = useMemo(() => ({
     title: title.trim(),
     description: description.trim() || null,
     client_name: clientName.trim() || null,
@@ -180,7 +180,7 @@ const MissionDetailDrawer = ({
     assigned_to: assignedTo,
     waiting_next_action_date: scheduledDate || null,
     waiting_next_action_text: scheduledText.trim() || null,
-  };
+  }), [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo, scheduledDate, scheduledText]);
 
   const handleAutoSave = useCallback(async (values: Record<string, unknown>) => {
     if (!mission) return false;

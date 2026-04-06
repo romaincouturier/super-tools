@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Upload, X, Plus, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock } from "lucide-react";
 import {
   Dialog,
@@ -101,7 +101,7 @@ const ContentCardDialog = ({
 
   const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
     open: open && !!card,
-    formValues: { title, description, imageUrl, tags, cardType, emoji, deadline },
+    formValues: useMemo(() => ({ title, description, imageUrl, tags, cardType, emoji, deadline }), [title, description, imageUrl, tags, cardType, emoji, deadline]),
     onSave: handleAutoSave,
   });
 
