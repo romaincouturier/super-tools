@@ -760,12 +760,14 @@ const Dashboard = () => {
           {/* Daily TODO + Calendar — right column */}
           <aside className="hidden lg:flex lg:flex-col w-80 shrink-0 gap-4 sticky top-6 self-start max-h-[calc(100vh-6rem)]">
             <AgentQuickInput />
-            <Card className="p-4 min-h-0 flex-1 flex flex-col overflow-hidden">
-              <UpcomingCalendarPanel />
-            </Card>
-            <Card className="p-4 min-h-0 flex-1 flex flex-col overflow-hidden">
-              <DailyTodoPanel />
-            </Card>
+            <div className="flex-1 min-h-0 flex flex-col gap-4">
+              <Card className="p-4 min-h-0 basis-1/2 flex flex-col overflow-hidden">
+                <UpcomingCalendarPanel />
+              </Card>
+              <Card className="p-4 min-h-0 basis-1/2 flex flex-col overflow-hidden">
+                <DailyTodoPanel />
+              </Card>
+            </div>
           </aside>
         </div>
       </div>
