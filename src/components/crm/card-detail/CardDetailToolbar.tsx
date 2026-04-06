@@ -65,7 +65,8 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {
             const cardTitle = state.title || "cette carte";
-            navigate(`/agent?q=${encodeURIComponent(`Analyse la carte CRM "${cardTitle}" et donne-moi un résumé complet : historique, emails, commentaires, prochaines actions recommandées.`)}`);
+            const cardId = state.card.id;
+            navigate(`/agent?q=${encodeURIComponent(`Analyse la carte CRM "${cardTitle}" (id: ${cardId}) et donne-moi un résumé complet : historique, emails, commentaires, prochaines actions recommandées.`)}`);
           }}>
             <Bot className="h-4 w-4 mr-2" />
             Demander à l'agent
