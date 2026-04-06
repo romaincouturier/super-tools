@@ -56,7 +56,7 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let fullTranscript = "";
-        for (let i = 0; i < event.results.length; i++) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           if (event.results[i].isFinal) {
             fullTranscript += event.results[i][0].transcript;
           }
