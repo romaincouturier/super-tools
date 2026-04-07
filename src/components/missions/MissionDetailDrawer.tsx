@@ -155,8 +155,8 @@ const MissionDetailDrawer = ({
       setTrainBooked(mission.train_booked ?? false);
       setHotelBooked(mission.hotel_booked ?? false);
       setAssignedTo(mission.assigned_to || null);
-      setScheduledDate(mission.waiting_next_action_date || "");
-      setScheduledText(mission.waiting_next_action_text || "");
+      setScheduledDate("");
+      setScheduledText("");
       setShowScheduleForm(false);
       resetTracking();
     }
