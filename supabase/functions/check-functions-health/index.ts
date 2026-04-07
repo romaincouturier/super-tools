@@ -46,6 +46,7 @@ const FUNCTION_NAMES = [
   "generate-certificates",
   "generate-convention-formation",
   "generate-daily-actions",
+  "generate-daily-agenda",
   "generate-micro-devis",
   "generate-mission-summary",
   "generate-quiz",
