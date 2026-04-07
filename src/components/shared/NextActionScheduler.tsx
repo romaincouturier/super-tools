@@ -88,7 +88,7 @@ const NextActionScheduler = ({
             <Calendar className="h-4 w-4 shrink-0" />
             <span className="truncate">
               <span className="font-medium">
-                {format(new Date(displayDate), "d MMM yyyy", { locale: fr })}
+                {format(parseISO(displayDate), "d MMM yyyy", { locale: fr })}
               </span>
               {displayText && (
                 <span> — {displayText}</span>
