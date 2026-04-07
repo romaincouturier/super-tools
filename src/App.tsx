@@ -86,6 +86,7 @@ const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
 const AgentChat = lazy(() => import("./pages/AgentChat"));
 const SuperTilt = lazy(() => import("./pages/SuperTilt"));
+const WebAnalytics = lazy(() => import("./pages/WebAnalytics"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
