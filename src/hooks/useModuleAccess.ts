@@ -57,6 +57,7 @@ export const ALL_MODULES: AppModule[] = [
   "veille",
   "supertilt",
   "catalogue",
+  "web_analytics",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
