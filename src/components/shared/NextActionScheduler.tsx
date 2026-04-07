@@ -118,7 +118,7 @@ const NextActionScheduler = ({
           {currentAction.date && currentAction.date !== scheduledDate && (
             <div className="text-sm text-blue-700 flex items-center justify-between">
               <span>
-                Action actuelle : {format(new Date(currentAction.date), "d MMMM yyyy", { locale: fr })}
+                Action actuelle : {format(parseISO(currentAction.date), "d MMMM yyyy", { locale: fr })}
                 {currentAction.text && ` — ${currentAction.text}`}
               </span>
               <Button variant="ghost" size="sm" onClick={handleClear}>
