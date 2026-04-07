@@ -46,6 +46,7 @@ const FUNCTION_NAMES = [
   "generate-certificates",
   "generate-convention-formation",
   "generate-daily-actions",
+  "generate-daily-agenda",
   "generate-micro-devis",
   "generate-mission-summary",
   "generate-quiz",
@@ -108,6 +109,7 @@ const FUNCTION_NAMES = [
   "send-learner-magic-link",
   "send-logistics-requirements",
   "send-mission-deliverables",
+  "send-mission-email-draft",
   "send-needs-survey",
   "send-needs-survey-reminder",
   "send-password-reset",
@@ -139,6 +141,7 @@ const FUNCTION_NAMES = [
   "watch-cluster-analysis",
   "watch-process-item",
   "watch-weekly-digest",
+  "wp-statistics-proxy",
   "zapier-create-training",
 ];
 
