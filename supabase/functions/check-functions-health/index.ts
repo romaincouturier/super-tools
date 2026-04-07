@@ -109,6 +109,7 @@ const FUNCTION_NAMES = [
   "send-learner-magic-link",
   "send-logistics-requirements",
   "send-mission-deliverables",
+  "send-mission-email-draft",
   "send-needs-survey",
   "send-needs-survey-reminder",
   "send-password-reset",
