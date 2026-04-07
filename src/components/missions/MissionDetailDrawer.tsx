@@ -19,6 +19,7 @@ import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
+import MissionScheduledActions from "./MissionScheduledActions";
 import MissionPages from "./MissionPages";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import MissionContacts from "./MissionContacts";
@@ -303,10 +304,7 @@ const MissionDetailDrawer = ({
         </div>
         <div className="mt-2">
           <NextActionScheduler
-            currentAction={{
-              date: mission.waiting_next_action_date,
-              text: mission.waiting_next_action_text,
-            }}
+            currentAction={{ date: null, text: null }}
             scheduledDate={scheduledDate}
             setScheduledDate={setScheduledDate}
             scheduledText={scheduledText}
@@ -318,7 +316,6 @@ const MissionDetailDrawer = ({
               const selectedDate = startOfDay(new Date(scheduledDate));
               const today = startOfDay(new Date());
               if (!isAfter(selectedDate, today)) return;
-              // Create a corresponding activity
               try {
                 await createActivity.mutateAsync({
                   mission_id: mission.id,
@@ -337,15 +334,21 @@ const MissionDetailDrawer = ({
               } catch {
                 // Activity creation is best-effort
               }
+              // Reset form for next action
+              setScheduledDate("");
+              setScheduledText("");
             }}
             onClear={() => {
               setScheduledDate("");
               setScheduledText("");
             }}
-            saving={updateMission.isPending}
+            saving={updateMission.isPending || createActivity.isPending}
             actionPresets={["Relancer le client", "Appeler", "Préparer les livrables", "RDV physique", "RDV visio", "Envoyer un document"]}
           />
         </div>
+
+        {/* All scheduled actions list */}
+        <MissionScheduledActions missionId={mission.id} />
 
         {/* AI Mission Summary Panel */}
         {aiSummary && (
