@@ -41,7 +41,7 @@ const MissionScheduledActions = ({ missionId }: MissionScheduledActionsProps) =>
         Actions programmées ({scheduledActions.length})
       </p>
       {scheduledActions.map((action) => {
-        const date = new Date(action.activity_date);
+        const date = parseISO(action.activity_date);
         const past = isPast(startOfDay(date)) && !isToday(date);
         const today = isToday(date);
         const done = action.is_billed;
