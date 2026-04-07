@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { X, Loader2, Calendar } from "lucide-react";
-import { format, addDays } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
 export interface NextActionData {
@@ -88,7 +88,7 @@ const NextActionScheduler = ({
             <Calendar className="h-4 w-4 shrink-0" />
             <span className="truncate">
               <span className="font-medium">
-                {format(new Date(displayDate), "d MMM yyyy", { locale: fr })}
+                {format(parseISO(displayDate), "d MMM yyyy", { locale: fr })}
               </span>
               {displayText && (
                 <span> — {displayText}</span>
@@ -118,7 +118,7 @@ const NextActionScheduler = ({
           {currentAction.date && currentAction.date !== scheduledDate && (
             <div className="text-sm text-blue-700 flex items-center justify-between">
               <span>
-                Action actuelle : {format(new Date(currentAction.date), "d MMMM yyyy", { locale: fr })}
+                Action actuelle : {format(parseISO(currentAction.date), "d MMMM yyyy", { locale: fr })}
                 {currentAction.text && ` — ${currentAction.text}`}
               </span>
               <Button variant="ghost" size="sm" onClick={handleClear}>
