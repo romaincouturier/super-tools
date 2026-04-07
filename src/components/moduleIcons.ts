@@ -58,4 +58,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   lms: { icon: GraduationCap, label: "E-learning", path: "/lms" },
   veille: { icon: Eye, label: "Veille", path: "/veille" },
   supertilt: { icon: Zap, label: "SuperTilt", path: "/supertilt" },
+  "web-analytics": { icon: Globe, label: "Stats site web", path: "/web-analytics" },
 };
