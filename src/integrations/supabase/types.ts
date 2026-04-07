@@ -7591,6 +7591,7 @@ export type Database = {
         | "reseau"
         | "screenshots"
         | "veille"
+        | "web_analytics"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -7748,6 +7749,7 @@ export const Constants = {
         "reseau",
         "screenshots",
         "veille",
+        "web_analytics",
       ],
       notification_type: [
         "review_requested",

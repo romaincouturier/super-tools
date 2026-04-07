@@ -86,6 +86,7 @@ const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
 const AgentChat = lazy(() => import("./pages/AgentChat"));
 const SuperTilt = lazy(() => import("./pages/SuperTilt"));
+const WebAnalytics = lazy(() => import("./pages/WebAnalytics"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -147,6 +148,8 @@ const App = () => (
               <Route path="/emails" element={<InboundEmails />} />
               {/* Statistics dashboard */}
               <Route path="/statistiques" element={<Statistiques />} />
+              {/* Web analytics (WP-Statistics) */}
+              <Route path="/web-analytics" element={<WebAnalytics />} />
               {/* CRM Kanban */}
               <Route path="/crm" element={<Crm />} />
               <Route path="/crm/card/:cardId" element={<Crm />} />

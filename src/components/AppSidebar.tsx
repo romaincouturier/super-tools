@@ -39,6 +39,7 @@ const SIDEBAR_MODULE_ORDER = [
   "supertilt",
   "veille",
   "arena",
+  "web-analytics",
 ];
 
 /** Map MODULE_ICONS keys to AppModule keys (handles underscore vs hyphen) */
