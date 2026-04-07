@@ -1,0 +1,1 @@
+UPDATE public.support_tickets SET status = 'resolu', resolution_notes = 'Le système de gestion de médias (EntityMediaManager) permet d''ajouter plusieurs images et fichiers à chaque carte de contenu. Un indicateur du nombre de médias est visible sur la carte kanban.', resolved_at = now(), updated_at = now() WHERE id = '272cb99a-6de1-4f42-879d-a1a18931d620';

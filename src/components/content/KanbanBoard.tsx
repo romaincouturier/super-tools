@@ -56,6 +56,7 @@ export interface Card {
   newsletter_name?: string | null;
   created_at?: string;
   deadline?: string | null;
+  media_count?: number;
 }
 
 export interface Column {
@@ -157,7 +158,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   const fetchData = async () => {
     try {
-      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes, newsletterAttachmentsRes] = await Promise.all([
+      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes, newsletterAttachmentsRes, mediaCountsRes] = await Promise.all([
         supabase
           .from("content_columns")
           .select("*")
@@ -205,6 +206,18 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           }
           return cardNlMap;
         })(),
+        // Fetch media counts per content card
+        (async () => {
+          const { data } = await supabase
+            .from("media")
+            .select("source_id")
+            .eq("source_type", "content");
+          const counts = new Map<string, number>();
+          for (const m of data || []) {
+            counts.set(m.source_id, (counts.get(m.source_id) || 0) + 1);
+          }
+          return counts;
+        })(),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
@@ -245,6 +258,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           card_type: (c.card_type as ContentCardType) || "article",
           emoji: (c as unknown as { emoji?: string | null }).emoji || null,
           newsletter_name: cardNewsletterMap.get(c.id) || null,
+          media_count: mediaCountsRes.get(c.id) || 0,
         }))
       );
     } catch (error) {

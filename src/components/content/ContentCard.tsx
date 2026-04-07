@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, Eye, Clock } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, Clock, ImageIcon } from "lucide-react";
 import { differenceInCalendarDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import ImageLightbox from "@/components/ui/image-lightbox";
@@ -170,7 +170,15 @@ const ContentCard = ({ card, isDragging: isDraggingProp, typeColors, onEdit, onD
           </p>
         )}
 
-        <CardTagList tags={tags} className="mt-2" />
+        <div className="flex items-center gap-2 mt-2">
+          <CardTagList tags={tags} className="flex-1" />
+          {(card.media_count ?? 0) > 0 && (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0" title={`${card.media_count} média(s)`}>
+              <ImageIcon className="h-3 w-3" />
+              {card.media_count}
+            </span>
+          )}
+        </div>
 
         {card.deadline && (() => {
           const daysLeft = differenceInCalendarDays(new Date(card.deadline), new Date());
