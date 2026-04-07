@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, Eye, Clock } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Eye, Clock, ImageIcon } from "lucide-react";
 import { differenceInCalendarDays, format } from "date-fns";
 import { fr } from "date-fns/locale";
 import ImageLightbox from "@/components/ui/image-lightbox";
