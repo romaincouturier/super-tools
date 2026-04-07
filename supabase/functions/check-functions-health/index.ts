@@ -141,6 +141,7 @@ const FUNCTION_NAMES = [
   "watch-cluster-analysis",
   "watch-process-item",
   "watch-weekly-digest",
+  "wp-statistics-proxy",
   "zapier-create-training",
 ];
 
