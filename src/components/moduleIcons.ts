@@ -23,6 +23,7 @@ import {
   GraduationCap,
   Eye,
   Zap,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
