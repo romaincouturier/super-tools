@@ -303,7 +303,7 @@ const CardDetailDrawer = ({
     return {
       title: card?.title ?? "", description: descriptionHtml, company,
       first_name: firstName, last_name: lastName, service_type: serviceType,
-      estimated_value: parseValue(), comments: details?.comments || [],
+      estimated_value: parseFloat(estimatedValue) || 0, comments: details?.comments || [],
       brief_questions: card?.brief_questions || [], activities: details?.activity || [],
       emails_sent: (details?.emails || []).map(e => ({ subject: e.subject, body_html: e.body_html, sent_at: e.sent_at, recipient_email: e.recipient_email })),
       client_profile: profileParts.join("\n"),
