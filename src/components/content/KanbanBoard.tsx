@@ -129,12 +129,16 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     };
   }, []);
 
-  // Load collaborators with access to content module
+  // Load collaborators with access to content module (including admins)
   useEffect(() => {
     (async () => {
       const { data: access } = await supabase.from("user_module_access").select("user_id").eq("module", "contenu");
-      if (!access?.length) return;
-      const { data: profiles } = await supabase.from("profiles").select("user_id, email, display_name").in("user_id", access.map((a) => a.user_id));
+      const { data: admins } = await supabase.from("profiles").select("user_id").eq("is_admin", true);
+      const userIds = new Set<string>();
+      access?.forEach((a) => userIds.add(a.user_id));
+      admins?.forEach((a) => userIds.add(a.user_id));
+      if (userIds.size === 0) return;
+      const { data: profiles } = await supabase.from("profiles").select("user_id, email, display_name").in("user_id", Array.from(userIds));
       if (profiles) {
         setCollaborators(profiles.map((p) => ({ id: p.user_id, email: p.email, displayName: p.display_name })));
       }
