@@ -19,6 +19,7 @@ import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
+import MissionScheduledActions from "./MissionScheduledActions";
 import MissionPages from "./MissionPages";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import MissionContacts from "./MissionContacts";
