@@ -56,6 +56,7 @@ export interface Card {
   newsletter_name?: string | null;
   created_at?: string;
   deadline?: string | null;
+  media_count?: number;
 }
 
 export interface Column {
