@@ -2,7 +2,7 @@ import { useMissionActivities, useUpdateMissionActivity, useDeleteMissionActivit
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Check, Trash2, Clock } from "lucide-react";
-import { format, isPast, isToday, startOfDay } from "date-fns";
+import { format, isPast, isToday, startOfDay, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
 interface MissionScheduledActionsProps {
