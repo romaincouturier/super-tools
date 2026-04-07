@@ -108,10 +108,14 @@ serve(async (req) => {
             const ocrData = await ocrRes.json();
             const extractedText = ocrData.choices?.[0]?.message?.content || "";
             if (extractedText.trim()) {
-              body = extractedText;
-              updates.body = body;
-              console.log(`OCR extracted ${extractedText.length} chars from image`);
-              await saveUpdates({ body });
+              // Store OCR in transcript field — never overwrite user notes in body
+              updates.transcript = extractedText;
+              console.log(`OCR extracted ${extractedText.length} chars from image → transcript`);
+              await saveUpdates({ transcript: extractedText });
+              // Use extracted text for AI title/tags generation if body is empty
+              if (!body) {
+                body = extractedText;
+              }
             }
           } else {
             const errText = await ocrRes.text();
