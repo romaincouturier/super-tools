@@ -87,6 +87,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   veille: "Veille",
   supertilt: "Supertilt",
   catalogue: "Catalogue",
+  web_analytics: "Stats site web",
 };
 
 export function useModuleAccess() {
