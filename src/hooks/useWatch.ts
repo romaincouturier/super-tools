@@ -25,6 +25,7 @@ export interface WatchItem {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  transcript: string | null;
 }
 
 export interface WatchCluster {

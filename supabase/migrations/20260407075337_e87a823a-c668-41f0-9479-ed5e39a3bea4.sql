@@ -1,0 +1,1 @@
+ALTER TABLE public.watch_items ADD COLUMN transcript text;

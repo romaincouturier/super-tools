@@ -7107,6 +7107,7 @@ export type Database = {
           source_url: string | null
           tags: string[]
           title: string
+          transcript: string | null
           updated_at: string
         }
         Insert: {
@@ -7128,6 +7129,7 @@ export type Database = {
           source_url?: string | null
           tags?: string[]
           title?: string
+          transcript?: string | null
           updated_at?: string
         }
         Update: {
@@ -7149,6 +7151,7 @@ export type Database = {
           source_url?: string | null
           tags?: string[]
           title?: string
+          transcript?: string | null
           updated_at?: string
         }
         Relationships: [

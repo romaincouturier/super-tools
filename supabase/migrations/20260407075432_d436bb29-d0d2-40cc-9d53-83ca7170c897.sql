@@ -1,0 +1,1 @@
+UPDATE public.support_tickets SET status = 'resolu', updated_at = now() WHERE id IN ('b4b28834-550a-4f89-bfeb-c66660322a6f', 'd9148f0c-0041-4fc5-a995-0fe640eddf92', 'c6d7dd8d-15fa-4095-9c4b-8cfcf9354d3c');
