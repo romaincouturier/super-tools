@@ -27,7 +27,8 @@ export type AppModule =
   | "screenshots"
   | "veille"
   | "supertilt"
-  | "catalogue";
+  | "catalogue"
+  | "web_analytics";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
