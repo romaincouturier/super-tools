@@ -258,6 +258,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           card_type: (c.card_type as ContentCardType) || "article",
           emoji: (c as unknown as { emoji?: string | null }).emoji || null,
           newsletter_name: cardNewsletterMap.get(c.id) || null,
+          media_count: mediaCountsRes.get(c.id) || 0,
         }))
       );
     } catch (error) {
