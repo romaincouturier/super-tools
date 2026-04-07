@@ -148,6 +148,8 @@ const App = () => (
               <Route path="/emails" element={<InboundEmails />} />
               {/* Statistics dashboard */}
               <Route path="/statistiques" element={<Statistiques />} />
+              {/* Web analytics (WP-Statistics) */}
+              <Route path="/web-analytics" element={<WebAnalytics />} />
               {/* CRM Kanban */}
               <Route path="/crm" element={<Crm />} />
               <Route path="/crm/card/:cardId" element={<Crm />} />
