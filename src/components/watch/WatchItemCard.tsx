@@ -170,6 +170,14 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
         />
       )}
 
+      {/* OCR transcript for images */}
+      {item.content_type === "image" && item.transcript && (
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer hover:text-foreground">📝 Texte extrait (OCR)</summary>
+          <p className="mt-1 whitespace-pre-wrap bg-muted/50 rounded p-2">{item.transcript}</p>
+        </details>
+      )}
+
       {/* Audio player */}
       {item.content_type === "audio" && item.file_url && (
         <audio controls className="w-full" preload="metadata">
