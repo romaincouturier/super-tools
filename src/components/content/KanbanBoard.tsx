@@ -206,6 +206,18 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           }
           return cardNlMap;
         })(),
+        // Fetch media counts per content card
+        (async () => {
+          const { data } = await supabase
+            .from("media")
+            .select("source_id")
+            .eq("source_type", "content");
+          const counts = new Map<string, number>();
+          for (const m of data || []) {
+            counts.set(m.source_id, (counts.get(m.source_id) || 0) + 1);
+          }
+          return counts;
+        })(),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
