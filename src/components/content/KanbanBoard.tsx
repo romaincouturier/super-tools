@@ -158,7 +158,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   const fetchData = async () => {
     try {
-      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes, newsletterAttachmentsRes] = await Promise.all([
+      const [columnsRes, cardsRes, reviewsRes, sentNewslettersRes, newsletterAttachmentsRes, mediaCountsRes] = await Promise.all([
         supabase
           .from("content_columns")
           .select("*")
