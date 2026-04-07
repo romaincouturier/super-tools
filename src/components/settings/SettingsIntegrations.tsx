@@ -177,6 +177,26 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">WP-Statistics</CardTitle>
+          <CardDescription>Token API pour récupérer les statistiques du site WordPress (supertilt.fr).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="wp-stats-token">Token API WP-Statistics</Label>
+          <Input
+            id="wp-stats-token"
+            type="password"
+            value={settings.wp_statistics_api_token}
+            onChange={(e) => updateSetting("wp_statistics_api_token", e.target.value)}
+            placeholder="Votre token WP-Statistics"
+          />
+          <p className="text-xs text-muted-foreground">
+            Dans WordPress : WP Statistics → Réglages → onglet API → activez le REST API → copiez le token généré.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">OpenAI</CardTitle>
           <CardDescription>Clé API OpenAI utilisée pour l'OCR (images veille), les embeddings RAG et les analyses automatiques.</CardDescription>
         </CardHeader>
