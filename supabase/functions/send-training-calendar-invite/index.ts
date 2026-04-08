@@ -8,6 +8,7 @@ import { emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateWithDayFr } from "../_shared/date-utils.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 interface TrainingSchedule {
   day_date: string;
@@ -25,6 +26,7 @@ interface RequestBody {
   trainerEmail: string;
   trainerFirstName: string;
   trainerLastName: string;
+  specificInstructions?: string;
 }
 
 // Generate ICS file content for training sessions
@@ -36,7 +38,8 @@ function generateICS(
   trainerEmail: string,
   organizerEmail: string,
   meetingUrl?: string,
-  summaryUrl?: string
+  summaryUrl?: string,
+  specificInstructions?: string
 ): string {
   const uid = crypto.randomUUID();
   const now = new Date();
@@ -63,7 +66,7 @@ DTSTAMP:${dtstamp}
 DTSTART;TZID=Europe/Paris:${dtStart}
 DTEND;TZID=Europe/Paris:${dtEnd}
 SUMMARY:Formation: ${escapeICS(trainingName)} - ${escapeICS(clientName)}
-DESCRIPTION:Formation pour ${escapeICS(clientName)}${meetingUrl ? `\\n\\nRejoindre la visio: ${escapeICS(meetingUrl)}` : ""}${summaryUrl ? `\\n\\nInfos & documents: ${escapeICS(summaryUrl)}` : ""}\\n\\nFormateur: Vous etes le formateur de cette session.
+DESCRIPTION:Formation pour ${escapeICS(clientName)}${specificInstructions ? `\\n\\n${escapeICS(specificInstructions)}` : ""}${meetingUrl ? `\\n\\nRejoindre la visio: ${escapeICS(meetingUrl)}` : ""}${summaryUrl ? `\\n\\nInfos & documents: ${escapeICS(summaryUrl)}` : ""}\\n\\nFormateur: Vous etes le formateur de cette session.
 LOCATION:${escapeICS(meetingUrl || location)}
 ORGANIZER;CN=Supertilt:mailto:${organizerEmail}
 ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=ACCEPTED;CN=${escapeICS(trainerEmail)}:mailto:${trainerEmail}
@@ -118,6 +121,7 @@ serve(async (req: Request): Promise<Response> => {
       trainerEmail,
       trainerFirstName,
       trainerLastName,
+      specificInstructions,
     } = body;
 
     if (!trainerEmail || !trainingName || !schedules || schedules.length === 0) {
@@ -125,6 +129,18 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Fetch specific_instructions from DB if not provided
+    let instructions = specificInstructions;
+    if (!instructions && trainingId) {
+      const sb = getSupabaseClient();
+      const { data } = await sb
+        .from("trainings")
+        .select("specific_instructions")
+        .eq("id", trainingId)
+        .single();
+      instructions = data?.specific_instructions || undefined;
     }
 
     const urls = await getAppUrls();
@@ -148,7 +164,8 @@ serve(async (req: Request): Promise<Response> => {
       trainerEmail,
       organizerEmail,
       meetingUrl,
-      summaryUrl
+      summaryUrl,
+      instructions
     );
 
     // Build schedule list for email

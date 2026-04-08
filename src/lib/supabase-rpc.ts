@@ -46,6 +46,7 @@ export interface TrainingSummaryInfo extends TrainingPublicInfo {
   supports_url: string | null;
   trainer_id: string | null;
   session_format: string | null;
+  specific_instructions: string | null;
 }
 
 export interface ParticipantPublicInfo {

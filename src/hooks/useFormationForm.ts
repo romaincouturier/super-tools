@@ -70,6 +70,7 @@ export interface FormationFormState {
   trainerId: string | null;
   assignedTo: string | null;
   trainingNotes: string;
+  specificInstructions: string;
 
   // Settings
   supertiltSiteUrl: string;
@@ -148,6 +149,7 @@ export function useFormationForm() {
   const [trainerId, setTrainerId] = useState<string | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [trainingNotes, setTrainingNotes] = useState("");
+  const [specificInstructions, setSpecificInstructions] = useState("");
 
   // Settings
   const [supertiltSiteUrl, setSupertiltSiteUrl] = useState("");
@@ -318,6 +320,7 @@ export function useFormationForm() {
         base.trainer_id = trainerId || null;
         base.assigned_to = assignedTo || null;
         base.notes = trainingNotes.trim() || null;
+        base.specific_instructions = specificInstructions.trim() || null;
       }
 
       return base;
@@ -332,7 +335,7 @@ export function useFormationForm() {
       sponsorFirstName, sponsorLastName, sponsorEmail,
       financeurName, financeurUrl,
       locationType, locationCustom,
-      trainerId, assignedTo, trainingNotes,
+      trainerId, assignedTo, trainingNotes, specificInstructions,
       getStartDate, getEndDate, getLegacyFormatFormation, getFinalLocation,
     ]
   );
@@ -376,6 +379,7 @@ export function useFormationForm() {
     trainerId, setTrainerId,
     assignedTo, setAssignedTo,
     trainingNotes, setTrainingNotes,
+    specificInstructions, setSpecificInstructions,
     supertiltSiteUrl,
     dataLoaded, setDataLoaded,
 

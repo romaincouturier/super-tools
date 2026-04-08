@@ -98,6 +98,7 @@ const FormationEdit = () => {
       form.setFinanceurName(training.financeur_name || "");
       form.setFinanceurUrl(training.financeur_url || "");
       form.setTrainingNotes((training as unknown as { notes?: string }).notes || "");
+      form.setSpecificInstructions((training as unknown as { specific_instructions?: string }).specific_instructions || "");
       form.setCatalogId((training as unknown as { catalog_id?: string | null }).catalog_id || null);
 
       // For e-learning, load start/end dates directly
@@ -448,6 +449,25 @@ const FormationEdit = () => {
                     rows={4}
                     className="resize-y"
                   />
+                </CardContent>
+              </Card>
+
+              {/* Instructions spécifiques */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Instructions spécifiques</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={form.specificInstructions}
+                    onChange={(e) => form.setSpecificInstructions(e.target.value)}
+                    placeholder="Instructions visibles dans l'événement Google Calendar et la synthèse de la formation..."
+                    rows={4}
+                    className="resize-y"
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Ces instructions apparaîtront dans le descriptif de l'événement calendrier et sur la page synthèse de la formation.
+                  </p>
                 </CardContent>
               </Card>
 

@@ -56,6 +56,7 @@ interface Training {
   prerequisites: string[] | null;
   format_formation: string | null;
   session_format: string | null;
+  specific_instructions: string | null;
 }
 
 interface Schedule {
@@ -550,6 +551,30 @@ END:VCALENDAR`;
                 </p>
               ))}
             </ul>
+          </section>
+        )}
+
+        {/* ═══ SECTION: Instructions spécifiques ═══ */}
+        {training.specific_instructions && (
+          <section className="scroll-mt-20">
+            <div
+              className="rounded-xl p-5 shadow-sm border space-y-3"
+              style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg" style={{ background: c.primaryContainer, color: c.onPrimaryContainer }}>
+                  <MIcon icon="info" />
+                </div>
+                <div>
+                  <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
+                    Instructions
+                  </h2>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: c.onSurfaceVariant }}>
+                {training.specific_instructions}
+              </p>
+            </div>
           </section>
         )}
 
