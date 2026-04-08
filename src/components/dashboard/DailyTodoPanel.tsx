@@ -215,36 +215,35 @@ const DailyTodoPanel = () => {
         <Progress value={progressPercent} className="h-2" />
       </div>
 
-      {/* AI Agenda */}
-      {showAgenda && (
-        <div className="shrink-0 border rounded-lg bg-primary/5 p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-primary flex items-center gap-1">
-              <CalendarClock className="h-3.5 w-3.5" />
-              Agenda proposé
-            </span>
-            <button
-              onClick={() => setShowAgenda(false)}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Fermer
-            </button>
-          </div>
-          {agendaLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            </div>
-          ) : agendaContent ? (
-            <div className="text-xs leading-relaxed prose prose-xs max-w-none [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:text-xs [&_li]:text-xs [&_strong]:text-foreground">
-              <ReactMarkdown>{agendaContent}</ReactMarkdown>
-            </div>
-          ) : null}
-        </div>
-      )}
-
       {/* Actions list */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="space-y-3 pr-2">
+          {/* AI Agenda */}
+          {showAgenda && (
+            <div className="border rounded-lg bg-primary/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-primary flex items-center gap-1">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  Agenda proposé
+                </span>
+                <button
+                  onClick={() => setShowAgenda(false)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Fermer
+                </button>
+              </div>
+              {agendaLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                </div>
+              ) : agendaContent ? (
+                <div className="text-xs leading-relaxed prose prose-xs max-w-none [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:text-xs [&_li]:text-xs [&_strong]:text-foreground">
+                  <ReactMarkdown>{agendaContent}</ReactMarkdown>
+                </div>
+              ) : null}
+            </div>
+          )}
           {Object.entries(grouped).map(([category, catActions]) => {
             const config = getCategoryConfig(category);
             const catCompleted = catActions.filter(
