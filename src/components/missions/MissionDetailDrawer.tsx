@@ -179,9 +179,7 @@ const MissionDetailDrawer = ({
     emoji: missionEmoji,
     location: location.trim() || null,
     assigned_to: assignedTo,
-    waiting_next_action_date: scheduledDate || null,
-    waiting_next_action_text: scheduledText.trim() || null,
-  }), [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo, scheduledDate, scheduledText]);
+  }), [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo]);
 
   const handleAutoSave = useCallback(async (values: Record<string, unknown>) => {
     if (!mission) return false;
