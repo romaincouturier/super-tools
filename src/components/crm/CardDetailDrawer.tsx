@@ -147,6 +147,7 @@ const CardDetailDrawer = ({
   const [fieldSaving, setFieldSaving] = useState(false);
   const [fieldSaved, setFieldSaved] = useState(false);
   const fieldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedFieldsHashRef = useRef<string>("");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [pricingLines, setPricingLines] = useState<PricingLine[]>([]);
   const [pricingTravelTotal, setPricingTravelTotal] = useState(0);
@@ -201,6 +202,7 @@ const CardDetailDrawer = ({
       setFieldSaved(false);
       setNextActionSuggesting(false);
       cardLoadedRef.current = false;
+      lastSavedFieldsHashRef.current = "";
       setTimeout(() => { cardLoadedRef.current = true; }, 100);
     }
   }, [card]);
@@ -232,9 +234,19 @@ const CardDetailDrawer = ({
   cardRef.current = card;
   const userEmailRef = useRef(user?.email);
   userEmailRef.current = user?.email;
+  const updateCardRef = useRef(updateCard);
+  updateCardRef.current = updateCard;
+
+  const fieldsHash = useMemo(() => JSON.stringify(autoSaveUpdates), [autoSaveUpdates]);
 
   useEffect(() => {
     if (!cardLoadedRef.current || !cardRef.current || !userEmailRef.current) return;
+    // Skip save if nothing changed since last save (or since card loaded)
+    if (fieldsHash === lastSavedFieldsHashRef.current) return;
+    if (!lastSavedFieldsHashRef.current) {
+      lastSavedFieldsHashRef.current = fieldsHash;
+      return;
+    }
     // Note: sales_status and column_id are NOT included here because they are
     // saved immediately by their dedicated handlers (handleSalesStatusChange,
     // handleColumnChange). Including them would cause duplicate mutations and
@@ -247,7 +259,8 @@ const CardDetailDrawer = ({
       setFieldSaving(true);
       setFieldSaved(false);
       try {
-        await updateCard.mutateAsync({ id: currentCard.id, updates: autoSaveUpdates, actorEmail: currentEmail, oldCard: currentCard });
+        await updateCardRef.current.mutateAsync({ id: currentCard.id, updates: autoSaveUpdates, actorEmail: currentEmail, oldCard: currentCard });
+        lastSavedFieldsHashRef.current = fieldsHash;
         setFieldSaved(true);
         setTimeout(() => setFieldSaved(false), 2000);
       } catch (error) {
@@ -257,14 +270,14 @@ const CardDetailDrawer = ({
       }
     }, 1000);
     return () => { if (fieldTimeoutRef.current) clearTimeout(fieldTimeoutRef.current); };
-  }, [autoSaveUpdates, updateCard]);
+  }, [fieldsHash, autoSaveUpdates]);
 
   const saveDescription = useCallback(async (newDescription: string) => {
     if (!card || !user?.email) return;
     setDescriptionSaving(true);
     setDescriptionSaved(false);
     try {
-      await updateCard.mutateAsync({ id: card.id, updates: { description_html: DOMPurify.sanitize(newDescription) }, actorEmail: user.email, oldCard: card });
+      await updateCardRef.current.mutateAsync({ id: card.id, updates: { description_html: DOMPurify.sanitize(newDescription) }, actorEmail: user.email, oldCard: card });
       setDescriptionSaved(true);
       setTimeout(() => setDescriptionSaved(false), 2000);
     } catch (error) {
@@ -272,7 +285,7 @@ const CardDetailDrawer = ({
     } finally {
       setDescriptionSaving(false);
     }
-  }, [card, user?.email, updateCard]);
+  }, [card, user?.email]);
 
   const handleDescriptionChange = (value: string) => {
     setDescriptionHtml(value);
