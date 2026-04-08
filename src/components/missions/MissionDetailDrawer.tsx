@@ -316,6 +316,15 @@ const MissionDetailDrawer = ({
               const selectedDate = startOfDay(new Date(scheduledDate));
               const today = startOfDay(new Date());
               if (!isAfter(selectedDate, today)) return;
+              // Explicitly save scheduling fields to the mission
+              await updateMission.mutateAsync({
+                id: mission.id,
+                updates: {
+                  waiting_next_action_date: scheduledDate,
+                  waiting_next_action_text: scheduledText.trim(),
+                },
+              });
+              // Create a corresponding activity (best-effort)
               try {
                 await createActivity.mutateAsync({
                   mission_id: mission.id,
@@ -338,9 +347,18 @@ const MissionDetailDrawer = ({
               setScheduledDate("");
               setScheduledText("");
             }}
-            onClear={() => {
+            onClear={async () => {
               setScheduledDate("");
               setScheduledText("");
+              if (mission) {
+                await updateMission.mutateAsync({
+                  id: mission.id,
+                  updates: {
+                    waiting_next_action_date: null,
+                    waiting_next_action_text: null,
+                  },
+                });
+              }
             }}
             saving={updateMission.isPending || createActivity.isPending}
             actionPresets={["Relancer le client", "Appeler", "Préparer les livrables", "RDV physique", "RDV visio", "Envoyer un document"]}
