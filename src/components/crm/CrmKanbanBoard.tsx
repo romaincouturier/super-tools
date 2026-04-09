@@ -31,7 +31,7 @@ interface CrmKanbanBoardProps {
 const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data: boardData, isLoading } = useCrmBoard();
+  const { data: boardData, isLoading, isError, refetch } = useCrmBoard();
   const { data: crmSettings } = useCrmSettings();
   const moveCard = useMoveCard();
   const createColumn = useCreateColumn();
@@ -84,6 +84,15 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
   // Search across all card fields (including hidden/scheduled cards)
   const allCards = boardData?.cards || [];
+  const tagUsageCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const card of allCards) {
+      for (const tag of card.tags || []) {
+        counts[tag.id] = (counts[tag.id] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [allCards]);
   const searchResults = useMemo(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) return [];
     const q = searchQuery.toLowerCase().trim();
@@ -372,18 +381,19 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-sm text-muted-foreground">Erreur de chargement du pipeline</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
+
   const tags = boardData?.tags || [];
   const allColumns = boardData?.columns || [];
-
-  const tagUsageCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const card of allCards) {
-      for (const tag of card.tags || []) {
-        counts[tag.id] = (counts[tag.id] || 0) + 1;
-      }
-    }
-    return counts;
-  }, [allCards]);
 
   return (
     <div className="h-full flex flex-col gap-3">

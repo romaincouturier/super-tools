@@ -12,23 +12,23 @@ export const useCrmBoard = () => {
   return useQuery({
     queryKey: [CRM_QUERY_KEY],
     queryFn: async () => {
-      const columnsRes = await supabase
-        .from("crm_columns")
-        .select("*")
-        .eq("is_archived", false)
-        .order("position", { ascending: true });
-
-      const cardsRes = await supabase
-        .from("crm_cards")
-        .select("*")
-        .order("position", { ascending: true });
-
-      const tagsRes = await supabase
-        .from("crm_tags")
-        .select("*")
-        .order("category", { ascending: true });
-
-      const cardTagsRes = await supabase.from("crm_card_tags").select("*");
+      // Run all 4 queries in parallel for speed
+      const [columnsRes, cardsRes, tagsRes, cardTagsRes] = await Promise.all([
+        supabase
+          .from("crm_columns")
+          .select("*")
+          .eq("is_archived", false)
+          .order("position", { ascending: true }),
+        supabase
+          .from("crm_cards")
+          .select("*")
+          .order("position", { ascending: true }),
+        supabase
+          .from("crm_tags")
+          .select("*")
+          .order("category", { ascending: true }),
+        supabase.from("crm_card_tags").select("*"),
+      ]);
 
       if (columnsRes.error) throw columnsRes.error;
       if (cardsRes.error) throw cardsRes.error;
@@ -41,5 +41,8 @@ export const useCrmBoard = () => {
 
       return { columns, cards, tags };
     },
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    staleTime: 30_000,
   });
 };
