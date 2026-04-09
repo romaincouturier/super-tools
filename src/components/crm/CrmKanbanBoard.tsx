@@ -84,6 +84,15 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
 
   // Search across all card fields (including hidden/scheduled cards)
   const allCards = boardData?.cards || [];
+  const tagUsageCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const card of allCards) {
+      for (const tag of card.tags || []) {
+        counts[tag.id] = (counts[tag.id] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [allCards]);
   const searchResults = useMemo(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) return [];
     const q = searchQuery.toLowerCase().trim();
