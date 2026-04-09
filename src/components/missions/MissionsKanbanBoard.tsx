@@ -118,7 +118,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
       columnId: m.status,
       position: m.position,
     }));
-  }, [missions, normalizedSearch]);
+  }, [missions, normalizedSearch, futureScheduledIds]);
 
   const statsItems: KanbanStatsItem[] = useMemo(() => {
     return missions.map((m) => ({
