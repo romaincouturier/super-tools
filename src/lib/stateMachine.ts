@@ -62,13 +62,14 @@ export const conventionSignatureMachine: StateMachineConfig<ConventionSignatureS
 // Training Evaluations
 // ---------------------------------------------------------------------------
 
-export const EVALUATION_STATUSES = ["envoye", "soumis"] as const;
+export const EVALUATION_STATUSES = ["non_envoye", "envoye", "soumis"] as const;
 
 export type EvaluationStatus = (typeof EVALUATION_STATUSES)[number];
 
 export const evaluationMachine: StateMachineConfig<EvaluationStatus> = {
   label: "TrainingEvaluation",
   transitions: {
+    non_envoye: ["soumis"],
     envoye: ["soumis"],
     soumis: [],
   },
