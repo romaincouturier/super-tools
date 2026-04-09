@@ -63,6 +63,6 @@ Deno.serve(async (req) => {
     return createJsonResponse(data);
   } catch (error) {
     console.error("wp-statistics-proxy error:", error);
-    return createErrorResponse(error.message);
+    return createErrorResponse(error instanceof Error ? error.message : "Unknown error");
   }
 });
