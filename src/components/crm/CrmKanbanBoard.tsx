@@ -386,16 +386,6 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const tags = boardData?.tags || [];
   const allColumns = boardData?.columns || [];
 
-  const tagUsageCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const card of allCards) {
-      for (const tag of card.tags || []) {
-        counts[tag.id] = (counts[tag.id] || 0) + 1;
-      }
-    }
-    return counts;
-  }, [allCards]);
-
   return (
     <div className="h-full flex flex-col gap-3">
       {/* Search bar + filters */}
