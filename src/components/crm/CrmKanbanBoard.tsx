@@ -372,6 +372,17 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-sm text-muted-foreground">Erreur de chargement du pipeline</p>
+        <Button variant="outline" size="sm" onClick={() => refetch()}>
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
+
   const tags = boardData?.tags || [];
   const allColumns = boardData?.columns || [];
 
