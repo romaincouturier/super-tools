@@ -66,6 +66,12 @@ export const useMissions = () =>
     queryFn: missionService.fetchMissions,
   });
 
+export const useMissionIdsWithFutureScheduledActions = () =>
+  useQuery({
+    queryKey: [MISSIONS_QUERY_KEY, "future-scheduled-ids"],
+    queryFn: missionService.fetchMissionIdsWithFutureScheduledActions,
+  });
+
 export const useSearchMissions = (searchTerm: string) =>
   useQuery({
     queryKey: [MISSIONS_QUERY_KEY, "search", searchTerm],

@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
-import { useMissions, useMoveMission, useUpdateMission } from "@/hooks/useMissions";
+import { useMissions, useMoveMission, useUpdateMission, useMissionIdsWithFutureScheduledActions } from "@/hooks/useMissions";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
@@ -45,6 +45,7 @@ const columns: MissionKanbanColumn[] = statuses.map((s, idx) => ({
 
 const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId }: MissionsKanbanBoardProps) => {
   const { data, isLoading, error } = useMissions();
+  const { data: futureScheduledIds } = useMissionIdsWithFutureScheduledActions();
   const moveMission = useMoveMission();
   const updateMission = useUpdateMission();
 
@@ -82,10 +83,15 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const normalizedSearch = searchTerm.toLowerCase().trim();
 
   const isScheduledInFuture = (m: Mission): boolean => {
-    if (!m.waiting_next_action_date) return false;
-    const scheduledDate = startOfDay(new Date(m.waiting_next_action_date));
-    const today = startOfDay(new Date());
-    return isAfter(scheduledDate, today);
+    // Check the legacy field on the mission itself
+    if (m.waiting_next_action_date) {
+      const scheduledDate = startOfDay(new Date(m.waiting_next_action_date));
+      const today = startOfDay(new Date());
+      if (isAfter(scheduledDate, today)) return true;
+    }
+    // Also check activities-based scheduled actions (duration=0, undone, future)
+    if (futureScheduledIds?.has(m.id)) return true;
+    return false;
   };
 
   const cards: MissionKanbanCard[] = useMemo(() => {
@@ -112,7 +118,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
       columnId: m.status,
       position: m.position,
     }));
-  }, [missions, normalizedSearch]);
+  }, [missions, normalizedSearch, futureScheduledIds]);
 
   const statsItems: KanbanStatsItem[] = useMemo(() => {
     return missions.map((m) => ({
