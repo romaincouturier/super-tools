@@ -31,7 +31,7 @@ interface CrmKanbanBoardProps {
 const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data: boardData, isLoading } = useCrmBoard();
+  const { data: boardData, isLoading, isError, refetch } = useCrmBoard();
   const { data: crmSettings } = useCrmSettings();
   const moveCard = useMoveCard();
   const createColumn = useCreateColumn();
