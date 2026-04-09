@@ -102,6 +102,23 @@ export async function fetchActivities(missionId: string): Promise<MissionActivit
   return (throwIfError(result) || []) as MissionActivity[];
 }
 
+/**
+ * Returns a Set of mission IDs that have at least one pending scheduled action
+ * (duration = 0, is_billed = false) with a future date (strictly after today).
+ * Used by the Kanban board to hide missions with only future-dated actions.
+ */
+export async function fetchMissionIdsWithFutureScheduledActions(): Promise<Set<string>> {
+  const today = new Date().toISOString().slice(0, 10);
+  const result = await db()
+    .from("mission_activities")
+    .select("mission_id")
+    .eq("duration", 0)
+    .eq("is_billed", false)
+    .gt("activity_date", today);
+  const rows = (throwIfError(result) || []) as { mission_id: string }[];
+  return new Set(rows.map((r) => r.mission_id));
+}
+
 export async function createActivity(input: Omit<MissionActivity, "id" | "created_at" | "updated_at">): Promise<MissionActivity> {
   const result = await db().from("mission_activities").insert(input).select().single();
   return throwIfError(result) as MissionActivity;
