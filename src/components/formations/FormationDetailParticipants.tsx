@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Loader2, Megaphone } from "lucide-react";
+import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Megaphone } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,6 @@ interface Props {
   participants: Participant[];
   isInterSession: boolean;
   availableFormulas: FormationFormula[];
-  copiedParticipantEmails: boolean;
-  setCopiedParticipantEmails: (v: boolean) => void;
   autoAddParticipantOpen: boolean;
   setAutoAddParticipantOpen: (v: boolean) => void;
   addParticipantData: { firstName?: string; lastName?: string; email?: string; company?: string; soldPriceHt?: string } | null;
@@ -36,7 +35,6 @@ interface Props {
   schedules: { id: string; day_date: string; start_time: string; end_time: string }[];
   calculateTotalDuration: () => number;
   fetchParticipants: () => Promise<void>;
-  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
 }
 
 const FormationDetailParticipants = ({
@@ -45,8 +43,6 @@ const FormationDetailParticipants = ({
   participants,
   isInterSession,
   availableFormulas,
-  copiedParticipantEmails,
-  setCopiedParticipantEmails,
   autoAddParticipantOpen,
   setAutoAddParticipantOpen,
   addParticipantData,
@@ -60,10 +56,9 @@ const FormationDetailParticipants = ({
   schedules: _schedules,
   calculateTotalDuration,
   fetchParticipants,
-  toast,
 }: Props) => {
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
-  const { copy } = useCopyToClipboard();
+  const { copied: copiedParticipantEmails, copy } = useCopyToClipboard();
 
   useEffect(() => {
     let cancelled = false;
@@ -93,8 +88,6 @@ const FormationDetailParticipants = ({
                 <button type="button" className="p-0.5 rounded hover:bg-muted transition-colors" title="Copier tous les emails" onClick={() => {
                   const emailList = participants.map((p) => { const name = [p.first_name, p.last_name].filter(Boolean).join(" "); return name ? `${name} <${p.email}>` : p.email; }).join(", ");
                   copy(emailList, { title: "Emails copiés", description: `${participants.length} adresse${participants.length > 1 ? "s" : ""} copiée${participants.length > 1 ? "s" : ""} pour Gmail.` });
-                  setCopiedParticipantEmails(true);
-                  setTimeout(() => setCopiedParticipantEmails(false), 2000);
                 }}>
                   {copiedParticipantEmails ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />}
                 </button>
@@ -197,7 +190,7 @@ const FormationDetailParticipants = ({
               )}
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => setShowThankYouPreview(true)} disabled={sendingThankYou || !canSend}>
-              {sendingThankYou ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              {sendingThankYou ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
               Envoyer
             </Button>
           </div>

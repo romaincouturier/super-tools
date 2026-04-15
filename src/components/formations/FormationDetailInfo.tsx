@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Calendar, FileText, MapPin, Building, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
+import { Calendar, FileText, MapPin, Building, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,13 +24,8 @@ interface Props {
   availableFormulas: FormationFormula[];
   assignedUserName: string | null;
   isInterSession: boolean;
-  copiedEmail: boolean;
-  setCopiedEmail: (v: boolean) => void;
-  copiedLocation: boolean;
-  setCopiedLocation: (v: boolean) => void;
   getFormatLabel: () => string | null;
   calculateTotalDuration: () => number;
-  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
 }
 
 const FormationDetailInfo = ({
@@ -37,16 +35,16 @@ const FormationDetailInfo = ({
   availableFormulas,
   assignedUserName,
   isInterSession,
-  copiedEmail,
-  setCopiedEmail,
-  copiedLocation,
-  setCopiedLocation,
   getFormatLabel,
   calculateTotalDuration,
-  toast,
 }: Props) => {
   const [sendingLogistics, setSendingLogistics] = useState(false);
-  const { copy } = useCopyToClipboard();
+  const { toast } = useToast();
+  // Each copy button has its own `copied` flag (one hook instance each) so the
+  // three ✓ indicators stay independent.
+  const { copy: copyClientAddress } = useCopyToClipboard();
+  const { copied: copiedLocation, copy: copyLocation } = useCopyToClipboard();
+  const { copied: copiedEmail, copy: copyEmail } = useCopyToClipboard();
 
   const handleSendLogisticsEmail = async () => {
     setSendingLogistics(true);
@@ -60,11 +58,7 @@ const FormationDetailInfo = ({
         description: `Les besoins logistiques ont été envoyés à ${training.sponsor_email}.`,
       });
     } catch (error: unknown) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible d'envoyer l'email.",
-        variant: "destructive",
-      });
+      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer l'email.");
     } finally {
       setSendingLogistics(false);
     }
@@ -89,14 +83,14 @@ const FormationDetailInfo = ({
         {training.client_address && (
           <Badge variant="outline" className="flex items-center gap-1.5 group">
             <MapPin className="h-3.5 w-3.5" />{training.client_address}
-            <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => { copy(training.client_address!, { title: "Adresse copiée", description: "L'adresse du client a été copiée." }); }}>
+            <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => copyClientAddress(training.client_address!, { title: "Adresse copiée", description: "L'adresse du client a été copiée." })}>
               <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
             </button>
           </Badge>
         )}
         <Badge variant="outline" className="flex items-center gap-1.5 group">
           <MapPin className="h-3.5 w-3.5" />{training.location}
-          <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => { copy(training.location, { title: "Adresse copiée", description: "L'adresse a été copiée dans le presse-papiers." }); setCopiedLocation(true); setTimeout(() => setCopiedLocation(false), 2000); }}>
+          <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => copyLocation(training.location, { title: "Adresse copiée", description: "L'adresse a été copiée dans le presse-papiers." })}>
             {copiedLocation ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />}
           </button>
         </Badge>
@@ -165,7 +159,7 @@ const FormationDetailInfo = ({
                   <a href={`mailto:${training.sponsor_email}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
                     <Mail className="h-3.5 w-3.5" />{training.sponsor_email}
                   </a>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { copy(training.sponsor_email!, { title: "Email copié", description: "L'adresse email a été copiée dans le presse-papiers." }); setCopiedEmail(true); setTimeout(() => setCopiedEmail(false), 2000); }}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyEmail(training.sponsor_email!, { title: "Email copié", description: "L'adresse email a été copiée dans le presse-papiers." })}>
                     {copiedEmail ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
                   </Button>
                 </div>
@@ -181,7 +175,7 @@ const FormationDetailInfo = ({
                     disabled={sendingLogistics}
                   >
                     {sendingLogistics ? (
-                      <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                      <Spinner className="h-3 w-3 mr-1.5" />
                     ) : (training as unknown as { logistics_email_sent_at?: string | null }).logistics_email_sent_at ? (
                       <CheckCircle2 className="h-3 w-3 mr-1.5 text-primary" />
                     ) : (

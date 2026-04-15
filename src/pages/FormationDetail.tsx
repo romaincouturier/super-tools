@@ -58,13 +58,8 @@ const FormationDetail = () => {
             availableFormulas={fd.availableFormulas}
             assignedUserName={fd.assignedUserName}
             isInterSession={fd.isInterSession}
-            copiedEmail={fd.copiedEmail}
-            setCopiedEmail={fd.setCopiedEmail}
-            copiedLocation={fd.copiedLocation}
-            setCopiedLocation={fd.setCopiedLocation}
             getFormatLabel={fd.getFormatLabel}
             calculateTotalDuration={fd.calculateTotalDuration}
-            toast={fd.toast}
           />
           <FormationDetailParticipants
             training={fd.training}
@@ -72,8 +67,6 @@ const FormationDetail = () => {
             participants={fd.participants}
             isInterSession={fd.isInterSession}
             availableFormulas={fd.availableFormulas}
-            copiedParticipantEmails={fd.copiedParticipantEmails}
-            setCopiedParticipantEmails={fd.setCopiedParticipantEmails}
             autoAddParticipantOpen={fd.autoAddParticipantOpen}
             setAutoAddParticipantOpen={fd.setAutoAddParticipantOpen}
             addParticipantData={fd.addParticipantData}
@@ -87,7 +80,6 @@ const FormationDetail = () => {
             schedules={fd.schedules}
             calculateTotalDuration={fd.calculateTotalDuration}
             fetchParticipants={fd.fetchParticipants}
-            toast={fd.toast}
           />
         </div>
 

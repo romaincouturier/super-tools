@@ -90,9 +90,6 @@ export function useFormationDetail() {
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const [copiedLocation, setCopiedLocation] = useState(false);
-  const [copiedParticipantEmails, setCopiedParticipantEmails] = useState(false);
   const [scheduledActions, setScheduledActions] = useState<ScheduledAction[]>([]);
   const [savingActions, setSavingActions] = useState(false);
   const [mapDialogOpen, setMapDialogOpen] = useState(false);
@@ -556,12 +553,6 @@ export function useFormationDetail() {
     setTraining,
     schedules,
     participants,
-    copiedEmail,
-    setCopiedEmail,
-    copiedLocation,
-    setCopiedLocation,
-    copiedParticipantEmails,
-    setCopiedParticipantEmails,
     scheduledActions,
     setScheduledActions,
     savingActions,
