@@ -32,6 +32,7 @@ import type { Training, Schedule } from "@/hooks/useFormationDetail";
 import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 import { openExternalLink } from "@/lib/utils";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface Props {
   training: Training;
@@ -65,6 +66,7 @@ const FormationDetailHeader = ({
   requiredEquipment,
 }: Props) => {
   const { trackFeature } = useFeatureTracking();
+  const { copy } = useCopyToClipboard();
 
   const isOnline = training.location?.toLowerCase().includes("visio") ||
     training.location?.toLowerCase().includes("en ligne") ||
@@ -230,7 +232,7 @@ const FormationDetailHeader = ({
                   <Package className="h-4 w-4 mr-2" />Matériel {training.equipment_ready && "✓"}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => { trackFeature("copy_participant_link", "formations", { training_id: id }); navigator.clipboard.writeText(`${window.location.origin}/formation-info/${id}`); toast({ title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
+              <DropdownMenuItem onClick={() => { trackFeature("copy_participant_link", "formations", { training_id: id }); copy(`${window.location.origin}/formation-info/${id}`, { title: "Lien copié", description: "Le lien vers la page participant a été copié." }); }}>
                 <Copy className="h-4 w-4 mr-2" />Copier lien participant
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => { trackFeature("duplicate_training", "formations", { training_id: id }); setDuplicateDialogOpen(true); }}>

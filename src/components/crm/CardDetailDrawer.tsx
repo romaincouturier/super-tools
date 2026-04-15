@@ -6,7 +6,6 @@ import DetailDrawer from "@/components/shared/DetailDrawer";
 import { crmAiAssist } from "@/services/crmAiAssist";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2,
   Maximize2,
   Minimize2,
   CheckCircle2,
@@ -40,6 +39,9 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useCrmEmailTemplates, useUpdateCrmTemplate } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { Spinner } from "@/components/ui/spinner";
+import { toastError } from "@/lib/toastError";
 import { isBefore, startOfDay } from "date-fns";
 import { PricingLine } from "./MacroPricingDialog";
 
@@ -74,6 +76,7 @@ const CardDetailDrawer = ({
 }: CardDetailDrawerProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: details, isLoading: detailsLoading } = useCrmCardDetails(card?.id || null);
@@ -377,11 +380,11 @@ const CardDetailDrawer = ({
       const result = await crmAiAssist("suggest_next_action", { ...buildCardDataForAi(), confidence_score: confidenceScore, current_next_action: nextActionText, days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null, activities: details?.activity?.slice(0, 10) || [] });
       setScheduledText(result);
       setShowSchedulePopover(true);
-    } catch { toast({ title: "Erreur", description: "Impossible de générer une suggestion.", variant: "destructive" }); }
+    } catch { toastError(toast, "Impossible de générer une suggestion."); }
     finally { setNextActionSuggesting(false); }
   };
 
-  const copyToClipboard = async (text: string) => { await navigator.clipboard.writeText(text); };
+  const copyToClipboard = async (text: string) => { await copy(text, { silent: true }); };
 
   // ═══ LINKEDIN / WEBSITE AUTO ═══
   useEffect(() => {
@@ -530,7 +533,7 @@ const CardDetailDrawer = ({
       setShowSchedulePopover(false);
     } catch (e) {
       console.error("handleScheduleAction error:", e);
-      toast({ title: "Erreur", description: "Impossible de programmer l'action.", variant: "destructive" });
+      toastError(toast, "Impossible de programmer l'action.");
     }
   };
 
@@ -541,7 +544,7 @@ const CardDetailDrawer = ({
       setScheduledDate(""); setScheduledText("");
     } catch (e) {
       console.error("handleClearSchedule error:", e);
-      toast({ title: "Erreur", description: "Impossible d'annuler la programmation.", variant: "destructive" });
+      toastError(toast, "Impossible d'annuler la programmation.");
     }
   };
 
@@ -553,7 +556,7 @@ const CardDetailDrawer = ({
         onOpenChange(false);
       } catch (e) {
         console.error("handleDelete error:", e);
-        toast({ title: "Erreur", description: "Impossible de supprimer l'opportunité.", variant: "destructive" });
+        toastError(toast, "Impossible de supprimer l'opportunité.");
       }
     }
   };
@@ -569,7 +572,7 @@ const CardDetailDrawer = ({
       const hasTag = card.tags?.some((t) => t.id === tagId);
       const action = hasTag ? "retirer" : "affecter";
       const detail = (e as any)?.message || (e as any)?.error_description || "";
-      toast({ title: "Erreur", description: `Impossible d'${action} le tag.${detail ? ` ${detail}` : ""}`, variant: "destructive" });
+      toastError(toast, `Impossible d'${action} le tag.${detail ? ` ${detail}` : ""}`);
     }
   };
 
@@ -580,7 +583,7 @@ const CardDetailDrawer = ({
       setNewComment("");
     } catch (e) {
       console.error("handleAddComment error:", e);
-      toast({ title: "Erreur", description: "Impossible d'ajouter le commentaire.", variant: "destructive" });
+      toastError(toast, "Impossible d'ajouter le commentaire.");
     }
   };
 
@@ -593,7 +596,7 @@ const CardDetailDrawer = ({
       }
     } catch (err) {
       console.error("handleFileUpload error:", err);
-      toast({ title: "Erreur", description: "Impossible d'uploader le fichier.", variant: "destructive" });
+      toastError(toast, "Impossible d'uploader le fichier.");
     }
     e.target.value = "";
   };
@@ -766,7 +769,7 @@ const CardDetailDrawer = ({
             <Button size="sm" variant="ghost" onClick={() => setIsFullScreen(!isFullScreen)} title={isFullScreen ? "Réduire" : "Plein écran"}>
               {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
-            {(fieldSaving || descriptionSaving) && <span className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /></span>}
+            {(fieldSaving || descriptionSaving) && <span className="text-xs text-muted-foreground flex items-center gap-1"><Spinner className="h-3 w-3" /></span>}
             {(fieldSaved || descriptionSaved) && !fieldSaving && !descriptionSaving && <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /></span>}
           </>
         }
@@ -794,7 +797,7 @@ const CardDetailDrawer = ({
                 La suppression d'une opportunité est irréversible. Toutes les données associées (commentaires, pièces jointes, historique) seront perdues.
               </p>
               <Button variant="destructive" onClick={handleDelete} disabled={deleteCard.isPending} className="w-full">
-                {deleteCard.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                {deleteCard.isPending ? <Spinner className="mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                 Supprimer cette opportunité
               </Button>
             </div>

@@ -125,6 +125,18 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "016" "Pas d'objet mutation React Query dans les deps d'un useEffect" \
     "echo \"$STAGED_FILES\" | xargs grep -nE '\\], \\[[^]]*\\b(update|create|delete)[A-Z][a-zA-Z]*\\b[^]]*\\]' 2>/dev/null | grep -v node_modules"
 
+  # [017] Spinner — ne pas écrire Loader2 animate-spin inline
+  check "017" "Utiliser <Spinner> au lieu de <Loader2 animate-spin>" \
+    "echo \"$STAGED_FILES\" | xargs grep -nE '<Loader2[^>]*animate-spin' 2>/dev/null | grep -v 'components/ui/spinner.tsx'"
+
+  # [018] Copie clipboard — toujours via useCopyToClipboard
+  check "018" "Utiliser useCopyToClipboard au lieu de navigator.clipboard.writeText" \
+    "echo \"$STAGED_FILES\" | xargs grep -n 'navigator\\.clipboard\\.writeText' 2>/dev/null | grep -v 'hooks/useCopyToClipboard.ts'"
+
+  # [019] Toast d'erreur — toujours via toastError()
+  check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur\",...destructive})" \
+    "echo \"$STAGED_FILES\" | xargs grep -nE 'toast\\(\\{[^}]*title:\\s*\"Erreur\"' 2>/dev/null | grep -v 'lib/toastError.ts'"
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
@@ -189,6 +201,13 @@ else
   # stable (useCallback), à vérifier manuellement.
   check "016" "Pas d'objet mutation React Query dans les deps d'un useEffect" \
     "grep -rEn '\\], \\[[^]]*\\b(update|create|delete)[A-Z][a-zA-Z]*\\b[^]]*\\]' src/ --include='*.tsx' --include='*.ts' | grep -v node_modules"
+
+  # [018] Copie clipboard — toujours via useCopyToClipboard (full migration faite)
+  check "018" "Utiliser useCopyToClipboard au lieu de navigator.clipboard.writeText" \
+    "grep -rn 'navigator\\.clipboard\\.writeText' src/ --include='*.tsx' --include='*.ts' | grep -v 'hooks/useCopyToClipboard.ts'"
+
+  # [017] et [019] : migration progressive — checks en mode staged uniquement
+  # (351 usages de Loader2 animate-spin et 143 usages de toast destructive encore à migrer)
 fi
 
 echo ""

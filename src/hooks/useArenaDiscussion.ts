@@ -8,6 +8,7 @@ import { exportToMarkdown, downloadMarkdown } from "@/lib/arena/export";
 import { saveSession } from "@/lib/arena/history";
 import { callOrchestrate, callOrchestratorApi } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { v4 as uuidv4 } from "uuid";
 import { buildSystemPrompt, computeTokensPerAgent } from "@/lib/arena/discussion-helpers";
 
@@ -88,7 +89,7 @@ export function useArenaDiscussion(): ArenaDiscussionState & ArenaDiscussionActi
   const [discussionState, setDiscussionState] = useState<DiscussionState>("active");
   const [votes, setVotes] = useState<VoteResult[]>([]);
   const [interventionType, setInterventionType] = useState<"message" | "recadrer" | "relancer">("message");
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const [rating, setRating] = useState<number | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
@@ -853,10 +854,8 @@ REGLES CRITIQUES pour le livrable :
     if (!config) return;
     const result = buildResult();
     const md = exportToMarkdown(config, result);
-    await navigator.clipboard.writeText(md);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [config, buildResult]);
+    await copy(md, { silent: true });
+  }, [config, buildResult, copy]);
 
   const handleDownloadMd = useCallback(() => {
     if (!config) return;

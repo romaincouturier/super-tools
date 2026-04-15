@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { WatchItem } from "@/hooks/useWatch";
 import { useDeleteWatchItem, useToggleWatchShared, useUpdateWatchItem, useWatchTags } from "@/hooks/useWatch";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface WatchItemCardProps {
   item: WatchItem;
@@ -34,6 +35,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
   const toggleSharedMutation = useToggleWatchShared();
   const updateMutation = useUpdateWatchItem();
   const { data: allTags } = useWatchTags();
+  const { copy } = useCopyToClipboard();
 
   useEffect(() => {
     if (editingTags) tagInputRef.current?.focus();
@@ -62,8 +64,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
   };
 
   const handleCopyBody = () => {
-    navigator.clipboard.writeText(item.body || item.source_url || "");
-    toast.success("Copié dans le presse-papiers");
+    copy(item.body || item.source_url || "", { title: "Copié dans le presse-papiers" });
   };
 
   const handleAddTag = async () => {

@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAgentChat, type ChatMessage, type ChatAttachment } from "@/hooks/useAgentChat";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import { useAgentFeedback } from "@/hooks/useAgentFeedback";
@@ -423,19 +424,13 @@ function MessageBubble({
   onFeedback?: (rating: "up" | "down") => void;
 }) {
   const isUser = message.role === "user";
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const [feedbackGiven, setFeedbackGiven] = useState<"up" | "down" | null>(null);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => () => clearTimeout(copyTimerRef.current), []);
 
   if (!isUser && !message.content) return null;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    clearTimeout(copyTimerRef.current);
-    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+    copy(message.content, { silent: true });
   };
 
   const handleFeedback = (rating: "up" | "down") => {

@@ -6,7 +6,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, Calendar, Check } from "lucide-react";
+import { X, Calendar, Check } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format, addDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -219,7 +220,7 @@ const NextActionScheduler = ({
             className="w-full"
           >
             {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Spinner className="mr-2" />
             ) : (
               <Calendar className="h-4 w-4 mr-2" />
             )}

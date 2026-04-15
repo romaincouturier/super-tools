@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Bug, Lightbulb, Loader2, Sparkles, Copy, Check, Bot } from "lucide-react";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
   const [type, setType] = useState<TicketType>(ticket.type);
   const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
   const [reanalyzing, setReanalyzing] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   // AI analysis handlers
   const handleUpdateAnalysis = (analysis: TicketAiAnalysis) => {
@@ -64,8 +66,6 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
       setReanalyzing(false);
     }
   };
-
-  const [copied, setCopied] = useState(false);
 
   const handleCopyAll = useCallback(() => {
     const priorityLabel = TICKET_PRIORITY_CONFIG[ticket.priority].label;
@@ -100,11 +100,8 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
       lines.push("", "## Notes de résolution", ticket.resolution_notes);
     }
 
-    navigator.clipboard.writeText(lines.filter((l) => l !== undefined).join("\n"));
-    setCopied(true);
-    toast.success("Ticket copié dans le presse-papier");
-    setTimeout(() => setCopied(false), 2000);
-  }, [ticket]);
+    copy(lines.filter((l) => l !== undefined).join("\n"), { title: "Ticket copié dans le presse-papier" });
+  }, [ticket, copy]);
 
   return (
     <ScrollArea className="h-full">

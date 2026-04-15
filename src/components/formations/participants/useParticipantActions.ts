@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { logActivity } from "@/services/activityLog";
 import type { Participant, ConventionSignatureInfo } from "./types";
 import type { CertificateInfo as CertInfo } from "@/lib/evaluationUtils";
@@ -34,6 +35,7 @@ export function useParticipantActions({
   onParticipantUpdated,
 }: UseParticipantActionsParams) {
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
@@ -161,8 +163,7 @@ export function useParticipantActions({
   };
 
   const handleCopyEmail = (email: string) => {
-    navigator.clipboard.writeText(email);
-    toast({ title: "Email copié", description: email });
+    copy(email, { title: "Email copié", description: email });
   };
 
   const canSendConventionReminderFor = (participant: Participant) => {

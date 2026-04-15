@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import ModuleLayout from "@/components/ModuleLayout";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
@@ -29,6 +30,7 @@ import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 
 const Support = () => {
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
   const { data: tickets, isLoading } = useSupportTickets();
   const createTicket = useCreateSupportTicket();
   const updateTicket = useUpdateSupportTicket();
@@ -154,13 +156,11 @@ const Support = () => {
       })
       .join("\n\n---\n\n");
     const header = `# Tickets nouveaux (${newTickets.length})\n\n`;
-    try {
-      await navigator.clipboard.writeText(header + text);
-      toast({ title: "Copié !", description: `${newTickets.length} ticket${newTickets.length > 1 ? "s" : ""} copié${newTickets.length > 1 ? "s" : ""} dans le presse-papier.` });
-    } catch {
-      toast({ title: "Erreur", description: "Impossible de copier dans le presse-papier.", variant: "destructive" });
-    }
-  }, [tickets, toast]);
+    await copy(header + text, {
+      title: "Copié !",
+      description: `${newTickets.length} ticket${newTickets.length > 1 ? "s" : ""} copié${newTickets.length > 1 ? "s" : ""} dans le presse-papier.`,
+    });
+  }, [tickets, toast, copy]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

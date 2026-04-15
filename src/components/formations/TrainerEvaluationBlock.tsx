@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Copy, Send, Star, GraduationCap, CheckCircle2, Loader2, Mail, RefreshCw } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 
@@ -34,6 +35,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
   const [sending, setSending] = useState(false);
   const [trainerEmail, setTrainerEmail] = useState<string | null>(null);
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
 
   const fetchEvaluation = async () => {
     const { data } = await supabase
@@ -72,8 +74,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
       if (error) throw error;
 
       const url = `${window.location.origin}/evaluation-formateur/${token}`;
-      navigator.clipboard.writeText(url);
-      toast({ title: "Lien créé et copié", description: "Le lien du formulaire formateur a été copié." });
+      await copy(url, { title: "Lien créé et copié", description: "Le lien du formulaire formateur a été copié." });
       fetchEvaluation();
     } catch (error) {
       console.error(error);
@@ -86,8 +87,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
   const handleCopyLink = () => {
     if (!evaluation) return;
     const url = `${window.location.origin}/evaluation-formateur/${evaluation.token}`;
-    navigator.clipboard.writeText(url);
-    toast({ title: "Lien copié" });
+    copy(url);
   };
 
   const handleSendEmail = async () => {

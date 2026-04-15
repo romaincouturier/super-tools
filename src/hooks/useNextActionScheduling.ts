@@ -19,6 +19,7 @@
 import { useState, useEffect } from "react";
 import { startOfDay, isBefore } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 export interface UseNextActionSchedulingOptions {
   entityKey: string | undefined;
@@ -58,22 +59,14 @@ export function useNextActionScheduling({
     const selectedDate = startOfDay(new Date(scheduledDate));
     const today = startOfDay(new Date());
     if (isBefore(selectedDate, today)) {
-      toast({
-        title: "Date invalide",
-        description: "La date ne peut pas être dans le passé.",
-        variant: "destructive",
-      });
+      toastError(toast, "La date ne peut pas être dans le passé.", { title: "Date invalide" });
       return;
     }
     try {
       await save({ date: scheduledDate, text: scheduledText.trim() });
       setShowForm(false);
     } catch {
-      toast({
-        title: "Erreur",
-        description: "Impossible de programmer l'action.",
-        variant: "destructive",
-      });
+      toastError(toast, "Impossible de programmer l'action.");
     }
   };
 
@@ -83,11 +76,7 @@ export function useNextActionScheduling({
     try {
       await clear();
     } catch {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'annuler la programmation.",
-        variant: "destructive",
-      });
+      toastError(toast, "Impossible d'annuler la programmation.");
     }
   };
 
@@ -102,11 +91,7 @@ export function useNextActionScheduling({
             toast(markDoneSuccessToast);
           }
         } catch {
-          toast({
-            title: "Erreur",
-            description: "Impossible de marquer l'action comme faite.",
-            variant: "destructive",
-          });
+          toastError(toast, "Impossible de marquer l'action comme faite.");
         }
       }
     : undefined;

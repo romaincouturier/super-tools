@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { notifyContentUser } from "@/services/contentNotifications";
 import {
   Send, Loader2, MessageSquare, X, Pencil, Image,
@@ -63,11 +64,13 @@ const commentTypeConfig = {
 };
 
 const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdded }: CommentThreadProps) => {
+  const { copy } = useCopyToClipboard();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [expandedResolved, setExpandedResolved] = useState<Set<string>>(new Set());
+  const { copy } = useCopyToClipboard();
 
   // New comment state
   const [newComment, setNewComment] = useState("");
@@ -616,8 +619,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                           size="icon"
                           className="h-5 w-5 opacity-0 group-hover/correction:opacity-100 text-blue-600"
                           onClick={() => {
-                            navigator.clipboard.writeText(comment.proposed_correction!);
-                            toast.success("Copié");
+                            copy(comment.proposed_correction!, { title: "Copié" });
                           }}
                         >
                           <Copy className="h-3 w-3" />

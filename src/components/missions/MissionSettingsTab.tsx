@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, MapPin } from "lucide-react";
+import { Trash2, X, Plus, MapPin } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import MissionContacts from "./MissionContacts";
@@ -306,7 +307,7 @@ const MissionSettingsTab = ({
           className="w-full"
         >
           {deletePending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Spinner className="mr-2" />
           ) : (
             <Trash2 className="h-4 w-4 mr-2" />
           )}

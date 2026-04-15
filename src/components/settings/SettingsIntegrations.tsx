@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
 import GoogleDriveConnect from "@/components/GoogleDriveConnect";
 import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
@@ -18,7 +18,7 @@ interface SettingsIntegrationsProps {
 }
 
 const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: SettingsIntegrationsProps) => {
-  const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
 
   return (
     <div className="space-y-6">
@@ -159,8 +159,7 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
                     size="icon"
                     className="shrink-0"
                     onClick={() => {
-                      navigator.clipboard.writeText(url);
-                      toast({ title: "Copié", description: "URL copiée dans le presse-papiers." });
+                      copy(url, { title: "Copié", description: "URL copiée dans le presse-papiers." });
                     }}
                   >
                     <Copy className="h-4 w-4" />

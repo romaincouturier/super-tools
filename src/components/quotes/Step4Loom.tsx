@@ -8,6 +8,7 @@ import { Video, ExternalLink, SkipForward, FileText, Loader2, Copy, RefreshCw } 
 import { crmAiAssist } from "@/services/crmAiAssist";
 import type { CrmCard } from "@/types/crm";
 import type { Quote } from "@/types/quotes";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface Props {
   onContinue: (loomUrl: string | null) => void;
@@ -70,6 +71,7 @@ export default function Step4Loom({
   const [loomUrl, setLoomUrl] = useState(initialLoomUrl || "");
   const [script, setScript] = useState(initialScript || "");
   const [scriptLoading, setScriptLoading] = useState(false);
+  const { copy } = useCopyToClipboard();
 
   // Auto-save draft
   useEffect(() => {
@@ -113,7 +115,7 @@ export default function Step4Loom({
   }, [crmCard, quote, synthesis, instructions, challengeHtml]);
 
   const copyScript = async () => {
-    if (script) await navigator.clipboard.writeText(stripHtml(script));
+    if (script) await copy(stripHtml(script));
   };
 
   return (

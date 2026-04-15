@@ -11,6 +11,7 @@ import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import BroadcastEmailDialog from "@/components/formations/BroadcastEmailDialog";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { Training, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 
@@ -62,6 +63,7 @@ const FormationDetailParticipants = ({
   toast,
 }: Props) => {
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
+  const { copy } = useCopyToClipboard();
 
   useEffect(() => {
     let cancelled = false;
@@ -90,9 +92,8 @@ const FormationDetailParticipants = ({
               {participants.length > 0 && (
                 <button type="button" className="p-0.5 rounded hover:bg-muted transition-colors" title="Copier tous les emails" onClick={() => {
                   const emailList = participants.map((p) => { const name = [p.first_name, p.last_name].filter(Boolean).join(" "); return name ? `${name} <${p.email}>` : p.email; }).join(", ");
-                  navigator.clipboard.writeText(emailList);
+                  copy(emailList, { title: "Emails copiés", description: `${participants.length} adresse${participants.length > 1 ? "s" : ""} copiée${participants.length > 1 ? "s" : ""} pour Gmail.` });
                   setCopiedParticipantEmails(true);
-                  toast({ title: "Emails copiés", description: `${participants.length} adresse${participants.length > 1 ? "s" : ""} copiée${participants.length > 1 ? "s" : ""} pour Gmail.` });
                   setTimeout(() => setCopiedParticipantEmails(false), 2000);
                 }}>
                   {copiedParticipantEmails ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />}

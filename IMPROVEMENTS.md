@@ -52,6 +52,30 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [019] Toasts d'erreur — toujours utiliser `toastError()` pour le variant destructive
+- **Constat** : `toast({ title: "Erreur", description: "...", variant: "destructive" })` est répété 143 fois dans 64 fichiers, avec des variations de titre (parfois "Erreur !", parfois pas de titre) qui cassent la cohérence UX. Chaque handler réécrit le même template.
+- **Règle** : Utiliser `toastError(toast, description)` (ou `toastError(toast, error)` si on passe une Error) depuis `@/lib/toastError`. Centralise le titre "Erreur", le variant destructive, et la conversion `Error → message`. Ne PAS écrire `toast({ title: "Erreur"..., variant: "destructive" })` directement.
+- **Vérification** : `grep -rn 'toast(\{[^}]*title:\s*"Erreur"' src/` hors `src/lib/toastError.ts` doit être vide après migration.
+- **Fichiers de référence** : `src/lib/toastError.ts`, `src/components/missions/MissionDetailDrawer.tsx` (migration exemple), `src/components/crm/CardDetailDrawer.tsx`.
+- **Origine** : audit d'architecture — 143 occurrences dupliquées
+- **Date** : 2026-04-15
+
+### [018] Copie presse-papier — toujours utiliser `useCopyToClipboard()`
+- **Constat** : `navigator.clipboard.writeText()` est appelé 28 fois dans 22 fichiers. Chaque usage réimplémente son propre `setCopied` + `setTimeout` + toast "Lien copié" (ou l'oublie, créant des incohérences UX : parfois un toast apparaît, parfois non). 3 fichiers utilisent `sonner` au lieu de shadcn toast pour ce feedback — double fragmentation.
+- **Règle** : Utiliser le hook `useCopyToClipboard()` depuis `@/hooks/useCopyToClipboard`. Il retourne `{ copied, copy }`. Appeler `await copy(text)` ou `await copy(text, { title, description, silent })`. Ne JAMAIS appeler `navigator.clipboard.writeText` directement dans un composant.
+- **Vérification** : `grep -rn 'navigator\.clipboard\.writeText' src/` hors `src/hooks/useCopyToClipboard.ts` doit être vide.
+- **Fichiers de référence** : `src/hooks/useCopyToClipboard.ts`, `src/components/missions/MissionDetailDrawer.tsx` (usage exemple), `src/components/crm/CardDetailDrawer.tsx`.
+- **Origine** : audit d'architecture — 28 occurrences dupliquées + incohérences UX
+- **Date** : 2026-04-15
+
+### [017] Spinner de chargement — toujours utiliser `<Spinner />`
+- **Constat** : Le pattern `<Loader2 className="h-4 w-4 animate-spin" />` est répété 351 fois dans 196 fichiers avec des variations (h-6 w-6, text-muted-foreground, mr-2, etc.) qui rendent toute modification stylistique impossible à propager.
+- **Règle** : Utiliser `<Spinner />` depuis `@/components/ui/spinner`. Props : `size` (sm=h-4/w-4 défaut, md=h-6/w-6, lg=h-8/w-8) et `className` pour les classes additionnelles (couleur, margins). Ne PAS écrire `<Loader2 className="..animate-spin" />` inline.
+- **Vérification** : `grep -rEn 'Loader2[^>]*animate-spin' src/` hors `src/components/ui/spinner.tsx` doit être vide (migration progressive acceptée ; check staged-only pour le pré-commit).
+- **Fichiers de référence** : `src/components/ui/spinner.tsx`, `src/components/missions/MissionDetailDrawer.tsx`, `src/components/crm/CardDetailDrawer.tsx`, `src/components/shared/NextActionScheduler.tsx`, `src/components/missions/MissionSettingsTab.tsx` (tous migrés).
+- **Origine** : audit d'architecture — 351 occurrences, pattern purement répété
+- **Date** : 2026-04-15
+
 ### [016] React Query mutations — ne jamais mettre l'objet mutation dans les deps d'un useEffect
 - **Constat** : `CardDetailDrawer.tsx` avait un `useEffect(() => { ... updateCard.mutateAsync(...) ... }, [autoSaveUpdates, updateCard])`. `updateCard` (retourné par `useUpdateCard()`) est un objet React Query dont la référence change à chaque transition d'état (idle → loading → success → idle). Après chaque save, l'effet se redéclenchait → nouvelle save → boucle infinie de sauvegardes toutes les 1-2s, même sans modification utilisateur. L'auto-save des opportunités CRM générait ainsi des saves continues "partout" jusqu'à ce que le bug soit isolé.
 - **Règle** : Ne jamais inclure un objet mutation React Query (résultat d'un hook `useXxxMutation`, `useCreateXxx`, `useUpdateXxx`, `useDeleteXxx`) dans le tableau de dépendances d'un `useEffect` qui appelle `.mutateAsync()` ou `.mutate()`. Stocker la mutation dans un `ref` mis à jour à chaque render (`const updateCardRef = useRef(updateCard); updateCardRef.current = updateCard;`) et l'appeler via le ref dans l'effet. Compléter avec une détection de dirty (hash `JSON.stringify` comparé à un `lastSavedHashRef`) pour skip les saves identiques — c'est ce que fait déjà `useAutoSaveForm`.

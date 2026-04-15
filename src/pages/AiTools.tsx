@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Loader2, Sparkles, BookOpen, ClipboardCheck, Activity,
   CheckCircle2, AlertTriangle, TrendingUp, Target,
@@ -61,6 +62,7 @@ interface HealthReport {
 export default function AiTools() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
 
   // Program generator state
   const [programTitle, setProgramTitle] = useState("");
@@ -180,8 +182,7 @@ export default function AiTools() {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copié !" });
+    copy(text, { title: "Copié !" });
   };
 
   const healthColor = (label: string) => {

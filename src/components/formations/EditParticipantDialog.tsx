@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Pencil, Loader2, Check, Copy } from "lucide-react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Dialog,
   DialogContent,
@@ -219,14 +219,12 @@ function CopyParticipantInfoButton({
   dates: string;
   lieu: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   const handleCopy = () => {
     const participantName = [firstName, lastName].filter(Boolean).join(" ") || "—";
     const text = `Durée : ${duree}\nParticipants : ${participantName}\nDates : ${dates}\nLieu : ${lieu || "—"}`;
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    copy(text);
   };
 
   return (

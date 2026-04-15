@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Calendar, FileText, MapPin, Building, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatSentDateTime } from "@/lib/dateFormatters";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +46,7 @@ const FormationDetailInfo = ({
   toast,
 }: Props) => {
   const [sendingLogistics, setSendingLogistics] = useState(false);
+  const { copy } = useCopyToClipboard();
 
   const handleSendLogisticsEmail = async () => {
     setSendingLogistics(true);
@@ -87,14 +89,14 @@ const FormationDetailInfo = ({
         {training.client_address && (
           <Badge variant="outline" className="flex items-center gap-1.5 group">
             <MapPin className="h-3.5 w-3.5" />{training.client_address}
-            <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => { navigator.clipboard.writeText(training.client_address!); toast({ title: "Adresse copiée", description: "L'adresse du client a été copiée." }); }}>
+            <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => { copy(training.client_address!, { title: "Adresse copiée", description: "L'adresse du client a été copiée." }); }}>
               <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
             </button>
           </Badge>
         )}
         <Badge variant="outline" className="flex items-center gap-1.5 group">
           <MapPin className="h-3.5 w-3.5" />{training.location}
-          <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => { navigator.clipboard.writeText(training.location); setCopiedLocation(true); toast({ title: "Adresse copiée", description: "L'adresse a été copiée dans le presse-papiers." }); setTimeout(() => setCopiedLocation(false), 2000); }}>
+          <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => { copy(training.location, { title: "Adresse copiée", description: "L'adresse a été copiée dans le presse-papiers." }); setCopiedLocation(true); setTimeout(() => setCopiedLocation(false), 2000); }}>
             {copiedLocation ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />}
           </button>
         </Badge>
@@ -163,7 +165,7 @@ const FormationDetailInfo = ({
                   <a href={`mailto:${training.sponsor_email}`} className="flex items-center gap-1.5 text-sm text-primary hover:underline">
                     <Mail className="h-3.5 w-3.5" />{training.sponsor_email}
                   </a>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { navigator.clipboard.writeText(training.sponsor_email!); setCopiedEmail(true); toast({ title: "Email copié", description: "L'adresse email a été copiée dans le presse-papiers." }); setTimeout(() => setCopiedEmail(false), 2000); }}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { copy(training.sponsor_email!, { title: "Email copié", description: "L'adresse email a été copiée dans le presse-papiers." }); setCopiedEmail(true); setTimeout(() => setCopiedEmail(false), 2000); }}>
                     {copiedEmail ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
                   </Button>
                 </div>

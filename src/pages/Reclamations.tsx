@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2, MessageSquareWarning } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +62,7 @@ const Reclamations = () => {
   const { hasAccess, loading: accessLoading } = useModuleAccess();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
 
   const [reclamations, setReclamations] = useState<Reclamation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,8 +142,7 @@ const Reclamations = () => {
       if (error) throw error;
 
       const url = `${window.location.origin}/reclamation/${token}`;
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Lien copié", description: "Le lien de réclamation a été copié dans le presse-papier." });
+      await copy(url, { title: "Lien copié", description: "Le lien de réclamation a été copié dans le presse-papier." });
       fetchReclamations();
     } catch (e) {
       console.error("Error generating link:", e);
@@ -243,8 +244,7 @@ const Reclamations = () => {
       .map((r) => `${r.date_reclamation || "-"}\t${r.client_name || "-"}\t${r.problem_type || "-"}\t${r.severity || "-"}\t${r.actions_decided || "-"}\t${STATUS_LABELS[r.status] || r.status}`);
     const header = "Date\tClient\tType\tGravité\tActions\tStatut";
     const text = [header, ...lines].join("\n");
-    navigator.clipboard.writeText(text);
-    toast({ title: "Registre copié", description: "Le tableau récapitulatif a été copié dans le presse-papier." });
+    copy(text, { title: "Registre copié", description: "Le tableau récapitulatif a été copié dans le presse-papier." });
   };
 
   if (authLoading || accessLoading) {
@@ -575,8 +575,7 @@ const Reclamations = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            navigator.clipboard.writeText(selectedRec.ai_response_draft || "");
-                            toast({ title: "Copié" });
+                            copy(selectedRec.ai_response_draft || "", { title: "Copié" });
                           }}
                         >
                           <Copy className="h-3 w-3" />
@@ -593,8 +592,7 @@ const Reclamations = () => {
                   size="sm"
                   className="w-full"
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/reclamation/${selectedRec.token}`);
-                    toast({ title: "Lien copié" });
+                    copy(`${window.location.origin}/reclamation/${selectedRec.token}`);
                   }}
                 >
                   <Link2 className="h-4 w-4 mr-1" /> Copier le lien public

@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Loader2, X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
+import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
@@ -17,7 +18,9 @@ import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useNextActionScheduling } from "@/hooks/useNextActionScheduling";
+import { toastError } from "@/lib/toastError";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { useQuery } from "@tanstack/react-query";
 
@@ -37,7 +40,7 @@ const MissionDetailDrawer = ({
   const createActivity = useCreateMissionActivity();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
@@ -45,10 +48,7 @@ const MissionDetailDrawer = ({
   const handleShareLink = () => {
     if (!mission) return;
     const url = `${window.location.origin}/mission-info/${mission.id}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    toast({ title: "Lien copié", description: "Le lien de la page résumé a été copié." });
-    setTimeout(() => setCopied(false), 2000);
+    copy(url, { description: "Le lien de la page résumé a été copié." });
   };
 
   const handleGenerateMissionSummary = async () => {
@@ -63,7 +63,7 @@ const MissionDetailDrawer = ({
       if (response.error) throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
       setAiSummary(response.data.result);
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer le résumé", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible de générer le résumé");
     } finally {
       setAiSummaryLoading(false);
     }
@@ -258,7 +258,7 @@ const MissionDetailDrawer = ({
   const headerActions = (
     <>
       {updateMission.isPending && (
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <Spinner className="text-muted-foreground" />
       )}
       <Button
         size="sm"
@@ -268,7 +268,7 @@ const MissionDetailDrawer = ({
         title="Synthèse IA de la mission"
         className={aiSummary ? "border-purple-300 text-purple-700" : ""}
       >
-        {aiSummaryLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+        {aiSummaryLoading ? <Spinner /> : <Sparkles className="h-4 w-4" />}
       </Button>
       <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
         <Package className="h-4 w-4" />

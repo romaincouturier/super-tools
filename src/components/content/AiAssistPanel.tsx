@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Sparkles,
   FileText,
@@ -53,7 +54,7 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   const handleAction = async (action: ActionType) => {
     if (!content.trim()) {
@@ -82,10 +83,7 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
   };
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(result);
-    setCopied(true);
-    toast.success("Copié dans le presse-papier");
-    setTimeout(() => setCopied(false), 2000);
+    await copy(result, { title: "Copié dans le presse-papier" });
   };
 
   const handleApply = () => {

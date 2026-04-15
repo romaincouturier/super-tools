@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   useNetworkActions,
   useGenerateWeeklyActions,
@@ -39,6 +40,7 @@ interface WeeklyActionsProps {
 
 const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard({ defaultToastTitle: "Copié !" });
   const { data: actions = [], isLoading: actionsLoading } = useNetworkActions();
   const generateActions = useGenerateWeeklyActions();
   const updateStatus = useUpdateActionStatus();
@@ -63,10 +65,7 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
     }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copié !" });
-  };
+  const handleCopy = (text: string) => { copy(text); };
 
   const handleStatusUpdate = async (action: NetworkAction & { contact: NetworkContact | null }, status: "done" | "skipped") => {
     try {

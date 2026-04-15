@@ -9,6 +9,7 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { toast } from "sonner";
 import type { CrmCard } from "@/types/crm";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface Props {
   crmCard: CrmCard;
@@ -36,7 +37,7 @@ export default function Step1Synthesis({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generated, setGenerated] = useState(!!initialSynthesis);
   const [isEditing, setIsEditing] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyToClipboard();
 
   // Commercial challenge state
   const [challengeHtml, setChallengeHtml] = useState(initialChallengeHtml || "");
@@ -152,9 +153,7 @@ export default function Step1Synthesis({
 
   const handleCopy = async () => {
     const text = htmlToPlainText(synthesis);
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    await copy(text);
   };
 
   useEffect(() => {

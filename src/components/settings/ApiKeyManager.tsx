@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface ApiKey {
   id: string;
@@ -70,10 +71,10 @@ export function ApiKeyManager() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [deleteKeyId, setDeleteKeyId] = useState<string | null>(null);
 
   const { toast } = useToast();
+  const { copied, copy } = useCopyToClipboard();
   const queryClient = useQueryClient();
 
   // Fetch API keys
@@ -179,9 +180,7 @@ export function ApiKeyManager() {
 
   const handleCopy = async () => {
     if (generatedKey) {
-      await navigator.clipboard.writeText(generatedKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await copy(generatedKey);
     }
   };
 
@@ -189,7 +188,6 @@ export function ApiKeyManager() {
     setIsCreateDialogOpen(false);
     setNewKeyName("");
     setGeneratedKey(null);
-    setCopied(false);
   };
 
   const formatDate = (dateStr: string | null) => {
