@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   ConventionSection, AttendanceSheetSection, InvoiceSection,
   DocumentDeliverySection, ThankYouEmailSection,
@@ -54,7 +55,7 @@ const DocumentsManager = ({
       toast({ title: "Lien enregistré", description: "Le lien vers les supports a été mis à jour." });
     } catch (error: unknown) {
       console.error("Save error:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible d'enregistrer le lien.", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible d'enregistrer le lien.");
     } finally {
       setSavingSupportsUrl(false);
     }

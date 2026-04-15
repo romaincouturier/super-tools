@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useParticipantParser } from "@/hooks/useParticipantParser";
 import { getErrorMessage } from "@/lib/error-utils";
 import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
@@ -43,7 +44,7 @@ const BulkAddParticipantsDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (count === 0) {
-      toast({ title: "Aucun participant", description: "Veuillez entrer au moins une adresse email valide.", variant: "destructive" });
+      toastError(toast, "Veuillez entrer au moins une adresse email valide.", { title: "Aucun participant" });
       return;
     }
     setSaving(true);
@@ -73,7 +74,7 @@ const BulkAddParticipantsDialog = ({
       onParticipantsAdded();
     } catch (error: unknown) {
       console.error("Error adding participants:", error);
-      toast({ title: "Erreur", description: getErrorMessage(error), variant: "destructive" });
+      toastError(toast, getErrorMessage(error));
     } finally {
       setSaving(false);
     }

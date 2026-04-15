@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { capitalizeName, normalizeEmail } from "@/lib/stringUtils";
 import { logCrmActivity } from "@/services/crmActivity";
 import { notifyCrmSlack } from "@/services/crmSlack";
@@ -58,7 +59,7 @@ export const useUpdateCard = () => {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Erreur inconnue";
-      toast({ title: "Erreur", description: message, variant: "destructive" });
+      toastError(toast, message);
     },
   });
 };

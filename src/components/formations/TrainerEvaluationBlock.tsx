@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Copy, Send, Star, GraduationCap, CheckCircle2, Mail, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -79,7 +80,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
       fetchEvaluation();
     } catch (error) {
       console.error(error);
-      toast({ title: "Erreur", variant: "destructive" });
+      toastError(toast, null);
     } finally {
       setCreating(false);
     }
@@ -95,7 +96,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
     if (!evaluation) return;
     const email = evaluation.trainer_email || trainerEmail;
     if (!email) {
-      toast({ title: "Pas d'email formateur", description: "Aucun email n'est renseigné pour ce formateur.", variant: "destructive" });
+      toastError(toast, "Aucun email n'est renseigné pour ce formateur.", { title: "Pas d'email formateur" });
       return;
     }
 
@@ -137,7 +138,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
       fetchEvaluation();
     } catch (error) {
       console.error(error);
-      toast({ title: "Erreur d'envoi", description: "Impossible d'envoyer l'email.", variant: "destructive" });
+      toastError(toast, "Impossible d'envoyer l'email.", { title: "Erreur d'envoi" });
     } finally {
       setSending(false);
     }

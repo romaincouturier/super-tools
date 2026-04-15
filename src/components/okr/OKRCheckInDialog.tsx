@@ -14,6 +14,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import OKRAICheckInDraft from "./OKRAICheckInDraft";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCreateOKRCheckIn } from "@/hooks/useOKR";
 import { OKRObjective } from "@/types/okr";
 
@@ -48,7 +49,7 @@ export function OKRCheckInDialog({ open, onOpenChange, objective }: CheckInDialo
       toast({ title: "Suivi enregistré" });
       onOpenChange(false);
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

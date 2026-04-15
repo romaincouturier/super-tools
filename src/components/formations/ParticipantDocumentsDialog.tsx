@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -142,10 +143,10 @@ const ParticipantDocumentsDialog = ({
       if (result.success) {
         toast({ title: "PDF généré", description: "La feuille d'émargement numérique a été générée." });
       } else {
-        toast({ title: "Aucune donnée", description: result.message, variant: "destructive" });
+        toastError(toast, result.message, { title: "Aucune donnée" });
       }
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } finally {
       setGeneratingSheetsPdf(false);
     }
@@ -179,11 +180,7 @@ const ParticipantDocumentsDialog = ({
     if (!file) return;
 
     if (!resolveContentType(file).includes("pdf")) {
-      toast({
-        title: "Format non supporté",
-        description: "Seuls les fichiers PDF sont acceptés.",
-        variant: "destructive",
-      });
+      toastError(toast, "Seuls les fichiers PDF sont acceptés.", { title: "Format non supporté" });
       return;
     }
 
@@ -222,12 +219,7 @@ const ParticipantDocumentsDialog = ({
       });
     } catch (error: unknown) {
       console.error("Upload error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Une erreur est survenue.";
-      toast({
-        title: "Erreur d'upload",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toastError(toast, error instanceof Error ? error : "Une erreur est survenue.", { title: "Erreur d'upload" });
     } finally {
       setUploadingInvoice(false);
     }
@@ -260,12 +252,7 @@ const ParticipantDocumentsDialog = ({
       });
     } catch (error: unknown) {
       console.error("Delete error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Impossible de supprimer la facture.";
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toastError(toast, error instanceof Error ? error : "Impossible de supprimer la facture.");
     }
   };
 
@@ -273,38 +260,22 @@ const ParticipantDocumentsDialog = ({
     const targetEmail = participant.sponsor_email;
     
     if (!targetEmail) {
-      toast({
-        title: "Email manquant",
-        description: "Aucun email de commanditaire n'est défini pour ce participant.",
-        variant: "destructive",
-      });
+      toastError(toast, "Aucun email de commanditaire n'est défini pour ce participant.", { title: "Email manquant" });
       return;
     }
 
     if (type === "invoice" && !hasInvoice) {
-      toast({
-        title: "Pas de facture",
-        description: "Aucune facture n'a été uploadée pour ce participant.",
-        variant: "destructive",
-      });
+      toastError(toast, "Aucune facture n'a été uploadée pour ce participant.", { title: "Pas de facture" });
       return;
     }
 
     if (type === "sheets" && !hasSheets && !hasDigitalSignatures) {
-      toast({
-        title: "Pas de feuilles",
-        description: "Aucune feuille d'émargement n'a été uploadée pour cette formation.",
-        variant: "destructive",
-      });
+      toastError(toast, "Aucune feuille d'émargement n'a été uploadée pour cette formation.", { title: "Pas de feuilles" });
       return;
     }
 
     if (type === "all" && !hasInvoice && !hasSheets && !hasDigitalSignatures && !hasCertificate) {
-      toast({
-        title: "Pas de documents",
-        description: "Aucun document n'est disponible.",
-        variant: "destructive",
-      });
+      toastError(toast, "Aucun document n'est disponible.", { title: "Pas de documents" });
       return;
     }
 
@@ -365,12 +336,7 @@ const ParticipantDocumentsDialog = ({
       onOpenChange(false);
     } catch (error: unknown) {
       console.error("Send error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Impossible d'envoyer les documents.";
-      toast({
-        title: "Erreur d'envoi",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer les documents.", { title: "Erreur d'envoi" });
     } finally {
       setSendingDocuments(false);
     }

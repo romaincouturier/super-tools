@@ -4,6 +4,7 @@ import { Trash2, CheckCircle, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 
 interface SignedConventionFilesProps {
@@ -31,7 +32,7 @@ const SignedConventionFiles = ({
       const newUrls: string[] = [];
       for (const file of Array.from(files)) {
         if (!resolveContentType(file).includes("pdf") && !resolveContentType(file).includes("image")) {
-          toast({ title: "Format non supporté", description: "Seuls les fichiers PDF et images sont acceptés.", variant: "destructive" });
+          toastError(toast, "Seuls les fichiers PDF et images sont acceptés.", { title: "Format non supporté" });
           continue;
         }
         const fileExt = file.name.split(".").pop();
@@ -56,7 +57,7 @@ const SignedConventionFiles = ({
       }
     } catch (error: unknown) {
       console.error("Upload error:", error);
-      toast({ title: "Erreur d'upload", description: error instanceof Error ? error.message : "Une erreur est survenue.", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Une erreur est survenue.", { title: "Erreur d'upload" });
     } finally {
       setUploadingSignedConvention(false);
       e.target.value = "";
@@ -77,7 +78,7 @@ const SignedConventionFiles = ({
       toast({ title: "Fichier supprimé", description: "La convention signée a été retirée." });
     } catch (error: unknown) {
       console.error("Delete error:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de supprimer le fichier.", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible de supprimer le fichier.");
     }
   };
 

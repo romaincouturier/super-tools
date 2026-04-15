@@ -16,6 +16,7 @@ import {
 import { Plus, Trash2, Edit2, TrendingUp, Zap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useDeleteOKRKeyResult,
   useCreateOKRKeyResult,
@@ -48,7 +49,7 @@ export function KeyResultCard({ keyResult, objectiveId, onEdit }: KeyResultCardP
       await deleteKR.mutateAsync({ id: keyResult.id, objectiveId });
       toast({ title: "Résultat clé supprimé" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -170,7 +171,7 @@ export function KeyResultDialog({ open, onOpenChange, objectiveId, editingKR }: 
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      toast({ title: "Erreur", description: "Le titre est requis", variant: "destructive" });
+      toastError(toast, "Le titre est requis");
       return;
     }
 
@@ -202,7 +203,7 @@ export function KeyResultDialog({ open, onOpenChange, objectiveId, editingKR }: 
       }
       onOpenChange(false);
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

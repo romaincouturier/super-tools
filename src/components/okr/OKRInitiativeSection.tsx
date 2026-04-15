@@ -21,6 +21,7 @@ import {
 import { Zap, Link, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useCreateOKRInitiative,
   useDeleteOKRInitiative,
@@ -41,7 +42,7 @@ export function OKRInitiativeRow({ initiative, keyResultId }: { initiative: OKRI
     try {
       await deleteInitiative.mutateAsync({ id: initiative.id, keyResultId });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -99,7 +100,7 @@ export function OKRInitiativeDialog({ open, onOpenChange, keyResultId, onCreated
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      toast({ title: "Erreur", description: "Le titre est requis", variant: "destructive" });
+      toastError(toast, "Le titre est requis");
       return;
     }
 
@@ -117,7 +118,7 @@ export function OKRInitiativeDialog({ open, onOpenChange, keyResultId, onCreated
       setLinkedMissionId("");
       onCreated?.();
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

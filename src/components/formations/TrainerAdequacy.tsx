@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { CheckCircle2, Shield } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface TrainerAdequacyProps {
   trainingId: string;
@@ -115,11 +116,11 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
 
   const handleValidate = async () => {
     if (!validatedBy.trim()) {
-      toast({ title: "Erreur", description: "Veuillez saisir le nom du validateur.", variant: "destructive" });
+      toastError(toast, "Veuillez saisir le nom du validateur.");
       return;
     }
     if (!trainer) {
-      toast({ title: "Erreur", description: "Aucun formateur trouvé.", variant: "destructive" });
+      toastError(toast, "Aucun formateur trouvé.");
       return;
     }
 
@@ -142,7 +143,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
       fetchData();
     } catch (error) {
       console.error("Error validating adequacy:", error);
-      toast({ title: "Erreur", description: "Impossible de valider l'adéquation.", variant: "destructive" });
+      toastError(toast, "Impossible de valider l'adéquation.");
     } finally {
       setSaving(false);
     }

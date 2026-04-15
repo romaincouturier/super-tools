@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCourseForums, useForumPosts, useCreateForumPost } from "@/hooks/useLms";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { MessageSquare, Pin, Plus, Send } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,7 +32,7 @@ export default function LmsForumSection({ courseId }: Props) {
       .from("lms_forums")
       .insert({ course_id: courseId, title: newTitle });
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
       return;
     }
     setNewTitle("");

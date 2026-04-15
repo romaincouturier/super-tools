@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 export const CRM_QUERY_KEY = "crm-board";
 
@@ -27,7 +28,7 @@ export function useCrmMutation<TInput, TOutput = void>(
     onError: (error: unknown) => {
       const message =
         error instanceof Error ? error.message : "Erreur inconnue";
-      toast({ title: "Erreur", description: message, variant: "destructive" });
+      toastError(toast, message);
     },
   });
 }

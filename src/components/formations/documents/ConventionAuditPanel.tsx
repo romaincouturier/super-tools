@@ -6,6 +6,7 @@ import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { formatDateTimeSeconds } from "@/lib/dateFormatters";
 
 import type { ConventionSignatureStatus, VerificationResult } from "./types";
@@ -51,7 +52,7 @@ const ConventionAuditPanel = ({
         .maybeSingle();
 
       if (!sigData) {
-        toast({ title: "Erreur", description: "Aucune signature trouvée", variant: "destructive" });
+        toastError(toast, "Aucune signature trouvée");
         return;
       }
 
@@ -67,7 +68,7 @@ const ConventionAuditPanel = ({
       toast({ title: "Vérification terminée", description: `Résultat : ${(response.data as VerificationResult).summary?.overall || "OK"}` });
     } catch (error: unknown) {
       console.error("Verification error:", error);
-      toast({ title: "Erreur de vérification", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue", { title: "Erreur de vérification" });
     } finally {
       setVerifying(false);
     }

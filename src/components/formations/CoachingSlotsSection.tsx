@@ -36,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface CoachingSlot {
   id: string;
@@ -199,7 +200,7 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
       resetForm();
       fetchSlots();
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } finally {
       setSaving(false);
     }
@@ -215,7 +216,7 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
 
     const { error } = await supabase.from("training_coaching_slots").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Créneau supprimé" });
       fetchSlots();

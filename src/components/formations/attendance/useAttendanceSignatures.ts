@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import SignaturePad from "signature_pad";
 import type { SignatureStatus, TrainerSignature } from "./types";
 
@@ -198,7 +199,7 @@ export function useAttendanceSignatures({
       await fetchSignatureStatuses();
     } catch (err) {
       console.error("Error sending signature requests:", err);
-      toast({ title: "Erreur", description: "Une erreur est survenue lors de l'envoi des demandes de signature.", variant: "destructive" });
+      toastError(toast, "Une erreur est survenue lors de l'envoi des demandes de signature.");
     } finally {
       setSendingSlot(null);
     }
@@ -211,7 +212,7 @@ export function useAttendanceSignatures({
 
   const handleSaveTrainerSignature = async () => {
     if (!signaturePadRef.current || signaturePadRef.current.isEmpty() || !signingSlot) {
-      toast({ title: "Signature manquante", description: "Veuillez signer avant de valider.", variant: "destructive" });
+      toastError(toast, "Veuillez signer avant de valider.", { title: "Signature manquante" });
       return;
     }
     setSavingTrainerSig(true);
@@ -232,7 +233,7 @@ export function useAttendanceSignatures({
       await fetchSignatureStatuses();
     } catch (err) {
       console.error("Error saving trainer signature:", err);
-      toast({ title: "Erreur", description: "Impossible d'enregistrer la signature.", variant: "destructive" });
+      toastError(toast, "Impossible d'enregistrer la signature.");
     } finally {
       setSavingTrainerSig(false);
     }
@@ -240,7 +241,7 @@ export function useAttendanceSignatures({
 
   const handleSignAllSlots = async () => {
     if (!signaturePadRef.current || signaturePadRef.current.isEmpty()) {
-      toast({ title: "Signature manquante", description: "Veuillez signer avant de valider.", variant: "destructive" });
+      toastError(toast, "Veuillez signer avant de valider.", { title: "Signature manquante" });
       return;
     }
     setSavingTrainerSig(true);
@@ -264,7 +265,7 @@ export function useAttendanceSignatures({
       await fetchSignatureStatuses();
     } catch (err) {
       console.error("Error saving trainer signatures:", err);
-      toast({ title: "Erreur", description: "Impossible d'enregistrer les signatures.", variant: "destructive" });
+      toastError(toast, "Impossible d'enregistrer les signatures.");
     } finally {
       setSavingTrainerSig(false);
     }

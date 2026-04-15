@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface LiveMeeting {
   id: string;
@@ -218,7 +219,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       resetForm();
       fetchMeetings();
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } finally {
       setSaving(false);
     }
@@ -235,7 +236,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
     const { error } = await supabase.from("training_live_meetings").delete().eq("id", meetingId);
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Live supprimé" });
       fetchMeetings();
@@ -272,7 +273,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       setTimeout(() => setNotesSaved(false), 2000);
       fetchMeetings();
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } finally {
       setSavingNotes(false);
     }

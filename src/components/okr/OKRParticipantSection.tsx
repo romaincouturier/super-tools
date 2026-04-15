@@ -20,6 +20,7 @@ import {
 import { Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useAddOKRParticipant, useRemoveOKRParticipant } from "@/hooks/useOKR";
 
 // ---------------------------------------------------------------------------
@@ -34,7 +35,7 @@ export function OKRParticipantRow({ participant, objectiveId }: { participant: a
     try {
       await removeParticipant.mutateAsync({ id: participant.id, objectiveId });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -76,7 +77,7 @@ export function OKRParticipantDialog({ open, onOpenChange, objectiveId }: Partic
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      toast({ title: "Erreur", description: "L'email est requis", variant: "destructive" });
+      toastError(toast, "L'email est requis");
       return;
     }
 
@@ -93,7 +94,7 @@ export function OKRParticipantDialog({ open, onOpenChange, objectiveId }: Partic
       setName("");
       setRole("contributor");
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

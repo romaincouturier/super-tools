@@ -24,6 +24,7 @@ import {
 import { Save, Plus, Target, TrendingUp, Users, ClipboardCheck, Settings } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useUpdateOKRObjective,
   useOKRKeyResults,
@@ -105,7 +106,7 @@ const OKRDetailDrawer = ({ objective, open, onOpenChange }: OKRDetailDrawerProps
       });
       toast({ title: "Objectif mis à jour" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

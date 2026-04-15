@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -63,7 +64,7 @@ const ConventionSection = ({
       toast({ title: "Relance envoyée", description: `Une relance convention a été envoyée à ${sponsorEmail}.` });
     } catch (error: unknown) {
       console.error("Error sending convention reminder:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible d'envoyer la relance.", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer la relance.");
     } finally {
       setSendingConventionReminder(false);
     }
@@ -71,7 +72,7 @@ const ConventionSection = ({
 
   const handleGenerateConvention = async () => {
     if (isInterEntreprise || formatFormation === "e_learning" || formatFormation === "inter") {
-      toast({ title: "Non disponible", description: "Pour les formations inter-entreprises et e-learning, la convention se génère par participant.", variant: "destructive" });
+      toastError(toast, "Pour les formations inter-entreprises et e-learning, la convention se génère par participant.", { title: "Non disponible" });
       return;
     }
     setGeneratingConvention(true);
@@ -87,7 +88,7 @@ const ConventionSection = ({
       }
     } catch (error: unknown) {
       console.error("Convention generation error:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer la convention.", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible de générer la convention.");
     } finally {
       setGeneratingConvention(false);
     }
@@ -95,7 +96,7 @@ const ConventionSection = ({
 
   const handleSendConvention = async () => {
     if (!conventionFileUrl || !sponsorEmail) {
-      toast({ title: "Impossible", description: !conventionFileUrl ? "Aucune convention générée." : "Aucun email de commanditaire défini.", variant: "destructive" });
+      toastError(toast, !conventionFileUrl ? "Aucune convention générée." : "Aucun email de commanditaire défini.", { title: "Impossible" });
       return;
     }
     setSendingConvention(true);
@@ -115,7 +116,7 @@ const ConventionSection = ({
       });
     } catch (error: unknown) {
       console.error("Send convention error:", error);
-      toast({ title: "Erreur d'envoi", description: error instanceof Error ? error.message : "Impossible d'envoyer la convention.", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer la convention.", { title: "Erreur d'envoi" });
     } finally {
       setSendingConvention(false);
     }
