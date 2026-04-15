@@ -2,6 +2,7 @@ import { AlertTriangle, Thermometer, Clock, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useLogInteraction } from "@/hooks/useReseau";
 import { WARMTH_LABELS, type CoolingContact } from "@/types/reseau";
 
@@ -26,7 +27,7 @@ const CoolingAlerts = ({ coolingContacts }: CoolingAlertsProps) => {
       });
       toast({ title: `Interaction avec ${contactName} enregistrée` });
     } catch {
-      toast({ title: "Erreur", variant: "destructive" });
+      toastError(toast, null);
     }
   };
 

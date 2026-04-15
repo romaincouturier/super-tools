@@ -21,6 +21,7 @@ import {
 
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import type { Improvement, Training, ImprovementFormData } from "@/hooks/useImprovements";
 import { EMPTY_FORM, SOURCE_TYPES, PRIORITIES } from "@/hooks/useImprovements";
 
@@ -67,11 +68,11 @@ export default function ImprovementFormDialog({
 
   const handleSave = async () => {
     if (!form.training_id) {
-      toast({ title: "Erreur", description: "Veuillez sélectionner une formation", variant: "destructive" });
+      toastError(toast, "Veuillez sélectionner une formation");
       return;
     }
     if (!form.title.trim()) {
-      toast({ title: "Erreur", description: "Veuillez saisir un titre", variant: "destructive" });
+      toastError(toast, "Veuillez saisir un titre");
       return;
     }
     if (!form.description.trim()) {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { Calendar, CalendarOff, CheckCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -59,11 +60,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
             description: "Votre agenda sera utilisé par le coach commercial.",
           });
         } else {
-          toast({
-            title: "Échec de la connexion",
-            description: event.data.error || "Une erreur est survenue",
-            variant: "destructive",
-          });
+          toastError(toast, event.data.error || "Une erreur est survenue", { title: "Échec de la connexion" });
         }
       }
     };
@@ -78,7 +75,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({ title: "Non connecté", description: "Veuillez vous connecter d'abord.", variant: "destructive" });
+        toastError(toast, "Veuillez vous connecter d'abord.", { title: "Non connecté" });
         setIsConnecting(false);
         return;
       }
@@ -115,7 +112,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
       }
     } catch (error: unknown) {
       console.error("Failed to initiate Calendar OAuth:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de démarrer la connexion", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible de démarrer la connexion");
       setIsConnecting(false);
     }
   };
@@ -138,7 +135,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
       toast({ title: "Google Calendar déconnecté", description: "L'agenda ne sera plus utilisé par le coach." });
     } catch (error: unknown) {
       console.error("Failed to disconnect:", error);
-      toast({ title: "Erreur", description: "Impossible de déconnecter Google Calendar", variant: "destructive" });
+      toastError(toast, "Impossible de déconnecter Google Calendar");
     }
   };
 

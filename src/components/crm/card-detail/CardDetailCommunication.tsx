@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCrmEmailTemplates, replaceCrmVariables } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import EmailEditor from "../EmailEditor";
 import SentDevisSection from "../SentDevisSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
@@ -333,7 +334,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
                       toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
                       setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
                     } catch {
-                      toast({ title: "Erreur", description: "Impossible de programmer l'email.", variant: "destructive" });
+                      toastError(toast, "Impossible de programmer l'email.");
                     }
                   }}
                 >

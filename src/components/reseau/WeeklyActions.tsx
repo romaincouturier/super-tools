@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   useNetworkActions,
@@ -45,11 +46,7 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
         description: "Votre plan d'actions hebdomadaire est prêt !",
       });
     } catch {
-      toast({
-        title: "Erreur",
-        description: "Impossible de générer les actions.",
-        variant: "destructive",
-      });
+      toastError(toast, "Impossible de générer les actions.");
     }
   };
 
@@ -64,7 +61,7 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
         actionType: action.action_type,
       });
     } catch {
-      toast({ title: "Erreur", description: "Impossible de mettre à jour l'action.", variant: "destructive" });
+      toastError(toast, "Impossible de mettre à jour l'action.");
     }
   };
 

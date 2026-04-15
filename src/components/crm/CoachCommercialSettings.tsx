@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { Save, Plus, Trash2, ChevronLeft, ChevronRight, Target, TrendingUp, DollarSign, Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import type { CommercialCoachContext, CrmRevenueTarget } from "@/types/crm";
@@ -139,7 +140,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         { onConflict: "context_type,year" }
       );
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Ambition sauvegardée" });
       loadHistory();
@@ -164,7 +165,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         { onConflict: "context_type,year" }
       );
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Structure d'acquisition sauvegardée" });
       loadHistory();
@@ -186,7 +187,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
         created_by: session?.user?.id || null,
       });
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Objectif ajouté" });
       setShowAddTarget(false);
@@ -204,7 +205,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
       .delete()
       .eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Objectif supprimé" });
       loadRevenueTargets();
