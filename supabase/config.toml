@@ -192,6 +192,9 @@ verify_jwt = false
 [functions.generate-daily-actions]
 verify_jwt = false
 
+[functions.generate-daily-agenda]
+verify_jwt = false
+
 [functions.check-daily-actions-completion]
 verify_jwt = false
 
