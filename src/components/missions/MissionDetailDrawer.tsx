@@ -12,14 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot, Mail } from "lucide-react";
-import MissionEmailDrafts from "./MissionEmailDrafts";
+import { Trash2, Loader2, X, Plus, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
-import MissionScheduledActions from "./MissionScheduledActions";
 import MissionPages from "./MissionPages";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import MissionContacts from "./MissionContacts";
@@ -155,8 +153,8 @@ const MissionDetailDrawer = ({
       setTrainBooked(mission.train_booked ?? false);
       setHotelBooked(mission.hotel_booked ?? false);
       setAssignedTo(mission.assigned_to || null);
-      setScheduledDate("");
-      setScheduledText("");
+      setScheduledDate(mission.waiting_next_action_date || "");
+      setScheduledText(mission.waiting_next_action_text || "");
       setShowScheduleForm(false);
       resetTracking();
     }
@@ -291,9 +289,9 @@ const MissionDetailDrawer = ({
           </a>
         )}
 
-        {/* Schedule action button + Next Action Scheduler */}
+        {/* Schedule action button + Next Action Scheduler (same UX as CRM) */}
         <div className="mt-3 flex items-start gap-2">
-          {!showScheduleForm && (
+          {!showScheduleForm && !mission.waiting_next_action_date && (
             <Button size="sm" variant="outline" onClick={() => setShowScheduleForm(true)} title="Programmer une action">
               <Calendar className="h-4 w-4 mr-1.5" />
               Programmer une action
@@ -302,7 +300,7 @@ const MissionDetailDrawer = ({
         </div>
         <div className="mt-2">
           <NextActionScheduler
-            currentAction={{ date: null, text: null }}
+            currentAction={{ date: mission.waiting_next_action_date, text: mission.waiting_next_action_text }}
             scheduledDate={scheduledDate}
             setScheduledDate={setScheduledDate}
             scheduledText={scheduledText}
@@ -314,7 +312,6 @@ const MissionDetailDrawer = ({
               const selectedDate = startOfDay(new Date(scheduledDate));
               const today = startOfDay(new Date());
               if (isBefore(selectedDate, today)) return;
-              // Explicitly save scheduling fields to the mission
               await updateMission.mutateAsync({
                 id: mission.id,
                 updates: {
@@ -322,28 +319,6 @@ const MissionDetailDrawer = ({
                   waiting_next_action_text: scheduledText.trim(),
                 },
               });
-              // Create a corresponding activity (best-effort)
-              try {
-                await createActivity.mutateAsync({
-                  mission_id: mission.id,
-                  description: scheduledText.trim(),
-                  activity_date: scheduledDate,
-                  duration_type: "hours",
-                  duration: 0,
-                  billable_amount: null,
-                  invoice_url: null,
-                  invoice_number: null,
-                  is_billed: false,
-                  notes: null,
-                  google_event_id: null,
-                  google_event_link: null,
-                });
-              } catch {
-                // Activity creation is best-effort
-              }
-              // Reset form for next action
-              setScheduledDate("");
-              setScheduledText("");
             }}
             onClear={async () => {
               setScheduledDate("");
@@ -358,13 +333,40 @@ const MissionDetailDrawer = ({
                 });
               }
             }}
+            onMarkDone={async () => {
+              if (!mission || !mission.waiting_next_action_text) return;
+              const today = new Date().toISOString().slice(0, 10);
+              // Log the completed action into the activity feed
+              await createActivity.mutateAsync({
+                mission_id: mission.id,
+                description: mission.waiting_next_action_text,
+                activity_date: today,
+                duration_type: "hours",
+                duration: 0,
+                billable_amount: null,
+                invoice_url: null,
+                invoice_number: null,
+                is_billed: false,
+                notes: null,
+                google_event_id: null,
+                google_event_link: null,
+              });
+              // Then clear the scheduling fields (same semantics as CRM unschedule)
+              await updateMission.mutateAsync({
+                id: mission.id,
+                updates: {
+                  waiting_next_action_date: null,
+                  waiting_next_action_text: null,
+                },
+              });
+              setScheduledDate("");
+              setScheduledText("");
+              toast({ title: "Action marquée comme faite", description: "Ajoutée aux activités de la mission." });
+            }}
             saving={updateMission.isPending || createActivity.isPending}
             actionPresets={["Relancer le client", "Appeler", "Préparer les livrables", "RDV physique", "RDV visio", "Envoyer un document"]}
           />
         </div>
-
-        {/* All scheduled actions list */}
-        <MissionScheduledActions missionId={mission.id} />
 
         {/* AI Mission Summary Panel */}
         {aiSummary && (
@@ -427,10 +429,6 @@ const MissionDetailDrawer = ({
               <Clock className="h-4 w-4" />
               Activités
             </TabsTrigger>
-            <TabsTrigger value="emails" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              Emails
-            </TabsTrigger>
           </TabsList>
 
           {/* Activities Tab */}
@@ -472,11 +470,6 @@ const MissionDetailDrawer = ({
               variant="bare"
               enablePaste
             />
-          </TabsContent>
-
-          {/* Emails Tab */}
-          <TabsContent value="emails" className="mt-4">
-            <MissionEmailDrafts missionId={mission.id} />
           </TabsContent>
 
           {/* Settings Tab */}

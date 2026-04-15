@@ -29,7 +29,6 @@ export const CATEGORY_ORDER = [
   "commentaires_contenu",
   "evenements",
   "cfp_surveiller",
-  "emails_a_valider",
   "support_tickets",
   "supertilt",
 ] as const;
@@ -54,7 +53,6 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   formations_conventions: { label: "Formations", emoji: "\ud83c\udf93", color: "text-red-600" },
   evenements: { label: "\u00c9v\u00e9nements", emoji: "\ud83d\udcc5", color: "text-teal-600" },
   cfp_surveiller: { label: "CFP \u00e0 surveiller", emoji: "\ud83d\udd01", color: "text-blue-600" },
-  emails_a_valider: { label: "Emails à valider", emoji: "\ud83d\udce7", color: "text-violet-600" },
   support_tickets: { label: "Tickets support", emoji: "\ud83c\udfab", color: "text-rose-600" },
   supertilt: { label: "SuperTilt", emoji: "\u26a1", color: "text-yellow-600" },
 };

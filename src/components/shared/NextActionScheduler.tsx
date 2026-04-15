@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, Loader2, Calendar } from "lucide-react";
+import { X, Loader2, Calendar, Check } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -30,6 +30,12 @@ interface NextActionSchedulerProps {
   onSchedule: () => void | Promise<void>;
   /** Clear handler */
   onClear: () => void | Promise<void>;
+  /**
+   * Optional "mark as done" handler. When provided, a ✓ button is rendered
+   * on the banner next to the clear button. Used by missions to log a
+   * completed action into the activity feed.
+   */
+  onMarkDone?: () => void | Promise<void>;
   /** Is saving in progress */
   saving?: boolean;
   /** Action presets (chips) */
@@ -55,6 +61,7 @@ const NextActionScheduler = ({
   setShowForm,
   onSchedule,
   onClear,
+  onMarkDone,
   saving = false,
   actionPresets = DEFAULT_ACTION_PRESETS,
 }: NextActionSchedulerProps) => {
@@ -96,7 +103,18 @@ const NextActionScheduler = ({
             </span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={(e) => { e.stopPropagation(); handleClear(); }}>
+            {onMarkDone && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-green-600 hover:text-green-800"
+                onClick={(e) => { e.stopPropagation(); onMarkDone(); }}
+                title="Marquer comme fait"
+              >
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700" onClick={(e) => { e.stopPropagation(); handleClear(); }} title="Annuler la programmation">
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
