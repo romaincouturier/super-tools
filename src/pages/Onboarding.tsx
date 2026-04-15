@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { User, GraduationCap, Users, ClipboardCheck, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -89,7 +90,7 @@ export default function Onboarding() {
       setCurrentStep(1);
       toast({ title: "Profil enregistré ✓" });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +119,7 @@ export default function Onboarding() {
       setCurrentStep(2);
       toast({ title: "Formation créée ✓" });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setIsLoading(false);
     }
@@ -138,7 +139,7 @@ export default function Onboarding() {
       setCurrentStep(3);
       toast({ title: `${valid.length} participant(s) enregistré(s) ✓` });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setIsLoading(false);
     }

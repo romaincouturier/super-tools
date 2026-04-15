@@ -139,15 +139,15 @@ const SignatureDevis = () => {
 
   const handleSubmit = async () => {
     if (!signerName.trim()) {
-      toast({ title: "Nom requis", description: "Veuillez indiquer votre nom.", variant: "destructive" });
+      toastError(toast, "Veuillez indiquer votre nom.", { title: "Nom requis" });
       return;
     }
     if (!consentGiven) {
-      toast({ title: "Consentement requis", description: "Veuillez accepter les conditions de signature électronique.", variant: "destructive" });
+      toastError(toast, "Veuillez accepter les conditions de signature électronique.", { title: "Consentement requis" });
       return;
     }
     if (isSignatureEmpty()) {
-      toast({ title: "Signature requise", description: "Veuillez signer dans le cadre prévu.", variant: "destructive" });
+      toastError(toast, "Veuillez signer dans le cadre prévu.", { title: "Signature requise" });
       return;
     }
     if (!devisData || !token) return;
@@ -179,7 +179,7 @@ const SignatureDevis = () => {
       toast({ title: "Devis signé", description: "Votre signature a été enregistrée avec succès." });
     } catch (err) {
       console.error("Error submitting signature:", err);
-      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Une erreur est survenue.");
     } finally {
       setSubmitting(false);
     }

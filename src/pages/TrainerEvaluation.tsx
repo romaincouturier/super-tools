@@ -8,6 +8,7 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import SupertiltLogo from "@/components/SupertiltLogo";
 
 const TrainerEvaluation = () => {
@@ -112,7 +113,7 @@ const TrainerEvaluation = () => {
       setSubmitted(true);
     } catch (error) {
       console.error(error);
-      toast({ title: "Erreur", description: "Impossible d'envoyer votre retour.", variant: "destructive" });
+      toastError(toast, "Impossible d'envoyer votre retour.");
     } finally {
       setSubmitting(false);
     }
