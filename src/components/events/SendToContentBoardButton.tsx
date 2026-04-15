@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Newspaper, Loader2 } from "lucide-react";
+import { Newspaper } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import { Button } from "@/components/ui/button";
@@ -163,7 +164,7 @@ export default function SendToContentBoardButton({ event }: SendToContentBoardBu
             Annuler
           </Button>
           <Button onClick={handleSend} disabled={sending || !selectedColumn}>
-            {sending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            {sending && <Spinner className="mr-1" />}
             Créer la carte
           </Button>
         </DialogFooter>

@@ -11,11 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import {
-  Loader2, Sparkles, BookOpen, ClipboardCheck, Activity,
-  CheckCircle2, AlertTriangle, TrendingUp, Target,
-  ArrowRight, Download, Copy, Brain, Zap, MessageSquare,
-} from "lucide-react";
+import { Sparkles, BookOpen, ClipboardCheck, Activity, CheckCircle2, AlertTriangle, TrendingUp, Target, ArrowRight, Download, Copy, Brain, Zap, MessageSquare } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import PageHeader from "@/components/PageHeader";
 
@@ -257,7 +254,7 @@ export default function AiTools() {
                 <Input type="number" value={programDuration} onChange={e => setProgramDuration(e.target.value)} min="1" max="100" />
               </div>
               <Button onClick={handleGenerateProgram} disabled={generatingProgram || !programTitle.trim()} className="gap-2">
-                {generatingProgram ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                {generatingProgram ? <Spinner /> : <Brain className="w-4 h-4" />}
                 {generatingProgram ? "Génération en cours..." : "Générer le programme"}
               </Button>
             </CardContent>
@@ -355,7 +352,7 @@ export default function AiTools() {
                 <Input type="number" value={quizNumQuestions} onChange={e => setQuizNumQuestions(e.target.value)} min="3" max="30" />
               </div>
               <Button onClick={handleGenerateQuiz} disabled={generatingQuiz} className="gap-2">
-                {generatingQuiz ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+                {generatingQuiz ? <Spinner /> : <ClipboardCheck className="w-4 h-4" />}
                 {generatingQuiz ? "Génération..." : "Générer le quiz"}
               </Button>
             </CardContent>
@@ -437,7 +434,7 @@ export default function AiTools() {
                 />
               </div>
               <Button onClick={handleGenerateCoachingSummary} disabled={generatingCoachingSummary || !coachingNotes.trim()}>
-                {generatingCoachingSummary ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                {generatingCoachingSummary ? <Spinner className="mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                 Générer le résumé
               </Button>
             </CardContent>
@@ -518,7 +515,7 @@ export default function AiTools() {
             </CardHeader>
             <CardContent>
               <Button onClick={handleHealthScore} disabled={loadingHealth} className="gap-2">
-                {loadingHealth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                {loadingHealth ? <Spinner /> : <Brain className="w-4 h-4" />}
                 {loadingHealth ? "Analyse en cours..." : "Lancer l'analyse"}
               </Button>
             </CardContent>

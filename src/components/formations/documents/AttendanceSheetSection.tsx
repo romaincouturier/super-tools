@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Upload, FileText, Trash2, Loader2, ClipboardList, CheckCircle } from "lucide-react";
+import { Upload, FileText, Trash2, ClipboardList, CheckCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -225,7 +226,7 @@ const AttendanceSheetSection = ({
               >
                 <span>
                   {uploadingSheet ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <Upload className="h-4 w-4 mr-2" />
                   )}

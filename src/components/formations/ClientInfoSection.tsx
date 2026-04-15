@@ -1,4 +1,5 @@
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,7 +82,7 @@ export default function ClientInfoSection({
           />
         </div>
         <Button type="button" variant="secondary" onClick={onSearchSiren} disabled={searchingSiren || siren.length !== 9}>
-          {searchingSiren ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          {searchingSiren ? <Spinner /> : <Search className="w-4 h-4" />}
           <span className="ml-2">Rechercher</span>
         </Button>
       </div>
@@ -91,7 +92,7 @@ export default function ClientInfoSection({
         <div className="flex gap-2">
           <Input id="nomClient" placeholder="Nom de l'entreprise ou du client" value={nomClient} onChange={(e) => setNomClient(e.target.value)} required className="flex-1" />
           <Button type="button" variant="outline" size="sm" onClick={onSearchSirenByName} disabled={searchingSirenByName || nomClient.trim().length < 2} className="whitespace-nowrap">
-            {searchingSirenByName ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+            {searchingSirenByName ? <Spinner /> : <Search className="w-4 h-4" />}
             <span className="ml-2">Chercher Siren</span>
           </Button>
         </div>

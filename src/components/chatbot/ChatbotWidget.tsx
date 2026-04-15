@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Loader2, ThumbsUp, ThumbsDown, Bot, User, Minimize2, Bug } from "lucide-react";
+import { MessageCircle, X, Send, ThumbsUp, ThumbsDown, Bot, User, Minimize2, Bug } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -273,7 +274,7 @@ export function ChatbotWidget() {
                         <Bot className="h-4 w-4 text-primary" />
                       </div>
                       <div className="bg-muted rounded-lg px-4 py-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Spinner />
                       </div>
                     </div>
                   )}
@@ -298,7 +299,7 @@ export function ChatbotWidget() {
                     size="icon"
                   >
                     {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Spinner />
                     ) : (
                       <Send className="h-4 w-4" />
                     )}

@@ -1,20 +1,8 @@
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
-import {
-  Bold,
-  Italic,
-  Underline as UnderlineIcon,
-  Link as LinkIcon,
-  List,
-  ListOrdered,
-  Undo,
-  Redo,
-  ImageIcon,
-  Loader2,
-  Mic,
-  Mail,
-} from "lucide-react";
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
@@ -280,7 +268,7 @@ const CrmDescriptionEditor = ({
       {imageUploading && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner />
             Upload de l'image...
           </div>
         </div>

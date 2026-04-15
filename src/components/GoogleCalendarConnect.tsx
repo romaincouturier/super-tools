@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, CalendarOff, Loader2, CheckCircle } from "lucide-react";
+import { Calendar, CalendarOff, CheckCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface GoogleCalendarConnectProps {
   onStatusChange?: (connected: boolean) => void;
@@ -144,7 +145,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Spinner />
         Vérification Google Calendar...
       </div>
     );
@@ -180,7 +181,7 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
     >
       {isConnecting ? (
         <>
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Spinner />
           Connexion...
         </>
       ) : (

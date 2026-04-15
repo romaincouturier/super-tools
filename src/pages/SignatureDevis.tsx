@@ -2,17 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
-import {
-  Loader2,
-  CheckCircle2,
-  FileText,
-  Calendar,
-  Building,
-  User,
-  PenLine,
-  Shield,
-  ExternalLink,
-} from "lucide-react";
+import { CheckCircle2, FileText, Calendar, Building, User, PenLine, Shield, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -204,7 +195,7 @@ const SignatureDevis = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -332,7 +323,7 @@ const SignatureDevis = () => {
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleClear} className="flex-1">Effacer</Button>
               <Button onClick={handleSubmit} disabled={submitting || !consentGiven || !signerName.trim()} className="flex-1">
-                {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Envoi...</>) : "Signer le devis"}
+                {submitting ? (<><Spinner className="mr-2" />Envoi...</>) : "Signer le devis"}
               </Button>
             </div>
           </CardContent>

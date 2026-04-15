@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import { validatePassword } from "@/lib/passwordValidation";
@@ -115,7 +116,7 @@ const ResetPassword = () => {
   if (checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -169,7 +170,7 @@ const ResetPassword = () => {
               disabled={isLoading || !validatePassword(password).isValid}
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : (
                 "Mettre à jour le mot de passe"
               )}

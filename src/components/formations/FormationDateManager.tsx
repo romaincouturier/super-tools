@@ -1,4 +1,5 @@
-import { Loader2, Save, X, Plus, Trash2, Star } from "lucide-react";
+import { Save, X, Plus, Trash2, Star } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,7 +88,7 @@ export default function FormationDateManager({
       <div className="space-y-3">
         {loadingDates ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin" />
+            <Spinner size="md" />
           </div>
         ) : formationDates.length === 0 ? (
           <p className="text-center text-muted-foreground py-4">

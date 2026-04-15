@@ -1,7 +1,8 @@
 import { useQuotesByCard } from "@/hooks/useQuotes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, ExternalLink, Mail } from "lucide-react";
+import { FileText, ExternalLink, Mail } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -27,7 +28,7 @@ export default function QuoteHistorySection({ cardId }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-4">
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Spinner />
         <span className="text-sm text-muted-foreground">Chargement des devis...</span>
       </div>
     );

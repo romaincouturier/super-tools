@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Loader2, Newspaper, Eye, EyeOff } from "lucide-react";
+import { Newspaper, Eye, EyeOff } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ const ContentBoard = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

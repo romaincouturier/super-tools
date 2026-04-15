@@ -1,5 +1,6 @@
 import { RefObject } from "react";
-import { PenLine, Loader2, RefreshCw, UserPen } from "lucide-react";
+import { PenLine, RefreshCw, UserPen } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -73,7 +74,7 @@ const TrainerSignatureDialog = ({
         {!signaturePadReady && !signatureInitError && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner />
               Initialisation de la zone de signature…
             </div>
           </div>
@@ -115,7 +116,7 @@ const TrainerSignatureDialog = ({
             disabled={savingTrainerSig || !signaturePadReady}
           >
             {savingTrainerSig ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Spinner className="mr-2" />
             ) : (
               <PenLine className="h-4 w-4 mr-2" />
             )}

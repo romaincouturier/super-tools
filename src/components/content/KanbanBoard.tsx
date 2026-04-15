@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
-import { Plus, Loader2, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3, Users } from "lucide-react";
+import { Plus, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3, Users } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -615,7 +616,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

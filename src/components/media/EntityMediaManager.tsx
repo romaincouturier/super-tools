@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
 import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
@@ -285,7 +286,7 @@ const EntityMediaManager = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }
@@ -319,7 +320,7 @@ const EntityMediaManager = ({
         >
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Spinner size="lg" className="text-primary" />
               <p className="text-sm text-muted-foreground">Upload en cours...</p>
             </div>
           ) : (
@@ -353,7 +354,7 @@ const EntityMediaManager = ({
               onDragLeave={() => setDragOver(false)}
             >
               {uploading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <Spinner size="md" className="text-muted-foreground" />
               ) : (
                 <Plus className="h-6 w-6 text-muted-foreground" />
               )}
@@ -556,7 +557,7 @@ const EntityMediaManager = ({
               disabled={downloading}
             >
               {downloading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
               ) : (
                 <DownloadCloud className="h-4 w-4 mr-2" />
               )}

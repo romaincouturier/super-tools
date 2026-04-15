@@ -1,4 +1,5 @@
-import { Loader2, Globe, Users, Eye, Monitor, Link2, Search, AlertCircle } from "lucide-react";
+import { Globe, Users, Eye, Monitor, Link2, Search, AlertCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWpSummary, useWpPages, useWpBrowsers, useWpReferrers } from "@/hooks/useWpStatistics";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
@@ -140,7 +141,7 @@ const WpStatisticsDashboard = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -171,7 +172,7 @@ const WpStatisticsDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loadingPages ? <Loader2 className="h-4 w-4 animate-spin" /> : errorPages ? <ErrorState message="Erreur chargement pages" /> : <TopPagesTable data={pages} />}
+            {loadingPages ? <Spinner /> : errorPages ? <ErrorState message="Erreur chargement pages" /> : <TopPagesTable data={pages} />}
           </CardContent>
         </Card>
 
@@ -183,7 +184,7 @@ const WpStatisticsDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loadingBrowsers ? <Loader2 className="h-4 w-4 animate-spin" /> : <BrowsersChart data={browsers} />}
+            {loadingBrowsers ? <Spinner /> : <BrowsersChart data={browsers} />}
           </CardContent>
         </Card>
 
@@ -195,7 +196,7 @@ const WpStatisticsDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loadingReferrers ? <Loader2 className="h-4 w-4 animate-spin" /> : <ReferrersTable data={referrers} />}
+            {loadingReferrers ? <Spinner /> : <ReferrersTable data={referrers} />}
           </CardContent>
         </Card>
       </div>

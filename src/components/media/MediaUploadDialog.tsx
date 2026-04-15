@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Upload, Plus, Briefcase, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
+import { Upload, Plus, Briefcase, GraduationCap, CalendarDays, HandCoins } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface EntityOption {
   id: string;
@@ -227,7 +228,7 @@ const MediaUploadDialog = ({ missions, trainings = [], events = [], crmCards = [
             />
             {uploading ? (
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Spinner size="lg" className="text-primary" />
                 <p className="text-sm text-muted-foreground">Upload en cours...</p>
               </div>
             ) : (

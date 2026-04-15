@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Loader2, CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
+import { CheckCircle2, MapPin, Calendar, Clock, User, PenLine, Shield } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -207,7 +208,7 @@ const Emargement = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -327,7 +328,7 @@ const Emargement = () => {
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2" />
                     Envoi...
                   </>
                 ) : (

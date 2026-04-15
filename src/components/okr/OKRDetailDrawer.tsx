@@ -21,16 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Save,
-  Loader2,
-  Plus,
-  Target,
-  TrendingUp,
-  Users,
-  ClipboardCheck,
-  Settings,
-} from "lucide-react";
+import { Save, Plus, Target, TrendingUp, Users, ClipboardCheck, Settings } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   useUpdateOKRObjective,
@@ -129,7 +121,7 @@ const OKRDetailDrawer = ({ objective, open, onOpenChange }: OKRDetailDrawerProps
               <span className="truncate">{objective.title}</span>
             </div>
             <Button size="sm" onClick={handleSave} disabled={updateObjective.isPending}>
-              {updateObjective.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {updateObjective.isPending ? <Spinner /> : <Save className="h-4 w-4" />}
             </Button>
           </SheetTitle>
         </SheetHeader>
@@ -189,7 +181,7 @@ const OKRDetailDrawer = ({ objective, open, onOpenChange }: OKRDetailDrawerProps
             </div>
 
             {loadingKRs ? (
-              <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              <div className="flex justify-center py-4"><Spinner size="md" /></div>
             ) : keyResults && keyResults.length > 0 ? (
               <div className="space-y-3">
                 {keyResults.map((kr) => (

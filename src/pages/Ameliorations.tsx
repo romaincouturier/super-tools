@@ -1,14 +1,6 @@
 import { useState } from "react";
-import {
-  Loader2,
-  Filter,
-  Plus,
-  LayoutList,
-  Columns3,
-  Lightbulb,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { Filter, Plus, LayoutList, Columns3, Lightbulb, ChevronDown, ChevronUp } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -88,7 +80,7 @@ const Ameliorations = () => {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

@@ -1,17 +1,7 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import {
-  Plus,
-  Clock,
-  Calendar,
-  FileText,
-  Trash2,
-  Edit2,
-  Receipt,
-  Loader2,
-  ExternalLink,
-  Download,
-} from "lucide-react";
+import { Plus, Clock, Calendar, FileText, Trash2, Edit2, Receipt, ExternalLink, Download } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -176,7 +166,6 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     }
   };
 
-
   // Calculate totals
   const totalConsumed = activities?.reduce((sum, a) => sum + (a.billable_amount || 0), 0) || 0;
   const totalBilled = activities?.reduce((sum, a) => a.is_billed ? sum + (a.billable_amount || 0) : sum, 0) || 0;
@@ -251,7 +240,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
       {isLoading ? (
         <div className="flex justify-center py-4">
-          <Loader2 className="h-6 w-6 animate-spin" />
+          <Spinner size="md" />
         </div>
       ) : activities && activities.length > 0 ? (
         <div className="border rounded-lg overflow-hidden">
@@ -495,7 +484,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               disabled={createActivity.isPending || updateActivity.isPending}
             >
               {(createActivity.isPending || updateActivity.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
               )}
               {editingActivity ? "Modifier" : "Ajouter"}
             </Button>

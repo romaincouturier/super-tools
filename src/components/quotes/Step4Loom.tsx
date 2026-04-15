@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Video, ExternalLink, SkipForward, FileText, Loader2, Copy, RefreshCw } from "lucide-react";
+import { Video, ExternalLink, SkipForward, FileText, Copy, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { crmAiAssist } from "@/services/crmAiAssist";
 import type { CrmCard } from "@/types/crm";
 import type { Quote } from "@/types/quotes";
@@ -166,7 +167,7 @@ export default function Step4Loom({
               )}
               {scriptLoading && (
                 <div className="flex items-center gap-2 p-4 rounded-lg border bg-muted/30 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner />
                   Génération de la trame en cours…
                 </div>
               )}

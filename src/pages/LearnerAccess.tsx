@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, CheckCircle2, GraduationCap } from "lucide-react";
+import { Mail, CheckCircle2, GraduationCap } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 
 export default function LearnerAccess() {
@@ -85,7 +86,7 @@ export default function LearnerAccess() {
                 </p>
               </div>
               <Button type="submit" className="w-full font-semibold" disabled={isLoading || !email.trim()}>
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Recevoir mon lien d'accès"}
+                {isLoading ? <Spinner /> : "Recevoir mon lien d'accès"}
               </Button>
             </form>
           )}

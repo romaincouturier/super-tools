@@ -1,16 +1,6 @@
 import { useState, useMemo } from "react";
-import {
-  TrendingUp,
-  Calculator,
-  Euro,
-  Calendar,
-  Settings,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  Loader2,
-} from "lucide-react";
+import { TrendingUp, Calculator, Euro, Calendar, Settings, Target, AlertTriangle, CheckCircle, Info } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -192,7 +182,7 @@ const MissionProfitabilityDashboard = () => {
   if (settingsLoading || missionsLoading) {
     return (
       <div className="flex justify-center py-4">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <Spinner size="md" />
       </div>
     );
   }

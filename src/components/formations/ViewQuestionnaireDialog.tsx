@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Eye, Loader2, User, Briefcase, BookOpen, Target, MessageSquare, Accessibility, Download } from "lucide-react";
+import { Eye, User, Briefcase, BookOpen, Target, MessageSquare, Accessibility, Download } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
@@ -409,7 +410,7 @@ const ViewQuestionnaireDialog = ({ participantId, participantName, trainingId }:
         
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Spinner size="lg" className="text-primary" />
           </div>
         ) : questionnaire ? (
           <ScrollArea className="max-h-[calc(85vh-120px)] pr-4">

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Send, Loader2, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
+import { Send, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -135,7 +136,7 @@ const DocumentDeliverySection = ({
 
   const renderSendButton = () => (
     <Button type="button" variant="default" className="w-full" disabled={sendingDocuments}>
-      {sendingDocuments ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+      {sendingDocuments ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
       Envoyer les documents
     </Button>
   );

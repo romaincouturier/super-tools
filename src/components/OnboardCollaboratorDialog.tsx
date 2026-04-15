@@ -14,7 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { AppModule, MODULE_LABELS } from "@/hooks/useModuleAccess";
 
 interface OnboardCollaboratorDialogProps {
@@ -225,7 +226,7 @@ const OnboardCollaboratorDialog = ({ isAdmin }: OnboardCollaboratorDialogProps) 
             </Button>
             <Button type="submit" disabled={isLoading || selectedModules.length === 0}>
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : (
                 "Envoyer l'invitation"
               )}

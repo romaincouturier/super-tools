@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Loader2 } from "lucide-react";
+import { FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { jsPDF } from "jspdf";
 import { format, parseISO, eachDayOfInterval } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -295,7 +296,7 @@ export default function AttendanceSheetGenerator({
       title={participants.length === 0 ? "Ajoutez des participants pour générer la feuille" : undefined}
     >
       {generating ? (
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        <Spinner className="mr-2" />
       ) : (
         <FileText className="h-4 w-4 mr-2" />
       )}

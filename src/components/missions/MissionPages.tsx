@@ -53,6 +53,7 @@ import {
   X,
   Copy,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -674,7 +675,7 @@ const PageEditor = ({
         {(imageUploading || fileUploading) && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner />
               Upload en cours...
             </div>
           </div>
@@ -839,7 +840,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }
@@ -856,7 +857,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         </p>
         <div className="flex items-center gap-2">
           <Button onClick={() => handleCreatePage(null)} disabled={createPage.isPending}>
-            {createPage.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            {createPage.isPending ? <Spinner className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
             Page vierge
           </Button>
           {pageTemplates && pageTemplates.length > 0 && (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Trash2, Edit2, Loader2, Save, GripVertical } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -225,7 +226,7 @@ const PageTemplateManager = () => {
               </Button>
               <Button onClick={handleSave} disabled={createTemplate.isPending || updateTemplate.isPending}>
                 {(createTemplate.isPending || updateTemplate.isPending) && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                 )}
                 <Save className="h-4 w-4 mr-2" />
                 {editingTemplate ? "Modifier" : "Créer"}

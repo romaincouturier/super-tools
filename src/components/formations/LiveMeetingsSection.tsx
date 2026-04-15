@@ -4,6 +4,7 @@ import { scheduleEmailsBulk } from "@/services/activityLog";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -516,7 +517,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving || !title.trim() || !scheduledDate}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {saving && <Spinner className="mr-2" />}
               {editingMeeting ? "Enregistrer" : "Ajouter"}
             </Button>
           </DialogFooter>
@@ -568,7 +569,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setNotesDialogOpen(false)}>Fermer</Button>
             <Button onClick={handleSaveNotes} disabled={savingNotes}>
-              {savingNotes && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {savingNotes && <Spinner className="mr-2" />}
               <Save className="h-4 w-4 mr-2" />
               Enregistrer
             </Button>

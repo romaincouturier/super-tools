@@ -7,7 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 
 interface UserProfile {
   user_id: string;
@@ -60,7 +61,7 @@ export default function AssignedUserSelector({
   if (loading) {
     return (
       <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <Spinner className="text-muted-foreground" />
         <span className="text-sm text-muted-foreground">Chargement...</span>
       </div>
     );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, Trash2, Star, Loader2, User, Phone, Mail, Briefcase } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,7 +107,7 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
         <h4 className="font-medium text-sm">Contacts</h4>
         <Button size="sm" variant="outline" onClick={handleAddContact} disabled={createContact.isPending}>
           {createContact.isPending ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            <Spinner className="mr-1" />
           ) : (
             <Plus className="h-4 w-4 mr-1" />
           )}

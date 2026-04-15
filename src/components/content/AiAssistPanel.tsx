@@ -2,16 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import {
-  Sparkles,
-  FileText,
-  Linkedin,
-  Instagram,
-  Copy,
-  Check,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
+import { Sparkles, FileText, Linkedin, Instagram, Copy, Check, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,7 +107,7 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
             >
               <div className="flex items-center gap-2">
                 {loading && activeAction === action.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner />
                 ) : (
                   <Icon className="h-4 w-4" />
                 )}

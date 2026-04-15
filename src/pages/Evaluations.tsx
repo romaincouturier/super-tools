@@ -2,17 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  Loader2,
-  Star,
-  Filter,
-  Sparkles,
-  Check,
-  AlertCircle,
-  TrendingUp,
-  Lightbulb,
-  Trash2,
-} from "lucide-react";
+import { Star, Filter, Sparkles, Check, AlertCircle, TrendingUp, Lightbulb, Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -354,7 +345,7 @@ const Evaluations = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -389,7 +380,7 @@ const Evaluations = () => {
             disabled={analyzing || evaluations.length === 0}
           >
             {analyzing ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Spinner className="mr-2" />
             ) : (
               <Sparkles className="h-4 w-4 mr-2" />
             )}
@@ -595,7 +586,7 @@ const Evaluations = () => {
                               disabled={acceptingItem === `weakness-${item.title}`}
                             >
                               {acceptingItem === `weakness-${item.title}` ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Spinner />
                               ) : (
                                 <Check className="h-4 w-4" />
                               )}
@@ -658,7 +649,7 @@ const Evaluations = () => {
                               disabled={acceptingItem === `recommendation-${item.title}`}
                             >
                               {acceptingItem === `recommendation-${item.title}` ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Spinner />
                               ) : (
                                 <Check className="h-4 w-4" />
                               )}

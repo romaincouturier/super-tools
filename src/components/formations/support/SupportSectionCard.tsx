@@ -3,10 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChevronUp, ChevronDown, Trash2, Plus, Image, Video, Mic,
-  GripVertical, Loader2, Upload, BookOpen, ExternalLink, Check,
-} from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, Plus, Image, Video, Mic, GripVertical, Upload, BookOpen, ExternalLink, Check } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { resolveContentType, getFileType, formatFileSize } from "@/lib/file-utils";
@@ -244,7 +242,7 @@ const SupportSectionCard = ({
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
           >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
           </Button>
 
           {availableImports.length > 0 && (

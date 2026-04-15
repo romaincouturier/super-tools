@@ -11,7 +11,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { FileText, Upload, Trash2, Loader2, Paperclip } from "lucide-react";
+import { FileText, Upload, Trash2, Paperclip } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { ParticipantFile } from "@/services/participants";
 
 interface ParticipantFilesProps {
@@ -59,7 +60,7 @@ const ParticipantFiles = ({
             >
               <span>
                 {uploadingFile ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                 ) : (
                   <Upload className="h-4 w-4 mr-2" />
                 )}

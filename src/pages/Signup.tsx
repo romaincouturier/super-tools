@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import { validatePassword } from "@/lib/passwordValidation";
@@ -127,7 +128,7 @@ export default function Signup() {
                 <PasswordStrengthIndicator password={password} />
               </div>
               <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Créer mon compte"}
+                {isLoading ? <Spinner /> : "Créer mon compte"}
               </Button>
               <Button type="button" variant="ghost" className="w-full" onClick={() => setStep("plan")}>
                 ← Retour au choix du plan

@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plus, Pencil, Trash2, Save, X, TextQuote } from "lucide-react";
+import { Plus, Pencil, Trash2, Save, X, TextQuote } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -175,7 +176,7 @@ const EmailSnippetManager = () => {
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Spinner size="md" />
           </div>
         ) : snippets.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
@@ -243,7 +244,7 @@ const EmailSnippetManager = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={!name.trim() || !content.trim() || saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              {saving ? <Spinner className="mr-1" /> : <Save className="h-4 w-4 mr-1" />}
               {editingSnippet ? "Enregistrer" : "Créer"}
             </Button>
           </DialogFooter>

@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Save, Building2, CreditCard, Scale, FileText } from "lucide-react";
+import { Save, Building2, CreditCard, Scale, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import type { QuoteSettings } from "@/types/quotes";
 
@@ -36,7 +37,7 @@ export default function QuoteSettingsForm() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Spinner size="md" className="text-primary" />
       </div>
     );
   }
@@ -433,7 +434,7 @@ export default function QuoteSettingsForm() {
           className="gap-2"
         >
           {updateMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Spinner />
           ) : (
             <Save className="w-4 h-4" />
           )}

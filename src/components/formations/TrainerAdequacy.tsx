@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, Shield, Loader2 } from "lucide-react";
+import { CheckCircle2, Shield } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 
 interface TrainerAdequacyProps {
@@ -222,7 +223,7 @@ export default function TrainerAdequacy({ trainingId, trainerName }: TrainerAdeq
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={handleValidate} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                {saving ? <Spinner /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
                 Valider
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>

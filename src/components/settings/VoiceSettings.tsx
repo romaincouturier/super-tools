@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 import { getErrorMessage } from "@/lib/error-utils";
 
@@ -71,7 +72,7 @@ export default function VoiceSettings() {
         </div>
 
         <Button onClick={handleSave} disabled={saving} className="w-full max-w-2xl">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+          {saving ? <Spinner className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
           {saving ? "Sauvegarde..." : "Sauvegarder les voix"}
         </Button>
       </CardContent>

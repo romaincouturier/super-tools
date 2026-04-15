@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 const ForgotPasswordDialog = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -97,7 +97,7 @@ const ForgotPasswordDialog = () => {
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : (
                 "Envoyer le lien"
               )}

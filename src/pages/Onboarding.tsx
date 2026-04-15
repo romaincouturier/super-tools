@@ -7,10 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import {
-  User, GraduationCap, Users, ClipboardCheck,
-  CheckCircle2, Loader2, ArrowRight, ArrowLeft,
-} from "lucide-react";
+import { User, GraduationCap, Users, ClipboardCheck, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import confetti from "canvas-confetti";
@@ -198,7 +196,7 @@ export default function Onboarding() {
               </div>
             </div>
             <Button className="w-full font-semibold" onClick={handleProfileSave} disabled={isLoading || !displayName.trim()}>
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continuer <ArrowRight className="ml-2 w-4 h-4" /></>}
+              {isLoading ? <Spinner /> : <>Continuer <ArrowRight className="ml-2 w-4 h-4" /></>}
             </Button>
           </div>
         );
@@ -239,7 +237,7 @@ export default function Onboarding() {
               <Input type="number" value={trainingDuration} onChange={(e) => setTrainingDuration(e.target.value)} min="1" />
             </div>
             <Button className="w-full font-semibold" onClick={handleTrainingSave} disabled={isLoading}>
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Créer la formation <ArrowRight className="ml-2 w-4 h-4" /></>}
+              {isLoading ? <Spinner /> : <>Créer la formation <ArrowRight className="ml-2 w-4 h-4" /></>}
             </Button>
           </div>
         );
@@ -257,7 +255,7 @@ export default function Onboarding() {
             ))}
             <Button variant="outline" size="sm" onClick={addParticipant}>+ Ajouter un participant</Button>
             <Button className="w-full font-semibold" onClick={handleParticipantsSave} disabled={isLoading}>
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continuer <ArrowRight className="ml-2 w-4 h-4" /></>}
+              {isLoading ? <Spinner /> : <>Continuer <ArrowRight className="ml-2 w-4 h-4" /></>}
             </Button>
           </div>
         );

@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Search, GraduationCap, ClipboardCheck, FileText, Star } from "lucide-react";
+import { Search, GraduationCap, ClipboardCheck, FileText, Star } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useParticipantHistory } from "@/hooks/useParticipantHistory";
 
 interface ParticipantSearchDrawerProps {
@@ -41,7 +42,7 @@ export default function ParticipantSearchDrawer({ open, onOpenChange }: Particip
               className="flex-1"
             />
             <Button onClick={handleSearch} disabled={loading || !query.trim()}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {loading ? <Spinner /> : <Search className="h-4 w-4" />}
             </Button>
           </div>
 

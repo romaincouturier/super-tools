@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import { useCreateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import { CrmColumn, StatusOperational, ServiceType, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
@@ -219,7 +220,7 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
             form="create-card-form"
             disabled={!isFormValid || createCard.isPending}
           >
-            {createCard.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {createCard.isPending && <Spinner className="mr-2" />}
             Créer
           </Button>
         </DialogFooter>

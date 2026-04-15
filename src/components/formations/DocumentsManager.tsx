@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { FileText, Link, Loader2 } from "lucide-react";
+import { FileText, Link } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -83,7 +84,7 @@ const DocumentsManager = ({
             <Label className="flex items-center gap-2"><Link className="h-4 w-4" />Lien vers les supports de formation</Label>
             <div className="flex items-center gap-2">
               <Input type="url" value={supportsUrl} onChange={(e) => setSupportsUrl(e.target.value)} onBlur={handleSupportsUrlBlur} placeholder="https://drive.google.com/..." disabled={savingSupportsUrl} />
-              {savingSupportsUrl && <Loader2 className="h-4 w-4 animate-spin" />}
+              {savingSupportsUrl && <Spinner />}
             </div>
           </div>
           <AttendanceSheetSection

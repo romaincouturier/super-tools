@@ -9,7 +9,8 @@ import MediaFilters from "@/components/media/MediaFilters";
 import MediaGrid from "@/components/media/MediaGrid";
 import MediaLightbox from "@/components/media/MediaLightbox";
 import MediaUploadDialog from "@/components/media/MediaUploadDialog";
-import { Loader2, ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 
 // Fetch trainings for the upload dialog
@@ -150,7 +151,7 @@ const MediaLibrary = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );

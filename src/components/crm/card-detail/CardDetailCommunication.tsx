@@ -16,20 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Mail,
-  Loader2,
-  FileText,
-  Paperclip,
-  X,
-  Wand2,
-  Undo2,
-  Calendar,
-  ChevronDown,
-  Copy,
-  Pencil,
-  Sparkles,
-} from "lucide-react";
+import { Mail, FileText, Paperclip, X, Wand2, Undo2, Calendar, ChevronDown, Copy, Pencil, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import DOMPurify from "dompurify";
@@ -209,7 +197,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
               disabled={!emailSubject.trim() || improvingSubject}
               title="Améliorer avec l'IA"
             >
-              {improvingSubject ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+              {improvingSubject ? <Spinner /> : <Wand2 className="h-4 w-4" />}
             </Button>
           )}
         </div>
@@ -249,7 +237,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
               disabled={!emailBody.trim() || improvingBody}
               title="Améliorer avec l'IA"
             >
-              {improvingBody ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wand2 className="h-4 w-4 mr-1" />}
+              {improvingBody ? <Spinner className="mr-1" /> : <Wand2 className="h-4 w-4 mr-1" />}
               Améliorer avec l'IA
             </Button>
           </div>
@@ -305,7 +293,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
           >
             {sendEmailPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
                 Envoi en cours…
               </>
             ) : (

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
-import { Plus, Loader2, CheckCircle2, Clock, MessageSquare, Bell, XCircle, Save } from "lucide-react";
+import { Plus, CheckCircle2, Clock, MessageSquare, Bell, XCircle, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -199,7 +200,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -316,7 +317,7 @@ const ReviewPanel = ({ cardId, cardTitle }: ReviewPanelProps) => {
                             disabled={savingOpinion}
                           >
                             {savingOpinion ? (
-                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              <Spinner className="mr-1" />
                             ) : (
                               <Save className="h-4 w-4 mr-1" />
                             )}

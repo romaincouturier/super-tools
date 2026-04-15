@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Check, Loader2, ExternalLink, Zap, Crown, Rocket } from "lucide-react";
+import { CreditCard, Check, ExternalLink, Zap, Crown, Rocket } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 
 interface BillingPlan {
@@ -136,7 +137,7 @@ export default function BillingSection() {
   if (loading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }
@@ -165,7 +166,7 @@ export default function BillingSection() {
             </div>
             <Button variant="outline" onClick={handlePortal} disabled={portalLoading}>
               {portalLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner className="mr-2" />
               ) : (
                 <ExternalLink className="h-4 w-4 mr-2" />
               )}
@@ -260,7 +261,7 @@ export default function BillingSection() {
                     disabled={!!checkoutLoading}
                   >
                     {checkoutLoading === plan.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <Spinner className="mr-2" />
                     ) : null}
                     {t("billing.selectPlan")}
                   </Button>

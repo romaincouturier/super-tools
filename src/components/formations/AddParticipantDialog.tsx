@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Loader2, AlertTriangle, ShoppingCart } from "lucide-react";
+import { Plus, AlertTriangle, ShoppingCart } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { FormationFormula } from "@/types/training";
 import {
   Dialog,
@@ -487,7 +488,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
             <Button type="submit" disabled={saving}>
               {saving ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner className="mr-2" />
                   Ajout...
                 </>
               ) : (

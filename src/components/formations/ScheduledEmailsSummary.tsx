@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Mail, Clock, CheckCircle, AlertCircle, Loader2, Trash2, Eye, Send, Info, ChevronDown } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -642,7 +643,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Spinner size="md" className="text-muted-foreground" />
         </CardContent>
       </Card>
     );
@@ -1013,7 +1014,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
                   disabled={forceSending === selectedEmail.id}
                 >
                   {forceSending === selectedEmail.id ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}
@@ -1057,7 +1058,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
               disabled={deleting}
             >
               {deleting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner className="mr-2" />
               ) : (
                 <Trash2 className="h-4 w-4 mr-2" />
               )}

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
-import { Loader2, Calendar, Save } from "lucide-react";
+import { Calendar, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -253,7 +254,7 @@ const FormationEdit = () => {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -274,7 +275,7 @@ const FormationEdit = () => {
                 <Button type="submit" form="formation-form" disabled={saving}>
                   {saving ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Spinner className="mr-2" />
                       Enregistrement...
                     </>
                   ) : (

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Search, Sparkles, Loader2, X } from "lucide-react";
+import { Search, Sparkles, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,7 +74,7 @@ const AiIdeasSearch = ({ onSelectCard }: AiIdeasSearchProps) => {
         </div>
         <Button onClick={handleSearch} disabled={loading}>
           {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner />
           ) : (
             <Search className="h-4 w-4" />
           )}

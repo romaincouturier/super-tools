@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Send, Share2, Loader2, Check, ChevronsUpDown, User } from "lucide-react";
+import { Send, Share2, Check, ChevronsUpDown, User } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -218,7 +219,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
               disabled={!selectedProfile || sending}
             >
               {sending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <Spinner className="mr-1" />
               ) : (
                 <Send className="h-4 w-4 mr-1" />
               )}

@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2, MessageSquareWarning } from "lucide-react";
+import { Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2, MessageSquareWarning } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -251,7 +252,7 @@ const Reclamations = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );
@@ -272,7 +273,7 @@ const Reclamations = () => {
                   <FileDown className="h-4 w-4 mr-1" /> Export registre
                 </Button>
                 <Button variant="outline" size="sm" onClick={generateLink} disabled={generatingLink}>
-                  {generatingLink ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Link2 className="h-4 w-4 mr-1" />}
+                  {generatingLink ? <Spinner className="mr-1" /> : <Link2 className="h-4 w-4 mr-1" />}
                   Générer un lien
                 </Button>
                 <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
@@ -335,7 +336,7 @@ const Reclamations = () => {
                       </Select>
                     </div>
                     <Button onClick={createManual} disabled={creating} className="w-full">
-                      {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Créer
+                      {creating && <Spinner className="mr-2" />} Créer
                     </Button>
                   </div>
                 </DialogContent>
@@ -407,7 +408,7 @@ const Reclamations = () => {
 
           {/* List */}
           {loading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            <div className="flex justify-center py-12"><Spinner size="lg" className="text-primary" /></div>
           ) : filtered.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">
               Aucune réclamation{filterStatus !== "all" || filterType !== "all" || filterSeverity !== "all" ? " avec ces filtres" : ""}.
@@ -551,7 +552,7 @@ const Reclamations = () => {
                   <h3 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Assistance IA</h3>
                   <div className="flex gap-2 flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => runAiAssist("analyze")} disabled={aiLoading}>
-                      {aiLoading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null} Analyser
+                      {aiLoading ? <Spinner className="mr-1" /> : null} Analyser
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => runAiAssist("draft_response")} disabled={aiLoading}>
                       Brouillon réponse

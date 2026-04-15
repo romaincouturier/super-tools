@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Mic, MicOff, Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea, type TextareaProps } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,7 @@ const VoiceTextarea = React.forwardRef<HTMLTextAreaElement, VoiceTextareaProps>(
               title={isRecording ? "Arrêter la dictée" : "Dicter"}
             >
               {isTranscribing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : isRecording ? (
                 <MicOff className="w-4 h-4" />
               ) : (

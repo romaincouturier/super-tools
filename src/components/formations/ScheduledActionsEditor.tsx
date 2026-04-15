@@ -1,4 +1,5 @@
-import { Plus, Trash2, Calendar, User, AlertCircle, Loader2, Check, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Calendar, User, AlertCircle, Check, CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -242,7 +243,7 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
               >
                 {saving ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                     Enregistrement...
                   </>
                 ) : (
@@ -256,7 +257,7 @@ const ScheduledActionsEditor = ({ actions, onActionsChange, onSave, saving, onTo
         {/* Saving indicator */}
         {saving && (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner />
             Sauvegarde...
           </div>
         )}

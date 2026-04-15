@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Search, Building2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Search, Building2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useSirenLookup } from "@/hooks/useQuotes";
 import type { CrmCard } from "@/types/crm";
 
@@ -95,7 +96,7 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
               className="gap-2"
             >
               {sirenLookup.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : (
                 <Search className="w-4 h-4" />
               )}

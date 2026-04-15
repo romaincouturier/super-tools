@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Loader2, Send, Mail, Users, TestTube } from "lucide-react";
+import { Send, Mail, Users, TestTube } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { sendThankYouEmail } from "@/services/emailSender";
 import { Button } from "@/components/ui/button";
@@ -217,7 +218,7 @@ const ThankYouEmailPreviewDialog = ({
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Spinner size="md" className="text-muted-foreground" />
           </div>
         ) : (
           <div className="space-y-4">
@@ -291,7 +292,7 @@ const ThankYouEmailPreviewDialog = ({
                   disabled={isSendingTest || !testEmail}
                 >
                   {isSendingTest ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner />
                   ) : (
                     "Envoyer"
                   )}
@@ -311,7 +312,7 @@ const ThankYouEmailPreviewDialog = ({
           >
             {isSending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
                 Envoi en cours...
               </>
             ) : (

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { rpc, type TrainerEvaluationByToken } from "@/lib/supabase-rpc";
-import { Loader2, CheckCircle2, Star, CalendarDays, MapPin, Users, History } from "lucide-react";
+import { CheckCircle2, Star, CalendarDays, MapPin, Users, History } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
@@ -120,7 +121,7 @@ const TrainerEvaluation = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -319,7 +320,7 @@ const TrainerEvaluation = () => {
           </div>
 
           <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
-            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {submitting && <Spinner className="mr-2" />}
             Envoyer mon retour
           </Button>
         </div>

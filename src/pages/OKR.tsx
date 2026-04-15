@@ -2,22 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import {
-  Target,
-  Plus,
-  Star,
-  StarOff,
-  ChevronRight,
-  ChevronDown,
-  MoreHorizontal,
-  Trash2,
-  Edit2,
-  Calendar,
-  Users,
-  TrendingUp,
-  Loader2,
-  Sparkles,
-} from "lucide-react";
+import { Target, Plus, Star, StarOff, ChevronRight, ChevronDown, MoreHorizontal, Trash2, Edit2, Calendar, Users, TrendingUp, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -265,7 +251,7 @@ const OKR = () => {
             </>
           ) : (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <Spinner size="lg" />
             </div>
           )}
         </TabsContent>
@@ -372,7 +358,7 @@ const OKR = () => {
       {/* Objectives List */}
       {isLoading && !isError ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Spinner size="lg" />
         </div>
       ) : isError ? (
         <div className="text-center py-12 text-muted-foreground">
@@ -511,7 +497,7 @@ const OKR = () => {
               Annuler
             </Button>
             <Button onClick={handleCreateObjective} disabled={createObjective.isPending}>
-              {createObjective.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {createObjective.isPending && <Spinner className="mr-2" />}
               Créer
             </Button>
           </DialogFooter>

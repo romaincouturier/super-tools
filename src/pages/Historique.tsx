@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, History, Award, FileText, RefreshCw, Search, X, Calendar, UserPlus, UserMinus, Send, Mail, Edit, Heart, ChevronDown, ChevronUp } from "lucide-react";
+import { History, Award, FileText, RefreshCw, Search, X, Calendar, UserPlus, UserMinus, Send, Mail, Edit, Heart, ChevronDown, ChevronUp } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -288,7 +289,7 @@ const Historique = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -387,7 +388,7 @@ const Historique = () => {
           <CardContent>
             {loadingLogs ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                <Spinner size="md" className="text-muted-foreground" />
               </div>
             ) : filteredLogs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">

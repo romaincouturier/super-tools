@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
@@ -14,7 +15,6 @@ import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 import { validatePassword } from "@/lib/passwordValidation";
 import { useLoginAttempts } from "@/hooks/useLoginAttempts";
 import { cn } from "@/lib/utils";
-
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -266,7 +266,7 @@ const Auth = () => {
               disabled={isLoading || status.isBlocked}
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : status.isBlocked ? (
                 "Connexion bloquée"
               ) : isLogin ? (

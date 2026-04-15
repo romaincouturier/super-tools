@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CalendarDays, Send, Loader2 } from "lucide-react";
+import { CalendarDays, Send } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageLoading from "@/components/PageLoading";
 import PageNotFound from "@/components/PageNotFound";
@@ -226,7 +227,7 @@ const EventEdit = () => {
           actions={
             <>
               {(autoSaving || updateEvent.isPending) && (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <Spinner className="text-muted-foreground" />
               )}
             </>
           }
@@ -278,7 +279,7 @@ const EventEdit = () => {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleNotify} disabled={notifying}>
               {notifying ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <Spinner className="mr-1" />
               ) : (
                 <Send className="h-4 w-4 mr-1" />
               )}

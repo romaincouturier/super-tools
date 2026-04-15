@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertTriangle, UserPlus } from "lucide-react";
+import { AlertTriangle, UserPlus } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -244,7 +245,7 @@ const FormulaireRedirect = () => {
             >
               {registering ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Spinner className="mr-2" />
                   Chargement...
                 </>
               ) : (
@@ -261,7 +262,7 @@ const FormulaireRedirect = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center space-y-3">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <Spinner size="lg" className="mx-auto text-primary" />
         <p className="text-muted-foreground">Redirection vers le formulaire...</p>
       </div>
     </div>

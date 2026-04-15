@@ -18,7 +18,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Zap, Link, X } from "lucide-react";
+import { Zap, Link, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   useCreateOKRInitiative,
@@ -153,7 +154,7 @@ export function OKRInitiativeDialog({ open, onOpenChange, keyResultId, onCreated
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={handleSubmit} disabled={createInitiative.isPending}>
-            {createInitiative.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {createInitiative.isPending && <Spinner className="mr-2" />}
             Créer
           </Button>
         </DialogFooter>

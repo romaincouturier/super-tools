@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User } from "lucide-react";
+import { Send, Bot, User } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -99,7 +100,7 @@ const ReseauChat = ({
                 <Bot className="h-4 w-4 text-primary" />
               </div>
               <div className="bg-muted rounded-lg px-4 py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner />
               </div>
             </div>
           )}
@@ -118,7 +119,7 @@ const ReseauChat = ({
             className="flex-1"
           />
           <Button onClick={handleSend} disabled={!input.trim() || isLoading} size="icon">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isLoading ? <Spinner /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
       </div>

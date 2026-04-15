@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Copy, Send, Star, GraduationCap, CheckCircle2, Loader2, Mail, RefreshCw } from "lucide-react";
+import { Copy, Send, Star, GraduationCap, CheckCircle2, Mail, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { v4 as uuidv4 } from "uuid";
 
 interface Props {
@@ -162,7 +163,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
               Aucun retour formateur demandé pour cette formation.
             </p>
             <Button onClick={handleCreate} disabled={creating} size="sm">
-              {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              {creating ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
               Générer un lien de retour
             </Button>
           </div>
@@ -192,7 +193,7 @@ const TrainerEvaluationBlock = ({ trainingId, trainerName, trainerId }: Props) =
                     disabled={sending}
                     title={evaluation.status === "envoye" ? "Renvoyer l'email" : "Envoyer par email"}
                   >
-                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> :
+                    {sending ? <Spinner /> :
                       evaluation.status === "envoye" ? <RefreshCw className="h-4 w-4" /> : <Mail className="h-4 w-4" />
                     }
                   </Button>

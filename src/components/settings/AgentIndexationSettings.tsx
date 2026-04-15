@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 
 const SOURCE_TYPES = [
@@ -166,7 +167,7 @@ export default function AgentIndexationSettings() {
         )}
 
         <Button onClick={runAllBackfill} disabled={runningAll} className="gap-2">
-          {runningAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          {runningAll ? <Spinner /> : <Play className="h-4 w-4" />}
           Tout indexer
         </Button>
 

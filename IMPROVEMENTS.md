@@ -52,6 +52,15 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [020] Edge functions — toujours utiliser `useEdgeFunction()` pour invoquer une fonction Supabase
+- **Constat** : `supabase.functions.invoke()` est appelé 107 fois dans 73 fichiers. Chaque caller réimplémente le même pattern : `useState(loading)` + `useState(result)` + try/catch + `toast` d'erreur + `setLoading(false)` en `finally`. Environ 30-40 lignes de boilerplate par invocation, avec des variations sur le format de réponse (`data.result` vs `data` vs réponse complète).
+- **Règle** : Utiliser le hook `useEdgeFunction<T>(functionName, { errorMessage?, successToast?, silentOnError? })` depuis `@/hooks/useEdgeFunction`. Il retourne `{ loading, result, error, invoke, reset }`. Appeler `await invoke(body)` qui retourne `T | null` (null en cas d'erreur). Ne PAS appeler `supabase.functions.invoke` directement dans un composant/hook non dédié.
+- **Exception** : les hooks dédiés à une fonction (ex: `useBackup.ts` qui invoque `backup-export` + `backup-import` en flow chaîné) peuvent rester inline si la logique dépasse ce que le hook générique gère. À garder <5% des cas.
+- **Vérification** : `grep -rn 'supabase\.functions\.invoke' src/` hors `src/hooks/useEdgeFunction.ts` doit être ≤ quelques cas justifiés.
+- **Fichiers de référence** : `src/hooks/useEdgeFunction.ts`, `src/components/missions/MissionDetailDrawer.tsx` (usage type pour AI summary).
+- **Origine** : audit d'architecture — 107 occurrences dupliquées
+- **Date** : 2026-04-15
+
 ### [019] Toasts d'erreur — toujours utiliser `toastError()` pour le variant destructive
 - **Constat** : `toast({ title: "Erreur", description: "...", variant: "destructive" })` est répété 143 fois dans 64 fichiers, avec des variations de titre (parfois "Erreur !", parfois pas de titre) qui cassent la cohérence UX. Chaque handler réécrit le même template.
 - **Règle** : Utiliser `toastError(toast, description)` (ou `toastError(toast, error)` si on passe une Error) depuis `@/lib/toastError`. Centralise le titre "Erreur", le variant destructive, et la conversion `Error → message`. Ne PAS écrire `toast({ title: "Erreur"..., variant: "destructive" })` directement.

@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { scheduleEmail } from "@/services/activityLog";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { UserCheck, Plus, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
+import { UserCheck, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -436,7 +437,7 @@ const CoachingSlotsSection = ({ trainingId, participants }: CoachingSlotsSection
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
             <Button onClick={handleSave} disabled={saving || !scheduledDate}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {saving && <Spinner className="mr-2" />}
               {editingSlot ? "Enregistrer" : "Ajouter"}
             </Button>
           </DialogFooter>

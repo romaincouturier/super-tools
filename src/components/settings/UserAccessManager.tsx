@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Users, Shield, Megaphone } from "lucide-react";
+import { Users, Shield, Megaphone } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { AppModule, MODULE_LABELS, ALL_MODULES } from "@/hooks/useModuleAccess";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
@@ -174,7 +175,7 @@ export default function UserAccessManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }

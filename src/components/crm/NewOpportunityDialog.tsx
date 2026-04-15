@@ -12,7 +12,8 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, CalendarClock } from "lucide-react";
+import { Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, CalendarClock } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
@@ -653,7 +654,7 @@ Tel: 06 12 34 56 78"
               >
                 {extractMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2" />
                     Extraction...
                   </>
                 ) : (
@@ -672,7 +673,7 @@ Tel: 06 12 34 56 78"
               <Button onClick={handleCreate} disabled={createCardMutation.isPending || !editedExtraction?.service_type || !acquisitionSource}>
                 {createCardMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner className="mr-2" />
                     Création...
                   </>
                 ) : (

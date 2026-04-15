@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { Loader2, CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles } from "lucide-react";
+import { CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -221,7 +222,7 @@ export function ChatbotFeedbackTab() {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <Spinner className="mr-2" />
               {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
             </>
           ) : (

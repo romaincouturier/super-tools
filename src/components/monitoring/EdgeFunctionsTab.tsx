@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ const EdgeFunctionsTab = () => {
           disabled={isFetching}
         >
           {isFetching ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Spinner className="mr-2" />
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}

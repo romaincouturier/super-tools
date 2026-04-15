@@ -1,13 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
-import {
-  Loader2,
-  TrendingUp,
-  TrendingDown,
-  Target,
-  DollarSign,
-  BarChart3,
-  CalendarDays,
-} from "lucide-react";
+import { TrendingUp, TrendingDown, Target, DollarSign, BarChart3, CalendarDays } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import {
   AreaChart,
   Area,
@@ -110,7 +103,7 @@ const CrmReports = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );

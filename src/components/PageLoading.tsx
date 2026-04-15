@@ -1,4 +1,5 @@
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import AppHeader from "@/components/AppHeader";
 
 interface PageLoadingProps {
@@ -10,7 +11,7 @@ const PageLoading = ({ showHeader = true }: PageLoadingProps) => {
     <div className="min-h-screen bg-background">
       {showHeader && <AppHeader />}
       <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     </div>
   );

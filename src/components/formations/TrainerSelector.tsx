@@ -8,7 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 
 interface Trainer {
   id: string;
@@ -76,7 +77,7 @@ export default function TrainerSelector({
   if (loading) {
     return (
       <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <Spinner className="text-muted-foreground" />
         <span className="text-sm text-muted-foreground">Chargement...</span>
       </div>
     );

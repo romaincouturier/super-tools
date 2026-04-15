@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Loader2, Send, Mail, Users, Megaphone } from "lucide-react";
+import { Send, Mail, Users, Megaphone } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -153,7 +154,7 @@ const BroadcastEmailDialog = ({
           <Button onClick={handleSend} disabled={sending || !subject.trim() || !content.trim()}>
             {sending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
                 Envoi en cours...
               </>
             ) : (

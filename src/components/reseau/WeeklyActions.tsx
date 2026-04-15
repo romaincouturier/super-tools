@@ -1,18 +1,6 @@
 import { useState } from "react";
-import {
-  Sparkles,
-  Loader2,
-  Check,
-  SkipForward,
-  Linkedin,
-  Mail,
-  Phone,
-  Coffee,
-  Share2,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { Sparkles, Check, SkipForward, Linkedin, Mail, Phone, Coffee, Share2, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +72,7 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Spinner size="md" className="text-primary" />
         </CardContent>
       </Card>
     );
@@ -100,7 +88,7 @@ const WeeklyActions = ({ positioning, contacts }: WeeklyActionsProps) => {
           disabled={generateActions.isPending || contacts.length === 0}
         >
           {generateActions.isPending ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            <Spinner className="mr-1" />
           ) : (
             <Sparkles className="h-4 w-4 mr-1" />
           )}

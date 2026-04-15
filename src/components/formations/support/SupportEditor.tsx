@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import {
   BookOpen, Plus, Loader2, Eye, Save, ChevronDown,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import {
   useTrainingSupport, useCreateSupport, useUpdateSupport,
@@ -163,7 +164,7 @@ const SupportEditor = ({ trainingId, trainingName }: SupportEditorProps) => {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button size="sm" onClick={() => handleCreate()} disabled={createSupport.isPending}>
-            {createSupport.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
+            {createSupport.isPending ? <Spinner className="mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
             Créer un support vierge
           </Button>
           <SupportTemplateDialog mode="create" onSelectTemplate={(tplId) => handleCreate(tplId)} />

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, X, Target, Sparkles, Loader2 } from "lucide-react";
+import { Plus, X, Target, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,7 +93,7 @@ const ObjectivesEditor = ({ objectives, onObjectivesChange, programFileUrl }: Ob
             >
               {extracting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                   Extraction...
                 </>
               ) : (

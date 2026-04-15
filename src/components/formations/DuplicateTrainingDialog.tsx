@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, Calendar, Copy, Video } from "lucide-react";
+import { Calendar, Copy, Video } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -405,7 +406,7 @@ const DuplicateTrainingDialog = ({
           <Button onClick={handleDuplicate} disabled={saving}>
             {saving ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
                 Duplication...
               </>
             ) : (

@@ -1,17 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Plus,
-  X,
-  Paperclip,
-  MessageSquare,
-  History,
-  Loader2,
-  Trash2,
-  ImageIcon,
-  FileText,
-} from "lucide-react";
+import { Plus, X, Paperclip, MessageSquare, History, Trash2, ImageIcon, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -75,7 +66,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
           </Button>
         </div>
         <div className="space-y-3">
-          {detailsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {detailsLoading && <Spinner />}
           {details?.comments.length === 0 && <p className="text-sm text-muted-foreground">Aucun commentaire</p>}
           {details?.comments.map((comment) => (
             <div key={comment.id} className="p-3 bg-muted rounded-lg">
@@ -101,12 +92,12 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
         <div>
           <input type="file" id="file-upload" className="hidden" multiple onChange={handlers.handleFileUpload} />
           <Button variant="outline" onClick={() => document.getElementById("file-upload")?.click()} disabled={addAttachment.isPending}>
-            {addAttachment.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+            {addAttachment.isPending ? <Spinner className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
             Ajouter des fichiers
           </Button>
         </div>
         <div className="space-y-2">
-          {detailsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {detailsLoading && <Spinner />}
           {details?.attachments.length === 0 && <p className="text-sm text-muted-foreground">Aucune pièce jointe</p>}
           {details?.attachments.map((att) => (
             <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded">
@@ -158,7 +149,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
 
       {/* Activity */}
       <TabsContent value="activity" className="space-y-2 mt-4">
-        {detailsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {detailsLoading && <Spinner />}
         {details?.activity.length === 0 && <p className="text-sm text-muted-foreground">Aucune activité</p>}
         {details?.activity.map((log) => (
           <div key={log.id} className="p-2 border-l-2 border-muted pl-4">

@@ -31,6 +31,7 @@ import {
   Clock,
   CalendarClock,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 // ── Helpers ──
 
@@ -179,7 +180,7 @@ const DailyTodoPanel = () => {
                   className="p-1.5 rounded-md hover:bg-muted transition-colors"
                 >
                   {agendaLoading
-                    ? <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                    ? <Spinner className="text-muted-foreground" />
                     : <CalendarClock className="h-4 w-4 text-muted-foreground" />
                   }
                 </button>
@@ -235,7 +236,7 @@ const DailyTodoPanel = () => {
               </div>
               {agendaLoading ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <Spinner className="text-primary" />
                 </div>
               ) : agendaContent ? (
                 <div className="text-xs leading-relaxed prose prose-xs max-w-none [&_h1]:text-sm [&_h2]:text-xs [&_h3]:text-xs [&_p]:text-xs [&_li]:text-xs [&_strong]:text-foreground">

@@ -1,4 +1,5 @@
-import { Loader2, Search, History, Mail, Copy, Trash2 } from "lucide-react";
+import { Search, History, Mail, Copy, Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -65,7 +66,7 @@ export default function DevisHistoryDialog({
           {/* History list */}
           {loadingHistory ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <Spinner size="md" />
             </div>
           ) : filteredHistory.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { FileText, Upload, Trash2, Loader2, Send, Receipt, Mail, User, ClipboardList, Award, RefreshCw } from "lucide-react";
+import { FileText, Upload, Trash2, Send, Receipt, Mail, User, ClipboardList, Award, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { resolveContentType } from "@/lib/file-utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -438,7 +439,7 @@ const ParticipantDocumentsDialog = ({
                 >
                   <span>
                     {uploadingInvoice ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Spinner className="mr-2" />
                     ) : (
                       <Upload className="h-4 w-4 mr-2" />
                     )}
@@ -510,7 +511,7 @@ const ParticipantDocumentsDialog = ({
                   onClick={handleGenerateSheetsPdf}
                 >
                   {generatingSheetsPdf ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <RefreshCw className="h-4 w-4 mr-2" />
                   )}
@@ -552,7 +553,7 @@ const ParticipantDocumentsDialog = ({
                   disabled={sendingDocuments}
                 >
                   {sendingDocuments ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <Send className="h-4 w-4 mr-2" />
                   )}

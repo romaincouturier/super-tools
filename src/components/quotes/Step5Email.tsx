@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Send, TestTube, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateQuote, useQuoteSettings } from "@/hooks/useQuotes";
 import { toast } from "sonner";
@@ -307,7 +308,7 @@ export default function Step5Email({
           className="gap-2"
         >
           {isTestSending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Spinner />
           ) : (
             <TestTube className="w-4 h-4" />
           )}
@@ -320,7 +321,7 @@ export default function Step5Email({
           className="gap-2"
         >
           {isSending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Spinner />
           ) : (
             <Send className="w-4 h-4" />
           )}

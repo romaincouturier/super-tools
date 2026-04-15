@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
 import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight, ThumbsUp, ThumbsDown, Paperclip, X, FileText, ImageIcon } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -327,7 +328,7 @@ const AgentChat = () => {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading || uploading}
               >
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                {uploading ? <Spinner /> : <Paperclip className="w-4 h-4" />}
               </Button>
               <Textarea
                 ref={textareaRef}
@@ -551,7 +552,7 @@ function ThinkingIndicator({ toolStatus }: { toolStatus: string | null }) {
         <Bot className="w-4 h-4 text-primary" />
       </div>
       <div className="bg-muted rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Spinner />
         {toolStatus || "Réflexion en cours..."}
       </div>
     </div>

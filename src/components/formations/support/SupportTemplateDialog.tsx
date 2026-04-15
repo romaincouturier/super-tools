@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { LayoutTemplate, Plus, Trash2, Loader2, Save } from "lucide-react";
+import { LayoutTemplate, Plus, Trash2, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import {
   useSupportTemplates, useDeleteTemplate, useSaveAsTemplate,
@@ -132,7 +133,7 @@ const SupportTemplateDialog = ({ supportId, onSelectTemplate, mode }: SupportTem
               disabled={saving || !newTemplateName.trim()}
               className="w-full"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {saving ? <Spinner className="mr-2" /> : null}
               Enregistrer
             </Button>
           </div>

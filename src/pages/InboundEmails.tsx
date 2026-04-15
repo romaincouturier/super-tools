@@ -2,20 +2,8 @@ import { useState, useEffect } from "react";
 import { formatFileSize } from "@/lib/file-utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Loader2,
-  Mail,
-  Inbox,
-  Search,
-  RefreshCw,
-  ExternalLink,
-  Archive,
-  Trash2,
-  Link2,
-  User,
-  Calendar,
-  Paperclip,
-} from "lucide-react";
+import { Mail, Inbox, Search, RefreshCw, ExternalLink, Archive, Trash2, Link2, User, Calendar, Paperclip } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -159,7 +147,7 @@ export default function InboundEmails() {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Spinner size="lg" />
         </div>
       </ModuleLayout>
     );
@@ -209,7 +197,7 @@ export default function InboundEmails() {
         {/* Email list */}
         {isLoading ? (
           <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+            <Spinner size="lg" className="mx-auto" />
           </div>
         ) : emails?.length === 0 ? (
           <Card>

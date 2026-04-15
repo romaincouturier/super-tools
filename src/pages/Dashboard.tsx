@@ -1,39 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Loader2,
-  Award,
-  FileText,
-  Calendar,
-  ClipboardCheck,
-  TrendingUp,
-  History,
-  Newspaper,
-  ClipboardList,
-  Inbox,
-  BarChart3,
-  Kanban,
-  Briefcase,
-  GripVertical,
-  Target,
-  ImageIcon,
-  CalendarDays,
-  Database,
-  Sparkles,
-  MessageSquareWarning,
-  LifeBuoy,
-  Maximize2,
-  Square,
-  LayoutGrid,
-  BookOpen,
-  Star,
-  LayoutDashboard,
-  Users,
-  GraduationCap,
-  Camera,
-  Eye,
-  Bot,
-  Send,
-} from "lucide-react";
+import { Award, FileText, Calendar, ClipboardCheck, TrendingUp, History, Newspaper, ClipboardList, Inbox, BarChart3, Kanban, Briefcase, GripVertical, Target, ImageIcon, CalendarDays, Database, Sparkles, MessageSquareWarning, LifeBuoy, Maximize2, Square, LayoutGrid, BookOpen, Star, LayoutDashboard, Users, GraduationCap, Camera, Eye, Bot, Send } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import {
   DndContext,
   closestCenter,
@@ -710,7 +677,7 @@ const Dashboard = () => {
   if (loading || accessLoading || prefsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

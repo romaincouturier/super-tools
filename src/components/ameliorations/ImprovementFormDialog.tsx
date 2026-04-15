@@ -18,7 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import type { Improvement, Training, ImprovementFormData } from "@/hooks/useImprovements";
 import { EMPTY_FORM, SOURCE_TYPES, PRIORITIES } from "@/hooks/useImprovements";
@@ -211,7 +212,7 @@ export default function ImprovementFormDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {saving && <Spinner className="mr-2" />}
             {isEdit ? "Modifier" : "Ajouter"}
           </Button>
         </DialogFooter>

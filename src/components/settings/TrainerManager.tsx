@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, Plus, Pencil, Trash2, Save, X, Upload, FileText, GraduationCap, Award, BookOpen, FolderOpen } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -353,7 +354,7 @@ export default function TrainerManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }
@@ -449,7 +450,7 @@ export default function TrainerManager() {
               <div>
                 <Label htmlFor="photo-upload" className="cursor-pointer">
                   <div className="flex items-center gap-2 text-sm text-primary hover:underline">
-                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
                     {photoUrl ? "Changer la photo" : "Ajouter une photo"}
                   </div>
                 </Label>
@@ -626,7 +627,7 @@ export default function TrainerManager() {
               Annuler
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {saving ? <Spinner className="mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               {editingTrainer ? "Modifier" : "Ajouter"}
             </Button>
           </DialogFooter>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, X, ListChecks, Sparkles, Loader2 } from "lucide-react";
+import { Plus, X, ListChecks, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ const PrerequisitesEditor = ({ prerequisites, onPrerequisitesChange, programFile
             >
               {extracting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                   Extraction...
                 </>
               ) : (

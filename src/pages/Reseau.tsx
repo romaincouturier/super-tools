@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Users, Loader2 } from "lucide-react";
+import { Users } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import ReseauOnboarding from "@/components/reseau/ReseauOnboarding";
@@ -46,7 +47,7 @@ const Reseau = () => {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Spinner size="lg" className="text-primary" />
           </div>
         ) : currentView === "onboarding" ? (
           <ReseauOnboarding

@@ -7,6 +7,7 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Video, Check, X, Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -224,7 +225,7 @@ export default function CoachingBooking({
             </div>
             <div className="flex gap-2">
               <Button onClick={handleSubmit} disabled={!date || submitting} size="sm">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Calendar className="w-4 h-4 mr-1" />}
+                {submitting ? <Spinner className="mr-1" /> : <Calendar className="w-4 h-4 mr-1" />}
                 Demander
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Annuler</Button>

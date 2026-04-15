@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
-import { Plus, Trash2, Pencil, CalendarDays, User, Check, X, Loader2, Zap } from "lucide-react";
+import { Plus, Trash2, Pencil, CalendarDays, User, Check, X, Zap } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -76,7 +77,7 @@ const SuperTilt = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );
@@ -99,7 +100,7 @@ const SuperTilt = () => {
             autoFocus
           />
           <Button onClick={handleAdd} disabled={!newTitle.trim() || addAction.isPending} className="gap-1.5 shrink-0">
-            {addAction.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {addAction.isPending ? <Spinner /> : <Plus className="w-4 h-4" />}
             Ajouter
           </Button>
         </div>

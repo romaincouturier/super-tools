@@ -3,6 +3,7 @@ import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, Layers, CalendarDays, Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import WatchAddDialog from "@/components/watch/WatchAddDialog";
 import WatchFilters from "@/components/watch/WatchFilters";
 import WatchItemCard from "@/components/watch/WatchItemCard";
@@ -85,7 +86,7 @@ const Watch = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );

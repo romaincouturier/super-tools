@@ -3,7 +3,8 @@
  * Handles upload, download, delete with consistent UI.
  */
 import { useRef, useState, useCallback } from "react";
-import { FileText, Upload, Download, Trash2, Loader2, Package } from "lucide-react";
+import { FileText, Upload, Download, Trash2, Package } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -142,7 +143,7 @@ const EntityDocumentsManager = ({
 
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Spinner size="md" className="text-muted-foreground" />
         </div>
       ) : documents.length === 0 ? (
         <div
@@ -151,7 +152,7 @@ const EntityDocumentsManager = ({
         >
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Spinner size="lg" className="text-primary" />
               <p className="text-sm text-muted-foreground">Upload en cours...</p>
             </div>
           ) : (
@@ -218,7 +219,7 @@ const EntityDocumentsManager = ({
                   onClick={() => handleDownload(doc.id, doc.file_url, doc.file_name)}
                 >
                   {downloadingId === doc.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner />
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
@@ -232,7 +233,7 @@ const EntityDocumentsManager = ({
                   onClick={() => handleDelete(doc.id, doc.file_url, doc.file_name)}
                 >
                   {deletingId === doc.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner />
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
@@ -250,7 +251,7 @@ const EntityDocumentsManager = ({
             className="w-full"
           >
             {uploading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Spinner className="mr-2" />
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}

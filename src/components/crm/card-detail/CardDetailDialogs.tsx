@@ -23,6 +23,7 @@ import {
   UserPlus,
   ChevronDown,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -265,7 +266,7 @@ const CardDetailDialogs = (props: Props) => {
                     disabled={!firstActionDate || savingFirstAction}
                   >
                     {savingFirstAction ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      <Spinner className="mr-1" />
                     ) : null}
                     Créer la mission
                   </Button>

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Palette, GraduationCap, Briefcase, Save } from "lucide-react";
+import { Palette, GraduationCap, Briefcase, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useCrmSettings, useUpdateCrmSettings, ServiceTypeColors } from "@/hooks/useCrmBoard";
 
 // Predefined color palette
@@ -50,7 +51,7 @@ export default function CrmColorSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }
@@ -165,7 +166,7 @@ export default function CrmColorSettings() {
         {/* Save button */}
         <Button onClick={handleSave} disabled={updateSettings.isPending}>
           {updateSettings.isPending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Spinner className="mr-2" />
           ) : (
             <Save className="h-4 w-4 mr-2" />
           )}

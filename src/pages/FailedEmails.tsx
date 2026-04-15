@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { Mail, CheckCircle, AlertTriangle, Trash2, Eye } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,7 @@ const FailedEmails = () => {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Spinner size="lg" className="text-muted-foreground" />
           </div>
         ) : (
           <div className="space-y-6">

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Upload, Loader2, Send, CheckCircle, FileDown, Scroll, PenLine, BellRing, RotateCw, Download, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, Send, CheckCircle, FileDown, Scroll, PenLine, BellRing, RotateCw, Download, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -128,14 +129,14 @@ const ConventionSection = ({
           <div className="flex items-center gap-0.5">
             {!conventionFileUrl ? (
               <Button type="button" variant="outline" size="sm" onClick={handleGenerateConvention} disabled={generatingConvention}>
-                {generatingConvention ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                {generatingConvention ? <Spinner className="mr-2" /> : <FileDown className="h-4 w-4 mr-2" />}
                 Générer
               </Button>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" variant="outline" size="sm" disabled={generatingConvention || sendingConvention}>
-                    {generatingConvention || sendingConvention ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Scroll className="h-4 w-4 mr-2" />}
+                    {generatingConvention || sendingConvention ? <Spinner className="mr-2" /> : <Scroll className="h-4 w-4 mr-2" />}
                     Convention<ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -145,7 +146,7 @@ const ConventionSection = ({
                   {sponsorEmail && <DropdownMenuItem onClick={handleSendConvention} disabled={sendingConvention}><Send className="h-4 w-4 mr-2" />Envoyer</DropdownMenuItem>}
                   {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
                     <DropdownMenuItem onClick={handleSendConventionReminder} disabled={sendingConventionReminder}>
-                      {sendingConventionReminder ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <BellRing className="h-4 w-4 mr-2" />}Relancer convention
+                      {sendingConventionReminder ? <Spinner className="mr-2" /> : <BellRing className="h-4 w-4 mr-2" />}Relancer convention
                     </DropdownMenuItem>
                   )}
                   {conventionSignatureStatus?.status !== "signed" && (

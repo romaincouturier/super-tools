@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Calendar, Loader2, ExternalLink } from "lucide-react";
+import { Calendar, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -246,7 +247,7 @@ const ImportGoogleEventsDialog = ({
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                     Chargement...
                   </>
                 ) : (
@@ -357,7 +358,7 @@ const ImportGoogleEventsDialog = ({
             <Button onClick={handleImport} disabled={isImporting}>
               {isImporting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                   Import...
                 </>
               ) : (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Upload, FileText, Check, Loader2, Trash2 } from "lucide-react";
+import { Upload, FileText, Check, Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -137,8 +138,6 @@ const ProgramSelector = ({
       });
       return;
     }
-
-
 
     setUploading(true);
 
@@ -317,7 +316,7 @@ const ProgramSelector = ({
                   className="cursor-pointer flex flex-col items-center gap-2"
                 >
                   {uploading ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Spinner size="lg" className="text-primary" />
                   ) : (
                     <Upload className="h-8 w-8 text-muted-foreground" />
                   )}
@@ -350,7 +349,7 @@ const ProgramSelector = ({
           <TabsContent value="library" className="mt-4">
             {loadingFiles ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <Spinner size="md" className="text-muted-foreground" />
               </div>
             ) : programFiles.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
@@ -391,7 +390,7 @@ const ProgramSelector = ({
                               disabled={deletingFileId === file.id}
                             >
                               {deletingFileId === file.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Spinner />
                               ) : (
                                 <Trash2 className="h-4 w-4" />
                               )}

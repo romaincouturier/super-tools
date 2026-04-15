@@ -8,6 +8,7 @@ import {
   FileText, Palette, Trash2, Copy, Reply, CheckCheck,
   ChevronDown, ChevronRight, UserPlus
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import MentionTextarea from "./MentionTextarea";
@@ -773,7 +774,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                 onClick={() => handleReply(comment.id)}
                 disabled={submittingReply || !replyText.trim()}
               >
-                {submittingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {submittingReply ? <Spinner /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-1 pl-4">⌘+Entrée pour envoyer · Échap pour annuler</p>

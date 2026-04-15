@@ -13,7 +13,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Trash2, Edit2, TrendingUp, Zap } from "lucide-react";
+import { Plus, Trash2, Edit2, TrendingUp, Zap } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   useDeleteOKRKeyResult,
@@ -250,7 +251,7 @@ export function KeyResultDialog({ open, onOpenChange, objectiveId, editingKR }: 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={handleSubmit} disabled={createKR.isPending || updateKR.isPending}>
-            {(createKR.isPending || updateKR.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {(createKR.isPending || updateKR.isPending) && <Spinner className="mr-2" />}
             {editingKR ? "Mettre à jour" : "Créer"}
           </Button>
         </DialogFooter>

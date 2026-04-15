@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Pencil, Send, MessageSquare } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { Improvement, ImprovementNote, ImprovementStatus } from "@/hooks/useImprovements";
 import { STATUS_CONFIG, CATEGORY_CONFIG, KANBAN_COLUMNS } from "@/hooks/useImprovements";
 
@@ -184,7 +185,7 @@ export default function ImprovementDetailDrawer({
                 disabled={savingNote || !newNote.trim()}
                 className="self-end"
               >
-                {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {savingNote ? <Spinner /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
 

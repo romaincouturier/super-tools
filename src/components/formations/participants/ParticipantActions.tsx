@@ -1,5 +1,6 @@
 import React from "react";
 import { Loader2, Send, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -116,7 +117,7 @@ const ParticipantActions = ({
               )}
               {canSendConventionReminderFor(participant) && (
                 <DropdownMenuItem onClick={() => onSendConventionReminder(participant)} disabled={conventionRemindingId === participant.id}>
-                  {conventionRemindingId === participant.id ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <BellRing className="h-4 w-4 mr-2" />}
+                  {conventionRemindingId === participant.id ? <Spinner className="mr-2" /> : <BellRing className="h-4 w-4 mr-2" />}
                   Relancer convention
                 </DropdownMenuItem>
               )}

@@ -2,7 +2,8 @@ import { useState, useCallback, useRef } from "react";
 import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ChevronLeft, PanelRightOpen, FileText, Save, Loader2 } from "lucide-react";
+import { ChevronLeft, PanelRightOpen, FileText, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import QuoteWorkflowStepper from "./QuoteWorkflowStepper";
 import Step0ClientValidation from "./Step0ClientValidation";
 import Step1Synthesis from "./Step1Synthesis";
@@ -85,7 +86,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
   if (wf.loadingQuote) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -152,7 +153,7 @@ export default function QuoteWorkflow({ crmCard, existingQuoteId }: Props) {
           onClick={wf.handleManualSave}
           disabled={wf.isSaving}
         >
-          {wf.isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {wf.isSaving ? <Spinner /> : <Save className="w-4 h-4" />}
           Sauvegarder
         </Button>
       </div>

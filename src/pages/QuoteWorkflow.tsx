@@ -1,10 +1,11 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { FileText } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useEffect, useState } from "react";
 import ModuleLayout from "@/components/ModuleLayout";
 import QuoteWorkflow from "@/components/quotes/QuoteWorkflow";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
@@ -55,7 +56,7 @@ export default function QuoteWorkflowPage() {
 
         {loading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Spinner size="lg" className="text-primary" />
           </div>
         )}
 

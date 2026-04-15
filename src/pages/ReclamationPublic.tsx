@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 import { NATURES, CANALS, PROBLEM_TYPES, SEVERITIES } from "@/lib/reclamationConstants";
@@ -126,7 +127,7 @@ const ReclamationPublic = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -302,7 +303,7 @@ const ReclamationPublic = () => {
 
             {/* Submit */}
             <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {submitting && <Spinner className="mr-2" />}
               Envoyer ma réclamation
             </Button>
           </CardContent>

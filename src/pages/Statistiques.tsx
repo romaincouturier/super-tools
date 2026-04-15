@@ -1,4 +1,5 @@
-import { Loader2, Star, BarChart3 } from "lucide-react";
+import { Star, BarChart3 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
@@ -23,7 +24,7 @@ const Statistiques = () => {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Spinner size="lg" className="text-primary" />
           </div>
         ) : (
           <div className="space-y-6">

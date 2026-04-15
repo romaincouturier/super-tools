@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Loader2, ExternalLink, FileText, Trash2, Upload } from "lucide-react";
+import { ExternalLink, FileText, Trash2, Upload } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -181,7 +182,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
                 <Label htmlFor="reglement-upload" className="sr-only">Règlement intérieur (PDF)</Label>
                 <div className="flex items-center gap-2 max-w-lg">
                   <Button variant="outline" disabled={uploadingReglement} onClick={() => document.getElementById("reglement-upload")?.click()}>
-                    {uploadingReglement ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                    {uploadingReglement ? <Spinner className="mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
                     Choisir un fichier PDF
                   </Button>
                   <input id="reglement-upload" type="file" accept=".pdf" className="hidden" onChange={async (e) => {

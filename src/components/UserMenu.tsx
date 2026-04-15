@@ -21,7 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { User as UserIcon, LogOut, Settings, Loader2 } from "lucide-react";
+import { User as UserIcon, LogOut, Settings } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import { validatePassword } from "@/lib/passwordValidation";
 
@@ -166,7 +167,7 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
               </Button>
               <Button type="submit" disabled={isUpdating || !validatePassword(newPassword).isValid}>
                 {isUpdating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Spinner />
                 ) : (
                   "Mettre à jour"
                 )}

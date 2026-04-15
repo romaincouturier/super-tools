@@ -18,18 +18,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Database,
-  Download,
-  Upload,
-  RefreshCw,
-  Loader2,
-  AlertTriangle,
-  CheckCircle,
-  HardDrive,
-  Clock,
-  XCircle,
-} from "lucide-react";
+import { Database, Download, Upload, RefreshCw, AlertTriangle, CheckCircle, HardDrive, Clock, XCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface BackupManagerProps {
   backupEnabled: boolean;
@@ -253,7 +243,7 @@ export default function BackupManager({
         <CardContent>
           {loadingStatus ? (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner />
               Chargement...
             </div>
           ) : lastBackup ? (
@@ -425,7 +415,7 @@ export default function BackupManager({
             <div className="flex gap-2">
               <Button onClick={handleExportLocal} disabled={exporting}>
                 {exporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
@@ -434,7 +424,7 @@ export default function BackupManager({
               {hasGoogleDrive && (
                 <Button variant="outline" onClick={handleExportGDrive} disabled={exporting}>
                   {exporting ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <HardDrive className="h-4 w-4 mr-2" />
                   )}
@@ -474,7 +464,7 @@ export default function BackupManager({
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={handleDryRun} disabled={importing}>
                     {importing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Spinner className="mr-2" />
                     ) : (
                       <RefreshCw className="h-4 w-4 mr-2" />
                     )}

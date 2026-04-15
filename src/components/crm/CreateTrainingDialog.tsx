@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Plus, UserPlus, Search, Calendar, Building, Loader2 } from "lucide-react";
+import { GraduationCap, Plus, UserPlus, Search, Calendar, Building } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -180,7 +181,7 @@ export function CreateTrainingDialog({
 
           {loadingTrainings ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <Spinner size="md" className="text-primary" />
             </div>
           ) : filteredTrainings.length === 0 ? (
             <div className="text-center py-6 text-sm text-muted-foreground">

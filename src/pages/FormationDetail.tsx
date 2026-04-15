@@ -1,4 +1,5 @@
-import { Loader2, MapPin, ExternalLink } from "lucide-react";
+import { MapPin, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { getGoogleMapsEmbedUrl, getGoogleMapsDirectionsUrl } from "@/lib/googleMaps";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,7 @@ const FormationDetail = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );

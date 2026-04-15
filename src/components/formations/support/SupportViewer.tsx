@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { Loader2, BookOpen, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { downloadFile } from "@/lib/file-utils";
 import { toast } from "sonner";
@@ -338,7 +339,7 @@ const LazySection = ({
       ) : (
         images.length + videos.length + audios.length > 0 && (
           <div className="h-32 flex items-center justify-center">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Spinner className="text-muted-foreground" />
           </div>
         )
       )}

@@ -4,22 +4,8 @@ import { rpc } from "@/lib/supabase-rpc";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
-import {
-  Loader2,
-  Briefcase,
-  Calendar,
-  Euro,
-  Clock,
-  Receipt,
-  FileText,
-  ExternalLink,
-  Download,
-  Package,
-  Image as ImageIcon,
-  CheckCircle2,
-  MapPin,
-  Navigation,
-} from "lucide-react";
+import { Briefcase, Calendar, Euro, Clock, Receipt, FileText, ExternalLink, Download, Package, Image as ImageIcon, CheckCircle2, MapPin, Navigation } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -444,7 +430,7 @@ const MissionSummary = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <Spinner size="lg" className="text-primary mx-auto" />
           <p className="text-sm text-muted-foreground">{L.loading}</p>
         </div>
       </div>

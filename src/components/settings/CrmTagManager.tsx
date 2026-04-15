@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Tag, Plus, Pencil, Trash2, Save, X, FolderOpen, ChevronDown, ChevronRight } from "lucide-react";
+import { Tag, Plus, Pencil, Trash2, Save, X, FolderOpen, ChevronDown, ChevronRight } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -252,7 +253,7 @@ export default function CrmTagManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" className="text-muted-foreground" />
       </div>
     );
   }
@@ -428,7 +429,7 @@ export default function CrmTagManager() {
               Annuler
             </Button>
             <Button onClick={handleSaveCategory} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {saving ? <Spinner className="mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               {editingCategory ? "Modifier" : "Créer"}
             </Button>
           </DialogFooter>
@@ -475,7 +476,7 @@ export default function CrmTagManager() {
               Annuler
             </Button>
             <Button onClick={handleSaveTag} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              {saving ? <Spinner className="mr-2" /> : <Save className="h-4 w-4 mr-2" />}
               {editingTag ? "Modifier" : "Ajouter"}
             </Button>
           </DialogFooter>

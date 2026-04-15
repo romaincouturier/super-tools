@@ -1,12 +1,7 @@
 import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import {
-  Receipt,
-  Loader2,
-  Upload,
-  Check,
-  ExternalLink,
-} from "lucide-react";
+import { Receipt, Upload, Check, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { resolveContentType } from "@/lib/file-utils";
 import { Input } from "@/components/ui/input";
@@ -260,7 +255,7 @@ const GenerateInvoiceDialog = ({
                     disabled={uploading}
                   >
                     {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Spinner />
                     ) : (
                       <Upload className="h-4 w-4" />
                     )}
@@ -289,7 +284,7 @@ const GenerateInvoiceDialog = ({
             disabled={saving || selectedIds.size === 0 || !invoiceNumber.trim()}
           >
             {saving ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Spinner className="mr-2" />
             ) : (
               <Receipt className="h-4 w-4 mr-2" />
             )}

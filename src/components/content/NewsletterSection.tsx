@@ -19,6 +19,7 @@ import {
   ExternalLink,
   History,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -603,7 +604,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
             <Button onClick={handleCreate} disabled={creating}>
               {creating ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Spinner className="mr-2" />
                   Création...
                 </>
               ) : (

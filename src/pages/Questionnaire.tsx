@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertTriangle, WifiOff, RefreshCw, Calendar, Clock, MapPin, Video, Save } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 import QuestionnaireFormSections from "@/components/questionnaire/QuestionnaireFormSections";
@@ -12,7 +13,7 @@ const Questionnaire = () => {
   if (q.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

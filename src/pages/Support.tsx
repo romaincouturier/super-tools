@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import { Loader2, LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, X } from "lucide-react";
+import { LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,7 +190,7 @@ const Support = () => {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center h-96">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       </ModuleLayout>
     );
@@ -286,7 +287,7 @@ const Support = () => {
                     <Button onClick={handleCreate} disabled={isSubmitting || !newDescription.trim()} className="w-full">
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <Spinner className="mr-2" />
                           {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
                         </>
                       ) : (

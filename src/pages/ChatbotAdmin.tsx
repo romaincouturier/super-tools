@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Bot } from "lucide-react";
+import { Bot } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { KnowledgeBaseManager } from "@/components/chatbot/KnowledgeBaseManager";
@@ -40,7 +41,7 @@ export default function ChatbotAdmin() {
     return (
       <ModuleLayout>
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Spinner size="lg" />
         </div>
       </ModuleLayout>
     );

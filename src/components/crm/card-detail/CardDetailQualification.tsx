@@ -18,6 +18,7 @@ import {
   ChevronUp,
   ExternalLink,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -226,7 +227,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
                     placeholder="Rechercher une mission..."
                     className="h-8"
                   />
-                  {searchingMissions && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {searchingMissions && <Spinner />}
                 </div>
                 {showMissionSearch && missionSearchResults && missionSearchResults.length > 0 && (
                   <div className="border rounded bg-white max-h-40 overflow-y-auto">

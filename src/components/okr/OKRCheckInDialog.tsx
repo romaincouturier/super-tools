@@ -10,7 +10,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import OKRAICheckInDraft from "./OKRAICheckInDraft";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateOKRCheckIn } from "@/hooks/useOKR";
@@ -94,7 +95,7 @@ export function OKRCheckInDialog({ open, onOpenChange, objective }: CheckInDialo
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={handleSubmit} disabled={createCheckIn.isPending}>
-            {createCheckIn.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {createCheckIn.isPending && <Spinner className="mr-2" />}
             Enregistrer
           </Button>
         </DialogFooter>

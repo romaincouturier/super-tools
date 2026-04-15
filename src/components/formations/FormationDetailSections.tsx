@@ -1,4 +1,5 @@
-import { Loader2, Save, StickyNote, Euro, CheckCircle2 } from "lucide-react";
+import { Save, StickyNote, Euro, CheckCircle2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Button } from "@/components/ui/button";
@@ -227,7 +228,7 @@ const FormationDetailSections = ({
             </CardTitle>
             {notesChanged && (
               <Button size="sm" onClick={handleSaveNotes} disabled={savingNotes}>
-                {savingNotes ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                {savingNotes ? <Spinner className="mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Enregistrer
               </Button>
             )}

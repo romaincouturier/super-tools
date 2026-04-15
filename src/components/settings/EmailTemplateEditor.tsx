@@ -1,4 +1,5 @@
-import { Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { RotateCcw, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -71,7 +72,7 @@ const EmailTemplateEditor = ({
     <div className="flex flex-wrap gap-2 pt-2 items-center">
       <AutoSaveIndicator status={templateAutoSaveStatus} />
       <Button variant="secondary" onClick={() => onImproveWithAI(type, currentMode)} disabled={improving === saveKey || saving === saveKey}>
-        {improving === saveKey ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+        {improving === saveKey ? <Spinner className="mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
         Améliorer avec l'IA
       </Button>
       <Button variant="outline" onClick={() => onResetTemplate(type, currentMode)} disabled={saving === saveKey || improving === saveKey}>

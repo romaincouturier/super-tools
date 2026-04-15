@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, XCircle, Loader2, FileText, Mail, HardDrive, Circle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface LogEntry {
   id: string;
@@ -94,7 +95,7 @@ const ProcessingLog = ({
       return <Circle className="w-4 h-4 text-muted-foreground/40" />;
     }
     if (status === "pending") {
-      return <Loader2 className="w-4 h-4 animate-spin text-primary" />;
+      return <Spinner className="text-primary" />;
     }
     if (status === "error") {
       return <XCircle className="w-4 h-4 text-destructive" />;

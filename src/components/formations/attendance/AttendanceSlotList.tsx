@@ -1,4 +1,5 @@
-import { PenLine, Send, RefreshCw, Check, Loader2, Download, FileDown, ChevronDown, UserPen } from "lucide-react";
+import { PenLine, Send, RefreshCw, Check, Download, FileDown, ChevronDown, UserPen } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +75,7 @@ const AttendanceSlotList = ({
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={exporting}>
                 {exporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
@@ -142,7 +143,7 @@ const AttendanceSlotList = ({
                 disabled={isSending || isComplete}
               >
                 {isSending ? (
-                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Envoi...</>
+                  <><Spinner className="mr-1" />Envoi...</>
                 ) : isComplete ? (
                   <><Check className="h-4 w-4 mr-1" />Complet</>
                 ) : status.hasSent ? (

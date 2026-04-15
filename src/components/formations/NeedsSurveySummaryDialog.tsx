@@ -10,7 +10,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Sparkles, AlertCircle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 
 interface NeedsSurveySummaryDialogProps {
@@ -110,7 +111,7 @@ const NeedsSurveySummaryDialog = ({
         <ScrollArea className="max-h-[60vh] pr-4">
           {loading && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Spinner size="lg" className="text-primary" />
               <p className="text-muted-foreground">Analyse des questionnaires en cours...</p>
             </div>
           )}

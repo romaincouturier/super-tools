@@ -12,19 +12,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  X,
-  Loader2,
-  Calendar,
-  MoreVertical,
-  Wand2,
-  ChevronDown,
-  Trophy,
-  XCircle,
-  Undo2,
-  Calculator,
-  Bot,
-} from "lucide-react";
+import { X, Calendar, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, Bot } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
@@ -60,7 +49,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
             Programmer une action
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => { trackFeature("ai_suggestion", "crm"); handlers.handleSuggestNextAction(); }} disabled={nextActionSuggesting}>
-            {nextActionSuggesting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
+            {nextActionSuggesting ? <Spinner className="mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
             Suggestion IA
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Users, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
+import { Users, AlertCircle, AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { isManualEmailMode } from "@/lib/emailScheduling";
 import { differenceInDays, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -141,7 +142,7 @@ const BulkAddParticipantsDialog = ({
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
             <Button type="submit" disabled={saving || count === 0}>
-              {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Ajout...</> : `Ajouter ${count} participant${pluralize(count)}`}
+              {saving ? <><Spinner className="mr-2" />Ajout...</> : `Ajouter ${count} participant${pluralize(count)}`}
             </Button>
           </DialogFooter>
         </form>

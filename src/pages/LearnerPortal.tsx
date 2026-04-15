@@ -6,11 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Loader2, GraduationCap, FileText, ClipboardCheck,
-  Calendar, MapPin, Download, ExternalLink, BookOpen,
-  CheckCircle2, Clock, AlertCircle, MessageSquare, Video,
-} from "lucide-react";
+import { GraduationCap, FileText, ClipboardCheck, Calendar, MapPin, Download, ExternalLink, BookOpen, CheckCircle2, Clock, AlertCircle, MessageSquare, Video } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -127,7 +124,7 @@ export default function LearnerPortal() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

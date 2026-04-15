@@ -106,3 +106,15 @@ export function formatTrainingDates(
   }
   return `le ${start}`;
 }
+
+// ── ISO helpers ─────────────────────────────────────────────────────────────
+
+/** Today as ISO date string (`YYYY-MM-DD`). Preferred over `new Date().toISOString().slice(0, 10)`. */
+export function todayAsISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** A `Date` as ISO date string (`YYYY-MM-DD`). */
+export function dateAsISO(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}

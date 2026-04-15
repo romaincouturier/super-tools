@@ -4,7 +4,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, FileText, ClipboardCheck, Loader2, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 
 interface ParticipantTraceabilityDrawerProps {
@@ -187,7 +188,7 @@ const ParticipantTraceabilityDrawer = ({
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Spinner size="md" className="text-muted-foreground" />
           </div>
         ) : (
           <Tabs defaultValue="emails" className="flex-1 overflow-hidden flex flex-col">

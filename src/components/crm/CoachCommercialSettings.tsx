@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, ChevronLeft, ChevronRight, Target, TrendingUp, DollarSign, Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import type { CommercialCoachContext, CrmRevenueTarget } from "@/types/crm";
 
 interface CoachCommercialSettingsProps {
@@ -316,7 +317,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                   className="w-full"
                 >
                   {ambitionSaving ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
@@ -422,7 +423,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                   className="w-full"
                 >
                   {acquisitionSaving ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Spinner className="mr-2" />
                   ) : (
                     <Save className="h-4 w-4 mr-2" />
                   )}
@@ -532,7 +533,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                         onClick={addRevenueTarget}
                         disabled={!newTargetStart || !newTargetAmount || addingTarget}
                       >
-                        {addingTarget ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ajouter"}
+                        {addingTarget ? <Spinner /> : "Ajouter"}
                       </Button>
                     </div>
                   </div>

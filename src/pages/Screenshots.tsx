@@ -2,16 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, addDays, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import {
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Monitor,
-  Smartphone,
-  Calendar,
-  Camera,
-  ImageOff,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Monitor, Smartphone, Calendar, Camera, ImageOff } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -231,7 +223,7 @@ const Screenshots = () => {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Spinner size="lg" className="text-primary" />
         </div>
       ) : !hasScreenshots ? (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">

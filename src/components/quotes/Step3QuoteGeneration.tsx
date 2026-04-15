@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Swords,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -585,7 +586,7 @@ export default function Step3QuoteGeneration({
               className="gap-2"
             >
               {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
@@ -627,7 +628,7 @@ export default function Step3QuoteGeneration({
 
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <Spinner size="lg" className="text-primary" />
               <div className="text-center space-y-1">
                 <p className="font-medium">Génération automatique du devis...</p>
                 <p className="text-sm text-muted-foreground">
@@ -885,7 +886,7 @@ export default function Step3QuoteGeneration({
           className="gap-2"
         >
           {updateMutation.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Spinner />
           ) : (
             <FileDown className="w-4 h-4" />
           )}

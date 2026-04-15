@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Link, Image, Mic, FileText, Loader2, X, AlertTriangle } from "lucide-react";
+import { Plus, Link, Image, Mic, FileText, X, AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
@@ -376,7 +377,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
             <Button onClick={handleSubmit} disabled={uploading} className="w-full">
               {uploading ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                   Traitement...
                 </>
               ) : (

@@ -1,4 +1,5 @@
-import { Send, Loader2 } from "lucide-react";
+import { Send } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,7 +96,7 @@ const SendRecipientDialog = ({
           </Button>
           <Button onClick={onSend} disabled={!customRecipientEmail || sendingDocuments}>
             {sendingDocuments ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Spinner className="mr-2" />
             ) : (
               <Send className="h-4 w-4 mr-2" />
             )}

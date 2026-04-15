@@ -3,18 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import ReactMarkdown from "react-markdown";
-import {
-  Loader2,
-  ClipboardList,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  AlertCircle,
-  CheckCircle2,
-  GraduationCap,
-  Sparkles,
-} from "lucide-react";
+import { ClipboardList, Search, ChevronDown, ChevronUp, ExternalLink, AlertCircle, CheckCircle2, GraduationCap, Sparkles } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -218,7 +208,7 @@ const BesoinsParticipants = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }
@@ -239,7 +229,7 @@ const BesoinsParticipants = () => {
                 disabled={filteredSurveys.length === 0 || analysisLoading}
               >
                 {analysisLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Spinner className="mr-2" />
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
@@ -501,7 +491,7 @@ const BesoinsParticipants = () => {
           <ScrollArea className="max-h-[60vh] pr-4">
             {analysisLoading && (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Spinner size="lg" className="text-primary" />
                 <p className="text-muted-foreground">Analyse en cours...</p>
               </div>
             )}

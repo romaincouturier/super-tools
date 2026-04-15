@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, CheckCircle2, Calendar, Building2, User, Mail } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { formatTrainingDates, formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
@@ -592,7 +593,7 @@ const SponsorEvaluation = () => {
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner className="mr-2" />
                 Envoi en cours...
               </>
             ) : (

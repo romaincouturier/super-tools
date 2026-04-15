@@ -13,6 +13,7 @@ import {
   PlayCircle,
   Trash2,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { useQuotesByCard, useDeleteQuote } from "@/hooks/useQuotes";
 import type { CardDetailState, CardDetailHandlers } from "./types";
@@ -153,7 +154,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
           disabled={aiAnalyzing || !descriptionHtml.trim()}
         >
           {aiAnalyzing ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Spinner className="mr-2" />
           ) : (
             <Brain className="h-4 w-4 mr-2" />
           )}
@@ -166,7 +167,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
           disabled={quoteGenerating || !descriptionHtml.trim()}
         >
           {quoteGenerating ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Spinner className="mr-2" />
           ) : (
             <FileSignature className="h-4 w-4 mr-2" />
           )}

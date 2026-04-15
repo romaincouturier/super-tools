@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, FileText, Send, Eye } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -300,7 +301,7 @@ const MicroDevis = () => {
   };
 
   if (loading) {
-    return (<ModuleLayout><div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></ModuleLayout>);
+    return (<ModuleLayout><div className="flex items-center justify-center h-64"><Spinner size="lg" className="text-primary" /></div></ModuleLayout>);
   }
 
   return (

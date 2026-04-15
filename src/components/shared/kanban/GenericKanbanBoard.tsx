@@ -11,7 +11,8 @@ import {
   SortableContext,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import { useKanbanDnd } from "@/hooks/useKanbanDnd";
 import { kanbanCollision } from "@/lib/kanbanCollision";
 import GenericKanbanColumn from "./GenericKanbanColumn";
@@ -274,7 +275,7 @@ export default function GenericKanbanBoard<
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Spinner size="lg" className="text-muted-foreground" />
       </div>
     );
   }

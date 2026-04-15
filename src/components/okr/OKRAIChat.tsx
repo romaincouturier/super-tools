@@ -1,17 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import {
-  Sparkles,
-  Send,
-  Loader2,
-  Target,
-  ShieldAlert,
-  BarChart3,
-  ClipboardCheck,
-  FileSearch,
-  X,
-  Maximize2,
-  Minimize2,
-} from "lucide-react";
+import { Sparkles, Send, Target, ShieldAlert, BarChart3, ClipboardCheck, FileSearch, X, Maximize2, Minimize2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -208,7 +197,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-muted rounded-lg px-3 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner />
                 </div>
               </div>
             )}
@@ -233,7 +222,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
             disabled={!input.trim() || isLoading}
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner />
             ) : (
               <Send className="h-4 w-4" />
             )}

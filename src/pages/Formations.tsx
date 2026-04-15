@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
+import { Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { formatDateRange } from "@/lib/dateFormatters";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -354,7 +355,7 @@ const Formations = () => {
   if (authLoading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" className="text-primary" />
       </div>
     );
   }

@@ -9,7 +9,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+
+import { Spinner } from "@/components/ui/spinner";
 import { MissionStatus } from "@/types/missions";
 import { useCreateMission } from "@/hooks/useMissions";
 
@@ -142,7 +143,7 @@ const CreateMissionDialog = ({
             </Button>
             <Button type="submit" disabled={!title.trim() || createMission.isPending}>
               {createMission.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner className="mr-2" />
               ) : null}
               Créer
             </Button>

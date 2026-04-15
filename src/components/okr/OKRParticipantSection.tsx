@@ -17,7 +17,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useAddOKRParticipant, useRemoveOKRParticipant } from "@/hooks/useOKR";
 
@@ -126,7 +127,7 @@ export function OKRParticipantDialog({ open, onOpenChange, objectiveId }: Partic
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Annuler</Button>
           <Button onClick={handleSubmit} disabled={addParticipant.isPending}>
-            {addParticipant.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {addParticipant.isPending && <Spinner className="mr-2" />}
             Ajouter
           </Button>
         </DialogFooter>

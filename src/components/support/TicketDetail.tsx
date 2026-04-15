@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Bug, Lightbulb, Loader2, Sparkles, Copy, Check, Bot } from "lucide-react";
+import { Bug, Lightbulb, Sparkles, Copy, Check, Bot } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,7 +239,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
             onClick={handleReanalyze}
             disabled={reanalyzing}
           >
-            {reanalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {reanalyzing ? <Spinner /> : <Sparkles className="h-4 w-4" />}
             Lancer l'analyse IA
           </Button>
         )}
