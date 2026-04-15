@@ -22,10 +22,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { useEmailSnippets, EmailSnippet } from "@/hooks/useEmailSnippets";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 // supabase imported via hooks
 import { crmAiAssist } from "@/services/crmAiAssist";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 
@@ -63,9 +63,19 @@ const EmailEditor = ({
   const [selectedSlashIndex, setSelectedSlashIndex] = useState(0);
   const slashStartRef = useRef<number | null>(null);
   const { data: snippets } = useEmailSnippets();
-  const { isListening, isSupported: speechSupported, startListening, stopListening } = useSpeechRecognition("fr-FR", true);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
-  const dictationActiveRef = useRef(false);
+  // Editor ref used by the dictation hook's onTranscript callback.
+  // Populated below once `useEditor` has returned.
+  const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
+
+  const { isRecording, isTranscribing, isSupported: dictationSupported, startRecording, stopRecording } =
+    useVoiceDictation({
+      onTranscript: (text) => {
+        const ed = editorRef.current;
+        if (!ed) return;
+        ed.chain().focus().insertContent(text + " ").run();
+      },
+    });
 
   // Build slash menu items from variables
   const slashItems = useMemo<SlashMenuItem[]>(() => {
@@ -209,6 +219,39 @@ const EmailEditor = ({
       editor.commands.setContent(content, { emitUpdate: false });
     }
   }, [content, editor]);
+
+  // Keep the editor ref in sync so the dictation onTranscript callback
+  // (captured at mount time) can reach the latest editor instance.
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  /**
+   * Toggle dictation.
+   *  - Start: begins AssemblyAI-backed recording via `useVoiceDictation`.
+   *  - Stop:  waits for transcription to be appended, then runs an AI
+   *           cleanup pass on the whole email body for proper formatting.
+   */
+  const handleToggleDictation = useCallback(async () => {
+    if (isRecording) {
+      await stopRecording();
+      const ed = editorRef.current;
+      if (!ed) return;
+      const html = ed.getHTML();
+      if (!html || html === "<p></p>") return;
+      setIsCleaningUp(true);
+      try {
+        const result = await crmAiAssist("cleanup_dictation", { body: html });
+        if (result) ed.commands.setContent(result, { emitUpdate: true });
+      } catch {
+        // Silent fail — raw transcript is still usable.
+      } finally {
+        setIsCleaningUp(false);
+      }
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecording]);
 
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -377,7 +420,7 @@ const EmailEditor = ({
           </PopoverContent>
         </Popover>
 
-        {speechSupported && (
+        {dictationSupported && (
           <>
             <div className="w-px h-5 bg-border mx-0.5" />
             <Button
@@ -385,49 +428,34 @@ const EmailEditor = ({
               size="sm"
               className={cn(
                 "h-7 px-2 text-xs gap-1",
-                isListening && "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700"
+                isRecording && "bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700",
               )}
-              disabled={isCleaningUp}
-              onClick={async () => {
-                if (isListening) {
-                  stopListening();
-                  dictationActiveRef.current = false;
-                  // Cleanup dictated text with AI
-                  if (editor) {
-                    const currentHtml = editor.getHTML();
-                    if (currentHtml && currentHtml !== "<p></p>") {
-                      setIsCleaningUp(true);
-                      try {
-                        const result = await crmAiAssist("cleanup_dictation", { body: currentHtml });
-                        if (result) {
-                          editor.commands.setContent(result, { emitUpdate: true });
-                        }
-                      } catch {
-                        // Silently fail - raw dictation is still usable
-                      } finally {
-                        setIsCleaningUp(false);
-                      }
-                    }
-                  }
-                } else {
-                  dictationActiveRef.current = true;
-                  startListening((text) => {
-                    if (editor) {
-                      editor.chain().focus().insertContent(text + " ").run();
-                    }
-                  });
-                }
-              }}
-              title={isListening ? "Arrêter et mettre en forme" : isCleaningUp ? "Mise en forme..." : "Dicter le message"}
+              disabled={isTranscribing || isCleaningUp}
+              onClick={handleToggleDictation}
+              title={
+                isRecording
+                  ? "Arrêter et mettre en forme"
+                  : isTranscribing
+                    ? "Transcription en cours..."
+                    : isCleaningUp
+                      ? "Mise en forme..."
+                      : "Dicter le message"
+              }
             >
-              {isCleaningUp ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : isListening ? (
+              {isTranscribing || isCleaningUp ? (
+                <Spinner className="h-3.5 w-3.5" />
+              ) : isRecording ? (
                 <MicOff className="h-3.5 w-3.5" />
               ) : (
                 <Mic className="h-3.5 w-3.5" />
               )}
-              {isCleaningUp ? "Mise en forme..." : isListening ? "Stop" : "Dicter"}
+              {isTranscribing
+                ? "Transcription..."
+                : isCleaningUp
+                  ? "Mise en forme..."
+                  : isRecording
+                    ? "Stop"
+                    : "Dicter"}
             </Button>
           </>
         )}
