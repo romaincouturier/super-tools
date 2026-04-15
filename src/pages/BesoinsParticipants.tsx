@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import PageHeader from "@/components/PageHeader";
 
 interface NeedsSurvey {
@@ -186,7 +187,7 @@ const BesoinsParticipants = () => {
       setAnalysisResult(data.analysis);
     } catch (e: unknown) {
       console.error("Analysis error:", e);
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
       setAnalysisOpen(false);
     } finally {
       setAnalysisLoading(false);

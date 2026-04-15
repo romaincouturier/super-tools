@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useSignaturePad } from "@/hooks/useSignaturePad";

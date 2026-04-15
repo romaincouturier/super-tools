@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Sparkles, BookOpen, ClipboardCheck, Activity, CheckCircle2, AlertTriangle, TrendingUp, Target, ArrowRight, Download, Copy, Brain, Zap, MessageSquare } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -108,7 +109,7 @@ export default function AiTools() {
       setGeneratedProgram(data.program);
       toast({ title: "Programme généré ✨" });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setGeneratingProgram(false);
     }
@@ -131,7 +132,7 @@ export default function AiTools() {
       setGeneratedQuiz(data.quiz);
       toast({ title: "Quiz généré ✨" });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setGeneratingQuiz(false);
     }
@@ -150,7 +151,7 @@ export default function AiTools() {
       setHealthReport(data.report);
       toast({ title: "Analyse terminée ✨" });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setLoadingHealth(false);
     }
@@ -172,7 +173,7 @@ export default function AiTools() {
       setCoachingSummary(data);
       toast({ title: "Résumé généré ✨" });
     } catch (e: unknown) {
-      toast({ title: "Erreur", description: e instanceof Error ? e.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
     } finally {
       setGeneratingCoachingSummary(false);
     }

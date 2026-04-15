@@ -9,6 +9,7 @@ import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -273,7 +274,7 @@ const MicroDevis = () => {
       return;
     }
     const sc = getSelectedFormationConfig();
-    if (!sc) { toast({ title: "Erreur", description: "Veuillez sélectionner une formation", variant: "destructive" }); return; }
+    if (!sc) { toastError(toast, "Veuillez sélectionner une formation"); return; }
     setSubmitting(true);
     try {
       const finalLieu = lieu === "autre" ? lieuAutre : lieu;
@@ -296,7 +297,7 @@ const MicroDevis = () => {
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
     } catch (error: unknown) {
       console.error("Error generating micro-devis:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Une erreur est survenue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Une erreur est survenue");
     } finally { setSubmitting(false); }
   };
 

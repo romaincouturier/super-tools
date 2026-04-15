@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import { assertTransition, questionnaireMachine, type QuestionnaireStatus } from "@/lib/stateMachine";
 
@@ -240,7 +241,7 @@ export function useQuestionnaire() {
       setSaveStatus("error");
       try { localStorage.setItem(`questionnaire_draft_${cq.id}`, JSON.stringify({ ...buildDraftPayload(cq, cpv), _savedAt: nowIso })); }
       catch (lsErr) { console.warn("Failed to save emergency backup to localStorage", lsErr); }
-      if (!opts?.silent) toast({ title: "Erreur de sauvegarde", description: "Vos réponses sont conservées localement. Elles seront synchronisées dès que possible.", variant: "destructive" });
+      if (!opts?.silent) toastError(toast, "Vos réponses sont conservées localement. Elles seront synchronisées dès que possible.", { title: "Erreur de sauvegarde" });
     } finally { setSaving(false); }
   };
 
@@ -252,7 +253,7 @@ export function useQuestionnaire() {
   const submit = async () => {
     if (!questionnaire) return;
     if (!questionnaire.consentement_rgpd) {
-      toast({ title: "Consentement requis", description: "Veuillez accepter la clause RGPD pour soumettre le questionnaire.", variant: "destructive" });
+      toastError(toast, "Veuillez accepter la clause RGPD pour soumettre le questionnaire.", { title: "Consentement requis" });
       return;
     }
     setSubmitting(true);
@@ -289,7 +290,7 @@ export function useQuestionnaire() {
       setQuestionnaireAndRef((prev) => prev ? { ...prev, etat: "complete", date_soumission: nowIso } : prev);
     } catch (e: unknown) {
       console.error("Submit failed", e);
-      toast({ title: "Erreur", description: "Impossible de soumettre le questionnaire. Réessayez.", variant: "destructive" });
+      toastError(toast, "Impossible de soumettre le questionnaire. Réessayez.");
     } finally { setSubmitting(false); }
   };
 

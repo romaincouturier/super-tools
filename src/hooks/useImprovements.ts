@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import type { Database } from "@/integrations/supabase/types";
 
 type ImprovementInsert = Database["public"]["Tables"]["improvements"]["Insert"];
@@ -176,7 +177,7 @@ export function useImprovements() {
 
       const { error } = await supabase.from("improvements").update(updateData).eq("id", id);
       if (error) {
-        toast({ title: "Erreur", description: "Impossible de mettre à jour le statut", variant: "destructive" });
+        toastError(toast, "Impossible de mettre à jour le statut");
         return;
       }
       toast({ title: "Statut mis à jour", description: `Marquée "${STATUS_CONFIG[newStatus].label}"` });
@@ -189,12 +190,12 @@ export function useImprovements() {
     async (id: string) => {
       const imp = improvements.find((i) => i.id === id);
       if (imp && imp.status !== "draft" && imp.status !== "pending") {
-        toast({ title: "Suppression interdite", description: "Seules les améliorations en brouillon ou en attente peuvent être supprimées.", variant: "destructive" });
+        toastError(toast, "Seules les améliorations en brouillon ou en attente peuvent être supprimées.", { title: "Suppression interdite" });
         return;
       }
       const { error } = await supabase.from("improvements").delete().eq("id", id);
       if (error) {
-        toast({ title: "Erreur", description: "Impossible de supprimer", variant: "destructive" });
+        toastError(toast, "Impossible de supprimer");
         return;
       }
       toast({ title: "Amélioration supprimée" });
@@ -260,7 +261,7 @@ export function useImprovements() {
           created_by: userId,
         } as never);
       if (error) {
-        toast({ title: "Erreur", description: "Impossible d'ajouter la note", variant: "destructive" });
+        toastError(toast, "Impossible d'ajouter la note");
         return;
       }
       toast({ title: "Note ajoutée" });

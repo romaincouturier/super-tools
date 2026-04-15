@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -499,7 +500,7 @@ function AssignmentSubmitter({ lessonId, learnerEmail }: { lessonId: string; lea
       setFile(null);
       toast({ title: "Devoir soumis !" });
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     } finally {
       setUploading(false);
     }

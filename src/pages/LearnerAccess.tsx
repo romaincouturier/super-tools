@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { Mail, CheckCircle2, GraduationCap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -28,7 +29,7 @@ export default function LearnerAccess() {
       if (data?.error) throw new Error(data.error);
       setSent(true);
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     } finally {
       setIsLoading(false);
     }

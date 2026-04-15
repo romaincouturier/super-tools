@@ -9,6 +9,7 @@ import { fr } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAppSetting } from "@/hooks/useAppSetting";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
 import confetti from "canvas-confetti";
 
@@ -298,11 +299,7 @@ export function useFormationDetail() {
       setEmailsRefreshTrigger((prev) => prev + 1);
     } catch (error: unknown) {
       console.error("Send error:", error);
-      toast({
-        title: "Erreur d'envoi",
-        description: error instanceof Error ? error.message : "Impossible d'envoyer le mail de remerciement.",
-        variant: "destructive",
-      });
+      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer le mail de remerciement.", { title: "Erreur d'envoi" });
     } finally {
       setSendingThankYou(false);
     }
@@ -357,7 +354,7 @@ export function useFormationDetail() {
       await fetchScheduledActions();
     } catch (error) {
       console.error("Error saving actions:", error);
-      toast({ title: "Erreur", description: "Impossible de sauvegarder les actions.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder les actions.");
     } finally {
       setSavingActions(false);
     }
@@ -380,7 +377,7 @@ export function useFormationDetail() {
       );
     } catch (error) {
       console.error("Error toggling action:", error);
-      toast({ title: "Erreur", description: "Impossible de mettre à jour l'action.", variant: "destructive" });
+      toastError(toast, "Impossible de mettre à jour l'action.");
     }
   };
 
@@ -397,7 +394,7 @@ export function useFormationDetail() {
       toast({ title: "Notes enregistrées" });
     } catch (error) {
       console.error("Error saving notes:", error);
-      toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder les notes.");
     } finally {
       setSavingNotes(false);
     }

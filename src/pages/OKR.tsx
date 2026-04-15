@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useOKRObjectives,
   useCreateOKRObjective,
@@ -117,7 +118,7 @@ const OKR = () => {
 
   const handleCreateObjective = async () => {
     if (!newTitle.trim()) {
-      toast({ title: "Erreur", description: "Le titre est requis", variant: "destructive" });
+      toastError(toast, "Le titre est requis");
       return;
     }
 
@@ -134,7 +135,7 @@ const OKR = () => {
       setShowCreateDialog(false);
       resetForm();
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -145,7 +146,7 @@ const OKR = () => {
         isFavorite: !objective.is_favorite,
       });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -156,7 +157,7 @@ const OKR = () => {
       await deleteObjective.mutateAsync(objective.id);
       toast({ title: "Objectif supprimé" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

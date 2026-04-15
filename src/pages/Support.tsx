@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import ModuleLayout from "@/components/ModuleLayout";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
@@ -104,7 +105,7 @@ const Support = () => {
         position: result.newPosition,
       });
     } catch {
-      toast({ title: "Erreur", description: "Impossible de déplacer le ticket.", variant: "destructive" });
+      toastError(toast, "Impossible de déplacer le ticket.");
     }
   };
 
@@ -129,7 +130,7 @@ const Support = () => {
       setNewFiles([]);
       toast({ title: "Ticket créé", description: `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.` });
     } catch {
-      toast({ title: "Erreur", description: "Impossible de créer le ticket.", variant: "destructive" });
+      toastError(toast, "Impossible de créer le ticket.");
     }
   };
 
@@ -138,7 +139,7 @@ const Support = () => {
       const result = await updateTicket.mutateAsync({ id, updates });
       setDetailTicket(result as unknown as SupportTicket);
     } catch {
-      toast({ title: "Erreur", description: "Impossible de mettre à jour le ticket.", variant: "destructive" });
+      toastError(toast, "Impossible de mettre à jour le ticket.");
     }
   };
 
