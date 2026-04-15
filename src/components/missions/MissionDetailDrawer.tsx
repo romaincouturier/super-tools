@@ -32,7 +32,7 @@ import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
-import { startOfDay, isAfter } from "date-fns";
+import { startOfDay, isBefore } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 
 interface MissionDetailDrawerProps {
@@ -313,7 +313,7 @@ const MissionDetailDrawer = ({
               if (!scheduledDate || !scheduledText.trim() || !mission) return;
               const selectedDate = startOfDay(new Date(scheduledDate));
               const today = startOfDay(new Date());
-              if (!isAfter(selectedDate, today)) return;
+              if (isBefore(selectedDate, today)) return;
               // Explicitly save scheduling fields to the mission
               await updateMission.mutateAsync({
                 id: mission.id,

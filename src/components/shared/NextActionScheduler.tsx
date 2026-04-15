@@ -58,7 +58,7 @@ const NextActionScheduler = ({
   saving = false,
   actionPresets = DEFAULT_ACTION_PRESETS,
 }: NextActionSchedulerProps) => {
-  const tomorrow = format(addDays(new Date(), 1), "yyyy-MM-dd");
+  const today = format(new Date(), "yyyy-MM-dd");
 
   // Track explicit clear so we don't fall back to stale server data
   const [wasCleared, setWasCleared] = useState(false);
@@ -183,7 +183,7 @@ const NextActionScheduler = ({
               })}
               <Input
                 type="date"
-                min={tomorrow}
+                min={today}
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate(e.target.value)}
                 className="h-7 w-36 text-xs"

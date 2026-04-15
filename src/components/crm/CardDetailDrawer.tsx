@@ -40,7 +40,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useCrmEmailTemplates, useUpdateCrmTemplate } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
-import { isAfter, startOfDay } from "date-fns";
+import { isBefore, startOfDay } from "date-fns";
 import { PricingLine } from "./MacroPricingDialog";
 
 // Sub-components
@@ -524,7 +524,7 @@ const CardDetailDrawer = ({
     if (!card || !user?.email || !scheduledDate || !scheduledText.trim()) return;
     const selectedDate = startOfDay(new Date(scheduledDate));
     const today = startOfDay(new Date());
-    if (!isAfter(selectedDate, today)) { toast({ title: "Date invalide", description: "La date doit être dans le futur (pas aujourd'hui).", variant: "destructive" }); return; }
+    if (isBefore(selectedDate, today)) { toast({ title: "Date invalide", description: "La date ne peut pas être dans le passé.", variant: "destructive" }); return; }
     try {
       await updateCard.mutateAsync({ id: card.id, updates: { waiting_next_action_date: scheduledDate, waiting_next_action_text: scheduledText.trim() }, actorEmail: user.email, oldCard: card });
       setShowSchedulePopover(false);
