@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Save, Mail } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Dialog,
   DialogContent,
@@ -103,7 +104,7 @@ const CrmEmailTemplateManager = () => {
       }
       setDialogOpen(false);
     } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder le modèle.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder le modèle.");
     }
   };
 
@@ -113,7 +114,7 @@ const CrmEmailTemplateManager = () => {
       await deleteTemplate.mutateAsync(deleteId);
       toast({ title: "Modèle supprimé" });
     } catch {
-      toast({ title: "Erreur", description: "Impossible de supprimer le modèle.", variant: "destructive" });
+      toastError(toast, "Impossible de supprimer le modèle.");
     }
     setDeleteId(null);
   };

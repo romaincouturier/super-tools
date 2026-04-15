@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useMissionContacts,
   useCreateMissionContact,
@@ -53,7 +54,7 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
       });
       setEditingId(result.id);
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
 
@@ -65,7 +66,7 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
         updates: { [field]: value || null },
       });
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
 
@@ -78,7 +79,7 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
       });
       toast({ title: "Contact principal défini" });
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
 
@@ -89,7 +90,7 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
       await deleteContact.mutateAsync({ id: contact.id, missionId });
       toast({ title: "Contact supprimé" });
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
 

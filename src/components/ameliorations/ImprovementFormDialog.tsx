@@ -76,7 +76,7 @@ export default function ImprovementFormDialog({
       return;
     }
     if (!form.description.trim()) {
-      toast({ title: "Erreur", description: "Veuillez saisir une description", variant: "destructive" });
+      toastError(toast, "Veuillez saisir une description");
       return;
     }
 
@@ -86,7 +86,7 @@ export default function ImprovementFormDialog({
       onOpenChange(false);
       if (!isEdit) setForm(EMPTY_FORM);
     } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder");
     } finally {
       setSaving(false);
     }

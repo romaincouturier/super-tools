@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { Save, Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useVoiceSettings } from "@/hooks/useVoiceSettings";
@@ -18,7 +19,7 @@ export default function VoiceSettings() {
       toast({ title: "Voix sauvegardées", description: "Les paramètres de voix ont été mis à jour." });
     } else {
       console.error("Error saving voice settings:", result?.error);
-      toast({ title: "Erreur", description: getErrorMessage(result?.error), variant: "destructive" });
+      toastError(toast, getErrorMessage(result?.error));
     }
   };
 

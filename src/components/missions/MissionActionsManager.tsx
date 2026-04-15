@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Plus,
   Trash2,
@@ -62,7 +63,7 @@ const MissionActionsManager = ({ missionId }: MissionActionsManagerProps) => {
       position: maxPos,
     });
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
       return;
     }
     setNewTitle("");

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tag, Plus, Pencil, Trash2, Save, X, FolderOpen, ChevronDown, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Dialog,
   DialogContent,
@@ -91,7 +92,7 @@ export default function CrmTagManager() {
       if (error) throw error;
       setTags(data || []);
     } catch {
-      toast({ title: "Erreur", description: "Impossible de charger les tags.", variant: "destructive" });
+      toastError(toast, "Impossible de charger les tags.");
     } finally {
       setLoading(false);
     }
@@ -142,7 +143,7 @@ export default function CrmTagManager() {
   const handleSaveCategory = async () => {
     const trimmed = categoryName.trim();
     if (!trimmed) {
-      toast({ title: "Champ requis", description: "Le nom de la catégorie est obligatoire.", variant: "destructive" });
+      toastError(toast, "Le nom de la catégorie est obligatoire.", { title: "Champ requis" });
       return;
     }
 
@@ -164,7 +165,7 @@ export default function CrmTagManager() {
       setExpandedCategories((prev) => new Set([...prev, trimmed]));
       fetchTags();
     } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder la catégorie.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder la catégorie.");
     } finally {
       setSaving(false);
     }
@@ -182,7 +183,7 @@ export default function CrmTagManager() {
       setCategoryToDelete(null);
       fetchTags();
     } catch {
-      toast({ title: "Erreur", description: "Impossible de supprimer la catégorie.", variant: "destructive" });
+      toastError(toast, "Impossible de supprimer la catégorie.");
     }
   };
 
@@ -203,7 +204,7 @@ export default function CrmTagManager() {
 
   const handleSaveTag = async () => {
     if (!tagName.trim()) {
-      toast({ title: "Champ requis", description: "Le nom du tag est obligatoire.", variant: "destructive" });
+      toastError(toast, "Le nom du tag est obligatoire.", { title: "Champ requis" });
       return;
     }
 
@@ -231,7 +232,7 @@ export default function CrmTagManager() {
       setTagDialogOpen(false);
       fetchTags();
     } catch {
-      toast({ title: "Erreur", description: "Impossible de sauvegarder le tag.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder le tag.");
     } finally {
       setSaving(false);
     }
@@ -246,7 +247,7 @@ export default function CrmTagManager() {
       setTagToDelete(null);
       fetchTags();
     } catch {
-      toast({ title: "Erreur", description: "Impossible de supprimer le tag.", variant: "destructive" });
+      toastError(toast, "Impossible de supprimer le tag.");
     }
   };
 

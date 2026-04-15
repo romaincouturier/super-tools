@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useMissionPageTemplates,
   useCreateMissionPageTemplate,
@@ -93,7 +94,7 @@ const PageTemplateManager = () => {
       setShowEditor(false);
       resetForm();
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
 
@@ -103,7 +104,7 @@ const PageTemplateManager = () => {
       await deleteTemplate.mutateAsync(t.id);
       toast({ title: "Modèle supprimé" });
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
 

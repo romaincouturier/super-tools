@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Save, X, TextQuote } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ const EmailSnippetManager = () => {
 
     if (error) {
       console.error("Error loading snippets:", error);
-      toast({ title: "Erreur", description: "Impossible de charger les blocs de texte", variant: "destructive" });
+      toastError(toast, "Impossible de charger les blocs de texte");
     } else {
       setSnippets(data || []);
     }
@@ -106,7 +107,7 @@ const EmailSnippetManager = () => {
         .eq("id", editingSnippet.id);
 
       if (error) {
-        toast({ title: "Erreur", description: "Impossible de modifier le bloc", variant: "destructive" });
+        toastError(toast, "Impossible de modifier le bloc");
       } else {
         toast({ title: "Bloc modifié", description: `"${name}" a été mis à jour.` });
       }
@@ -117,7 +118,7 @@ const EmailSnippetManager = () => {
         .insert({ ...payload, position: maxPosition + 1 });
 
       if (error) {
-        toast({ title: "Erreur", description: "Impossible de créer le bloc", variant: "destructive" });
+        toastError(toast, "Impossible de créer le bloc");
       } else {
         toast({ title: "Bloc créé", description: `"${name}" a été ajouté.` });
       }
@@ -137,7 +138,7 @@ const EmailSnippetManager = () => {
       .eq("id", deleteId);
 
     if (error) {
-      toast({ title: "Erreur", description: "Impossible de supprimer le bloc", variant: "destructive" });
+      toastError(toast, "Impossible de supprimer le bloc");
     } else {
       toast({ title: "Bloc supprimé" });
     }

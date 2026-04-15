@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useMissionActivities,
   useCreateMissionActivity,
@@ -105,7 +106,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
   const handleSubmit = async () => {
     if (!description.trim()) {
-      toast({ title: "Erreur", description: "La description est requise", variant: "destructive" });
+      toastError(toast, "La description est requise");
       return;
     }
 
@@ -139,7 +140,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       setShowAddDialog(false);
       resetForm();
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -150,7 +151,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       await deleteActivity.mutateAsync({ id: activity.id, missionId: mission.id });
       toast({ title: "Activité supprimée" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -162,7 +163,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
         updates: { is_billed: !activity.is_billed },
       });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

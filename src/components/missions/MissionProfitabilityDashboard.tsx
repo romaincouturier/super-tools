@@ -25,6 +25,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useUserPreference } from "@/hooks/useUserPreferences";
 import { useMissions } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 // Default profitability settings
 interface ProfitabilitySettings {
@@ -76,7 +77,7 @@ const MissionProfitabilityDashboard = () => {
       toast({ title: "Paramètres sauvegardés" });
       setShowSettings(false);
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

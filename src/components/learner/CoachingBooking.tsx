@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface Booking {
   id: string;
@@ -98,7 +99,7 @@ export default function CoachingBooking({
       learner_notes: notes || null,
     });
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       toast({ title: "Demande envoyée !" });
       setShowForm(false);

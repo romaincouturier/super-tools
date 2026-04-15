@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { Plus, Save, Trash2, Mail, Copy } from "lucide-react";
 import {
   Select,
@@ -87,7 +88,7 @@ const PostEvaluationEmailManager = () => {
 
   const handleSave = async (email: PostEvalEmail) => {
     if (!email.catalog_id || !email.subject.trim() || !email.html_content.trim()) {
-      toast({ title: "Erreur", description: "Tous les champs sont obligatoires (formation, sujet, contenu).", variant: "destructive" });
+      toastError(toast, "Tous les champs sont obligatoires (formation, sujet, contenu).");
       return;
     }
 
@@ -103,7 +104,7 @@ const PostEvaluationEmailManager = () => {
     if (email.id.startsWith("new-")) {
       const { data, error } = await supabase.from("post_evaluation_emails").insert(payload).select().single();
       if (error) {
-        toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+        toastError(toast, error instanceof Error ? error : "Erreur inconnue");
       } else {
         setEmails(prev => prev.map(e => e.id === email.id ? {
           id: data.id,
@@ -118,7 +119,7 @@ const PostEvaluationEmailManager = () => {
     } else {
       const { error } = await supabase.from("post_evaluation_emails").update(payload).eq("id", email.id);
       if (error) {
-        toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+        toastError(toast, error instanceof Error ? error : "Erreur inconnue");
       } else {
         const catName = catalogEntries.find(c => c.id === email.catalog_id)?.formation_name || "";
         toast({ title: "Sauvegardé", description: `Email post-évaluation pour "${catName}" mis à jour.` });
@@ -150,7 +151,7 @@ const PostEvaluationEmailManager = () => {
 
     const { error } = await supabase.from("post_evaluation_emails").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } else {
       setEmails(prev => prev.filter(e => e.id !== id));
       toast({ title: "Supprimé", description: "Email post-évaluation supprimé." });

@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { MissionActivity, useUpdateMissionActivity } from "@/hooks/useMissions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -96,7 +97,7 @@ const GenerateInvoiceDialog = ({
       setInvoiceUrl(urlData.publicUrl);
       toast({ title: "Fichier uploadé" });
     } catch (err: unknown) {
-      toast({ title: "Erreur d'upload", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue", { title: "Erreur d'upload" });
     } finally {
       setUploading(false);
     }
@@ -104,11 +105,11 @@ const GenerateInvoiceDialog = ({
 
   const handleGenerate = async () => {
     if (!invoiceNumber.trim()) {
-      toast({ title: "Erreur", description: "Le numéro de facture est requis", variant: "destructive" });
+      toastError(toast, "Le numéro de facture est requis");
       return;
     }
     if (selectedIds.size === 0) {
-      toast({ title: "Erreur", description: "Sélectionnez au moins une activité", variant: "destructive" });
+      toastError(toast, "Sélectionnez au moins une activité");
       return;
     }
 
@@ -137,7 +138,7 @@ const GenerateInvoiceDialog = ({
       setInvoiceUrl("");
       onOpenChange(false);
     } catch (err: unknown) {
-      toast({ title: "Erreur", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     } finally {
       setSaving(false);
     }

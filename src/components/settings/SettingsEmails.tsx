@@ -3,6 +3,7 @@ import { Mail } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Accordion,
   AccordionContent,
@@ -128,7 +129,7 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
       toast({ title: "Contenu amélioré", description: "L'IA a proposé des améliorations. Vérifiez et enregistrez si satisfait." });
     } catch (error: unknown) {
       console.error("AI improvement error:", error);
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     } finally { setImproving(null); }
   };
 

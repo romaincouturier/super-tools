@@ -62,6 +62,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   useMissionPages,
   useCreateMissionPage,
@@ -334,7 +335,7 @@ const PageEditor = ({
       if (response.error) throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
       setAiSummary(response.data.result);
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible de générer le résumé", variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Impossible de générer le résumé");
     } finally {
       setAiSummaryLoading(false);
     }
@@ -779,7 +780,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       });
       setSelectedPage(newPage);
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -794,7 +795,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       setSelectedPage(newPage);
       toast({ title: "Page créée à partir du modèle" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -814,7 +815,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       }
       toast({ title: "Page supprimée" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 
@@ -829,7 +830,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       setSelectedPage(newPage);
       toast({ title: "Page dupliquée" });
     } catch (error: unknown) {
-      toast({ title: "Erreur", description: (error instanceof Error ? error.message : "Erreur inconnue"), variant: "destructive" });
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
   };
 

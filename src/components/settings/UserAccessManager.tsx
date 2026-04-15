@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Shield, Megaphone } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { AppModule, MODULE_LABELS, ALL_MODULES } from "@/hooks/useModuleAccess";
 import OnboardCollaboratorDialog from "@/components/OnboardCollaboratorDialog";
 
@@ -88,11 +89,7 @@ export default function UserAccessManager() {
       setUsers(userList);
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger la liste des utilisateurs.",
-        variant: "destructive",
-      });
+      toastError(toast, "Impossible de charger la liste des utilisateurs.");
     } finally {
       setLoading(false);
     }
@@ -144,11 +141,7 @@ export default function UserAccessManager() {
       });
     } catch (error) {
       console.error("Error toggling access:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de modifier l'accès.",
-        variant: "destructive",
-      });
+      toastError(toast, "Impossible de modifier l'accès.");
     } finally {
       setUpdating(null);
     }
@@ -168,7 +161,7 @@ export default function UserAccessManager() {
       });
     } catch (error) {
       console.error("Error saving comm manager:", error);
-      toast({ title: "Erreur", description: "Impossible de sauvegarder.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder.");
     }
   };
 

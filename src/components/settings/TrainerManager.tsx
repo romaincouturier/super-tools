@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, Plus, Pencil, Trash2, Save, X, Upload, FileText, GraduationCap, Award, BookOpen, FolderOpen } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   Dialog,
   DialogContent,
@@ -115,11 +116,7 @@ export default function TrainerManager() {
       })));
     } catch (error) {
       console.error("Error fetching trainers:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les formateurs.",
-        variant: "destructive",
-      });
+      toastError(toast, "Impossible de charger les formateurs.");
     } finally {
       setLoading(false);
     }
@@ -194,7 +191,7 @@ export default function TrainerManager() {
       toast({ title: "Photo uploadée" });
     } catch (error) {
       console.error("Error uploading photo:", error);
-      toast({ title: "Erreur", description: "Impossible d'uploader la photo.", variant: "destructive" });
+      toastError(toast, "Impossible d'uploader la photo.");
     } finally {
       setUploading(false);
     }
@@ -230,7 +227,7 @@ export default function TrainerManager() {
       toast({ title: "Document ajouté" });
     } catch (error) {
       console.error("Error uploading document:", error);
-      toast({ title: "Erreur", description: "Impossible d'uploader le document.", variant: "destructive" });
+      toastError(toast, "Impossible d'uploader le document.");
     } finally {
       setUploadingDoc(false);
       // Reset input
@@ -272,7 +269,7 @@ export default function TrainerManager() {
 
   const handleSave = async () => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      toast({ title: "Champs requis", description: "Prénom, nom et email sont obligatoires.", variant: "destructive" });
+      toastError(toast, "Prénom, nom et email sont obligatoires.", { title: "Champs requis" });
       return;
     }
 
@@ -316,7 +313,7 @@ export default function TrainerManager() {
       fetchTrainers();
     } catch (error) {
       console.error("Error saving trainer:", error);
-      toast({ title: "Erreur", description: "Impossible de sauvegarder le formateur.", variant: "destructive" });
+      toastError(toast, "Impossible de sauvegarder le formateur.");
     } finally {
       setSaving(false);
     }
@@ -338,7 +335,7 @@ export default function TrainerManager() {
       fetchTrainers();
     } catch (error) {
       console.error("Error deleting trainer:", error);
-      toast({ title: "Erreur", description: "Impossible de supprimer le formateur.", variant: "destructive" });
+      toastError(toast, "Impossible de supprimer le formateur.");
     }
   };
 

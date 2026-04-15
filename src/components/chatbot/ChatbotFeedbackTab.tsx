@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCreateSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import { resolveContentType } from "@/lib/file-utils";
 
@@ -45,7 +46,7 @@ export function ChatbotFeedbackTab() {
     const toAdd: File[] = [];
     for (const file of Array.from(newFiles)) {
       if (!ACCEPTED_TYPES.includes(resolveContentType(file))) {
-        toast({ title: "Type non supporté", description: `"${file.name}" n'est pas un format accepté.`, variant: "destructive" });
+        toastError(toast, `"${file.name}" n'est pas un format accepté.`, { title: "Type non supporté" });
         continue;
       }
       toAdd.push(file);
@@ -53,7 +54,7 @@ export function ChatbotFeedbackTab() {
     setFiles((prev) => {
       const combined = [...prev, ...toAdd];
       if (combined.length > MAX_FILES) {
-        toast({ title: "Limite atteinte", description: `Maximum ${MAX_FILES} fichiers.`, variant: "destructive" });
+        toastError(toast, `Maximum ${MAX_FILES} fichiers.`, { title: "Limite atteinte" });
         return combined.slice(0, MAX_FILES);
       }
       return combined;
@@ -66,7 +67,7 @@ export function ChatbotFeedbackTab() {
 
   const handleSubmit = async () => {
     if (!description.trim()) {
-      toast({ title: "Champ requis", description: "Veuillez décrire votre problème ou votre idée.", variant: "destructive" });
+      toastError(toast, "Veuillez décrire votre problème ou votre idée.", { title: "Champ requis" });
       return;
     }
 
@@ -91,7 +92,7 @@ export function ChatbotFeedbackTab() {
         description: `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.`,
       });
     } catch {
-      toast({ title: "Erreur", description: "Impossible d'envoyer votre retour. Réessayez.", variant: "destructive" });
+      toastError(toast, "Impossible d'envoyer votre retour. Réessayez.");
     }
   };
 
