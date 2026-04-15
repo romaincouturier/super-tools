@@ -311,19 +311,59 @@ const MissionDetailDrawer = ({
               if (!scheduledDate || !scheduledText.trim() || !mission) return;
               const selectedDate = startOfDay(new Date(scheduledDate));
               const today = startOfDay(new Date());
-              if (isBefore(selectedDate, today)) return;
-              await updateMission.mutateAsync({
-                id: mission.id,
-                updates: {
-                  waiting_next_action_date: scheduledDate,
-                  waiting_next_action_text: scheduledText.trim(),
-                },
-              });
+              if (isBefore(selectedDate, today)) {
+                toast({ title: "Date invalide", description: "La date ne peut pas être dans le passé.", variant: "destructive" });
+                return;
+              }
+              try {
+                await updateMission.mutateAsync({
+                  id: mission.id,
+                  updates: {
+                    waiting_next_action_date: scheduledDate,
+                    waiting_next_action_text: scheduledText.trim(),
+                  },
+                });
+              } catch {
+                toast({ title: "Erreur", description: "Impossible de programmer l'action.", variant: "destructive" });
+              }
             }}
             onClear={async () => {
               setScheduledDate("");
               setScheduledText("");
               if (mission) {
+                try {
+                  await updateMission.mutateAsync({
+                    id: mission.id,
+                    updates: {
+                      waiting_next_action_date: null,
+                      waiting_next_action_text: null,
+                    },
+                  });
+                } catch {
+                  toast({ title: "Erreur", description: "Impossible d'annuler la programmation.", variant: "destructive" });
+                }
+              }
+            }}
+            onMarkDone={async () => {
+              if (!mission || !mission.waiting_next_action_text) return;
+              const today = new Date().toISOString().slice(0, 10);
+              try {
+                // Log the completed action into the activity feed
+                await createActivity.mutateAsync({
+                  mission_id: mission.id,
+                  description: mission.waiting_next_action_text,
+                  activity_date: today,
+                  duration_type: "hours",
+                  duration: 0,
+                  billable_amount: null,
+                  invoice_url: null,
+                  invoice_number: null,
+                  is_billed: false,
+                  notes: null,
+                  google_event_id: null,
+                  google_event_link: null,
+                });
+                // Then clear the scheduling fields (same semantics as CRM unschedule)
                 await updateMission.mutateAsync({
                   id: mission.id,
                   updates: {
@@ -331,37 +371,12 @@ const MissionDetailDrawer = ({
                     waiting_next_action_text: null,
                   },
                 });
+                setScheduledDate("");
+                setScheduledText("");
+                toast({ title: "Action marquée comme faite", description: "Ajoutée aux activités de la mission." });
+              } catch {
+                toast({ title: "Erreur", description: "Impossible de marquer l'action comme faite.", variant: "destructive" });
               }
-            }}
-            onMarkDone={async () => {
-              if (!mission || !mission.waiting_next_action_text) return;
-              const today = new Date().toISOString().slice(0, 10);
-              // Log the completed action into the activity feed
-              await createActivity.mutateAsync({
-                mission_id: mission.id,
-                description: mission.waiting_next_action_text,
-                activity_date: today,
-                duration_type: "hours",
-                duration: 0,
-                billable_amount: null,
-                invoice_url: null,
-                invoice_number: null,
-                is_billed: false,
-                notes: null,
-                google_event_id: null,
-                google_event_link: null,
-              });
-              // Then clear the scheduling fields (same semantics as CRM unschedule)
-              await updateMission.mutateAsync({
-                id: mission.id,
-                updates: {
-                  waiting_next_action_date: null,
-                  waiting_next_action_text: null,
-                },
-              });
-              setScheduledDate("");
-              setScheduledText("");
-              toast({ title: "Action marquée comme faite", description: "Ajoutée aux activités de la mission." });
             }}
             saving={updateMission.isPending || createActivity.isPending}
             actionPresets={["Relancer le client", "Appeler", "Préparer les livrables", "RDV physique", "RDV visio", "Envoyer un document"]}
