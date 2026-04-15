@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useSignaturePad } from "@/hooks/useSignaturePad";
@@ -199,7 +200,7 @@ const SignatureConvention = () => {
       toast({ title: "Convention signée", description: "Votre signature a été enregistrée avec succès." });
     } catch (err) {
       console.error("Error submitting signature:", err);
-      toast({ title: "Erreur", description: err instanceof Error ? err.message : "Une erreur est survenue.", variant: "destructive" });
+      toastError(toast, err instanceof Error ? err : "Une erreur est survenue.");
     } finally {
       setSubmitting(false);
     }

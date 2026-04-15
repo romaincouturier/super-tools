@@ -206,8 +206,12 @@ else
   check "018" "Utiliser useCopyToClipboard au lieu de navigator.clipboard.writeText" \
     "grep -rn 'navigator\\.clipboard\\.writeText' src/ --include='*.tsx' --include='*.ts' | grep -v 'hooks/useCopyToClipboard.ts'"
 
-  # [017] et [019] : migration progressive — checks en mode staged uniquement
-  # (351 usages de Loader2 animate-spin et 143 usages de toast destructive encore à migrer)
+  # [019] Toast d'erreur — toujours via toastError() (full migration faite)
+  check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur\",...destructive})" \
+    "grep -rEn 'toast\\(\\{[^}]*title:\\s*\"Erreur\"' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/toastError.ts'"
+
+  # [017] : migration progressive — check en mode staged uniquement
+  # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
 fi
 
 echo ""

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -38,7 +39,7 @@ export default function Signup() {
     e.preventDefault();
     const validation = validatePassword(password);
     if (!validation.isValid) {
-      toast({ title: "Mot de passe non conforme", description: "Le mot de passe ne respecte pas les critères de sécurité.", variant: "destructive" });
+      toastError(toast, "Le mot de passe ne respecte pas les critères de sécurité.", { title: "Mot de passe non conforme" });
       return;
     }
     setIsLoading(true);
@@ -60,7 +61,7 @@ export default function Signup() {
       const errMsg = error instanceof Error ? error.message : "Erreur inconnue";
       let message = errMsg;
       if (errMsg.includes("User already registered")) message = "Cet email est déjà utilisé";
-      toast({ title: "Erreur", description: message, variant: "destructive" });
+      toastError(toast, message);
     } finally {
       setIsLoading(false);
     }

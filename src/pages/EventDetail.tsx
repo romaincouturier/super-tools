@@ -53,6 +53,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import {
   useEvent,
@@ -100,7 +101,7 @@ const EventDetail = () => {
         await updateEvent.mutateAsync({ id, notes: trimmed });
         return true;
       } catch {
-        toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
+        toastError(toast, "Impossible de sauvegarder les notes.");
         return false;
       }
     },
@@ -116,7 +117,7 @@ const EventDetail = () => {
         await updateEvent.mutateAsync({ id, summary_notes: trimmed });
         return true;
       } catch {
-        toast({ title: "Erreur", description: "Impossible de sauvegarder la synthèse.", variant: "destructive" });
+        toastError(toast, "Impossible de sauvegarder la synthèse.");
         return false;
       }
     },
@@ -141,7 +142,7 @@ const EventDetail = () => {
       setVideoName("");
       setVideoLinkDialogOpen(false);
     } catch {
-      toast({ title: "Erreur", variant: "destructive" });
+      toastError(toast, null);
     }
   };
 
@@ -151,7 +152,7 @@ const EventDetail = () => {
       await deleteMediaMutation.mutateAsync({ id: mediaId, sourceType: "event", sourceId: id });
       toast({ title: "Lien vidéo supprimé" });
     } catch {
-      toast({ title: "Erreur", variant: "destructive" });
+      toastError(toast, null);
     }
   };
 
@@ -180,7 +181,7 @@ const EventDetail = () => {
       toast({ title: "Événement dupliqué" });
       navigate(`/events/${data.id}`);
     } catch {
-      toast({ title: "Erreur", description: "Impossible de dupliquer.", variant: "destructive" });
+      toastError(toast, "Impossible de dupliquer.");
     }
   };
 
@@ -196,7 +197,7 @@ const EventDetail = () => {
       setCancelDialogOpen(false);
       setCancellationReason("");
     } catch {
-      toast({ title: "Erreur", description: "Impossible d'annuler.", variant: "destructive" });
+      toastError(toast, "Impossible d'annuler.");
     }
   };
 
@@ -210,7 +211,7 @@ const EventDetail = () => {
       });
       toast({ title: "Événement réactivé" });
     } catch {
-      toast({ title: "Erreur", description: "Impossible de réactiver.", variant: "destructive" });
+      toastError(toast, "Impossible de réactiver.");
     }
   };
 

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CheckCircle2, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 import { NATURES, CANALS, PROBLEM_TYPES, SEVERITIES } from "@/lib/reclamationConstants";
 
@@ -118,7 +119,7 @@ const ReclamationPublic = () => {
       toast({ title: "Réclamation envoyée", description: "Votre réclamation a bien été enregistrée. Nous reviendrons vers vous rapidement." });
     } catch (e) {
       console.error("Failed to submit reclamation", e);
-      toast({ title: "Erreur", description: "Impossible d'envoyer la réclamation. Veuillez réessayer.", variant: "destructive" });
+      toastError(toast, "Impossible d'envoyer la réclamation. Veuillez réessayer.");
     } finally {
       setSubmitting(false);
     }

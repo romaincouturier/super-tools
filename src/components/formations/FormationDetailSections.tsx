@@ -1,5 +1,6 @@
 import { Save, StickyNote, Euro, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { toastError } from "@/lib/toastError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Button } from "@/components/ui/button";
@@ -152,7 +153,7 @@ const FormationDetailSections = ({
             await supabase.from("training_actions").delete().eq("id", actionId);
           } catch (error) {
             console.error("Error deleting action:", error);
-            toast({ title: "Erreur", description: "Impossible de supprimer l'action.", variant: "destructive" });
+            toastError(toast, "Impossible de supprimer l'action.");
           }
         }}
       />

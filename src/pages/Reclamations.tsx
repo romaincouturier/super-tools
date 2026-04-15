@@ -15,6 +15,7 @@ import { Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -102,7 +103,7 @@ const Reclamations = () => {
 
     if (error) {
       console.error("Error fetching reclamations:", error);
-      toast({ title: "Erreur", description: "Impossible de charger les réclamations.", variant: "destructive" });
+      toastError(toast, "Impossible de charger les réclamations.");
     } else {
       setReclamations((data as unknown as Reclamation[]) || []);
     }
@@ -147,7 +148,7 @@ const Reclamations = () => {
       fetchReclamations();
     } catch (e) {
       console.error("Error generating link:", e);
-      toast({ title: "Erreur", description: "Impossible de générer le lien.", variant: "destructive" });
+      toastError(toast, "Impossible de générer le lien.");
     } finally {
       setGeneratingLink(false);
     }
@@ -155,7 +156,7 @@ const Reclamations = () => {
 
   const createManual = async () => {
     if (!newClientName.trim() || !newDescription.trim()) {
-      toast({ title: "Champs requis", description: "Nom du client et description sont obligatoires.", variant: "destructive" });
+      toastError(toast, "Nom du client et description sont obligatoires.", { title: "Champs requis" });
       return;
     }
     setCreating(true);
@@ -188,7 +189,7 @@ const Reclamations = () => {
       fetchReclamations();
     } catch (e) {
       console.error("Error creating reclamation:", e);
-      toast({ title: "Erreur", description: "Impossible de créer la réclamation.", variant: "destructive" });
+      toastError(toast, "Impossible de créer la réclamation.");
     } finally {
       setCreating(false);
     }
@@ -201,7 +202,7 @@ const Reclamations = () => {
       .eq("id", id);
 
     if (error) {
-      toast({ title: "Erreur", description: "Impossible de mettre à jour.", variant: "destructive" });
+      toastError(toast, "Impossible de mettre à jour.");
     } else {
       toast({ title: "Mis à jour" });
       fetchReclamations();
@@ -233,7 +234,7 @@ const Reclamations = () => {
       toast({ title: "IA terminée", description: `Action "${action}" exécutée.` });
     } catch (e) {
       console.error("AI assist error:", e);
-      toast({ title: "Erreur IA", description: "L'assistance IA a échoué.", variant: "destructive" });
+      toastError(toast, "L'assistance IA a échoué.", { title: "Erreur IA" });
     } finally {
       setAiLoading(false);
     }
