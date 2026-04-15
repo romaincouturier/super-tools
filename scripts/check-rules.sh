@@ -121,6 +121,10 @@ if [ "$STAGED_MODE" = "true" ]; then
       "grep 'globPatterns' vite.config.ts | grep '\.js'"
   fi
 
+  # [016] React Query mutations dans deps useEffect = boucle infinie
+  check "016" "Pas d'objet mutation React Query dans les deps d'un useEffect" \
+    "echo \"$STAGED_FILES\" | xargs grep -nE '\\], \\[[^]]*\\b(update|create|delete)[A-Z][a-zA-Z]*\\b[^]]*\\]' 2>/dev/null | grep -v node_modules"
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
@@ -178,6 +182,13 @@ else
   # [012] Composants UI morts (0 imports hors de leur propre fichier)
   check "012" "Pas de composants UI non importés" \
     "for f in src/components/ui/*.tsx; do name=\$(basename \"\$f\" .tsx); count=\$(grep -r \"from.*ui/\$name\" src/ --include='*.tsx' --include='*.ts' -l 2>/dev/null | grep -v \"ui/\$name.tsx\" | wc -l); [ \"\$count\" -eq 0 ] && echo \"DEAD: \$name\"; done"
+
+  # [016] React Query mutations dans deps useEffect = boucle infinie
+  # Heuristique : tableau de deps contenant un identifiant commençant par update/create/delete + majuscule
+  # (convention nommage useUpdateXxx → updateXxx). Faux positifs possibles si la variable est un callback
+  # stable (useCallback), à vérifier manuellement.
+  check "016" "Pas d'objet mutation React Query dans les deps d'un useEffect" \
+    "grep -rEn '\\], \\[[^]]*\\b(update|create|delete)[A-Z][a-zA-Z]*\\b[^]]*\\]' src/ --include='*.tsx' --include='*.ts' | grep -v node_modules"
 fi
 
 echo ""

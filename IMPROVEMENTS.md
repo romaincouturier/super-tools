@@ -52,6 +52,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [016] React Query mutations — ne jamais mettre l'objet mutation dans les deps d'un useEffect
+- **Constat** : `CardDetailDrawer.tsx` avait un `useEffect(() => { ... updateCard.mutateAsync(...) ... }, [autoSaveUpdates, updateCard])`. `updateCard` (retourné par `useUpdateCard()`) est un objet React Query dont la référence change à chaque transition d'état (idle → loading → success → idle). Après chaque save, l'effet se redéclenchait → nouvelle save → boucle infinie de sauvegardes toutes les 1-2s, même sans modification utilisateur. L'auto-save des opportunités CRM générait ainsi des saves continues "partout" jusqu'à ce que le bug soit isolé.
+- **Règle** : Ne jamais inclure un objet mutation React Query (résultat d'un hook `useXxxMutation`, `useCreateXxx`, `useUpdateXxx`, `useDeleteXxx`) dans le tableau de dépendances d'un `useEffect` qui appelle `.mutateAsync()` ou `.mutate()`. Stocker la mutation dans un `ref` mis à jour à chaque render (`const updateCardRef = useRef(updateCard); updateCardRef.current = updateCard;`) et l'appeler via le ref dans l'effet. Compléter avec une détection de dirty (hash `JSON.stringify` comparé à un `lastSavedHashRef`) pour skip les saves identiques — c'est ce que fait déjà `useAutoSaveForm`.
+- **Vérification** : `grep -rEn '\], \[[^]]*\b(update|create|delete)[A-Z][a-zA-Z]*\b[^]]*\]' src/ --include='*.tsx' --include='*.ts'` — toute ligne ressemblant à `}, […, updateXxx, …])` après un useEffect qui appelle `.mutateAsync` est suspecte. Vérifier manuellement que la variable n'est pas un simple callback mais bien un objet mutation.
+- **Fichiers de référence** : `src/components/crm/CardDetailDrawer.tsx` (corrigé : `updateCardRef` + `lastSavedFieldsHashRef`), `src/hooks/useAutoSaveForm.ts` (pattern canonique avec hash comparison)
+- **Origine** : bug "l'enregistrement automatique des cartes est toutes les 2-3 secondes" — boucle infinie causée par `updateCard` dans les deps
+- **Date** : 2026-04-15
+
 ### [002] Gestion de fichiers — architecture mutualisée via EntityDocumentsManager / EntityMediaManager
 - **Constat** : L'upload/gestion de fichiers est correctement mutualisé. Les seuls cas spécialisés (participants, CRM, support) le sont pour des raisons métier valides.
 - **Règle** : Toute nouvelle entité nécessitant des fichiers doit utiliser `EntityDocumentsManager` (documents) ou `EntityMediaManager` (médias), avec les hooks `useEntityDocuments` / `useMedia`.
