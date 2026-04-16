@@ -140,8 +140,8 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     }
     if (colId === "completed") {
       rules.push("📦 Les missions terminées avec une date de fin sont archivées (masquées)");
-      rules.push("📧 Demande d'avis Google envoyée automatiquement J+X après la date de fin");
-      rules.push("🎥 Demande de témoignage vidéo envoyée automatiquement J+X après l'avis Google");
+      rules.push(`📧 Demande d'avis Google envoyée automatiquement J+${delayGoogleReview} après la date de fin`);
+      rules.push(`🎥 Demande de témoignage vidéo envoyée automatiquement J+${delayVideoTestimonial} après l'avis Google`);
     }
     if (rules.length === 0) {
       rules.push("Aucune règle de filtrage sur cette colonne");
