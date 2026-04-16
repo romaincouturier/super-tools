@@ -210,6 +210,10 @@ else
   check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur\",...destructive})" \
     "grep -rEn 'toast\\(\\{[^}]*title:\\s*\"Erreur\"' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/toastError.ts'"
 
+  # [021] Confirmation — ne pas utiliser window.confirm() natif
+  check "021" "Utiliser useConfirm() au lieu de window.confirm()" \
+    "grep -rn 'if (confirm(' src/ --include='*.tsx' --include='*.ts' | grep -v 'hooks/useConfirm.tsx'"
+
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
 fi

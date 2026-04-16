@@ -20,6 +20,7 @@ import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useNextActionScheduling } from "@/hooks/useNextActionScheduling";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { useQuery } from "@tanstack/react-query";
@@ -41,6 +42,7 @@ const MissionDetailDrawer = ({
   const { toast } = useToast();
   const navigate = useNavigate();
   const { copied, copy } = useCopyToClipboard();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const { loading: aiSummaryLoading, invoke: invokeMissionSummary } = useEdgeFunction<string>(
@@ -224,7 +226,12 @@ const MissionDetailDrawer = ({
 
   const handleDelete = async () => {
     if (!mission) return;
-    if (confirm("Supprimer cette mission ?")) {
+    const ok = await confirm({
+      title: "Supprimer cette mission ?",
+      description: "Cette action est irréversible.",
+      confirmText: "Supprimer",
+    });
+    if (ok) {
       await deleteMission.mutateAsync(mission.id);
       onOpenChange(false);
     }
@@ -455,6 +462,7 @@ const MissionDetailDrawer = ({
           open={showDeliverables}
           onOpenChange={setShowDeliverables}
         />
+        <ConfirmDialog />
     </DetailDrawer>
   );
 };

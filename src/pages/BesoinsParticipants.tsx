@@ -34,8 +34,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import PageHeader from "@/components/PageHeader";
 
 interface NeedsSurvey {
@@ -79,9 +78,11 @@ const BesoinsParticipants = () => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [participantDrawerOpen, setParticipantDrawerOpen] = useState(false);
   const [analysisOpen, setAnalysisOpen] = useState(false);
-  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { loading: analysisLoading, invoke: invokeAnalyze } = useEdgeFunction<{ analysis?: string }>(
+    "analyze-needs-survey",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   useEffect(() => {
     if (user) fetchSurveys();

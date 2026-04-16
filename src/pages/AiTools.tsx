@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { toastError } from "@/lib/toastError";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Sparkles, BookOpen, ClipboardCheck, Activity, CheckCircle2, AlertTriangle, TrendingUp, Target, ArrowRight, Download, Copy, Brain, Zap, MessageSquare } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -67,51 +66,60 @@ export default function AiTools() {
   const [programObjectives, setProgramObjectives] = useState("");
   const [programSector, setProgramSector] = useState("");
   const [programDuration, setProgramDuration] = useState("7");
-  const [generatingProgram, setGeneratingProgram] = useState(false);
   const [generatedProgram, setGeneratedProgram] = useState<GeneratedProgram | null>(null);
+  const { loading: generatingProgram, invoke: invokeGenerateProgram } = useEdgeFunction<{ program: GeneratedProgram }>(
+    "generate-training-program",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   // Quiz generator state
   const [quizContent, setQuizContent] = useState("");
   const [quizNumQuestions, setQuizNumQuestions] = useState("10");
-  const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const [generatedQuiz, setGeneratedQuiz] = useState<{ quiz_title: string; questions: QuizQuestion[] } | null>(null);
+  const { loading: generatingQuiz, invoke: invokeGenerateQuiz } = useEdgeFunction<{ quiz: { quiz_title: string; questions: QuizQuestion[] } }>(
+    "generate-quiz",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   // Health score state
-  const [loadingHealth, setLoadingHealth] = useState(false);
   const [healthReport, setHealthReport] = useState<HealthReport | null>(null);
+  const { loading: loadingHealth, invoke: invokeHealthScore } = useEdgeFunction<{ report: HealthReport }>(
+    "business-health-score",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   // Coaching summary
   const [coachingNotes, setCoachingNotes] = useState("");
   const [coachingParticipant, setCoachingParticipant] = useState("");
   const [coachingTraining, setCoachingTraining] = useState("");
-  const [generatingCoachingSummary, setGeneratingCoachingSummary] = useState(false);
-  const [coachingSummary, setCoachingSummary] = useState<{
+  type CoachingSummary = {
     summary?: string;
     key_insights?: string[];
     action_items?: { action: string; deadline_suggestion?: string; priority?: string }[];
     next_session_suggestions?: string[];
     [key: string]: unknown;
-  } | null>(null);
+  };
+  const [coachingSummary, setCoachingSummary] = useState<CoachingSummary | null>(null);
+  const { loading: generatingCoachingSummary, invoke: invokeCoachingSummary } = useEdgeFunction<CoachingSummary>(
+    "summarize-coaching",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   const handleGenerateProgram = async () => {
     if (!programTitle.trim()) {
       toast({ title: "Veuillez saisir un titre", variant: "destructive" });
       return;
     }
-    setGeneratingProgram(true);
     setGeneratedProgram(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-training-program", {
-        body: { title: programTitle, objectives: programObjectives, sector: programSector, duration_hours: parseInt(programDuration) },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    const data = await invokeGenerateProgram({
+      title: programTitle,
+      objectives: programObjectives,
+      sector: programSector,
+      duration_hours: parseInt(programDuration),
+    });
+    if (data?.program) {
       setGeneratedProgram(data.program);
       toast({ title: "Programme généré ✨" });
-    } catch (e: unknown) {
-      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
-    } finally {
-      setGeneratingProgram(false);
     }
   };
 
@@ -121,39 +129,23 @@ export default function AiTools() {
       toast({ title: "Générez d'abord un programme ou collez du contenu", variant: "destructive" });
       return;
     }
-    setGeneratingQuiz(true);
     setGeneratedQuiz(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-quiz", {
-        body: { program_content: content, num_questions: parseInt(quizNumQuestions) },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    const data = await invokeGenerateQuiz({
+      program_content: content,
+      num_questions: parseInt(quizNumQuestions),
+    });
+    if (data?.quiz) {
       setGeneratedQuiz(data.quiz);
       toast({ title: "Quiz généré ✨" });
-    } catch (e: unknown) {
-      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
-    } finally {
-      setGeneratingQuiz(false);
     }
   };
 
   const handleHealthScore = async () => {
-    setLoadingHealth(true);
     setHealthReport(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke("business-health-score", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    const data = await invokeHealthScore();
+    if (data?.report) {
       setHealthReport(data.report);
       toast({ title: "Analyse terminée ✨" });
-    } catch (e: unknown) {
-      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
-    } finally {
-      setLoadingHealth(false);
     }
   };
 
@@ -162,20 +154,15 @@ export default function AiTools() {
       toast({ title: "Veuillez saisir les notes de session", variant: "destructive" });
       return;
     }
-    setGeneratingCoachingSummary(true);
     setCoachingSummary(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("summarize-coaching", {
-        body: { notes: coachingNotes, participant_name: coachingParticipant, training_name: coachingTraining },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    const data = await invokeCoachingSummary({
+      notes: coachingNotes,
+      participant_name: coachingParticipant,
+      training_name: coachingTraining,
+    });
+    if (data) {
       setCoachingSummary(data);
       toast({ title: "Résumé généré ✨" });
-    } catch (e: unknown) {
-      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
-    } finally {
-      setGeneratingCoachingSummary(false);
     }
   };
 

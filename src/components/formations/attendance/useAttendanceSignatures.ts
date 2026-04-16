@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import SignaturePad from "signature_pad";
 import type { SignatureStatus, TrainerSignature } from "./types";
 
@@ -26,6 +27,10 @@ export function useAttendanceSignatures({
   const [loading, setLoading] = useState(true);
   const [sendingSlot, setSendingSlot] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const { invoke: invokeSendSignatureRequest } = useEdgeFunction(
+    "send-attendance-signature-request",
+    { errorMessage: "Une erreur est survenue lors de l'envoi des demandes de signature." },
+  );
   const [showTrainerSignDialog, setShowTrainerSignDialog] = useState(false);
   const [signingSlot, setSigningSlot] = useState<{ date: string; period: "AM" | "PM" } | null>(null);
   const [savingTrainerSig, setSavingTrainerSig] = useState(false);
@@ -191,15 +196,11 @@ export function useAttendanceSignatures({
     const slotKey = `${date}-${period}`;
     setSendingSlot(slotKey);
     try {
-      const { error } = await supabase.functions.invoke("send-attendance-signature-request", {
-        body: { trainingId, scheduleDate: date, period },
-      });
-      if (error) throw error;
-      toast({ title: "Emails envoyés", description: "Les demandes de signature ont été envoyées aux participants." });
-      await fetchSignatureStatuses();
-    } catch (err) {
-      console.error("Error sending signature requests:", err);
-      toastError(toast, "Une erreur est survenue lors de l'envoi des demandes de signature.");
+      const result = await invokeSendSignatureRequest({ trainingId, scheduleDate: date, period });
+      if (result !== null) {
+        toast({ title: "Emails envoyés", description: "Les demandes de signature ont été envoyées aux participants." });
+        await fetchSignatureStatuses();
+      }
     } finally {
       setSendingSlot(null);
     }

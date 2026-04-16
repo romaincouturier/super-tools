@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { CrmColumn as CrmColumnType } from "@/types/crm";
 import { useUpdateColumn, useArchiveColumn } from "@/hooks/useCrmBoard";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface CardWithEstimatedValue {
   estimated_value?: number | null;
@@ -33,6 +34,7 @@ const CrmColumnHeader = ({ column, cards }: CrmColumnHeaderProps) => {
 
   const updateColumn = useUpdateColumn();
   const archiveColumn = useArchiveColumn();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const handleRename = () => {
     if (newName.trim() && newName !== column.name) {
@@ -41,10 +43,13 @@ const CrmColumnHeader = ({ column, cards }: CrmColumnHeaderProps) => {
     setShowRenameDialog(false);
   };
 
-  const handleArchive = () => {
-    if (confirm(`Archiver la colonne "${column.name}" ? Les cartes seront conservées mais la colonne ne sera plus visible.`)) {
-      archiveColumn.mutate(column.id);
-    }
+  const handleArchive = async () => {
+    const ok = await confirm({
+      title: `Archiver la colonne "${column.name}" ?`,
+      description: "Les cartes seront conservées mais la colonne ne sera plus visible.",
+      confirmText: "Archiver",
+    });
+    if (ok) archiveColumn.mutate(column.id);
   };
 
   const totalValue = cards.reduce((sum, card) => sum + (card.estimated_value || 0), 0);
@@ -103,6 +108,8 @@ const CrmColumnHeader = ({ column, cards }: CrmColumnHeaderProps) => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog />
     </>
   );
 };

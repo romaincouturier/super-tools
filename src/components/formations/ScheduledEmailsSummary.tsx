@@ -31,6 +31,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 interface ScheduledEmail {
   id: string;
@@ -109,6 +110,10 @@ const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: Sc
     delayFollowUpNews: 30,
   });
   const { toast } = useToast();
+  const { invoke: invokeForceSend } = useEdgeFunction(
+    "force-send-scheduled-email",
+    { errorMessage: "Impossible d'envoyer l'email." },
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -546,26 +551,15 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
   const handleForceSend = async (email: ScheduledEmail) => {
     setForceSending(email.id);
     try {
-      const { data, error } = await supabase.functions.invoke("force-send-scheduled-email", {
-        body: { scheduledEmailId: email.id },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Email envoyé",
-        description: "L'email a été envoyé avec succès.",
-      });
-
-      await refreshEmails();
-      setSelectedEmail(null);
-    } catch (error: unknown) {
-      console.error("Error force sending email:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible d'envoyer l'email.",
-        variant: "destructive",
-      });
+      const result = await invokeForceSend({ scheduledEmailId: email.id });
+      if (result !== null) {
+        toast({
+          title: "Email envoyé",
+          description: "L'email a été envoyé avec succès.",
+        });
+        await refreshEmails();
+        setSelectedEmail(null);
+      }
     } finally {
       setForceSending(null);
     }

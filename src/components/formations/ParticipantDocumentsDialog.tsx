@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,6 +80,10 @@ const ParticipantDocumentsDialog = ({
   const [generatingSheetsPdf, setGeneratingSheetsPdf] = useState(false);
   const [localSheetsUrls, setLocalSheetsUrls] = useState<string[]>(attendanceSheetsUrls);
   const { toast } = useToast();
+  const { invoke: invokeSendDocuments } = useEdgeFunction(
+    "send-training-documents",
+    { errorMessage: "Impossible d'envoyer les documents." },
+  );
 
   useEffect(() => {
     setInvoiceFileUrl(participant.invoice_file_url);
@@ -296,47 +301,42 @@ const ParticipantDocumentsDialog = ({
         setLocalSheetsUrls(sheetsToSend);
       }
 
-      const { error } = await supabase.functions.invoke("send-training-documents", {
-        body: {
-          trainingId,
-          trainingName,
-          startDate,
-          endDate,
-          recipientEmail: targetEmail,
-          recipientName: sponsorName,
-          recipientFirstName: participant.sponsor_first_name,
-          documentType: type,
-          invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
-          attendanceSheetsUrls: sheetsToSend,
-          certificateUrls: (type === "certificates" || type === "all") && certificateUrl ? [certificateUrl] : [],
-          ccEmail: ccEmail || null,
-          participantId: participant.id,
-          formalAddress: true, // default for inter-enterprise
-        },
+      const result = await invokeSendDocuments({
+        trainingId,
+        trainingName,
+        startDate,
+        endDate,
+        recipientEmail: targetEmail,
+        recipientName: sponsorName,
+        recipientFirstName: participant.sponsor_first_name,
+        documentType: type,
+        invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
+        attendanceSheetsUrls: sheetsToSend,
+        certificateUrls: (type === "certificates" || type === "all") && certificateUrl ? [certificateUrl] : [],
+        ccEmail: ccEmail || null,
+        participantId: participant.id,
+        formalAddress: true, // default for inter-enterprise
       });
 
-      if (error) throw error;
+      if (result !== null) {
+        const docTypeLabel = type === "invoice" ? "La facture a été envoyée"
+          : type === "sheets" ? "Les feuilles d'émargement ont été envoyées"
+          : "Les documents ont été envoyés";
 
-      const docTypeLabel = type === "invoice" ? "La facture a été envoyée" 
-        : type === "sheets" ? "Les feuilles d'émargement ont été envoyées"
-        : "Les documents ont été envoyés";
-      
-      let description = `${docTypeLabel} à ${targetEmail}`;
-      if (ccEmail) {
-        description += ` (CC: ${ccEmail})`;
+        let description = `${docTypeLabel} à ${targetEmail}`;
+        if (ccEmail) {
+          description += ` (CC: ${ccEmail})`;
+        }
+        description += ".";
+
+        toast({
+          title: "Documents envoyés",
+          description,
+        });
+
+        setCcEmail("");
+        onOpenChange(false);
       }
-      description += ".";
-
-      toast({
-        title: "Documents envoyés",
-        description,
-      });
-      
-      setCcEmail("");
-      onOpenChange(false);
-    } catch (error: unknown) {
-      console.error("Send error:", error);
-      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer les documents.", { title: "Erreur d'envoi" });
     } finally {
       setSendingDocuments(false);
     }

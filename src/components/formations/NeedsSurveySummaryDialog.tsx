@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +12,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, AlertCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useToast } from "@/hooks/use-toast";
 
 interface NeedsSurveySummaryDialogProps {
   trainingId: string;
@@ -26,41 +25,24 @@ const NeedsSurveySummaryDialog = ({
   completedCount,
 }: NeedsSurveySummaryDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { loading, invoke } = useEdgeFunction<{ summary?: string; error?: string }>(
+    "summarize-needs-survey",
+    { errorMessage: "Impossible de générer la synthèse." },
+  );
 
   const generateSummary = async () => {
-    setLoading(true);
     setError(null);
     setSummary(null);
 
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke("summarize-needs-survey", {
-        body: { trainingId },
-      });
-
-      if (fnError) {
-        throw new Error(fnError.message);
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
+    const data = await invoke({ trainingId });
+    if (data?.summary) {
       setSummary(data.summary);
-    } catch (e: unknown) {
-      console.error("Error generating summary:", e);
-      const errorMessage = e instanceof Error ? e.message : "Impossible de générer la synthèse.";
-      setError(errorMessage);
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    } else if (data?.error) {
+      setError(data.error);
+    } else if (data === null) {
+      setError("Impossible de générer la synthèse.");
     }
   };
 

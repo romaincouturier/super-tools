@@ -40,6 +40,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCrmEmailTemplates, useUpdateCrmTemplate } from "@/hooks/useCrmEmailTemplates";
 import { useToast } from "@/hooks/use-toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Spinner } from "@/components/ui/spinner";
 import { toastError } from "@/lib/toastError";
 import { isBefore, startOfDay } from "date-fns";
@@ -77,6 +78,7 @@ const CardDetailDrawer = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const { copy } = useCopyToClipboard();
+  const { confirm, ConfirmDialog } = useConfirm();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: details, isLoading: detailsLoading } = useCrmCardDetails(card?.id || null);
@@ -550,7 +552,12 @@ const CardDetailDrawer = ({
 
   const handleDelete = async () => {
     if (!card) return;
-    if (confirm("Supprimer cette opportunité ?")) {
+    const ok = await confirm({
+      title: "Supprimer cette opportunité ?",
+      description: "Cette action est irréversible.",
+      confirmText: "Supprimer",
+    });
+    if (ok) {
       try {
         await deleteCard.mutateAsync(card.id);
         onOpenChange(false);
@@ -804,6 +811,8 @@ const CardDetailDrawer = ({
           </div>
         </div>
       </DetailDrawer>
+
+      <ConfirmDialog />
 
       <CardDetailDialogs
         cardId={card.id}

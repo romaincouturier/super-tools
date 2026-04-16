@@ -52,6 +52,22 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [022] Tags input — utiliser `<TagsInput>` au lieu de réimplémenter add/remove inline
+- **Constat** : Le pattern `useState<string[]>([])` + `useState("")` + `handleAddTag` (trim + dedupe) + `handleRemoveTag` (filter) + UI Input/Button/Enter était dupliqué dans plusieurs drawers (`MissionDetailDrawer`, `ContentCardDialog`). Chaque occurrence = ~40 lignes.
+- **Règle** : Utiliser `<TagsInput value={tags} onChange={setTags} />` depuis `@/components/ui/tags-input`. Props : `placeholder`, `lowercase`, `variant="badge"|"pill"`. Le composant encapsule son propre state d'input.
+- **Vérification** : `grep -rn 'setTags(\\[\\.\\.\\.tags,' src/ --include='*.tsx' --include='*.ts'` — les résultats doivent être limités aux cas avec feature spéciale (ex: `<datalist>` autocomplete dans `WatchAddDialog`).
+- **Fichiers de référence** : `src/components/ui/tags-input.tsx`, `src/components/missions/MissionSettingsTab.tsx`, `src/components/content/ContentCardDialog.tsx`.
+- **Origine** : audit d'architecture — ~3 occurrences dupliquées
+- **Date** : 2026-04-15
+
+### [021] Confirmation — utiliser `useConfirm()` au lieu de `window.confirm()`
+- **Constat** : `if (confirm("Supprimer…"))` était utilisé dans 4 composants pour les suppressions. Le prompt système du navigateur casse le design et n'est pas stylable.
+- **Règle** : Utiliser le hook `useConfirm()` depuis `@/hooks/useConfirm`. Il retourne `{ confirm, ConfirmDialog }` : appeler `await confirm({ title, description, confirmText, variant })` et rendre `<ConfirmDialog />` dans le composant. Ne JAMAIS appeler `confirm()` (API DOM) directement.
+- **Vérification** : `grep -rn 'if (confirm(' src/ --include='*.tsx' --include='*.ts'` doit être vide.
+- **Fichiers de référence** : `src/hooks/useConfirm.tsx`, `src/components/missions/MissionDetailDrawer.tsx`, `src/components/crm/CardDetailDrawer.tsx`, `src/components/crm/CrmColumnHeader.tsx`, `src/components/chatbot/KnowledgeBaseManager.tsx`.
+- **Origine** : audit d'architecture — 4 occurrences
+- **Date** : 2026-04-15
+
 ### [020] Edge functions — toujours utiliser `useEdgeFunction()` pour invoquer une fonction Supabase
 - **Constat** : `supabase.functions.invoke()` est appelé 107 fois dans 73 fichiers. Chaque caller réimplémente le même pattern : `useState(loading)` + `useState(result)` + try/catch + `toast` d'erreur + `setLoading(false)` en `finally`. Environ 30-40 lignes de boilerplate par invocation, avec des variations sur le format de réponse (`data.result` vs `data` vs réponse complète).
 - **Règle** : Utiliser le hook `useEdgeFunction<T>(functionName, { errorMessage?, successToast?, silentOnError? })` depuis `@/hooks/useEdgeFunction`. Il retourne `{ loading, result, error, invoke, reset }`. Appeler `await invoke(body)` qui retourne `T | null` (null en cas d'erreur). Ne PAS appeler `supabase.functions.invoke` directement dans un composant/hook non dédié.

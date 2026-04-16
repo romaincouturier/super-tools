@@ -84,8 +84,11 @@ const SendDeliverablesDialog = ({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState("");
-  const [sending, setSending] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
+  const { loading: sending, invoke: invokeSend } = useEdgeFunction(
+    "send-mission-deliverables",
+    { errorMessage: "Impossible d'envoyer les emails" },
+  );
 
   const contactsWithEmail = useMemo(
     () => (contacts || []).filter((c) => c.email),
@@ -129,33 +132,19 @@ const SendDeliverablesDialog = ({
 
   const handleSend = async () => {
     if (selectedContacts.length === 0) return;
-    setSending(true);
-    try {
-      const recipients = selectedContacts.map((c) => ({
-        email: c.email!,
-        first_name: c.first_name || "",
-        language: c.language || "fr",
-      }));
+    const recipients = selectedContacts.map((c) => ({
+      email: c.email!,
+      first_name: c.first_name || "",
+      language: c.language || "fr",
+    }));
 
-      const { error } = await supabase.functions.invoke("send-mission-deliverables", {
-        body: { mission_id: missionId, recipients, subject },
-      });
-
-      if (error) throw error;
-
+    const result = await invokeSend({ mission_id: missionId, recipients, subject });
+    if (result !== null) {
       toast({
         title: "Emails envoyés",
         description: `${recipients.length} email(s) de livraison envoyé(s) avec succès.`,
       });
       onOpenChange(false);
-    } catch (err: unknown) {
-      toast({
-        title: "Erreur d'envoi",
-        description: err instanceof Error ? err.message : "Impossible d'envoyer les emails",
-        variant: "destructive",
-      });
-    } finally {
-      setSending(false);
     }
   };
 

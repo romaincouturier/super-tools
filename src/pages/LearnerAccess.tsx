@@ -1,37 +1,28 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Mail, CheckCircle2, GraduationCap } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 
 export default function LearnerAccess() {
   const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { toast } = useToast();
+  const { loading: isLoading, invoke } = useEdgeFunction(
+    "send-learner-magic-link",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-learner-magic-link", {
-        body: { email: email.trim().toLowerCase() },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    const result = await invoke({ email: email.trim().toLowerCase() });
+    if (result !== null) {
       setSent(true);
-    } catch (err: unknown) {
-      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
-    } finally {
-      setIsLoading(false);
     }
   };
 

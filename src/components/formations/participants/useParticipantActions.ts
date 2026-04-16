@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { logActivity } from "@/services/activityLog";
 import type { Participant, ConventionSignatureInfo } from "./types";
 import type { CertificateInfo as CertInfo } from "@/lib/evaluationUtils";
@@ -39,6 +40,14 @@ export function useParticipantActions({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const { invoke: invokeSendSurvey } = useEdgeFunction(
+    "send-needs-survey",
+    { errorMessage: "Erreur" },
+  );
+  const { invoke: invokeSendReminder } = useEdgeFunction(
+    "send-needs-survey-reminder",
+    { errorMessage: "Erreur" },
+  );
 
   const documentActions = useDocumentActions({
     trainingId,
@@ -96,22 +105,14 @@ export function useParticipantActions({
   const handleSendSurvey = async (participant: Participant) => {
     setSendingId(participant.id);
     try {
-      const { error } = await supabase.functions.invoke("send-needs-survey", {
-        body: { participantId: participant.id, trainingId },
-      });
-      if (error) throw error;
-      toast({
-        title: "Questionnaire envoyé",
-        description: `Le questionnaire a été envoyé à ${participant.email}.`,
-      });
-      onParticipantUpdated();
-    } catch (error: unknown) {
-      console.error("Error sending survey:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive",
-      });
+      const result = await invokeSendSurvey({ participantId: participant.id, trainingId });
+      if (result !== null) {
+        toast({
+          title: "Questionnaire envoyé",
+          description: `Le questionnaire a été envoyé à ${participant.email}.`,
+        });
+        onParticipantUpdated();
+      }
     } finally {
       setSendingId(null);
     }
@@ -120,22 +121,14 @@ export function useParticipantActions({
   const handleSendReminder = async (participant: Participant) => {
     setRemindingId(participant.id);
     try {
-      const { error } = await supabase.functions.invoke("send-needs-survey-reminder", {
-        body: { participantId: participant.id, trainingId },
-      });
-      if (error) throw error;
-      toast({
-        title: "Relance envoyée",
-        description: `Une relance a été envoyée à ${participant.email}.`,
-      });
-      onParticipantUpdated();
-    } catch (error: unknown) {
-      console.error("Error sending reminder:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive",
-      });
+      const result = await invokeSendReminder({ participantId: participant.id, trainingId });
+      if (result !== null) {
+        toast({
+          title: "Relance envoyée",
+          description: `Une relance a été envoyée à ${participant.email}.`,
+        });
+        onParticipantUpdated();
+      }
     } finally {
       setRemindingId(null);
     }

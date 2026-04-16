@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import type { Participant } from "./types";
 import type { CertificateInfo as CertInfo } from "@/lib/evaluationUtils";
 
@@ -31,6 +32,14 @@ export function useDocumentActions({
   const [conventionRemindingId, setConventionRemindingId] = useState<string | null>(null);
   const [sendingCertId, setSendingCertId] = useState<string | null>(null);
   const [generatingCertId, setGeneratingCertId] = useState<string | null>(null);
+  const { invoke: invokeSendCertificate } = useEdgeFunction(
+    "send-certificate-email",
+    { errorMessage: "Erreur" },
+  );
+  const { invoke: invokeConventionReminder } = useEdgeFunction(
+    "send-convention-reminder",
+    { errorMessage: "Erreur" },
+  );
 
   const handleDownloadConvention = async (participant: Participant) => {
     if (!participant.convention_file_url) return;
@@ -78,18 +87,14 @@ export function useDocumentActions({
 
     setSendingCertId(participant.id);
     try {
-      const { error } = await supabase.functions.invoke("send-certificate-email", {
-        body: { evaluationId: cert.evaluationId, recipientEmail, recipientName },
+      const result = await invokeSendCertificate({
+        evaluationId: cert.evaluationId,
+        recipientEmail,
+        recipientName,
       });
-      if (error) throw error;
-      toast({ title: "Certificat envoyé", description: `Le certificat a été envoyé à ${recipientEmail}.` });
-    } catch (error: unknown) {
-      console.error("Error sending certificate:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive",
-      });
+      if (result !== null) {
+        toast({ title: "Certificat envoyé", description: `Le certificat a été envoyé à ${recipientEmail}.` });
+      }
     } finally {
       setSendingCertId(null);
     }
@@ -230,21 +235,13 @@ export function useDocumentActions({
   const handleSendConventionReminder = async (participant: Participant) => {
     setConventionRemindingId(participant.id);
     try {
-      const { error } = await supabase.functions.invoke("send-convention-reminder", {
-        body: { trainingId, participantId: participant.id },
-      });
-      if (error) throw error;
-      toast({
-        title: "Relance envoyée",
-        description: `Une relance convention a été envoyée pour ${participant.first_name || participant.email}.`,
-      });
-    } catch (error: unknown) {
-      console.error("Error sending convention reminder:", error);
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive",
-      });
+      const result = await invokeConventionReminder({ trainingId, participantId: participant.id });
+      if (result !== null) {
+        toast({
+          title: "Relance envoyée",
+          description: `Une relance convention a été envoyée pour ${participant.first_name || participant.email}.`,
+        });
+      }
     } finally {
       setConventionRemindingId(null);
     }

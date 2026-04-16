@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 
 interface KnowledgeEntry {
   id: string;
@@ -50,6 +51,7 @@ export function KnowledgeBaseManager() {
   });
 
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const queryClient = useQueryClient();
 
   // Fetch knowledge base entries
@@ -308,10 +310,13 @@ export function KnowledgeBaseManager() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        if (confirm("Supprimer cette entrée ?")) {
-                          deleteMutation.mutate(entry.id);
-                        }
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: "Supprimer cette entrée ?",
+                          description: "Cette action est irréversible.",
+                          confirmText: "Supprimer",
+                        });
+                        if (ok) deleteMutation.mutate(entry.id);
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -431,6 +436,7 @@ export function KnowledgeBaseManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog />
     </div>
   );
 }
