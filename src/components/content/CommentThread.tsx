@@ -71,7 +71,6 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [expandedResolved, setExpandedResolved] = useState<Set<string>>(new Set());
-  const { copy } = useCopyToClipboard();
 
   // New comment state
   const [newComment, setNewComment] = useState("");
