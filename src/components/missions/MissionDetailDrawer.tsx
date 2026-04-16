@@ -23,6 +23,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useNextActionScheduling } from "@/hooks/useNextActionScheduling";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
+import { todayAsISO } from "@/lib/dateFormatters";
 import { useQuery } from "@tanstack/react-query";
 
 interface MissionDetailDrawerProps {
@@ -201,7 +202,7 @@ const MissionDetailDrawer = ({
       await createActivity.mutateAsync({
         mission_id: mission.id,
         description: currentText,
-        activity_date: new Date().toISOString().slice(0, 10),
+        activity_date: todayAsISO(),
         duration_type: "hours",
         duration: 0,
         billable_amount: null,

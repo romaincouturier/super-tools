@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { CheckCircle2, FileText, Calendar, Building, User, PenLine, Shield, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -11,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useSignaturePad } from "@/hooks/useSignaturePad";
@@ -48,6 +48,10 @@ const SignatureDevis = () => {
 
   const hasTrackedNameEntered = useRef(false);
   const { toast } = useToast();
+  const { invoke: invokeSubmitSignature } = useEdgeFunction(
+    "submit-devis-signature",
+    { errorMessage: "Une erreur est survenue." },
+  );
   const { journeyEvents, trackEvent, trackPageLoaded, getDeviceInfo } = useJourneyTracking();
   const { canvasRef, clear: clearSignature, isEmpty: isSignatureEmpty, toDataURL: getSignatureData } = useSignaturePad({
     onFirstStroke: () => trackEvent("signature_drawing_started"),
@@ -155,34 +159,25 @@ const SignatureDevis = () => {
     trackEvent("submit_button_clicked");
     setSubmitting(true);
 
-    try {
-      const signatureData = getSignatureData("image/png");
-      const deviceInfo = getDeviceInfo();
+    const signatureData = getSignatureData("image/png");
+    const deviceInfo = getDeviceInfo();
 
-      const response = await supabase.functions.invoke("submit-devis-signature", {
-        body: {
-          token,
-          signatureData,
-          userAgent: navigator.userAgent,
-          consent: consentGiven,
-          signerName: signerName.trim(),
-          signerFunction: signerFunction.trim() || undefined,
-          deviceInfo,
-          journeyEvents: journeyEvents.current,
-        },
-      });
+    const result = await invokeSubmitSignature({
+      token,
+      signatureData,
+      userAgent: navigator.userAgent,
+      consent: consentGiven,
+      signerName: signerName.trim(),
+      signerFunction: signerFunction.trim() || undefined,
+      deviceInfo,
+      journeyEvents: journeyEvents.current,
+    });
 
-      if (response.error) throw new Error(response.error.message || "Erreur lors de l'enregistrement");
-      if (response.data?.error) throw new Error(response.data.error);
-
+    if (result !== null) {
       setSignatureSubmitted(true);
       toast({ title: "Devis signé", description: "Votre signature a été enregistrée avec succès." });
-    } catch (err) {
-      console.error("Error submitting signature:", err);
-      toastError(toast, err instanceof Error ? err : "Une erreur est survenue.");
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   const getDevisTypeLabel = (type: string) => {

@@ -52,6 +52,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [023] Date du jour ISO — utiliser `todayAsISO()` au lieu de `new Date().toISOString().slice(0, 10)`
+- **Constat** : Le pattern `new Date().toISOString().slice(0, 10)` (récupère la date du jour au format `YYYY-MM-DD`) était dupliqué dans plusieurs fichiers. Pareil pour `dateAsISO(date)` qui sérialise une `Date` arbitraire au même format.
+- **Règle** : Utiliser `todayAsISO()` ou `dateAsISO(date)` depuis `@/lib/dateFormatters`. Plus largement, utiliser les helpers de `dateFormatters.ts` au lieu de réinventer formats `format(parseISO(...), ...)` ou `toLocaleDateString("fr-FR", ...)` dans chaque composant.
+- **Vérification** : `grep -rn 'new Date().toISOString().slice(0, 10)' src/` hors `dateFormatters.ts` doit être vide.
+- **Fichiers de référence** : `src/lib/dateFormatters.ts`.
+- **Origine** : audit d'architecture — formatage de date inconsistant
+- **Date** : 2026-04-15
+
 ### [022] Tags input — utiliser `<TagsInput>` au lieu de réimplémenter add/remove inline
 - **Constat** : Le pattern `useState<string[]>([])` + `useState("")` + `handleAddTag` (trim + dedupe) + `handleRemoveTag` (filter) + UI Input/Button/Enter était dupliqué dans plusieurs drawers (`MissionDetailDrawer`, `ContentCardDialog`). Chaque occurrence = ~40 lignes.
 - **Règle** : Utiliser `<TagsInput value={tags} onChange={setTags} />` depuis `@/components/ui/tags-input`. Props : `placeholder`, `lowercase`, `variant="badge"|"pill"`. Le composant encapsule son propre state d'input.

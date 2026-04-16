@@ -23,6 +23,7 @@ import { useEvent, useUpdateEvent } from "@/hooks/useEvents";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 
 type ChangeMap = Record<string, { old: string | null; new: string | null }>;
@@ -55,8 +56,11 @@ const EventEdit = () => {
   const [notifyDialogOpen, setNotifyDialogOpen] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChangeMap>({});
   const [sharesCount, setSharesCount] = useState(0);
-  const [notifying, setNotifying] = useState(false);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
+  const { loading: notifying, invoke: invokeSendUpdate } = useEdgeFunction(
+    "send-event-update-email",
+    { errorMessage: "Erreur inconnue" },
+  );
 
   const prevEventIdRef = useRef<string | null>(null);
 
@@ -183,28 +187,15 @@ const EventEdit = () => {
   };
 
   const handleNotify = async () => {
-    setNotifying(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-event-update-email", {
-        body: { event_id: id, changes: pendingChanges },
-      });
-      if (error) throw error;
+    const result = await invokeSendUpdate({ event_id: id, changes: pendingChanges });
+    if (result !== null) {
       toast({
         title: "Relance envoyée",
         description: `${sharesCount} personne(s) notifiée(s) des modifications.`,
       });
-    } catch (err: unknown) {
-      console.error("Notify error:", err);
-      toast({
-        title: "Erreur d'envoi",
-        description: err instanceof Error ? err.message : "Erreur inconnue",
-        variant: "destructive",
-      });
-    } finally {
-      setNotifying(false);
-      setNotifyDialogOpen(false);
-      navigate(`/events/${id}`);
     }
+    setNotifyDialogOpen(false);
+    navigate(`/events/${id}`);
   };
 
   const handleSkipNotify = () => {

@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -70,8 +71,11 @@ const Reclamations = () => {
   const [loading, setLoading] = useState(true);
   const [selectedRec, setSelectedRec] = useState<Reclamation | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
   const [generatingLink, setGeneratingLink] = useState(false);
+  const { loading: aiLoading, invoke: invokeAiAssist } = useEdgeFunction<{ analysis?: string; draft?: string; summary?: string }>(
+    "reclamation-ai-assist",
+    { errorMessage: "L'assistance IA a échoué." },
+  );
 
   // Filters
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -214,29 +218,18 @@ const Reclamations = () => {
 
   const runAiAssist = async (action: string) => {
     if (!selectedRec) return;
-    setAiLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("reclamation-ai-assist", {
-        body: { action, reclamation: selectedRec },
-      });
-
-      if (error) throw error;
-
+    const data = await invokeAiAssist({ action, reclamation: selectedRec });
+    if (data) {
       const updates: Partial<Reclamation> = {};
-      if (action === "analyze" && data?.analysis) updates.ai_analysis = data.analysis;
-      if (action === "draft_response" && data?.draft) updates.ai_response_draft = data.draft;
-      if (action === "qualiopi_summary" && data?.summary) updates.qualiopi_summary = data.summary;
+      if (action === "analyze" && data.analysis) updates.ai_analysis = data.analysis;
+      if (action === "draft_response" && data.draft) updates.ai_response_draft = data.draft;
+      if (action === "qualiopi_summary" && data.summary) updates.qualiopi_summary = data.summary;
 
       if (Object.keys(updates).length > 0) {
         await updateReclamation(selectedRec.id, updates);
       }
 
       toast({ title: "IA terminée", description: `Action "${action}" exécutée.` });
-    } catch (e) {
-      console.error("AI assist error:", e);
-      toastError(toast, "L'assistance IA a échoué.", { title: "Erreur IA" });
-    } finally {
-      setAiLoading(false);
     }
   };
 

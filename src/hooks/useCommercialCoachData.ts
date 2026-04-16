@@ -9,6 +9,7 @@ import type { CrmColumn, CrmCard, CrmRevenueTarget, CommercialCoachContext } fro
 import type { OKRObjective, OKRKeyResult } from "@/types/okr";
 import type { Mission } from "@/types/missions";
 import { useToast } from "@/hooks/use-toast";
+import { todayAsISO } from "@/lib/dateFormatters";
 
 // Re-export context builders + helpers so existing imports still work
 export {
@@ -86,7 +87,7 @@ export function useCommercialCoachData() {
           supabase
             .from("trainings")
             .select("id, training_name, client_name, start_date, end_date, sold_price_ht")
-            .gte("start_date", new Date().toISOString().slice(0, 10))
+            .gte("start_date", todayAsISO())
             .order("start_date", { ascending: true }),
           supabase
             .from("formation_configs")

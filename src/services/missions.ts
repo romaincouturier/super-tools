@@ -3,6 +3,7 @@
  * Hooks in useMissions.ts become thin React Query wrappers around these functions.
  */
 import { db, throwIfError, getMaxPosition } from "@/lib/supabase-helpers";
+import { todayAsISO } from "@/lib/dateFormatters";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
 import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/useMissions";
 import type { KanbanRepository } from "./repository";
@@ -108,7 +109,7 @@ export async function fetchActivities(missionId: string): Promise<MissionActivit
  * Used by the Kanban board to hide missions with only future-dated actions.
  */
 export async function fetchMissionIdsWithFutureScheduledActions(): Promise<Set<string>> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayAsISO();
   const result = await db()
     .from("mission_activities")
     .select("mission_id")

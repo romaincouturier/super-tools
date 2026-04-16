@@ -175,23 +175,14 @@ const BesoinsParticipants = () => {
   const runAnalysis = async () => {
     const ids = filteredSurveys.map((s) => s.id);
     if (ids.length === 0) return;
-    setAnalysisLoading(true);
     setAnalysisResult(null);
     setAnalysisOpen(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-needs-survey", {
-        body: { surveyIds: ids },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
+    const data = await invokeAnalyze({ surveyIds: ids });
+    if (data?.analysis) {
       setAnalysisResult(data.analysis);
-    } catch (e: unknown) {
-      console.error("Analysis error:", e);
-      toastError(toast, e instanceof Error ? e : "Erreur inconnue");
+    } else if (data === null) {
       setAnalysisOpen(false);
-    } finally {
-      setAnalysisLoading(false);
     }
   };
 

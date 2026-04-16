@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { formatDateWithDayOfWeek, getPeriodLabel } from "@/lib/dateFormatters";
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { rpc, type TrainingPublicInfo, type ParticipantPublicInfo, type ScheduleForDate } from "@/lib/supabase-rpc";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useSignaturePad } from "@/hooks/useSignaturePad";
@@ -39,6 +39,10 @@ const Emargement = () => {
   const [consentGiven, setConsentGiven] = useState(false);
 
   const { toast } = useToast();
+  const { invoke: invokeSubmitSignature } = useEdgeFunction(
+    "submit-attendance-signature",
+    { errorMessage: "Une erreur est survenue lors de l'enregistrement de la signature." },
+  );
   const { journeyEvents, trackEvent, trackPageLoaded, getDeviceInfo } = useJourneyTracking();
 
   const { canvasRef, clear: clearSignature, isEmpty: isSignatureEmpty, toDataURL: getSignatureData } = useSignaturePad({
@@ -138,44 +142,26 @@ const Emargement = () => {
 
     setSubmitting(true);
 
-    try {
-      const signatureData = getSignatureData("image/png");
-      const deviceInfo = getDeviceInfo();
+    const signatureData = getSignatureData("image/png");
+    const deviceInfo = getDeviceInfo();
 
-      const response = await supabase.functions.invoke("submit-attendance-signature", {
-        body: {
-          token,
-          signatureData,
-          userAgent: navigator.userAgent,
-          consent: consentGiven,
-          deviceInfo,
-          journeyEvents: journeyEvents.current,
-        },
-      });
+    const result = await invokeSubmitSignature({
+      token,
+      signatureData,
+      userAgent: navigator.userAgent,
+      consent: consentGiven,
+      deviceInfo,
+      journeyEvents: journeyEvents.current,
+    });
 
-      if (response.error) {
-        throw new Error(response.error.message || "Erreur lors de l'enregistrement");
-      }
-
-      if (response.data?.error) {
-        throw new Error(response.data.error);
-      }
-
+    if (result !== null) {
       setSignatureSubmitted(true);
       toast({
         title: "Signature enregistrée",
         description: "Votre présence a été validée avec succès. Cette signature est juridiquement valide.",
       });
-    } catch (err) {
-      console.error("Error submitting signature:", err);
-      toast({
-        title: "Erreur",
-        description: err instanceof Error ? err.message : "Une erreur est survenue lors de l'enregistrement de la signature.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
     }
+    setSubmitting(false);
   };
 
   const formatDate = formatDateWithDayOfWeek;

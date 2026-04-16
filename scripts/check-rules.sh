@@ -214,6 +214,10 @@ else
   check "021" "Utiliser useConfirm() au lieu de window.confirm()" \
     "grep -rn 'if (confirm(' src/ --include='*.tsx' --include='*.ts' | grep -v 'hooks/useConfirm.tsx'"
 
+  # [023] Date du jour ISO — utiliser todayAsISO()
+  check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 10)" \
+    "grep -rn 'new Date().toISOString().slice(0, 10)' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/dateFormatters.ts'"
+
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
 fi
