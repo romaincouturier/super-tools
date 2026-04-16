@@ -194,6 +194,17 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
               <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                 {colCards.length}
               </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground cursor-help transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1">
+                  <p className="font-medium mb-1">Règles de filtrage :</p>
+                  {getColumnRules(col.id).map((rule, i) => (
+                    <p key={i}>{rule}</p>
+                  ))}
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Button
               variant="ghost"
