@@ -19,6 +19,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { TagsInput } from "@/components/ui/tags-input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LocationInput } from "@/components/shared/LocationInput";
+import { LogisticsChecklist } from "@/components/shared/LogisticsChecklist";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import MissionContacts from "./MissionContacts";
@@ -173,6 +174,11 @@ const MissionSettingsTab = ({
       <div>
         <Label>Lieu</Label>
         <LocationInput value={location} onChange={setLocation} />
+      </div>
+
+      {/* Logistics checklist (replaces the train/hotel buttons UI) */}
+      <div className="border rounded-lg p-3 bg-muted/30">
+        <LogisticsChecklist entityType="mission" entityId={missionId} />
       </div>
 
       {/* Assigned user */}

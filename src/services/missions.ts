@@ -4,6 +4,8 @@
  */
 import { db, throwIfError, getMaxPosition } from "@/lib/supabase-helpers";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { bootstrapChecklist } from "@/services/logistics";
+import { isRemoteLocation } from "@/lib/missionLocation";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
 import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/useMissions";
 import type { KanbanRepository } from "./repository";
@@ -76,6 +78,18 @@ export async function createMission(input: CreateMissionInput): Promise<Mission>
       language: "fr",
       position: 0,
     });
+  }
+
+  // Bootstrap the logistics checklist from the default template (best-effort
+  // — failure here must not break mission creation).
+  try {
+    await bootstrapChecklist({
+      entityType: "mission",
+      entityId: mission.id,
+      isRemote: isRemoteLocation(mission.location),
+    });
+  } catch (err) {
+    console.warn("bootstrapChecklist (mission) failed:", err);
   }
 
   return mission;

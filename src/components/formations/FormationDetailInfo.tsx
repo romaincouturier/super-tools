@@ -4,6 +4,7 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useToast } from "@/hooks/use-toast";
+import { LogisticsChecklist } from "@/components/shared/LogisticsChecklist";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,6 +188,14 @@ const FormationDetailInfo = ({
           </div>
         </>
       )}
+
+      {/* Logistics checklist (replaces the train/hôtel/restaurant/salle/matériel
+          dropdown — but the dropdown stays visible in the header for quick
+          actions; both stay in sync via DB triggers). */}
+      <Separator />
+      <div className="border rounded-lg p-3 bg-muted/30">
+        <LogisticsChecklist entityType="training" entityId={training.id} hideWhenEmpty />
+      </div>
 
       {/* Links */}
       {training.program_file_url && (

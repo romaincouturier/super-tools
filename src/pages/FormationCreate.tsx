@@ -122,6 +122,19 @@ const FormationCreate = () => {
         if (schedulesError) throw schedulesError;
       }
 
+      // Bootstrap logistics checklist from default template (best-effort).
+      try {
+        const { bootstrapChecklist } = await import("@/services/logistics");
+        await bootstrapChecklist({
+          entityType: "training",
+          entityId: training.id,
+          format: training.format_formation as string | null,
+          sessionType: (training as { session_type?: string | null }).session_type ?? null,
+        });
+      } catch (err) {
+        console.warn("bootstrapChecklist (training) failed:", err);
+      }
+
       // Create scheduled actions
       const validActions = form.scheduledActions.filter(
         (a) => a.description && a.dueDate && a.assignedEmail
