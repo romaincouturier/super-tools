@@ -12,6 +12,7 @@ import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAppSetting } from "@/hooks/useAppSetting";
 import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
 
 type MissionKanbanCard = Mission & KanbanCardDef;
