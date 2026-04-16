@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { TrendingUp, TrendingDown, Target, DollarSign, BarChart3, CalendarDays } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, Euro, BarChart3, CalendarDays } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import {
   AreaChart,
@@ -156,7 +156,7 @@ const CrmReports = () => {
           />
           <KpiCard
             title="Pipeline pondéré"
-            icon={<DollarSign className="h-4 w-4 text-amber-600" />}
+            icon={<Euro className="h-4 w-4 text-amber-600" />}
             mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
             secondary="confiance × valeur"
             mainColor="text-amber-600"

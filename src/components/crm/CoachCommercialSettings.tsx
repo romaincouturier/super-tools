@@ -23,7 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { Save, Plus, Trash2, ChevronLeft, ChevronRight, Target, TrendingUp, DollarSign, Loader2 } from "lucide-react";
+import { Save, Plus, Trash2, ChevronLeft, ChevronRight, Target, TrendingUp, Euro, Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import type { CommercialCoachContext, CrmRevenueTarget } from "@/types/crm";
 
@@ -249,7 +249,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
               <span className="truncate">Acquisition</span>
             </TabsTrigger>
             <TabsTrigger value="objectifs" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm px-1 sm:px-3">
-              <DollarSign className="h-3.5 w-3.5 shrink-0" />
+              <Euro className="h-3.5 w-3.5 shrink-0" />
               <span className="truncate">Objectifs</span>
             </TabsTrigger>
           </TabsList>

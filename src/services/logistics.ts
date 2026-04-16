@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { LogisticsChecklistItem, LogisticsEntityType, LogisticsTemplateItem, LogisticsTemplates } from "@/types/logistics";
+import { resolveTemplateKey } from "@/lib/logisticsTemplateKey";
+
+export { resolveTemplateKey };
 
 const TABLE = "logistics_checklist_items";
 
@@ -136,29 +139,6 @@ export async function fetchTemplates(): Promise<LogisticsTemplates> {
   }
   _cachedTemplates = FALLBACK_TEMPLATES;
   return FALLBACK_TEMPLATES;
-}
-
-/**
- * Resolve the right template key for an entity.
- * Mission examples: "mission.remote" or "mission.presentiel"
- * Training examples: "training.inter.presentiel", "training.classe_virtuelle"
- */
-export function resolveTemplateKey(args: {
-  entityType: LogisticsEntityType;
-  isRemote?: boolean;
-  format?: string | null;
-  sessionType?: string | null;
-}): string {
-  if (args.entityType === "mission") {
-    return args.isRemote ? "mission.remote" : "mission.presentiel";
-  }
-  // Training
-  const fmt = args.format || "presentiel";
-  if (fmt === "classe_virtuelle") return "training.classe_virtuelle";
-  if (fmt === "e_learning") return "training.e_learning";
-  // Presentiel — split inter / intra (default to inter when unknown)
-  const session = args.sessionType === "intra" ? "intra" : "inter";
-  return `training.${session}.${fmt}`;
 }
 
 /**
