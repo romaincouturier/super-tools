@@ -183,6 +183,9 @@ verify_jwt = false
 [functions.backup-import]
 verify_jwt = false
 
+[functions.process-mission-testimonials]
+verify_jwt = false
+
 [functions.process-participant-list-reminders]
 verify_jwt = false
 
@@ -337,6 +340,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.support-analyze-ticket]
+verify_jwt = false
+
+[functions.send-mission-email-draft]
 verify_jwt = false
 
 [functions.send-support-notification]

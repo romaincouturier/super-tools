@@ -185,6 +185,17 @@ export interface SupportTicketItem {
   daysOpen: number;
 }
 
+export interface MissionEmailDraftItem {
+  id: string;
+  missionId: string;
+  missionTitle: string;
+  emailType: string;
+  contactEmail: string;
+  contactName: string | null;
+  subject: string;
+  createdAt: string;
+}
+
 /** Fetch columns that have at least one assigned user (dynamic review columns) */
 export async function fetchAssignedColumns(supabase: SupabaseClient): Promise<Map<string, string[]>> {
   const { data } = await supabase
@@ -943,6 +954,41 @@ export async function fetchOkrInitiatives(supabase: SupabaseClient): Promise<Okr
 }
 
 /**
+ * Fetch pending mission email drafts awaiting validation by the comms manager.
+ */
+export async function fetchPendingEmailDrafts(supabase: SupabaseClient): Promise<MissionEmailDraftItem[]> {
+  const { data: drafts, error } = await supabase
+    .from("mission_email_drafts")
+    .select("id, mission_id, email_type, contact_email, contact_name, subject, created_at")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("fetchPendingEmailDrafts error:", error.message);
+    return [];
+  }
+  if (!drafts || drafts.length === 0) return [];
+
+  const missionIds = [...new Set(drafts.map((d: any) => d.mission_id))];
+  const { data: missions } = await supabase
+    .from("missions")
+    .select("id, title")
+    .in("id", missionIds);
+  const missionMap = new Map((missions || []).map((m: any) => [m.id, m.title]));
+
+  return drafts.map((d: any) => ({
+    id: d.id,
+    missionId: d.mission_id,
+    missionTitle: missionMap.get(d.mission_id) || "Mission",
+    emailType: d.email_type,
+    contactEmail: d.contact_email,
+    contactName: d.contact_name,
+    subject: d.subject,
+    createdAt: d.created_at?.slice(0, 10) || "",
+  }));
+}
+
+/**
  * Fetch pending support tickets (nouveau, en_cours, en_attente).
  * Excludes resolved/closed tickets.
  */
@@ -1000,6 +1046,7 @@ export interface DailyData {
   reservations: ReservationItem[];
   okrInitiatives: OkrInitiativeItem[];
   supportTickets: SupportTicketItem[];
+  pendingEmailDrafts: MissionEmailDraftItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1026,6 +1073,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reservations,
     okrInitiatives,
     supportTickets,
+    pendingEmailDrafts,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1046,6 +1094,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchReservationAlerts(supabase, today),
     fetchOkrInitiatives(supabase),
     fetchPendingSupportTickets(supabase, today),
+    fetchPendingEmailDrafts(supabase),
   ]);
 
   return {
@@ -1053,7 +1102,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
-    reservations, okrInitiatives, supportTickets,
+    reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
   };
 }
 
