@@ -9,10 +9,16 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 import { useEvaluationForm } from "@/hooks/useEvaluationForm";
+import { useAppSetting } from "@/hooks/useAppSetting";
 
 const Evaluation = () => {
   const { token } = useParams<{ token: string }>();
   const form = useEvaluationForm(token);
+  const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
+  // Domain extracted for inline display (e.g. "www.supertilt.fr")
+  const websiteDomain = (() => {
+    try { return new URL(websiteUrl).host; } catch { return websiteUrl; }
+  })();
 
   if (form.loading) {
     return (
@@ -459,7 +465,7 @@ const Evaluation = () => {
                 Quel message de recommandation pouvez-vous me partager ?
               </Label>
               <p className="text-xs text-muted-foreground">
-                Il sera publié sur le site Web www.supertilt.fr (2-3 phrases maximum)
+                Il sera publié sur le site Web {websiteDomain} (2-3 phrases maximum)
               </p>
               <VoiceTextarea
                 id="message-reco"
@@ -473,7 +479,7 @@ const Evaluation = () => {
 
             <div className="space-y-3">
               <Label>
-                Je consens à ce que ma recommandation soit publiée en mon nom sur le site SuperTilt.fr
+                Je consens à ce que ma recommandation soit publiée en mon nom sur le site {websiteDomain}
               </Label>
               <RadioGroup
                 value={form.consentPublication === null ? "" : form.consentPublication ? "oui" : "non"}

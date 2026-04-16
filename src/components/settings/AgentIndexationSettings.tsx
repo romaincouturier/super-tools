@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,54 +33,87 @@ const SOURCE_TYPES = [
 
 type BackfillStatus = "idle" | "running" | "done" | "error";
 
+// Safety cap on client-side iterations. The edge function itself loops
+// until its time budget is consumed, so 1-3 iterations is the norm even
+// for backlogs of thousands of items.
+const MAX_BATCHES = 50;
+
 export default function AgentIndexationSettings() {
   const [statuses, setStatuses] = useState<Record<string, BackfillStatus>>({});
   const [results, setResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
   const [stuckCount, setStuckCount] = useState<number | null>(null);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [queueProgress, setQueueProgress] = useState<{ processed: number; remaining: number } | null>(null);
 
-  // Check for stuck queue items (pending > 5 min = pg_net likely not working)
+  const refreshStuckCount = useCallback(async () => {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const { count, error } = await supabase
+      .from("indexation_queue")
+      .select("*", { count: "exact", head: true })
+      .is("processed_at", null)
+      .lt("created_at", fiveMinAgo);
+    if (!error) setStuckCount(count ?? 0);
+  }, []);
+
+  // Initial check + re-check after backfills complete
   useEffect(() => {
-    const checkQueueHealth = async () => {
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count, error } = await supabase
-        .from("indexation_queue")
-        .select("*", { count: "exact", head: true })
-        .is("processed_at", null)
-        .lt("created_at", fiveMinAgo);
+    refreshStuckCount();
+  }, [statuses, refreshStuckCount]);
 
-      if (!error) setStuckCount(count ?? 0);
-    };
-    checkQueueHealth();
-  }, [statuses]); // re-check after backfills
-
+  /**
+   * Drain the queue in successive batches until empty (or until we hit
+   * MAX_BATCHES as a safety net). Each batch is a separate HTTP call so
+   * the edge function stays well under its timeout. UI shows real-time
+   * progress so the user can see something is happening.
+   */
   const processQueue = async () => {
     setProcessingQueue(true);
+    setQueueProgress({ processed: 0, remaining: stuckCount ?? 0 });
+    let totalProcessed = 0;
+    let totalErrors = 0;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Non authentifié");
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+      // Each call drains as many batches as fits in the edge function's
+      // time budget. We keep calling until the function reports `drained`
+      // — usually 1-3 calls even for thousands of items.
+      for (let i = 0; i < MAX_BATCHES; i++) {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({}),
           },
-          body: JSON.stringify({}),
-        },
-      );
+        );
 
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      toast.success(`Queue traitée : ${data.processed} éléments indexés`);
-      setStuckCount(0);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        totalProcessed += data.processed ?? 0;
+        totalErrors += data.errors ?? 0;
+
+        // Refresh visible counter
+        await refreshStuckCount();
+        setQueueProgress({ processed: totalProcessed, remaining: stuckCount ?? 0 });
+
+        // The edge function tells us when the queue is empty.
+        if (data.drained) break;
+      }
+
+      const errorSuffix = totalErrors > 0 ? ` (${totalErrors} erreur${totalErrors > 1 ? "s" : ""})` : "";
+      toast.success(`Queue traitée : ${totalProcessed} éléments indexés${errorSuffix}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur de traitement");
     } finally {
+      await refreshStuckCount();
       setProcessingQueue(false);
+      setQueueProgress(null);
     }
   };
 
@@ -150,8 +183,17 @@ export default function AgentIndexationSettings() {
           <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900">
             <TriangleAlert className="h-5 w-5 shrink-0" />
             <div className="flex-1 text-sm">
-              <strong>{stuckCount} élément{stuckCount > 1 ? "s" : ""}</strong> en attente depuis plus de 5 min.
-              L'indexation automatique ne fonctionne peut-être pas (pg_net indisponible).
+              {processingQueue && queueProgress ? (
+                <>
+                  <strong>Traitement en cours…</strong> {queueProgress.processed} traité{queueProgress.processed > 1 ? "s" : ""},{" "}
+                  {stuckCount} restant{stuckCount > 1 ? "s" : ""}.
+                </>
+              ) : (
+                <>
+                  <strong>{stuckCount} élément{stuckCount > 1 ? "s" : ""}</strong> en attente depuis plus de 5 min.
+                  L'indexation automatique ne fonctionne peut-être pas (pg_net indisponible).
+                </>
+              )}
             </div>
             <Button
               variant="outline"
@@ -161,7 +203,7 @@ export default function AgentIndexationSettings() {
               className="shrink-0 gap-1.5"
             >
               {processingQueue ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-              Traiter maintenant
+              {processingQueue ? "Traitement…" : "Traiter maintenant"}
             </Button>
           </div>
         )}

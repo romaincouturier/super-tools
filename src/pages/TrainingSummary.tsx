@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import { useAppSetting } from "@/hooks/useAppSetting";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsEmbedUrl } from "@/lib/googleMaps";
 
 // ── Material Symbol helper ──────────────────────────────────────────────────
@@ -102,6 +103,7 @@ const c = {
 
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
+  const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState("AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -368,7 +370,7 @@ END:VCALENDAR`;
         className="sticky top-0 z-50 flex justify-center items-center px-4 h-16 w-full border-b shadow-sm"
         style={{ background: c.surfaceContainerLowest, borderColor: `${c.outlineVariant}30` }}
       >
-        <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
+        <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
           <SupertiltLogo className="h-10" />
         </a>
       </header>

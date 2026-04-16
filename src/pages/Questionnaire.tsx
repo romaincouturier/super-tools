@@ -6,9 +6,11 @@ import { formatDateWithTime } from "@/lib/dateFormatters";
 import supertiltLogo from "@/assets/supertilt-logo-anthracite-transparent.png";
 import QuestionnaireFormSections from "@/components/questionnaire/QuestionnaireFormSections";
 import { useQuestionnaire } from "@/hooks/useQuestionnaire";
+import { useAppSetting } from "@/hooks/useAppSetting";
 
 const Questionnaire = () => {
   const q = useQuestionnaire();
+  const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
 
   if (q.loading) {
     return (
@@ -103,7 +105,7 @@ const Questionnaire = () => {
       <div className="mx-auto w-full max-w-3xl space-y-6" onBlur={q.handleFieldBlur}>
         {/* Logo */}
         <div className="flex justify-center">
-          <a href="https://www.supertilt.fr" target="_blank" rel="noopener noreferrer">
+          <a href={websiteUrl} target="_blank" rel="noopener noreferrer">
             <img src={supertiltLogo} alt="SuperTilt" className="h-12 md:h-16" />
           </a>
         </div>
