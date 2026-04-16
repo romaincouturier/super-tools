@@ -130,6 +130,20 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     }));
   }, [missions]);
 
+  const getColumnRules = (colId: string): string[] => {
+    const rules: string[] = [];
+    if (colId !== "cancelled") {
+      rules.push("🕐 Les missions avec une action programmée dans le futur sont masquées");
+    }
+    if (colId === "completed") {
+      rules.push("📦 Les missions terminées avec une date de fin sont archivées (masquées)");
+    }
+    if (rules.length === 0) {
+      rules.push("Aucune règle de filtrage sur cette colonne");
+    }
+    return rules;
+  };
+
   const handleAddMission = (status: MissionStatus) => {
     setCreateDialogStatus(status);
     setShowCreateDialog(true);
