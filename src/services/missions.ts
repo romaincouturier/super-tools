@@ -103,6 +103,15 @@ export async function fetchActivities(missionId: string): Promise<MissionActivit
   return (throwIfError(result) || []) as MissionActivity[];
 }
 
+/** Fetch every activity across all missions. Used by the profitability dashboard. */
+export async function fetchAllActivities(): Promise<MissionActivity[]> {
+  const result = await db()
+    .from("mission_activities")
+    .select("*")
+    .order("activity_date", { ascending: false });
+  return (throwIfError(result) || []) as MissionActivity[];
+}
+
 /**
  * Returns a Set of mission IDs that have at least one pending scheduled action
  * (duration = 0, is_billed = false) with a future date (strictly after today).

@@ -122,6 +122,13 @@ export const useMissionActivities = (missionId: string | null) =>
     enabled: !!missionId,
   });
 
+/** Cross-mission activities for reporting (profitability dashboard, etc.). */
+export const useAllMissionActivities = () =>
+  useQuery({
+    queryKey: [MISSION_ACTIVITIES_QUERY_KEY, "_all"],
+    queryFn: () => missionService.fetchAllActivities(),
+  });
+
 export const useCreateMissionActivity = () => {
   const qc = useQueryClient();
   return useMutation({
