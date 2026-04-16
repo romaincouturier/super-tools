@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import DOMPurify from "dompurify";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import {
   FileText, Link, Image, Mic, ExternalLink, Trash2,
   Share2, MoreVertical, Copy, Clock, Plus, X,
 } from "lucide-react";
+import { stripWatchHtml } from "./WatchRichEditor";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -64,7 +66,9 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
   };
 
   const handleCopyBody = () => {
-    copy(item.body || item.source_url || "", { title: "Copié dans le presse-papiers" });
+    // Clipboard gets plain text (strip HTML tags from rich bodies).
+    const plain = item.body ? stripWatchHtml(item.body) : (item.source_url || "");
+    copy(plain, { title: "Copié dans le presse-papiers" });
   };
 
   const handleAddTag = async () => {
@@ -102,9 +106,18 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
     }
   };
 
-  const bodyPreview = item.body?.length > 200 && !expanded
-    ? item.body.slice(0, 200) + "..."
-    : item.body;
+  // `body` now stores HTML (rich paste with images/formatting). Legacy
+  // rows are plain text — both render correctly via dangerouslySetInnerHTML
+  // below (plain text shows as-is thanks to `white-space: pre-wrap`).
+  const isHtml = useMemo(() => /<(p|div|br|h\d|ul|ol|li|img|strong|em|a|b|i|u|span)[\s>]/i.test(item.body || ""), [item.body]);
+  const plainBodyLen = useMemo(() => (isHtml ? stripWatchHtml(item.body || "").length : (item.body?.length || 0)), [isHtml, item.body]);
+  const sanitizedBody = useMemo(() => DOMPurify.sanitize(item.body || ""), [item.body]);
+  const bodyPreviewHtml = useMemo(() => {
+    if (expanded || plainBodyLen <= 200) return sanitizedBody;
+    // Collapsed preview: strip to plain text and slice to avoid cutting HTML tags.
+    const plain = stripWatchHtml(item.body || "").slice(0, 200) + "…";
+    return plain.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }, [expanded, plainBodyLen, sanitizedBody, item.body]);
 
   const freshness = Math.round(item.relevance_score);
 
@@ -189,11 +202,11 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
       {/* Body */}
       {item.body && (
         <div
-          className="text-sm text-muted-foreground whitespace-pre-wrap cursor-pointer"
+          className="text-sm text-muted-foreground cursor-pointer prose prose-sm max-w-none prose-img:my-2 prose-img:rounded whitespace-pre-wrap"
           onClick={() => setExpanded(!expanded)}
         >
-          {bodyPreview}
-          {item.body.length > 200 && (
+          <div dangerouslySetInnerHTML={{ __html: bodyPreviewHtml }} />
+          {plainBodyLen > 200 && (
             <span className="text-primary text-xs ml-1">
               {expanded ? "Voir moins" : "Voir plus"}
             </span>

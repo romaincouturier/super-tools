@@ -56,6 +56,24 @@ serve(async (req) => {
     let body = item.body || "";
     const updates: Record<string, unknown> = {};
 
+    /**
+     * `body` may contain HTML (user pasted rich content with formatting
+     * and images). Strip tags when feeding the text to OpenAI so the
+     * tokens are spent on meaningful words, not markup. The stored body
+     * is left untouched — the frontend renders it sanitised.
+     */
+    const stripHtml = (html: string): string =>
+      html
+        .replace(/<br\s*\/?\s*>/gi, "\n")
+        .replace(/<\/(p|div|h\d|li)>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .trim();
+
     // ── Step 1: Content extraction ──────────────────────────────────
 
     if (item.content_type === "url" && item.source_url) {
@@ -184,7 +202,7 @@ serve(async (req) => {
     const OPENAI_API_KEY_FOR_AI = await getOpenAIApiKey();
     if (OPENAI_API_KEY_FOR_AI && body) {
       try {
-        const textForAI = body.slice(0, 3000);
+        const textForAI = stripHtml(body).slice(0, 3000);
         const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -243,7 +261,7 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
           },
           body: JSON.stringify({
             model: "text-embedding-3-small",
-            input: body.slice(0, 8000),
+            input: stripHtml(body).slice(0, 8000),
           }),
         });
 

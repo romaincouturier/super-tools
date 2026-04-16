@@ -3,7 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +12,7 @@ import { toast } from "sonner";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
 import { resolveContentType } from "@/lib/file-utils";
+import WatchRichEditor, { stripWatchHtml } from "./WatchRichEditor";
 
 interface WatchAddDialogProps {
   allTags: string[];
@@ -59,7 +59,10 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
 
   const handleSubmit = async () => {
     const contentType = tab as "text" | "url" | "image" | "audio";
-    let finalBody = body;
+    const finalBody = body;
+    // Plain-text representation used for duplicate detection + emptiness checks.
+    // `body` may now contain HTML (rich paste), so we strip tags before comparing.
+    const plainBody = stripWatchHtml(finalBody);
     let sourceUrl: string | null = null;
     let fileUrl: string | null = null;
     let fileName: string | null = null;
@@ -79,7 +82,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       return;
     }
 
-    if (contentType === "text" && !body.trim()) {
+    if (contentType === "text" && !plainBody.trim()) {
       toast.error("Veuillez saisir du contenu");
       return;
     }
@@ -87,8 +90,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setUploading(true);
 
     try {
-      // Check for duplicates
-      const dupCheck = await checkDuplicates(finalBody || url, title);
+      // Check for duplicates (compare plain-text representation)
+      const dupCheck = await checkDuplicates(plainBody || url, title);
       if (dupCheck.isDuplicate) {
         setDuplicateWarning(`Contenu similaire détecté : "${dupCheck.similarTitle}"`);
         setUploading(false);
@@ -227,13 +230,11 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
             </div>
 
             <TabsContent value="text" className="mt-0">
-              <Label htmlFor="watch-body">Contenu</Label>
-              <Textarea
-                id="watch-body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="Collez ou saisissez votre contenu de veille ici..."
-                rows={6}
+              <Label>Contenu</Label>
+              <WatchRichEditor
+                content={body}
+                onChange={setBody}
+                placeholder="Collez ou saisissez votre contenu de veille ici…"
               />
             </TabsContent>
 
