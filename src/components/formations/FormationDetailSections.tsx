@@ -47,7 +47,7 @@ interface Props {
   handleSaveActions: (actions: ScheduledAction[]) => Promise<void>;
   handleToggleActionComplete: (actionId: string, completed: boolean) => Promise<void>;
   handleSaveNotes: () => Promise<void>;
-  toast: (opts: { title?: string; description?: string; variant?: "default" | "destructive" }) => void;
+  toast: ReturnType<typeof import("@/hooks/use-toast").useToast>["toast"];
 }
 
 const FormationDetailSections = ({

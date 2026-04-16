@@ -643,8 +643,16 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const authResult = await verifyAuth(req.headers.get("Authorization"));
-    if (!authResult) return createErrorResponse("Non autorisé", 401);
+    // Accept either a valid user JWT or the service role key (for internal calls from process-indexation-queue)
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const authHeader = req.headers.get("Authorization");
+    const token = authHeader?.replace("Bearer ", "") || "";
+    const isServiceRole = token === serviceRoleKey;
+    
+    if (!isServiceRole) {
+      const authResult = await verifyAuth(authHeader);
+      if (!authResult) return createErrorResponse("Non autorisé", 401);
+    }
 
     const { source_type, source_id, backfill } = await req.json();
 
