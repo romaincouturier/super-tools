@@ -539,26 +539,58 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
   return results;
 }
 
-export async function fetchReviewArticles(supabase: SupabaseClient, assignedColumns: Map<string, string[]>): Promise<ReviewArticleItem[]> {
-  const columnIds = [...assignedColumns.keys()];
-  if (columnIds.length === 0) return [];
+/**
+ * Fetch content cards that are *actually* under review — i.e. have at least
+ * one row in `content_reviews` with status `pending` or `in_review`.
+ *
+ * BEWARE: the previous implementation returned cards from any column with
+ * `assigned_user_ids` set, which conflated "columns with designated
+ * owners" (e.g. Bloqué, Diffusion) with "cards being reviewed". That sent
+ * blocked/published cards into the "Articles en relecture" email section.
+ *
+ * `assignedUserIds` now holds the list of reviewers assigned via
+ * `content_reviews.reviewer_id` (deduped), so per-user routing downstream
+ * correctly targets the actual reviewer(s), not the column owner(s).
+ */
+export async function fetchReviewArticles(supabase: SupabaseClient): Promise<ReviewArticleItem[]> {
+  const { data: reviews, error: reviewsError } = await supabase
+    .from("content_reviews")
+    .select("card_id, reviewer_id, status")
+    .in("status", ["pending", "in_review"]);
 
-  const { data } = await supabase
+  if (reviewsError) {
+    console.error("fetchReviewArticles reviews error:", reviewsError.message);
+    return [];
+  }
+  if (!reviews || reviews.length === 0) return [];
+
+  const cardIds = Array.from(new Set(reviews.map((r: any) => r.card_id).filter(Boolean)));
+  if (cardIds.length === 0) return [];
+
+  const { data: cards } = await supabase
     .from("content_cards")
     .select("id, title, column_id, created_at, content_columns:column_id(name)")
-    .in("column_id", columnIds);
+    .in("id", cardIds);
 
-  if (!data) return [];
-  return data
-    .filter((card: any) => assignedColumns.has(card.column_id))
-    .map((card: any) => ({
-      id: card.id,
-      title: card.title,
-      columnId: card.column_id,
-      columnName: (card as any).content_columns?.name || "",
-      createdAt: card.created_at,
-      assignedUserIds: assignedColumns.get(card.column_id) || [],
-    }));
+  if (!cards) return [];
+
+  // Aggregate reviewer ids per card
+  const reviewersByCard = new Map<string, Set<string>>();
+  for (const r of reviews as any[]) {
+    if (!r.card_id || !r.reviewer_id) continue;
+    const set = reviewersByCard.get(r.card_id) || new Set<string>();
+    set.add(r.reviewer_id);
+    reviewersByCard.set(r.card_id, set);
+  }
+
+  return (cards as any[]).map((card) => ({
+    id: card.id,
+    title: card.title,
+    columnId: card.column_id,
+    columnName: card.content_columns?.name || "",
+    createdAt: card.created_at,
+    assignedUserIds: Array.from(reviewersByCard.get(card.id) || []),
+  }));
 }
 
 export async function fetchBlockedArticles(supabase: SupabaseClient): Promise<BlockedArticleItem[]> {
@@ -1083,7 +1115,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchMissionsNoStartDate(supabase, today),
     fetchCrmAlerts(supabase, today),
     fetchTrainingConventions(supabase, today),
-    fetchReviewArticles(supabase, assignedColumns),
+    fetchReviewArticles(supabase),
     fetchBlockedArticles(supabase),
     fetchUnresolvedComments(supabase, assignedColumns),
     fetchUpcomingEvents(supabase, today),
