@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { closestCenter } from "@dnd-kit/core";
-import { Plus } from "lucide-react";
+import { Plus, Info } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
