@@ -50,6 +50,8 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const { data: futureScheduledIds } = useMissionIdsWithFutureScheduledActions();
   const moveMission = useMoveMission();
   const updateMission = useUpdateMission();
+  const delayGoogleReview = useAppSetting("delay_mission_google_review_days", "2");
+  const delayVideoTestimonial = useAppSetting("delay_mission_video_testimonial_days", "4");
 
   const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
