@@ -94,6 +94,10 @@ const SendDeliverablesDialog = ({
     () => (contacts || []).filter((c) => c.email),
     [contacts]
   );
+  // Contacts without email are still rendered (greyed out) so users can see
+  // the full mission contact list and understand why their "main contact"
+  // isn't selectable — just needs an email.
+  const allContacts = useMemo(() => contacts || [], [contacts]);
 
   // Initialize selection & subject when dialog opens
   useEffect(() => {
@@ -162,11 +166,11 @@ const SendDeliverablesDialog = ({
           <div className="flex justify-center py-8">
             <Spinner size="md" />
           </div>
-        ) : contactsWithEmail.length === 0 ? (
+        ) : allContacts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Aucun contact avec email pour cette mission.</p>
-            <p className="text-xs mt-1">Ajoutez des contacts avec une adresse email dans l'onglet Paramètres.</p>
+            <p>Aucun contact pour cette mission.</p>
+            <p className="text-xs mt-1">Ajoutez des contacts dans l'onglet Paramètres de la mission.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -174,26 +178,29 @@ const SendDeliverablesDialog = ({
             <div>
               <Label className="text-sm font-medium">Destinataires</Label>
               <div className="mt-2 space-y-2">
-                {contactsWithEmail.map((contact) => {
+                {allContacts.map((contact) => {
                   const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
+                  const hasEmail = !!contact.email;
                   return (
                     <label
                       key={contact.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                      className={`flex items-center gap-3 p-2 rounded-lg ${hasEmail ? "hover:bg-muted/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                      title={hasEmail ? undefined : "Aucun email pour ce contact — non sélectionnable"}
                     >
                       <Checkbox
                         checked={selectedIds.has(contact.id)}
-                        onCheckedChange={() => toggleContact(contact.id)}
+                        onCheckedChange={() => hasEmail && toggleContact(contact.id)}
+                        disabled={!hasEmail}
                       />
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium">
                           {name || "Sans nom"}
                         </span>
                         {contact.is_primary && (
-                          <span className="text-xs text-yellow-600 ml-1">★</span>
+                          <span className="text-xs text-yellow-600 ml-1" title="Contact principal">★</span>
                         )}
                         <span className="text-xs text-muted-foreground ml-2">
-                          {contact.email}
+                          {hasEmail ? contact.email : <em>aucun email</em>}
                         </span>
                         {contact.role && (
                           <span className="text-xs text-muted-foreground ml-1">
@@ -205,6 +212,11 @@ const SendDeliverablesDialog = ({
                   );
                 })}
               </div>
+              {contactsWithEmail.length === 0 && (
+                <p className="text-xs text-amber-600 mt-2">
+                  Aucun contact n'a d'adresse email. Renseignez l'email dans l'onglet Paramètres pour pouvoir l'envoyer.
+                </p>
+              )}
             </div>
 
             {/* Subject */}
