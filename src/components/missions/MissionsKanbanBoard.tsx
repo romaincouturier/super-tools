@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { closestCenter } from "@dnd-kit/core";
-import { Plus } from "lucide-react";
+import { Plus, Info } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
@@ -11,6 +11,7 @@ import CreateMissionDialog from "./CreateMissionDialog";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
 
 type MissionKanbanCard = Mission & KanbanCardDef;
@@ -129,6 +130,20 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     }));
   }, [missions]);
 
+  const getColumnRules = (colId: string): string[] => {
+    const rules: string[] = [];
+    if (colId !== "cancelled") {
+      rules.push("🕐 Les missions avec une action programmée dans le futur sont masquées");
+    }
+    if (colId === "completed") {
+      rules.push("📦 Les missions terminées avec une date de fin sont archivées (masquées)");
+    }
+    if (rules.length === 0) {
+      rules.push("Aucune règle de filtrage sur cette colonne");
+    }
+    return rules;
+  };
+
   const handleAddMission = (status: MissionStatus) => {
     setCreateDialogStatus(status);
     setShowCreateDialog(true);
@@ -179,6 +194,17 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
               <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                 {colCards.length}
               </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground cursor-help transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs text-xs space-y-1">
+                  <p className="font-medium mb-1">Règles de filtrage :</p>
+                  {getColumnRules(col.id).map((rule, i) => (
+                    <p key={i}>{rule}</p>
+                  ))}
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Button
               variant="ghost"
