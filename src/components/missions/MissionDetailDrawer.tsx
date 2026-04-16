@@ -13,6 +13,7 @@ import MissionPages from "./MissionPages";
 import MissionSettingsTab from "./MissionSettingsTab";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
@@ -20,7 +21,6 @@ import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useNextActionScheduling } from "@/hooks/useNextActionScheduling";
-import { toastError } from "@/lib/toastError";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { useQuery } from "@tanstack/react-query";
 
@@ -43,7 +43,10 @@ const MissionDetailDrawer = ({
   const { copied, copy } = useCopyToClipboard();
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const { loading: aiSummaryLoading, invoke: invokeMissionSummary } = useEdgeFunction<string>(
+    "generate-mission-summary",
+    { errorMessage: "Impossible de générer le résumé" },
+  );
 
   const handleShareLink = () => {
     if (!mission) return;
@@ -53,20 +56,12 @@ const MissionDetailDrawer = ({
 
   const handleGenerateMissionSummary = async () => {
     if (!mission) return;
-    setAiSummaryLoading(true);
     setAiSummary(null);
-    try {
-      const response = await supabase.functions.invoke("generate-mission-summary", {
-        body: { action: "summarize_mission", mission_id: mission.id },
-      });
-
-      if (response.error) throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
-      setAiSummary(response.data.result);
-    } catch (error: unknown) {
-      toastError(toast, error instanceof Error ? error : "Impossible de générer le résumé");
-    } finally {
-      setAiSummaryLoading(false);
-    }
+    const result = await invokeMissionSummary({
+      action: "summarize_mission",
+      mission_id: mission.id,
+    });
+    if (result) setAiSummary(result);
   };
 
   // Form state
@@ -80,7 +75,6 @@ const MissionDetailDrawer = ({
   const [totalDays, setTotalDays] = useState("");
   const [initialAmount, setInitialAmount] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
   const [color, setColor] = useState("#6b7280");
   const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
   const [location, setLocation] = useState("");
@@ -236,18 +230,7 @@ const MissionDetailDrawer = ({
     }
   };
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag("");
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((t) => t !== tagToRemove));
-  };
-
-  // Calculate total amount
+// Calculate total amount
   const calculatedTotal =
     dailyRate && totalDays
       ? (parseFloat(dailyRate) * parseInt(totalDays)).toLocaleString("fr-FR")
@@ -460,8 +443,7 @@ const MissionDetailDrawer = ({
               initialAmount={initialAmount} setInitialAmount={setInitialAmount}
               calculatedTotal={calculatedTotal}
               color={color} setColor={setColor}
-              tags={tags} newTag={newTag} setNewTag={setNewTag}
-              onAddTag={handleAddTag} onRemoveTag={handleRemoveTag}
+              tags={tags} setTags={setTags}
               onDelete={handleDelete} deletePending={deleteMission.isPending}
             />
           </TabsContent>

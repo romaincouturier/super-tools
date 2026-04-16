@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import { toast } from "sonner";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import type { Card, ContentCardType } from "@/components/content/KanbanBoard";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
@@ -18,6 +19,9 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
   const [attachingNewsletter, setAttachingNewsletter] = useState(false);
   const [aiLoading, setAiLoading] = useState<AiActionType | null>(null);
   const [uploading, setUploading] = useState(false);
+  const { invoke: invokeAiAssist } = useEdgeFunction<string>("ai-content-assist", {
+    errorMessage: "Erreur lors du traitement IA",
+  });
 
   // Fetch newsletters and current attachment when dialog opens
   useEffect(() => {
@@ -68,25 +72,16 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
 
     setAiLoading(action);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-content-assist", {
-        body: { action, content: description },
-      });
-
-      if (error) throw error;
-
-      if (data.result) {
+      const res = await invokeAiAssist({ action, content: description });
+      if (res) {
         toast.success("Contenu modifié");
-        return data.result;
+        return res;
       }
-      return null;
-    } catch (error) {
-      console.error("Error with AI assist:", error);
-      toast.error("Erreur lors du traitement IA");
       return null;
     } finally {
       setAiLoading(null);
     }
-  }, []);
+  }, [invokeAiAssist]);
 
   const handleImageUpload = useCallback(async (
     file: File,

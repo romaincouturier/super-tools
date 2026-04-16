@@ -14,7 +14,7 @@ import { Send, Eye, Mail } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { useMissionContacts } from "@/hooks/useMissions";
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { MissionContact } from "@/types/missions";
 
 interface SendDeliverablesDialogProps {

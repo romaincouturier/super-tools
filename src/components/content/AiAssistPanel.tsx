@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Sparkles, FileText, Linkedin, Instagram, Copy, Check, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,11 @@ const actions = [
 
 const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
   const [result, setResult] = useState("");
-  const [loading, setLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
   const { copied, copy } = useCopyToClipboard();
+  const { loading, invoke } = useEdgeFunction<string>("ai-content-assist", {
+    errorMessage: "Erreur lors du traitement IA",
+  });
 
   const handleAction = async (action: ActionType) => {
     if (!content.trim()) {
@@ -54,23 +56,12 @@ const AiAssistPanel = ({ content, onApply }: AiAssistPanelProps) => {
       return;
     }
 
-    setLoading(true);
     setActiveAction(action);
     setResult("");
 
-    try {
-      const { data, error } = await supabase.functions.invoke("ai-content-assist", {
-        body: { action, content },
-      });
-
-      if (error) throw error;
-
-      setResult(data.result || "");
-    } catch (error) {
-      console.error("Error with AI assist:", error);
-      toast.error("Erreur lors du traitement IA");
-    } finally {
-      setLoading(false);
+    const res = await invoke({ action, content });
+    if (res) {
+      setResult(res || "");
     }
   };
 

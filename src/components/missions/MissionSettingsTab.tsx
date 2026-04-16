@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, X, Plus, MapPin } from "lucide-react";
+import { Trash2, MapPin } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { TagsInput } from "@/components/ui/tags-input";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import MissionContacts from "./MissionContacts";
@@ -63,10 +64,7 @@ interface MissionSettingsTabProps {
   color: string;
   setColor: (v: string) => void;
   tags: string[];
-  newTag: string;
-  setNewTag: (v: string) => void;
-  onAddTag: () => void;
-  onRemoveTag: (tag: string) => void;
+  setTags: (tags: string[]) => void;
   onDelete: () => void;
   deletePending: boolean;
 }
@@ -101,10 +99,7 @@ const MissionSettingsTab = ({
   color,
   setColor,
   tags,
-  newTag,
-  setNewTag,
-  onAddTag,
-  onRemoveTag,
+  setTags,
   onDelete,
   deletePending,
 }: MissionSettingsTabProps) => {
@@ -271,31 +266,7 @@ const MissionSettingsTab = ({
       {/* Tags */}
       <div>
         <Label>Tags</Label>
-        <div className="flex gap-2 mt-2 flex-wrap">
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="px-2 py-1 text-xs bg-muted rounded flex items-center gap-1"
-            >
-              {tag}
-              <button onClick={() => onRemoveTag(tag)}>
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-        <div className="flex gap-2 mt-2">
-          <Input
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            placeholder="Ajouter un tag..."
-            className="flex-1"
-            onKeyDown={(e) => e.key === "Enter" && onAddTag()}
-          />
-          <Button variant="outline" size="sm" onClick={onAddTag}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        <TagsInput value={tags} onChange={setTags} variant="pill" className="mt-2" />
       </div>
 
       {/* Delete */}

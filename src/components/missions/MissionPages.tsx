@@ -75,6 +75,7 @@ import {
 import { Mission } from "@/types/missions";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
 
@@ -297,7 +298,10 @@ const PageEditor = ({
   const [imageUploading, setImageUploading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const { loading: aiSummaryLoading, invoke: invokePageSummary } = useEdgeFunction<string>(
+    "generate-mission-summary",
+    { errorMessage: "Impossible de générer le résumé" },
+  );
   const [editorValues, setEditorValues] = useState({ content: page.content || "", title: page.title || "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -322,23 +326,13 @@ const PageEditor = ({
   });
 
   const handleGeneratePageSummary = async () => {
-    setAiSummaryLoading(true);
     setAiSummary(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Non connecté");
-
-      const response = await supabase.functions.invoke("generate-mission-summary", {
-        body: { action: "summarize_page", mission_id: missionId, page_id: page.id },
-      });
-
-      if (response.error) throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
-      setAiSummary(response.data.result);
-    } catch (error: unknown) {
-      toastError(toast, error instanceof Error ? error : "Impossible de générer le résumé");
-    } finally {
-      setAiSummaryLoading(false);
-    }
+    const result = await invokePageSummary({
+      action: "summarize_page",
+      mission_id: missionId,
+      page_id: page.id,
+    });
+    if (result) setAiSummary(result);
   };
 
   const uploadImage = useCallback(

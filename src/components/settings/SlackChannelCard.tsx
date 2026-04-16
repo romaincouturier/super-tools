@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, RefreshCw, Hash } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 
 interface SlackChannel {
   id: string;
@@ -20,31 +19,19 @@ interface SlackChannelCardProps {
 
 export default function SlackChannelCard({ currentChannel, onChannelChange }: SlackChannelCardProps) {
   const [channels, setChannels] = useState<SlackChannel[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { loading, invoke } = useEdgeFunction<{ channels?: SlackChannel[] }>(
+    "slack-list-channels",
+    { errorMessage: "Erreur Slack" },
+  );
 
   const fetchChannels = async () => {
-    setLoading(true);
     setError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Non authentifié");
-
-      const { data, error: fnError } = await supabase.functions.invoke("slack-list-channels", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (fnError) throw fnError;
-      if (data?.channels) {
-        setChannels(data.channels);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur de chargement";
-      setError(msg);
-      toast({ title: "Erreur Slack", description: msg, variant: "destructive" });
-    } finally {
-      setLoading(false);
+    const data = await invoke();
+    if (data?.channels) {
+      setChannels(data.channels);
+    } else if (data === null) {
+      setError("Erreur de chargement");
     }
   };
 

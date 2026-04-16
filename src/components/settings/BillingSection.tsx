@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,8 +50,15 @@ export default function BillingSection() {
   const [currentOrgPlan, setCurrentOrgPlan] = useState<string>("free");
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const { loading: portalLoading, invoke: invokePortal } = useEdgeFunction<{ url?: string }>(
+    "stripe-portal",
+    { errorMessage: "Erreur" },
+  );
+  const { invoke: invokeCheckout } = useEdgeFunction<{ url?: string }>(
+    "stripe-checkout",
+    { errorMessage: "Erreur lors de la création du paiement" },
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -97,40 +105,23 @@ export default function BillingSection() {
 
     setCheckoutLoading(plan.id);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-checkout", {
-        body: {
-          price_id: plan.stripe_price_id,
-          success_url: `${window.location.origin}/parametres?billing=success`,
-          cancel_url: `${window.location.origin}/parametres?billing=cancel`,
-        },
+      const data = await invokeCheckout({
+        price_id: plan.stripe_price_id,
+        success_url: `${window.location.origin}/parametres?billing=success`,
+        cancel_url: `${window.location.origin}/parametres?billing=cancel`,
       });
-
-      if (error) throw error;
       if (data?.url) {
         window.location.href = data.url;
       }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la création du paiement");
     } finally {
       setCheckoutLoading(null);
     }
   };
 
   const handlePortal = async () => {
-    setPortalLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-portal", {
-        body: { return_url: `${window.location.origin}/parametres` },
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Erreur");
-    } finally {
-      setPortalLoading(false);
+    const data = await invokePortal({ return_url: `${window.location.origin}/parametres` });
+    if (data?.url) {
+      window.location.href = data.url;
     }
   };
 
