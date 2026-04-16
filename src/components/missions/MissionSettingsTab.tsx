@@ -14,12 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, MapPin } from "lucide-react";
+import { Trash2, MapPin, Lock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { TagsInput } from "@/components/ui/tags-input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import MissionContacts from "./MissionContacts";
+import { useMissionActivities } from "@/hooks/useMissions";
 import { MissionStatus, missionStatusConfig } from "@/types/missions";
 
 const colorOptions = [
@@ -103,6 +105,13 @@ const MissionSettingsTab = ({
   onDelete,
   deletePending,
 }: MissionSettingsTabProps) => {
+  // Block setting an end_date until at least one mission activity carries
+  // an invoice (number or URL). Existing end_dates stay editable so we
+  // never lock the user out of fixing a typo.
+  const { data: activities } = useMissionActivities(missionId);
+  const hasInvoice = !!activities?.some((a) => a.invoice_number?.trim() || a.invoice_url?.trim());
+  const endDateLocked = !endDate && !hasInvoice;
+
   return (
     <>
       {/* Status */}
@@ -192,11 +201,27 @@ const MissionSettingsTab = ({
           />
         </div>
         <div>
-          <Label>Date de fin</Label>
+          <Label className="flex items-center gap-1.5">
+            Date de fin
+            {endDateLocked && (
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Lock className="h-3 w-3 text-muted-foreground cursor-help" aria-label="Verrouillé" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    Ajoutez d'abord une facture (numéro ou URL) sur une activité dans l'onglet Activités pour pouvoir clôturer la mission.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </Label>
           <Input
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            disabled={endDateLocked}
+            title={endDateLocked ? "Ajoutez une facture sur une activité avant de définir la date de fin" : undefined}
           />
         </div>
       </div>
