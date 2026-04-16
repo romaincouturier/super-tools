@@ -34,8 +34,11 @@ const BroadcastEmailDialog = ({
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
-  const [sending, setSending] = useState(false);
   const [participants, setParticipants] = useState<{ email: string; first_name: string | null; last_name: string | null }[]>([]);
+  const { loading: sending, invoke: invokeBroadcast } = useEdgeFunction<{ recipientCount: number }>(
+    "send-broadcast-email",
+    { errorMessage: "Erreur lors de l'envoi de l'email" },
+  );
 
   useEffect(() => {
     if (open) {
@@ -55,23 +58,12 @@ const BroadcastEmailDialog = ({
       return;
     }
 
-    setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-broadcast-email", {
-        body: { trainingId, subject: subject.trim(), content: content.trim() },
-      });
-
-      if (error) throw error;
-
+    const data = await invokeBroadcast({ trainingId, subject: subject.trim(), content: content.trim() });
+    if (data) {
       toast.success(`Email envoyé à ${data.recipientCount} participant${data.recipientCount > 1 ? "s" : ""}`);
       setOpen(false);
       setSubject("");
       setContent("");
-    } catch (error) {
-      console.error("Error sending broadcast email:", error);
-      toast.error("Erreur lors de l'envoi de l'email");
-    } finally {
-      setSending(false);
     }
   };
 
