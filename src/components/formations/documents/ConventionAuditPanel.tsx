@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatDateTimeSeconds } from "@/lib/dateFormatters";
 
 import type { ConventionSignatureStatus, VerificationResult } from "./types";
@@ -35,42 +36,32 @@ const ConventionAuditPanel = ({
   conventionSignatureStatus,
 }: ConventionAuditPanelProps) => {
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
-  const [verifying, setVerifying] = useState(false);
   const { toast } = useToast();
+  const { loading: verifying, invoke: invokeVerify } = useEdgeFunction<VerificationResult>(
+    "verify-convention-signature",
+    { errorMessage: "Erreur de vérification" },
+  );
 
   const formatFullDate = formatDateTimeSeconds;
 
   const handleVerifySignature = async () => {
-    setVerifying(true);
-    try {
-      const { data: sigData } = await supabase
-        .from("convention_signatures")
-        .select("id")
-        .eq("training_id", trainingId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    const { data: sigData } = await supabase
+      .from("convention_signatures")
+      .select("id")
+      .eq("training_id", trainingId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (!sigData) {
-        toastError(toast, "Aucune signature trouvée");
-        return;
-      }
+    if (!sigData) {
+      toastError(toast, "Aucune signature trouvée");
+      return;
+    }
 
-      const response = await supabase.functions.invoke("verify-convention-signature", {
-        body: { signatureId: sigData.id },
-      });
-
-      if (response.error) {
-        throw new Error(response.error instanceof Error ? response.error.message : "Erreur inconnue");
-      }
-
-      setVerificationResult(response.data as VerificationResult);
-      toast({ title: "Vérification terminée", description: `Résultat : ${(response.data as VerificationResult).summary?.overall || "OK"}` });
-    } catch (error: unknown) {
-      console.error("Verification error:", error);
-      toastError(toast, error instanceof Error ? error : "Erreur inconnue", { title: "Erreur de vérification" });
-    } finally {
-      setVerifying(false);
+    const result = await invokeVerify({ signatureId: sigData.id });
+    if (result) {
+      setVerificationResult(result);
+      toast({ title: "Vérification terminée", description: `Résultat : ${result.summary?.overall || "OK"}` });
     }
   };
 

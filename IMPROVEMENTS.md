@@ -52,6 +52,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [024] Drawer auto-save — préférer `useEntityAutoSave` pour les drawers d'édition d'entité
+- **Constat** : 5 drawers (`MissionDetailDrawer`, `CardDetailDrawer`, `ContentCardDialog`, `EventEdit`, `EventDetail`) répètent le même triptyque : (1) `useEffect([entityId])` qui hydrate les `useState` depuis l'entité + appelle `resetTracking()`, (2) un `handleAutoSave` `useCallback` quasi-identique qui fait `try { await mutation.mutateAsync({id, updates: values}); return true; } catch { return false }`, (3) un `useEffect([open])` qui appelle `flushAndGetPending()` et déclenche `mutation.mutate(...)` à la fermeture. Soit ~30 lignes de boilerplate par drawer.
+- **Règle** : Pour un drawer/dialog qui édite une entité avec `useAutoSaveForm`, préférer `useEntityAutoSave({ entity, open, formValues, setFromEntity, onSave })` depuis `@/hooks/useEntityAutoSave`. Le caller fournit uniquement les `useState` + le memo `formValues` + un callback `setFromEntity(entity)` qui hydrate les états + un callback `onSave(id, values)` qui appelle la mutation. Le hook orchestre l'hydratation, l'auto-save, et le flush-on-close. **Exception** : si le drawer a un mode "création sans entité" (ex: `ContentCardDialog`) ou un flush déclenché manuellement par navigation (ex: `EventEdit.handleBack`), conserver `useAutoSaveForm` direct.
+- **Vérification** : `grep -rn 'useAutoSaveForm' src/components/ src/pages/ --include='*.tsx'` — chaque consumer non-trivial devrait justifier pourquoi il n'utilise pas `useEntityAutoSave`.
+- **Fichiers de référence** : `src/hooks/useEntityAutoSave.ts`, `src/components/missions/MissionDetailDrawer.tsx` (premier consumer migré).
+- **Origine** : audit d'architecture — pattern dupliqué dans 5 drawers
+- **Date** : 2026-04-15
+
 ### [023] Date du jour ISO — utiliser `todayAsISO()` au lieu de `new Date().toISOString().slice(0, 10)`
 - **Constat** : Le pattern `new Date().toISOString().slice(0, 10)` (récupère la date du jour au format `YYYY-MM-DD`) était dupliqué dans plusieurs fichiers. Pareil pour `dateAsISO(date)` qui sérialise une `Date` arbitraire au même format.
 - **Règle** : Utiliser `todayAsISO()` ou `dateAsISO(date)` depuis `@/lib/dateFormatters`. Plus largement, utiliser les helpers de `dateFormatters.ts` au lieu de réinventer formats `format(parseISO(...), ...)` ou `toLocaleDateString("fr-FR", ...)` dans chaque composant.

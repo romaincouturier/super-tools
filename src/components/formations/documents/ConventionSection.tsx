@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -50,23 +51,19 @@ const ConventionSection = ({
   const [sendingConvention, setSendingConvention] = useState(false);
   const [lastGeneratedConventionFileName, setLastGeneratedConventionFileName] = useState<string | null>(null);
   const [enableOnlineSignature, setEnableOnlineSignature] = useState(true);
-  const [sendingConventionReminder, setSendingConventionReminder] = useState(false);
   const [showAuditPanel, setShowAuditPanel] = useState(false);
   const { toast } = useToast();
+  const { loading: sendingConventionReminder, invoke: invokeReminder } = useEdgeFunction(
+    "send-convention-reminder",
+    { errorMessage: "Impossible d'envoyer la relance." },
+  );
 
   const formatSentDate = formatSentDateTime;
 
   const handleSendConventionReminder = async () => {
-    setSendingConventionReminder(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-convention-reminder", { body: { trainingId } });
-      if (error) throw error;
+    const result = await invokeReminder({ trainingId });
+    if (result !== null) {
       toast({ title: "Relance envoyée", description: `Une relance convention a été envoyée à ${sponsorEmail}.` });
-    } catch (error: unknown) {
-      console.error("Error sending convention reminder:", error);
-      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer la relance.");
-    } finally {
-      setSendingConventionReminder(false);
     }
   };
 

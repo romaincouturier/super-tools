@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Send, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -50,13 +50,16 @@ const DocumentDeliverySection = ({
   setDocumentsSentInfo,
   evaluationCount = 0,
 }: DocumentDeliverySectionProps) => {
-  const [sendingDocuments, setSendingDocuments] = useState(false);
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
   const [showCustomRecipientDialog, setShowCustomRecipientDialog] = useState(false);
   const [pendingDocumentType, setPendingDocumentType] = useState<DocumentType | null>(null);
   const [sendToSponsorWithOptions, setSendToSponsorWithOptions] = useState(false);
   const { toast } = useToast();
+  const { loading: sendingDocuments, invoke: invokeSendDocs } = useEdgeFunction(
+    "send-training-documents",
+    { errorMessage: "Impossible d'envoyer les documents." },
+  );
 
   const hasCertificates = certificateUrls.length > 0;
   const hasEvaluations = evaluationCount > 0;
@@ -78,24 +81,20 @@ const DocumentDeliverySection = ({
       return;
     }
 
-    setSendingDocuments(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-training-documents", {
-        body: {
-          trainingId, trainingName, startDate, endDate,
-          recipientEmail: targetEmail,
-          recipientName: recipientEmail ? null : sponsorName,
-          recipientFirstName: recipientEmail ? null : sponsorFirstName,
-          documentType: type,
-          invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
-          attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
-          certificateUrls: type === "certificates" || type === "all" ? certificateUrls : [],
-          ccEmail: cc || null,
-          formalAddress: sponsorFormalAddress,
-        },
-      });
-      if (error) throw error;
+    const result = await invokeSendDocs({
+      trainingId, trainingName, startDate, endDate,
+      recipientEmail: targetEmail,
+      recipientName: recipientEmail ? null : sponsorName,
+      recipientFirstName: recipientEmail ? null : sponsorFirstName,
+      documentType: type,
+      invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
+      attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
+      certificateUrls: type === "certificates" || type === "all" ? certificateUrls : [],
+      ccEmail: cc || null,
+      formalAddress: sponsorFormalAddress,
+    });
 
+    if (result !== null) {
       let description = `Les documents ont été envoyés à ${targetEmail}`;
       if (cc) description += ` (CC: ${cc})`;
       toast({ title: "Documents envoyés", description: description + "." });
@@ -105,11 +104,6 @@ const DocumentDeliverySection = ({
       if (type === "sheets" || type === "all") setDocumentsSentInfo(prev => ({ ...prev, sheets: now }));
 
       resetDialog();
-    } catch (error: unknown) {
-      console.error("Send error:", error);
-      toast({ title: "Erreur d'envoi", description: error instanceof Error ? error.message : "Impossible d'envoyer les documents.", variant: "destructive" });
-    } finally {
-      setSendingDocuments(false);
     }
   };
 

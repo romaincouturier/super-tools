@@ -1,11 +1,9 @@
-import { useState } from "react";
 import { Calendar, FileText, MapPin, Building, Clock, Copy, Check, Euro, Mail, ExternalLink, Truck, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useToast } from "@/hooks/use-toast";
-import { toastError } from "@/lib/toastError";
 import { User as UserIconLucide } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,8 +36,11 @@ const FormationDetailInfo = ({
   getFormatLabel,
   calculateTotalDuration,
 }: Props) => {
-  const [sendingLogistics, setSendingLogistics] = useState(false);
   const { toast } = useToast();
+  const { loading: sendingLogistics, invoke: invokeSendLogistics } = useEdgeFunction(
+    "send-logistics-requirements",
+    { errorMessage: "Impossible d'envoyer l'email." },
+  );
   // Each copy button has its own `copied` flag (one hook instance each) so the
   // three ✓ indicators stay independent.
   const { copy: copyClientAddress } = useCopyToClipboard();
@@ -47,20 +48,12 @@ const FormationDetailInfo = ({
   const { copied: copiedEmail, copy: copyEmail } = useCopyToClipboard();
 
   const handleSendLogisticsEmail = async () => {
-    setSendingLogistics(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-logistics-requirements", {
-        body: { trainingId: training.id },
-      });
-      if (error) throw error;
+    const result = await invokeSendLogistics({ trainingId: training.id });
+    if (result !== null) {
       toast({
         title: "Email envoyé",
         description: `Les besoins logistiques ont été envoyés à ${training.sponsor_email}.`,
       });
-    } catch (error: unknown) {
-      toastError(toast, error instanceof Error ? error : "Impossible d'envoyer l'email.");
-    } finally {
-      setSendingLogistics(false);
     }
   };
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Send, Mail, Users, Megaphone } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -18,7 +18,7 @@ import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
-import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
+import { useEntityAutoSave } from "@/hooks/useEntityAutoSave";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useNextActionScheduling } from "@/hooks/useNextActionScheduling";
@@ -102,32 +102,6 @@ const MissionDetailDrawer = ({
     enabled: !!mission?.id,
   });
 
-  // Initialize form when a different mission is opened
-  const missionId = mission?.id;
-  useEffect(() => {
-    if (mission) {
-      setAiSummary(null);
-      setTitle(mission.title);
-      setDescription(mission.description || "");
-      setClientName(mission.client_name || "");
-      setStatus(mission.status);
-      setStartDate(mission.start_date || "");
-      setEndDate(mission.end_date || "");
-      setDailyRate(mission.daily_rate?.toString() || "");
-      setTotalDays(mission.total_days?.toString() || "");
-      setInitialAmount(mission.initial_amount?.toString() || "");
-      setTags(mission.tags || []);
-      setColor(mission.color);
-      setMissionEmoji(mission.emoji || null);
-      setLocation(mission.location || "");
-      setTrainBooked(mission.train_booked ?? false);
-      setHotelBooked(mission.hotel_booked ?? false);
-      setAssignedTo(mission.assigned_to || null);
-      resetTracking();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missionId]);
-
   // Build form values for auto-save (memoized to avoid JSON.stringify on every keystroke)
   const formValues = useMemo(() => ({
     title: title.trim(),
@@ -146,31 +120,35 @@ const MissionDetailDrawer = ({
     assigned_to: assignedTo,
   }), [title, description, clientName, status, startDate, endDate, dailyRate, totalDays, initialAmount, tags, color, missionEmoji, location, assignedTo]);
 
-  const handleAutoSave = useCallback(async (values: Record<string, unknown>) => {
-    if (!mission) return false;
-    try {
-      await updateMission.mutateAsync({ id: mission.id, updates: values });
-      return true;
-    } catch {
-      return false;
-    }
-  }, [mission, updateMission]);
-
-  const { resetTracking, flushAndGetPending } = useAutoSaveForm({
+  // Auto-save lifecycle: hydrate from mission on open, debounced save while
+  // the drawer is open, flush on close.
+  useEntityAutoSave({
+    entity: mission,
     open,
     formValues,
-    onSave: handleAutoSave,
+    setFromEntity: (m) => {
+      setAiSummary(null);
+      setTitle(m.title);
+      setDescription(m.description || "");
+      setClientName(m.client_name || "");
+      setStatus(m.status);
+      setStartDate(m.start_date || "");
+      setEndDate(m.end_date || "");
+      setDailyRate(m.daily_rate?.toString() || "");
+      setTotalDays(m.total_days?.toString() || "");
+      setInitialAmount(m.initial_amount?.toString() || "");
+      setTags(m.tags || []);
+      setColor(m.color);
+      setMissionEmoji(m.emoji || null);
+      setLocation(m.location || "");
+      setTrainBooked(m.train_booked ?? false);
+      setHotelBooked(m.hotel_booked ?? false);
+      setAssignedTo(m.assigned_to || null);
+    },
+    onSave: async (id, values) => {
+      await updateMission.mutateAsync({ id, updates: values });
+    },
   });
-
-  // Flush pending save when drawer closes
-  useEffect(() => {
-    if (!open) {
-      const pending = flushAndGetPending();
-      if (pending && mission) {
-        updateMission.mutate({ id: mission.id, updates: pending });
-      }
-    }
-  }, [open, flushAndGetPending, mission, updateMission]);
 
   // Scheduling (shared with CRM via NextActionScheduler)
   const {

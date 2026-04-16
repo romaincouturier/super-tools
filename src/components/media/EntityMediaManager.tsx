@@ -12,7 +12,7 @@ import {
   MediaSourceType,
   MediaItem,
 } from "@/hooks/useMedia";
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -55,6 +55,10 @@ const EntityMediaManager = ({
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
+    "transcribe-audio-long",
+    { silentOnError: true },
+  );
 
   // Filter out video_link for display/download purposes
   const downloadableMedia = media.filter((m) => m.file_type !== "video_link");
@@ -141,14 +145,13 @@ const EntityMediaManager = ({
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));
     try {
-      // Always use AssemblyAI for transcription
       toast.info("Transcription en cours...");
-      const transcribeResponse = await supabase.functions.invoke("transcribe-audio-long", {
-        body: { audio_url: item.file_url },
-      });
-      if (transcribeResponse.error) throw transcribeResponse.error;
-      const transcript: string = transcribeResponse.data?.transcript;
-
+      const data = await invokeTranscribe({ audio_url: item.file_url });
+      if (!data) {
+        toast.error("Erreur lors de la transcription");
+        return;
+      }
+      const transcript = data.transcript;
       if (!transcript || transcript === "[inaudible]") {
         toast.error("Transcription impossible — audio inaudible ou vide");
         return;
@@ -162,9 +165,6 @@ const EntityMediaManager = ({
       });
 
       toast.success("Transcription terminée");
-    } catch (err) {
-      console.error("Transcription error:", err);
-      toast.error("Erreur lors de la transcription");
     } finally {
       setTranscribingIds((prev) => {
         const next = new Set(prev);
