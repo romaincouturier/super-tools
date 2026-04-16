@@ -137,6 +137,19 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur\",...destructive})" \
     "echo \"$STAGED_FILES\" | xargs grep -nE 'toast\\(\\{[^}]*title:\\s*\"Erreur\"' 2>/dev/null | grep -v 'lib/toastError.ts'"
 
+  # [020] Edge functions — préférer useEdgeFunction() pour les nouveaux composants/hooks
+  # (services et hooks React Query sont exemptés ; à vérifier manuellement si flagué)
+  check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline" \
+    "echo \"$STAGED_FILES\" | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts' | xargs grep -n 'supabase\\.functions\\.invoke' 2>/dev/null"
+
+  # [021] Confirmation — ne pas utiliser window.confirm() natif (staged)
+  check "021" "Utiliser useConfirm() au lieu de window.confirm()" \
+    "echo \"$STAGED_FILES\" | xargs grep -n 'if (confirm(' 2>/dev/null | grep -v 'hooks/useConfirm.tsx'"
+
+  # [023] Date du jour ISO — utiliser todayAsISO() (staged)
+  check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 10)" \
+    "echo \"$STAGED_FILES\" | xargs grep -n 'new Date().toISOString().slice(0, 10)' 2>/dev/null | grep -v 'lib/dateFormatters.ts'"
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
