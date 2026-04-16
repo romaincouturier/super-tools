@@ -53,7 +53,15 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const delayGoogleReview = useAppSetting("delay_mission_google_review_days", "2");
   const delayVideoTestimonial = useAppSetting("delay_mission_video_testimonial_days", "4");
 
-  const [selectedMission, setSelectedMission] = useState<Mission | null>(null);
+  // Track the selected mission by id only, then derive the fresh object from
+  // the React Query cache on every render. Storing the whole object as state
+  // froze a stale snapshot — any auto-saved field (e.g. initial_amount) was
+  // invisible to children consuming `mission.*` (like MissionActivityTracker).
+  const [selectedMissionId, setSelectedMissionId] = useState<string | null>(null);
+  const selectedMission = useMemo(
+    () => (selectedMissionId ? data?.find((m) => m.id === selectedMissionId) ?? null : null),
+    [data, selectedMissionId],
+  );
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createDialogStatus, setCreateDialogStatus] = useState<MissionStatus>("not_started");
   const [prefillData, setPrefillData] = useState<CrmPrefill | undefined>(undefined);
@@ -68,7 +76,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
       const mission = data.find((m) => m.id === openMissionId);
       if (mission) {
         deepLinkConsumedRef.current = openMissionId;
-        setSelectedMission(mission);
+        setSelectedMissionId(mission.id);
       }
     }
   }, [openMissionId, data]);
@@ -233,7 +241,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
             newPosition,
           });
         }}
-        onCardClick={(card) => setSelectedMission(card)}
+        onCardClick={(card) => setSelectedMissionId(card.id)}
       />
 
       <CreateMissionDialog
@@ -255,8 +263,8 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
 
       <MissionDetailDrawer
         mission={selectedMission}
-        open={!!selectedMission}
-        onOpenChange={(open) => !open && setSelectedMission(null)}
+        open={!!selectedMissionId}
+        onOpenChange={(open) => !open && setSelectedMissionId(null)}
       />
 
       <KanbanStatsDialog
