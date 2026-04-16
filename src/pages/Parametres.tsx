@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useNavigate } from "react-router-dom";
 import { useSettingsManager } from "@/hooks/useSettingsManager";
+import { useSettingsAlerts, type SettingsTabKey } from "@/hooks/useSettingsAlerts";
+import { AlertDot } from "@/components/ui/alert-dot";
 import SettingsGeneral from "@/components/settings/SettingsGeneral";
 import TrainerManager from "@/components/settings/TrainerManager";
 import CrmColorSettings from "@/components/settings/CrmColorSettings";
@@ -28,6 +30,15 @@ const Parametres = () => {
   const navigate = useNavigate();
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
   const { loading, settings, updateSetting, hasGoogleDrive, autoSaveStatus, initialLoadDone } = useSettingsManager();
+  const { byTab: tabAlerts } = useSettingsAlerts();
+
+  /** Tab label wrapper that appends a red dot when the tab has an alert. */
+  const tabLabel = (key: SettingsTabKey, label: string) => (
+    <span className="relative flex items-center">
+      {label}
+      <AlertDot active={tabAlerts[key]} className="-top-1.5 -right-2" srLabel={`${label} nécessite votre attention`} />
+    </span>
+  );
 
   if (loading || accessLoading) {
     return (
@@ -65,18 +76,18 @@ const Parametres = () => {
         <PageHeader icon={Settings} title="Paramètres" />
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="general" className="flex items-center gap-2"><Cog className="h-4 w-4" />Général</TabsTrigger>
-            <TabsTrigger value="trainers" className="flex items-center gap-2"><Users className="h-4 w-4" />Formateurs</TabsTrigger>
-            <TabsTrigger value="crm" className="flex items-center gap-2"><Tag className="h-4 w-4" />CRM</TabsTrigger>
-            <TabsTrigger value="emails" className="flex items-center gap-2"><Mail className="h-4 w-4" />Modèles d'emails</TabsTrigger>
-            {isAdmin && <TabsTrigger value="access" className="flex items-center gap-2"><Shield className="h-4 w-4" />Accès utilisateurs</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="integrations" className="flex items-center gap-2"><Key className="h-4 w-4" />Intégrations</TabsTrigger>}
-            {isAdmin && <TabsTrigger value="backup" className="flex items-center gap-2"><Database className="h-4 w-4" />Sauvegarde</TabsTrigger>}
-            <TabsTrigger value="billing" className="flex items-center gap-2"><CreditCard className="h-4 w-4" />Abonnement</TabsTrigger>
-            <TabsTrigger value="arena" className="flex items-center gap-2"><Sparkles className="h-4 w-4" />AI Arena</TabsTrigger>
-            <TabsTrigger value="devis" className="flex items-center gap-2"><FileText className="h-4 w-4" />Devis</TabsTrigger>
-            <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />Voix IA</TabsTrigger>
-            {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />Agent IA</TabsTrigger>}
+            <TabsTrigger value="general" className="flex items-center gap-2"><Cog className="h-4 w-4" />{tabLabel("general", "Général")}</TabsTrigger>
+            <TabsTrigger value="trainers" className="flex items-center gap-2"><Users className="h-4 w-4" />{tabLabel("trainers", "Formateurs")}</TabsTrigger>
+            <TabsTrigger value="crm" className="flex items-center gap-2"><Tag className="h-4 w-4" />{tabLabel("crm", "CRM")}</TabsTrigger>
+            <TabsTrigger value="emails" className="flex items-center gap-2"><Mail className="h-4 w-4" />{tabLabel("emails", "Modèles d'emails")}</TabsTrigger>
+            {isAdmin && <TabsTrigger value="access" className="flex items-center gap-2"><Shield className="h-4 w-4" />{tabLabel("access", "Accès utilisateurs")}</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="integrations" className="flex items-center gap-2"><Key className="h-4 w-4" />{tabLabel("integrations", "Intégrations")}</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="backup" className="flex items-center gap-2"><Database className="h-4 w-4" />{tabLabel("backup", "Sauvegarde")}</TabsTrigger>}
+            <TabsTrigger value="billing" className="flex items-center gap-2"><CreditCard className="h-4 w-4" />{tabLabel("billing", "Abonnement")}</TabsTrigger>
+            <TabsTrigger value="arena" className="flex items-center gap-2"><Sparkles className="h-4 w-4" />{tabLabel("arena", "AI Arena")}</TabsTrigger>
+            <TabsTrigger value="devis" className="flex items-center gap-2"><FileText className="h-4 w-4" />{tabLabel("devis", "Devis")}</TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />{tabLabel("voice", "Voix IA")}</TabsTrigger>
+            {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />{tabLabel("agent", "Agent IA")}</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">

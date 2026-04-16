@@ -7,6 +7,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { useUserPreference } from "@/hooks/useUserPreferences";
+import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
+import { AlertDot } from "@/components/ui/alert-dot";
 import { MODULE_ICONS } from "@/components/moduleIcons";
 
 import { ReactNode } from "react";
@@ -27,6 +29,7 @@ const AppHeader = ({ sidebarSlot }: AppHeaderProps) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { hasAccess, isAdmin } = useModuleAccess();
+  const { hasAny: hasSettingsAlert } = useSettingsAlerts();
   const [failedEmailCount, setFailedEmailCount] = useState(0);
 
   const isDashboard = location.pathname === "/" || location.pathname === "/agent";
@@ -176,9 +179,11 @@ const AppHeader = ({ sidebarSlot }: AppHeaderProps) => {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => navigate("/parametres")}
-                  className="p-2 rounded-lg hover:bg-background/10 transition-colors"
+                  className="p-2 rounded-lg hover:bg-background/10 transition-colors relative"
+                  aria-label={hasSettingsAlert ? "Paramètres (alerte)" : "Paramètres"}
                 >
                   <Settings className="w-5 h-5" />
+                  <AlertDot active={hasSettingsAlert} className="top-1 right-1" srLabel="Paramètres nécessitent votre attention" />
                 </button>
               </TooltipTrigger>
               <TooltipContent>
