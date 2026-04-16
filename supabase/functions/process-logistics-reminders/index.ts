@@ -247,6 +247,22 @@ serve(async (req) => {
           })
       );
 
+      // 5b. Rappels de checklist logistique (custom items avec due_date + notify_days_before)
+      const pathMapLogistics = { mission: "missions", training: "formations" } as const;
+      add("✅", "Logistique à traiter", COLORS.amber,
+        data.logisticsReminders
+          .filter(a => userCanSee(recipient, a.assignedTo))
+          .map(r => {
+            const path = pathMapLogistics[r.entityType];
+            const dueLabel = r.daysUntilDue <= 0
+              ? `<strong style="color: ${COLORS.red};">échéance dépassée</strong>`
+              : r.daysUntilDue === 1
+                ? "<strong>demain</strong>"
+                : `dans ${r.daysUntilDue} j`;
+            return `<li>${linkHtml(`${appUrl}/${path}/${r.entityId}`, r.entityTitle)} — ${r.label} (${dueLabel})</li>`;
+          })
+      );
+
       // 6. Missions sans date
       add("📅", "Missions sans date de début", COLORS.orange,
         data.missionsNoStartDate
@@ -440,5 +456,5 @@ serve(async (req) => {
 });
 
 function logDataCounts(data: DailyData) {
-  console.log(`[${VERSION}] Data: ${data.missionActions.length} mission actions, ${data.elearningGroups.length} e-learning, ${data.missionsToInvoice.length} missions invoice, ${data.unbilledActivities.length} unbilled, ${data.missionsNoStartDate.length} no date, ${data.crmCards.length} CRM, ${data.trainingConventions.length} conventions, ${data.reviewArticles.length} reviews, ${data.blockedArticles.length} blocked, ${data.unresolvedComments.length} comments, ${data.upcomingEvents.length} events, ${data.cfpAlerts.length} CFP, ${data.cfpReminders.length} CFP reminders, ${data.pastTrainingsNoInvoice.length} past trainings, ${data.reservations.length} reservations, ${data.okrInitiatives.length} OKR`);
+  console.log(`[${VERSION}] Data: ${data.missionActions.length} mission actions, ${data.elearningGroups.length} e-learning, ${data.missionsToInvoice.length} missions invoice, ${data.unbilledActivities.length} unbilled, ${data.missionsNoStartDate.length} no date, ${data.crmCards.length} CRM, ${data.trainingConventions.length} conventions, ${data.reviewArticles.length} reviews, ${data.blockedArticles.length} blocked, ${data.unresolvedComments.length} comments, ${data.upcomingEvents.length} events, ${data.cfpAlerts.length} CFP, ${data.cfpReminders.length} CFP reminders, ${data.pastTrainingsNoInvoice.length} past trainings, ${data.reservations.length} reservations, ${data.okrInitiatives.length} OKR, ${data.logisticsReminders.length} logistics reminders`);
 }

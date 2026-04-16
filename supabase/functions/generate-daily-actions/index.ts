@@ -365,6 +365,28 @@ serve(async (req) => {
       }
     }
 
+    // 16. Logistics checklist reminders (items with due_date + notify_days_before)
+    const pathMapLogistics: Record<"mission" | "training", string> = {
+      mission: "missions",
+      training: "formations",
+    };
+    for (const item of data.logisticsReminders) {
+      const path = pathMapLogistics[item.entityType];
+      const dueLabel = item.daysUntilDue <= 0
+        ? "échéance dépassée"
+        : item.daysUntilDue === 1
+          ? "demain"
+          : `dans ${item.daysUntilDue} j`;
+      actions.push({
+        category: "reservations_mission",
+        title: `✅ ${item.entityTitle} — ${item.label}`,
+        description: `Logistique à traiter (${dueLabel})`,
+        link: `${appUrl}/${path}/${item.entityId}`,
+        entityType: "logistics_item", entityId: item.id,
+        assignedTo: item.assignedTo, scope: "perUser",
+      });
+    }
+
     const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
 
     for (const recipient of recipients) {

@@ -196,6 +196,17 @@ export interface MissionEmailDraftItem {
   createdAt: string;
 }
 
+export interface LogisticsReminderItem {
+  id: string;
+  entityType: "mission" | "training";
+  entityId: string;
+  entityTitle: string;
+  label: string;
+  dueDate: string;
+  daysUntilDue: number;
+  assignedTo: string | null;
+}
+
 /** Fetch columns that have at least one assigned user (dynamic review columns) */
 export async function fetchAssignedColumns(supabase: SupabaseClient): Promise<Map<string, string[]>> {
   const { data } = await supabase
@@ -1021,6 +1032,78 @@ export async function fetchPendingEmailDrafts(supabase: SupabaseClient): Promise
 }
 
 /**
+ * Fetch logistics checklist items that should alert today.
+ *
+ * Items qualify when:
+ *   - `is_done` = false
+ *   - `due_date` is set AND `notify_days_before` is set
+ *   - today ≥ due_date − notify_days_before
+ *
+ * Entity title is resolved by a second query per entity_type (cheaper
+ * than a wider join and avoids PostgREST relation quirks).
+ */
+export async function fetchLogisticsReminders(supabase: SupabaseClient, today: string): Promise<LogisticsReminderItem[]> {
+  const { data: items, error } = await supabase
+    .from("logistics_checklist_items")
+    .select("id, entity_type, entity_id, label, due_date, notify_days_before")
+    .eq("is_done", false)
+    .not("due_date", "is", null)
+    .not("notify_days_before", "is", null);
+  if (error) {
+    console.error("fetchLogisticsReminders error:", error.message);
+    return [];
+  }
+  if (!items || items.length === 0) return [];
+
+  const todayMs = new Date(today).getTime();
+  const due: Array<{ row: any; daysUntil: number }> = [];
+  for (const row of items as any[]) {
+    const dueMs = new Date(row.due_date).getTime();
+    const threshold = dueMs - (row.notify_days_before * 24 * 60 * 60 * 1000);
+    if (todayMs >= threshold) {
+      due.push({ row, daysUntil: Math.ceil((dueMs - todayMs) / (1000 * 60 * 60 * 24)) });
+    }
+  }
+  if (due.length === 0) return [];
+
+  // Resolve entity titles in two batched queries
+  const missionIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "mission").map((d) => d.row.entity_id)));
+  const trainingIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "training").map((d) => d.row.entity_id)));
+
+  const titleMap = new Map<string, { title: string; assignedTo: string | null }>();
+
+  if (missionIds.length) {
+    const { data } = await supabase
+      .from("missions")
+      .select("id, title, assigned_to")
+      .in("id", missionIds);
+    (data || []).forEach((m: any) => titleMap.set(`mission:${m.id}`, { title: m.title, assignedTo: m.assigned_to }));
+  }
+  if (trainingIds.length) {
+    const { data } = await supabase
+      .from("trainings")
+      .select("id, training_name, assigned_to")
+      .in("id", trainingIds);
+    (data || []).forEach((t: any) => titleMap.set(`training:${t.id}`, { title: t.training_name, assignedTo: t.assigned_to }));
+  }
+
+  return due.map(({ row, daysUntil }) => {
+    const key = `${row.entity_type}:${row.entity_id}`;
+    const entity = titleMap.get(key);
+    return {
+      id: row.id,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      entityTitle: entity?.title || "Sans titre",
+      label: row.label,
+      dueDate: row.due_date,
+      daysUntilDue: daysUntil,
+      assignedTo: entity?.assignedTo ?? null,
+    } satisfies LogisticsReminderItem;
+  });
+}
+
+/**
  * Fetch pending support tickets (nouveau, en_cours, en_attente).
  * Excludes resolved/closed tickets.
  */
@@ -1079,6 +1162,7 @@ export interface DailyData {
   okrInitiatives: OkrInitiativeItem[];
   supportTickets: SupportTicketItem[];
   pendingEmailDrafts: MissionEmailDraftItem[];
+  logisticsReminders: LogisticsReminderItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1106,6 +1190,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     okrInitiatives,
     supportTickets,
     pendingEmailDrafts,
+    logisticsReminders,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1127,6 +1212,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchOkrInitiatives(supabase),
     fetchPendingSupportTickets(supabase, today),
     fetchPendingEmailDrafts(supabase),
+    fetchLogisticsReminders(supabase, today),
   ]);
 
   return {
@@ -1135,6 +1221,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
+    logisticsReminders,
   };
 }
 
