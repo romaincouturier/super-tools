@@ -3569,62 +3569,6 @@ export type Database = {
           },
         ]
       }
-      mission_email_drafts: {
-        Row: {
-          contact_email: string
-          contact_name: string | null
-          created_at: string
-          email_type: string
-          html_content: string
-          id: string
-          mission_id: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          scheduled_for: string | null
-          sent_at: string | null
-          status: string
-          subject: string
-        }
-        Insert: {
-          contact_email: string
-          contact_name?: string | null
-          created_at?: string
-          email_type: string
-          html_content: string
-          id?: string
-          mission_id: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          scheduled_for?: string | null
-          sent_at?: string | null
-          status?: string
-          subject: string
-        }
-        Update: {
-          contact_email?: string
-          contact_name?: string | null
-          created_at?: string
-          email_type?: string
-          html_content?: string
-          id?: string
-          mission_id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          scheduled_for?: string | null
-          sent_at?: string | null
-          status?: string
-          subject?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mission_email_drafts_mission_id_fkey"
-            columns: ["mission_id"]
-            isOneToOne: false
-            referencedRelation: "missions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       mission_media: {
         Row: {
           created_at: string | null
