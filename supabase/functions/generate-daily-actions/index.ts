@@ -342,6 +342,29 @@ serve(async (req) => {
       });
     }
 
+    // 15. Email drafts pending validation (assigned to comms manager)
+    if (data.pendingEmailDrafts.length > 0) {
+      const { data: settingRow } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "communication_manager_user_id")
+        .maybeSingle();
+      const commsManagerId = settingRow?.setting_value || null;
+
+      const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
+      for (const draft of data.pendingEmailDrafts) {
+        const typeLabel = typeLabels[draft.emailType] || draft.emailType;
+        actions.push({
+          category: "emails_a_valider",
+          title: `📧 ${draft.missionTitle} — ${typeLabel}`,
+          description: `Email à valider pour ${draft.contactName || draft.contactEmail}`,
+          link: `${appUrl}/emails-a-valider`,
+          entityType: "mission_email_draft", entityId: draft.id,
+          assignedTo: commsManagerId, scope: "perUser",
+        });
+      }
+    }
+
     const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
 
     for (const recipient of recipients) {

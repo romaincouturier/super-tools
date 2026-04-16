@@ -48,6 +48,7 @@ const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
+const EmailsAValider = lazy(() => import("./pages/EmailsAValider"));
 const Statistiques = lazy(() => import("./pages/Statistiques"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
@@ -146,6 +147,7 @@ const App = () => (
               <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
               {/* Inbound emails */}
               <Route path="/emails" element={<InboundEmails />} />
+              <Route path="/emails-a-valider" element={<EmailsAValider />} />
               {/* Statistics dashboard */}
               <Route path="/statistiques" element={<Statistiques />} />
               {/* Web analytics (WP-Statistics) */}
