@@ -35,6 +35,13 @@ CREATE INDEX IF NOT EXISTS idx_mission_email_drafts_mission
 
 ALTER TABLE public.mission_email_drafts ENABLE ROW LEVEL SECURITY;
 
+-- Idempotent policy creation (DROP then CREATE) so the migration can be
+-- re-applied safely if the table survived a previous drop / restore cycle.
+DROP POLICY IF EXISTS "mission_email_drafts_select"  ON public.mission_email_drafts;
+DROP POLICY IF EXISTS "mission_email_drafts_insert"  ON public.mission_email_drafts;
+DROP POLICY IF EXISTS "mission_email_drafts_update"  ON public.mission_email_drafts;
+DROP POLICY IF EXISTS "mission_email_drafts_service" ON public.mission_email_drafts;
+
 CREATE POLICY "mission_email_drafts_select" ON public.mission_email_drafts
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "mission_email_drafts_insert" ON public.mission_email_drafts

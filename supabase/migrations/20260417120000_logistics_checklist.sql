@@ -42,6 +42,14 @@ CREATE INDEX IF NOT EXISTS idx_logistics_items_pending
 
 ALTER TABLE public.logistics_checklist_items ENABLE ROW LEVEL SECURITY;
 
+-- Idempotent policy creation (DROP then CREATE) so the migration can be
+-- re-applied safely after a partial failure.
+DROP POLICY IF EXISTS "logistics_items_select"  ON public.logistics_checklist_items;
+DROP POLICY IF EXISTS "logistics_items_insert"  ON public.logistics_checklist_items;
+DROP POLICY IF EXISTS "logistics_items_update"  ON public.logistics_checklist_items;
+DROP POLICY IF EXISTS "logistics_items_delete"  ON public.logistics_checklist_items;
+DROP POLICY IF EXISTS "logistics_items_service" ON public.logistics_checklist_items;
+
 CREATE POLICY "logistics_items_select" ON public.logistics_checklist_items
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "logistics_items_insert" ON public.logistics_checklist_items
