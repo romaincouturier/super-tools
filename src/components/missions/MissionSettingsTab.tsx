@@ -14,10 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, MapPin, Lock } from "lucide-react";
+import { Trash2, Lock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { TagsInput } from "@/components/ui/tags-input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LocationInput } from "@/components/shared/LocationInput";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import MissionContacts from "./MissionContacts";
@@ -171,14 +172,7 @@ const MissionSettingsTab = ({
       {/* Location */}
       <div>
         <Label>Lieu</Label>
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-          <Input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Ville ou adresse (ex: Lyon, Paris...)"
-          />
-        </div>
+        <LocationInput value={location} onChange={setLocation} />
       </div>
 
       {/* Assigned user */}

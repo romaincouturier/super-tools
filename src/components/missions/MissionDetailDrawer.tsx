@@ -15,6 +15,7 @@ import EntityMediaManager from "@/components/media/EntityMediaManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
+import { isRemoteLocation } from "@/lib/missionLocation";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
@@ -324,29 +325,41 @@ const MissionDetailDrawer = ({
           </div>
         )}
 
-        {/* Logistics booking buttons — visible on all tabs */}
+        {/* Logistics booking buttons — visible on all tabs.
+            Skipped entirely when the location is remote (no train/hotel
+            needed) and the Maps link is replaced by a small "Distanciel"
+            badge instead of an external map URL. */}
         {location && (
           <div className="mt-3 flex items-center gap-3">
-            <a
-              href={getGoogleMapsSearchUrl(location)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors underline-offset-2 hover:underline"
-            >
-              <MapPin className="h-3 w-3" />
-              {location}
-            </a>
-            <LogisticsBookingButtons
-              table="missions"
-              entityId={mission.id}
-              location={location}
-              trainBooked={trainBooked}
-              hotelBooked={hotelBooked}
-              onUpdate={(field, value) => {
-                if (field === "train_booked") setTrainBooked(value);
-                if (field === "hotel_booked") setHotelBooked(value);
-              }}
-            />
+            {isRemoteLocation(location) ? (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Distanciel
+              </span>
+            ) : (
+              <>
+                <a
+                  href={getGoogleMapsSearchUrl(location)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-muted-foreground flex items-center gap-1 hover:text-primary transition-colors underline-offset-2 hover:underline"
+                >
+                  <MapPin className="h-3 w-3" />
+                  {location}
+                </a>
+                <LogisticsBookingButtons
+                  table="missions"
+                  entityId={mission.id}
+                  location={location}
+                  trainBooked={trainBooked}
+                  hotelBooked={hotelBooked}
+                  onUpdate={(field, value) => {
+                    if (field === "train_booked") setTrainBooked(value);
+                    if (field === "hotel_booked") setHotelBooked(value);
+                  }}
+                />
+              </>
+            )}
           </div>
         )}
 

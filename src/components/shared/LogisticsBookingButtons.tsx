@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
+import { isRemoteLocation } from "@/lib/missionLocation";
 
 interface BookingButtonProps {
   icon: React.ReactNode;
@@ -91,7 +92,8 @@ const LogisticsBookingButtons = ({
     }
   };
 
-  if (!location) return null;
+  // No physical logistics for empty or remote locations.
+  if (!location || isRemoteLocation(location)) return null;
 
   return (
     <div className={compact ? "flex items-center gap-2 flex-wrap" : "flex items-center gap-2 flex-wrap"}>
