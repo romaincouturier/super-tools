@@ -89,8 +89,11 @@ const Evaluations = () => {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("all");
   const [canDeleteEvaluations, setCanDeleteEvaluations] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const { loading: analyzing, invoke: invokeAnalyze } = useEdgeFunction<{ analysis?: Analysis; message?: string }>(
+    "analyze-evaluations",
+    { errorMessage: "Erreur inconnue" },
+  );
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [acceptingItem, setAcceptingItem] = useState<string | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState<Evaluation | null>(null);
@@ -199,32 +202,17 @@ const Evaluations = () => {
   };
 
   const handleAnalyze = async () => {
-    setAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-evaluations", {
-        body: { trainingId: selectedTraining === "all" ? null : selectedTraining },
-      });
-
-      if (error) throw error;
-
-      if (data?.analysis) {
-        setAnalysis(data.analysis);
-        setShowAnalysis(true);
-      } else {
-        toast({
-          title: "Aucune donnée",
-          description: data?.message || "Aucune évaluation à analyser",
-        });
-      }
-    } catch (error: unknown) {
-      console.error("Analysis error:", error);
+    const data = await invokeAnalyze({
+      trainingId: selectedTraining === "all" ? null : selectedTraining,
+    });
+    if (data?.analysis) {
+      setAnalysis(data.analysis);
+      setShowAnalysis(true);
+    } else if (data) {
       toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Erreur inconnue",
-        variant: "destructive",
+        title: "Aucune donnée",
+        description: data.message || "Aucune évaluation à analyser",
       });
-    } finally {
-      setAnalyzing(false);
     }
   };
 

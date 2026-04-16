@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { supabase } from "@/integrations/supabase/client";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import ReactMarkdown from "react-markdown";
 import {
   Loader2,
@@ -89,32 +89,28 @@ const DailyTodoPanel = () => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showAgenda, setShowAgenda] = useState(false);
   const [agendaContent, setAgendaContent] = useState<string | null>(null);
-  const [agendaLoading, setAgendaLoading] = useState(false);
+  const { loading: agendaLoading, invoke: invokeAgenda } = useEdgeFunction<{ agenda?: string }>(
+    "generate-daily-agenda",
+    { silentOnError: true },
+  );
 
   const generateAgenda = useCallback(async () => {
     const pending = actions.filter((a) => !a.is_completed);
     if (pending.length === 0) return;
-    setAgendaLoading(true);
     setShowAgenda(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-daily-agenda", {
-        body: {
-          actions: pending.map((a) => ({
-            category: getCategoryConfig(a.category).label,
-            title: a.title,
-            description: a.description,
-          })),
-        },
-      });
-      if (error) throw error;
-      setAgendaContent(data?.agenda || "Impossible de générer l'agenda.");
-    } catch (err) {
-      console.error("Agenda generation failed:", err);
+    const data = await invokeAgenda({
+      actions: pending.map((a) => ({
+        category: getCategoryConfig(a.category).label,
+        title: a.title,
+        description: a.description,
+      })),
+    });
+    if (data) {
+      setAgendaContent(data.agenda || "Impossible de générer l'agenda.");
+    } else {
       setAgendaContent("Erreur lors de la génération de l'agenda.");
-    } finally {
-      setAgendaLoading(false);
     }
-  }, [actions]);
+  }, [actions, invokeAgenda]);
 
   const toggleCategory = useCallback((category: string) => {
     setCollapsedCategories((prev) => {
