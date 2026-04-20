@@ -200,7 +200,11 @@ export function useQuestionnaire() {
       if (!qTyped.date_premiere_ouverture) {
         const nowIso = new Date().toISOString();
         try {
-          const nextEtat = qTyped.etat === "envoye" ? "accueil_envoye" as const : qTyped.etat as QuestionnaireStatus;
+          // For email-sent questionnaires: envoye → accueil_envoye
+          // For direct/orphan links (WordPress, etc.): non_envoye → en_cours
+          let nextEtat: QuestionnaireStatus = qTyped.etat as QuestionnaireStatus;
+          if (qTyped.etat === "envoye") nextEtat = "accueil_envoye";
+          else if (qTyped.etat === "non_envoye") nextEtat = "en_cours";
           if (nextEtat !== qTyped.etat) assertTransition(questionnaireMachine, qTyped.etat as QuestionnaireStatus, nextEtat);
           await rpc.updateQuestionnaireByToken(token, { date_premiere_ouverture: nowIso, etat: nextEtat });
           await insertEvent(qTyped.id, "opened", { source: "public_link" });

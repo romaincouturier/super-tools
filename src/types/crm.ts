@@ -68,11 +68,11 @@ export interface CrmCard {
   linkedin_url: string | null;
   website_url: string | null;
   // Company identity (synced from SIREN API on quote creation)
-  siren: string | null;
-  address: string | null;
-  postal_code: string | null;
-  city: string | null;
-  country: string | null;
+  siren?: string | null;
+  address?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  country?: string | null;
   service_type: ServiceType | null;
   brief_questions: BriefQuestion[];
   raw_input: string | null;
