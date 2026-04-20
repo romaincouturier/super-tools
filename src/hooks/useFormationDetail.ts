@@ -531,6 +531,12 @@ export function useFormationDetail() {
   };
 
   const calculateTotalDuration = (): number => {
+    // E-learning formations have no `training_schedules` entries — the
+    // duration lives on `trainings.elearning_duration` (hours). Without
+    // this fallback the participant "Copier les infos" displayed "Durée : 0h".
+    if (training?.format_formation === "e_learning") {
+      return Number(training.elearning_duration) || 0;
+    }
     if (schedules.length === 0) return 0;
     return schedules.reduce((total, schedule) => {
       const [startHours, startMinutes] = schedule.start_time.split(":").map(Number);
