@@ -9,30 +9,28 @@ SELECT cron.alter_job(
 );
 
 -- Register (or update) process-logistics-reminders at 7:05 AM.
--- Dollar-quote conflict avoided by using $body$ for the outer DO block.
+-- Uses string concatenation to build the cron command — avoids nested dollar-quoting.
 DO $body$
 DECLARE
-  v_url text;
-  v_key text;
+  v_url  text;
+  v_key  text;
+  v_cmd  text;
   v_jobid bigint;
 BEGIN
   SELECT decrypted_secret INTO v_url FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL';
   SELECT decrypted_secret INTO v_key FROM vault.decrypted_secrets WHERE name = 'SUPABASE_SERVICE_ROLE_KEY';
+
+  v_cmd := 'SELECT net.http_post('
+    || 'url := ' || quote_literal(v_url || '/functions/v1/process-logistics-reminders') || ', '
+    || 'headers := jsonb_build_object(''Content-Type'',''application/json'',''Authorization'',''Bearer ' || v_key || '''), '
+    || 'body := ''{}''::jsonb) AS request_id;';
 
   SELECT jobid INTO v_jobid FROM cron.job WHERE jobname = 'process-logistics-reminders';
 
   IF v_jobid IS NOT NULL THEN
     PERFORM cron.alter_job(v_jobid, schedule := '5 7 * * *');
   ELSE
-    PERFORM cron.schedule(
-      'process-logistics-reminders',
-      '5 7 * * *',
-      format(
-        $$SELECT net.http_post(url := %L, headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer ' || %L), body := '{}'::jsonb) AS request_id;$$,
-        v_url || '/functions/v1/process-logistics-reminders',
-        v_key
-      )
-    );
+    PERFORM cron.schedule('process-logistics-reminders', '5 7 * * *', v_cmd);
   END IF;
 END
 $body$;
