@@ -68,14 +68,17 @@ const EmailEditor = ({
   // Populated below once `useEditor` has returned.
   const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
 
+  // Stabilise the onTranscript callback so `useVoiceDictation`'s internal
+  // useCallbacks don't cascade-recreate on every render (which caused the
+  // recording to appear to start and stop immediately).
+  const handleTranscript = useCallback((text: string) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    ed.chain().focus().insertContent(text + " ").run();
+  }, []);
+
   const { isRecording, isTranscribing, isSupported: dictationSupported, startRecording, stopRecording } =
-    useVoiceDictation({
-      onTranscript: (text) => {
-        const ed = editorRef.current;
-        if (!ed) return;
-        ed.chain().focus().insertContent(text + " ").run();
-      },
-    });
+    useVoiceDictation({ onTranscript: handleTranscript });
 
   // Build slash menu items from variables
   const slashItems = useMemo<SlashMenuItem[]>(() => {

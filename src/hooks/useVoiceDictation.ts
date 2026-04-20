@@ -18,6 +18,10 @@ export function useVoiceDictation({
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable ref so stopAndTranscribe / startRecording don't cascade-recreate
+  // every time the caller passes a new onTranscript function.
+  const onTranscriptRef = useRef(onTranscript);
+  onTranscriptRef.current = onTranscript;
 
   const stopAndTranscribe = useCallback(async () => {
     // Clear timeout
@@ -73,7 +77,7 @@ export function useVoiceDictation({
 
           const transcript = data?.transcript;
           if (transcript && transcript !== "[inaudible]") {
-            onTranscript(transcript);
+            onTranscriptRef.current(transcript);
           } else {
             toast.info("Aucune parole détectée");
           }
@@ -88,7 +92,8 @@ export function useVoiceDictation({
 
       recorder.stop();
     });
-  }, [onTranscript]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps — onTranscript via ref
+  }, []);
 
   const startRecording = useCallback(async () => {
     if (isRecording) {
