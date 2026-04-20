@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, Building2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useSirenLookup } from "@/hooks/useQuotes";
+import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
 
 export interface ClientData {
@@ -57,6 +58,16 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
         email: crmCard.email || "",
       });
       setSirenLoaded(true);
+      // Persist SIREN-sourced company data on the opportunity so the
+      // fiche carries the full address, not just the quote snapshot.
+      await supabase.from("crm_cards").update({
+        siren: result.siren || null,
+        company: result.denomination || null,
+        address: result.address || null,
+        postal_code: result.zip || null,
+        city: result.city || null,
+        country: "France",
+      }).eq("id", crmCard.id);
     } catch {
       // Error is in sirenLookup.error
     }

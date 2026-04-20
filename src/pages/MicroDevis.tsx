@@ -238,6 +238,20 @@ const MicroDevis = () => {
       if (r.villeClient) setVilleClient(r.villeClient);
       if (r.pays) setPays(r.pays);
       if (r.paysAutre) setPaysAutre(r.paysAutre);
+
+      // Opportunity opened from CRM: persist SIREN data on the card so the
+      // fiche shows the full address (not just what the quote snapshot holds).
+      if (crmCardId) {
+        const finalCountry = r.pays === "autre" ? (r.paysAutre || null) : "France";
+        await supabase.from("crm_cards").update({
+          siren: sirenSearch.siren || null,
+          company: r.nomClient || null,
+          address: r.adresseClient || null,
+          postal_code: r.codePostalClient || null,
+          city: r.villeClient || null,
+          country: finalCountry,
+        }).eq("id", crmCardId);
+      }
     }
   };
 

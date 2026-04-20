@@ -45,6 +45,17 @@ export interface CardDetailState {
   setLinkedinUrl: (v: string) => void;
   websiteUrl: string;
   setWebsiteUrl: (v: string) => void;
+  // Company identity (synced from SIREN lookup on quote creation)
+  siren: string;
+  setSiren: (v: string) => void;
+  address: string;
+  setAddress: (v: string) => void;
+  postalCode: string;
+  setPostalCode: (v: string) => void;
+  city: string;
+  setCity: (v: string) => void;
+  country: string;
+  setCountry: (v: string) => void;
   serviceType: "formation" | "mission" | null;
   setServiceType: (v: "formation" | "mission" | null) => void;
   assignedTo: string | null;

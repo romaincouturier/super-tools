@@ -67,6 +67,12 @@ export interface CrmCard {
   email: string | null;
   linkedin_url: string | null;
   website_url: string | null;
+  // Company identity (synced from SIREN API on quote creation)
+  siren: string | null;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  country: string | null;
   service_type: ServiceType | null;
   brief_questions: BriefQuestion[];
   raw_input: string | null;
@@ -183,6 +189,11 @@ export interface CreateCardInput {
   email?: string;
   linkedin_url?: string;
   website_url?: string;
+  siren?: string;
+  address?: string;
+  postal_code?: string;
+  city?: string;
+  country?: string;
   service_type?: ServiceType;
   acquisition_source?: AcquisitionSource;
   brief_questions?: BriefQuestion[];
@@ -209,6 +220,11 @@ export interface UpdateCardInput {
   email?: string | null;
   linkedin_url?: string | null;
   website_url?: string | null;
+  siren?: string | null;
+  address?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  country?: string | null;
   service_type?: ServiceType | null;
   brief_questions?: BriefQuestion[];
   // Next action

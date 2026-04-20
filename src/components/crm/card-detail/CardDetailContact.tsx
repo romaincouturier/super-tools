@@ -17,6 +17,8 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  MapPin,
+  Hash,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { CardDetailState, CardDetailHandlers } from "./types";
@@ -32,6 +34,8 @@ const CardDetailContact = ({ state, handlers }: Props) => {
     firstName, setFirstName, lastName, setLastName,
     company, setCompany, email, setEmail,
     phone, setPhone, linkedinUrl, websiteUrl, setWebsiteUrl,
+    siren, setSiren, address, setAddress,
+    postalCode, setPostalCode, city, setCity, country, setCountry,
   } = state;
 
   return (
@@ -182,6 +186,33 @@ const CardDetailContact = ({ state, handlers }: Props) => {
                 </Button>
               )}
             </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs flex items-center gap-1">
+              <Hash className="h-3 w-3" />
+              SIREN
+            </Label>
+            <Input value={siren} onChange={(e) => setSiren(e.target.value)} placeholder="123456789" className="h-8" />
+          </div>
+          <div className="space-y-1" />
+          <div className="space-y-1 col-span-2">
+            <Label className="text-xs flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              Adresse
+            </Label>
+            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 rue de la République" className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Code postal</Label>
+            <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="75001" className="h-8" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Ville</Label>
+            <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Paris" className="h-8" />
+          </div>
+          <div className="space-y-1 col-span-2">
+            <Label className="text-xs">Pays</Label>
+            <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="France" className="h-8" />
           </div>
         </div>
       )}

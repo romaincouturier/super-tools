@@ -109,6 +109,11 @@ const CardDetailDrawer = ({
   const [phone, setPhone] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [siren, setSiren] = useState("");
+  const [address, setAddress] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
   const [serviceType, setServiceType] = useState<"formation" | "mission" | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
@@ -187,6 +192,11 @@ const CardDetailDrawer = ({
       setPhone(card.phone || "");
       setLinkedinUrl(card.linkedin_url || "");
       setWebsiteUrl(card.website_url || "");
+      setSiren(card.siren || "");
+      setAddress(card.address || "");
+      setPostalCode(card.postal_code || "");
+      setCity(card.city || "");
+      setCountry(card.country || "");
       setServiceType(card.service_type || null);
       setAssignedTo(card.assigned_to || null);
       setConfidenceScore(card.confidence_score ?? 50);
@@ -226,12 +236,16 @@ const CardDetailDrawer = ({
     company: company.trim() || null, email: email.trim() || null,
     phone: phone.trim() || null, linkedin_url: linkedinUrl.trim() || null,
     website_url: websiteUrl.trim() || null, service_type: serviceType,
+    siren: siren.trim() || null, address: address.trim() || null,
+    postal_code: postalCode.trim() || null, city: city.trim() || null,
+    country: country.trim() || null,
     next_action_text: nextActionText.trim() || null, next_action_done: nextActionDone,
     next_action_type: nextActionType, linked_mission_id: linkedMissionId,
     emoji: cardEmoji, confidence_score: confidenceScore,
     acquisition_source: acquisitionSource, assigned_to: assignedTo,
   }), [title, estimatedValue, quoteUrl, scheduledDate, scheduledText,
       firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
+      siren, address, postalCode, city, country,
       nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
 
   // Use refs for values that shouldn't re-create the timeout callback
@@ -727,7 +741,10 @@ const CardDetailDrawer = ({
     contactExpanded, setContactExpanded,
     firstName, setFirstName, lastName, setLastName, company, setCompany,
     email, setEmail, phone, setPhone, linkedinUrl, setLinkedinUrl,
-    websiteUrl, setWebsiteUrl, serviceType, setServiceType,
+    websiteUrl, setWebsiteUrl,
+    siren, setSiren, address, setAddress,
+    postalCode, setPostalCode, city, setCity, country, setCountry,
+    serviceType, setServiceType,
     assignedTo, setAssignedTo, confidenceScore, setConfidenceScore,
     acquisitionSource, setAcquisitionSource,
     scheduledDate, setScheduledDate, scheduledText, setScheduledText,

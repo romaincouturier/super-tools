@@ -118,7 +118,32 @@ export default function Step5Email({
     try {
       const sentAt = new Date().toISOString();
 
-      // Save email content to quote
+      // Send email via edge function FIRST. If Resend fails, the edge
+      // function returns an error — the quote must stay in its prior
+      // state and the opportunity must NOT move to "Devis envoyé".
+      const { data: sendResult, error: sendError } = await supabase.functions.invoke(
+        "send-quote-email",
+        {
+          body: {
+            quoteId: quote.id,
+            to,
+            subject,
+            body,
+            isTest: false,
+          },
+        }
+      );
+      if (sendError || (sendResult && sendResult.error)) {
+        throw new Error(
+          sendError?.message ||
+            sendResult?.error ||
+            "Échec de l'envoi du devis par email"
+        );
+      }
+
+      // Email sent successfully: now mark the quote as sent.
+      // The DB trigger `quotes_recompute_estimated_value` will
+      // refresh crm_cards.estimated_value to MIN across sent quotes.
       await updateMutation.mutateAsync({
         id: quote.id,
         updates: {
@@ -126,17 +151,6 @@ export default function Step5Email({
           email_body: body,
           email_sent_at: sentAt,
           status: "sent",
-        },
-      });
-
-      // Send email via edge function
-      const { data: sendResult } = await supabase.functions.invoke("send-quote-email", {
-        body: {
-          quoteId: quote.id,
-          to,
-          subject,
-          body,
-          isTest: false,
         },
       });
 

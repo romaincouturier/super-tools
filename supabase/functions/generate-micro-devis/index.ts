@@ -569,6 +569,26 @@ serve(async (req: Request): Promise<Response> => {
       storageAvecPath = await persistPdfToStorage(supabase, pdfAvecSubrogation.pdfUrl, resolvedCrmCardId, "avec_subrogation");
     }
 
+    // Sync company data (SIREN snapshot) to the opportunity card.
+    // MicroDevis front-end already persists this when SIREN is clicked,
+    // but the user may have edited fields manually before submitting.
+    if (resolvedCrmCardId) {
+      try {
+        const finalCountry = body.pays && body.pays.toLowerCase() !== "france"
+          ? body.pays
+          : "France";
+        await supabase.from("crm_cards").update({
+          company: body.nomClient || null,
+          address: body.adresseClient || null,
+          postal_code: body.codePostalClient || null,
+          city: body.villeClient || null,
+          country: finalCountry,
+        }).eq("id", resolvedCrmCardId);
+      } catch (syncErr) {
+        console.warn("Failed to sync company data to CRM card:", syncErr);
+      }
+    }
+
     // Auto-move CRM card to "Devis envoyé" column if linked
     if (resolvedCrmCardId) {
       try {
@@ -684,6 +704,12 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    // Compute total amount (HT) for opportunity estimation sync.
+    // Micro-devis pricing = prix × nb_participants (+ 150€ frais de dossier).
+    const microDevisTotal =
+      (body.prix || 0) * (body.nbParticipants || 1) +
+      (body.fraisDossier ? 150 : 0);
+
     // Log activity with all form data for duplication feature
     try {
       await supabase.from("activity_logs").insert({
@@ -691,6 +717,7 @@ serve(async (req: Request): Promise<Response> => {
         recipient_email: body.emailCommanditaire,
         details: {
           crm_card_id: resolvedCrmCardId || null,
+          total_amount: microDevisTotal,
           formation_name: body.formationDemandee,
           client_name: body.nomClient,
           type_subrogation: typeSubrogation,
@@ -729,7 +756,19 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Failed to log activity:", logError);
     }
 
-    const message = typeSubrogation === "les2" 
+    // Recompute opportunity estimated_value = MIN of all sent quotes.
+    // Runs after the activity_log insert so the fresh row is counted.
+    if (resolvedCrmCardId && microDevisTotal > 0) {
+      try {
+        await supabase.rpc("recompute_opportunity_estimated_value", {
+          p_card_id: resolvedCrmCardId,
+        });
+      } catch (rpcErr) {
+        console.warn("Failed to recompute opportunity estimated_value:", rpcErr);
+      }
+    }
+
+    const message = typeSubrogation === "les2"
       ? "Devis générés et envoyés avec succès"
       : "Devis généré et envoyé avec succès";
 
