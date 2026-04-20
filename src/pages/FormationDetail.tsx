@@ -1,6 +1,6 @@
 import { MapPin, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { getGoogleMapsEmbedUrl, getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -124,25 +124,23 @@ const FormationDetail = () => {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{fd.training.location}</p>
-            <div className="aspect-video w-full rounded-lg overflow-hidden border">
-              {fd.training.location && fd.googleMapsApiKey ? (
-                <iframe
-                  width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={getGoogleMapsEmbedUrl(fd.training.location, fd.googleMapsApiKey)}
-                />
-              ) : (
-                <a
-                  href={getGoogleMapsSearchUrl(fd.training.location || "")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-full items-center justify-center gap-2 bg-muted/30 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <MapPin className="h-4 w-4" />Ouvrir dans Google Maps
-                </a>
-              )}
-            </div>
+            <a
+              href={getGoogleMapsSearchUrl(fd.training.location || "")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block aspect-video w-full rounded-lg overflow-hidden border bg-muted/10 hover:bg-muted/20 transition-colors"
+            >
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground hover:text-foreground transition-colors">
+                <MapPin className="h-10 w-10" />
+                <span className="text-sm font-medium">Voir sur Google Maps</span>
+              </div>
+            </a>
             <div className="flex justify-end gap-2">
+              <Button variant="outline" asChild>
+                <a href={getGoogleMapsSearchUrl(fd.training.location || "")} target="_blank" rel="noopener noreferrer">
+                  <MapPin className="h-4 w-4 mr-2" />Voir sur la carte
+                </a>
+              </Button>
               <Button variant="outline" asChild>
                 <a href={getGoogleMapsDirectionsUrl(fd.training.location)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />Itinéraire Google Maps

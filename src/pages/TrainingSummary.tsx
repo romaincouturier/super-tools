@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useAppSetting } from "@/hooks/useAppSetting";
-import { getGoogleMapsDirectionsUrl, getGoogleMapsEmbedUrl } from "@/lib/googleMaps";
+import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 
 // ── Material Symbol helper ──────────────────────────────────────────────────
 
@@ -104,7 +104,7 @@ const c = {
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
   const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
-  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
@@ -625,23 +625,16 @@ END:VCALENDAR`;
                 className="rounded-xl overflow-hidden border shadow-sm"
                 style={{ background: c.surfaceContainerHighest, borderColor: `${c.outlineVariant}20` }}
               >
-                {/* Map embed */}
-                <div className="relative h-32">
-                  {training.location && googleMapsApiKey ? (
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      style={{ border: 0 }}
-                      loading="lazy"
-                      allowFullScreen
-                      referrerPolicy="no-referrer-when-downgrade"
-                      src={getGoogleMapsEmbedUrl(training.location, googleMapsApiKey)}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted/30">
-                      <MapPin className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
+                <a
+                  href={getGoogleMapsSearchUrl(training.location)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative block h-32"
+                  style={{ background: `${c.surfaceContainerHighest}` }}
+                >
+                  <div className="flex h-full items-center justify-center">
+                    <MapPin className="h-8 w-8" style={{ color: c.outline }} />
+                  </div>
                   <div
                     className="absolute inset-0"
                     style={{ background: `linear-gradient(to top, ${c.surfaceContainerHighest}, transparent)` }}
@@ -652,7 +645,7 @@ END:VCALENDAR`;
                       {training.location.split(",").pop()?.trim() || training.location}
                     </span>
                   </div>
-                </div>
+                </a>
                 <div className="p-4 flex justify-between items-center">
                   <div className="flex-1 pr-4">
                     <p className="text-sm font-bold leading-snug break-words" style={{ color: c.onSurface }}>
