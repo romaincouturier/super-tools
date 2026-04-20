@@ -103,41 +103,18 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
             <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded">
               <button
                 className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
-                onClick={async () => {
-                  // Try the stored path first; if it fails (e.g. mojibake-corrupted
-                  // accents like "Ã " instead of "à"), retry with a repaired path.
-                  const tryOpen = async (path: string) => {
-                    const { data, error } = await supabase.storage
-                      .from("crm-attachments")
-                      .createSignedUrl(path, 3600);
-                    if (error || !data?.signedUrl) return false;
+                onClick={() => {
+                  // Bucket is public — getPublicUrl is synchronous so the browser
+                  // preserves the user-gesture context and won't block the open.
+                  const { data } = supabase.storage
+                    .from("crm-attachments")
+                    .getPublicUrl(att.file_path);
+                  if (data?.publicUrl) {
                     const a = document.createElement("a");
-                    a.href = data.signedUrl;
+                    a.href = data.publicUrl;
                     a.target = "_blank";
                     a.rel = "noopener";
                     a.click();
-                    return true;
-                  };
-
-                  // Repair common UTF-8 → latin1 → UTF-8 double-encoding
-                  // (e.g. "Ã " → "à", "Ã©" → "é").
-                  const repairMojibake = (s: string): string => {
-                    try {
-                      const bytes = new Uint8Array(s.length);
-                      for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i) & 0xff;
-                      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-                    } catch {
-                      return s;
-                    }
-                  };
-
-                  try {
-                    if (await tryOpen(att.file_path)) return;
-                    const repaired = repairMojibake(att.file_path);
-                    if (repaired !== att.file_path && (await tryOpen(repaired))) return;
-                    console.error("Impossible d'ouvrir la pièce jointe:", att.file_path);
-                  } catch (e) {
-                    console.error("Error opening attachment:", e);
                   }
                 }}
               >
