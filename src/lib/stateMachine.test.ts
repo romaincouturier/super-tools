@@ -87,6 +87,8 @@ describe("evaluationMachine", () => {
 describe("questionnaireMachine", () => {
   const validPaths: [QuestionnaireStatus, QuestionnaireStatus][] = [
     ["non_envoye", "envoye"],
+    ["non_envoye", "en_cours"],
+    ["non_envoye", "complete"],
     ["non_envoye", "expire"],
     ["envoye", "accueil_envoye"],
     ["envoye", "complete"],
@@ -103,7 +105,6 @@ describe("questionnaireMachine", () => {
     ["complete", "en_cours"],
     ["valide_formateur", "complete"],
     ["expire", "envoye"],
-    ["non_envoye", "complete"],
     ["non_envoye", "valide_formateur"],
   ];
 

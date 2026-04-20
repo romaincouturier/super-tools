@@ -265,7 +265,9 @@ export function useQuestionnaire() {
       await saveDraft({ silent: true, force: true });
       const nowIso = new Date().toISOString();
       const needsPrerequisEmail = hasUnvalidatedPrerequisites();
-      assertTransition(questionnaireMachine, questionnaire.etat as QuestionnaireStatus, "complete");
+      // Defensive: log unexpected transitions but never block submission
+      try { assertTransition(questionnaireMachine, questionnaire.etat as QuestionnaireStatus, "complete"); }
+      catch (transitionErr) { console.warn("Unexpected questionnaire state transition (non-blocking):", questionnaire.etat, "→ complete", transitionErr); }
       const { error: upErr } = await supabase.rpc("update_questionnaire_by_token", {
         p_token: token!, p_data: { etat: "complete", date_soumission: nowIso, date_consentement_rgpd: questionnaire.date_consentement_rgpd || nowIso, necessite_validation_formateur: needsPrerequisEmail },
       });

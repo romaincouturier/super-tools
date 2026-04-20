@@ -94,7 +94,8 @@ export type QuestionnaireStatus = (typeof QUESTIONNAIRE_STATUSES)[number];
 export const questionnaireMachine: StateMachineConfig<QuestionnaireStatus> = {
   label: "QuestionnaireBesoins",
   transitions: {
-    non_envoye: ["envoye", "expire"],
+    // non_envoye → en_cours/complete autorisé pour les liens directs (WordPress, orphan, accès manuel)
+    non_envoye: ["envoye", "en_cours", "complete", "expire"],
     envoye: ["accueil_envoye", "en_cours", "complete", "expire"],
     accueil_envoye: ["en_cours", "complete", "expire"],
     en_cours: ["complete", "expire"],
