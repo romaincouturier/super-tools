@@ -1121,11 +1121,14 @@ export type Database = {
       crm_cards: {
         Row: {
           acquisition_source: string | null
+          address: string | null
           assigned_to: string | null
           brief_questions: Json | null
+          city: string | null
           column_id: string
           company: string | null
           confidence_score: number | null
+          country: string | null
           created_at: string
           description_html: string | null
           email: string | null
@@ -1146,10 +1149,12 @@ export type Database = {
           org_id: string | null
           phone: string | null
           position: number
+          postal_code: string | null
           quote_url: string | null
           raw_input: string | null
           sales_status: string
           service_type: string | null
+          siren: string | null
           status_operational: string
           title: string
           updated_at: string
@@ -1160,11 +1165,14 @@ export type Database = {
         }
         Insert: {
           acquisition_source?: string | null
+          address?: string | null
           assigned_to?: string | null
           brief_questions?: Json | null
+          city?: string | null
           column_id: string
           company?: string | null
           confidence_score?: number | null
+          country?: string | null
           created_at?: string
           description_html?: string | null
           email?: string | null
@@ -1185,10 +1193,12 @@ export type Database = {
           org_id?: string | null
           phone?: string | null
           position?: number
+          postal_code?: string | null
           quote_url?: string | null
           raw_input?: string | null
           sales_status?: string
           service_type?: string | null
+          siren?: string | null
           status_operational?: string
           title: string
           updated_at?: string
@@ -1199,11 +1209,14 @@ export type Database = {
         }
         Update: {
           acquisition_source?: string | null
+          address?: string | null
           assigned_to?: string | null
           brief_questions?: Json | null
+          city?: string | null
           column_id?: string
           company?: string | null
           confidence_score?: number | null
+          country?: string | null
           created_at?: string
           description_html?: string | null
           email?: string | null
@@ -1224,10 +1237,12 @@ export type Database = {
           org_id?: string | null
           phone?: string | null
           position?: number
+          postal_code?: string | null
           quote_url?: string | null
           raw_input?: string | null
           sales_status?: string
           service_type?: string | null
+          siren?: string | null
           status_operational?: string
           title?: string
           updated_at?: string
@@ -3562,6 +3577,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "mission_documents_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_email_drafts: {
+        Row: {
+          contact_email: string
+          contact_name: string | null
+          created_at: string
+          email_type: string
+          html_content: string
+          id: string
+          mission_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          contact_email: string
+          contact_name?: string | null
+          created_at?: string
+          email_type: string
+          html_content: string
+          id?: string
+          mission_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          contact_email?: string
+          contact_name?: string | null
+          created_at?: string
+          email_type?: string
+          html_content?: string
+          id?: string
+          mission_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_email_drafts_mission_id_fkey"
             columns: ["mission_id"]
             isOneToOne: false
             referencedRelation: "missions"
@@ -7459,6 +7530,10 @@ export type Database = {
           similarity: number
           title: string
         }[]
+      }
+      recompute_opportunity_estimated_value: {
+        Args: { p_card_id: string }
+        Returns: number
       }
       register_formulaire_orphan: {
         Args: {

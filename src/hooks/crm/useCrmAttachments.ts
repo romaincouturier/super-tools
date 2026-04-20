@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logCrmActivity } from "@/services/crmActivity";
-import { resolveContentType } from "@/lib/file-utils";
+import { resolveContentType, sanitizeFileName } from "@/lib/file-utils";
 import { useCrmMutation } from "./useCrmMutation";
 
 export const useAddAttachment = () =>
@@ -14,7 +14,7 @@ export const useAddAttachment = () =>
       file: File;
       actorEmail: string;
     }) => {
-      const filePath = `${cardId}/${Date.now()}_${file.name}`;
+      const filePath = `${cardId}/${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("crm-attachments")
         .upload(filePath, file);
