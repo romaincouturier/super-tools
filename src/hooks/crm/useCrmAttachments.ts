@@ -17,9 +17,11 @@ export const useAddAttachment = () =>
       const filePath = `${cardId}/${Date.now()}_${sanitizeFileName(file.name)}`;
       const { error: uploadError } = await supabase.storage
         .from("crm-attachments")
-        .upload(filePath, file);
+        .upload(filePath, file, { contentType: resolveContentType(file) });
       if (uploadError) {
-        console.warn("Storage upload failed, storing reference only:", uploadError);
+        // Don't insert a DB row pointing to a file that doesn't exist in storage.
+        console.error("Storage upload failed:", uploadError);
+        throw new Error(`Upload du fichier échoué: ${uploadError.message}`);
       }
       const { error } = await supabase.from("crm_attachments").insert({
         card_id: cardId,
