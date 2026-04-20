@@ -13,6 +13,9 @@ import {
   type CrmCardItem,
   type ReservationItem,
   type TrainingConventionItem,
+  type SupportTicketItem,
+  type EventNoSummaryItem,
+  type MissionEmailDraftItem,
 } from "../_shared/daily-data-fetchers.ts";
 
 /**
@@ -24,7 +27,7 @@ import {
  * Data fetching is shared with generate-daily-actions via _shared/daily-data-fetchers.ts.
  */
 
-const VERSION = "process-logistics-reminders@6.0.0";
+const VERSION = "process-logistics-reminders@6.1.0";
 
 // ─── Styles ───
 const COLORS = {
@@ -160,6 +163,14 @@ serve(async (req) => {
       opportunites: data.crmCards.filter(c => c.category === "opportunites"),
       devis_a_relancer: data.crmCards.filter(c => c.category === "devis_a_relancer"),
     };
+
+    // ── Communication manager (for pending email drafts) ──
+    const { data: settingRow } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "communication_manager_user_id")
+      .maybeSingle();
+    const commsManagerId: string | null = settingRow?.setting_value || null;
 
     // ── Send per-user digest ──
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
@@ -373,6 +384,43 @@ serve(async (req) => {
             return `<li>${linkHtml(`${appUrl}/events/${ev.id}`, ev.title)} — CFP précédent : ${lastCfpDate}. Pensez à vérifier le CFP de cette année !${eventLink}</li>`;
           })
       );
+
+      // 15. Événements passés sans note de synthèse
+      add("📝", "Événements sans note de synthèse", COLORS.orange,
+        data.pastEventsNoSummary
+          .filter(a => userCanSee(recipient, a.assignedTo))
+          .map(ev => {
+            const eventDate = formatDateFr(ev.eventDate);
+            return `<li>${linkHtml(`${appUrl}/events/${ev.id}`, ev.title)} — ${eventDate} (il y a ${ev.daysAgo}j) — note de synthèse à rédiger</li>`;
+          })
+      );
+
+      // 16. Tickets support en attente
+      const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
+      const statusLabels: Record<string, string> = { nouveau: "Nouveau", en_cours: "En cours", en_attente: "En attente" };
+      add("🎫", "Tickets support en attente", COLORS.red,
+        data.supportTickets.map(t => {
+          const emoji = priorityEmojis[t.priority] || "🎫";
+          const statusLabel = statusLabels[t.status] || t.status;
+          const typeLabel = t.type === "bug" ? "Bug" : "Évolution";
+          const daysLabel = t.daysOpen === 0 ? "Aujourd'hui" : `Ouvert depuis ${t.daysOpen}j`;
+          return `<li>${emoji} ${linkHtml(`${appUrl}/support`, `${t.ticketNumber} — ${t.title}`)} — ${typeLabel} · ${statusLabel} · ${daysLabel}</li>`;
+        })
+      );
+
+      // 17. Emails à valider (communication manager)
+      const userEmailDrafts = data.pendingEmailDrafts.filter(() =>
+        recipient.isAdmin || recipient.userId === commsManagerId
+      );
+      if (userEmailDrafts.length > 0) {
+        const typeLabels: Record<string, string> = { google_review: "Avis Google", video_testimonial: "Témoignage vidéo" };
+        add("📧", "Emails à valider", COLORS.teal,
+          userEmailDrafts.map(d => {
+            const typeLabel = typeLabels[d.emailType] || d.emailType;
+            return `<li>${linkHtml(`${appUrl}/emails-a-valider`, `${d.missionTitle} — ${typeLabel}`)} — pour ${d.contactName || d.contactEmail}</li>`;
+          })
+        );
+      }
 
       // Skip if no alerts
       if (sections.length === 0) continue;
