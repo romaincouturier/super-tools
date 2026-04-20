@@ -8,29 +8,21 @@ SELECT cron.alter_job(
   schedule := '0 7 * * *'
 );
 
--- Register (or update) process-logistics-reminders at 7:05 AM.
--- Uses string concatenation to build the cron command — avoids nested dollar-quoting.
-DO $body$
-DECLARE
-  v_url  text;
-  v_key  text;
-  v_cmd  text;
-  v_jobid bigint;
-BEGIN
-  SELECT decrypted_secret INTO v_url FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL';
-  SELECT decrypted_secret INTO v_key FROM vault.decrypted_secrets WHERE name = 'SUPABASE_SERVICE_ROLE_KEY';
+-- Remove existing process-logistics-reminders job (no-op if not found)
+SELECT cron.unschedule('process-logistics-reminders');
 
-  v_cmd := 'SELECT net.http_post('
-    || 'url := ' || quote_literal(v_url || '/functions/v1/process-logistics-reminders') || ', '
-    || 'headers := jsonb_build_object(''Content-Type'',''application/json'',''Authorization'',''Bearer ' || v_key || '''), '
-    || 'body := ''{}''::jsonb) AS request_id;';
-
-  SELECT jobid INTO v_jobid FROM cron.job WHERE jobname = 'process-logistics-reminders';
-
-  IF v_jobid IS NOT NULL THEN
-    PERFORM cron.alter_job(v_jobid, schedule := '5 7 * * *');
-  ELSE
-    PERFORM cron.schedule('process-logistics-reminders', '5 7 * * *', v_cmd);
-  END IF;
-END
-$body$;
+-- Re-register at 7:05 — vault is accessed at cron runtime, not at migration time
+SELECT cron.schedule(
+  'process-logistics-reminders',
+  '5 7 * * *',
+  $$
+  SELECT net.http_post(
+    url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_URL') || '/functions/v1/process-logistics-reminders',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_SERVICE_ROLE_KEY')
+    ),
+    body := '{}'::jsonb
+  ) AS request_id;
+  $$
+);
