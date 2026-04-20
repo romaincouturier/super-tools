@@ -5,7 +5,7 @@ import { rpc } from "@/lib/supabase-rpc";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 import SupportViewer from "@/components/formations/support/SupportViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -104,7 +104,7 @@ const c = {
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
   const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
-  const [googleMapsApiKey, setGoogleMapsApiKey] = useState("AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [trainer, setTrainer] = useState<Trainer | null>(null);
@@ -627,15 +627,21 @@ END:VCALENDAR`;
               >
                 {/* Map embed */}
                 <div className="relative h-32">
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-                    src={getGoogleMapsEmbedUrl(training.location, googleMapsApiKey)}
-                  />
+                  {training.location && googleMapsApiKey ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={getGoogleMapsEmbedUrl(training.location, googleMapsApiKey)}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted/30">
+                      <MapPin className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
                   <div
                     className="absolute inset-0"
                     style={{ background: `linear-gradient(to top, ${c.surfaceContainerHighest}, transparent)` }}

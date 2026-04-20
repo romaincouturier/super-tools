@@ -1,6 +1,6 @@
 import { MapPin, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { getGoogleMapsEmbedUrl, getGoogleMapsDirectionsUrl } from "@/lib/googleMaps";
+import { getGoogleMapsEmbedUrl, getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -125,11 +125,22 @@ const FormationDetail = () => {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{fd.training.location}</p>
             <div className="aspect-video w-full rounded-lg overflow-hidden border">
-              <iframe
-                width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                src={getGoogleMapsEmbedUrl(fd.training.location, fd.googleMapsApiKey)}
-              />
+              {fd.training.location && fd.googleMapsApiKey ? (
+                <iframe
+                  width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={getGoogleMapsEmbedUrl(fd.training.location, fd.googleMapsApiKey)}
+                />
+              ) : (
+                <a
+                  href={getGoogleMapsSearchUrl(fd.training.location || "")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-full items-center justify-center gap-2 bg-muted/30 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <MapPin className="h-4 w-4" />Ouvrir dans Google Maps
+                </a>
+              )}
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" asChild>
