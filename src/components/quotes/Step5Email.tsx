@@ -141,9 +141,6 @@ export default function Step5Email({
         );
       }
 
-      // Email sent successfully: now mark the quote as sent.
-      // The DB trigger `quotes_recompute_estimated_value` will
-      // refresh crm_cards.estimated_value to MIN across sent quotes.
       await updateMutation.mutateAsync({
         id: quote.id,
         updates: {
@@ -154,23 +151,22 @@ export default function Step5Email({
         },
       });
 
-      // Log email in CRM card history (crm_card_emails)
       const senderEmail = settings?.company_email || "";
       const attachmentPaths = sendResult?.attachment_paths as string[] | undefined;
-      await supabase.from("crm_card_emails").insert({
-        card_id: quote.crm_card_id,
-        sender_email: senderEmail,
-        recipient_email: to,
-        subject,
-        body_html: body.replace(/\n/g, "<br>"),
-        sent_at: sentAt,
-        attachment_names: [`${quote.quote_number}.pdf`],
-        attachment_paths: attachmentPaths?.length ? attachmentPaths : null,
-        delivery_status: "sent",
-      });
-
-      // Log activity in CRM activity log
-      const { data: { user } } = await supabase.auth.getUser();
+      const [{ data: { user } }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("crm_card_emails").insert({
+          card_id: quote.crm_card_id,
+          sender_email: senderEmail,
+          recipient_email: to,
+          subject,
+          body_html: body.replace(/\n/g, "<br>"),
+          sent_at: sentAt,
+          attachment_names: [`${quote.quote_number}.pdf`],
+          attachment_paths: attachmentPaths?.length ? attachmentPaths : null,
+          delivery_status: "sent",
+        }),
+      ]);
       const actorEmail = user?.email || senderEmail;
       await supabase.from("crm_activity_log").insert({
         card_id: quote.crm_card_id,

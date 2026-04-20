@@ -104,8 +104,6 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
               <button
                 className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
                 onClick={() => {
-                  // Bucket is public — getPublicUrl is synchronous so the browser
-                  // preserves the user-gesture context and won't block the open.
                   const { data } = supabase.storage
                     .from("crm-attachments")
                     .getPublicUrl(att.file_path);

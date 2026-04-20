@@ -58,8 +58,6 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
         email: crmCard.email || "",
       });
       setSirenLoaded(true);
-      // Persist SIREN-sourced company data on the opportunity so the
-      // fiche carries the full address, not just the quote snapshot.
       await supabase.from("crm_cards").update({
         siren: result.siren || null,
         company: result.denomination || null,
