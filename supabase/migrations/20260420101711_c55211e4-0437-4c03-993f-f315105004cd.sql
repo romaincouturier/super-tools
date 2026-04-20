@@ -1,0 +1,1 @@
+DELETE FROM public.crm_attachments WHERE id = 'acfd7fa3-ee35-4cdf-87b0-07670622f450';
