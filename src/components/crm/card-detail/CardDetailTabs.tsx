@@ -103,12 +103,18 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
             <div key={att.id} className="flex items-center justify-between p-2 bg-muted rounded">
               <button
                 className="flex items-center gap-2 hover:text-primary transition-colors text-left min-w-0"
-                onClick={async () => {
-                  try {
-                    const { data } = await supabase.storage.from("crm-attachments").createSignedUrl(att.file_path, 3600);
-                    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
-                  } catch (e) {
-                    console.error("Error opening attachment:", e);
+                onClick={() => {
+                  // Bucket is public — getPublicUrl is synchronous so the browser
+                  // preserves the click gesture and won't block window.open.
+                  const { data } = supabase.storage
+                    .from("crm-attachments")
+                    .getPublicUrl(att.file_path);
+                  if (data?.publicUrl) {
+                    const a = document.createElement("a");
+                    a.href = data.publicUrl;
+                    a.target = "_blank";
+                    a.rel = "noopener";
+                    a.click();
                   }
                 }}
               >
