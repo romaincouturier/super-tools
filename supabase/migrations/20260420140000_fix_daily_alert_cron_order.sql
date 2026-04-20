@@ -1,7 +1,6 @@
 -- Ensure generate-daily-actions runs BEFORE the digest email so both
 -- use the same DB snapshot: daily_actions generated first at 7:00 AM,
--- then process-logistics-reminders reads fresh data at 7:05 AM
--- (same order as the data source, minimizing drift between email & todo).
+-- then process-logistics-reminders reads fresh data at 7:05 AM.
 
 -- Reschedule generate-daily-actions from 7:05 → 7:00
 SELECT cron.alter_job(
@@ -10,9 +9,8 @@ SELECT cron.alter_job(
 );
 
 -- Register (or update) process-logistics-reminders at 7:05 AM.
--- Uses INSERT … ON CONFLICT so it's idempotent whether or not a row
--- already exists (the cron may have been created via the Supabase dashboard).
-DO $$
+-- Dollar-quote conflict avoided by using $body$ for the outer DO block.
+DO $body$
 DECLARE
   v_url text;
   v_key text;
@@ -24,10 +22,8 @@ BEGIN
   SELECT jobid INTO v_jobid FROM cron.job WHERE jobname = 'process-logistics-reminders';
 
   IF v_jobid IS NOT NULL THEN
-    -- Update existing job to 7:05
     PERFORM cron.alter_job(v_jobid, schedule := '5 7 * * *');
   ELSE
-    -- Create the job if it was never registered in pg_cron
     PERFORM cron.schedule(
       'process-logistics-reminders',
       '5 7 * * *',
@@ -39,4 +35,4 @@ BEGIN
     );
   END IF;
 END
-$$;
+$body$;
