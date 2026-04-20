@@ -554,7 +554,7 @@ export default function CoachCommercialSettings({ open, onOpenChange }: CoachCom
                     {revenueTargets.map((target) => {
                       const now = new Date();
                       const start = new Date(target.period_start);
-                      let end = new Date(start);
+                      const end = new Date(start);
                       if (target.period_type === "monthly") end.setMonth(end.getMonth() + 1);
                       else if (target.period_type === "quarterly") end.setMonth(end.getMonth() + 3);
                       else end.setFullYear(end.getFullYear() + 1);

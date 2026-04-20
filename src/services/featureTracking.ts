@@ -18,7 +18,7 @@ interface UsageEvent {
 const BATCH_SIZE = 10;
 const FLUSH_INTERVAL_MS = 30_000; // 30 seconds
 
-let queue: UsageEvent[] = [];
+const queue: UsageEvent[] = [];
 let flushTimer: ReturnType<typeof setInterval> | null = null;
 
 async function flush() {

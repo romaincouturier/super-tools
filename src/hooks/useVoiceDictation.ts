@@ -92,7 +92,7 @@ export function useVoiceDictation({
 
       recorder.stop();
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps — onTranscript via ref
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startRecording = useCallback(async () => {

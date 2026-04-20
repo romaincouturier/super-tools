@@ -136,7 +136,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
       const rawComments = (data || []) as Record<string, unknown>[];
       const authorIds = [...new Set(rawComments.map((c) => c.author_id).concat(rawComments.map((c) => c.assigned_to).filter(Boolean)))];
 
-      let profileMap: Record<string, string> = {};
+      const profileMap: Record<string, string> = {};
       if (authorIds.length > 0) {
         const { data: profs } = await supabase
           .from("profiles")

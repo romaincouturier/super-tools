@@ -192,7 +192,7 @@ export default function Step3QuoteGeneration({
       );
       if (error) throw error;
       if (data?.lines?.length > 0) {
-        let generatedLines = data.lines.map((l) => ({
+        const generatedLines = data.lines.map((l) => ({
           id: uuid(),
           product: l.product || "",
           description: l.description || "",

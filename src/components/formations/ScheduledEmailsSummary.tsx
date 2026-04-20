@@ -365,8 +365,8 @@ Voici la synthèse des besoins recueillis pour la formation "${training.training
 {{sender_name}}
 {{sender_email}}`;
 
-      case "thank_you":
-        const supportsSection = training.supports_url 
+      case "thank_you": {
+        const supportsSection = training.supports_url
           ? `\nVous trouverez également tous les supports de la formation ici :\n${training.supports_url}\n`
           : "";
         
@@ -384,6 +384,7 @@ Je vous souhaite une bonne journée
 —
 {{sender_name}}
 {{sender_email}}`;
+      }
 
       case "google_review":
         return `${greeting}
