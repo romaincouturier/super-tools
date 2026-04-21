@@ -127,7 +127,12 @@ Règles :
 - Réponds en français, de manière concise et professionnelle
 - Utilise query_database pour les questions sur des données structurées (comptages, listes, agrégations, filtres par date/statut/montant)
 - Utilise search_content pour rechercher dans le contenu textuel (emails, notes, descriptions, commentaires) quand la question porte sur le sens ou le contexte plutôt que sur des valeurs exactes
-- Utilise execute_action pour effectuer des modifications (créer, mettre à jour, supprimer)
+- Utilise execute_action pour effectuer des modifications (créer, mettre à jour)
+- Pour ajouter du contenu, utilise les actions de création de page :
+  • add_mission_page : params { mission_id, title, content (HTML), icon (emoji, optionnel) }
+  • add_crm_comment : params { card_id, content } — ajoute une note/commentaire sur une opportunité
+  • add_support_note : params { ticket_id, content } — ajoute une note au ticket support
+  • add_content_card : params { title, content, tags (array, optionnel), column_id (optionnel, défaut: "Idées") } — crée une carte dans le module contenu
 - Tu peux combiner les tools dans une même réponse
 - Formate les montants en euros (€) et les dates en français
 - Si une requête SQL échoue, analyse l'erreur et corrige la requête
@@ -191,7 +196,7 @@ const TOOLS = [
   {
     name: "execute_action",
     description:
-      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, update_mission_status, update_ticket_status, update_quote_status.",
+      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission_status, update_ticket_status, update_quote_status.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -201,6 +206,9 @@ const TOOLS = [
             "move_crm_card",
             "update_crm_card",
             "add_crm_comment",
+            "add_mission_page",
+            "add_support_note",
+            "add_content_card",
             "update_mission_status",
             "update_ticket_status",
             "update_quote_status",
@@ -361,6 +369,87 @@ async function executeTool(
             return JSON.stringify({ success: true, message: "Commentaire ajouté" });
           }
 
+          case "add_mission_page": {
+            const nextPos = await supabase
+              .from("mission_pages")
+              .select("position")
+              .eq("mission_id", params.mission_id)
+              .is("parent_page_id", null)
+              .order("position", { ascending: false })
+              .limit(1)
+              .single();
+            const position = ((nextPos.data as Record<string, unknown>)?.position as number ?? -1) + 1;
+
+            const { error } = await supabase
+              .from("mission_pages")
+              .insert({
+                mission_id: params.mission_id,
+                title: params.title || "Sans titre",
+                content: params.content || "",
+                icon: params.icon || "📄",
+                position,
+                created_by: userId,
+              });
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Page ajoutée à la mission" });
+          }
+
+          case "add_support_note": {
+            const { data: ticket } = await supabase
+              .from("support_tickets")
+              .select("resolution_notes")
+              .eq("id", params.ticket_id)
+              .single();
+            const existing = (ticket as Record<string, unknown>)?.resolution_notes as string || "";
+            const separator = existing ? "\n\n---\n\n" : "";
+            const timestamp = new Date().toLocaleDateString("fr-FR");
+            const newNotes = `${existing}${separator}**Note agent (${timestamp})** :\n${params.content}`;
+
+            const { error } = await supabase
+              .from("support_tickets")
+              .update({ resolution_notes: newNotes, updated_at: new Date().toISOString() })
+              .eq("id", params.ticket_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Note ajoutée au ticket support" });
+          }
+
+          case "add_content_card": {
+            let columnId = params.column_id as string | undefined;
+            if (!columnId) {
+              const { data: col } = await supabase
+                .from("content_columns")
+                .select("id")
+                .eq("name", "Idées")
+                .limit(1)
+                .single();
+              columnId = (col as Record<string, unknown>)?.id as string;
+              if (!columnId) {
+                const { data: firstCol } = await supabase
+                  .from("content_columns")
+                  .select("id")
+                  .order("display_order", { ascending: true })
+                  .limit(1)
+                  .single();
+                columnId = (firstCol as Record<string, unknown>)?.id as string;
+              }
+            }
+            if (!columnId) {
+              return JSON.stringify({ error: "Aucune colonne trouvée pour le contenu" });
+            }
+
+            const { error } = await supabase
+              .from("content_cards")
+              .insert({
+                column_id: columnId,
+                title: params.title || "Sans titre",
+                description: params.content || "",
+                tags: params.tags || [],
+                created_by: userId,
+              });
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({ success: true, message: "Carte de contenu créée" });
+          }
+
           case "update_mission_status": {
             const validStatuses = ["not_started", "in_progress", "completed", "cancelled"];
             if (!validStatuses.includes(params.status as string)) {
@@ -405,12 +494,6 @@ async function executeTool(
               .eq("id", params.quote_id);
             if (error) return JSON.stringify({ error: error.message });
             return JSON.stringify({ success: true, message: "Statut du devis mis à jour" });
-          }
-
-          case "add_training_note": {
-            return JSON.stringify({
-              error: "Action non disponible : le module de notes de formation n'est pas encore implémenté. Utilisez query_database pour consulter les formations.",
-            });
           }
 
           default:
