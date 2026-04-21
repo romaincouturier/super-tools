@@ -195,14 +195,8 @@ const WpStatisticsDashboard = () => {
   const { data: pages, isLoading: loadingPages, error: errorPages } = useWpPages({ per_page: "20" });
   const { data: browsers, isLoading: loadingBrowsers } = useWpBrowsers();
   const { data: referrers, isLoading: loadingReferrers } = useWpReferrers();
-  const { data: searchEngines, isLoading: loadingSearch } = useWpSearch();
-  const { data: countries, isLoading: loadingCountries } = useWpCountries();
-  const { data: platforms, isLoading: loadingPlatforms } = useWpPlatforms();
-  const { data: online, isLoading: loadingOnline } = useWpOnline();
   const { data: hits, isLoading: loadingHits } = useWpHits();
   const { data: visitors, isLoading: loadingVisitors } = useWpVisitors();
-
-  const onlineCount = typeof online === "number" ? online : Array.isArray(online) ? online.length : online?.count ?? online?.online ?? undefined;
 
   if (loadingSummary) {
     return (
@@ -227,7 +221,7 @@ const WpStatisticsDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {summary && <SummaryCards summary={summary} onlineCount={onlineCount} />}
+      {summary && <SummaryCards summary={summary} />}
 
       {/* Trend chart */}
       <Card>
@@ -246,10 +240,7 @@ const WpStatisticsDashboard = () => {
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="pages" className="gap-1.5"><Eye className="h-3.5 w-3.5" />Pages</TabsTrigger>
           <TabsTrigger value="referrers" className="gap-1.5"><Link2 className="h-3.5 w-3.5" />Sources</TabsTrigger>
-          <TabsTrigger value="search" className="gap-1.5"><Search className="h-3.5 w-3.5" />Recherche</TabsTrigger>
           <TabsTrigger value="browsers" className="gap-1.5"><Monitor className="h-3.5 w-3.5" />Navigateurs</TabsTrigger>
-          <TabsTrigger value="platforms" className="gap-1.5"><Smartphone className="h-3.5 w-3.5" />Plateformes</TabsTrigger>
-          <TabsTrigger value="countries" className="gap-1.5"><MapPin className="h-3.5 w-3.5" />Pays</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pages">
