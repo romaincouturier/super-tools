@@ -135,12 +135,7 @@ const FormationDetail = () => {
                 <span className="text-sm font-medium">Voir sur Google Maps</span>
               </div>
             </a>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" asChild>
-                <a href={getGoogleMapsSearchUrl(fd.training.location || "")} target="_blank" rel="noopener noreferrer">
-                  <MapPin className="h-4 w-4 mr-2" />Voir sur la carte
-                </a>
-              </Button>
+            <div className="flex justify-end">
               <Button variant="outline" asChild>
                 <a href={getGoogleMapsDirectionsUrl(fd.training.location)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />Itinéraire Google Maps

@@ -20,7 +20,6 @@ import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 
 // Lazy load all pages with retry for chunk-load resilience
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CertificateGenerator = lazy(() => import("./pages/CertificateGenerator"));
 const MicroDevis = lazy(() => import("./pages/MicroDevis"));
 const Historique = lazy(() => import("./pages/Historique"));
