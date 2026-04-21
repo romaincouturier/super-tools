@@ -43,10 +43,13 @@ function SummaryCards({ summary }: { summary: Record<string, any> }) {
 }
 
 function BrowsersChart({ data }: { data: any }) {
-  if (!data || !Array.isArray(data)) return null;
-  const chartData = data.slice(0, 6).map((b: any) => ({
-    name: b.agent || b.browser || "Autre",
-    value: Number(b.count || b.hits || 0),
+  if (!data) return null;
+  const rawBrowsers = Array.isArray(data)
+    ? data
+    : Object.entries(data).map(([name, value]) => ({ name, value }));
+  const chartData = rawBrowsers.slice(0, 6).map((b: any) => ({
+    name: b.agent || b.browser || b.name || "Autre",
+    value: Number(b.count || b.hits || b.value || 0),
   })).filter((d: any) => d.value > 0);
 
   if (chartData.length === 0) return <p className="text-sm text-muted-foreground">Aucune donnée</p>;
