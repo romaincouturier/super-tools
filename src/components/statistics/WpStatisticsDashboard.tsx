@@ -1,4 +1,4 @@
-import { Globe, Users, Eye, Monitor, Link2, Search, AlertCircle, MapPin, Smartphone, Activity, BarChart3, TrendingUp } from "lucide-react";
+import { Globe, Users, Eye, Monitor, Link2, AlertCircle, Activity, TrendingUp } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -284,28 +284,6 @@ const WpStatisticsDashboard = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="search">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Moteurs de recherche</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingSearch ? <Spinner /> : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <DataTable
-                    data={Array.isArray(searchEngines) ? searchEngines : searchEngines ? Object.entries(searchEngines).map(([name, val]) => ({ name, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
-                    columns={[
-                      { key: "name", label: "Moteur", render: (r) => r.engine || r.name || "—" },
-                      { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || 0 },
-                    ]}
-                  />
-                  <PieChartCard data={searchEngines} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="browsers">
           <Card>
             <CardHeader className="pb-2">
@@ -322,50 +300,6 @@ const WpStatisticsDashboard = () => {
                     ]}
                   />
                   <PieChartCard data={browsers} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="platforms">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Systèmes d'exploitation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingPlatforms ? <Spinner /> : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <DataTable
-                    data={Array.isArray(platforms) ? platforms : platforms ? Object.entries(platforms).map(([name, val]) => ({ name, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
-                    columns={[
-                      { key: "name", label: "Plateforme", render: (r) => r.platform || r.name || "—" },
-                      { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || r.value || 0 },
-                    ]}
-                  />
-                  <PieChartCard data={platforms} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="countries">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Pays des visiteurs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingCountries ? <Spinner /> : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <DataTable
-                    data={Array.isArray(countries) ? countries : countries ? Object.entries(countries).map(([name, val]) => ({ name, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
-                    columns={[
-                      { key: "name", label: "Pays", render: (r) => r.country || r.name || r.location || "—" },
-                      { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || r.flag ? `${r.flag || ""} ${r.count || 0}` : r.count || 0 },
-                    ]}
-                  />
-                  <PieChartCard data={countries} />
                 </div>
               )}
             </CardContent>
