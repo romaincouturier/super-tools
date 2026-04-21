@@ -7,7 +7,6 @@ import type { FormationFormula } from "@/types/training";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAppSetting } from "@/hooks/useAppSetting";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { ScheduledAction } from "@/components/formations/ScheduledActionsEditor";
@@ -83,7 +82,6 @@ export interface Participant {
 
 export function useFormationDetail() {
   const isMobile = useIsMobile();
-  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
@@ -584,7 +582,6 @@ export function useFormationDetail() {
     navigate,
     toast,
     isMobile,
-    googleMapsApiKey,
     // Derived
     isElearningSession,
     isPresentiel,

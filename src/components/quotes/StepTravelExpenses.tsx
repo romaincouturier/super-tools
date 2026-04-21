@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Car, ArrowRight, SkipForward, MapPin } from "lucide-react";
 import { useTravelExpenses } from "@/hooks/useTravelExpenses";
+import { useAppSetting } from "@/hooks/useAppSetting";
 import {
   TravelSettingsPanel,
   FavoritesPills,
@@ -21,6 +22,7 @@ function GoogleMapsEmbed({
   departure: { lat: number | null; lon: number | null; address: string };
   destinations: TravelDestination[];
 }) {
+  const apiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
   const validDests = destinations.filter((d) => d.lat != null && d.lon != null);
   if (!departure.lat || !departure.lon || validDests.length === 0) {
     return (
@@ -44,7 +46,7 @@ function GoogleMapsEmbed({
     ...(waypoints ? { waypoints } : {}),
   });
 
-  const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&${params.toString()}&mode=driving`;
+  const embedUrl = `https://www.google.com/maps/embed/v1/directions?key=${apiKey}&${params.toString()}&mode=driving`;
 
   return (
     <div className="rounded-lg border overflow-hidden h-[250px]">
