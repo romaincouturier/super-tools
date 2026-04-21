@@ -18,6 +18,9 @@ interface UseDocumentsFetchResult {
   certificateUrls: string[];
   evaluationCount: number;
   saveSupportsUrl: (url: string) => Promise<void>;
+  saveSupportsType: (type: "url" | "file" | "lms") => Promise<void>;
+  saveSupportsFile: (url: string | null, fileName: string | null) => Promise<void>;
+  saveSupportsLmsCourseId: (courseId: string | null) => Promise<void>;
 }
 
 export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetchParams): UseDocumentsFetchResult {
@@ -136,6 +139,30 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     if (error) throw error;
   }, [trainingId]);
 
+  const saveSupportsType = useCallback(async (type: "url" | "file" | "lms") => {
+    const { error } = await supabase
+      .from("trainings")
+      .update({ supports_type: type })
+      .eq("id", trainingId);
+    if (error) throw error;
+  }, [trainingId]);
+
+  const saveSupportsFile = useCallback(async (url: string | null, fileName: string | null) => {
+    const { error } = await supabase
+      .from("trainings")
+      .update({ supports_url: url, supports_file_name: fileName })
+      .eq("id", trainingId);
+    if (error) throw error;
+  }, [trainingId]);
+
+  const saveSupportsLmsCourseId = useCallback(async (courseId: string | null) => {
+    const { error } = await supabase
+      .from("trainings")
+      .update({ supports_lms_course_id: courseId })
+      .eq("id", trainingId);
+    if (error) throw error;
+  }, [trainingId]);
+
   return {
     documentsSentInfo,
     setDocumentsSentInfo,
@@ -147,5 +174,8 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     certificateUrls,
     evaluationCount,
     saveSupportsUrl,
+    saveSupportsType,
+    saveSupportsFile,
+    saveSupportsLmsCourseId,
   };
 }

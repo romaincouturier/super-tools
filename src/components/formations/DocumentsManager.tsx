@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
-import { FileText, Link } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import { FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { toastError } from "@/lib/toastError";
 import {
   ConventionSection, AttendanceSheetSection, InvoiceSection,
-  DocumentDeliverySection, ThankYouEmailSection,
+  DocumentDeliverySection, ThankYouEmailSection, SupportsSection,
 } from "./documents";
 import { useDocumentsFetch } from "./documents/useDocumentsFetch";
 import type { DocumentsManagerProps } from "./documents";
@@ -18,7 +13,11 @@ const DocumentsManager = ({
   invoiceFileUrl: initialInvoiceUrl,
   attendanceSheetsUrls: initialSheetsUrls,
   sponsorEmail, sponsorName, sponsorFirstName, sponsorFormalAddress,
-  supportsUrl: initialSupportsUrl, evaluationLink, formatFormation,
+  supportsUrl: initialSupportsUrl,
+  supportsType: initialSupportsType,
+  supportsFileName: initialSupportsFileName,
+  supportsLmsCourseId: initialSupportsLmsCourseId,
+  evaluationLink, formatFormation,
   isInterEntreprise: isInterEntrepriseProp,
   conventionFileUrl: initialConventionUrl,
   trainerName, location, schedules, participants,
@@ -27,17 +26,15 @@ const DocumentsManager = ({
   const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
   const [attendanceSheetsUrls, setAttendanceSheetsUrls] = useState<string[]>(initialSheetsUrls);
-  const [supportsUrl, setSupportsUrl] = useState<string>(initialSupportsUrl || "");
   const [conventionFileUrl, setConventionFileUrl] = useState<string | null>(initialConventionUrl || null);
   const [signedConventionUrls, setSignedConventionUrls] = useState<string[]>(initialSignedConventionUrls || []);
-  const [savingSupportsUrl, setSavingSupportsUrl] = useState(false);
-  const { toast } = useToast();
 
   const {
     documentsSentInfo, setDocumentsSentInfo,
     conventionSentAt, setConventionSentAt,
     conventionSignatureStatus, conventionSignatureUrl, setConventionSignatureUrl,
-    certificateUrls, evaluationCount, saveSupportsUrl,
+    certificateUrls, evaluationCount,
+    saveSupportsUrl, saveSupportsType, saveSupportsFile, saveSupportsLmsCourseId,
   } = useDocumentsFetch({ trainingId, participants });
 
   useEffect(() => { setAttendanceSheetsUrls(initialSheetsUrls); }, [initialSheetsUrls]);
@@ -45,21 +42,6 @@ const DocumentsManager = ({
   useEffect(() => { setSignedConventionUrls(initialSignedConventionUrls || []); }, [initialSignedConventionUrls]);
 
   void evaluationLink;
-
-  const handleSupportsUrlBlur = async () => {
-    if (supportsUrl === (initialSupportsUrl || "")) return;
-    setSavingSupportsUrl(true);
-    try {
-      await saveSupportsUrl(supportsUrl);
-      onUpdate?.();
-      toast({ title: "Lien enregistré", description: "Le lien vers les supports a été mis à jour." });
-    } catch (error: unknown) {
-      console.error("Save error:", error);
-      toastError(toast, error instanceof Error ? error : "Impossible d'enregistrer le lien.");
-    } finally {
-      setSavingSupportsUrl(false);
-    }
-  };
 
   return (
     <>
@@ -81,13 +63,18 @@ const DocumentsManager = ({
             signedConventionUrls={signedConventionUrls} setSignedConventionUrls={setSignedConventionUrls}
             onUpdate={onUpdate}
           />
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2"><Link className="h-4 w-4" />Lien vers les supports de formation</Label>
-            <div className="flex items-center gap-2">
-              <Input type="url" value={supportsUrl} onChange={(e) => setSupportsUrl(e.target.value)} onBlur={handleSupportsUrlBlur} placeholder="https://drive.google.com/..." disabled={savingSupportsUrl} />
-              {savingSupportsUrl && <Spinner />}
-            </div>
-          </div>
+          <SupportsSection
+            trainingId={trainingId}
+            initialType={initialSupportsType}
+            initialUrl={initialSupportsUrl}
+            initialFileName={initialSupportsFileName}
+            initialLmsCourseId={initialSupportsLmsCourseId}
+            saveSupportsType={saveSupportsType}
+            saveSupportsUrl={saveSupportsUrl}
+            saveSupportsFile={saveSupportsFile}
+            saveSupportsLmsCourseId={saveSupportsLmsCourseId}
+            onUpdate={onUpdate}
+          />
           <AttendanceSheetSection
             trainingId={trainingId} trainingName={trainingName} trainerName={trainerName}
             location={location} startDate={startDate} endDate={endDate} schedules={schedules}
@@ -110,7 +97,7 @@ const DocumentsManager = ({
         </CardContent>
       </Card>
       <ThankYouEmailSection
-        trainingId={trainingId} trainingName={trainingName} supportsUrl={supportsUrl}
+        trainingId={trainingId} trainingName={trainingName} supportsUrl={initialSupportsUrl || ""}
         documentsSentInfo={documentsSentInfo} setDocumentsSentInfo={setDocumentsSentInfo}
       />
     </>
