@@ -14,12 +14,14 @@ const COLORS = [
 ];
 
 function SummaryCards({ summary }: { summary: Record<string, any> }) {
+  const visitors = summary?.visitors ?? {};
+  const visits = summary?.visits ?? {};
   const cards = [
-    { label: "Aujourd'hui", visitors: summary?.visitors?.today, views: summary?.visits?.today, icon: Eye },
-    { label: "Hier", visitors: summary?.visitors?.yesterday, views: summary?.visits?.yesterday, icon: Eye },
-    { label: "Cette semaine", visitors: summary?.visitors?.this_week, views: summary?.visits?.this_week, icon: Users },
-    { label: "Ce mois", visitors: summary?.visitors?.this_month, views: summary?.visits?.this_month, icon: Globe },
-    { label: "Total", visitors: summary?.visitors?.total, views: summary?.visits?.total, icon: Globe },
+    { label: "Aujourd'hui", visitors: visitors.today, views: visits.today, icon: Eye },
+    { label: "Hier", visitors: visitors.yesterday, views: visits.yesterday, icon: Eye },
+    { label: "Cette semaine", visitors: visitors.this_week ?? visitors.week, views: visits.this_week ?? visits.week, icon: Users },
+    { label: "Ce mois", visitors: visitors.this_month ?? visitors.month, views: visits.this_month ?? visits.month, icon: Globe },
+    { label: "Total", visitors: visitors.total, views: visits.total, icon: Globe },
   ];
 
   return (
