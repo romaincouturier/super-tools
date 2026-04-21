@@ -1,7 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 
-const ALLOWED_ENDPOINTS = ["summary", "hits", "visitors", "pages", "browsers", "referrers", "search"];
+const ENDPOINT_MAP: Record<string, string> = {
+  summary: "summary",
+  hits: "hits",
+  visitors: "visitors",
+  pages: "pages",
+  browsers: "browsers",
+  referrers: "referrers",
+  search: "search_engines",
+};
+const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
