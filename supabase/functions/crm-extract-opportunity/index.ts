@@ -7,8 +7,6 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-
 interface BriefQuestion {
   id: string;
   question: string;
@@ -27,32 +25,23 @@ interface ExtractionResult {
   brief_questions: BriefQuestion[];
 }
 
-// Extract company name from email domain
 function extractCompanyFromEmail(email: string): string | null {
   const match = email.match(/@([^.]+)\./);
   if (match) {
     const domain = match[1].toLowerCase();
-    // Exclude common email providers
     const commonProviders = ["gmail", "yahoo", "hotmail", "outlook", "orange", "free", "sfr", "laposte", "wanadoo", "live", "icloud", "protonmail"];
     if (!commonProviders.includes(domain)) {
-      // Capitalize first letter
       return domain.charAt(0).toUpperCase() + domain.slice(1);
     }
   }
   return null;
 }
 
-// Generate a unique ID for brief questions
 function generateId(): string {
   return crypto.randomUUID();
 }
 
-async function extractWithAI(rawInput: string): Promise<ExtractionResult> {
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
-  }
-
-  const systemPrompt = `Tu es un assistant qui analyse des demandes commerciales pour un organisme de formation professionnelle.
+const systemPrompt = `Tu es un assistant qui analyse des demandes commerciales pour un organisme de formation professionnelle.
 
 À partir du texte fourni, extrais les informations suivantes au format JSON:
 - first_name: prénom de la personne
@@ -74,59 +63,57 @@ Règles:
 
 Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+async function extractWithAI(rawInput: string): Promise<ExtractionResult> {
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/ai-gateway`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 1024,
-      system: systemPrompt,
+      model: "google/gemini-2.5-flash",
       messages: [
-        {
-          role: "user",
-          content: rawInput,
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: rawInput },
       ],
+      max_tokens: 1024,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Anthropic API error:", errorText);
+    console.error("AI Gateway error:", errorText);
     throw new Error(`Failed to extract information: ${response.status}`);
   }
 
   const result = await response.json();
-  const content = result.content[0]?.text || "{}";
+  const content = result.choices?.[0]?.message?.content || "{}";
+
+  // Strip markdown code fences if present
+  const cleanContent = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
   try {
-    const extracted = JSON.parse(content);
+    const extracted = JSON.parse(cleanContent);
 
-    // If company is null but email exists, try to extract from email
     if (!extracted.company && extracted.email) {
       extracted.company = extractCompanyFromEmail(extracted.email);
     }
 
-    // Generate title if not provided
     if (!extracted.title) {
-      const companyPart = extracted.company ? `(${extracted.company.toUpperCase()})` : "(INCONNU)";
       const servicePart = extracted.service_type === "formation" ? "Formation" :
                           extracted.service_type === "mission" ? "Mission" : "Nouvelle opportunité";
-      extracted.title = `${companyPart} ${servicePart}`;
+      extracted.title = servicePart;
     }
 
-    // Add IDs to brief questions
     const briefQuestions: BriefQuestion[] = (extracted.brief_questions || []).map((q: string | { question: string }) => ({
       id: generateId(),
       question: typeof q === "string" ? q : q.question,
       answered: false,
     }));
 
-    // If no questions were generated, add default ones
     if (briefQuestions.length === 0) {
       briefQuestions.push(
         { id: generateId(), question: "Quel est le contexte de cette demande ?", answered: false },
@@ -148,8 +135,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
       brief_questions: briefQuestions,
     };
   } catch (parseError) {
-    console.error("Failed to parse AI response:", content);
-    // Return default values with raw input as title
+    console.error("Failed to parse AI response:", cleanContent);
     return {
       first_name: null,
       last_name: null,
@@ -192,7 +178,6 @@ serve(async (req) => {
       return createErrorResponse("Texte trop long (max 15000 caractères)", 400);
     }
 
-    // Truncate to 5000 chars for AI extraction (keeping the most relevant beginning)
     const truncatedInput = raw_input.length > 5000 ? raw_input.substring(0, 5000) : raw_input;
 
     console.log("Extracting opportunity from:", raw_input.substring(0, 100));
