@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     const baseUrl = storeUrl.replace(/\/$/, "");
     forwardParams.set("token_auth", token);
     const wpEndpoint = ENDPOINT_MAP[endpoint];
-    const apiUrl = `${baseUrl}/wp-json/wp-statistics/v2/${wpEndpoint}?${forwardParams.toString()}`;
+    const apiUrl = `${baseUrl}/wp-json/wpstatistics/v1/${wpEndpoint}?${forwardParams.toString()}`;
 
     console.log(`[wp-statistics-proxy] Fetching: ${apiUrl.replace(token, '***')}`);
 
