@@ -7,7 +7,7 @@ import {
   getSupabaseClient,
 } from "../_shared/mod.ts";
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 interface SummaryRequest {
   action: "summarize_page" | "summarize_mission";
