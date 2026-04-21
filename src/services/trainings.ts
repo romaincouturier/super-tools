@@ -75,6 +75,7 @@ export async function fetchLinkableTrainings(fromDate: string) {
     .from("trainings")
     .select("id, training_name, start_date, client_name, format_formation")
     .in("format_formation", ["inter-entreprises", "e_learning"])
+    .eq("is_cancelled", false)
     .gte("start_date", fromDate)
     .order("start_date", { ascending: true });
   return (throwIfError(result) || []);

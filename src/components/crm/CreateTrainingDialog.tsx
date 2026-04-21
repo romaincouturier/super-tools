@@ -62,6 +62,7 @@ export function CreateTrainingDialog({
       const { data, error } = await supabase
         .from("trainings")
         .select("id, training_name, start_date, client_name, format_formation")
+        .eq("is_cancelled", false)
         .order("start_date", { ascending: false })
         .limit(100);
 
