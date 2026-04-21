@@ -5,16 +5,10 @@ type WpEndpoint = "summary" | "hits" | "visitors" | "pages" | "browsers" | "refe
 
 async function fetchWpStats(endpoint: WpEndpoint, params?: Record<string, string>) {
   const queryParams = new URLSearchParams({ endpoint, ...params });
-  const { data, error } = await supabase.functions.invoke("wp-statistics-proxy", {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-    body: null,
-  });
 
-  // supabase.functions.invoke doesn't support query params, so use fetch directly
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const url = `https://${projectId}.supabase.co/functions/v1/wp-statistics-proxy?${queryParams.toString()}`;
-  
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const url = `${supabaseUrl}/functions/v1/wp-statistics-proxy?${queryParams.toString()}`;
+
   const { data: session } = await supabase.auth.getSession();
   const response = await fetch(url, {
     headers: {
