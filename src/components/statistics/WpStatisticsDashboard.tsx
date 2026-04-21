@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useWpSummary, useWpPages, useWpBrowsers, useWpReferrers,
-  useWpSearch, useWpCountries, useWpPlatforms, useWpOnline,
   useWpHits, useWpVisitors,
 } from "@/hooks/useWpStatistics";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, AreaChart, Area } from "recharts";
@@ -21,11 +20,12 @@ const COLORS = [
 ];
 
 /* ─── Summary Cards ─── */
-function SummaryCards({ summary, onlineCount }: { summary: Record<string, any>; onlineCount?: number }) {
+function SummaryCards({ summary }: { summary: Record<string, any> }) {
   const visitors = summary?.visitors ?? {};
   const visits = summary?.visits ?? {};
+  const onlineCount = summary?.user_online ?? 0;
   const cards = [
-    { label: "En ligne", value: onlineCount ?? "—", sub: "maintenant", icon: Activity, highlight: true },
+    { label: "En ligne", value: onlineCount, sub: "maintenant", icon: Activity, highlight: true },
     { label: "Aujourd'hui", visitors: visitors.today, views: visits.today, icon: Eye },
     { label: "Hier", visitors: visitors.yesterday, views: visits.yesterday, icon: Eye },
     { label: "Cette semaine", visitors: visitors.this_week ?? visitors.week, views: visits.this_week ?? visits.week, icon: Users },
