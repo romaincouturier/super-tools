@@ -7611,6 +7611,9 @@ export type Database = {
         | "screenshots"
         | "veille"
         | "web_analytics"
+        | "supertilt"
+        | "support"
+        | "catalogue"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -7769,6 +7772,9 @@ export const Constants = {
         "screenshots",
         "veille",
         "web_analytics",
+        "supertilt",
+        "support",
+        "catalogue",
       ],
       notification_type: [
         "review_requested",
