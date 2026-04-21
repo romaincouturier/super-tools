@@ -1,7 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 
-const ALLOWED_ENDPOINTS = ["summary", "hits", "visitors", "pages", "browsers", "referrers", "search"];
+const ENDPOINT_MAP: Record<string, string> = {
+  summary: "summary",
+  hits: "hits",
+  visitors: "visitors",
+  pages: "pages",
+  browsers: "browsers",
+  referrers: "referrers",
+  search: "search_engines",
+};
+const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -44,10 +53,12 @@ Deno.serve(async (req) => {
     if (!token) return createErrorResponse("WP-Statistics API token not configured", 400);
     if (!storeUrl) return createErrorResponse("WordPress store URL not configured", 400);
 
-    // Build WP-Statistics API URL
+    // Build WP-Statistics REST API URL.
+    // Official add-on docs use /wp-json/wpstatistics/v1/{endpoint}?token_auth=...
     const baseUrl = storeUrl.replace(/\/$/, "");
-    forwardParams.set("token", token);
-    const apiUrl = `${baseUrl}/wp-json/wp-statistics/v2/${endpoint}?${forwardParams.toString()}`;
+    forwardParams.set("token_auth", token);
+    const wpEndpoint = ENDPOINT_MAP[endpoint];
+    const apiUrl = `${baseUrl}/wp-json/wpstatistics/v1/${wpEndpoint}?${forwardParams.toString()}`;
 
     const wpResponse = await fetch(apiUrl, {
       headers: { "Accept": "application/json" },
