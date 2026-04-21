@@ -52,13 +52,16 @@ export function useTiptapEditor({
     onFocus,
   });
 
-  // Sync editor content when the prop changes externally
+  // Sync editor content when the prop changes externally.
+  // Skip while editor is focused — the user is actively editing and
+  // setContent() would destroy cursor position.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     if (isInternalUpdate.current) {
       isInternalUpdate.current = false;
       return;
     }
+    if (editor.isFocused) return;
     const currentHTML = editor.getHTML();
     if (currentHTML !== safeContent) {
       editor.commands.setContent(safeContent, { emitUpdate: false });
