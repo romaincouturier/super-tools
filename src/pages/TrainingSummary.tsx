@@ -172,13 +172,8 @@ const TrainingSummary = () => {
         setTrainer(trainerData);
       }
 
-      const [{ data: settingValue }, { data: mapsKey }] = await Promise.all([
-        rpc.getAppSettingPublic("reglement_interieur_url"),
-        rpc.getAppSettingPublic("google_maps_api_key"),
-      ]);
-
+      const { data: settingValue } = await rpc.getAppSettingPublic("reglement_interieur_url");
       if (settingValue) setReglementInterieurUrl(settingValue);
-      if (mapsKey) setGoogleMapsApiKey(mapsKey);
     } catch (err) {
       console.error("Error fetching training data:", err);
       setError("Erreur lors du chargement des données");

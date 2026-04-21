@@ -189,9 +189,6 @@ const FormationDetailInfo = ({
         </>
       )}
 
-      {/* Logistics checklist (replaces the train/hôtel/restaurant/salle/matériel
-          dropdown — but the dropdown stays visible in the header for quick
-          actions; both stay in sync via DB triggers). */}
       <Separator />
       <div className="border rounded-lg p-3 bg-muted/30">
         <LogisticsChecklist entityType="training" entityId={training.id} format={training.format_formation} sessionType={training.session_type} />

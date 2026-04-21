@@ -370,15 +370,15 @@ async function executeTool(
           }
 
           case "add_mission_page": {
-            const nextPos = await supabase
+            const { data: lastPage } = await supabase
               .from("mission_pages")
               .select("position")
               .eq("mission_id", params.mission_id)
               .is("parent_page_id", null)
               .order("position", { ascending: false })
               .limit(1)
-              .single();
-            const position = ((nextPos.data as Record<string, unknown>)?.position as number ?? -1) + 1;
+              .maybeSingle();
+            const position = ((lastPage as Record<string, unknown>)?.position as number ?? -1) + 1;
 
             const { error } = await supabase
               .from("mission_pages")
@@ -399,11 +399,11 @@ async function executeTool(
               .from("support_tickets")
               .select("resolution_notes")
               .eq("id", params.ticket_id)
-              .single();
+              .maybeSingle();
             const existing = (ticket as Record<string, unknown>)?.resolution_notes as string || "";
             const separator = existing ? "\n\n---\n\n" : "";
             const timestamp = new Date().toLocaleDateString("fr-FR");
-            const newNotes = `${existing}${separator}**Note agent (${timestamp})** :\n${params.content}`;
+            const newNotes = `${existing}${separator}Note agent (${timestamp}) :\n${params.content}`;
 
             const { error } = await supabase
               .from("support_tickets")
@@ -416,22 +416,12 @@ async function executeTool(
           case "add_content_card": {
             let columnId = params.column_id as string | undefined;
             if (!columnId) {
-              const { data: col } = await supabase
+              const { data: cols } = await supabase
                 .from("content_columns")
-                .select("id")
-                .eq("name", "Idées")
-                .limit(1)
-                .single();
-              columnId = (col as Record<string, unknown>)?.id as string;
-              if (!columnId) {
-                const { data: firstCol } = await supabase
-                  .from("content_columns")
-                  .select("id")
-                  .order("display_order", { ascending: true })
-                  .limit(1)
-                  .single();
-                columnId = (firstCol as Record<string, unknown>)?.id as string;
-              }
+                .select("id, name")
+                .order("display_order", { ascending: true });
+              const colsList = (cols || []) as Array<{ id: string; name: string }>;
+              columnId = colsList.find((c) => c.name === "Idées")?.id || colsList[0]?.id;
             }
             if (!columnId) {
               return JSON.stringify({ error: "Aucune colonne trouvée pour le contenu" });
