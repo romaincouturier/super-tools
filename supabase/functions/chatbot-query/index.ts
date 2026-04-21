@@ -76,8 +76,8 @@ async function generateResponse(
   question: string,
   context: KnowledgeEntry[]
 ): Promise<{ answer: string; sources: string[] }> {
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
   }
 
   // Build context from knowledge base entries
@@ -99,34 +99,29 @@ RÈGLES IMPORTANTES:
 CONTEXTE DE LA BASE DE CONNAISSANCES:
 ${contextText || "Aucune information pertinente trouvée dans la base de connaissances."}`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 1024,
-      system: systemPrompt,
+      model: "google/gemini-2.5-flash",
       messages: [
-        {
-          role: "user",
-          content: question,
-        },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: question },
       ],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Anthropic API error:", errorText);
+    console.error("AI Gateway error:", errorText);
     throw new Error(`Failed to generate response: ${response.status}`);
   }
 
   const result = await response.json();
-  const answer = result.content[0]?.text || "Désolé, je n'ai pas pu générer une réponse.";
+  const answer = result.choices?.[0]?.message?.content || "Désolé, je n'ai pas pu générer une réponse.";
 
   return {
     answer,

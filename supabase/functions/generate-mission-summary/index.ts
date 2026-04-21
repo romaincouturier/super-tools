@@ -15,34 +15,34 @@ interface SummaryRequest {
   page_id?: string; // Required for summarize_page
 }
 
-async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
+async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Anthropic API error:", errorText);
+    console.error("AI Gateway error:", errorText);
     throw new Error(`AI API error: ${response.status}`);
   }
 
   const result = await response.json();
-  return result.content[0]?.text || "";
+  return result.choices?.[0]?.message?.content || "";
 }
 
 function stripHtml(html: string): string {
