@@ -33,7 +33,7 @@ function useWpQuery(endpoint: WpEndpoint, params?: Record<string, string>, enabl
     queryKey: ["wp-statistics", endpoint, params],
     queryFn: () => fetchWpStats(endpoint, params),
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    retry: false,
     enabled,
   });
 }
