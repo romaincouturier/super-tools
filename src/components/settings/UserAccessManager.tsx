@@ -253,7 +253,7 @@ export default function UserAccessManager() {
             </CardTitle>
             <CardDescription>Configurez les modules accessibles pour chaque collaborateur</CardDescription>
           </div>
-          <OnboardCollaboratorDialog onSuccess={fetchUsers} />
+          <OnboardCollaboratorDialog isAdmin />
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
