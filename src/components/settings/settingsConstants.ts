@@ -1230,6 +1230,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   convention_moyen_pedagogique: { default: "SuperTilt", description: "Moyen pédagogique affiché sur la convention" },
   convention_frais_default: { default: "0", description: "Montant des frais par défaut sur la convention" },
   convention_affiche_frais: { default: "Non", description: "Afficher les frais sur la convention (Oui/Non)" },
+  wp_statistics_api_token: { default: "", description: "Token API WP-Statistics pour récupérer les statistiques du site WordPress" },
 };
 
 export const SETTINGS_DEFAULTS = Object.fromEntries(
