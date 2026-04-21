@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Shield, Megaphone } from "lucide-react";
+import { Users, Shield, Megaphone, CheckCheck, XCircle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -21,7 +22,7 @@ interface UserWithAccess {
 export default function UserAccessManager() {
   const [users, setUsers] = useState<UserWithAccess[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<Set<string>>(new Set());
   const [commManagerId, setCommManagerId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -49,41 +50,40 @@ export default function UserAccessManager() {
 
       if (accessError) throw accessError;
 
-      const { data: profilesData } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, email, display_name, first_name, last_name");
+        .select("user_id, email, first_name, last_name, display_name, is_admin");
+      
+      if (profilesError) throw profilesError;
 
-      const profileMap = new Map<string, { email: string; first_name: string | null; last_name: string | null }>();
-      (profilesData || []).forEach((p) => {
-        profileMap.set(p.user_id, {
-          email: p.email,
-          first_name: p.first_name,
-          last_name: p.last_name,
-        });
-      });
+      const accessByUser: Record<string, AppModule[]> = {};
+      for (const row of accessData || []) {
+        if (!accessByUser[row.user_id]) accessByUser[row.user_id] = [];
+        accessByUser[row.user_id].push(row.module as AppModule);
+      }
 
-      const userMap = new Map<string, AppModule[]>();
-      accessData?.forEach((row) => {
-        const existing = userMap.get(row.user_id) || [];
-        existing.push(row.module as AppModule);
-        userMap.set(row.user_id, existing);
-      });
+      const allUserIds = new Set([
+        ...Object.keys(accessByUser),
+        ...(profiles || []).filter(p => !p.is_admin).map(p => p.user_id),
+      ]);
+
+      if (currentUser?.id) allUserIds.delete(currentUser.id);
 
       const userList: UserWithAccess[] = [];
-      
-      userMap.forEach((modules, userId) => {
-        if (currentUser?.id !== userId) {
-          const profile = profileMap.get(userId);
-          const displayName = profile?.first_name && profile?.last_name 
-            ? `${profile.first_name} ${profile.last_name}`
-            : profile?.email || `Utilisateur ${userId.slice(0, 8)}...`;
-          userList.push({
-            id: userId,
-            email: profile?.email || "",
-            displayName,
-            modules,
-          });
-        }
+      allUserIds.forEach((userId) => {
+        const profile = profiles?.find(p => p.user_id === userId);
+        if (profile?.is_admin) return;
+
+        const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ")
+          || profile?.display_name || profile?.email || userId;
+        const modules = accessByUser[userId] || [];
+
+        userList.push({
+          id: userId,
+          email: profile?.email || "",
+          displayName,
+          modules,
+        });
       });
 
       setUsers(userList);
@@ -95,8 +95,18 @@ export default function UserAccessManager() {
     }
   };
 
+  const markUpdating = (key: string, active: boolean) => {
+    setUpdating((prev) => {
+      const next = new Set(prev);
+      if (active) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  };
+
   const toggleModuleAccess = async (userId: string, module: AppModule, currentlyHasAccess: boolean) => {
-    setUpdating(`${userId}-${module}`);
+    const key = `${userId}-${module}`;
+    markUpdating(key, true);
     try {
       if (currentlyHasAccess) {
         const { error } = await supabase
@@ -110,11 +120,11 @@ export default function UserAccessManager() {
         const { data: { user } } = await supabase.auth.getUser();
         const { error } = await supabase
           .from("user_module_access")
-          .insert({
+          .upsert({
             user_id: userId,
             module: module as any,
             granted_by: user?.id,
-          } as any);
+          } as any, { onConflict: "user_id,module" });
 
         if (error) throw error;
       }
@@ -132,18 +142,77 @@ export default function UserAccessManager() {
           return u;
         })
       );
-
-      toast({
-        title: "Accès mis à jour",
-        description: currentlyHasAccess
-          ? `Accès au module "${MODULE_LABELS[module]}" retiré.`
-          : `Accès au module "${MODULE_LABELS[module]}" accordé.`,
-      });
     } catch (error) {
       console.error("Error toggling access:", error);
       toastError(toast, "Impossible de modifier l'accès.");
     } finally {
-      setUpdating(null);
+      markUpdating(key, false);
+    }
+  };
+
+  const toggleAllModules = async (userId: string, grantAll: boolean) => {
+    const user = users.find((u) => u.id === userId);
+    if (!user) return;
+
+    const allKey = `${userId}-all`;
+    markUpdating(allKey, true);
+
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+      if (grantAll) {
+        // Insert all missing modules
+        const missingModules = ALL_MODULES.filter((m) => !user.modules.includes(m));
+        if (missingModules.length > 0) {
+          const rows = missingModules.map((module) => ({
+            user_id: userId,
+            module: module as any,
+            granted_by: currentUser?.id,
+          }));
+
+          // Use upsert to avoid duplicate key errors
+          const { error } = await supabase
+            .from("user_module_access")
+            .upsert(rows as any[], { onConflict: "user_id,module" });
+
+          if (error) throw error;
+        }
+
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, modules: [...ALL_MODULES] } : u
+          )
+        );
+
+        toast({
+          title: "Accès complet accordé",
+          description: `${user.displayName} a maintenant accès à tous les modules.`,
+        });
+      } else {
+        // Remove all modules
+        const { error } = await supabase
+          .from("user_module_access")
+          .delete()
+          .eq("user_id", userId);
+
+        if (error) throw error;
+
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, modules: [] } : u
+          )
+        );
+
+        toast({
+          title: "Accès retirés",
+          description: `Tous les accès de ${user.displayName} ont été retirés.`,
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling all modules:", error);
+      toastError(toast, "Impossible de modifier les accès.");
+    } finally {
+      markUpdating(allKey, false);
     }
   };
 
@@ -168,7 +237,7 @@ export default function UserAccessManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Spinner size="md" className="text-muted-foreground" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -176,16 +245,16 @@ export default function UserAccessManager() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <CardTitle>Gestion des accès utilisateurs</CardTitle>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Gestion des accès
+            </CardTitle>
+            <CardDescription>Configurez les modules accessibles pour chaque collaborateur</CardDescription>
           </div>
-          <OnboardCollaboratorDialog isAdmin />
+          <OnboardCollaboratorDialog onSuccess={fetchUsers} />
         </div>
-        <CardDescription>
-          Gérez les accès aux différents modules et définissez les rôles clés.
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {users.length > 0 && (
@@ -218,40 +287,69 @@ export default function UserAccessManager() {
           </div>
         ) : (
           <div className="space-y-4">
-            {users.map((user) => (
-              <div key={user.id} className="border rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="font-medium">{user.displayName}</div>
-                  {commManagerId === user.id && (
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">📢 Resp. communication</span>
-                  )}
+            {users.map((user) => {
+              const allGranted = ALL_MODULES.every((m) => user.modules.includes(m));
+              const isUpdatingAll = updating.has(`${user.id}-all`);
+
+              return (
+                <div key={user.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="font-medium">{user.displayName}</div>
+                      {commManagerId === user.id && (
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">📢 Resp. communication</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAllModules(user.id, true)}
+                        disabled={allGranted || isUpdatingAll}
+                        className="gap-1.5 text-xs"
+                      >
+                        {isUpdatingAll && !allGranted ? <Spinner size="sm" /> : <CheckCheck className="h-3.5 w-3.5" />}
+                        Tout activer
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleAllModules(user.id, false)}
+                        disabled={user.modules.length === 0 || isUpdatingAll}
+                        className="gap-1.5 text-xs"
+                      >
+                        {isUpdatingAll && allGranted ? <Spinner size="sm" /> : <XCircle className="h-3.5 w-3.5" />}
+                        Tout retirer
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2">
+                    {ALL_MODULES.map((module) => {
+                      const hasAccess = user.modules.includes(module);
+                      const isUpdating = updating.has(`${user.id}-${module}`) || isUpdatingAll;
+                      
+                      return (
+                        <div key={module} className="flex items-center gap-2">
+                          <Switch
+                            id={`${user.id}-${module}`}
+                            checked={hasAccess}
+                            onCheckedChange={() => toggleModuleAccess(user.id, module, hasAccess)}
+                            disabled={isUpdating}
+                            className="scale-90"
+                          />
+                          <Label
+                            htmlFor={`${user.id}-${module}`}
+                            className="text-sm cursor-pointer whitespace-nowrap"
+                          >
+                            {MODULE_LABELS[module]}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-x-6 gap-y-2">
-                  {ALL_MODULES.map((module) => {
-                    const hasAccess = user.modules.includes(module);
-                    const isUpdating = updating === `${user.id}-${module}`;
-                    
-                    return (
-                      <div key={module} className="flex items-center gap-2">
-                        <Switch
-                          id={`${user.id}-${module}`}
-                          checked={hasAccess}
-                          onCheckedChange={() => toggleModuleAccess(user.id, module, hasAccess)}
-                          disabled={isUpdating}
-                          className="scale-90"
-                        />
-                        <Label
-                          htmlFor={`${user.id}-${module}`}
-                          className="text-sm cursor-pointer whitespace-nowrap"
-                        >
-                          {MODULE_LABELS[module]}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
