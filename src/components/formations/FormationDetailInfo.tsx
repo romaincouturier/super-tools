@@ -194,7 +194,7 @@ const FormationDetailInfo = ({
           actions; both stay in sync via DB triggers). */}
       <Separator />
       <div className="border rounded-lg p-3 bg-muted/30">
-        <LogisticsChecklist entityType="training" entityId={training.id} hideWhenEmpty />
+        <LogisticsChecklist entityType="training" entityId={training.id} format={training.format_formation} sessionType={training.session_type} />
       </div>
 
       {/* Links */}

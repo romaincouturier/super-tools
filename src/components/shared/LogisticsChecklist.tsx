@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Calendar, Bell, GripVertical } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, GripVertical, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -19,15 +19,21 @@ import {
   useUpdateLogisticsItem,
   useDeleteLogisticsItem,
 } from "@/hooks/useLogisticsChecklist";
+import { bootstrapChecklist } from "@/services/logistics";
 import type { LogisticsEntityType, LogisticsChecklistItem } from "@/types/logistics";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface LogisticsChecklistProps {
   entityType: LogisticsEntityType;
   entityId: string;
   /** Hide the section entirely if no items (avoids empty section noise). */
   hideWhenEmpty?: boolean;
+  /** Extra context for template resolution (training only). */
+  format?: string | null;
+  sessionType?: string | null;
+  isRemote?: boolean;
 }
 
 /**
@@ -42,14 +48,34 @@ interface LogisticsChecklistProps {
  *   - due_date          → deadline displayed inline
  *   - notify_days_before → email reminder N days before due_date
  */
-export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false }: LogisticsChecklistProps) {
+export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false, format: fmt, sessionType, isRemote }: LogisticsChecklistProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: items = [], isLoading } = useLogisticsChecklist(entityType, entityId);
   const createItem = useCreateLogisticsItem();
   const updateItem = useUpdateLogisticsItem();
   const deleteItem = useDeleteLogisticsItem(entityType, entityId);
 
   const [newLabel, setNewLabel] = useState("");
+  const [bootstrapping, setBootstrapping] = useState(false);
+
+  const handleBootstrap = async () => {
+    setBootstrapping(true);
+    try {
+      await bootstrapChecklist({
+        entityType,
+        entityId,
+        isRemote,
+        format: fmt,
+        sessionType,
+      });
+      queryClient.invalidateQueries({ queryKey: ["logistics-checklist", entityType, entityId] });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Impossible d'initialiser la checklist.");
+    } finally {
+      setBootstrapping(false);
+    }
+  };
 
   const handleAdd = async () => {
     const label = newLabel.trim();
@@ -110,7 +136,20 @@ export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false
         </div>
 
         {items.length === 0 && (
-          <p className="text-xs text-muted-foreground">Aucun item. Ajoutez-en un ci-dessous.</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground flex-1">Aucun item.</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleBootstrap}
+              disabled={bootstrapping}
+              className="shrink-0 text-xs"
+            >
+              <ListChecks className="h-3.5 w-3.5 mr-1" />
+              {bootstrapping ? "Initialisation…" : "Initialiser depuis le modèle"}
+            </Button>
+          </div>
         )}
 
         <ul className="space-y-1">
