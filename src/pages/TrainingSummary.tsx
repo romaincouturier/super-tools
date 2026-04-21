@@ -97,6 +97,7 @@ const c = {
   onPrimary: "#ffffff",
   tertiary: "#006972",
   onTertiaryContainer: "#006670",
+  outline: "#7d7560",
 } as const;
 
 // ── Component ───────────────────────────────────────────────────────────────
