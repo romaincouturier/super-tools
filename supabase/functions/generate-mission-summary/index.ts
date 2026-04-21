@@ -128,7 +128,7 @@ ${mission.client_name ? `**Client :** ${mission.client_name}` : ""}
 **Contenu :**
 ${pageText.substring(0, 6000)}`;
 
-      result = await callAnthropic(systemPrompt, userPrompt);
+      result = await callAI(systemPrompt, userPrompt);
     } else if (action === "summarize_mission") {
       // Fetch all activities
       const { data: activities } = await supabase
@@ -219,7 +219,7 @@ Utilise le format suivant :
 
       const userPrompt = `Génère une synthèse complète de cette mission :\n\n${context}`;
 
-      result = await callAnthropic(systemPrompt, userPrompt);
+      result = await callAI(systemPrompt, userPrompt);
     } else {
       return createErrorResponse("Action non reconnue", 400);
     }

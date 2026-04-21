@@ -11,7 +11,7 @@ const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 });
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // ─── CRM helpers ───────────────────────────────────────────────────────
 

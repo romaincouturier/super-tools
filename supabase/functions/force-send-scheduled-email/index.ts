@@ -637,22 +637,23 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         // Use AI to craft a personalized, informal follow-up message
-        const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
         let followUpBody = "";
 
-        if (ANTHROPIC_API_KEY) {
+        if (LOVABLE_API_KEY) {
           try {
-            const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
+            const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
+                "Authorization": `Bearer ${LOVABLE_API_KEY}`,
               },
               body: JSON.stringify({
-                model: "claude-3-haiku-20240307",
-                max_tokens: 500,
-                system: `Tu écris un court email de suivi informel pour un formateur qui reprend des nouvelles d'un ancien participant.
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  {
+                    role: "system",
+                    content: `Tu écris un court email de suivi informel pour un formateur qui reprend des nouvelles d'un ancien participant.
 
 Règles :
 - Ton chaleureux, humain, comme un message entre collègues
@@ -665,20 +666,22 @@ Règles :
 - NE PAS mettre de signature (elle sera ajoutée automatiquement)
 - NE PAS mettre de formule de politesse finale type "Cordialement"
 - Retourner UNIQUEMENT le corps du message en HTML (balises <p>)`,
-                messages: [{
-                  role: "user",
-                  content: `Écris un email de suivi informel :
+                  },
+                  {
+                    role: "user",
+                    content: `Écris un email de suivi informel :
 - Prénom du participant : ${participantFirstName}
 - Formation suivie : "${training.training_name}"
 - Entreprise : ${training.client_name || "non renseignée"}
 - Délai depuis la formation : environ 1 mois${evalContext}`,
-                }],
+                  },
+                ],
               }),
             });
 
             if (aiResponse.ok) {
               const aiResult = await aiResponse.json();
-              followUpBody = aiResult.content?.[0]?.text || "";
+              followUpBody = aiResult.choices?.[0]?.message?.content || "";
             }
           } catch (aiErr) {
             console.warn("AI generation failed for follow-up, using default:", aiErr);
