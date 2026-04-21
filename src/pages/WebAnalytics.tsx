@@ -1,10 +1,7 @@
-import { lazy, Suspense } from "react";
 import { Globe } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
-
-const WpStatisticsDashboard = lazy(() => import("@/components/statistics/WpStatisticsDashboard"));
+import WpStatisticsDashboard from "@/components/statistics/WpStatisticsDashboard";
 
 const WebAnalytics = () => {
   return (
