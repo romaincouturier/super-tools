@@ -107,7 +107,9 @@ Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
   const content = result.choices?.[0]?.message?.content || "{}";
 
   try {
-    const extracted = JSON.parse(content);
+    // Strip markdown code fences if present
+    const cleanContent = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const extracted = JSON.parse(cleanContent);
 
     // Fallback: use sender email if AI didn't extract one
     if (!extracted.email && senderEmail) {
