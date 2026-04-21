@@ -8,7 +8,13 @@ const ENDPOINT_MAP: Record<string, string> = {
   pages: "pages",
   browsers: "browsers",
   referrers: "referrers",
-  search: "search_engines",
+  search: "search-engines",
+  countries: "countries",
+  platforms: "platforms",
+  online: "online",
+  categories: "categories",
+  authors: "authors",
+  top_visitors: "top-visitors",
 };
 const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
 
@@ -53,12 +59,13 @@ Deno.serve(async (req) => {
     if (!token) return createErrorResponse("WP-Statistics API token not configured", 400);
     if (!storeUrl) return createErrorResponse("WordPress store URL not configured", 400);
 
-    // Build WP-Statistics REST API URL.
-    // Official add-on docs use /wp-json/wpstatistics/v1/{endpoint}?token_auth=...
+    // Build WP-Statistics REST API URL
     const baseUrl = storeUrl.replace(/\/$/, "");
     forwardParams.set("token_auth", token);
     const wpEndpoint = ENDPOINT_MAP[endpoint];
-    const apiUrl = `${baseUrl}/wp-json/wpstatistics/v1/${wpEndpoint}?${forwardParams.toString()}`;
+    const apiUrl = `${baseUrl}/wp-json/wp-statistics/v2/${wpEndpoint}?${forwardParams.toString()}`;
+
+    console.log(`[wp-statistics-proxy] Fetching: ${apiUrl.replace(token, '***')}`);
 
     const wpResponse = await fetch(apiUrl, {
       headers: { "Accept": "application/json" },

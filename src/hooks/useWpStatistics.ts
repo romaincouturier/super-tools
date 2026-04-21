@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-type WpEndpoint = "summary" | "hits" | "visitors" | "pages" | "browsers" | "referrers" | "search";
+type WpEndpoint = 
+  | "summary" | "hits" | "visitors" | "pages" | "browsers" 
+  | "referrers" | "search" | "countries" | "platforms" 
+  | "online" | "categories" | "authors" | "top_visitors";
 
 async function fetchWpStats(endpoint: WpEndpoint, params?: Record<string, string>) {
   const queryParams = new URLSearchParams({ endpoint, ...params });
@@ -25,65 +28,26 @@ async function fetchWpStats(endpoint: WpEndpoint, params?: Record<string, string
   return response.json();
 }
 
-export function useWpSummary() {
+function useWpQuery(endpoint: WpEndpoint, params?: Record<string, string>, enabled = true) {
   return useQuery({
-    queryKey: ["wp-statistics", "summary"],
-    queryFn: () => fetchWpStats("summary"),
+    queryKey: ["wp-statistics", endpoint, params],
+    queryFn: () => fetchWpStats(endpoint, params),
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    enabled,
   });
 }
 
-export function useWpHits(params?: Record<string, string>) {
-  return useQuery({
-    queryKey: ["wp-statistics", "hits", params],
-    queryFn: () => fetchWpStats("hits", params),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-}
-
-export function useWpPages(params?: Record<string, string>) {
-  return useQuery({
-    queryKey: ["wp-statistics", "pages", params],
-    queryFn: () => fetchWpStats("pages", params),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-}
-
-export function useWpBrowsers(params?: Record<string, string>) {
-  return useQuery({
-    queryKey: ["wp-statistics", "browsers", params],
-    queryFn: () => fetchWpStats("browsers", params),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-}
-
-export function useWpReferrers(params?: Record<string, string>) {
-  return useQuery({
-    queryKey: ["wp-statistics", "referrers", params],
-    queryFn: () => fetchWpStats("referrers", params),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-}
-
-export function useWpVisitors(params?: Record<string, string>) {
-  return useQuery({
-    queryKey: ["wp-statistics", "visitors", params],
-    queryFn: () => fetchWpStats("visitors", params),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-}
-
-export function useWpSearch(params?: Record<string, string>) {
-  return useQuery({
-    queryKey: ["wp-statistics", "search", params],
-    queryFn: () => fetchWpStats("search", params),
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
-  });
-}
+export function useWpSummary() { return useWpQuery("summary"); }
+export function useWpHits(params?: Record<string, string>) { return useWpQuery("hits", params); }
+export function useWpPages(params?: Record<string, string>) { return useWpQuery("pages", params); }
+export function useWpBrowsers(params?: Record<string, string>) { return useWpQuery("browsers", params); }
+export function useWpReferrers(params?: Record<string, string>) { return useWpQuery("referrers", params); }
+export function useWpVisitors(params?: Record<string, string>) { return useWpQuery("visitors", params); }
+export function useWpSearch(params?: Record<string, string>) { return useWpQuery("search", params); }
+export function useWpCountries(params?: Record<string, string>) { return useWpQuery("countries", params); }
+export function useWpPlatforms(params?: Record<string, string>) { return useWpQuery("platforms", params); }
+export function useWpOnline() { return useWpQuery("online"); }
+export function useWpCategories(params?: Record<string, string>) { return useWpQuery("categories", params); }
+export function useWpAuthors(params?: Record<string, string>) { return useWpQuery("authors", params); }
+export function useWpTopVisitors(params?: Record<string, string>) { return useWpQuery("top_visitors", params); }
