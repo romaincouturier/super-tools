@@ -56,8 +56,8 @@ function normalizeEmail(email: string | null | undefined): string | null {
 }
 
 async function extractOpportunityFromEmail(rawInput: string, senderEmail: string): Promise<ExtractionResult> {
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
   }
 
   const systemPrompt = `Tu es un assistant qui analyse des emails entrants pour un organisme de formation professionnelle.
@@ -82,29 +82,29 @@ Règles:
 
 Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: "user", content: rawInput }],
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: rawInput },
+      ],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Anthropic API error:", errorText);
+    console.error("AI Gateway error:", errorText);
     throw new Error(`Failed to extract information: ${response.status}`);
   }
 
   const result = await response.json();
-  const content = result.content[0]?.text || "{}";
+  const content = result.choices?.[0]?.message?.content || "{}";
 
   try {
     const extracted = JSON.parse(content);
