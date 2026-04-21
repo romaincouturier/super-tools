@@ -7,7 +7,7 @@ import {
   getSupabaseClient,
 } from "../_shared/mod.ts";
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 interface SummaryRequest {
   action: "summarize_page" | "summarize_mission";
@@ -15,34 +15,34 @@ interface SummaryRequest {
   page_id?: string; // Required for summarize_page
 }
 
-async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY not configured");
+async function callAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  if (!LOVABLE_API_KEY) {
+    throw new Error("LOVABLE_API_KEY not configured");
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Anthropic API error:", errorText);
+    console.error("AI Gateway error:", errorText);
     throw new Error(`AI API error: ${response.status}`);
   }
 
   const result = await response.json();
-  return result.content[0]?.text || "";
+  return result.choices?.[0]?.message?.content || "";
 }
 
 function stripHtml(html: string): string {
@@ -128,7 +128,7 @@ ${mission.client_name ? `**Client :** ${mission.client_name}` : ""}
 **Contenu :**
 ${pageText.substring(0, 6000)}`;
 
-      result = await callAnthropic(systemPrompt, userPrompt);
+      result = await callAI(systemPrompt, userPrompt);
     } else if (action === "summarize_mission") {
       // Fetch all activities
       const { data: activities } = await supabase
@@ -219,7 +219,7 @@ Utilise le format suivant :
 
       const userPrompt = `Génère une synthèse complète de cette mission :\n\n${context}`;
 
-      result = await callAnthropic(systemPrompt, userPrompt);
+      result = await callAI(systemPrompt, userPrompt);
     } else {
       return createErrorResponse("Action non reconnue", 400);
     }
