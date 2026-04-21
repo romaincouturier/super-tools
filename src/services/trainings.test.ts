@@ -16,10 +16,10 @@ function resetChain() {
   // Default: all resolve to { data: [], error: null }
   const ok = { data: [], error: null };
   mockSingle.mockReturnValue({ data: {}, error: null });
-  mockEq.mockReturnValue(ok);
+  mockEq.mockReturnValue({ gte: mockGte, order: mockOrder, ...ok });
   mockOrder.mockReturnValue(ok);
   mockGte.mockReturnValue({ order: mockOrder });
-  mockIn.mockReturnValue({ gte: mockGte, order: mockOrder });
+  mockIn.mockReturnValue({ eq: mockEq, gte: mockGte, order: mockOrder });
   mockLimit.mockReturnValue(ok);
   mockSelect.mockReturnValue({
     eq: vi.fn().mockReturnValue({ single: mockSingle }),
