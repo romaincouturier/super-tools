@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { PageViewTracker } from "@/components/PageViewTracker";
@@ -42,6 +42,7 @@ const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
@@ -124,7 +125,7 @@ const App = () => (
           <RouteErrorBoundary>
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/dashboard" element={<Navigate to="/agent" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/agent" element={<AgentChat />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
