@@ -1,12 +1,15 @@
-import { Globe, Users, Eye, Monitor, Link2, AlertCircle, Activity, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Globe, Users, Eye, Monitor, Link2, AlertCircle, Activity, TrendingUp, Search, Package } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   useWpSummary, useWpPages, useWpBrowsers, useWpReferrers,
-  useWpHits, useWpVisitors,
+  useWpHits, useWpVisitors, useWpSearch,
 } from "@/hooks/useWpStatistics";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, AreaChart, Area } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area } from "recharts";
+import { dateAsISO } from "@/lib/dateFormatters";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -18,6 +21,57 @@ const COLORS = [
   "#6366f1",
   "#f59e0b",
 ];
+
+/* ─── Period helpers ─── */
+type Period = "7d" | "30d" | "90d" | "365d";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  "7d": "7 jours",
+  "30d": "30 jours",
+  "90d": "3 mois",
+  "365d": "12 mois",
+};
+
+function periodToRange(period: Period): { from: string; to: string; days: number } {
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
+  const today = new Date();
+  const from = new Date(today);
+  from.setDate(today.getDate() - (days - 1));
+  return { from: dateAsISO(from), to: dateAsISO(today), days };
+}
+
+function formatPeriodLabel(from: string, to: string) {
+  const fmt = (iso: string) => {
+    const [, m, d] = iso.split("-");
+    return `${d}/${m}`;
+  };
+  return `${fmt(from)} → ${fmt(to)}`;
+}
+
+/* ─── Generic series normalizer ─── */
+function toDailySeries(raw: any, valueKeys: string[]): Array<{ date: string; value: number }> {
+  if (!raw || typeof raw !== "object") return [];
+  const entries = Array.isArray(raw)
+    ? raw
+    : Object.entries(raw).map(([date, val]) => {
+        if (val && typeof val === "object") return { date, ...(val as Record<string, unknown>) };
+        return { date, value: val };
+      });
+
+  const out: Array<{ date: string; value: number }> = [];
+  for (const e of entries) {
+    const date = (e as any).date || (e as any).day || "";
+    if (!date) continue;
+    let value = 0;
+    for (const k of valueKeys) {
+      const v = (e as any)[k];
+      if (typeof v === "number") { value = v; break; }
+      if (typeof v === "string" && v !== "") { value = Number(v) || 0; break; }
+    }
+    out.push({ date, value });
+  }
+  return out;
+}
 
 /* ─── Summary Cards ─── */
 function SummaryCards({ summary }: { summary: Record<string, any> }) {
@@ -71,7 +125,7 @@ function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: an
   const chartData = rawItems
     .slice(0, 8)
     .map((b: any) => ({
-      name: b.agent || b.browser || b.platform || b.country || b.name || b[nameKey] || "Autre",
+      name: b.agent || b.browser || b.platform || b.country || b.engine || b.name || b[nameKey] || "Autre",
       value: Number(b.count || b.hits || b.value || b[valueKey] || 0),
     }))
     .filter((d: any) => d.value > 0);
@@ -94,36 +148,23 @@ function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: an
 }
 
 /* ─── Hits / Visitors trend chart ─── */
-function TrendChart({ hitsData, visitorsData }: { hitsData: any; visitorsData: any }) {
-  // Try to build a daily trend from hits data
-  const chartData: { date: string; views: number; visitors: number }[] = [];
+function TrendChart({ hitsData, visitorsData, days }: { hitsData: any; visitorsData: any; days: number }) {
+  const hitsSeries = toDailySeries(hitsData, ["views", "count", "hits", "visit", "value"]);
+  const visitorsSeries = toDailySeries(visitorsData, ["visitors", "visitor", "count", "value"]);
 
-  if (hitsData && typeof hitsData === "object") {
-    const entries = Array.isArray(hitsData) ? hitsData : Object.entries(hitsData).map(([date, val]) => ({
-      date,
-      views: typeof val === "number" ? val : (val as any)?.count || (val as any)?.hits || 0,
-    }));
-
-    for (const entry of entries.slice(-30)) {
-      const date = entry.date || entry.day || "";
-      const views = Number(entry.views || entry.count || entry.hits || entry.value || 0);
-      chartData.push({ date, views, visitors: 0 });
-    }
+  const byDate = new Map<string, { date: string; views: number; visitors: number }>();
+  for (const h of hitsSeries) {
+    byDate.set(h.date, { date: h.date, views: h.value, visitors: 0 });
+  }
+  for (const v of visitorsSeries) {
+    const existing = byDate.get(v.date);
+    if (existing) existing.visitors = v.value;
+    else byDate.set(v.date, { date: v.date, views: 0, visitors: v.value });
   }
 
-  // Merge visitors data if available
-  if (visitorsData && typeof visitorsData === "object") {
-    const vEntries = Array.isArray(visitorsData) ? visitorsData : Object.entries(visitorsData).map(([date, val]) => ({
-      date,
-      visitors: typeof val === "number" ? val : (val as any)?.count || 0,
-    }));
-    for (const v of vEntries) {
-      const existing = chartData.find((c) => c.date === (v.date || v.day));
-      if (existing) {
-        existing.visitors = Number(v.visitors || v.count || v.value || 0);
-      }
-    }
-  }
+  const chartData = Array.from(byDate.values())
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-days);
 
   if (chartData.length === 0) return <p className="text-sm text-muted-foreground">Aucune donnée de tendance</p>;
 
@@ -131,7 +172,7 @@ function TrendChart({ hitsData, visitorsData }: { hitsData: any; visitorsData: a
     <ResponsiveContainer width="100%" height={300}>
       <AreaChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-        <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
+        <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v: string) => (v.length >= 5 ? v.slice(5) : v)} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
         <Legend />
@@ -143,10 +184,11 @@ function TrendChart({ hitsData, visitorsData }: { hitsData: any; visitorsData: a
 }
 
 /* ─── Data Table generic ─── */
-function DataTable({ data, columns, emptyMsg = "Aucune donnée" }: {
+function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }: {
   data: any;
   columns: { key: string; label: string; align?: "left" | "right"; render?: (row: any) => React.ReactNode }[];
   emptyMsg?: string;
+  maxRows?: number;
 }) {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyMsg}</p>;
@@ -165,7 +207,7 @@ function DataTable({ data, columns, emptyMsg = "Aucune donnée" }: {
           </tr>
         </thead>
         <tbody>
-          {data.slice(0, 20).map((row: any, i: number) => (
+          {data.slice(0, maxRows).map((row: any, i: number) => (
             <tr key={i} className="border-b border-border/50">
               {columns.map((col) => (
                 <td key={col.key} className={`py-1.5 pr-4 ${col.align === "right" ? "text-right font-medium" : "truncate max-w-[300px]"}`}>
@@ -189,14 +231,47 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
+/* ─── Product page detection ─── */
+const KNOWN_PRODUCT_SLUGS = ["produit", "product", "produits", "products", "shop", "boutique"];
+
+function detectProductPages(pages: any): { slug: string | null; items: any[] } {
+  if (!Array.isArray(pages) || pages.length === 0) return { slug: null, items: [] };
+
+  const counts = new Map<string, number>();
+  for (const page of pages) {
+    const uri: string = page?.uri || page?.page || "";
+    if (!uri) continue;
+    const first = uri.split("/").filter(Boolean)[0]?.toLowerCase();
+    if (first && KNOWN_PRODUCT_SLUGS.includes(first)) {
+      counts.set(first, (counts.get(first) || 0) + 1);
+    }
+  }
+  if (counts.size === 0) return { slug: null, items: [] };
+
+  const [slug] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const items = pages.filter((p: any) => {
+    const uri: string = (p?.uri || p?.page || "").toLowerCase();
+    return uri.startsWith(`/${slug}/`) || uri.startsWith(`${slug}/`);
+  });
+  return { slug, items };
+}
+
 /* ─── Main Dashboard ─── */
 const WpStatisticsDashboard = () => {
+  const [period, setPeriod] = useState<Period>("90d");
+  const { from, to, days } = useMemo(() => periodToRange(period), [period]);
+  const range = useMemo(() => ({ from, to }), [from, to]);
+  const periodLabel = `${PERIOD_LABELS[period]} · ${formatPeriodLabel(from, to)}`;
+
   const { data: summary, isLoading: loadingSummary, error: errorSummary } = useWpSummary();
-  const { data: pages, isLoading: loadingPages, error: errorPages } = useWpPages({ per_page: "20" });
-  const { data: browsers, isLoading: loadingBrowsers } = useWpBrowsers();
-  const { data: referrers, isLoading: loadingReferrers } = useWpReferrers();
-  const { data: hits, isLoading: loadingHits } = useWpHits();
-  const { data: visitors, isLoading: loadingVisitors } = useWpVisitors();
+  const { data: pages, isLoading: loadingPages, error: errorPages } = useWpPages({ ...range, per_page: "100" });
+  const { data: browsers, isLoading: loadingBrowsers } = useWpBrowsers(range);
+  const { data: referrers, isLoading: loadingReferrers } = useWpReferrers(range);
+  const { data: hits, isLoading: loadingHits } = useWpHits(range);
+  const { data: visitors, isLoading: loadingVisitors } = useWpVisitors(range);
+  const { data: search, isLoading: loadingSearch, error: errorSearch } = useWpSearch(range);
+
+  const productPages = useMemo(() => detectProductPages(pages), [pages]);
 
   if (loadingSummary) {
     return (
@@ -223,37 +298,97 @@ const WpStatisticsDashboard = () => {
     <div className="space-y-6">
       {summary && <SummaryCards summary={summary} />}
 
+      {/* Period selector */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm text-muted-foreground">
+          Période analysée : <span className="font-medium text-foreground">{periodLabel}</span>
+        </div>
+        <ToggleGroup
+          type="single"
+          value={period}
+          onValueChange={(v) => { if (v) setPeriod(v as Period); }}
+          variant="outline"
+          size="sm"
+        >
+          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            <ToggleGroupItem key={p} value={p} aria-label={PERIOD_LABELS[p]}>
+              {PERIOD_LABELS[p]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
       {/* Trend chart */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
             Tendance des visites
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loadingHits ? <Spinner /> : <TrendChart hitsData={hits} visitorsData={visitors} />}
+          {(loadingHits || loadingVisitors) ? <Spinner /> : <TrendChart hitsData={hits} visitorsData={visitors} days={days} />}
         </CardContent>
       </Card>
 
       <Tabs defaultValue="pages" className="space-y-4">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="pages" className="gap-1.5"><Eye className="h-3.5 w-3.5" />Pages</TabsTrigger>
+          <TabsTrigger value="products" className="gap-1.5"><Package className="h-3.5 w-3.5" />Pages produits</TabsTrigger>
           <TabsTrigger value="referrers" className="gap-1.5"><Link2 className="h-3.5 w-3.5" />Sources</TabsTrigger>
+          <TabsTrigger value="search" className="gap-1.5"><Search className="h-3.5 w-3.5" />Moteurs de recherche</TabsTrigger>
           <TabsTrigger value="browsers" className="gap-1.5"><Monitor className="h-3.5 w-3.5" />Navigateurs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pages">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Pages les plus vues</CardTitle>
+              <CardTitle className="text-base">
+                Pages les plus vues
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {loadingPages ? <Spinner /> : errorPages ? <ErrorState message="Erreur chargement pages" /> : (
                 <DataTable
                   data={pages}
+                  maxRows={20}
                   columns={[
                     { key: "title", label: "Page", render: (r) => r.title || r.uri || r.page || "—" },
+                    { key: "count", label: "Vues", align: "right", render: (r) => r.count || r.hits || r.views || 0 },
+                  ]}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="products">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                Pages produits
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
+              </CardTitle>
+              {productPages.slug && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Filtre détecté automatiquement sur le préfixe <code className="px-1 py-0.5 rounded bg-muted">/{productPages.slug}/</code>
+                </p>
+              )}
+            </CardHeader>
+            <CardContent>
+              {loadingPages ? <Spinner /> : errorPages ? <ErrorState message="Erreur chargement pages" /> : !productPages.slug ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune page produit détectée sur cette période. Slugs reconnus : {KNOWN_PRODUCT_SLUGS.map((s) => `/${s}/`).join(", ")}.
+                </p>
+              ) : (
+                <DataTable
+                  data={productPages.items}
+                  maxRows={50}
+                  emptyMsg={`Aucune vue sur les pages /${productPages.slug}/ pour cette période.`}
+                  columns={[
+                    { key: "title", label: "Produit", render: (r) => r.title || r.uri || r.page || "—" },
                     { key: "count", label: "Vues", align: "right", render: (r) => r.count || r.hits || r.views || 0 },
                   ]}
                 />
@@ -265,7 +400,10 @@ const WpStatisticsDashboard = () => {
         <TabsContent value="referrers">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Sources de trafic</CardTitle>
+              <CardTitle className="text-base">
+                Sources de trafic
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {loadingReferrers ? <Spinner /> : (
@@ -284,10 +422,41 @@ const WpStatisticsDashboard = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="search">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                Moteurs de recherche
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                Visites entrantes provenant de Google, Bing, etc. (pas la recherche interne au site).
+              </p>
+            </CardHeader>
+            <CardContent>
+              {loadingSearch ? <Spinner /> : errorSearch ? <ErrorState message="Erreur chargement moteurs de recherche" /> : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <DataTable
+                    data={Array.isArray(search) ? search : search ? Object.entries(search).map(([engine, val]) => ({ engine, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
+                    columns={[
+                      { key: "engine", label: "Moteur", render: (r) => r.engine || r.name || r.search_engine || "—" },
+                      { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || r.value || 0 },
+                    ]}
+                  />
+                  <PieChartCard data={search} nameKey="engine" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="browsers">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Navigateurs</CardTitle>
+              <CardTitle className="text-base">
+                Navigateurs
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {loadingBrowsers ? <Spinner /> : (
