@@ -49,7 +49,6 @@ const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const EmailsAValider = lazy(() => import("./pages/EmailsAValider"));
-const Statistiques = lazy(() => import("./pages/Statistiques"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
@@ -148,8 +147,6 @@ const App = () => (
               {/* Inbound emails */}
               <Route path="/emails" element={<InboundEmails />} />
               <Route path="/emails-a-valider" element={<EmailsAValider />} />
-              {/* Statistics dashboard */}
-              <Route path="/statistiques" element={<Statistiques />} />
               {/* Web analytics (WP-Statistics) */}
               <Route path="/web-analytics" element={<WebAnalytics />} />
               {/* CRM Kanban */}
