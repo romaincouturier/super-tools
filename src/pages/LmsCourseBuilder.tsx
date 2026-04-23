@@ -238,6 +238,14 @@ export default function LmsCourseBuilder() {
               <Badge variant="outline" className={course.status === "published" ? "bg-emerald-500/10 text-emerald-700" : ""}>
                 {course.status === "published" ? "Publié" : "Brouillon"}
               </Badge>
+              {course.status === "published" && (
+                <Button variant="outline" asChild>
+                  <a href={`/lms/${courseId}/player`} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Voir en ligne
+                  </a>
+                </Button>
+              )}
               <Button variant={course.status === "published" ? "outline" : "default"} onClick={togglePublish}>
                 <Eye className="w-4 h-4 mr-2" />
                 {course.status === "published" ? "Dépublier" : "Publier"}
