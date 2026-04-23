@@ -319,6 +319,16 @@ export default function LmsCoursePlayer() {
                 </div>
               )}
 
+              {/* Comments */}
+              {!isPreview && learnerEmail && (
+                <LessonComments
+                  courseId={courseId!}
+                  lessonId={selectedLesson.id}
+                  learnerEmail={learnerEmail}
+                  learnerName={learnerEmail}
+                />
+              )}
+
               {/* Navigation */}
               <Separator />
               <div className="flex items-center justify-between">
