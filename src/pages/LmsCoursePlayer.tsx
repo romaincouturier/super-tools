@@ -284,6 +284,26 @@ export default function LmsCoursePlayer() {
                 </div>
               )}
 
+              {selectedLesson.lesson_type === "image" && (
+                <div className="space-y-4">
+                  {selectedLesson.image_url && (
+                    <div className="rounded-lg overflow-hidden bg-muted border max-w-3xl mx-auto">
+                      <img
+                        src={selectedLesson.image_url}
+                        alt={selectedLesson.title}
+                        className="w-full h-auto object-contain"
+                      />
+                    </div>
+                  )}
+                  {selectedLesson.content_html && (
+                    <div
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                    />
+                  )}
+                </div>
+              )}
+
               {/* Navigation */}
               <Separator />
               <div className="flex items-center justify-between">
