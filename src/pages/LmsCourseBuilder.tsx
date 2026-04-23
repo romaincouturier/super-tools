@@ -16,7 +16,7 @@ import {
   useCourse, useUpdateCourse,
   useCourseModules, useCreateModule, useUpdateModule, useDeleteModule,
   useModuleLessons, useCourseLessons, useCreateLesson, useUpdateLesson, useDeleteLesson,
-  useCourseEnrollments,
+  useCourseEnrollments, useReorderModules, useReorderLessons,
   LmsModule, LmsLesson,
 } from "@/hooks/useLms";
 import {
