@@ -52,6 +52,21 @@ export function durationLabel(start: string | null, end: string | null): string 
   return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
 }
 
+export function greetingFor(hour: number): string {
+  if (hour < 12) return "Bonjour";
+  if (hour < 18) return "Bon après-midi";
+  return "Bonsoir";
+}
+
+export function formatToday(date: Date): string {
+  return date.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export function buildKpis(data: DashboardKpiSource): DashboardKpi[] {
   const caDelta = data.caSignedLastMonth > 0
     ? ((data.caSignedThisMonth - data.caSignedLastMonth) / data.caSignedLastMonth) * 100

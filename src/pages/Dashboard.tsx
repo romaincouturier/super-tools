@@ -21,6 +21,7 @@ import {
   type DashboardAttentionIcon,
   type DashboardKpi,
 } from "@/hooks/useDashboardData";
+import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -64,17 +65,6 @@ const ATTENTION_ICON: Record<DashboardAttentionIcon, typeof AlertTriangle> = {
   clipboard: ClipboardCheck,
   mail: Mail,
 };
-
-// ── Greeting utility ─────────────────────────────────────────
-function greetingFor(hour: number): string {
-  if (hour < 12) return "Bonjour";
-  if (hour < 18) return "Bon après-midi";
-  return "Bonsoir";
-}
-
-function formatToday(date: Date): string {
-  return date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-}
 
 // ── Sparkline ────────────────────────────────────────────────
 

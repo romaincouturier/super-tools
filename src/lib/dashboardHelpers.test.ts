@@ -3,6 +3,8 @@ import {
   buildKpis,
   durationLabel,
   formatEur,
+  formatToday,
+  greetingFor,
   toHourMin,
   type DashboardKpiSource,
 } from "./dashboardHelpers";
@@ -80,6 +82,40 @@ describe("durationLabel", () => {
 
   it("returns empty when bounds are identical", () => {
     expect(durationLabel("10:00", "10:00")).toBe("");
+  });
+});
+
+// ── greetingFor ──────────────────────────────────────────────────────────────
+
+describe("greetingFor", () => {
+  it("greets with Bonjour before noon", () => {
+    expect(greetingFor(0)).toBe("Bonjour");
+    expect(greetingFor(8)).toBe("Bonjour");
+    expect(greetingFor(11)).toBe("Bonjour");
+  });
+
+  it("greets with Bon après-midi from noon until 6pm", () => {
+    expect(greetingFor(12)).toBe("Bon après-midi");
+    expect(greetingFor(15)).toBe("Bon après-midi");
+    expect(greetingFor(17)).toBe("Bon après-midi");
+  });
+
+  it("greets with Bonsoir from 6pm onwards", () => {
+    expect(greetingFor(18)).toBe("Bonsoir");
+    expect(greetingFor(22)).toBe("Bonsoir");
+  });
+});
+
+// ── formatToday ──────────────────────────────────────────────────────────────
+
+describe("formatToday", () => {
+  it("formats in French with weekday, day, month and year", () => {
+    const date = new Date(2026, 3, 21); // 21 avril 2026
+    const formatted = formatToday(date);
+    expect(formatted).toMatch(/mardi/i);
+    expect(formatted).toMatch(/21/);
+    expect(formatted).toMatch(/avril/i);
+    expect(formatted).toMatch(/2026/);
   });
 });
 
