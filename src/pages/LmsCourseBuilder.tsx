@@ -16,11 +16,11 @@ import {
   useCourse, useUpdateCourse,
   useCourseModules, useCreateModule, useUpdateModule, useDeleteModule,
   useModuleLessons, useCourseLessons, useCreateLesson, useUpdateLesson, useDeleteLesson,
-  useCourseEnrollments,
+  useCourseEnrollments, useReorderModules, useReorderLessons,
   LmsModule, LmsLesson,
 } from "@/hooks/useLms";
 import {
-  Plus, GripVertical, ChevronDown, ChevronRight,
+  Plus, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
   FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
   Eye, Users, Settings, BookOpen, Pencil, ImageIcon, ExternalLink,
 } from "lucide-react";
@@ -47,7 +47,7 @@ const lessonTypeLabels: Record<string, string> = {
   image: "Image",
 };
 
-function ModuleBlock({ mod, courseId }: { mod: LmsModule; courseId: string }) {
+function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: { mod: LmsModule; courseId: string; onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean }) {
   const [expanded, setExpanded] = useState(true);
   const [editTitle, setEditTitle] = useState(false);
   const [title, setTitle] = useState(mod.title);
@@ -56,6 +56,7 @@ function ModuleBlock({ mod, courseId }: { mod: LmsModule; courseId: string }) {
   const deleteLesson = useDeleteLesson();
   const updateModule = useUpdateModule();
   const deleteModule = useDeleteModule();
+  const reorderLessons = useReorderLessons();
   const [selectedLesson, setSelectedLesson] = useState<LmsLesson | null>(null);
   const [addLessonType, setAddLessonType] = useState<string | null>(null);
   const { toast } = useToast();
@@ -76,12 +77,33 @@ function ModuleBlock({ mod, courseId }: { mod: LmsModule; courseId: string }) {
     setEditTitle(false);
   };
 
+  const moveLessonUp = async (index: number) => {
+    if (index === 0) return;
+    const reordered = [...lessons];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    await reorderLessons.mutateAsync(reordered.map((l, i) => ({ id: l.id, position: i })));
+  };
+
+  const moveLessonDown = async (index: number) => {
+    if (index === lessons.length - 1) return;
+    const reordered = [...lessons];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    await reorderLessons.mutateAsync(reordered.map((l, i) => ({ id: l.id, position: i })));
+  };
+
   return (
     <Card className="border-l-4 border-l-primary/30">
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <CardHeader className="py-3">
           <div className="flex items-center gap-2">
-            <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+            <div className="flex flex-col">
+              <Button variant="ghost" size="icon" className="h-5 w-5" disabled={isFirst} onClick={onMoveUp}>
+                <ArrowUp className="w-3 h-3" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-5 w-5" disabled={isLast} onClick={onMoveDown}>
+                <ArrowDown className="w-3 h-3" />
+              </Button>
+            </div>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="icon" className="h-6 w-6">
                 {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -118,7 +140,7 @@ function ModuleBlock({ mod, courseId }: { mod: LmsModule; courseId: string }) {
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-2">
-            {lessons.map((lesson) => {
+            {lessons.map((lesson, index) => {
               const Icon = lessonTypeIcons[lesson.lesson_type] || FileText;
               return (
                 <div
@@ -126,7 +148,14 @@ function ModuleBlock({ mod, courseId }: { mod: LmsModule; courseId: string }) {
                   className="flex items-center gap-2 px-3 py-2 rounded-md border bg-background hover:bg-accent/50 cursor-pointer transition-colors"
                   onClick={() => setSelectedLesson(lesson)}
                 >
-                  <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === 0} onClick={() => moveLessonUp(index)}>
+                      <ArrowUp className="w-2.5 h-2.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === lessons.length - 1} onClick={() => moveLessonDown(index)}>
+                      <ArrowDown className="w-2.5 h-2.5" />
+                    </Button>
+                  </div>
                   <Icon className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm flex-1">{lesson.title}</span>
                   <Badge variant="outline" className="text-xs">
@@ -199,6 +228,21 @@ export default function LmsCourseBuilder() {
   const updateCourse = useUpdateCourse();
   const createModule = useCreateModule();
   const { toast } = useToast();
+  const reorderModules = useReorderModules();
+
+  const moveModuleUp = async (index: number) => {
+    if (index === 0) return;
+    const reordered = [...modules];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    await reorderModules.mutateAsync(reordered.map((m, i) => ({ id: m.id, position: i })));
+  };
+
+  const moveModuleDown = async (index: number) => {
+    if (index === modules.length - 1) return;
+    const reordered = [...modules];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    await reorderModules.mutateAsync(reordered.map((m, i) => ({ id: m.id, position: i })));
+  };
 
   const [tab, setTab] = useState("content");
 
@@ -272,8 +316,16 @@ export default function LmsCourseBuilder() {
           </TabsList>
 
           <TabsContent value="content" className="space-y-4 mt-4">
-            {modules.map((mod) => (
-              <ModuleBlock key={mod.id} mod={mod} courseId={course.id} />
+            {modules.map((mod, index) => (
+              <ModuleBlock
+                key={mod.id}
+                mod={mod}
+                courseId={course.id}
+                isFirst={index === 0}
+                isLast={index === modules.length - 1}
+                onMoveUp={() => moveModuleUp(index)}
+                onMoveDown={() => moveModuleDown(index)}
+              />
             ))}
             <Button variant="outline" onClick={handleAddModule} className="w-full">
               <Plus className="w-4 h-4 mr-2" /> Ajouter un module

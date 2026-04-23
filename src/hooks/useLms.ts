@@ -492,6 +492,44 @@ export function useUpdateLesson() {
   });
 }
 
+export function useReorderModules() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (modules: { id: string; position: number }[]) => {
+      for (const m of modules) {
+        const { error } = await supabase
+          .from("lms_modules")
+          .update({ position: m.position })
+          .eq("id", m.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-modules"] });
+      qc.invalidateQueries({ queryKey: ["lms-course-lessons"] });
+    },
+  });
+}
+
+export function useReorderLessons() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (lessons: { id: string; position: number }[]) => {
+      for (const l of lessons) {
+        const { error } = await supabase
+          .from("lms_lessons")
+          .update({ position: l.position })
+          .eq("id", l.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-lessons"] });
+      qc.invalidateQueries({ queryKey: ["lms-course-lessons"] });
+    },
+  });
+}
+
 export function useDeleteLesson() {
   const qc = useQueryClient();
   return useMutation({
