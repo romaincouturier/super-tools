@@ -180,7 +180,7 @@ export default function LmsCoursePlayer() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className={`border-r bg-card transition-all ${sidebarOpen ? "w-72" : "w-0"} overflow-hidden shrink-0`}>
+        <aside className={`border-r bg-card transition-all ${sidebarOpen ? "w-64 sm:w-72" : "w-0"} overflow-hidden shrink-0`}>
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               {modules.map((mod) => {
