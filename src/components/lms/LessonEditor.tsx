@@ -4,9 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useUpdateLesson, LmsLesson, uploadLmsVideo, uploadLmsImage } from "@/hooks/useLms";
+import { useUpdateLesson, LmsLesson, uploadLmsVideo, uploadLmsImage, uploadLmsFile } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Clock, Upload } from "lucide-react";
+import { Save, Clock, Upload, Download, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { formatFileSize } from "@/lib/file-utils";
@@ -20,12 +20,16 @@ export default function LmsLessonEditor({ lesson }: Props) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: lesson.title,
     content_html: lesson.content_html || "",
     video_url: lesson.video_url || "",
     image_url: lesson.image_url || "",
+    file_url: lesson.file_url || "",
+    file_name: lesson.file_name || "",
+    file_size: lesson.file_size || 0,
     estimated_minutes: lesson.estimated_minutes || 5,
     is_mandatory: lesson.is_mandatory,
   });
