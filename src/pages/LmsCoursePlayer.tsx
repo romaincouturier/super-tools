@@ -180,7 +180,7 @@ export default function LmsCoursePlayer() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className={`border-r bg-card transition-all ${sidebarOpen ? "w-72" : "w-0"} overflow-hidden shrink-0`}>
+        <aside className={`border-r bg-card transition-all ${sidebarOpen ? "w-64 sm:w-72" : "w-0"} overflow-hidden shrink-0`}>
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               {modules.map((mod) => {
@@ -238,7 +238,7 @@ export default function LmsCoursePlayer() {
         {/* Main content */}
         <main className="flex-1 overflow-auto">
           {selectedLesson ? (
-            <div className="max-w-4xl mx-auto p-6 space-y-6">
+            <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
               <div className="flex items-center gap-3">
                 {lessonTypeIcon(selectedLesson.lesson_type)}
                 <h2 className="text-xl font-bold flex-1">{selectedLesson.title}</h2>
@@ -252,7 +252,7 @@ export default function LmsCoursePlayer() {
               {/* Lesson content */}
               {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
                 <div
-                  className="prose prose-sm max-w-none"
+                  className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
                   dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
                 />
               )}
@@ -302,17 +302,17 @@ export default function LmsCoursePlayer() {
               {selectedLesson.lesson_type === "image" && (
                 <div className="space-y-4">
                   {selectedLesson.image_url && (
-                    <div className="rounded-lg overflow-hidden bg-muted border max-w-3xl mx-auto">
+                    <div className="rounded-lg overflow-hidden bg-muted border w-full">
                       <img
                         src={selectedLesson.image_url}
                         alt={selectedLesson.title}
-                        className="w-full h-auto object-contain"
+                        className="w-full h-auto object-contain max-h-[70vh]"
                       />
                     </div>
                   )}
                   {selectedLesson.content_html && (
                     <div
-                      className="prose prose-sm max-w-none"
+                      className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
                       dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
                     />
                   )}
