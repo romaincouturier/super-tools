@@ -284,7 +284,7 @@ export default function LmsCourseBuilder() {
               </Badge>
               {course.status === "published" && (
                 <Button variant="outline" asChild>
-                  <a href={`/lms/${courseId}/player`} target="_blank" rel="noopener noreferrer">
+                  <a href={`/lms/${courseId}/player?preview=admin`} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Voir en ligne
                   </a>

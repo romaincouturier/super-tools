@@ -31,6 +31,7 @@ export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchParams] = useSearchParams();
   const learnerEmail = searchParams.get("email") || "";
+  const isPreview = searchParams.get("preview") === "admin";
 
   const { data: course } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
@@ -107,7 +108,7 @@ export default function LmsCoursePlayer() {
     );
   }
 
-  if (course.status !== "published") {
+  if (course.status !== "published" && !isPreview) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="max-w-md w-full">
@@ -121,7 +122,7 @@ export default function LmsCoursePlayer() {
     );
   }
 
-  if (!learnerEmail) {
+  if (!learnerEmail && !isPreview) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="max-w-md w-full">
@@ -147,6 +148,11 @@ export default function LmsCoursePlayer() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {isPreview && (
+        <div className="bg-amber-500 text-white text-center text-sm py-1 font-medium">
+          🔍 Mode prévisualisation admin — les progressions ne sont pas enregistrées
+        </div>
+      )}
       {/* Top bar */}
       <header className="h-14 border-b bg-card flex items-center px-4 gap-4 shrink-0">
         <SupertiltLogo className="h-6" />
