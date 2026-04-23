@@ -22,12 +22,13 @@ import {
 import {
   Plus, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
   FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
-  Eye, Users, Settings, BookOpen, Pencil, ImageIcon, ExternalLink,
+  Eye, Users, Settings, BookOpen, Pencil, ImageIcon, ExternalLink, BarChart3,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import LmsLessonEditor from "@/components/lms/LessonEditor";
 import LmsQuizBuilder from "@/components/lms/QuizBuilder";
+import LmsAnalyticsTab from "@/components/lms/AnalyticsTab";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
 
@@ -310,6 +311,9 @@ export default function LmsCourseBuilder() {
             <TabsTrigger value="forum">
               <FileText className="w-4 h-4 mr-2" /> Forum
             </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="w-4 h-4 mr-2" /> Analytics
+            </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="w-4 h-4 mr-2" /> Paramètres
             </TabsTrigger>
@@ -338,6 +342,10 @@ export default function LmsCourseBuilder() {
 
           <TabsContent value="forum" className="mt-4">
             <LmsForumSection courseId={course.id} />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-4">
+            <LmsAnalyticsTab courseId={course.id} />
           </TabsContent>
 
           <TabsContent value="settings" className="mt-4">

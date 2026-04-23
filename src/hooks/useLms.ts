@@ -810,3 +810,105 @@ export function useCreateForumPost() {
     },
   });
 }
+
+// ---- Page View Tracking ----
+export function useTrackPageView() {
+  return useMutation({
+    mutationFn: async ({ courseId, lessonId, learnerEmail }: { courseId: string; lessonId: string; learnerEmail: string }) => {
+      const client = learnerEmail ? createLearnerClient(learnerEmail) : supabase;
+      const { error } = await client
+        .from("lms_page_views")
+        .insert({ course_id: courseId, lesson_id: lessonId, learner_email: learnerEmail || "admin-preview" } as any);
+      if (error) console.warn("Page view tracking error:", error);
+    },
+  });
+}
+
+export function useLessonViewStats(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ["lms-page-views", courseId],
+    queryFn: async () => {
+      if (!courseId) return [];
+      const { data, error } = await supabase
+        .from("lms_page_views")
+        .select("lesson_id, learner_email, viewed_at")
+        .eq("course_id", courseId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!courseId,
+  });
+}
+
+// ---- Lesson Comments ----
+export function useLessonComments(lessonId: string | undefined, learnerEmail?: string) {
+  return useQuery({
+    queryKey: ["lms-lesson-comments", lessonId],
+    queryFn: async () => {
+      if (!lessonId) return [];
+      const client = learnerEmail ? createLearnerClient(learnerEmail) : supabase;
+      const { data, error } = await client
+        .from("lms_lesson_comments")
+        .select("*")
+        .eq("lesson_id", lessonId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!lessonId,
+  });
+}
+
+export function usePostLessonComment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { courseId: string; lessonId: string; learnerEmail: string; learnerName: string; content: string }) => {
+      const client = createLearnerClient(input.learnerEmail);
+      const { error } = await client
+        .from("lms_lesson_comments")
+        .insert({
+          course_id: input.courseId,
+          lesson_id: input.lessonId,
+          learner_email: input.learnerEmail,
+          learner_name: input.learnerName,
+          content: input.content,
+        } as any);
+      if (error) throw error;
+
+      // Notify admin
+      try {
+        await supabase.functions.invoke("notify-lms-comment", {
+          body: {
+            lessonId: input.lessonId,
+            courseId: input.courseId,
+            learnerEmail: input.learnerEmail,
+            learnerName: input.learnerName,
+            comment: input.content,
+          },
+        });
+      } catch (e) {
+        console.warn("Failed to notify admin:", e);
+      }
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ["lms-lesson-comments", vars.lessonId] });
+    },
+  });
+}
+
+export function useAllCourseComments(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ["lms-all-comments", courseId],
+    queryFn: async () => {
+      if (!courseId) return [];
+      const { data, error } = await supabase
+        .from("lms_lesson_comments")
+        .select("*")
+        .eq("course_id", courseId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!courseId,
+  });
+}

@@ -15,9 +15,10 @@ import {
   useLearnerProgress, useMarkLessonComplete,
   useQuiz, useQuizQuestions, useSubmitQuizAttempt,
   useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile,
-  useLearnerBadges,
+  useLearnerBadges, useTrackPageView,
   LmsLesson, LmsModule, LmsQuizQuestion,
 } from "@/hooks/useLms";
+import LessonComments from "@/components/lms/LessonComments";
 import {
   BookOpen, CheckCircle2, Circle, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
@@ -39,6 +40,7 @@ export default function LmsCoursePlayer() {
   const { data: progress = [] } = useLearnerProgress(courseId, learnerEmail || undefined);
   const { data: badges = [] } = useLearnerBadges(learnerEmail || undefined);
   const markComplete = useMarkLessonComplete();
+  const trackView = useTrackPageView();
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -63,6 +65,13 @@ export default function LmsCoursePlayer() {
       setSelectedLessonId(orderedLessons[0].id);
     }
   }, [orderedLessons, selectedLessonId]);
+
+  // Track page view when lesson changes
+  useEffect(() => {
+    if (selectedLessonId && courseId && (learnerEmail || isPreview)) {
+      trackView.mutate({ courseId, lessonId: selectedLessonId, learnerEmail: learnerEmail || "admin-preview" });
+    }
+  }, [selectedLessonId, courseId]);
 
   const selectedLesson = orderedLessons.find((l) => l.id === selectedLessonId);
   const currentIndex = orderedLessons.findIndex((l) => l.id === selectedLessonId);
@@ -308,6 +317,16 @@ export default function LmsCoursePlayer() {
                     />
                   )}
                 </div>
+              )}
+
+              {/* Comments */}
+              {!isPreview && learnerEmail && (
+                <LessonComments
+                  courseId={courseId!}
+                  lessonId={selectedLesson.id}
+                  learnerEmail={learnerEmail}
+                  learnerName={learnerEmail}
+                />
               )}
 
               {/* Navigation */}
