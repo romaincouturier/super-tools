@@ -140,13 +140,45 @@ export default function LmsLessonEditor({ lesson }: Props) {
 
       {lesson.lesson_type === "image" && (
         <div className="space-y-3">
-          <div>
-            <Label>URL de l'image</Label>
-            <Input
-              value={form.image_url}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-              placeholder="https://... ou collez l'URL d'une image"
-            />
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Label>URL de l'image</Label>
+              <Input
+                value={form.image_url}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                placeholder="https://... ou importez un fichier"
+              />
+            </div>
+            <div>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploading(true);
+                  try {
+                    const url = await uploadLmsImage(file, lesson.id);
+                    setForm((f) => ({ ...f, image_url: url }));
+                    toast({ title: `Image importée (${formatFileSize(file.size)})` });
+                  } catch (err: unknown) {
+                    toast({ title: "Erreur d'upload", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Spinner className="mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                {uploading ? "Upload..." : "Importer"}
+              </Button>
+            </div>
           </div>
           {form.image_url && (
             <div className="rounded-lg overflow-hidden bg-muted border max-w-2xl">
