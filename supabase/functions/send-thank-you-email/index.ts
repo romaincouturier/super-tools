@@ -153,17 +153,22 @@ serve(async (req) => {
     const urls = await getAppUrls();
     const baseUrl = urls.app_url;
 
-    // Resolve supports URL: use explicit URL if set, otherwise check for editor-created support
+    // Resolve supports URL: use explicit URL if set, otherwise check for LMS course or editor-created support
     let supportsUrl = training.supports_url || "";
     if (!supportsUrl) {
-      const { data: supportRecord } = await supabase
-        .from("training_supports")
-        .select("id")
-        .eq("training_id", trainingId)
-        .maybeSingle();
-      if (supportRecord) {
+      if (training.supports_type === "lms" && training.supports_lms_course_id) {
         supportsUrl = `${baseUrl}/formation-support/${trainingId}`;
-        console.log("Using training support viewer URL:", supportsUrl);
+        console.log("Using LMS course support URL:", supportsUrl);
+      } else {
+        const { data: supportRecord } = await supabase
+          .from("training_supports")
+          .select("id")
+          .eq("training_id", trainingId)
+          .maybeSingle();
+        if (supportRecord) {
+          supportsUrl = `${baseUrl}/formation-support/${trainingId}`;
+          console.log("Using training support viewer URL:", supportsUrl);
+        }
       }
     }
 
