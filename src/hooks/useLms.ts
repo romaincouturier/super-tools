@@ -719,6 +719,29 @@ export async function uploadLmsVideo(file: File, lessonId: string): Promise<stri
   return publicUrl;
 }
 
+// ---- Image upload helper ----
+export async function uploadLmsImage(file: File, lessonId: string): Promise<string> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `images/${lessonId}/${Date.now()}.${ext}`;
+  const contentType = resolveContentType(file) || "image/jpeg";
+  const { error } = await supabase.storage
+    .from("lms-content")
+    .upload(path, file, { contentType, upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
+  const publicUrl = data.publicUrl;
+  await registerMediaEntry({
+    file_url: publicUrl,
+    file_name: file.name,
+    file_type: "image",
+    mime_type: contentType,
+    file_size: file.size,
+    source_type: "lms",
+    source_id: lessonId,
+  });
+  return publicUrl;
+}
+
 export async function uploadAssignmentFile(file: File, lessonId: string, email: string): Promise<{ url: string; name: string; size: number }> {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
   const path = `assignments/${lessonId}/${email}/${Date.now()}_${safeName}`;
