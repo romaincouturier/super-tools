@@ -173,6 +173,8 @@ export function useCourse(id: string | undefined) {
   return useQuery({
     queryKey: ["lms-course", id],
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_courses")
@@ -189,6 +191,8 @@ export function useCourseModules(courseId: string | undefined) {
   return useQuery({
     queryKey: ["lms-modules", courseId],
     enabled: !!courseId,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_modules")
@@ -221,6 +225,8 @@ export function useCourseLessons(courseId: string | undefined) {
   return useQuery({
     queryKey: ["lms-course-lessons", courseId],
     enabled: !!courseId,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data: modules, error: mErr } = await supabase
         .from("lms_modules")

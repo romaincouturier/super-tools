@@ -1,0 +1,1 @@
+select count(*) from public.lms_modules where course_id = '8a8481ce-506d-49d6-ad93-68c0f87e8522';
