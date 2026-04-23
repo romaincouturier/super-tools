@@ -15,8 +15,8 @@ interface AppSidebarProps {
 
 /** Module keys in display order for the sidebar.
  *  Retirés : micro-devis (accessible via CRM), certificates (outil batch rarement utilisé),
- *  statistiques (intégré en accordéon dans /formations), supertilt/ameliorations (remontés
- *  dans le dashboard), arena (accessible depuis Agent IA). Les routes restent actives. */
+ *  statistiques (intégré en accordéon dans /formations), arena (accessible depuis Agent IA).
+ *  Les routes restent actives. */
 const SIDEBAR_MODULE_ORDER = [
   "crm",
   "missions",
@@ -33,8 +33,10 @@ const SIDEBAR_MODULE_ORDER = [
   "emails",
   "historique",
   "monitoring",
+  "ameliorations",
   "support",
   "reseau",
+  "supertilt",
   "veille",
   "web-analytics",
 ];

@@ -4,101 +4,66 @@ import {
   ArrowRight,
   ArrowUpRight,
   AlertTriangle,
-  Award,
-  BarChart3,
   Bot,
-  BookOpen,
-  Briefcase,
-  Calendar,
-  CalendarDays,
   ChevronRight,
   ClipboardCheck,
-  ClipboardList,
-  Database,
-  Eye,
   FileText,
-  GraduationCap,
-  History,
-  Image as ImageIcon,
-  Inbox,
-  Kanban,
-  LifeBuoy,
-  Newspaper,
+  Mail,
   Send,
-  Sparkles,
   Star,
-  Target,
-  TrendingUp,
-  Users,
 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
+import { Spinner } from "@/components/ui/spinner";
+import { MODULE_ICONS } from "@/components/moduleIcons";
+import { useModuleAccess, type AppModule } from "@/hooks/useModuleAccess";
+import {
+  useDashboardData,
+  type DashboardAttentionIcon,
+  type DashboardKpi,
+} from "@/hooks/useDashboardData";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
 const ANTHRACITE = "#101820";
 const YELLOW = "#ffd100";
 
-// ── Typographie helpers ──────────────────────────────────────
 const serif = '"Fraunces", "Playfair Display", Georgia, serif';
 
-// ── Mock data (à câbler aux vraies queries ultérieurement) ───
-const USER = { first: "Romain", initials: "RC" } as const;
-
-const KPIS: KpiDefinition[] = [
-  { id: "ca", label: "CA signé ce mois", value: "48 320 €", delta: "+12,4 %", trend: "up", spark: [22, 28, 24, 31, 35, 33, 42, 48] },
-  { id: "missions", label: "Missions actives", value: "7", delta: "2 nouvelles", trend: "up", spark: [4, 4, 5, 5, 6, 6, 7, 7] },
-  { id: "formations", label: "Formations à venir", value: "12", delta: "3 cette semaine", trend: "flat", spark: [8, 10, 11, 11, 10, 12, 12, 12] },
-  { id: "devis", label: "Devis en attente", value: "4", delta: "1 à relancer", trend: "warn", spark: [2, 3, 3, 4, 5, 4, 4, 4] },
+// ── Module tiles : source commune, access-filtered ───────────
+const MODULE_ORDER = [
+  "crm",
+  "missions",
+  "formations",
+  "okr",
+  "evaluations",
+  "catalogue",
+  "contenu",
+  "events",
+  "medias",
+  "besoins",
+  "lms",
+  "ameliorations",
+  "supertilt",
+  "historique",
+  "emails",
+  "reclamations",
+  "reseau",
+  "veille",
 ];
-
-interface AgendaItem { time: string; dur: string; title: string; tag: string; color: "yellow" | "neutral" }
-const AGENDA: AgendaItem[] = [
-  { time: "09:30", dur: "1h", title: "Kick-off Axa Formation", tag: "Mission", color: "yellow" },
-  { time: "11:00", dur: "45 min", title: "Relecture livrable — Orange Pro", tag: "Contenu", color: "neutral" },
-  { time: "14:00", dur: "3h", title: "Formation Leadership — J2 (Decathlon)", tag: "Formation", color: "yellow" },
-  { time: "17:30", dur: "30 min", title: "Point hebdo équipe", tag: "Interne", color: "neutral" },
-];
-
-interface AttentionItem { icon: typeof AlertTriangle; text: string; path: string; tone: "warn" | "info" }
-const ATTENTION: AttentionItem[] = [
-  { icon: AlertTriangle, text: "3 emails en erreur d'envoi", path: "/emails-erreur", tone: "warn" },
-  { icon: FileText, text: "1 devis expire dans 2 jours", path: "/crm", tone: "warn" },
-  { icon: ClipboardCheck, text: "14 évaluations non lues", path: "/evaluations", tone: "info" },
-];
-
-const INSIGHT = {
-  headline: "Votre taux de transformation devis → mission a bondi à 68 % ce trimestre",
-  detail: "C'est 14 points au-dessus du Q4 2025. Les missions « audit » tirent la hausse.",
-};
 
 const FAVORITES = new Set(["crm", "missions", "formations", "okr", "evaluations"]);
 
-interface ModuleTile { id: string; label: string; icon: typeof Kanban; path: string }
-const MODULES: ModuleTile[] = [
-  { id: "crm", label: "CRM", icon: Kanban, path: "/crm" },
-  { id: "missions", label: "Missions", icon: Briefcase, path: "/missions" },
-  { id: "formations", label: "Formations", icon: Calendar, path: "/formations" },
-  { id: "micro-devis", label: "Micro-devis", icon: FileText, path: "/micro-devis" },
-  { id: "okr", label: "OKR", icon: Target, path: "/okr" },
-  { id: "contenu", label: "Contenu", icon: Newspaper, path: "/contenu" },
-  { id: "events", label: "Événements", icon: CalendarDays, path: "/events" },
-  { id: "medias", label: "Médiathèque", icon: ImageIcon, path: "/medias" },
-  { id: "catalogue", label: "Catalogue", icon: BookOpen, path: "/catalogue" },
-  { id: "evaluations", label: "Évaluations", icon: ClipboardCheck, path: "/evaluations" },
-  { id: "certificates", label: "Certificats", icon: Award, path: "/certificates" },
-  { id: "besoins", label: "Besoins", icon: ClipboardList, path: "/besoins" },
-  { id: "lms", label: "E-learning", icon: GraduationCap, path: "/lms" },
-  { id: "reclamations", label: "Réclamations", icon: AlertTriangle, path: "/reclamations" },
-  { id: "emails", label: "Emails reçus", icon: Inbox, path: "/emails" },
-  { id: "historique", label: "Historique", icon: History, path: "/historique" },
-  { id: "statistiques", label: "Statistiques", icon: BarChart3, path: "/statistiques" },
-  { id: "monitoring", label: "Monitoring", icon: Database, path: "/monitoring" },
-  { id: "ameliorations", label: "Améliorations", icon: TrendingUp, path: "/ameliorations" },
-  { id: "support", label: "Support", icon: LifeBuoy, path: "/support" },
-  { id: "reseau", label: "Réseau", icon: Users, path: "/reseau" },
-  { id: "veille", label: "Veille", icon: Eye, path: "/veille" },
-  { id: "arena", label: "AI Arena", icon: Sparkles, path: "/arena" },
-];
+function moduleKeyToAppModule(key: string): AppModule {
+  return key.replace("-", "_") as AppModule;
+}
+
+// ── Attention icon mapping ───────────────────────────────────
+const ATTENTION_ICON: Record<DashboardAttentionIcon, typeof AlertTriangle> = {
+  alert: AlertTriangle,
+  file: FileText,
+  clipboard: ClipboardCheck,
+  mail: Mail,
+};
 
 // ── Greeting utility ─────────────────────────────────────────
 function greetingFor(hour: number): string {
@@ -112,14 +77,15 @@ function formatToday(date: Date): string {
 }
 
 // ── Sparkline ────────────────────────────────────────────────
-interface KpiDefinition { id: string; label: string; value: string; delta: string; trend: "up" | "warn" | "flat"; spark: number[] }
 
 function Sparkline({ data, color, width = 64, height = 28, strokeWidth = 1.75 }: { data: number[]; color: string; width?: number; height?: number; strokeWidth?: number }) {
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  if (!data.length) return null;
+  const safeData = data.length === 1 ? [data[0], data[0]] : data;
+  const min = Math.min(...safeData);
+  const max = Math.max(...safeData);
   const range = max - min || 1;
-  const step = width / (data.length - 1);
-  const pts = data
+  const step = width / (safeData.length - 1);
+  const pts = safeData
     .map((v, i) => `${(i * step).toFixed(1)},${(height - ((v - min) / range) * (height - 4) - 2).toFixed(1)}`)
     .join(" ");
   return (
@@ -130,7 +96,7 @@ function Sparkline({ data, color, width = 64, height = 28, strokeWidth = 1.75 }:
 }
 
 // ── KPI card ─────────────────────────────────────────────────
-function KpiCard({ kpi }: { kpi: KpiDefinition }) {
+function KpiCard({ kpi }: { kpi: DashboardKpi }) {
   const trendColor = kpi.trend === "up" ? "#1a7a3f" : kpi.trend === "warn" ? "#b45309" : "rgba(16,24,32,0.3)";
   const deltaColor = kpi.trend === "up" ? "#1a7a3f" : kpi.trend === "warn" ? "#b45309" : "rgba(16,24,32,0.5)";
   return (
@@ -170,20 +136,29 @@ function KpiCard({ kpi }: { kpi: KpiDefinition }) {
 // ── Dashboard ────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { hasAccess } = useModuleAccess();
+  const dashboard = useDashboardData();
+
   const now = useMemo(() => new Date(), []);
   const greet = greetingFor(now.getHours());
   const today = formatToday(now);
   const [agentPrompt, setAgentPrompt] = useState("");
 
+  const accessibleModules = useMemo(
+    () =>
+      MODULE_ORDER
+        .map((key) => ({ key, info: MODULE_ICONS[key] }))
+        .filter((m) => !!m.info && hasAccess(moduleKeyToAppModule(m.key))),
+    [hasAccess],
+  );
+
   const handleAgentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = agentPrompt.trim();
-    if (trimmed) {
-      navigate(`/agent?q=${encodeURIComponent(trimmed)}`);
-    } else {
-      navigate("/agent");
-    }
+    navigate(trimmed ? `/agent?q=${encodeURIComponent(trimmed)}` : "/agent");
   };
+
+  const firstName = dashboard.user.firstName || "vous";
 
   return (
     <ModuleLayout>
@@ -224,10 +199,10 @@ const Dashboard = () => {
                 }}
               >
                 {greet},{" "}
-                <em style={{ fontStyle: "italic", fontWeight: 400 }}>{USER.first}</em>.
+                <em style={{ fontStyle: "italic", fontWeight: 400 }}>{firstName}</em>.
               </h1>
               <p style={{ fontSize: 16, color: "rgba(16,24,32,0.65)", margin: "10px 0 0", maxWidth: 560, lineHeight: 1.5 }}>
-                4 événements sur votre journée, 2 devis à relancer. Vous avancez bien sur les OKR Q2.
+                {dashboard.isLoading ? "Chargement de votre tableau de bord…" : dashboard.subtitle}
               </p>
             </div>
             <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -291,14 +266,14 @@ const Dashboard = () => {
                   color: ANTHRACITE,
                 }}
               >
-                {INSIGHT.headline}
+                {dashboard.insight.headline}
               </div>
               <div style={{ fontSize: 14, color: "rgba(16,24,32,0.75)", marginTop: 12, lineHeight: 1.5 }}>
-                {INSIGHT.detail}
+                {dashboard.insight.detail}
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/statistiques")}
+                onClick={() => navigate(dashboard.insight.path)}
                 style={{
                   marginTop: 16,
                   padding: "8px 14px",
@@ -317,7 +292,6 @@ const Dashboard = () => {
                 Voir le détail <ArrowRight size={13} />
               </button>
             </div>
-            {/* Stylized chart */}
             <div style={{ position: "relative", height: 140 }}>
               <svg width="100%" height="100%" viewBox="0 0 320 140" style={{ overflow: "visible" }} aria-hidden="true">
                 <defs>
@@ -342,7 +316,6 @@ const Dashboard = () => {
                   const ys = [110, 95, 100, 75, 60, 50, 30, 25, 10];
                   return <circle key={x} cx={x} cy={ys[i]} r={i === 8 ? 5 : 3} fill={ANTHRACITE} />;
                 })}
-                <text x="300" y="4" fontSize="11" fill={ANTHRACITE} fontWeight="600" textAnchor="end">68%</text>
               </svg>
             </div>
           </section>
@@ -356,9 +329,13 @@ const Dashboard = () => {
               marginBottom: 36,
             }}
           >
-            {KPIS.map((k) => (
-              <KpiCard key={k.id} kpi={k} />
-            ))}
+            {dashboard.isLoading && dashboard.kpis.length === 0 ? (
+              <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "center", padding: 32 }}>
+                <Spinner />
+              </div>
+            ) : (
+              dashboard.kpis.map((k) => <KpiCard key={k.id} kpi={k} />)
+            )}
           </section>
 
           {/* Two-column: Agenda + Attention/Agent prompt */}
@@ -379,7 +356,9 @@ const Dashboard = () => {
                     Votre journée
                   </h2>
                   <div style={{ fontSize: 12, color: "rgba(16,24,32,0.5)", marginTop: 2 }}>
-                    {AGENDA.length} événements · fin à 18h
+                    {dashboard.agenda.length > 0
+                      ? `${dashboard.agenda.length} événement${dashboard.agenda.length > 1 ? "s" : ""}`
+                      : "Rien de prévu aujourd'hui"}
                   </div>
                 </div>
                 <button
@@ -400,49 +379,55 @@ const Dashboard = () => {
                   Voir le calendrier <ChevronRight size={12} />
                 </button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {AGENDA.map((e, i) => (
-                  <div
-                    key={`${e.time}-${e.title}`}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "64px 4px 1fr auto",
-                      gap: 12,
-                      alignItems: "center",
-                      padding: "10px 0",
-                      borderTop: i > 0 ? "1px solid rgba(16,24,32,0.05)" : "none",
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2 }}>
-                        {e.time}
-                      </div>
-                      <div style={{ fontSize: 11, color: "rgba(16,24,32,0.45)" }}>{e.dur}</div>
-                    </div>
+              {dashboard.agenda.length === 0 ? (
+                <div style={{ padding: "18px 0", fontSize: 13, color: "rgba(16,24,32,0.5)" }}>
+                  Aucun créneau de formation ni événement prévu aujourd&apos;hui.
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {dashboard.agenda.map((e, i) => (
                     <div
+                      key={`${e.time}-${e.title}-${i}`}
                       style={{
-                        width: 3,
-                        height: 28,
-                        borderRadius: 2,
-                        background: e.color === "yellow" ? YELLOW : "rgba(16,24,32,0.15)",
-                      }}
-                    />
-                    <div style={{ fontSize: 14, fontWeight: 500 }}>{e.title}</div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: "rgba(16,24,32,0.55)",
-                        padding: "3px 8px",
-                        background: "rgba(16,24,32,0.05)",
-                        borderRadius: 20,
+                        display: "grid",
+                        gridTemplateColumns: "64px 4px 1fr auto",
+                        gap: 12,
+                        alignItems: "center",
+                        padding: "10px 0",
+                        borderTop: i > 0 ? "1px solid rgba(16,24,32,0.05)" : "none",
                       }}
                     >
-                      {e.tag}
+                      <div>
+                        <div style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2 }}>
+                          {e.time}
+                        </div>
+                        <div style={{ fontSize: 11, color: "rgba(16,24,32,0.45)" }}>{e.dur}</div>
+                      </div>
+                      <div
+                        style={{
+                          width: 3,
+                          height: 28,
+                          borderRadius: 2,
+                          background: e.accent ? YELLOW : "rgba(16,24,32,0.15)",
+                        }}
+                      />
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>{e.title}</div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: "rgba(16,24,32,0.55)",
+                          padding: "3px 8px",
+                          background: "rgba(16,24,32,0.05)",
+                          borderRadius: 20,
+                        }}
+                      >
+                        {e.tag}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             {/* Right column: Agent IA prompt + Attention */}
@@ -504,49 +489,55 @@ const Dashboard = () => {
 
               <section style={{ background: "#fff", borderRadius: 14, padding: 18, border: "1px solid rgba(16,24,32,0.05)" }}>
                 <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}>À votre attention</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {ATTENTION.map((a) => {
-                    const IconCmp = a.icon;
-                    return (
-                      <button
-                        key={a.text}
-                        type="button"
-                        onClick={() => navigate(a.path)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "8px 10px",
-                          borderRadius: 8,
-                          background: "rgba(16,24,32,0.03)",
-                          border: "none",
-                          width: "100%",
-                          cursor: "pointer",
-                          textAlign: "left",
-                          color: "inherit",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        <div
+                {dashboard.attention.length === 0 ? (
+                  <div style={{ fontSize: 12.5, color: "rgba(16,24,32,0.5)" }}>
+                    {dashboard.isLoading ? "Chargement…" : "Tout est à jour — rien d'urgent."}
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {dashboard.attention.map((a) => {
+                      const IconCmp = ATTENTION_ICON[a.icon];
+                      return (
+                        <button
+                          key={`${a.icon}-${a.text}`}
+                          type="button"
+                          onClick={() => navigate(a.path)}
                           style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: 7,
-                            background: a.tone === "warn" ? "rgba(255,209,0,0.25)" : "rgba(16,24,32,0.06)",
-                            color: a.tone === "warn" ? "#8a6d00" : ANTHRACITE,
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
+                            gap: 10,
+                            padding: "8px 10px",
+                            borderRadius: 8,
+                            background: "rgba(16,24,32,0.03)",
+                            border: "none",
+                            width: "100%",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            color: "inherit",
+                            fontFamily: "inherit",
                           }}
                         >
-                          <IconCmp size={13} />
-                        </div>
-                        <div style={{ fontSize: 12.5, flex: 1 }}>{a.text}</div>
-                        <ChevronRight size={13} style={{ opacity: 0.4 }} />
-                      </button>
-                    );
-                  })}
-                </div>
+                          <div
+                            style={{
+                              width: 26,
+                              height: 26,
+                              borderRadius: 7,
+                              background: a.tone === "warn" ? "rgba(255,209,0,0.25)" : "rgba(16,24,32,0.06)",
+                              color: a.tone === "warn" ? "#8a6d00" : ANTHRACITE,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <IconCmp size={13} />
+                          </div>
+                          <div style={{ fontSize: 12.5, flex: 1 }}>{a.text}</div>
+                          <ChevronRight size={13} style={{ opacity: 0.4 }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </section>
             </div>
           </div>
@@ -558,7 +549,7 @@ const Dashboard = () => {
                 Vos modules
               </h2>
               <div style={{ fontSize: 12, color: "rgba(16,24,32,0.5)" }}>
-                {MODULES.length} accessibles
+                {accessibleModules.length} accessibles
               </div>
             </div>
             <div
@@ -568,14 +559,14 @@ const Dashboard = () => {
                 gap: 10,
               }}
             >
-              {MODULES.slice(0, 18).map((m) => {
-                const isFav = FAVORITES.has(m.id);
-                const IconCmp = m.icon;
+              {accessibleModules.map(({ key, info }) => {
+                const isFav = FAVORITES.has(key);
+                const IconCmp = info.icon;
                 return (
                   <button
-                    key={m.id}
+                    key={key}
                     type="button"
-                    onClick={() => navigate(m.path)}
+                    onClick={() => navigate(info.path)}
                     style={{
                       background: "#fff",
                       borderRadius: 12,
@@ -617,7 +608,7 @@ const Dashboard = () => {
                     >
                       <IconCmp size={15} />
                     </div>
-                    <div style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.2 }}>{m.label}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.2 }}>{info.label}</div>
                   </button>
                 );
               })}
