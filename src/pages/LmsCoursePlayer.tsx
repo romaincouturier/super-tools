@@ -15,9 +15,10 @@ import {
   useLearnerProgress, useMarkLessonComplete,
   useQuiz, useQuizQuestions, useSubmitQuizAttempt,
   useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile,
-  useLearnerBadges,
+  useLearnerBadges, useTrackPageView,
   LmsLesson, LmsModule, LmsQuizQuestion,
 } from "@/hooks/useLms";
+import LessonComments from "@/components/lms/LessonComments";
 import {
   BookOpen, CheckCircle2, Circle, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
