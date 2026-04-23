@@ -226,8 +226,21 @@ export default function LmsCourseBuilder() {
   const { data: course, isLoading } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
   const updateCourse = useUpdateCourse();
-  const createModule = useCreateModule();
-  const { toast } = useToast();
+  const reorderModules = useReorderModules();
+
+  const moveModuleUp = async (index: number) => {
+    if (index === 0) return;
+    const reordered = [...modules];
+    [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+    await reorderModules.mutateAsync(reordered.map((m, i) => ({ id: m.id, position: i })));
+  };
+
+  const moveModuleDown = async (index: number) => {
+    if (index === modules.length - 1) return;
+    const reordered = [...modules];
+    [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+    await reorderModules.mutateAsync(reordered.map((m, i) => ({ id: m.id, position: i })));
+  };
 
   const [tab, setTab] = useState("content");
 
