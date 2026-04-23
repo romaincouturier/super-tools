@@ -121,16 +121,27 @@ const ThankYouEmailPreviewDialog = ({
       setParticipants(participantsData);
     }
 
-    // Resolve supports URL: if no explicit URL, check for editor-created support
+    // Resolve supports URL: if no explicit URL, check for LMS course or editor-created support
     let resolvedSupportsUrl = supportsUrl;
     if (!resolvedSupportsUrl) {
-      const { data: supportRecord } = await (supabase as any)
-        .from("training_supports")
-        .select("id")
-        .eq("training_id", trainingId)
+      // Check if training has an LMS course linked
+      const { data: trainingData } = await supabase
+        .from("trainings")
+        .select("supports_type, supports_lms_course_id")
+        .eq("id", trainingId)
         .maybeSingle();
-      if (supportRecord) {
+      if (trainingData?.supports_type === "lms" && trainingData?.supports_lms_course_id) {
         resolvedSupportsUrl = `${window.location.origin}/formation-support/${trainingId}`;
+      } else {
+        // Check for editor-created support record
+        const { data: supportRecord } = await (supabase as any)
+          .from("training_supports")
+          .select("id")
+          .eq("training_id", trainingId)
+          .maybeSingle();
+        if (supportRecord) {
+          resolvedSupportsUrl = `${window.location.origin}/formation-support/${trainingId}`;
+        }
       }
     }
     setEffectiveSupportsUrl(resolvedSupportsUrl);
