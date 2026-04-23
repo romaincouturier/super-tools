@@ -52,6 +52,8 @@ interface Training {
   location: string;
   program_file_url: string | null;
   supports_url: string | null;
+  supports_type: string | null;
+  supports_lms_course_id: string | null;
   trainer_id: string | null;
   objectives: string[] | null;
   prerequisites: string[] | null;
