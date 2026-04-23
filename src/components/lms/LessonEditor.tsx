@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useUpdateLesson, LmsLesson, uploadLmsVideo } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Clock, Upload, ImageIcon } from "lucide-react";
+import { Save, Clock, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { formatFileSize } from "@/lib/file-utils";
