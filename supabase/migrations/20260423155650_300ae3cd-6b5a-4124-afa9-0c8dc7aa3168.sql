@@ -1,0 +1,1 @@
+ALTER TABLE public.lms_lessons ADD COLUMN IF NOT EXISTS image_url TEXT;

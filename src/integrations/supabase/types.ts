@@ -2892,6 +2892,7 @@ export type Database = {
           created_at: string
           estimated_minutes: number | null
           id: string
+          image_url: string | null
           is_mandatory: boolean | null
           lesson_type: string
           module_id: string
@@ -2908,6 +2909,7 @@ export type Database = {
           created_at?: string
           estimated_minutes?: number | null
           id?: string
+          image_url?: string | null
           is_mandatory?: boolean | null
           lesson_type?: string
           module_id: string
@@ -2924,6 +2926,7 @@ export type Database = {
           created_at?: string
           estimated_minutes?: number | null
           id?: string
+          image_url?: string | null
           is_mandatory?: boolean | null
           lesson_type?: string
           module_id?: string

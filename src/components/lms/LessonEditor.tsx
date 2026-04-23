@@ -24,6 +24,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
     title: lesson.title,
     content_html: lesson.content_html || "",
     video_url: lesson.video_url || "",
+    image_url: lesson.image_url || "",
     estimated_minutes: lesson.estimated_minutes || 5,
     is_mandatory: lesson.is_mandatory,
   });
@@ -133,6 +134,35 @@ export default function LmsLessonEditor({ lesson }: Props) {
             content={form.content_html}
             onChange={(html) => setForm({ ...form, content_html: html })}
           />
+        </div>
+      )}
+
+      {lesson.lesson_type === "image" && (
+        <div className="space-y-3">
+          <div>
+            <Label>URL de l'image</Label>
+            <Input
+              value={form.image_url}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              placeholder="https://... ou collez l'URL d'une image"
+            />
+          </div>
+          {form.image_url && (
+            <div className="rounded-lg overflow-hidden bg-muted border max-w-2xl">
+              <img
+                src={form.image_url}
+                alt={form.title}
+                className="w-full h-auto object-contain max-h-[500px]"
+              />
+            </div>
+          )}
+          <div>
+            <Label>Légende / description (optionnel)</Label>
+            <RichTextEditor
+              content={form.content_html}
+              onChange={(html) => setForm({ ...form, content_html: html })}
+            />
+          </div>
         </div>
       )}
 

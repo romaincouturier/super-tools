@@ -58,6 +58,7 @@ export interface LmsLesson {
   content_html: string | null;
   video_url: string | null;
   video_duration_seconds: number | null;
+  image_url: string | null;
   quiz_id: string | null;
   assignment_id: string | null;
   position: number;
