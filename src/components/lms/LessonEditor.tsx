@@ -19,6 +19,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
   const updateLesson = useUpdateLesson();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: lesson.title,
