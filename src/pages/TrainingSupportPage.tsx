@@ -31,11 +31,11 @@ const TrainingSupportPage = () => {
     );
   }
 
-  // If training uses LMS course as support, redirect to the LMS player
+  // If training uses LMS course as support, redirect to the public LMS player route
   if (training?.supports_type === "lms" && training?.supports_lms_course_id) {
     const email = searchParams.get("email") || "";
     const params = email ? `?email=${encodeURIComponent(email)}` : "?preview=admin";
-    return <Navigate to={`/lms/course/${training.supports_lms_course_id}${params}`} replace />;
+    return <Navigate to={`/formation-support/${trainingId}/lms/${training.supports_lms_course_id}${params}`} replace />;
   }
 
   // Default: editor-based support
