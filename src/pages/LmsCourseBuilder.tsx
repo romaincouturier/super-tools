@@ -28,6 +28,7 @@ import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import LmsLessonEditor from "@/components/lms/LessonEditor";
 import LmsQuizBuilder from "@/components/lms/QuizBuilder";
+import LmsAnalyticsTab from "@/components/lms/AnalyticsTab";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
 
