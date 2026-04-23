@@ -44,6 +44,8 @@ export interface TrainingSummaryInfo extends TrainingPublicInfo {
   id: string;
   client_name: string | null;
   supports_url: string | null;
+  supports_type: string | null;
+  supports_lms_course_id: string | null;
   trainer_id: string | null;
   session_format: string | null;
   specific_instructions: string | null;
