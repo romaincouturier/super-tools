@@ -196,6 +196,7 @@ const App = () => (
               {/* Public training summary for participants */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
               <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
+              <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               {/* Privacy policy */}
               <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
