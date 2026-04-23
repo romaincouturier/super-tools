@@ -21,7 +21,7 @@ import {
 import {
   BookOpen, CheckCircle2, Circle, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
-  Trophy, Clock,
+  Trophy, Clock, ImageIcon,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
@@ -140,6 +140,7 @@ export default function LmsCoursePlayer() {
       case "video": return <Video className="w-4 h-4" />;
       case "quiz": return <HelpCircle className="w-4 h-4" />;
       case "assignment": return <ClipboardList className="w-4 h-4" />;
+      case "image": return <ImageIcon className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
     }
   };
