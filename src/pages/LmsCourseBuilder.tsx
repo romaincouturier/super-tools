@@ -316,8 +316,16 @@ export default function LmsCourseBuilder() {
           </TabsList>
 
           <TabsContent value="content" className="space-y-4 mt-4">
-            {modules.map((mod) => (
-              <ModuleBlock key={mod.id} mod={mod} courseId={course.id} />
+            {modules.map((mod, index) => (
+              <ModuleBlock
+                key={mod.id}
+                mod={mod}
+                courseId={course.id}
+                isFirst={index === 0}
+                isLast={index === modules.length - 1}
+                onMoveUp={() => moveModuleUp(index)}
+                onMoveDown={() => moveModuleDown(index)}
+              />
             ))}
             <Button variant="outline" onClick={handleAddModule} className="w-full">
               <Plus className="w-4 h-4 mr-2" /> Ajouter un module
