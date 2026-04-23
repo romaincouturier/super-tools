@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, Share2 } from "lucide-react";
+import { Search, X, Share2, UserCheck } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import type { WatchContentType } from "@/hooks/useWatch";
 
@@ -15,6 +15,8 @@ interface WatchFiltersProps {
   onContentTypeChange: (v: WatchContentType | "all") => void;
   sharedOnly: boolean;
   onSharedOnlyChange: (v: boolean) => void;
+  taggedForMe: boolean;
+  onTaggedForMeChange: (v: boolean) => void;
   tags: string[];
   hasActiveFilters: boolean;
   onClearFilters: () => void;
@@ -30,6 +32,8 @@ const WatchFilters = ({
   onContentTypeChange,
   sharedOnly,
   onSharedOnlyChange,
+  taggedForMe,
+  onTaggedForMeChange,
   tags,
   hasActiveFilters,
   onClearFilters,
@@ -85,6 +89,18 @@ const WatchFilters = ({
       >
         <Share2 className="h-3.5 w-3.5" />
         À partager
+      </Toggle>
+
+      {/* Tagged-for-me toggle */}
+      <Toggle
+        pressed={taggedForMe}
+        onPressedChange={onTaggedForMeChange}
+        size="sm"
+        className="gap-1.5"
+        aria-label="Taguées pour moi"
+      >
+        <UserCheck className="h-3.5 w-3.5" />
+        Taguées pour moi
       </Toggle>
 
       {/* Clear filters */}

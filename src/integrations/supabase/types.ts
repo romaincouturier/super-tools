@@ -7113,6 +7113,7 @@ export type Database = {
       }
       watch_items: {
         Row: {
+          assigned_user_ids: string[]
           body: string
           cluster_id: string | null
           content_type: string
@@ -7135,6 +7136,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_user_ids?: string[]
           body?: string
           cluster_id?: string | null
           content_type?: string
@@ -7157,6 +7159,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_user_ids?: string[]
           body?: string
           cluster_id?: string | null
           content_type?: string

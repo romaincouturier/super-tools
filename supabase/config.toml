@@ -383,3 +383,6 @@ verify_jwt = false
 
 [functions.wp-statistics-proxy]
 verify_jwt = false
+
+[functions.notify-watch-tag]
+verify_jwt = false

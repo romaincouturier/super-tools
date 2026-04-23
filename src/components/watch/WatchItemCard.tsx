@@ -14,8 +14,18 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { WatchItem } from "@/hooks/useWatch";
-import { useDeleteWatchItem, useToggleWatchShared, useUpdateWatchItem, useWatchTags } from "@/hooks/useWatch";
+import {
+  useDeleteWatchItem,
+  useToggleWatchShared,
+  useUpdateWatchAssignedUsers,
+  useUpdateWatchItem,
+  useWatchTags,
+} from "@/hooks/useWatch";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import MultiUserSelector from "@/components/shared/MultiUserSelector";
+import { displayNameOf, initialsOf, type UserProfileLite } from "@/lib/userDisplay";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WatchItemCardProps {
   item: WatchItem;
@@ -36,8 +46,47 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
   const deleteMutation = useDeleteWatchItem();
   const toggleSharedMutation = useToggleWatchShared();
   const updateMutation = useUpdateWatchItem();
+  const assignMutation = useUpdateWatchAssignedUsers();
   const { data: allTags } = useWatchTags();
   const { copy } = useCopyToClipboard();
+
+  const { data: allUsers = [] } = useQuery<UserProfileLite[]>({
+    queryKey: ["profiles-lite"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, first_name, last_name, email")
+        .order("first_name", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as UserProfileLite[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const assignedIds = useMemo(() => item.assigned_user_ids || [], [item.assigned_user_ids]);
+  const assignedUsers = useMemo(
+    () => allUsers.filter((u) => assignedIds.includes(u.user_id)),
+    [allUsers, assignedIds],
+  );
+
+  const handleAssignedChange = async (next: string[]) => {
+    try {
+      await assignMutation.mutateAsync({
+        id: item.id,
+        assignedUserIds: next,
+        previousUserIds: assignedIds,
+        itemTitle: item.title,
+      });
+      const addedCount = next.filter((uid) => !assignedIds.includes(uid)).length;
+      if (addedCount > 0) {
+        toast.success(addedCount === 1
+          ? "Personne taguée — notification envoyée"
+          : `${addedCount} personnes taguées — notifications envoyées`);
+      }
+    } catch {
+      toast.error("Erreur lors du tag");
+    }
+  };
 
   useEffect(() => {
     if (editingTags) tagInputRef.current?.focus();
@@ -226,6 +275,36 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
           {item.source_url}
         </a>
       )}
+
+      {/* Assigned users */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1 flex-wrap">
+          {assignedUsers.length > 0 && (
+            <div className="flex -space-x-1">
+              {assignedUsers.slice(0, 4).map((u) => (
+                <div
+                  key={u.user_id}
+                  title={displayNameOf(u)}
+                  className="h-6 w-6 rounded-full bg-primary/15 text-primary text-[10px] font-semibold flex items-center justify-center border-2 border-background"
+                >
+                  {initialsOf(u)}
+                </div>
+              ))}
+              {assignedUsers.length > 4 && (
+                <div className="h-6 w-6 rounded-full bg-muted text-[10px] font-semibold flex items-center justify-center border-2 border-background">
+                  +{assignedUsers.length - 4}
+                </div>
+              )}
+            </div>
+          )}
+          <MultiUserSelector
+            value={assignedIds}
+            onChange={handleAssignedChange}
+            triggerLabel={assignedUsers.length === 0 ? "Taguer" : "Modifier"}
+            className="h-6 text-[10px] px-2"
+          />
+        </div>
+      </div>
 
       {/* Footer: tags + meta */}
       <div className="flex items-center justify-between gap-2">
