@@ -71,7 +71,8 @@ const FormationDetailParticipants = ({
   const endDate = effectiveEndDate ? parseISO(effectiveEndDate) : null;
   const isLastDayOrAfter = !endDate || isToday(endDate) || isBefore(endDate, startOfDay(new Date()));
   const hasSupportsUrl = !!training.supports_url?.trim();
-  const hasSupport = hasSupportsUrl || hasSupportRecord;
+  const hasLmsCourse = training.supports_type === "lms" && !!training.supports_lms_course_id;
+  const hasSupport = hasSupportsUrl || hasSupportRecord || hasLmsCourse;
   const canSend = isLastDayOrAfter && hasSupport && participants.length > 0;
 
   return (
