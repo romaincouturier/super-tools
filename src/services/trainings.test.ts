@@ -19,7 +19,7 @@ function resetChain() {
   mockEq.mockReturnValue(ok);
   mockOrder.mockReturnValue(ok);
   mockGte.mockReturnValue({ order: mockOrder });
-  mockIn.mockReturnValue({ gte: mockGte, order: mockOrder });
+  mockIn.mockReturnValue({ eq: vi.fn().mockReturnValue({ gte: mockGte, order: mockOrder }), gte: mockGte, order: mockOrder });
   mockLimit.mockReturnValue(ok);
   mockSelect.mockReturnValue({
     eq: vi.fn().mockReturnValue({ single: mockSingle }),

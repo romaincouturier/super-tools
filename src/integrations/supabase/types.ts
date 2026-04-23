@@ -6894,6 +6894,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trainings_supports_lms_course_id_fkey"
+            columns: ["supports_lms_course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "trainings_trainer_id_fkey"
             columns: ["trainer_id"]
             isOneToOne: false
