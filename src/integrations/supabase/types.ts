@@ -2885,6 +2885,51 @@ export type Database = {
           },
         ]
       }
+      lms_lesson_comments: {
+        Row: {
+          content: string
+          course_id: string
+          created_at: string
+          id: string
+          learner_email: string
+          learner_name: string | null
+          lesson_id: string
+        }
+        Insert: {
+          content: string
+          course_id: string
+          created_at?: string
+          id?: string
+          learner_email: string
+          learner_name?: string | null
+          lesson_id: string
+        }
+        Update: {
+          content?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          learner_email?: string
+          learner_name?: string | null
+          lesson_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lesson_comments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lesson_comments_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_lessons: {
         Row: {
           assignment_id: string | null
@@ -3011,6 +3056,45 @@ export type Database = {
             columns: ["prerequisite_module_id"]
             isOneToOne: false
             referencedRelation: "lms_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_page_views: {
+        Row: {
+          course_id: string
+          id: string
+          learner_email: string
+          lesson_id: string
+          viewed_at: string
+        }
+        Insert: {
+          course_id: string
+          id?: string
+          learner_email: string
+          lesson_id: string
+          viewed_at?: string
+        }
+        Update: {
+          course_id?: string
+          id?: string
+          learner_email?: string
+          lesson_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_page_views_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_page_views_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
             referencedColumns: ["id"]
           },
         ]
