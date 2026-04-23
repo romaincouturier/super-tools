@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useUpdateLesson, LmsLesson, uploadLmsVideo } from "@/hooks/useLms";
+import { useUpdateLesson, LmsLesson, uploadLmsVideo, uploadLmsImage } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Clock, Upload } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
