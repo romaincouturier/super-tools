@@ -17,6 +17,7 @@ export interface WatchItem {
   file_size: number | null;
   mime_type: string | null;
   tags: string[];
+  assigned_user_ids: string[];
   relevance_score: number;
   is_shared: boolean;
   is_duplicate: boolean;
@@ -63,13 +64,15 @@ interface UseWatchItemsParams {
   tags?: string[];
   contentType?: WatchContentType | "all";
   sharedOnly?: boolean;
+  /** Filter items where assigned_user_ids contains this user_id. */
+  assignedToUserId?: string;
 }
 
 export const useWatchItems = (params: UseWatchItemsParams = {}) => {
-  const { search, tags, contentType, sharedOnly } = params;
+  const { search, tags, contentType, sharedOnly, assignedToUserId } = params;
 
   return useInfiniteQuery({
-    queryKey: [WATCH_ITEMS_KEY, search, tags, contentType, sharedOnly],
+    queryKey: [WATCH_ITEMS_KEY, search, tags, contentType, sharedOnly, assignedToUserId],
     queryFn: async ({ pageParam = 0 }) => {
       let query = (supabase as any)
         .from("watch_items")
@@ -92,6 +95,10 @@ export const useWatchItems = (params: UseWatchItemsParams = {}) => {
 
       if (sharedOnly) {
         query = query.eq("is_shared", true);
+      }
+
+      if (assignedToUserId) {
+        query = query.contains("assigned_user_ids", [assignedToUserId]);
       }
 
       const { data, error } = await query;
@@ -221,6 +228,53 @@ export const useToggleWatchShared = () => {
         .eq("id", id);
 
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [WATCH_ITEMS_KEY] });
+    },
+  });
+};
+
+// ── Assign users (tags) ─────────────────────────────────────────────
+
+/**
+ * Replace the assigned_user_ids on a watch_item and notify newly added users.
+ * The notification is fire-and-forget: if the email fails, the update still
+ * succeeds (the UI won't be left in a half-done state).
+ */
+export const useUpdateWatchAssignedUsers = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      assignedUserIds,
+      previousUserIds,
+      itemTitle,
+    }: {
+      id: string;
+      assignedUserIds: string[];
+      previousUserIds: string[];
+      itemTitle: string;
+    }) => {
+      const { error } = await supabase
+        .from("watch_items")
+        .update({ assigned_user_ids: assignedUserIds })
+        .eq("id", id);
+      if (error) throw error;
+
+      const newlyTagged = assignedUserIds.filter((uid) => !previousUserIds.includes(uid));
+      if (newlyTagged.length > 0) {
+        // Fire-and-forget — surface errors in the console only.
+        supabase.functions
+          .invoke("notify-watch-tag", {
+            body: {
+              watchItemId: id,
+              watchItemTitle: itemTitle,
+              newlyTaggedUserIds: newlyTagged,
+            },
+          })
+          .catch((err) => console.error("[notify-watch-tag] failed:", err));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [WATCH_ITEMS_KEY] });

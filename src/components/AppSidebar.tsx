@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { PanelLeftClose, PanelLeft, Bot } from "lucide-react";
+import { PanelLeftClose, PanelLeft, Bot, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
@@ -13,32 +13,31 @@ interface AppSidebarProps {
   onToggle: () => void;
 }
 
-/** Module keys in display order for the sidebar */
+/** Module keys in display order for the sidebar.
+ *  Retirés : micro-devis (accessible via CRM), certificates (outil batch rarement utilisé),
+ *  statistiques (intégré en accordéon dans /formations), arena (accessible depuis Agent IA).
+ *  Les routes restent actives. */
 const SIDEBAR_MODULE_ORDER = [
   "crm",
   "missions",
   "formations",
-  "micro-devis",
   "okr",
   "contenu",
   "events",
   "medias",
   "catalogue",
   "evaluations",
-  "certificates",
   "besoins",
   "lms",
   "reclamations",
   "emails",
   "historique",
-  "statistiques",
   "monitoring",
   "ameliorations",
   "support",
   "reseau",
   "supertilt",
   "veille",
-  "arena",
   "web-analytics",
 ];
 
@@ -61,8 +60,16 @@ const AppSidebar = ({ collapsed, onToggle }: AppSidebarProps) => {
         collapsed ? "w-0 overflow-hidden" : "w-56",
       )}
     >
-      {/* Top: Agent */}
+      {/* Top: Dashboard + Agent (items statiques, hors module access control) */}
       <div className="p-2 space-y-1">
+        <SidebarItem
+          icon={LayoutDashboard}
+          label="Tableau de bord"
+          path="/dashboard"
+          active={isActive("/dashboard")}
+          collapsed={collapsed}
+          onClick={() => navigate("/dashboard")}
+        />
         <SidebarItem
           icon={Bot}
           label="Agent IA"

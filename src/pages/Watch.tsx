@@ -14,12 +14,15 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/hooks/useAuth";
 
 const Watch = () => {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
   const [contentType, setContentType] = useState<WatchContentType | "all">("all");
   const [sharedOnly, setSharedOnly] = useState(false);
+  const [taggedForMe, setTaggedForMe] = useState(false);
 
   const {
     data: itemsPages,
@@ -32,6 +35,7 @@ const Watch = () => {
     tags: selectedTag ? [selectedTag] : undefined,
     contentType,
     sharedOnly,
+    assignedToUserId: taggedForMe && user ? user.id : undefined,
   });
 
   const { data: allTags = [] } = useWatchTags();
@@ -62,13 +66,14 @@ const Watch = () => {
     return () => observer.disconnect();
   }, [handleIntersect]);
 
-  const hasActiveFilters = search !== "" || selectedTag !== "" || contentType !== "all" || sharedOnly;
+  const hasActiveFilters = search !== "" || selectedTag !== "" || contentType !== "all" || sharedOnly || taggedForMe;
 
   const clearFilters = () => {
     setSearch("");
     setSelectedTag("");
     setContentType("all");
     setSharedOnly(false);
+    setTaggedForMe(false);
   };
 
   // Count clusters with items
@@ -132,6 +137,8 @@ const Watch = () => {
               onContentTypeChange={setContentType}
               sharedOnly={sharedOnly}
               onSharedOnlyChange={setSharedOnly}
+              taggedForMe={taggedForMe}
+              onTaggedForMeChange={setTaggedForMe}
               tags={allTags}
               hasActiveFilters={hasActiveFilters}
               onClearFilters={clearFilters}

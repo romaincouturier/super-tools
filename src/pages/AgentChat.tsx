@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, type KeyboardEvent, useCallback } from "react";
-import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight, ThumbsUp, ThumbsDown, Paperclip, X, FileText, ImageIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bot, Send, Square, Plus, Loader2, User, History, Trash2, MessageSquare, Copy, Check, RefreshCw, Search, PanelRight, ThumbsUp, ThumbsDown, Paperclip, X, FileText, ImageIcon, Sparkles } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,7 @@ const SUGGESTIONS = [
 ];
 
 const AgentChat = () => {
+  const navigate = useNavigate();
   const {
     messages,
     isLoading,
@@ -251,6 +253,16 @@ const AgentChat = () => {
               <h1 className="font-semibold text-sm">Agent SuperTools</h1>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/arena")}
+                className="gap-1.5"
+                title="Lancer une conversation avec plusieurs agents en parallèle"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span className="hidden md:inline">Multi-agents</span>
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleNewConversation} className="gap-1.5">
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline">Nouvelle conversation</span>

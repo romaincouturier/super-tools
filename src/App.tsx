@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { PageViewTracker } from "@/components/PageViewTracker";
@@ -42,13 +42,13 @@ const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
 const TrainingSummary = lazy(() => import("./pages/TrainingSummary"));
 const TrainingSupportPage = lazy(() => import("./pages/TrainingSupportPage"));
 const ChatbotAdmin = lazy(() => import("./pages/ChatbotAdmin"));
 const InboundEmails = lazy(() => import("./pages/InboundEmails"));
 const EmailsAValider = lazy(() => import("./pages/EmailsAValider"));
-const Statistiques = lazy(() => import("./pages/Statistiques"));
 const Crm = lazy(() => import("./pages/Crm"));
 const CrmReports = lazy(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
@@ -124,7 +124,7 @@ const App = () => (
           <RouteErrorBoundary>
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/dashboard" element={<Navigate to="/agent" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/agent" element={<AgentChat />} />
               <Route path="/certificates" element={<CertificateGenerator />} />
               <Route path="/micro-devis" element={<MicroDevis />} />
@@ -147,8 +147,6 @@ const App = () => (
               {/* Inbound emails */}
               <Route path="/emails" element={<InboundEmails />} />
               <Route path="/emails-a-valider" element={<EmailsAValider />} />
-              {/* Statistics dashboard */}
-              <Route path="/statistiques" element={<Statistiques />} />
               {/* Web analytics (WP-Statistics) */}
               <Route path="/web-analytics" element={<WebAnalytics />} />
               {/* CRM Kanban */}

@@ -54,6 +54,9 @@ export interface DocumentsManagerProps {
   sponsorFirstName: string | null;
   sponsorFormalAddress: boolean;
   supportsUrl: string | null;
+  supportsType: "url" | "file" | "lms";
+  supportsFileName: string | null;
+  supportsLmsCourseId: string | null;
   evaluationLink: string;
   formatFormation?: string | null;
   isInterEntreprise?: boolean;

@@ -6,6 +6,16 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ---
 
+## Catch-up mid-session
+
+### [025] Ajout participant en cours de session — rattraper welcome + émargements déjà envoyés
+- **Constat** : Quand un participant est ajouté à une formation qui a déjà démarré mais n'est pas terminée (ex: classe virtuelle J2/J5), deux bugs se produisent : (1) le mail d'accueil est skippé car `getEmailMode(start_date)` renvoie `status: "non_envoye"` dès que `daysUntilStart <= 0` — le participant ne reçoit donc ni lien Zoom, ni logistique, ni convocation ; (2) s'il existe déjà des demandes d'émargement envoyées aux autres participants (ligne `attendance_signatures.email_sent_at IS NOT NULL`), le nouveau participant n'a ni token ni mail — il ne peut pas émarger. `useAddParticipant` n'avait aucun hook pour couvrir ces cas.
+- **Règle** : Pour toute action « participant ajouté à une formation » (AddParticipantDialog, BulkAddParticipantsDialog, mais aussi tout autre point d'entrée futur), détecter le cas « formation en cours » avec `isTrainingOngoing(start_date, end_date)` puis : (a) forcer l'envoi du welcome email même si `status === "non_envoye"` (sauf e-learning qui a son flow) ; (b) invoquer `catchUpAttendanceSignaturesForParticipant(trainingId, participantId)` qui renvoie les demandes d'émargement au nouveau participant pour chaque (schedule_date, period) déjà notifié aux autres — via le paramètre `participantIds` de l'edge function `send-attendance-signature-request`. Skipper le needs_survey en mode ongoing. Mode fire-and-forget : l'ajout réussit même si le rattrapage échoue, toast warning si erreur.
+- **Vérification** : `grep -rn "isTrainingOngoing\|catchUpAttendanceSignaturesForParticipant" src/` — tout flow d'ajout de participant futur doit s'appuyer sur ces helpers. Vérifier que `useAddParticipant` et `BulkAddParticipantsDialog` n'ont pas régressé. Pour tout nouveau dialog d'ajout : même pattern.
+- **Fichiers de référence** : `src/lib/emailScheduling.ts` (`isTrainingOngoing`), `src/services/participants.ts` (`catchUpAttendanceSignaturesForParticipant`), `src/hooks/useAddParticipant.ts` (étape 2 + 2b), `src/components/formations/BulkAddParticipantsDialog.tsx`, `supabase/functions/send-attendance-signature-request/index.ts` (paramètre `participantIds`).
+- **Origine** : bug user — participant ajouté à une classe virtuelle J2 n'a pas reçu le lien de connexion ni la demande d'émargement déjà envoyée aux autres.
+- **Date** : 2026-04-23
+
 ## Duplication
 
 ### [003] Extraire getFileType() dans file-utils.ts — ne jamais dupliquer une fonction utilitaire
@@ -143,7 +153,7 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ### [015] Modules authentifiés — toujours utiliser ModuleLayout + PageHeader
 - **Constat** : Plusieurs pages ajoutées par Lovable ou par Claude n'utilisaient pas le layout standard (`ModuleLayout` + `PageHeader`). Résultat : pas de sidebar, pas de footer, pas de header cohérent. Le problème est systémique : aucune procédure de contrôle automatique n'existait pour le détecter. Les pages publiques (auth, formulaires token-based, landing, learner portal) sont légitimement exemptées.
-- **Règle** : Toute nouvelle page authentifiée dans `src/pages/` DOIT utiliser `ModuleLayout` comme wrapper ET `PageHeader` avec icône et titre. Exceptions documentées : pages publiques (Auth, Signup, ResetPassword, ForcePasswordChange, Landing, PolitiqueConfidentialite, Emargement, Evaluation, Questionnaire, TrainerEvaluation, SponsorEvaluation, ReclamationPublic, SignatureConvention, SignatureDevis), pages learner (LearnerPortal, LearnerAccess, LmsCoursePlayer), wizard (Onboarding), pages d'erreur (NotFound, FormulaireRedirect), utilitaires (Screenshots, Index), et interfaces full-screen spécialisées avec header custom (AgentChat, ArenaDiscussion, ArenaSetup, ArenaResults, FormationDetail, MissionSummary, TrainingSummary, TrainingSupportPage).
+- **Règle** : Toute nouvelle page authentifiée dans `src/pages/` DOIT utiliser `ModuleLayout` comme wrapper ET `PageHeader` avec icône et titre. Exceptions documentées : pages publiques (Auth, Signup, ResetPassword, ForcePasswordChange, Landing, PolitiqueConfidentialite, Emargement, Evaluation, Questionnaire, TrainerEvaluation, SponsorEvaluation, ReclamationPublic, SignatureConvention, SignatureDevis), pages learner (LearnerPortal, LearnerAccess, LmsCoursePlayer), wizard (Onboarding), pages d'erreur (NotFound, FormulaireRedirect), utilitaires (Screenshots, Index), et interfaces full-screen spécialisées avec header custom (AgentChat, ArenaDiscussion, ArenaSetup, ArenaResults, Dashboard, FormationDetail, MissionSummary, TrainingSummary, TrainingSupportPage).
 - **Vérification** : Lister les pages TSX dans `src/pages/` qui n'importent ni `ModuleLayout` ni `PageHeader`. Croiser avec la liste d'exceptions connues. Toute page non exemptée sans ces imports est une violation.
 - **Fichiers de référence** : `src/components/ModuleLayout.tsx`, `src/components/PageHeader.tsx`
 - **Origine** : constat que la règle header/footer générique n'était ni documentée ni contrôlée — violations passées inaperçues

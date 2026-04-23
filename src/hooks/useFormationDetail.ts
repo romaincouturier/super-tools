@@ -37,6 +37,9 @@ export interface Training {
   invoice_file_url: string | null;
   attendance_sheets_urls: string[];
   supports_url: string | null;
+  supports_type: "url" | "file" | "lms";
+  supports_file_name: string | null;
+  supports_lms_course_id: string | null;
   trainer_name: string;
   train_booked: boolean;
   hotel_booked: boolean;
@@ -194,7 +197,7 @@ export function useFormationDetail() {
       return;
     }
 
-    setTraining(trainingData);
+    setTraining(trainingData as unknown as Training);
     setNotes(trainingData.notes || "");
     setNotesChanged(false);
 

@@ -1,8 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building } from "lucide-react";
+import { Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building, BarChart3, Star } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import WeeklyChart from "@/components/dashboard/WeeklyChart";
+import StatCard from "@/components/dashboard/StatCard";
+import TopImprovements from "@/components/dashboard/TopImprovements";
+import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { formatDateRange } from "@/lib/dateFormatters";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -729,8 +734,58 @@ const Formations = () => {
             )}
           </CardContent>
         </Card>
+
+        <FormationsStatsAccordion />
       </main>
     </ModuleLayout>
+  );
+};
+
+const FormationsStatsAccordion = () => {
+  const {
+    microDevisWeekly,
+    formationsWeekly,
+    evaluationsWeekly,
+    averageEvaluation,
+    topImprovements,
+    isLoading,
+  } = useDashboardStats();
+
+  return (
+    <Accordion type="single" collapsible className="mt-6">
+      <AccordionItem value="stats" className="border rounded-lg bg-card">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <BarChart3 className="h-4 w-4" />
+            Statistiques
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner size="lg" className="text-primary" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <WeeklyChart title="Micro-devis par semaine" data={microDevisWeekly} color="hsl(var(--primary))" />
+                <WeeklyChart title="Formations par semaine" data={formationsWeekly} color="hsl(var(--chart-2))" />
+                <WeeklyChart title="Évaluations par semaine" data={evaluationsWeekly} color="hsl(var(--chart-3))" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <StatCard
+                  title="Évaluation moyenne"
+                  value={averageEvaluation ? `${averageEvaluation.toFixed(1)}/5` : "N/A"}
+                  icon={Star}
+                  description="Basée sur toutes les évaluations soumises"
+                />
+                <TopImprovements improvements={topImprovements} />
+              </div>
+            </div>
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 };
 

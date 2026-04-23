@@ -35,7 +35,15 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { trainingId, scheduleDate, period } = await req.json();
+    const { trainingId, scheduleDate, period, participantIds } = await req.json() as {
+      trainingId?: string;
+      scheduleDate?: string;
+      period?: string;
+      /** Optional filter: when provided, only send to these participants.
+       *  Used by the mid-session catch-up flow (new participant added after
+       *  the admin already sent the request to everyone else). */
+      participantIds?: string[];
+    };
 
     if (!trainingId || !scheduleDate || !period) {
       return new Response(
@@ -50,6 +58,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const participantFilter = Array.isArray(participantIds) && participantIds.length > 0
+      ? participantIds
+      : null;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
@@ -81,10 +93,14 @@ serve(async (req) => {
         .select("subject, html_content")
         .eq("template_type", templateType)
         .maybeSingle(),
-      supabase
-        .from("training_participants")
-        .select("*")
-        .eq("training_id", trainingId),
+      (() => {
+        let q = supabase
+          .from("training_participants")
+          .select("*")
+          .eq("training_id", trainingId);
+        if (participantFilter) q = q.in("id", participantFilter);
+        return q;
+      })(),
       getBccList(),
       getSigniticSignature(),
       getSenderFrom(),

@@ -6750,6 +6750,9 @@ export type Database = {
           sponsor_last_name: string | null
           start_date: string | null
           supertilt_link: string | null
+          supports_file_name: string | null
+          supports_lms_course_id: string | null
+          supports_type: string
           supports_url: string | null
           train_booked: boolean | null
           trainer_id: string | null
@@ -6806,6 +6809,9 @@ export type Database = {
           sponsor_last_name?: string | null
           start_date?: string | null
           supertilt_link?: string | null
+          supports_file_name?: string | null
+          supports_lms_course_id?: string | null
+          supports_type?: string
           supports_url?: string | null
           train_booked?: boolean | null
           trainer_id?: string | null
@@ -6862,6 +6868,9 @@ export type Database = {
           sponsor_last_name?: string | null
           start_date?: string | null
           supertilt_link?: string | null
+          supports_file_name?: string | null
+          supports_lms_course_id?: string | null
+          supports_type?: string
           supports_url?: string | null
           train_booked?: boolean | null
           trainer_id?: string | null
@@ -7104,6 +7113,7 @@ export type Database = {
       }
       watch_items: {
         Row: {
+          assigned_user_ids: string[]
           body: string
           cluster_id: string | null
           content_type: string
@@ -7126,6 +7136,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_user_ids?: string[]
           body?: string
           cluster_id?: string | null
           content_type?: string
@@ -7148,6 +7159,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_user_ids?: string[]
           body?: string
           cluster_id?: string | null
           content_type?: string

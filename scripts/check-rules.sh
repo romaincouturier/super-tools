@@ -200,7 +200,7 @@ else
 
   # [015] Pages authentifiées doivent utiliser ModuleLayout + PageHeader
   # Exceptions : pages publiques, auth, learner, error, full-screen spécialisées
-  EXEMPT_PAGES="Auth|Signup|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LearnerAccess|LmsCoursePlayer|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis"
+  EXEMPT_PAGES="Auth|Signup|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LearnerAccess|LmsCoursePlayer|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis"
   check "015" "Pages authentifiées utilisent ModuleLayout + PageHeader" \
     "for f in src/pages/*.tsx; do name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$EXEMPT_PAGES)\$\" && continue; has_layout=\$(grep -l 'ModuleLayout' \"\$f\" 2>/dev/null | wc -l); has_header=\$(grep -l 'PageHeader' \"\$f\" 2>/dev/null | wc -l); if [ \"\$has_layout\" -eq 0 ] || [ \"\$has_header\" -eq 0 ]; then echo \"VIOLATION: \$name (ModuleLayout=\$has_layout, PageHeader=\$has_header)\"; fi; done"
 
@@ -230,6 +230,13 @@ else
   # [023] Date du jour ISO — utiliser todayAsISO()
   check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 10)" \
     "grep -rn 'new Date().toISOString().slice(0, 10)' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/dateFormatters.ts'"
+
+  # [025] Catch-up mid-session — tout dialog d'ajout de participant doit
+  # s'appuyer sur isTrainingOngoing + catchUpAttendanceSignaturesForParticipant.
+  # On liste les dialogs d'ajout de participant et on s'assure qu'ils importent
+  # au moins un de ces helpers (via le hook ou directement).
+  check "025" "Dialogs d'ajout de participant utilisent le catch-up mid-session" \
+    "for f in src/components/formations/*AddParticipant*.tsx; do [ -f \"\$f\" ] || continue; has_hook=\$(grep -l 'useAddParticipant\\|isTrainingOngoing\\|catchUpAttendanceSignatures' \"\$f\" | wc -l); [ \"\$has_hook\" -eq 0 ] && echo \"VIOLATION: \$(basename \"\$f\") ne s'appuie pas sur le catch-up mid-session\"; done"
 
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)

@@ -135,6 +135,61 @@ export async function sendParticipantWelcomeEmail(participantId: string, trainin
 }
 
 /**
+ * Mid-session catch-up : when a participant is added to a training whose attendance
+ * signature request was already sent (for at least one (date, period) slot), send
+ * them the emargement emails they missed.
+ *
+ * Finds every slot of this training where at least one signature row has a
+ * non-null email_sent_at, then invokes send-attendance-signature-request with a
+ * participantIds filter so only the new participant gets emailed — existing
+ * participants are untouched.
+ */
+export async function catchUpAttendanceSignaturesForParticipant(
+  trainingId: string,
+  participantId: string,
+): Promise<{ sentSlots: number; errors: number }> {
+  const { data: sentRows, error } = await supabase
+    .from("attendance_signatures")
+    .select("schedule_date, period")
+    .eq("training_id", trainingId)
+    .not("email_sent_at", "is", null);
+
+  if (error) {
+    console.error("[catchUpAttendanceSignatures] Failed to fetch sent slots:", error);
+    return { sentSlots: 0, errors: 1 };
+  }
+
+  const slots = Array.from(
+    new Map(
+      (sentRows ?? []).map((r) => [`${r.schedule_date}|${r.period}`, { schedule_date: r.schedule_date, period: r.period }]),
+    ).values(),
+  );
+
+  if (slots.length === 0) return { sentSlots: 0, errors: 0 };
+
+  let sentSlots = 0;
+  let errors = 0;
+  for (const slot of slots) {
+    try {
+      await supabase.functions.invoke("send-attendance-signature-request", {
+        body: {
+          trainingId,
+          scheduleDate: slot.schedule_date,
+          period: slot.period,
+          participantIds: [participantId],
+        },
+      });
+      sentSlots += 1;
+    } catch (err) {
+      console.error("[catchUpAttendanceSignatures] Failed slot", slot, err);
+      errors += 1;
+    }
+  }
+
+  return { sentSlots, errors };
+}
+
+/**
  * Invoke the generate-woocommerce-coupon edge function.
  * Returns the coupon code if successful, undefined otherwise.
  */
