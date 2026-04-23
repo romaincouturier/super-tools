@@ -22,7 +22,7 @@ import {
 import {
   Plus, GripVertical, ChevronDown, ChevronRight,
   FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
-  Eye, Users, Settings, BookOpen, Pencil,
+  Eye, Users, Settings, BookOpen, Pencil, ImageIcon,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
