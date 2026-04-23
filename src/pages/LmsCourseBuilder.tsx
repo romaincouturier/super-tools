@@ -226,6 +226,8 @@ export default function LmsCourseBuilder() {
   const { data: course, isLoading } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
   const updateCourse = useUpdateCourse();
+  const createModule = useCreateModule();
+  const { toast } = useToast();
   const reorderModules = useReorderModules();
 
   const moveModuleUp = async (index: number) => {
