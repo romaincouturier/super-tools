@@ -20,7 +20,7 @@ import {
   LmsModule, LmsLesson,
 } from "@/hooks/useLms";
 import {
-  Plus, GripVertical, ChevronDown, ChevronRight,
+  Plus, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
   FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
   Eye, Users, Settings, BookOpen, Pencil, ImageIcon, ExternalLink,
 } from "lucide-react";
