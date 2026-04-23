@@ -344,6 +344,10 @@ export default function LmsCourseBuilder() {
             <LmsForumSection courseId={course.id} />
           </TabsContent>
 
+          <TabsContent value="analytics" className="mt-4">
+            <LmsAnalyticsTab courseId={course.id} />
+          </TabsContent>
+
           <TabsContent value="settings" className="mt-4">
             <CourseSettings course={course} />
           </TabsContent>
