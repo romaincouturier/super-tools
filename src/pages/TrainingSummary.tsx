@@ -52,6 +52,8 @@ interface Training {
   location: string;
   program_file_url: string | null;
   supports_url: string | null;
+  supports_type: string | null;
+  supports_lms_course_id: string | null;
   trainer_id: string | null;
   objectives: string[] | null;
   prerequisites: string[] | null;
@@ -664,7 +666,7 @@ END:VCALENDAR`;
         )}
 
         {/* ═══ SECTION: Documents ═══ */}
-        {(training.program_file_url || training.supports_url || reglementInterieurUrl) && (
+        {(training.program_file_url || training.supports_url || (training.supports_type === "lms" && training.supports_lms_course_id) || reglementInterieurUrl) && (
           <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3 scroll-mt-20">
             {training.program_file_url && (
               <a
@@ -696,6 +698,22 @@ END:VCALENDAR`;
               >
                 <MIcon icon="folder_open" className="mb-2" />
                 <span className="text-xs font-bold text-center">Accéder aux supports</span>
+              </a>
+            )}
+            {!training.supports_url && training.supports_type === "lms" && training.supports_lms_course_id && (
+              <a
+                href={`/formation-support/${training.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center justify-center p-4 border rounded-xl transition-colors"
+                style={{
+                  background: c.surfaceContainerLowest,
+                  borderColor: `${c.outlineVariant}30`,
+                  color: c.onSurface,
+                }}
+              >
+                <MIcon icon="school" className="mb-2" />
+                <span className="text-xs font-bold text-center">Accéder au e-learning</span>
               </a>
             )}
             {reglementInterieurUrl && (
