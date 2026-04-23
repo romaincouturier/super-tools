@@ -40,6 +40,7 @@ export default function LmsCoursePlayer() {
   const { data: progress = [] } = useLearnerProgress(courseId, learnerEmail || undefined);
   const { data: badges = [] } = useLearnerBadges(learnerEmail || undefined);
   const markComplete = useMarkLessonComplete();
+  const trackView = useTrackPageView();
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
