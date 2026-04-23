@@ -122,7 +122,7 @@ export default function LmsCoursePlayer() {
     );
   }
 
-  if (!learnerEmail) {
+  if (!learnerEmail && !isPreview) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="max-w-md w-full">
