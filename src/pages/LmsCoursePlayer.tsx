@@ -66,6 +66,13 @@ export default function LmsCoursePlayer() {
     }
   }, [orderedLessons, selectedLessonId]);
 
+  // Track page view when lesson changes
+  useEffect(() => {
+    if (selectedLessonId && courseId && (learnerEmail || isPreview)) {
+      trackView.mutate({ courseId, lessonId: selectedLessonId, learnerEmail: learnerEmail || "admin-preview" });
+    }
+  }, [selectedLessonId, courseId]);
+
   const selectedLesson = orderedLessons.find((l) => l.id === selectedLessonId);
   const currentIndex = orderedLessons.findIndex((l) => l.id === selectedLessonId);
 
