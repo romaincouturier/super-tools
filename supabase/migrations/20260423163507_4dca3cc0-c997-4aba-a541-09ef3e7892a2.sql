@@ -1,0 +1,1 @@
+select m.position, m.title, count(l.id) as lesson_count from public.lms_modules m left join public.lms_lessons l on l.module_id = m.id where m.course_id = '8a8481ce-506d-49d6-ad93-68c0f87e8522' group by m.id, m.position, m.title order by m.position;
