@@ -800,10 +800,14 @@ export async function uploadLmsFile(file: File, lessonId: string): Promise<{ url
   if (error) throw error;
   const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
   const publicUrl = data.publicUrl;
+  const mediaType = contentType.startsWith("image/") ? "image" as const
+    : contentType.startsWith("video/") ? "video" as const
+    : contentType.startsWith("audio/") ? "audio" as const
+    : "image" as const; // fallback — media table requires known type
   await registerMediaEntry({
     file_url: publicUrl,
     file_name: file.name,
-    file_type: "document",
+    file_type: mediaType,
     mime_type: contentType,
     file_size: file.size,
     source_type: "lms",
