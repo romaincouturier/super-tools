@@ -31,6 +31,7 @@ export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchParams] = useSearchParams();
   const learnerEmail = searchParams.get("email") || "";
+  const isPreview = searchParams.get("preview") === "admin";
 
   const { data: course } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
