@@ -22,7 +22,7 @@ import LessonComments from "@/components/lms/LessonComments";
 import {
   BookOpen, CheckCircle2, Circle, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
-  Trophy, Clock, ImageIcon,
+  Trophy, Clock, ImageIcon, Paperclip, Download,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
@@ -151,6 +151,7 @@ export default function LmsCoursePlayer() {
       case "quiz": return <HelpCircle className="w-4 h-4" />;
       case "assignment": return <ClipboardList className="w-4 h-4" />;
       case "image": return <ImageIcon className="w-4 h-4" />;
+      case "file": return <Paperclip className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
     }
   };
@@ -308,6 +309,37 @@ export default function LmsCoursePlayer() {
                         alt={selectedLesson.title}
                         className="w-full h-auto object-contain max-h-[70vh]"
                       />
+                    </div>
+                  )}
+                  {selectedLesson.content_html && (
+                    <div
+                      className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                      dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                    />
+                  )}
+                </div>
+              )}
+
+              {selectedLesson.lesson_type === "file" && (
+                <div className="space-y-4">
+                  {selectedLesson.file_url && (
+                    <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border">
+                      <Paperclip className="w-5 h-5 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{selectedLesson.file_name || "Fichier"}</p>
+                        {selectedLesson.file_size && (
+                          <p className="text-sm text-muted-foreground">
+                            {selectedLesson.file_size < 1024 * 1024
+                              ? `${(selectedLesson.file_size / 1024).toFixed(1)} Ko`
+                              : `${(selectedLesson.file_size / (1024 * 1024)).toFixed(1)} Mo`}
+                          </p>
+                        )}
+                      </div>
+                      <Button asChild>
+                        <a href={selectedLesson.file_url} target="_blank" rel="noopener noreferrer" download>
+                          <Download className="w-4 h-4 mr-2" /> Télécharger
+                        </a>
+                      </Button>
                     </div>
                   )}
                   {selectedLesson.content_html && (

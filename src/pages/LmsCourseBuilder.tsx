@@ -23,6 +23,7 @@ import {
   Plus, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
   FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
   Eye, Users, Settings, BookOpen, Pencil, ImageIcon, ExternalLink, BarChart3,
+  Paperclip,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +39,7 @@ const lessonTypeIcons: Record<string, ComponentType<{ className?: string }>> = {
   quiz: HelpCircle,
   assignment: ClipboardList,
   image: ImageIcon,
+  file: Paperclip,
 };
 
 const lessonTypeLabels: Record<string, string> = {
@@ -46,6 +48,7 @@ const lessonTypeLabels: Record<string, string> = {
   quiz: "Quiz",
   assignment: "Devoir",
   image: "Image",
+  file: "Fichier",
 };
 
 function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: { mod: LmsModule; courseId: string; onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean }) {
@@ -179,7 +182,7 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
 
             {/* Add lesson buttons */}
             <div className="flex gap-2 pt-2">
-              {["text", "video", "image", "quiz", "assignment"].map((type) => {
+              {["text", "video", "image", "file", "quiz", "assignment"].map((type) => {
                 const Icon = lessonTypeIcons[type];
                 return (
                   <Button

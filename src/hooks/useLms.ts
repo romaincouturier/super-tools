@@ -59,6 +59,9 @@ export interface LmsLesson {
   video_url: string | null;
   video_duration_seconds: number | null;
   image_url: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_size: number | null;
   quiz_id: string | null;
   assignment_id: string | null;
   position: number;
@@ -784,6 +787,33 @@ export async function uploadLmsImage(file: File, lessonId: string): Promise<stri
     source_id: lessonId,
   });
   return publicUrl;
+}
+
+// ---- File upload helper ----
+export async function uploadLmsFile(file: File, lessonId: string): Promise<{ url: string; name: string; size: number }> {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
+  const path = `files/${lessonId}/${Date.now()}_${safeName}`;
+  const contentType = resolveContentType(file) || "application/octet-stream";
+  const { error } = await supabase.storage
+    .from("lms-content")
+    .upload(path, file, { contentType, upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("lms-content").getPublicUrl(path);
+  const publicUrl = data.publicUrl;
+  const mediaType = contentType.startsWith("image/") ? "image" as const
+    : contentType.startsWith("video/") ? "video" as const
+    : contentType.startsWith("audio/") ? "audio" as const
+    : "image" as const; // fallback — media table requires known type
+  await registerMediaEntry({
+    file_url: publicUrl,
+    file_name: file.name,
+    file_type: mediaType,
+    mime_type: contentType,
+    file_size: file.size,
+    source_type: "lms",
+    source_id: lessonId,
+  });
+  return { url: publicUrl, name: file.name, size: file.size };
 }
 
 export async function uploadAssignmentFile(file: File, lessonId: string, email: string): Promise<{ url: string; name: string; size: number }> {

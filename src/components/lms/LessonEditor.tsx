@@ -4,9 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { useUpdateLesson, LmsLesson, uploadLmsVideo, uploadLmsImage } from "@/hooks/useLms";
+import { useUpdateLesson, LmsLesson, uploadLmsVideo, uploadLmsImage, uploadLmsFile } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Clock, Upload } from "lucide-react";
+import { Save, Clock, Upload, Download, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { formatFileSize } from "@/lib/file-utils";
@@ -20,12 +20,16 @@ export default function LmsLessonEditor({ lesson }: Props) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     title: lesson.title,
     content_html: lesson.content_html || "",
     video_url: lesson.video_url || "",
     image_url: lesson.image_url || "",
+    file_url: lesson.file_url || "",
+    file_name: lesson.file_name || "",
+    file_size: lesson.file_size || 0,
     estimated_minutes: lesson.estimated_minutes || 5,
     is_mandatory: lesson.is_mandatory,
   });
@@ -191,6 +195,73 @@ export default function LmsLessonEditor({ lesson }: Props) {
           )}
           <div>
             <Label>Légende / description (optionnel)</Label>
+            <RichTextEditor
+              content={form.content_html}
+              onChange={(html) => setForm({ ...form, content_html: html })}
+            />
+          </div>
+        </div>
+      )}
+
+      {lesson.lesson_type === "file" && (
+        <div className="space-y-3">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <Label>Fichier à télécharger</Label>
+              {form.file_url ? (
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border">
+                  <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{form.file_name || "Fichier"}</p>
+                    {form.file_size > 0 && (
+                      <p className="text-xs text-muted-foreground">{formatFileSize(form.file_size)}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => setForm((f) => ({ ...f, file_url: "", file_name: "", file_size: 0 }))}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Aucun fichier importé</p>
+              )}
+            </div>
+            <div>
+              <input
+                ref={docFileInputRef}
+                type="file"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploading(true);
+                  try {
+                    const result = await uploadLmsFile(file, lesson.id);
+                    setForm((f) => ({ ...f, file_url: result.url, file_name: result.name, file_size: result.size }));
+                    toast({ title: `Fichier importé (${formatFileSize(file.size)})` });
+                  } catch (err: unknown) {
+                    toast({ title: "Erreur d'upload", description: (err instanceof Error ? err.message : "Erreur inconnue"), variant: "destructive" });
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => docFileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Spinner className="mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                {uploading ? "Upload..." : "Importer"}
+              </Button>
+            </div>
+          </div>
+          <div>
+            <Label>Description / instructions (optionnel)</Label>
             <RichTextEditor
               content={form.content_html}
               onChange={(html) => setForm({ ...form, content_html: html })}
