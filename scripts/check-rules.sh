@@ -231,6 +231,13 @@ else
   check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 10)" \
     "grep -rn 'new Date().toISOString().slice(0, 10)' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/dateFormatters.ts'"
 
+  # [025] Catch-up mid-session — tout dialog d'ajout de participant doit
+  # s'appuyer sur isTrainingOngoing + catchUpAttendanceSignaturesForParticipant.
+  # On liste les dialogs d'ajout de participant et on s'assure qu'ils importent
+  # au moins un de ces helpers (via le hook ou directement).
+  check "025" "Dialogs d'ajout de participant utilisent le catch-up mid-session" \
+    "for f in src/components/formations/*AddParticipant*.tsx; do [ -f \"\$f\" ] || continue; has_hook=\$(grep -l 'useAddParticipant\\|isTrainingOngoing\\|catchUpAttendanceSignatures' \"\$f\" | wc -l); [ \"\$has_hook\" -eq 0 ] && echo \"VIOLATION: \$(basename \"\$f\") ne s'appuie pas sur le catch-up mid-session\"; done"
+
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
 fi

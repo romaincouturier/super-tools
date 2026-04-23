@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { getEmailMode, isManualEmailMode } from "./emailScheduling";
+import { getEmailMode, isManualEmailMode, isTrainingOngoing } from "./emailScheduling";
 
 // Mock date-fns to control "today"
 // Use midnight to avoid differenceInDays truncation issues
@@ -101,5 +101,62 @@ describe("isManualEmailMode", () => {
     vi.useFakeTimers();
     vi.setSystemTime(MOCK_TODAY);
     expect(isManualEmailMode("2026-03-15")).toBe(false);
+  });
+});
+
+describe("isTrainingOngoing", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function withFakeDate(fn: () => void) {
+    vi.useFakeTimers();
+    vi.setSystemTime(MOCK_TODAY);
+    fn();
+  }
+
+  it("returns false when start date is missing", () => {
+    expect(isTrainingOngoing(null, "2026-03-15")).toBe(false);
+    expect(isTrainingOngoing(undefined, "2026-03-15")).toBe(false);
+  });
+
+  it("returns false when end date is missing", () => {
+    expect(isTrainingOngoing("2026-03-05", null)).toBe(false);
+    expect(isTrainingOngoing("2026-03-05", undefined)).toBe(false);
+  });
+
+  it("returns true when today is strictly between start and end", () => {
+    withFakeDate(() => {
+      expect(isTrainingOngoing("2026-03-05", "2026-03-15")).toBe(true);
+    });
+  });
+
+  it("returns true when today equals start date", () => {
+    withFakeDate(() => {
+      expect(isTrainingOngoing("2026-03-10", "2026-03-15")).toBe(true);
+    });
+  });
+
+  it("returns true when today equals end date", () => {
+    withFakeDate(() => {
+      expect(isTrainingOngoing("2026-03-05", "2026-03-10")).toBe(true);
+    });
+  });
+
+  it("returns false when today is after end date", () => {
+    withFakeDate(() => {
+      expect(isTrainingOngoing("2026-03-01", "2026-03-09")).toBe(false);
+    });
+  });
+
+  it("returns false when today is before start date", () => {
+    withFakeDate(() => {
+      expect(isTrainingOngoing("2026-03-15", "2026-03-20")).toBe(false);
+    });
+  });
+
+  it("returns false when dates are malformed", () => {
+    expect(isTrainingOngoing("not-a-date", "2026-03-15")).toBe(false);
+    expect(isTrainingOngoing("2026-03-05", "still-not-a-date")).toBe(false);
   });
 });

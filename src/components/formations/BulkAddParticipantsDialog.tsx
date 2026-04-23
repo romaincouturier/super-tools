@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Users, AlertCircle, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { isManualEmailMode } from "@/lib/emailScheduling";
+import { isManualEmailMode, isTrainingOngoing } from "@/lib/emailScheduling";
 import { differenceInDays, parseISO } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,14 @@ import { toastError } from "@/lib/toastError";
 import { useParticipantParser } from "@/hooks/useParticipantParser";
 import { getErrorMessage } from "@/lib/error-utils";
 import { insertParticipantsWithQuestionnaires, sendWelcomeEmailsToBatch, sendElearningAccessToBatch, scheduleNeedsSurveyEmails, logBulkAddActivity, buildStatusMessage } from "@/services/bulkParticipants";
+import { catchUpAttendanceSignaturesForParticipant } from "@/services/participants";
 import { scheduleTrainerSummaryIfNeeded } from "@/lib/workingDays";
 import { supabase } from "@/integrations/supabase/client";
 
 interface BulkAddParticipantsDialogProps {
   trainingId: string;
   trainingStartDate?: string;
+  trainingEndDate?: string | null;
   onParticipantsAdded: () => void;
   isInterEntreprise?: boolean;
   formatFormation?: string | null;
@@ -27,7 +29,7 @@ interface BulkAddParticipantsDialogProps {
 const pluralize = (count: number) => (count !== 1 ? "s" : "");
 
 const BulkAddParticipantsDialog = ({
-  trainingId, trainingStartDate, onParticipantsAdded, isInterEntreprise = false, formatFormation,
+  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, isInterEntreprise = false, formatFormation,
 }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -51,22 +53,37 @@ const BulkAddParticipantsDialog = ({
     try {
       const { data, status, sendWelcomeNow, duplicateWarning } = await insertParticipantsWithQuestionnaires(parsedParticipants, trainingId, trainingStartDate);
       if (duplicateWarning) toast({ title: "Doublons détectés", description: "Certains participants étaient déjà inscrits et ont été ignorés.", variant: "default" });
-      const trainingInFutureBulk = status !== "non_envoye";
-      if (trainingInFutureBulk && data && data.length > 0 && formatFormation !== "e_learning") {
+      const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
+      // Send welcome email when training is future (existing behaviour) OR ongoing
+      // (mid-session add: participants still need convocation / classe virtuelle link).
+      if ((status !== "non_envoye" || ongoing) && data && data.length > 0 && formatFormation !== "e_learning") {
         await sendWelcomeEmailsToBatch(data, trainingId);
       }
       if (formatFormation === "e_learning" && data && data.length > 0) await sendElearningAccessToBatch(data, trainingId);
       let needsSurveySkipped = false;
-      const trainingInFuture = status !== "non_envoye";
+      // Needs survey only makes sense before the session starts.
+      const trainingInFuture = status !== "non_envoye" && !ongoing;
       if (trainingInFuture && data && data.length > 0 && trainingStartDate && formatFormation !== "e_learning") {
         needsSurveySkipped = await scheduleNeedsSurveyEmails(data, trainingId, trainingStartDate);
       }
       if (trainingStartDate && status !== "non_envoye") await scheduleTrainerSummaryIfNeeded(supabase, trainingId, trainingStartDate);
+      // Mid-session catch-up : send attendance signature email to each new
+      // participant for slots that were already sent to existing participants.
+      let attendanceCatchUpSlots = 0;
+      if (ongoing && data && data.length > 0 && formatFormation !== "e_learning") {
+        const results = await Promise.all(
+          data.map((p) => catchUpAttendanceSignaturesForParticipant(trainingId, p.id).catch(() => ({ sentSlots: 0, errors: 1 }))),
+        );
+        attendanceCatchUpSlots = results.reduce((acc, r) => acc + r.sentSlots, 0);
+      }
       if (data && data.length > 0) await logBulkAddActivity(data, trainingId, isInterEntreprise);
       const n = data?.length || 0;
+      const baseMessage = ongoing
+        ? `Formation en cours — mail d'accueil envoyé${attendanceCatchUpSlots > 0 ? `, ${attendanceCatchUpSlots} demande${pluralize(attendanceCatchUpSlots)} d'émargement rattrapée${pluralize(attendanceCatchUpSlots)}` : ""}.`
+        : buildStatusMessage(status, sendWelcomeNow, needsSurveySkipped);
       toast({
         title: "Participants ajoutés",
-        description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${buildStatusMessage(status, sendWelcomeNow, needsSurveySkipped)}`,
+        description: `${n} participant${pluralize(n)} ajouté${pluralize(n)}. ${baseMessage}`,
         ...(needsSurveySkipped && { duration: 8000 }),
       });
       setBulkText("");

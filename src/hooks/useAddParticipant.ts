@@ -9,8 +9,9 @@ import {
   sendElearningAccess,
   scheduleParticipantEmail,
   scheduleTrainerSummary,
+  catchUpAttendanceSignaturesForParticipant,
 } from "@/services/participants";
-import { getEmailMode } from "@/lib/emailScheduling";
+import { getEmailMode, isTrainingOngoing } from "@/lib/emailScheduling";
 import type { FormationFormula } from "@/types/training";
 
 export interface AddParticipantParams {
@@ -35,6 +36,7 @@ export interface AddParticipantParams {
 interface UseAddParticipantOptions {
   trainingId: string;
   trainingStartDate?: string;
+  trainingEndDate?: string | null;
   formatFormation?: string | null;
   isInterEntreprise: boolean;
   onSuccess: () => void;
@@ -44,6 +46,7 @@ interface UseAddParticipantOptions {
 export function useAddParticipant({
   trainingId,
   trainingStartDate,
+  trainingEndDate,
   formatFormation,
   isInterEntreprise,
   onSuccess,
@@ -55,7 +58,8 @@ export function useAddParticipant({
     mutationFn: async (params: AddParticipantParams) => {
       const token = crypto.randomUUID();
       const { status, sendWelcomeNow } = getEmailMode(trainingStartDate);
-      console.log("[useAddParticipant] Submit - status:", status, "sendWelcomeNow:", sendWelcomeNow);
+      const ongoing = isTrainingOngoing(trainingStartDate, trainingEndDate);
+      console.log("[useAddParticipant] Submit - status:", status, "sendWelcomeNow:", sendWelcomeNow, "ongoing:", ongoing);
 
       // Compute coaching fields from selected formula
       const coachingTotal = params.selectedFormula?.coaching_sessions_count || 0;
@@ -92,12 +96,36 @@ export function useAddParticipant({
         soldPriceHt: params.soldPriceHt,
       });
 
-      // 2. Send welcome email immediately (skip for e-learning and past trainings)
-      if (insertedParticipant && formatFormation !== "e_learning" && status !== "non_envoye") {
+      // 2. Send welcome email immediately. Skip e-learning (separate flow) and
+      // fully-past trainings. For an ongoing training (start_date ≤ today ≤ end_date),
+      // a mid-session add still needs the welcome email — it carries the classe virtuelle
+      // link, logistics, etc.
+      const shouldSendWelcome = !!insertedParticipant
+        && formatFormation !== "e_learning"
+        && (status !== "non_envoye" || ongoing);
+      let welcomeFailed = false;
+      if (shouldSendWelcome) {
         try {
           await sendParticipantWelcomeEmail(insertedParticipant.id, trainingId);
         } catch (emailError) {
           console.error("Failed to send welcome email:", emailError);
+          welcomeFailed = true;
+        }
+      }
+
+      // 2b. Mid-session catch-up : if the attendance signature request has
+      // already been sent for at least one slot of this training, send it to
+      // the new participant too (other participants are not re-emailed).
+      let attendanceCatchUp: { sentSlots: number; errors: number } | null = null;
+      if (ongoing && insertedParticipant && formatFormation !== "e_learning") {
+        try {
+          attendanceCatchUp = await catchUpAttendanceSignaturesForParticipant(
+            trainingId,
+            insertedParticipant.id,
+          );
+        } catch (catchUpErr) {
+          console.error("Failed attendance catch-up:", catchUpErr);
+          attendanceCatchUp = { sentSlots: 0, errors: 1 };
         }
       }
 
@@ -131,10 +159,10 @@ export function useAddParticipant({
         }
       }
 
-      // 4. Schedule needs survey email for future trainings (skip for e-learning)
-      // Always schedule when training is in the future (not just when sendWelcomeNow)
+      // 4. Schedule needs survey email for future trainings (skip for e-learning
+      // and mid-session adds — the survey makes no sense once the session started)
       let needsSurveySkipped = false;
-      const trainingInFuture = status !== "non_envoye";
+      const trainingInFuture = status !== "non_envoye" && !ongoing;
       if (trainingInFuture && insertedParticipant && trainingStartDate && formatFormation !== "e_learning") {
         try {
           const scheduled = await scheduleParticipantEmail(
@@ -166,8 +194,12 @@ export function useAddParticipant({
         email: params.email,
         formulaName: params.formulaName,
         status,
+        ongoing,
         sendWelcomeNow,
+        welcomeSent: shouldSendWelcome && !welcomeFailed,
+        welcomeFailed,
         needsSurveySkipped,
+        attendanceCatchUp,
         formatFormation,
         paymentMode: params.paymentMode,
         generateCoupon: params.generateCoupon,
@@ -181,6 +213,14 @@ export function useAddParticipant({
         if (result.generateCoupon) parts.push("coupon WooCommerce généré");
         parts.push("email d'accès envoyé");
         statusMessage = parts.join(", ") + ".";
+      } else if (result.ongoing) {
+        const parts: string[] = [];
+        if (result.welcomeSent) parts.push("mail d'accueil envoyé (formation en cours)");
+        else if (result.welcomeFailed) parts.push("⚠️ mail d'accueil en erreur");
+        if (result.attendanceCatchUp && result.attendanceCatchUp.sentSlots > 0) {
+          parts.push(`${result.attendanceCatchUp.sentSlots} demande${result.attendanceCatchUp.sentSlots > 1 ? "s" : ""} d'émargement rattrapée${result.attendanceCatchUp.sentSlots > 1 ? "s" : ""}`);
+        }
+        statusMessage = parts.length > 0 ? parts.join(", ") + "." : "Formation en cours.";
       } else if (result.formulaName) {
         statusMessage = `Formule ${result.formulaName}.`;
       } else if (result.status === "non_envoye") {
@@ -194,10 +234,14 @@ export function useAddParticipant({
         statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
       }
 
+      const isWarn = result.needsSurveySkipped
+        || result.welcomeFailed
+        || (result.attendanceCatchUp?.errors ?? 0) > 0;
+
       toast({
         title: "Participant ajouté",
         description: `${result.email} a été ajouté. ${statusMessage}`,
-        ...(result.needsSurveySkipped && { variant: "default" as const, duration: 8000 }),
+        ...(isWarn && { variant: "default" as const, duration: 8000 }),
       });
 
       onSuccess();

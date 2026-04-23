@@ -47,6 +47,7 @@ import { fetchExistingFinanceurs } from "@/services/participants";
 interface AddParticipantDialogProps {
   trainingId: string;
   trainingStartDate?: string;
+  trainingEndDate?: string | null;
   clientName?: string;
   formatFormation?: string | null;
   isInterEntreprise?: boolean;
@@ -63,7 +64,7 @@ interface AddParticipantDialogProps {
   onExternalOpenChange?: (open: boolean) => void;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -115,6 +116,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, clientName, forma
   const mutation = useAddParticipant({
     trainingId,
     trainingStartDate,
+    trainingEndDate,
     formatFormation,
     isInterEntreprise,
     onSuccess: () => {

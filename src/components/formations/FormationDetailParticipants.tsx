@@ -111,6 +111,7 @@ const FormationDetailParticipants = ({
               <BulkAddParticipantsDialog
                 trainingId={training.id}
                 trainingStartDate={training.start_date}
+                trainingEndDate={training.end_date}
                 onParticipantsAdded={fetchParticipants}
                 isInterEntreprise={isInterSession}
                 formatFormation={training.format_formation}
@@ -118,6 +119,7 @@ const FormationDetailParticipants = ({
               <AddParticipantDialog
                 trainingId={training.id}
                 trainingStartDate={training.start_date}
+                trainingEndDate={training.end_date}
                 clientName={training.client_name}
                 formatFormation={training.format_formation}
                 isInterEntreprise={isInterSession}
