@@ -148,6 +148,11 @@ export default function LmsCoursePlayer() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {isPreview && (
+        <div className="bg-amber-500 text-white text-center text-sm py-1 font-medium">
+          🔍 Mode prévisualisation admin — les progressions ne sont pas enregistrées
+        </div>
+      )}
       {/* Top bar */}
       <header className="h-14 border-b bg-card flex items-center px-4 gap-4 shrink-0">
         <SupertiltLogo className="h-6" />
