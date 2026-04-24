@@ -130,7 +130,6 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           alignItems: asDrawer ? "stretch" : "center",
           overflowY: "auto",
           overflowX: "hidden",
-          paddingBottom: 8,
         }}
       >
         <RailItem
@@ -167,8 +166,6 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           flexDirection: "column",
           gap: 4,
           alignItems: asDrawer ? "stretch" : "center",
-          paddingTop: 8,
-          borderTop: "1px solid rgba(247,245,240,0.08)",
           width: "100%",
         }}
       >
