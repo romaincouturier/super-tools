@@ -29,9 +29,11 @@ import { validatePassword } from "@/lib/passwordValidation";
 interface UserMenuProps {
   user: User;
   onLogout: () => void;
+  /** Optional custom trigger (e.g. an avatar). Default renders a ghost button with email. */
+  trigger?: React.ReactNode;
 }
 
-const UserMenu = ({ user, onLogout }: UserMenuProps) => {
+const UserMenu = ({ user, onLogout, trigger }: UserMenuProps) => {
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -92,14 +94,16 @@ const UserMenu = ({ user, onLogout }: UserMenuProps) => {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-background hover:bg-background/10 gap-2"
-          >
-            <UserIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{user.email}</span>
-          </Button>
+          {trigger ?? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-background hover:bg-background/10 gap-2"
+            >
+              <UserIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">{user.email}</span>
+            </Button>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>

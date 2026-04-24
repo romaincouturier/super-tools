@@ -163,7 +163,7 @@ const AgentChat = () => {
   const isEmpty = messages.length === 0;
 
   return (
-    <ModuleLayout hideFooter>
+    <ModuleLayout fitHeight>
       <div className="flex h-full">
         {/* History sidebar */}
         <div
