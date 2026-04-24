@@ -68,7 +68,6 @@ export default function ImprovementKanban({
     <GenericKanbanBoard<ImprovementKanbanCard, ImprovementKanbanColumn>
       columns={columns}
       cards={cards}
-      config={{ cardSortable: false }}
       columnClassName="max-h-[calc(100vh-320px)]"
       renderCard={(card, isDragging) => (
         <ImprovementCard

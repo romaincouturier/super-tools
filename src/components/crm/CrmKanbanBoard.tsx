@@ -529,7 +529,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         columns={kanbanColumns}
         cards={kanbanCards}
         loading={isLoading}
-        config={{ cardSortable: true, enableKeyboard: true }}
+        config={{ enableKeyboard: true }}
         renderCard={(card, isDragging) => (
           <CrmCardComponent
             card={card}
