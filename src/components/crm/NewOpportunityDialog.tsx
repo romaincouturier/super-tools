@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +12,32 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, CalendarClock, Tag } from "lucide-react";
+import { Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, Calendar, Tag } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useExtractOpportunity, useCreateCard, useCrmBoard, useAssignTag } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import NextActionScheduler from "@/components/shared/NextActionScheduler";
+
+const CRM_ACTION_PRESETS = [
+  "Relancer le client",
+  "Envoyer un devis",
+  "Retour après consultation",
+  "Appeler",
+  "RDV physique",
+  "RDV visio",
+];
+
+export interface NewOpportunityInitialContact {
+  first_name?: string | null;
+  last_name?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  linkedin_url?: string | null;
+}
 
 interface ClientHistoryItem {
   id: string;
@@ -37,9 +55,19 @@ interface NewOpportunityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userEmail: string;
+  /**
+   * When provided, the AI extraction step is skipped and the dialog opens
+   * directly on the review step with these contact fields pre-filled.
+   */
+  initialContact?: NewOpportunityInitialContact;
+  /**
+   * When provided, force this acquisition source and lock the dropdown
+   * (used for "new opportunity from existing contact" → "nouvelle_mission").
+   */
+  forceAcquisitionSource?: AcquisitionSource;
 }
 
-export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOpportunityDialogProps) {
+export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialContact, forceAcquisitionSource }: NewOpportunityDialogProps) {
   const [step, setStep] = useState<"input" | "review">("input");
   const [rawInput, setRawInput] = useState("");
   const [rawInputOpen, setRawInputOpen] = useState(false);
@@ -50,9 +78,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
   const [clientHistory, setClientHistory] = useState<ClientHistoryItem[]>([]);
   const [clientHistoryOpen, setClientHistoryOpen] = useState(true);
-  const [scheduleAction, setScheduleAction] = useState(false);
   const [nextActionDate, setNextActionDate] = useState("");
   const [nextActionText, setNextActionText] = useState("");
+  const [nextActionFormOpen, setNextActionFormOpen] = useState(false);
   const [nextActionSuggested, setNextActionSuggested] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagsAutoSuggested, setTagsAutoSuggested] = useState(false);
@@ -65,6 +93,31 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
 
   // Find "Entrant" column (first column for new opportunities)
   const entrantColumn = boardData?.columns.find((col) => col.name === "Entrant") || boardData?.columns[0];
+
+  // When opened with an initialContact, skip extraction and prefill the review step.
+  useEffect(() => {
+    if (!open || !initialContact) return;
+    const seeded: OpportunityExtraction = {
+      first_name: initialContact.first_name ?? null,
+      last_name: initialContact.last_name ?? null,
+      phone: initialContact.phone ?? null,
+      company: initialContact.company ?? null,
+      email: initialContact.email ?? null,
+      linkedin_url: initialContact.linkedin_url ?? null,
+      service_type: null,
+      title: "",
+      brief_questions: [],
+      suggested_tag_ids: [],
+      suggested_next_action: null,
+    };
+    setExtraction(seeded);
+    setEditedExtraction(seeded);
+    setStep("review");
+    if (forceAcquisitionSource) setAcquisitionSource(forceAcquisitionSource);
+    estimateValueFromHistory(seeded);
+    fetchClientHistory(seeded.email, seeded.company);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialContact, forceAcquisitionSource]);
 
   // Estimate value from CRM history
   const estimateValueFromHistory = async (extraction: OpportunityExtraction) => {
@@ -165,10 +218,10 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       }
       // Pre-fill suggested next action
       if (result.suggested_next_action) {
-        setScheduleAction(true);
         setNextActionDate(result.suggested_next_action.date);
         setNextActionText(result.suggested_next_action.text);
         setNextActionSuggested(true);
+        setNextActionFormOpen(false);
       }
     } catch {
       // Error handled by mutation
@@ -236,7 +289,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           brief_questions: editedExtraction.brief_questions,
           raw_input: rawInput,
           acquisition_source: acquisitionSource || undefined,
-          ...(scheduleAction && nextActionDate && {
+          ...(nextActionDate && {
             status_operational: "WAITING" as const,
             waiting_next_action_date: nextActionDate,
             waiting_next_action_text: nextActionText || undefined,
@@ -288,9 +341,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setAcquisitionSource(null);
     setClientHistory([]);
     setClientHistoryOpen(true);
-    setScheduleAction(false);
     setNextActionDate("");
     setNextActionText("");
+    setNextActionFormOpen(false);
     setNextActionSuggested(false);
     setSelectedTagIds([]);
     setTagsAutoSuggested(false);
@@ -344,7 +397,9 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
           <DialogDescription>
             {step === "input"
               ? "Collez les informations du prospect (email, message, notes...) et l'IA extraira les données."
-              : "Vérifiez et ajustez les informations extraites avant de créer l'opportunité."}
+              : initialContact
+                ? "Renseignez le sujet de la nouvelle opportunité pour ce contact existant."
+                : "Vérifiez et ajustez les informations extraites avant de créer l'opportunité."}
           </DialogDescription>
         </DialogHeader>
 
@@ -487,6 +542,7 @@ Tel: 06 12 34 56 78"
               <Select
                 value={acquisitionSource || ""}
                 onValueChange={(v) => setAcquisitionSource(v as AcquisitionSource)}
+                disabled={!!forceAcquisitionSource}
               >
                 <SelectTrigger className={`mt-1 ${!acquisitionSource ? "ring-1 ring-destructive/30" : ""}`}>
                   <SelectValue placeholder="Sélectionner une source..." />
@@ -499,6 +555,11 @@ Tel: 06 12 34 56 78"
                   ))}
                 </SelectContent>
               </Select>
+              {forceAcquisitionSource && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Source verrouillée — opportunité créée à partir d'un contact existant.
+                </p>
+              )}
             </div>
 
             {/* Contact info */}
@@ -635,53 +696,45 @@ Tel: 06 12 34 56 78"
               </div>
             )}
 
-            {/* Schedule next action */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="schedule-action"
-                  checked={scheduleAction}
-                  onCheckedChange={(checked) => setScheduleAction(checked === true)}
-                />
-                <Label htmlFor="schedule-action" className="flex items-center gap-1.5 font-normal cursor-pointer">
-                  <CalendarClock className="h-3.5 w-3.5" />
-                  Programmer une prochaine action
-                  {nextActionSuggested && scheduleAction && (
-                    <span className="text-[10px] font-normal text-primary inline-flex items-center gap-0.5">
-                      <Sparkles className="h-2.5 w-2.5" /> suggérée par l'IA
-                    </span>
-                  )}
-                </Label>
-              </div>
-              {scheduleAction && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-6">
-                  <div>
-                    <Label htmlFor="next-action-date" className="text-xs">Date *</Label>
-                    <Input
-                      id="next-action-date"
-                      type="date"
-                      value={nextActionDate}
-                      onChange={(e) => {
-                        setNextActionDate(e.target.value);
-                        setNextActionSuggested(false);
-                      }}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="next-action-text" className="text-xs">Action prévue</Label>
-                    <Input
-                      id="next-action-text"
-                      value={nextActionText}
-                      onChange={(e) => {
-                        setNextActionText(e.target.value);
-                        setNextActionSuggested(false);
-                      }}
-                      placeholder="Ex: Relancer le client"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
+            {/* Schedule next action — uses the same component as the existing-opportunity drawer */}
+            <div>
+              <Label className="flex items-center gap-1.5 mb-2">
+                <Calendar className="h-3.5 w-3.5" />
+                Prochaine action
+                {nextActionSuggested && nextActionDate && (
+                  <span className="text-[10px] font-normal text-primary inline-flex items-center gap-0.5">
+                    <Sparkles className="h-2.5 w-2.5" /> suggérée par l'IA
+                  </span>
+                )}
+              </Label>
+              <NextActionScheduler
+                currentAction={{ date: nextActionDate || null, text: nextActionText || null }}
+                scheduledDate={nextActionDate}
+                setScheduledDate={(v) => { setNextActionDate(v); setNextActionSuggested(false); }}
+                scheduledText={nextActionText}
+                setScheduledText={(v) => { setNextActionText(v); setNextActionSuggested(false); }}
+                showForm={nextActionFormOpen}
+                setShowForm={setNextActionFormOpen}
+                onSchedule={() => Promise.resolve()}
+                onClear={() => {
+                  setNextActionDate("");
+                  setNextActionText("");
+                  setNextActionFormOpen(false);
+                  setNextActionSuggested(false);
+                }}
+                actionPresets={CRM_ACTION_PRESETS}
+              />
+              {!nextActionDate && !nextActionFormOpen && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setNextActionFormOpen(true)}
+                  className="gap-1.5"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  Programmer une action
+                </Button>
               )}
             </div>
 
@@ -744,10 +797,16 @@ Tel: 06 12 34 56 78"
             </>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setStep("input")}>
-                Retour
-              </Button>
-              <Button onClick={handleCreate} disabled={createCardMutation.isPending || !editedExtraction?.service_type || !acquisitionSource}>
+              {initialContact ? (
+                <Button variant="outline" onClick={handleClose}>
+                  Annuler
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => setStep("input")}>
+                  Retour
+                </Button>
+              )}
+              <Button onClick={handleCreate} disabled={createCardMutation.isPending || !editedExtraction?.service_type || !acquisitionSource || !editedExtraction.title.trim()}>
                 {createCardMutation.isPending ? (
                   <>
                     <Spinner className="mr-2" />

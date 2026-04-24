@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { X, Calendar, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, Bot } from "lucide-react";
+import { X, Calendar, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, Bot, UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -59,6 +59,10 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           }}>
             <Bot className="h-4 w-4 mr-2" />
             Demander à l'agent
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { trackFeature("new_opportunity_from_contact", "crm"); handlers.handleCreateOpportunityFromContact(); }}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Nouvelle opportunité depuis ce contact
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
