@@ -10,6 +10,8 @@ import {
 } from "@/hooks/useWpStatistics";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area } from "recharts";
 import { dateAsISO } from "@/lib/dateFormatters";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -168,13 +170,46 @@ function TrendChart({ hitsData, visitorsData, days }: { hitsData: any; visitorsD
 
   if (chartData.length === 0) return <p className="text-sm text-muted-foreground">Aucune donnée de tendance</p>;
 
+  // For periods ≥ 60 days : show one tick per month (1st day of month), label = short month name ("janv.").
+  // For shorter periods : show ticks as short day+month ("15 janv.").
+  const isMonthlyTicks = days >= 60;
+  const monthlyTickDates = isMonthlyTicks
+    ? chartData
+        .filter((d) => d.date.endsWith("-01"))
+        .map((d) => d.date)
+    : undefined;
+
+  const formatTick = (iso: string) => {
+    try {
+      const d = parseISO(iso);
+      return isMonthlyTicks ? format(d, "MMM yyyy", { locale: fr }) : format(d, "d MMM", { locale: fr });
+    } catch {
+      return iso;
+    }
+  };
+
+  const formatTooltipLabel = (iso: string) => {
+    try {
+      return format(parseISO(iso), "EEEE d MMMM yyyy", { locale: fr });
+    } catch {
+      return iso;
+    }
+  };
+
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={chartData}>
+      <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-        <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v: string) => (v.length >= 5 ? v.slice(5) : v)} />
-        <YAxis tick={{ fontSize: 11 }} />
-        <Tooltip />
+        <XAxis
+          dataKey="date"
+          tick={{ fontSize: 11 }}
+          tickFormatter={formatTick}
+          ticks={monthlyTickDates}
+          interval={isMonthlyTicks ? 0 : "preserveStartEnd"}
+          minTickGap={16}
+        />
+        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+        <Tooltip labelFormatter={formatTooltipLabel} />
         <Legend />
         <Area type="monotone" dataKey="views" name="Vues" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
         <Area type="monotone" dataKey="visitors" name="Visiteurs" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.1} strokeWidth={2} />
