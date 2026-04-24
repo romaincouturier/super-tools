@@ -45,7 +45,6 @@ export default function GenericKanbanBoard<
   boardClassName,
 }: GenericKanbanBoardProps<TCard, TColumn>) {
   const {
-    cardSortable = true,
     columnSortable = false,
     enableKeyboard = false,
     collisionDetection,
@@ -291,7 +290,6 @@ export default function GenericKanbanBoard<
         key={column.id}
         column={column}
         cards={columnCards}
-        sortable={cardSortable}
         columnSortableId={columnSortable ? `${COLUMN_PREFIX}${column.id}` : undefined}
         renderCard={(card) => (
           <div

@@ -55,8 +55,8 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Custom brand colors - Yellow #ffd100, Anthracite #101820, Gray #f2f4f4 */
-    --background: 150 5% 95%; /* Gray #f2f4f4 */
+    /* Custom brand colors - Yellow #ffd100, Anthracite #101820, Cream #f7f5f0 */
+    --background: 43 30% 95%; /* Warm cream #f7f5f0 */
     --foreground: 210 33% 9%; /* Anthracite #101820 */
 
     --card: 0 0% 100%;

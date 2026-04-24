@@ -22,7 +22,6 @@ export interface KanbanDropResult<TCard> {
 }
 
 export interface KanbanBoardConfig {
-  cardSortable?: boolean;
   columnSortable?: boolean;
   enableKeyboard?: boolean;
   collisionDetection?: CollisionDetection;

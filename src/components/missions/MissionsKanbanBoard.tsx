@@ -188,7 +188,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         columns={columns}
         cards={cards}
         loading={isLoading}
-        config={{ cardSortable: true, collisionDetection: closestCenter }}
+        config={{ collisionDetection: closestCenter }}
         renderCard={(card, isDragging) => (
           <MissionCard
             mission={card}

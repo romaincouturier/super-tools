@@ -166,6 +166,8 @@ export interface CardDetailHandlers {
   handleUndoBodyAi: () => void;
   copyToClipboard: (text: string) => Promise<void>;
   promptCreateTraining: () => void;
+  /** Open the "new opportunity from this contact" dialog (acquisition_source forced to "nouvelle_mission"). */
+  handleCreateOpportunityFromContact: () => void;
 }
 
 export interface CardDetails {

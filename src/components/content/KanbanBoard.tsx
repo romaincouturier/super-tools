@@ -658,7 +658,6 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
         columns={kanbanColumns}
         cards={kanbanCards}
         config={{
-          cardSortable: true,
           columnSortable: true,
           enableKeyboard: true,
         }}

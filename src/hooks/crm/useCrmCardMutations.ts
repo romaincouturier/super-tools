@@ -44,17 +44,25 @@ export const useDeleteCard = () =>
     if (error) throw error;
   }, { successMessage: "Opportunité supprimée" });
 
+export interface ExtractOpportunityInput {
+  rawInput: string;
+  availableTags: { id: string; name: string; category: string | null }[];
+}
+
 export const useExtractOpportunity = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (rawInput: string) => {
+    mutationFn: async (input: ExtractOpportunityInput) => {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) throw new Error("Non authentifié");
 
       const response = await supabase.functions.invoke("crm-extract-opportunity", {
-        body: { raw_input: rawInput },
+        body: {
+          raw_input: input.rawInput,
+          available_tags: input.availableTags,
+        },
       });
       if (response.error) {
         throw new Error(response.error.message || "Échec de l'extraction");

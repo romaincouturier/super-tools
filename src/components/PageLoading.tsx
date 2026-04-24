@@ -1,18 +1,9 @@
-
 import { Spinner } from "@/components/ui/spinner";
-import AppHeader from "@/components/AppHeader";
 
-interface PageLoadingProps {
-  showHeader?: boolean;
-}
-
-const PageLoading = ({ showHeader = true }: PageLoadingProps) => {
+const PageLoading = () => {
   return (
-    <div className="min-h-screen bg-background">
-      {showHeader && <AppHeader />}
-      <div className="flex items-center justify-center h-[60vh]">
-        <Spinner size="lg" className="text-primary" />
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Spinner size="lg" className="text-primary" />
     </div>
   );
 };

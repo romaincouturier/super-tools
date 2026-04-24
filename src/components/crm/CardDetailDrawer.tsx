@@ -56,6 +56,7 @@ import CardDetailCommercial from "./card-detail/CardDetailCommercial";
 import CardDetailCommunication from "./card-detail/CardDetailCommunication";
 import CardDetailTabs from "./card-detail/CardDetailTabs";
 import CardDetailDialogs from "./card-detail/CardDetailDialogs";
+import { NewOpportunityDialog } from "./NewOpportunityDialog";
 import type { CardDetailState, CardDetailHandlers } from "./card-detail/types";
 
 interface CardDetailDrawerProps {
@@ -119,6 +120,7 @@ const CardDetailDrawer = ({
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
   const [showLossReasonDialog, setShowLossReasonDialog] = useState(false);
+  const [showCreateFromContactDialog, setShowCreateFromContactDialog] = useState(false);
   const [_pendingLossStatus, setPendingLossStatus] = useState(false);
   const [pendingLossColumnId, setPendingLossColumnId] = useState<string | null>(null);
   const [nextActionSuggesting, setNextActionSuggesting] = useState(false);
@@ -771,6 +773,7 @@ const CardDetailDrawer = ({
     handleAiAnalysis, handleGenerateQuoteDescription,
     handleImproveEmailSubject, handleImproveEmailBody,
     handleUndoSubjectAi, handleUndoBodyAi, copyToClipboard, promptCreateTraining,
+    handleCreateOpportunityFromContact: () => setShowCreateFromContactDialog(true),
   };
 
   return (
@@ -858,6 +861,21 @@ const CardDetailDrawer = ({
         setShowWinChoiceDialog={setShowWinChoiceDialog}
         handleConfirmCreateMission={handleConfirmCreateMission}
         onOpenChange={onOpenChange}
+      />
+
+      <NewOpportunityDialog
+        open={showCreateFromContactDialog}
+        onOpenChange={setShowCreateFromContactDialog}
+        userEmail={user?.email || ""}
+        initialContact={{
+          first_name: firstName || null,
+          last_name: lastName || null,
+          company: company || null,
+          email: email || null,
+          phone: phone || null,
+          linkedin_url: linkedinUrl || null,
+        }}
+        forceAcquisitionSource="nouvelle_mission"
       />
     </>
   );

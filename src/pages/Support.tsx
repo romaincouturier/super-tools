@@ -337,7 +337,6 @@ const Support = () => {
             columns={SUPPORT_COLUMNS}
             cards={cards}
             loading={isLoading}
-            config={{ cardSortable: true }}
             renderCard={renderCard}
             renderColumnHeader={renderColumnHeader}
             onCardMove={handleCardMove}
