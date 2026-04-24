@@ -147,6 +147,8 @@ interface AddWatchItemInput {
   file_size?: number | null;
   mime_type?: string | null;
   tags?: string[];
+  /** User IDs tagged via @-mention in the body — stored on creation and notified. */
+  assigned_user_ids?: string[];
 }
 
 export const useAddWatchItem = () => {
@@ -156,17 +158,34 @@ export const useAddWatchItem = () => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
 
+      const { assigned_user_ids: mentionedUserIds, ...rest } = input;
+
       const { data, error } = await (supabase as any)
         .from("watch_items")
         .insert({
-          ...input,
-          tags: input.tags || [],
+          ...rest,
+          tags: rest.tags || [],
+          assigned_user_ids: mentionedUserIds || [],
           created_by: userId,
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Fire-and-forget tag notifications for users mentioned at creation.
+      if (mentionedUserIds && mentionedUserIds.length > 0) {
+        supabase.functions
+          .invoke("notify-watch-tag", {
+            body: {
+              watchItemId: data.id,
+              watchItemTitle: data.title,
+              newlyTaggedUserIds: mentionedUserIds,
+            },
+          })
+          .catch((err) => console.error("[notify-watch-tag] failed:", err));
+      }
+
       return data as WatchItem;
     },
     onSuccess: () => {

@@ -1,13 +1,15 @@
 import { useCallback, useState } from "react";
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
+import Mention from "@tiptap/extension-mention";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, ImageIcon } from "lucide-react";
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, ImageIcon, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { uploadWatchFile } from "@/hooks/useWatch";
+import { mentionSuggestion } from "@/lib/tiptapMentionSuggestion";
 
 interface WatchRichEditorProps {
   content: string;
@@ -47,6 +49,12 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
         inline: true,
         allowBase64: true,
         HTMLAttributes: { class: "max-w-full rounded my-2" },
+      }),
+      Mention.configure({
+        HTMLAttributes: {
+          class: "text-primary font-medium bg-primary/10 rounded px-0.5",
+        },
+        suggestion: mentionSuggestion,
       }),
     ],
     editorProps: {
@@ -157,9 +165,16 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
 
         <div className="flex-1" />
 
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-          <ImageIcon className="h-3 w-3" />
-          Collez du contenu riche (texte + images)
+        <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+          <span className="flex items-center gap-0.5">
+            <AtSign className="h-3 w-3" />
+            tapez @ pour taguer
+          </span>
+          <span className="opacity-40">·</span>
+          <span className="flex items-center gap-0.5">
+            <ImageIcon className="h-3 w-3" />
+            collez texte + images
+          </span>
         </span>
       </div>
 

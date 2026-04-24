@@ -13,6 +13,7 @@ import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
 import { resolveContentType } from "@/lib/file-utils";
 import WatchRichEditor, { stripWatchHtml } from "./WatchRichEditor";
+import { extractMentionedUserIdsFromHtml } from "@/lib/tiptapMentionSuggestion";
 
 interface WatchAddDialogProps {
   allTags: string[];
@@ -116,6 +117,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         file_size: fileSize,
         mime_type: mimeType,
         tags,
+        assigned_user_ids: extractMentionedUserIdsFromHtml(finalBody),
       });
 
       // Trigger async processing (AI title/tags, scraping, OCR, transcription)
@@ -165,6 +167,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         file_size: fileSize,
         mime_type: mimeType,
         tags,
+        assigned_user_ids: extractMentionedUserIdsFromHtml(body),
       });
 
       const processed = await processWatchItem(item.id);
