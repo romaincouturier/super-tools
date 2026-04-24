@@ -123,9 +123,16 @@ const FormationDetailInfo = ({
           })()
         ) : (
           training.sold_price_ht != null && (
-            <Badge variant="outline" className="flex items-center gap-1.5">
-              <Euro className="h-3.5 w-3.5" />{training.sold_price_ht.toLocaleString("fr-FR")} € HT
-            </Badge>
+            <>
+              <Badge variant="outline" className="flex items-center gap-1.5">
+                <Euro className="h-3.5 w-3.5" />{training.sold_price_ht.toLocaleString("fr-FR")} € HT
+              </Badge>
+              {!training.invoice_file_url && (
+                <Badge variant="outline" className="flex items-center gap-1.5 text-amber-600 border-amber-300">
+                  <Euro className="h-3.5 w-3.5" />À facturer
+                </Badge>
+              )}
+            </>
           )
         )}
       </div>
