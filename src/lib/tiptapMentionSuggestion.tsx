@@ -134,7 +134,7 @@ export const mentionSuggestion = {
           popup?.[0]?.hide();
           return true;
         }
-        return component?.ref?.onKeyDown(props) ?? false;
+        return (component?.ref as { onKeyDown?: (p: { event: KeyboardEvent }) => boolean } | null)?.onKeyDown?.(props) ?? false;
       },
       onExit: () => {
         popup?.[0]?.destroy();
