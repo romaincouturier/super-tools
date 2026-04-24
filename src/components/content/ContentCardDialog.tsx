@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Upload, X, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock } from "lucide-react";
+import { Upload, X, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock, Link2 } from "lucide-react";
 import { TagsInput } from "@/components/ui/tags-input";
 import {
   Dialog,
@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
 import { useContentCardData } from "@/hooks/useContentCardData";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 
 type AiActionType = "reformulate" | "adapt_blog" | "adapt_linkedin" | "adapt_instagram";
@@ -76,6 +77,13 @@ const ContentCardDialog = ({
   const [initialComment, setInitialComment] = useState("");
   const [currentColumnId, setCurrentColumnId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { copied: linkCopied, copy: copyLink } = useCopyToClipboard();
+
+  const handleCopyShareLink = useCallback(() => {
+    if (!card?.id) return;
+    const url = `${window.location.origin}/contenu?card=${card.id}`;
+    copyLink(url, { title: "Lien copié", description: "Partagez-le pour ouvrir directement la carte." });
+  }, [card?.id, copyLink]);
 
   const {
     draftNewsletters,
@@ -271,6 +279,22 @@ const ContentCardDialog = ({
               >
                 <Save className="h-4 w-4" />
                 Enregistrer
+              </Button>
+            )}
+            {card && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyShareLink}
+                className="h-8 w-8"
+                title="Copier le lien vers cette carte"
+                aria-label="Copier le lien vers cette carte"
+              >
+                {linkCopied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Link2 className="h-4 w-4" />
+                )}
               </Button>
             )}
             <Button
