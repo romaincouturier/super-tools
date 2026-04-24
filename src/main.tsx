@@ -2,13 +2,29 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Aggressive cleanup of any legacy PWA / SW / cache artefacts.
-// Returning users were getting stale UIs because old service workers and
-// IndexedDB-persisted query caches restored outdated data on boot.
-async function purgeLegacyCaches() {
+// ─────────────────────────────────────────────────────────────────────────────
+// Aggressive cache purge.
+//
+// Returning visitors were stuck on a months-old UI because:
+//   • a legacy Service Worker was still controlling the page and serving
+//     stale HTML/JS chunks from the Cache Storage API
+//   • an old React-Query persister had cached UI state in IndexedDB
+//
+// Strategy: on every boot, BEFORE we mount React, we wipe every persistence
+// layer the app has ever used. If we actually had to remove a SW (meaning the
+// current page is still being served by it), we force one hard reload so the
+// next request fetches the real, fresh bundle from the network.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const RELOAD_MARKER = "__supertools_sw_purged__";
+
+async function purgeLegacyCaches(): Promise<{ hadServiceWorker: boolean }> {
+  let hadServiceWorker = false;
+
   try {
     if ("serviceWorker" in navigator) {
       const regs = await navigator.serviceWorker.getRegistrations();
+      hadServiceWorker = regs.length > 0;
       await Promise.all(regs.map((r) => r.unregister()));
     }
   } catch { /* noop */ }
@@ -23,11 +39,26 @@ async function purgeLegacyCaches() {
   // Wipe the legacy React-Query IndexedDB cache that used to persist UI state.
   try {
     if ("indexedDB" in window) {
-      indexedDB.deleteDatabase("keyval-store"); // idb-keyval default DB
+      indexedDB.deleteDatabase("keyval-store");
     }
   } catch { /* noop */ }
+
+  return { hadServiceWorker };
 }
 
-void purgeLegacyCaches();
+async function bootstrap() {
+  const { hadServiceWorker } = await purgeLegacyCaches();
 
-createRoot(document.getElementById("root")!).render(<App />);
+  // If a Service Worker was controlling this page, the current HTML/JS may
+  // still be the stale cached version. Trigger ONE hard reload so we get the
+  // real bundle from the network. The marker prevents an infinite loop.
+  if (hadServiceWorker && !sessionStorage.getItem(RELOAD_MARKER)) {
+    sessionStorage.setItem(RELOAD_MARKER, "1");
+    window.location.reload();
+    return;
+  }
+
+  createRoot(document.getElementById("root")!).render(<App />);
+}
+
+void bootstrap();
