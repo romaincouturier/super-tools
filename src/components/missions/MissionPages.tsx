@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { VoiceDictationButton } from "@/components/ui/voice-dictation-button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -625,6 +626,18 @@ const PageEditor = ({
         <TB active={false} onClick={() => editor.chain().focus().redo().run()} t="Rétablir" disabled={!editor.can().redo()}><Redo className="h-3.5 w-3.5" /></TB>
 
         <TSep />
+
+        <VoiceDictationButton
+          idleVariant="ghost"
+          className="h-7 w-7 text-muted-foreground hover:bg-muted hover:text-foreground rounded"
+          idleTitle="Dicter à la voix"
+          onTranscript={(text) => {
+            const trimmed = text.trim();
+            if (!trimmed || !editor) return;
+            // Append a trailing space so the user can keep dictating from the same point
+            editor.chain().focus().insertContent(trimmed + " ").run();
+          }}
+        />
 
         <button
           onClick={handleGeneratePageSummary}
