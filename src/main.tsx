@@ -2,17 +2,32 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
-// Unregister stale Service Workers and clear ALL caches left by the old PWA setup.
-// Without this, returning users get white screens from cached outdated assets.
-// Important: we clear ALL caches, not just named ones — Vite/browser caches
-// don't follow workbox naming conventions.
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => {
-    regs.forEach((r) => r.unregister());
-  }).catch(() => {});
+// Aggressive cleanup of any legacy PWA / SW / cache artefacts.
+// Returning users were getting stale UIs because old service workers and
+// IndexedDB-persisted query caches restored outdated data on boot.
+async function purgeLegacyCaches() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister()));
+    }
+  } catch { /* noop */ }
+
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+    }
+  } catch { /* noop */ }
+
+  // Wipe the legacy React-Query IndexedDB cache that used to persist UI state.
+  try {
+    if ("indexedDB" in window) {
+      indexedDB.deleteDatabase("keyval-store"); // idb-keyval default DB
+    }
+  } catch { /* noop */ }
 }
-if ("caches" in window) {
-  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
-}
+
+void purgeLegacyCaches();
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -2,8 +2,7 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
@@ -16,7 +15,6 @@ import { toast } from "@/hooks/use-toast";
 
 // Wire toast into offlineGuard (avoids lib → hooks circular dependency)
 registerToast(toast);
-import { createIDBPersister } from "@/lib/queryPersister";
 import OfflineBanner from "@/components/OfflineBanner";
 
 // Lazy load all pages with retry for chunk-load resilience
@@ -88,21 +86,17 @@ const AgentChat = lazy(() => import("./pages/AgentChat"));
 const SuperTilt = lazy(() => import("./pages/SuperTilt"));
 const WebAnalytics = lazy(() => import("./pages/WebAnalytics"));
 
+// In-memory query client only — no IndexedDB persistence.
+// Persisting the cache caused stale UIs ("vieille interface") on returning visits.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours — kept longer for offline support
+      gcTime: 1000 * 60 * 30, // 30 minutes
       refetchOnWindowFocus: false,
     },
   },
 });
-
-const persister = createIDBPersister();
-const persistOptions = {
-  persister,
-  maxAge: 1000 * 60 * 60 * 24, // 24 hours
-};
 
 // Loading fallback component
 const PageLoader = () => (
@@ -112,7 +106,7 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+  <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -237,7 +231,7 @@ const App = () => (
         <ChatbotProvider />
       </BrowserRouter>
     </TooltipProvider>
-  </PersistQueryClientProvider>
+  </QueryClientProvider>
 );
 
 export default App;
