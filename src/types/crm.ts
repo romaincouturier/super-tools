@@ -26,6 +26,10 @@ export interface OpportunityExtraction {
   service_type: ServiceType | null;
   title: string;
   brief_questions: BriefQuestion[];
+  /** Tag IDs the AI suggests, resolved from the available tags passed at extraction time. */
+  suggested_tag_ids: string[];
+  /** Recommended next commercial action with date (YYYY-MM-DD), or null if none. */
+  suggested_next_action: { text: string; date: string } | null;
 }
 
 export interface CrmColumn {

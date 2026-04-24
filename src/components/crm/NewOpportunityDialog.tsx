@@ -12,11 +12,11 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, CalendarClock } from "lucide-react";
+import { Sparkles, User, Building2, Phone, Mail, Linkedin, FileText, Euro, TrendingUp, ChevronDown, MessageSquare, History, CheckCircle, XCircle, Clock, CalendarClock, Tag } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useExtractOpportunity, useCreateCard, useCrmBoard } from "@/hooks/useCrmBoard";
+import { useExtractOpportunity, useCreateCard, useCrmBoard, useAssignTag } from "@/hooks/useCrmBoard";
 import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSourceConfig } from "@/types/crm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,10 +53,15 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
   const [scheduleAction, setScheduleAction] = useState(false);
   const [nextActionDate, setNextActionDate] = useState("");
   const [nextActionText, setNextActionText] = useState("");
+  const [nextActionSuggested, setNextActionSuggested] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagsAutoSuggested, setTagsAutoSuggested] = useState(false);
 
   const { data: boardData } = useCrmBoard();
   const extractMutation = useExtractOpportunity();
   const createCardMutation = useCreateCard();
+  const assignTagMutation = useAssignTag();
+  const availableTags = boardData?.tags || [];
 
   // Find "Entrant" column (first column for new opportunities)
   const entrantColumn = boardData?.columns.find((col) => col.name === "Entrant") || boardData?.columns[0];
@@ -139,7 +144,10 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     if (!rawInput.trim()) return;
 
     try {
-      const result = await extractMutation.mutateAsync(rawInput);
+      const result = await extractMutation.mutateAsync({
+        rawInput,
+        availableTags: availableTags.map((t) => ({ id: t.id, name: t.name, category: t.category })),
+      });
       setExtraction(result);
       setEditedExtraction(result);
       setStep("review");
@@ -150,9 +158,27 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
       if (detectedSource) setAcquisitionSource(detectedSource);
       // Fetch client history
       fetchClientHistory(result.email, result.company);
+      // Pre-fill suggested tags
+      if (result.suggested_tag_ids?.length) {
+        setSelectedTagIds(result.suggested_tag_ids);
+        setTagsAutoSuggested(true);
+      }
+      // Pre-fill suggested next action
+      if (result.suggested_next_action) {
+        setScheduleAction(true);
+        setNextActionDate(result.suggested_next_action.date);
+        setNextActionText(result.suggested_next_action.text);
+        setNextActionSuggested(true);
+      }
     } catch {
       // Error handled by mutation
     }
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
+    );
   };
 
   // Detect acquisition source from raw input and contact history
@@ -195,7 +221,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     if (!editedExtraction || !entrantColumn) return;
 
     try {
-      await createCardMutation.mutateAsync({
+      const created = await createCardMutation.mutateAsync({
         input: {
           column_id: entrantColumn.id,
           title: editedExtraction.title,
@@ -235,27 +261,23 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
         actorEmail: userEmail,
       });
 
-      // Reset and close
-      setStep("input");
-      setRawInput("");
-      setRawInputOpen(false);
-      setExtraction(null);
-      setEditedExtraction(null);
-      setEstimatedValue("");
-      setValueEstimation(null);
-      setAcquisitionSource(null);
-      setClientHistory([]);
-      setClientHistoryOpen(true);
-      setScheduleAction(false);
-      setNextActionDate("");
-      setNextActionText("");
+      // Persist selected tags
+      if (created?.id && selectedTagIds.length > 0) {
+        await Promise.all(
+          selectedTagIds.map((tagId) =>
+            assignTagMutation.mutateAsync({ cardId: created.id, tagId, actorEmail: userEmail }),
+          ),
+        );
+      }
+
+      resetState();
       onOpenChange(false);
     } catch {
       // Error handled by mutation
     }
   };
 
-  const handleClose = () => {
+  const resetState = () => {
     setStep("input");
     setRawInput("");
     setRawInputOpen(false);
@@ -269,6 +291,13 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail }: NewOppor
     setScheduleAction(false);
     setNextActionDate("");
     setNextActionText("");
+    setNextActionSuggested(false);
+    setSelectedTagIds([]);
+    setTagsAutoSuggested(false);
+  };
+
+  const handleClose = () => {
+    resetState();
     onOpenChange(false);
   };
 
@@ -569,6 +598,43 @@ Tel: 06 12 34 56 78"
               )}
             </div>
 
+            {/* Tags */}
+            {availableTags.length > 0 && (
+              <div>
+                <Label className="flex items-center gap-1.5 mb-2">
+                  <Tag className="h-3 w-3" />
+                  Tags
+                  {tagsAutoSuggested && selectedTagIds.length > 0 && (
+                    <span className="text-[10px] font-normal text-primary inline-flex items-center gap-0.5">
+                      <Sparkles className="h-2.5 w-2.5" /> suggérés par l'IA
+                    </span>
+                  )}
+                </Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {availableTags.map((tag) => {
+                    const selected = selectedTagIds.includes(tag.id);
+                    return (
+                      <button
+                        type="button"
+                        key={tag.id}
+                        onClick={() => toggleTag(tag.id)}
+                        className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                          selected ? "border-transparent" : "border-border hover:border-foreground/30"
+                        }`}
+                        style={
+                          selected
+                            ? { backgroundColor: tag.color + "30", color: tag.color }
+                            : { color: "hsl(var(--muted-foreground))" }
+                        }
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Schedule next action */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
@@ -580,6 +646,11 @@ Tel: 06 12 34 56 78"
                 <Label htmlFor="schedule-action" className="flex items-center gap-1.5 font-normal cursor-pointer">
                   <CalendarClock className="h-3.5 w-3.5" />
                   Programmer une prochaine action
+                  {nextActionSuggested && scheduleAction && (
+                    <span className="text-[10px] font-normal text-primary inline-flex items-center gap-0.5">
+                      <Sparkles className="h-2.5 w-2.5" /> suggérée par l'IA
+                    </span>
+                  )}
                 </Label>
               </div>
               {scheduleAction && (
@@ -590,7 +661,10 @@ Tel: 06 12 34 56 78"
                       id="next-action-date"
                       type="date"
                       value={nextActionDate}
-                      onChange={(e) => setNextActionDate(e.target.value)}
+                      onChange={(e) => {
+                        setNextActionDate(e.target.value);
+                        setNextActionSuggested(false);
+                      }}
                       className="mt-1"
                     />
                   </div>
@@ -599,7 +673,10 @@ Tel: 06 12 34 56 78"
                     <Input
                       id="next-action-text"
                       value={nextActionText}
-                      onChange={(e) => setNextActionText(e.target.value)}
+                      onChange={(e) => {
+                        setNextActionText(e.target.value);
+                        setNextActionSuggested(false);
+                      }}
                       placeholder="Ex: Relancer le client"
                       className="mt-1"
                     />

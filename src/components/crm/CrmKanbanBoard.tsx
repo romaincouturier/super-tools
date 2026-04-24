@@ -438,7 +438,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
               </div>
             ) : (
               <div className="max-h-80 overflow-y-auto divide-y divide-border">
-                {searchResults.map((card) => (
+                {searchResults.map((card) => {
+                  const isWon = card.sales_status === "WON";
+                  const isLost = card.sales_status === "LOST";
+                  return (
                   <button
                     key={card.id}
                     onClick={() => handleSearchSelect(card)}
@@ -450,10 +453,15 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                         backgroundColor: card.service_type === "formation" ? "#3b82f6" : card.service_type === "mission" ? "#8b5cf6" : "#6b7280",
                       }}
                     />
-                    <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className={`flex-1 min-w-0 space-y-0.5 ${isLost ? "line-through opacity-60" : ""}`}>
                       <div className="flex items-center gap-2">
                         {card.emoji && <span className="text-sm">{card.emoji}</span>}
                         <span className="text-sm font-medium truncate">{card.title}</span>
+                        {isWon && (
+                          <Badge className="text-[10px] py-0 h-4 px-1.5 bg-green-100 text-green-700 hover:bg-green-100 border-green-200 no-underline">
+                            Gagné
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         {card.company && (
@@ -475,14 +483,14 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded no-underline">
                           {getColumnName(card.column_id)}
                         </span>
                         {card.tags && card.tags.slice(0, 2).map((tag) => (
                           <Badge
                             key={tag.id}
                             variant="secondary"
-                            className="text-xs py-0 h-4"
+                            className="text-xs py-0 h-4 no-underline"
                             style={{ backgroundColor: tag.color + "20", color: tag.color }}
                           >
                             {tag.name}
@@ -491,7 +499,8 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                       </div>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
