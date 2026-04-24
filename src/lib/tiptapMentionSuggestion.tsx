@@ -101,14 +101,14 @@ export const mentionSuggestion = {
       .slice(0, 6);
   },
   render: () => {
-    let component: ReactRenderer<{ onKeyDown: (props: { event: KeyboardEvent }) => boolean }>;
+    let component: ReactRenderer;
     let popup: TippyInstance[];
 
     return {
       onStart: (props: { editor: unknown; clientRect?: (() => DOMRect | null) | null }) => {
         component = new ReactRenderer(MentionList, {
           props: props as unknown as MentionListProps,
-          editor: props.editor as Parameters<typeof ReactRenderer>[1]["editor"],
+          editor: props.editor as never,
         });
 
         if (!props.clientRect) return;

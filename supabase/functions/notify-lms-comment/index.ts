@@ -7,7 +7,7 @@ import {
   getSupabaseClient,
   sendEmail,
 } from "../_shared/mod.ts";
-import { getSenderInfo, getBccList } from "../_shared/email-settings.ts";
+import { getSenderEmail, getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -36,8 +36,9 @@ serve(async (req) => {
       .maybeSingle();
 
     // Get admin email from sender settings
-    const sender = await getSenderInfo();
-    const adminEmail = sender.email;
+    const adminEmail = await getSenderEmail();
+    const senderFrom = await getSenderFrom();
+    const bccList = await getBccList();
 
     const subject = `💬 Nouveau commentaire e-learning — ${course?.title || "Cours"}`;
     const html = `
@@ -53,7 +54,9 @@ serve(async (req) => {
     `;
 
     const result = await sendEmail({
+      from: senderFrom,
       to: [adminEmail],
+      bcc: bccList,
       subject,
       html,
     });
