@@ -140,9 +140,26 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
   }, [trainingId]);
 
   const saveSupportsType = useCallback(async (type: "url" | "file" | "lms") => {
+    // Clear the payload columns that don't belong to the new mode, so the
+    // effective support kind (derived from populated columns) stays unambiguous.
+    const update: {
+      supports_type: "url" | "file" | "lms";
+      supports_url?: null;
+      supports_file_name?: null;
+      supports_lms_course_id?: null;
+    } = { supports_type: type };
+    if (type === "url") {
+      update.supports_file_name = null;
+      update.supports_lms_course_id = null;
+    } else if (type === "file") {
+      update.supports_lms_course_id = null;
+    } else if (type === "lms") {
+      update.supports_url = null;
+      update.supports_file_name = null;
+    }
     const { error } = await supabase
       .from("trainings")
-      .update({ supports_type: type })
+      .update(update)
       .eq("id", trainingId);
     if (error) throw error;
   }, [trainingId]);

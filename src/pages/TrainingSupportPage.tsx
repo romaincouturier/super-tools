@@ -13,7 +13,7 @@ const TrainingSupportPage = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("trainings")
-        .select("supports_type, supports_lms_course_id")
+        .select("supports_lms_course_id")
         .eq("id", trainingId!)
         .single();
       return data;
@@ -31,8 +31,9 @@ const TrainingSupportPage = () => {
     );
   }
 
-  // If training uses LMS course as support, redirect to the public LMS player route
-  if (training?.supports_type === "lms" && training?.supports_lms_course_id) {
+  // If an LMS course is linked as support, redirect to the public LMS player.
+  // The admin only has to pick a course — no need to also toggle a radio.
+  if (training?.supports_lms_course_id) {
     const email = searchParams.get("email") || "";
     const params = email ? `?email=${encodeURIComponent(email)}` : "?preview=admin";
     return <Navigate to={`/formation-support/${trainingId}/lms/${training.supports_lms_course_id}${params}`} replace />;

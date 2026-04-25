@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatFileSize, downloadFile } from "@/lib/file-utils";
+import { formatFileSize, downloadFile, getFileType } from "@/lib/file-utils";
 import {
   DocumentEntityType,
   useEntityDocuments,
@@ -24,6 +24,16 @@ import {
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
+export type EntityDocumentMediaKind = "image" | "video" | "audio" | null;
+
+export interface EntityDocumentUpload {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  file_type: EntityDocumentMediaKind;
+}
+
 interface EntityDocumentsManagerProps {
   entityType: DocumentEntityType;
   entityId: string;
@@ -33,6 +43,12 @@ interface EntityDocumentsManagerProps {
   accept?: string;
   /** Custom title */
   title?: string;
+  /**
+   * Fired once per successful upload, after the document row is inserted.
+   * Lets the parent trigger post-upload pipelines (e.g. auto-transcription
+   * of audio files into mission pages). Fire-and-forget.
+   */
+  onUploadComplete?: (uploaded: EntityDocumentUpload) => void;
 }
 
 const EntityDocumentsManager = ({
@@ -41,6 +57,7 @@ const EntityDocumentsManager = ({
   variant = "card",
   accept,
   title = "Documents",
+  onUploadComplete,
 }: EntityDocumentsManagerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -67,13 +84,22 @@ const EntityDocumentsManager = ({
       for (const file of Array.from(files)) {
         try {
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
-          await addDocument.mutateAsync({
+          const inserted = await addDocument.mutateAsync({
             entityId,
             file_name: file.name,
             file_url: fileUrl,
             file_size: file.size,
           });
           successCount++;
+          if (onUploadComplete && inserted && (inserted as { id?: string }).id) {
+            onUploadComplete({
+              id: (inserted as { id: string }).id,
+              file_name: file.name,
+              file_url: fileUrl,
+              file_size: file.size,
+              file_type: getFileType(file),
+            });
+          }
         } catch (err: unknown) {
           console.error("[EntityDocumentsManager] Upload error:", err);
           toast.error(`Erreur lors de l'upload de ${file.name}`, {

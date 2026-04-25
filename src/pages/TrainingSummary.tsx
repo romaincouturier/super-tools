@@ -666,7 +666,7 @@ END:VCALENDAR`;
         )}
 
         {/* ═══ SECTION: Documents ═══ */}
-        {(training.program_file_url || training.supports_url || (training.supports_type === "lms" && training.supports_lms_course_id) || reglementInterieurUrl) && (
+        {(training.program_file_url || training.supports_url || training.supports_lms_course_id || reglementInterieurUrl) && (
           <section ref={sectionDocuments} id="section-documents" className="grid grid-cols-2 gap-3 scroll-mt-20">
             {training.program_file_url && (
               <a
@@ -700,7 +700,7 @@ END:VCALENDAR`;
                 <span className="text-xs font-bold text-center">Accéder aux supports</span>
               </a>
             )}
-            {!training.supports_url && training.supports_type === "lms" && training.supports_lms_course_id && (
+            {!training.supports_url && training.supports_lms_course_id && (
               <a
                 href={`/formation-support/${training.id}`}
                 target="_blank"

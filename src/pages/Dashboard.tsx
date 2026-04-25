@@ -5,12 +5,17 @@ import {
   ArrowUpRight,
   AlertTriangle,
   Bot,
+  Briefcase,
+  Calendar,
   ChevronRight,
   ClipboardCheck,
   FileText,
+  GraduationCap,
   Mail,
   Send,
   Star,
+  Target,
+  Users,
 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Spinner } from "@/components/ui/spinner";
@@ -18,6 +23,7 @@ import { MODULE_ICONS } from "@/components/moduleIcons";
 import { useModuleAccess, type AppModule } from "@/hooks/useModuleAccess";
 import {
   useDashboardData,
+  type DashboardAgendaType,
   type DashboardAttentionIcon,
   type DashboardKpi,
 } from "@/hooks/useDashboardData";
@@ -29,6 +35,26 @@ const ANTHRACITE = "#101820";
 const YELLOW = "#ffd100";
 
 const serif = '"Fraunces", "Playfair Display", Georgia, serif';
+
+const AGENDA_TYPE_ICON: Record<DashboardAgendaType, typeof Calendar> = {
+  formation: GraduationCap,
+  evenement: Calendar,
+  opportunite: Target,
+  mission: Briefcase,
+  activite: ClipboardCheck,
+  email: Mail,
+  coaching: Users,
+};
+
+const AGENDA_TYPE_COLOR: Record<DashboardAgendaType, string> = {
+  formation: YELLOW,
+  evenement: "rgba(16,24,32,0.2)",
+  opportunite: "#16a34a",
+  mission: "#2563eb",
+  activite: "#6366f1",
+  email: "#ea580c",
+  coaching: "#0891b2",
+};
 
 // ── Module tiles : source commune, access-filtered ───────────
 const MODULE_ORDER = [
@@ -371,51 +397,60 @@ const Dashboard = () => {
               </div>
               {dashboard.agenda.length === 0 ? (
                 <div style={{ padding: "18px 0", fontSize: 13, color: "rgba(16,24,32,0.5)" }}>
-                  Aucun créneau de formation ni événement prévu aujourd&apos;hui.
+                  Rien de prévu aujourd&apos;hui.
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                  {dashboard.agenda.map((e, i) => (
-                    <div
-                      key={`${e.time}-${e.title}-${i}`}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "64px 4px 1fr auto",
-                        gap: 12,
-                        alignItems: "center",
-                        padding: "10px 0",
-                        borderTop: i > 0 ? "1px solid rgba(16,24,32,0.05)" : "none",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2 }}>
-                          {e.time}
-                        </div>
-                        <div style={{ fontSize: 11, color: "rgba(16,24,32,0.45)" }}>{e.dur}</div>
-                      </div>
-                      <div
+                  {dashboard.agenda.map((e, i) => {
+                    const Icon = AGENDA_TYPE_ICON[e.type];
+                    const accentColor = AGENDA_TYPE_COLOR[e.type];
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => navigate(e.path)}
+                        key={`${e.type}-${e.time}-${e.title}-${i}`}
                         style={{
-                          width: 3,
-                          height: 28,
-                          borderRadius: 2,
-                          background: e.accent ? YELLOW : "rgba(16,24,32,0.15)",
+                          display: "grid",
+                          gridTemplateColumns: "64px 4px 16px 1fr auto",
+                          gap: 12,
+                          alignItems: "center",
+                          padding: "10px 4px",
+                          borderTop: i > 0 ? "1px solid rgba(16,24,32,0.05)" : "none",
+                          background: "transparent",
+                          border: "none",
+                          borderRadius: 6,
+                          textAlign: "left",
+                          cursor: "pointer",
                         }}
-                      />
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>{e.title}</div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 500,
-                          color: "rgba(16,24,32,0.55)",
-                          padding: "3px 8px",
-                          background: "rgba(16,24,32,0.05)",
-                          borderRadius: 20,
-                        }}
+                        onMouseEnter={(ev) => { ev.currentTarget.style.background = "rgba(16,24,32,0.03)"; }}
+                        onMouseLeave={(ev) => { ev.currentTarget.style.background = "transparent"; }}
                       >
-                        {e.tag}
-                      </div>
-                    </div>
-                  ))}
+                        <div>
+                          <div style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: 13.5, fontWeight: 600, letterSpacing: -0.2 }}>
+                            {e.time || "—"}
+                          </div>
+                          <div style={{ fontSize: 11, color: "rgba(16,24,32,0.45)" }}>{e.dur}</div>
+                        </div>
+                        <div style={{ width: 3, height: 28, borderRadius: 2, background: accentColor }} />
+                        <Icon size={14} style={{ color: "rgba(16,24,32,0.55)" }} />
+                        <div style={{ fontSize: 14, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {e.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: "rgba(16,24,32,0.55)",
+                            padding: "3px 8px",
+                            background: "rgba(16,24,32,0.05)",
+                            borderRadius: 20,
+                          }}
+                        >
+                          {e.tag}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </section>

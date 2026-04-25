@@ -127,10 +127,10 @@ const ThankYouEmailPreviewDialog = ({
       // Check if training has an LMS course linked
       const { data: trainingData } = await supabase
         .from("trainings")
-        .select("supports_type, supports_lms_course_id")
+        .select("supports_lms_course_id")
         .eq("id", trainingId)
         .maybeSingle();
-      if (trainingData?.supports_type === "lms" && trainingData?.supports_lms_course_id) {
+      if (trainingData?.supports_lms_course_id) {
         resolvedSupportsUrl = `${window.location.origin}/formation-support/${trainingId}`;
       } else {
         // Check for editor-created support record

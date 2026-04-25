@@ -114,6 +114,15 @@ ${content}
 Réponds uniquement avec le post Instagram.`;
         break;
 
+      case "generate_title":
+        userPrompt = `Génère un titre court et descriptif (5 à 10 mots maximum) qui résume le contenu suivant. Le titre doit être en français, sans guillemets, sans ponctuation finale, sans préfixe du type "Titre :".
+
+CONTENU:
+${content}
+
+Réponds UNIQUEMENT avec le titre.`;
+        break;
+
       default:
         return new Response(
           JSON.stringify({ error: "Unknown action" }),
