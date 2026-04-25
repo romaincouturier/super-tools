@@ -6,8 +6,9 @@ import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPi
 import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
-import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
+import { useUpdateMission, useDeleteMission, useCreateMissionActivity, useCreateMissionPage } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
 import MissionSettingsTab from "./MissionSettingsTab";
@@ -16,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { isRemoteLocation } from "@/lib/missionLocation";
-import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
+import EntityDocumentsManager, { type EntityDocumentUpload } from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
 import { useEntityAutoSave } from "@/hooks/useEntityAutoSave";
@@ -51,6 +52,60 @@ const MissionDetailDrawer = ({
     "generate-mission-summary",
     { errorMessage: "Impossible de générer le résumé" },
   );
+
+  const createMissionPage = useCreateMissionPage();
+  const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
+    "transcribe-audio-long",
+    { silentOnError: true },
+  );
+  const { invoke: invokeGenerateTitle } = useEdgeFunction<string>(
+    "ai-content-assist",
+    { silentOnError: true },
+  );
+
+  /**
+   * Audio document → automatic transcription → new mission page.
+   * Fired (fire-and-forget) by EntityDocumentsManager after each successful upload.
+   * Each audio produces one page, with an AI-suggested title and the transcript
+   * as the page body. Non-audio files are ignored.
+   */
+  const handleDocumentUploaded = useCallback(async (uploaded: EntityDocumentUpload) => {
+    if (!mission || uploaded.file_type !== "audio") return;
+    sonnerToast.info(`Transcription de ${uploaded.file_name}…`, { duration: 4000 });
+    try {
+      const transcribeResult = await invokeTranscribe({ audio_url: uploaded.file_url });
+      const transcript = transcribeResult?.transcript;
+      if (!transcript || transcript === "[inaudible]") {
+        sonnerToast.error(`Transcription impossible pour ${uploaded.file_name}`);
+        return;
+      }
+      const titleResult = await invokeGenerateTitle({
+        action: "generate_title",
+        content: transcript.slice(0, 4000),
+      });
+      const cleanTitle = (titleResult || "")
+        .trim()
+        .replace(/^["'«»]|["'«»]$/g, "")
+        .replace(/[.!?]+$/, "")
+        .slice(0, 200);
+      const fallbackTitle = uploaded.file_name.replace(/\.[^.]+$/, "");
+      const finalTitle = cleanTitle || fallbackTitle;
+      const htmlContent = transcript
+        .split(/\n\n+/)
+        .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("");
+      await createMissionPage.mutateAsync({
+        mission_id: mission.id,
+        title: finalTitle,
+        content: htmlContent,
+        icon: "🎙️",
+      });
+      sonnerToast.success(`Page créée : ${finalTitle}`);
+    } catch (err) {
+      console.error("[audio-to-page] failed:", err);
+      sonnerToast.error(`Échec du traitement audio pour ${uploaded.file_name}`);
+    }
+  }, [mission, invokeTranscribe, invokeGenerateTitle, createMissionPage]);
 
   const handleShareLink = () => {
     if (!mission) return;
@@ -410,6 +465,7 @@ const MissionDetailDrawer = ({
               entityId={mission.id}
               variant="bare"
               title="Documents contractuels"
+              onUploadComplete={handleDocumentUploaded}
             />
           </TabsContent>
 
