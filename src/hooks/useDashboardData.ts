@@ -188,7 +188,7 @@ async function fetchAgenda(today: string, userId: string | null): Promise<Dashbo
       .lte("scheduled_for", todayEnd)
       .eq("trainings.assigned_to", userId),
     // CRM scheduled emails going out today
-    supabase
+    (supabase as any)
       .from("crm_scheduled_emails")
       .select("id, subject, scheduled_at, status, crm_cards!inner(id, title, assigned_to)")
       .eq("status", "pending")
