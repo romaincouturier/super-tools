@@ -23,6 +23,7 @@ import {
  */
 
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 let _openaiApiKey: string | null = null;
@@ -30,7 +31,7 @@ async function resolveOpenAIKey(): Promise<string | null> {
   if (!_openaiApiKey) _openaiApiKey = await getOpenAIApiKey();
   return _openaiApiKey;
 }
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const CLAUDE_MODEL = CLAUDE_ADVANCED;
 const MAX_TOOL_ROUNDS = 10;
 
 // ── Embedding cache helpers ─────────────────────────────────
@@ -723,7 +724,7 @@ async function generateTitle(userMessage: string, assistantResponse: string): Pr
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: CLAUDE_DEFAULT,
         max_tokens: 60,
         messages: [
           {

@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -57,7 +58,7 @@ async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: CLAUDE_DEFAULT,
       max_tokens: 2048,
       system: systemPrompt,
       messages: [

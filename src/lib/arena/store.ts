@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import type { SessionConfig, Message, SessionResult, AgentConfig } from "./types";
 import { AGENT_COLORS } from "./types";
+import { CLAUDE_DEFAULT } from "@/lib/claude-models";
 import { v4 as uuidv4 } from "uuid";
 
 export function useSessionStore() {
@@ -51,7 +52,7 @@ export function createDefaultAgent(index: number): AgentConfig {
     id: uuidv4(),
     name: `Agent ${index + 1}`,
     provider: "claude",
-    model: "claude-haiku-4-5-20251001",
+    model: CLAUDE_DEFAULT,
     role: "",
     personality: "",
     color: AGENT_COLORS[index % AGENT_COLORS.length],
