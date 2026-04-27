@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { supabase } from "@/integrations/supabase/client";
 import { loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { TEMPLATES } from "@/lib/arena/templates";
+import { CLAUDE_DEFAULT } from "@/lib/claude-models";
 import type { SessionConfig, ApiKeys } from "@/lib/arena/types";
 import type { CrmColumn, CrmCard, CrmRevenueTarget, CommercialCoachContext } from "@/types/crm";
 import type { OKRObjective, OKRKeyResult } from "@/types/okr";
@@ -321,7 +322,7 @@ Ne demandez pas de donnees supplementaires, tout est ci-dessus.`;
       }
 
       const availableProvider: "claude" | "openai" | "gemini" = "claude";
-      const defaultModel = "claude-haiku-4-5-20251001";
+      const defaultModel = CLAUDE_DEFAULT;
 
       const config: SessionConfig = {
         topic:

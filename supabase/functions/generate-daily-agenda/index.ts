@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -85,7 +86,7 @@ Propose-moi un agenda priorisé pour traiter ces actions.`;
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
+          model: CLAUDE_DEFAULT,
           max_tokens: 1500,
           temperature: 0.3,
           system: SYSTEM_PROMPT,

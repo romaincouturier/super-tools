@@ -1,3 +1,5 @@
+import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "@/lib/claude-models";
+
 export type DiscussionMode = "exploration" | "decision" | "deliverable";
 
 export type UserMode = "observer" | "interventionist" | "director";
@@ -123,8 +125,8 @@ export const AGENT_COLORS = [
 
 export const AVAILABLE_MODELS: Record<Provider, { id: string; label: string }[]> = {
   claude: [
-    { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (eco)" },
-    { id: "claude-sonnet-4-5-20250929", label: "Claude Sonnet 4.5" },
+    { id: CLAUDE_DEFAULT, label: "Claude Haiku 4.5 (eco)" },
+    { id: CLAUDE_ADVANCED, label: "Claude Sonnet 4.5" },
   ],
   openai: [
     { id: "gpt-4o-mini", label: "GPT-4o Mini (eco)" },
@@ -138,8 +140,8 @@ export const AVAILABLE_MODELS: Record<Provider, { id: string; label: string }[]>
 
 // Cost per 1M tokens (input / output) in USD
 export const MODEL_COSTS: Record<string, { input: number; output: number }> = {
-  "claude-sonnet-4-5-20250929": { input: 3, output: 15 },
-  "claude-haiku-4-5-20251001": { input: 0.80, output: 4 },
+  [CLAUDE_ADVANCED]: { input: 3, output: 15 },
+  [CLAUDE_DEFAULT]: { input: 0.80, output: 4 },
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gemini-2.0-flash": { input: 0.10, output: 0.40 },

@@ -9,6 +9,7 @@ import { getSavedSessions, deleteSession, type SavedSession } from "@/lib/arena/
 import { getCustomTemplates, saveCustomTemplate, deleteCustomTemplate, type CustomTemplate } from "@/lib/arena/customTemplates";
 import { EXPERT_POOL, type ExpertProfile } from "@/lib/arena/experts";
 import { createDefaultAgent } from "@/lib/arena/store";
+import { CLAUDE_DEFAULT } from "@/lib/claude-models";
 import { callSuggestExperts, loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
@@ -187,7 +188,7 @@ export function useArenaSetup(): UseArenaSetupReturn {
     setLanguage(template.rules.language);
     // Adapt agents to available provider
     const availableProvider: "claude" | "openai" | "gemini" = "claude";
-    const defaultModel = "claude-haiku-4-5-20251001";
+    const defaultModel = CLAUDE_DEFAULT;
     setAgents(
       template.agents.map((a, i) => ({
         ...a,
@@ -250,7 +251,7 @@ export function useArenaSetup(): UseArenaSetupReturn {
 
   const expertToAgent = (expert: ExpertProfile, index: number, stance?: string): AgentConfig => {
     const p: "claude" | "openai" | "gemini" = "claude";
-    const m = "claude-haiku-4-5-20251001";
+    const m = CLAUDE_DEFAULT;
     return {
       id: uuidv4(),
       name: expert.name,

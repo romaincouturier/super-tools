@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { estimateCost, MODEL_COSTS, AGENT_COLORS } from "./types";
+import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "@/lib/claude-models";
 import { searchExperts, EXPERT_POOL } from "./experts";
 import { buildSlidingContext, createDefaultAgent } from "./store";
 import { exportToMarkdown } from "./export";
@@ -14,7 +15,7 @@ describe("estimateCost", () => {
 
   it("calculates cost for Claude Sonnet correctly", () => {
     // 1000 input tokens at $3/1M + 500 output tokens at $15/1M
-    const cost = estimateCost("claude-sonnet-4-5-20250929", 1000, 500);
+    const cost = estimateCost(CLAUDE_ADVANCED, 1000, 500);
     expect(cost).toBeCloseTo(0.003 + 0.0075, 6);
   });
 
@@ -196,7 +197,7 @@ describe("createDefaultAgent", () => {
     const agent = createDefaultAgent(0);
     expect(agent.name).toBe("Agent 1");
     expect(agent.provider).toBe("claude");
-    expect(agent.model).toBe("claude-haiku-4-5-20251001");
+    expect(agent.model).toBe(CLAUDE_DEFAULT);
   });
 
   it("assigns colors cyclically", () => {
@@ -229,7 +230,7 @@ describe("exportToMarkdown", () => {
         id: "a1",
         name: "Agent A",
         provider: "claude",
-        model: "claude-haiku-4-5-20251001",
+        model: CLAUDE_DEFAULT,
         role: "Expert",
         personality: "Calm",
         color: "#3B82F6",

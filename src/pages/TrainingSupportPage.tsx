@@ -32,7 +32,8 @@ const TrainingSupportPage = () => {
   // The admin only has to pick a course — no need to also toggle a radio.
   if (training?.supports_lms_course_id) {
     const email = searchParams.get("email") || "";
-    const params = email ? `?email=${encodeURIComponent(email)}` : "?preview=admin";
+    const isAdminPreview = searchParams.get("preview") === "admin";
+    const params = isAdminPreview ? "?preview=admin" : (email ? `?email=${encodeURIComponent(email)}` : "");
     return <Navigate to={`/formation-support/${trainingId}/lms/${training.supports_lms_course_id}${params}`} replace />;
   }
 

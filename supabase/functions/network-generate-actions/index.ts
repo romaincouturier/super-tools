@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -87,7 +88,7 @@ Génère mon plan d'actions réseau pour cette semaine.`;
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: CLAUDE_DEFAULT,
           max_tokens: 3000,
           temperature: 0.4,
           system: SYSTEM_PROMPT,
