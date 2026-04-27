@@ -37,9 +37,11 @@ import BlockEditCard from "./BlockEditCard";
 
 interface Props {
   lessonId: string;
+  /** Course id is passed through to type-specific editors that need course-scoped data (e.g. quiz picker). */
+  courseId?: string;
 }
 
-export default function LessonBlocksEditor({ lessonId }: Props) {
+export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
   const { data: blocks = [], isLoading } = useLessonBlocks(lessonId);
   const createBlock = useCreateLessonBlock(lessonId);
   const updateBlock = useUpdateLessonBlock(lessonId);
@@ -115,6 +117,7 @@ export default function LessonBlocksEditor({ lessonId }: Props) {
               key={block.id}
               block={block}
               lessonId={lessonId}
+              courseId={courseId}
               onUpdateContent={(content) => handleUpdateContent(block.id, content)}
               onToggleHidden={(hidden) => handleToggleHidden(block.id, hidden)}
               onDelete={() => handleDelete(block.id)}
@@ -162,12 +165,14 @@ export default function LessonBlocksEditor({ lessonId }: Props) {
 function SortableBlock({
   block,
   lessonId,
+  courseId,
   onUpdateContent,
   onToggleHidden,
   onDelete,
 }: {
   block: LessonBlock;
   lessonId: string;
+  courseId?: string;
   onUpdateContent: (content: LessonBlockContent) => Promise<void>;
   onToggleHidden: (hidden: boolean) => void;
   onDelete: () => void;
@@ -185,6 +190,7 @@ function SortableBlock({
       <BlockEditCard
         block={block}
         lessonId={lessonId}
+        courseId={courseId}
         onUpdateContent={onUpdateContent}
         onToggleHidden={onToggleHidden}
         onDelete={onDelete}

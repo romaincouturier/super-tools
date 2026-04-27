@@ -13,9 +13,11 @@ import LessonBlocksEditor from "@/components/lms/blocks/LessonBlocksEditor";
 
 interface Props {
   lesson: LmsLesson;
+  /** Course id used by block editors that depend on course-scoped data. */
+  courseId?: string;
 }
 
-export default function LmsLessonEditor({ lesson }: Props) {
+export default function LmsLessonEditor({ lesson, courseId }: Props) {
   const updateLesson = useUpdateLesson();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +91,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
 
       <div className="space-y-2">
         <Label>Contenu de la leçon</Label>
-        <LessonBlocksEditor lessonId={lesson.id} />
+        <LessonBlocksEditor lessonId={lesson.id} courseId={courseId} />
       </div>
 
       <div className="border-t pt-3">
