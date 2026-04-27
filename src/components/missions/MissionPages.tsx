@@ -89,6 +89,11 @@ interface MissionPagesProps {
 
 type PageSortMode = "date_desc" | "date_asc" | "name_asc" | "name_desc";
 
+const SIDEBAR_WIDTH_KEY = "supertools.missionPages.sidebarWidth";
+const SIDEBAR_DEFAULT_WIDTH = 256;
+const SIDEBAR_MIN_WIDTH = 180;
+const SIDEBAR_MAX_WIDTH = 600;
+
 interface PageTreeItemProps {
   page: MissionPage;
   allPages: MissionPage[];
@@ -206,7 +211,7 @@ const PageTreeItem = ({
           className="shrink-0"
           fallback={<FileText className="h-3.5 w-3.5 text-muted-foreground" />}
         />
-        <span className="flex-1 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <span className="flex-1 text-sm truncate min-w-0">
           {page.title || "Sans titre"}
         </span>
 
@@ -750,6 +755,42 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sortMode, setSortMode] = useState<PageSortMode>("date_desc");
 
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
+    const stored = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    const n = stored ? parseInt(stored, 10) : NaN;
+    if (!Number.isFinite(n)) return SIDEBAR_DEFAULT_WIDTH;
+    return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, n));
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  const startSidebarResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    setIsResizing(true);
+    const onMove = (ev: PointerEvent) => {
+      const next = startWidth + (ev.clientX - startX);
+      setSidebarWidth(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, next)));
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [sidebarWidth]);
+
   const sortFn = useCallback((a: MissionPage, b: MissionPage): number => {
     switch (sortMode) {
       case "name_asc": return a.title.localeCompare(b.title, "fr");
@@ -923,10 +964,14 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       )}
 
       {/* Sidebar */}
-      <div className={cn(
-        "border-r bg-muted/20 flex flex-col transition-all overflow-hidden",
-        sidebarCollapsed ? "w-0" : "w-64 shrink-0"
-      )}>
+      <div
+        className="border-r bg-muted/20 flex flex-col overflow-hidden"
+        style={{
+          width: sidebarCollapsed ? 0 : sidebarWidth,
+          flexShrink: 0,
+          transition: isResizing ? "none" : "width 150ms ease",
+        }}
+      >
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
           <div className="flex items-center gap-0.5">
@@ -997,6 +1042,23 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
           ))}
         </div>
       </div>
+
+      {/* Resize handle between sidebar and editor */}
+      {!sidebarCollapsed && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Redimensionner la liste des pages"
+          aria-valuemin={SIDEBAR_MIN_WIDTH}
+          aria-valuemax={SIDEBAR_MAX_WIDTH}
+          aria-valuenow={sidebarWidth}
+          onPointerDown={startSidebarResize}
+          className={cn(
+            "w-1 shrink-0 cursor-col-resize transition-colors -ml-px relative z-10",
+            isResizing ? "bg-primary/40" : "bg-transparent hover:bg-primary/30",
+          )}
+        />
+      )}
 
       {/* Editor */}
       <div className="flex-1 min-w-0 overflow-hidden">
