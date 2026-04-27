@@ -546,8 +546,15 @@ const PageEditor = ({
         horizontalRule: { HTMLAttributes: { class: "my-6 border-muted-foreground/30 border-t-2" } },
       }),
       LinkExtension.configure({
-        openOnClick: true,
-        HTMLAttributes: { class: "text-primary underline cursor-pointer" },
+        // Let the browser handle the click via the rendered <a target="_blank">
+        // anchor; TipTap's own window.open is blocked as a popup when the
+        // editor sits inside the mission Sheet drawer.
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline cursor-pointer",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
       }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
