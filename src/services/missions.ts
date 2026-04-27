@@ -4,6 +4,7 @@
  */
 import { db, throwIfError, getMaxPosition } from "@/lib/supabase-helpers";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { pickRandomEmoji } from "@/lib/randomEmoji";
 import { bootstrapChecklist } from "@/services/logistics";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
@@ -46,7 +47,7 @@ export async function createMission(input: CreateMissionInput): Promise<Mission>
 
   const result = await db()
     .from("missions")
-    .insert({ ...missionData, position: maxPosition + 1 })
+    .insert({ ...missionData, emoji: input.emoji || pickRandomEmoji(), position: maxPosition + 1 })
     .select()
     .single();
 
