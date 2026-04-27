@@ -1,6 +1,6 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bot, LayoutDashboard, Settings, Shield } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, Settings, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
@@ -14,6 +14,10 @@ import UserMenu from "@/components/UserMenu";
 const CREAM = "#f7f5f0";
 const ANTHRACITE = "#101820";
 const YELLOW = "#ffd100";
+
+const COLLAPSED_WIDTH = 72;
+const EXPANDED_WIDTH = 232;
+const SIDEBAR_EXPANDED_KEY = "supertools.sidebar.expanded";
 
 /** Module keys in display order for the sidebar. */
 const SIDEBAR_MODULE_ORDER = [
@@ -63,6 +67,19 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const { hasAccess, isAdmin } = useModuleAccess();
   const { hasAny: hasSettingsAlert } = useSettingsAlerts();
 
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SIDEBAR_EXPANDED_KEY) === "true";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SIDEBAR_EXPANDED_KEY, expanded ? "true" : "false");
+  }, [expanded]);
+
+  // Drawer (mobile) is always full-width with labels. On desktop, labels show only when expanded.
+  const showLabels = asDrawer || expanded;
+
   const isActive = (path: string) => location.pathname.startsWith(path);
 
   const go = (path: string) => {
@@ -80,16 +97,17 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   return (
     <aside
       style={{
-        width: asDrawer ? "100%" : 72,
-        minWidth: 72,
+        width: asDrawer ? "100%" : expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
+        minWidth: asDrawer ? undefined : COLLAPSED_WIDTH,
         background: ANTHRACITE,
         color: CREAM,
         display: "flex",
         flexDirection: "column",
-        alignItems: asDrawer ? "stretch" : "center",
-        padding: asDrawer ? "20px 12px" : "20px 0",
+        alignItems: showLabels ? "stretch" : "center",
+        padding: showLabels ? "20px 12px" : "20px 0",
         flexShrink: 0,
         height: "100%",
+        transition: asDrawer ? undefined : "width 180ms ease",
       }}
     >
       {/* Logo */}
@@ -111,8 +129,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           fontWeight: 800,
           fontSize: 18,
           letterSpacing: -0.5,
-          alignSelf: asDrawer ? "flex-start" : "center",
-          marginLeft: asDrawer ? 4 : 0,
+          alignSelf: showLabels ? "flex-start" : "center",
+          marginLeft: showLabels ? 4 : 0,
+          flexShrink: 0,
         }}
       >
         S
@@ -127,7 +146,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           gap: 4,
           flex: 1,
           width: "100%",
-          alignItems: asDrawer ? "stretch" : "center",
+          alignItems: showLabels ? "stretch" : "center",
           overflowY: "auto",
           overflowX: "hidden",
         }}
@@ -137,14 +156,14 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           label="Agent IA"
           active={isActive("/agent")}
           highlight
-          asDrawer={asDrawer}
+          showLabels={showLabels}
           onClick={() => go("/agent")}
         />
         <RailItem
           icon={LayoutDashboard}
           label="Tableau de bord"
           active={isActive("/dashboard")}
-          asDrawer={asDrawer}
+          showLabels={showLabels}
           onClick={() => go("/dashboard")}
         />
         {moduleItems.map((m) => (
@@ -153,19 +172,19 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             icon={m.icon}
             label={m.label}
             active={isActive(m.path)}
-            asDrawer={asDrawer}
+            showLabels={showLabels}
             onClick={() => go(m.path)}
           />
         ))}
       </div>
 
-      {/* Bottom section: admin, settings, avatar */}
+      {/* Bottom section: admin, settings, expand toggle, avatar */}
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           gap: 4,
-          alignItems: asDrawer ? "stretch" : "center",
+          alignItems: showLabels ? "stretch" : "center",
           width: "100%",
         }}
       >
@@ -174,7 +193,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             icon={Shield}
             label="Administration"
             active={isActive("/admin")}
-            asDrawer={asDrawer}
+            showLabels={showLabels}
             onClick={() => go("/admin")}
           />
         )}
@@ -182,18 +201,28 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           icon={Settings}
           label="Paramètres"
           active={isActive("/parametres")}
-          asDrawer={asDrawer}
+          showLabels={showLabels}
           alert={hasSettingsAlert}
           onClick={() => go("/parametres")}
         />
+
+        {!asDrawer && (
+          <RailItem
+            icon={expanded ? ChevronLeft : ChevronRight}
+            label={expanded ? "Réduire" : "Agrandir"}
+            active={false}
+            showLabels={showLabels}
+            onClick={() => setExpanded((e) => !e)}
+          />
+        )}
 
         {user && (
           <div
             style={{
               marginTop: 4,
               display: "flex",
-              justifyContent: asDrawer ? "flex-start" : "center",
-              paddingLeft: asDrawer ? 10 : 0,
+              justifyContent: showLabels ? "flex-start" : "center",
+              paddingLeft: showLabels ? 10 : 0,
             }}
           >
             <UserMenu
@@ -241,12 +270,12 @@ interface RailItemProps {
   active: boolean;
   highlight?: boolean;
   alert?: boolean;
-  asDrawer?: boolean;
+  showLabels?: boolean;
   onClick: () => void;
 }
 
 const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
-  ({ icon: Icon, label, active, highlight, alert, asDrawer, onClick, ...rest }, ref) => {
+  ({ icon: Icon, label, active, highlight, alert, showLabels, onClick, ...rest }, ref) => {
     const fg = active ? ANTHRACITE : highlight ? YELLOW : "rgba(247,245,240,0.6)";
     const bg = active ? YELLOW : "transparent";
     const hoverBg = active ? YELLOW : "rgba(247,245,240,0.08)";
@@ -259,7 +288,7 @@ const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
         aria-label={label}
         aria-current={active ? "page" : undefined}
         className={cn(
-          asDrawer
+          showLabels
             ? "flex items-center gap-3 w-full h-11 px-3 rounded-[10px] text-sm font-medium text-left transition-colors"
             : "w-11 h-11 rounded-[10px] flex items-center justify-center transition-colors relative",
         )}
@@ -279,11 +308,11 @@ const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
         }}
         {...rest}
       >
-        <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <Icon size={18} />
           {alert && <AlertDot active className="top-0 right-0" />}
         </span>
-        {asDrawer && <span className="truncate">{label}</span>}
+        {showLabels && <span className="truncate">{label}</span>}
       </button>
     );
   },
@@ -291,7 +320,7 @@ const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
 RailButton.displayName = "RailButton";
 
 function RailItem(props: RailItemProps) {
-  if (props.asDrawer) return <RailButton {...props} />;
+  if (props.showLabels) return <RailButton {...props} />;
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
