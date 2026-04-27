@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { VoiceDictationButton } from "@/components/ui/voice-dictation-button";
 import {
   DropdownMenu,
@@ -97,6 +98,7 @@ interface PageTreeItemProps {
   onDelete: (page: MissionPage) => void;
   onDuplicate: (page: MissionPage) => void;
   onToggleExpand: (page: MissionPage) => void;
+  onUpdateIcon: (page: MissionPage, icon: string | null) => void;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
 }
@@ -158,6 +160,7 @@ const PageTreeItem = ({
   onDelete,
   onDuplicate,
   onToggleExpand,
+  onUpdateIcon,
   selectedPageId,
   sortFn,
 }: PageTreeItemProps) => {
@@ -196,7 +199,13 @@ const PageTreeItem = ({
           )}
         </button>
 
-        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <EmojiPickerButton
+          emoji={page.icon}
+          onEmojiChange={(icon) => onUpdateIcon(page, icon)}
+          size="sm"
+          className="shrink-0"
+          fallback={<FileText className="h-3.5 w-3.5 text-muted-foreground" />}
+        />
         <span className="flex-1 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
           {page.title || "Sans titre"}
         </span>
@@ -255,6 +264,7 @@ const PageTreeItem = ({
               onDelete={onDelete}
               onDuplicate={onDuplicate}
               onToggleExpand={onToggleExpand}
+              onUpdateIcon={onUpdateIcon}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
             />
@@ -812,6 +822,14 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     } catch {}
   };
 
+  const handleUpdatePageIcon = async (page: MissionPage, icon: string | null) => {
+    try {
+      await updatePage.mutateAsync({ id: page.id, missionId: mission.id, updates: { icon } });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
   const handleDeletePage = async (page: MissionPage) => {
     if (!confirm("Supprimer cette page et ses sous-pages ?")) return;
     try {
@@ -972,6 +990,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               onDelete={handleDeletePage}
               onDuplicate={handleDuplicatePage}
               onToggleExpand={handleToggleExpand}
+              onUpdateIcon={handleUpdatePageIcon}
               selectedPageId={selectedPage?.id || null}
               sortFn={sortFn}
             />

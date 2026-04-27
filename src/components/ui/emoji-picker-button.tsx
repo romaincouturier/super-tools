@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import EmojiPicker, { EmojiClickData, EmojiStyle, Theme } from "emoji-picker-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,8 @@ interface EmojiPickerButtonProps {
   onEmojiChange: (emoji: string | null) => void;
   size?: "sm" | "md" | "lg";
   className?: string;
+  /** Custom node shown when no emoji is set. Defaults to a Smile icon. */
+  fallback?: ReactNode;
 }
 
 const EmojiPickerButton = ({
@@ -21,6 +23,7 @@ const EmojiPickerButton = ({
   onEmojiChange,
   size = "md",
   className,
+  fallback,
 }: EmojiPickerButtonProps) => {
   const [open, setOpen] = useState(false);
 
@@ -56,7 +59,7 @@ const EmojiPickerButton = ({
           )}
           title={emoji ? "Changer l'emoji" : "Ajouter un emoji"}
         >
-          {emoji || <Smile className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}
+          {emoji || fallback || <Smile className={size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />}
         </button>
       </PopoverTrigger>
       <PopoverContent
