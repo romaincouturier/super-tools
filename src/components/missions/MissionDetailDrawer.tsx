@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
+import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot, Maximize2, Minimize2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
@@ -48,6 +48,7 @@ const MissionDetailDrawer = ({
   const { confirm, ConfirmDialog } = useConfirm();
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const { loading: aiSummaryLoading, invoke: invokeMissionSummary } = useEdgeFunction<string>(
     "generate-mission-summary",
     { errorMessage: "Impossible de générer le résumé" },
@@ -312,6 +313,15 @@ const MissionDetailDrawer = ({
       >
         <Bot className="h-4 w-4" />
       </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => setIsFullScreen((v) => !v)}
+        title={isFullScreen ? "Réduire" : "Plein écran"}
+        aria-pressed={isFullScreen}
+      >
+        {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      </Button>
     </>
   );
 
@@ -321,7 +331,7 @@ const MissionDetailDrawer = ({
       onOpenChange={onOpenChange}
       title={mission.title}
       actions={headerActions}
-      contentClassName="overflow-y-auto sm:max-w-5xl"
+      contentClassName={`overflow-y-auto transition-all duration-300 ${isFullScreen ? "sm:max-w-full" : "sm:max-w-5xl"}`}
     >
         {/* Linked CRM opportunity */}
         {linkedCard && (
