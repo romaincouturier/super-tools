@@ -1,6 +1,6 @@
 import { useParams, useSearchParams, Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { rpc } from "@/lib/supabase-rpc";
 import SupportViewer from "@/components/formations/support/SupportViewer";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -11,11 +11,8 @@ const TrainingSupportPage = () => {
   const { data: training, isLoading } = useQuery({
     queryKey: ["training-support-type", trainingId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("trainings")
-        .select("supports_lms_course_id")
-        .eq("id", trainingId!)
-        .single();
+      const { data, error } = await rpc.getTrainingSummaryInfo(trainingId!);
+      if (error) throw error;
       return data;
     },
     enabled: !!trainingId,
