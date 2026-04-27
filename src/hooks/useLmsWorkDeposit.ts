@@ -11,6 +11,9 @@ import {
   updateDepositComment,
   deleteDepositComment,
   fetchDepositFeedback,
+  createDepositFeedback,
+  updateDepositFeedback,
+  deleteDepositFeedback,
 } from "@/services/lms-work-deposit";
 import type {
   CreateWorkDepositInput,
@@ -115,6 +118,34 @@ export function useDepositFeedback(depositId: string | undefined, learnerEmail: 
     queryKey: KEYS.feedback(depositId || ""),
     enabled: !!depositId && !!learnerEmail,
     queryFn: () => fetchDepositFeedback(depositId!, learnerEmail!),
+  });
+}
+
+/** Admin-only (BO). */
+export function useCreateDepositFeedback(depositId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) => createDepositFeedback(depositId, content),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.feedback(depositId) });
+      qc.invalidateQueries({ queryKey: ["all-deposits"] });
+    },
+  });
+}
+
+export function useUpdateDepositFeedback(depositId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) => updateDepositFeedback(id, content),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.feedback(depositId) }),
+  });
+}
+
+export function useDeleteDepositFeedback(depositId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteDepositFeedback(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.feedback(depositId) }),
   });
 }
 

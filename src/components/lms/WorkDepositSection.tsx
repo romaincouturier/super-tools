@@ -27,6 +27,7 @@ import {
   uploadDepositFile,
 } from "@/hooks/useLmsWorkDeposit";
 import DepositCommentList from "@/components/lms/DepositCommentList";
+import DepositFeedbackList from "@/components/lms/DepositFeedbackList";
 import {
   withDepositDefaults,
   isFileFormatAllowed,
@@ -122,6 +123,10 @@ export default function WorkDepositSection({
         }}
         onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
       />
+
+      {config.feedback_enabled && (
+        <DepositFeedbackList depositId={deposit.id} learnerEmail={learnerEmail} />
+      )}
 
       {config.comments_enabled && deposit.visibility === "shared" && (
         <div className="rounded-lg border bg-card p-4 sm:p-5">

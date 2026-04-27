@@ -151,7 +151,7 @@ export async function deleteDepositComment(id: string, authorEmail: string): Pro
   if (error) throw error;
 }
 
-// ── Feedback (Stage 3 surface) ──────────────────────────────────────
+// ── Feedback (SuperTilt — Stage 3) ─────────────────────────────────
 
 export async function fetchDepositFeedback(depositId: string, learnerEmail: string): Promise<DepositFeedback[]> {
   const c = clientFor(learnerEmail);
@@ -161,4 +161,46 @@ export async function fetchDepositFeedback(depositId: string, learnerEmail: stri
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data || []) as DepositFeedback[];
+}
+
+/** Admin-only — uses the authenticated supabase client. */
+export async function createDepositFeedback(depositId: string, content: string): Promise<DepositFeedback> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await feedbacks(supabase)
+    .insert({ deposit_id: depositId, content, author_id: user?.id || null })
+    .select()
+    .single();
+  if (error) throw error;
+
+  // Notify the deposit owner (fire-and-forget).
+  notifyFeedbackPublished(depositId, (data as DepositFeedback).id).catch((err) => {
+    console.warn("notifyFeedbackPublished failed:", err);
+  });
+
+  // Bump the deposit's pedagogical status to feedback_received.
+  await feedbacks(supabase); // noop, keeps types narrow
+  await (supabase as unknown as { from: (t: string) => { update: (p: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> } } })
+    .from("lms_work_deposits")
+    .update({ pedagogical_status: "feedback_received" })
+    .eq("id", depositId);
+
+  return data as DepositFeedback;
+}
+
+export async function updateDepositFeedback(id: string, content: string): Promise<DepositFeedback> {
+  const { data, error } = await feedbacks(supabase).update({ content }).eq("id", id).select().single();
+  if (error) throw error;
+  return data as DepositFeedback;
+}
+
+export async function deleteDepositFeedback(id: string): Promise<void> {
+  const { error } = await feedbacks(supabase).delete().eq("id", id);
+  if (error) throw error;
+}
+
+async function notifyFeedbackPublished(depositId: string, feedbackId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("send-deposit-feedback-notification", {
+    body: { depositId, feedbackId },
+  });
+  if (error) throw error;
 }
