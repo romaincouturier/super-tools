@@ -51,6 +51,7 @@ import {
   LayoutTemplate,
   ArrowDownUp,
   Sparkles,
+  StickyNote,
   X,
   Copy,
 } from "lucide-react";
@@ -113,6 +114,65 @@ interface PageTreeItemProps {
 }
 
 // ─── Custom TipTap Extensions ────────────────────────────
+
+// Callout (colored box) — color names are also Tailwind class fragments below.
+const CALLOUT_COLORS = ["blue", "amber", "green", "red", "gray"] as const;
+type CalloutColor = typeof CALLOUT_COLORS[number];
+const DEFAULT_CALLOUT_COLOR: CalloutColor = "blue";
+
+// Static class strings so Tailwind's JIT picks them up.
+const CALLOUT_CLASSES: Record<CalloutColor, string> = {
+  blue: "bg-blue-50 border-blue-400 text-blue-950",
+  amber: "bg-amber-50 border-amber-400 text-amber-950",
+  green: "bg-green-50 border-green-500 text-green-950",
+  red: "bg-red-50 border-red-400 text-red-950",
+  gray: "bg-gray-100 border-gray-400 text-gray-950",
+};
+const CALLOUT_LABELS: Record<CalloutColor, string> = {
+  blue: "Bleu",
+  amber: "Orange",
+  green: "Vert",
+  red: "Rouge",
+  gray: "Gris",
+};
+const CALLOUT_SWATCHES: Record<CalloutColor, string> = {
+  blue: "bg-blue-400",
+  amber: "bg-amber-400",
+  green: "bg-green-500",
+  red: "bg-red-400",
+  gray: "bg-gray-400",
+};
+
+const CalloutNode = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+  addAttributes() {
+    return {
+      color: {
+        default: DEFAULT_CALLOUT_COLOR,
+        parseHTML: (el) => (el as HTMLElement).getAttribute("data-color") || DEFAULT_CALLOUT_COLOR,
+        renderHTML: (attrs) => ({ "data-color": attrs.color }),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-callout]" }];
+  },
+  renderHTML({ HTMLAttributes, node }) {
+    const color = (node.attrs.color as CalloutColor) || DEFAULT_CALLOUT_COLOR;
+    const colorClasses = CALLOUT_CLASSES[color] || CALLOUT_CLASSES[DEFAULT_CALLOUT_COLOR];
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-callout": "",
+        class: `my-3 rounded-lg border-l-4 px-4 py-3 ${colorClasses}`,
+      }),
+      0,
+    ];
+  },
+});
 
 function DetailsNodeView() {
   const [open, setOpen] = useState(true);
@@ -505,6 +565,7 @@ const PageEditor = ({
       Typography,
       DetailsNode,
       SummaryNode,
+      CalloutNode,
       VideoNode,
     ],
     content: ensureHtmlContent(page.content || ""),
@@ -643,6 +704,19 @@ const PageEditor = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
+  const setCalloutColor = (color: CalloutColor) => {
+    if (!editor) return;
+    if (editor.isActive("callout")) {
+      editor.chain().focus().updateAttributes("callout", { color }).run();
+      return;
+    }
+    editor.chain().focus().insertContent({
+      type: "callout",
+      attrs: { color },
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Note importante…" }] }],
+    }).run();
+  };
+
   const insertToggleBlock = () => {
     if (!editor) return;
     editor.chain().focus().insertContent({
@@ -704,6 +778,29 @@ const PageEditor = ({
         <TB active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()} t="Code"><Code className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={() => editor.chain().focus().setHorizontalRule().run()} t="Séparateur"><Minus className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={insertToggleBlock} t="Dépliable"><ChevronDownSquare className="h-3.5 w-3.5" /></TB>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              title="Encadré coloré"
+              aria-label="Insérer un encadré coloré"
+              className={cn(
+                "h-7 w-7 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                editor.isActive("callout") && "bg-muted text-foreground",
+              )}
+            >
+              <StickyNote className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-44">
+            {CALLOUT_COLORS.map((color) => (
+              <DropdownMenuItem key={color} onClick={() => setCalloutColor(color)}>
+                <span className={cn("h-3 w-3 rounded-full mr-2 border border-black/10", CALLOUT_SWATCHES[color])} />
+                {CALLOUT_LABELS[color]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <TB active={editor.isActive("link")} onClick={setLink} t="Lien"><LinkIcon className="h-3.5 w-3.5" /></TB>
 
         <TSep />
