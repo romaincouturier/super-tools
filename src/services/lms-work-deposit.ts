@@ -204,3 +204,67 @@ async function notifyFeedbackPublished(depositId: string, feedbackId: string): P
   });
   if (error) throw error;
 }
+
+// ── Admin (BO) helpers — Stage 4 ───────────────────────────────────
+
+/** Joined row used by the admin list page. */
+export interface AdminDepositRow extends WorkDeposit {
+  course_title?: string | null;
+  module_title?: string | null;
+  lesson_title?: string | null;
+}
+
+/** Lists every deposit with course / module / lesson titles for the BO. */
+export async function fetchAllDepositsAdmin(): Promise<AdminDepositRow[]> {
+  const { data, error } = await deposits(supabase)
+    .select(
+      `
+      *,
+      lms_courses:course_id ( title ),
+      lms_modules:module_id ( title ),
+      lms_lessons:lesson_id ( title )
+      `,
+    )
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data || []) as any[]).map((row) => ({
+    ...row,
+    course_title: row.lms_courses?.title ?? null,
+    module_title: row.lms_modules?.title ?? null,
+    lesson_title: row.lms_lessons?.title ?? null,
+  })) as AdminDepositRow[];
+}
+
+/** Admin update — bypasses learner-scoped client. */
+export async function adminUpdateDeposit(id: string, updates: UpdateWorkDepositInput): Promise<WorkDeposit> {
+  const { data, error } = await deposits(supabase).update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data as WorkDeposit;
+}
+
+/** Admin moderation of a comment — flip its status to hidden / deleted / published. */
+export async function adminUpdateCommentStatus(id: string, status: "published" | "hidden" | "deleted"): Promise<void> {
+  const { error } = await comments(supabase).update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Read all comments on a deposit (admin sees hidden too). */
+export async function fetchAllDepositCommentsAdmin(depositId: string): Promise<DepositComment[]> {
+  const { data, error } = await comments(supabase)
+    .select("*")
+    .eq("deposit_id", depositId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data || []) as DepositComment[];
+}
+
+/** Read all feedback on a deposit (admin view). */
+export async function fetchAllDepositFeedbackAdmin(depositId: string): Promise<DepositFeedback[]> {
+  const { data, error } = await feedbacks(supabase)
+    .select("*")
+    .eq("deposit_id", depositId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []) as DepositFeedback[];
+}

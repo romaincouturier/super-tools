@@ -14,6 +14,12 @@ import {
   createDepositFeedback,
   updateDepositFeedback,
   deleteDepositFeedback,
+  fetchAllDepositsAdmin,
+  adminUpdateDeposit,
+  adminUpdateCommentStatus,
+  fetchAllDepositCommentsAdmin,
+  fetchAllDepositFeedbackAdmin,
+  type AdminDepositRow,
 } from "@/services/lms-work-deposit";
 import type {
   CreateWorkDepositInput,
@@ -150,3 +156,49 @@ export function useDeleteDepositFeedback(depositId: string) {
 }
 
 export { uploadDepositFile };
+
+// ── Admin (BO) — Stage 4 ─────────────────────────────────────────
+
+export function useAllDepositsAdmin() {
+  return useQuery<AdminDepositRow[]>({
+    queryKey: ["all-deposits"],
+    queryFn: fetchAllDepositsAdmin,
+  });
+}
+
+export function useAdminUpdateDeposit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: UpdateWorkDepositInput }) =>
+      adminUpdateDeposit(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["all-deposits"] }),
+  });
+}
+
+export function useAdminCommentStatus(depositId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "published" | "hidden" | "deleted" }) =>
+      adminUpdateCommentStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: KEYS.comments(depositId) });
+      qc.invalidateQueries({ queryKey: ["admin-comments", depositId] });
+    },
+  });
+}
+
+export function useAdminDepositComments(depositId: string | undefined) {
+  return useQuery<DepositComment[]>({
+    queryKey: ["admin-comments", depositId || ""],
+    enabled: !!depositId,
+    queryFn: () => fetchAllDepositCommentsAdmin(depositId!),
+  });
+}
+
+export function useAdminDepositFeedback(depositId: string | undefined) {
+  return useQuery<DepositFeedback[]>({
+    queryKey: ["admin-feedback", depositId || ""],
+    enabled: !!depositId,
+    queryFn: () => fetchAllDepositFeedbackAdmin(depositId!),
+  });
+}
