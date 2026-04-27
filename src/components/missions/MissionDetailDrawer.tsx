@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot, Maximize2, Minimize2, Bug } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
@@ -345,7 +346,18 @@ const MissionDetailDrawer = ({
     <DetailDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={mission.title}
+      title={
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <EmojiPickerButton emoji={missionEmoji} onEmojiChange={setMissionEmoji} size="md" />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titre de la mission"
+            aria-label="Titre de la mission"
+            className="flex-1 min-w-0 bg-transparent font-bold text-lg border-none outline-none focus:outline-none"
+          />
+        </div>
+      }
       actions={headerActions}
       contentClassName={`overflow-y-auto transition-all duration-300 ${isFullScreen ? "sm:max-w-full" : "sm:max-w-5xl"}`}
     >
