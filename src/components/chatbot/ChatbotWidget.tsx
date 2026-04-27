@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, ThumbsUp, ThumbsDown, Bot, User, Minimize2, Bug } from "lucide-react";
+import { MessageCircle, X, Send, ThumbsUp, ThumbsDown, Bot, User, Minimize2, Bug, Inbox } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { ChatbotFeedbackTab } from "./ChatbotFeedbackTab";
+import { ChatbotMyTicketsTab } from "./ChatbotMyTicketsTab";
 
 interface Message {
   id: string;
@@ -16,7 +17,7 @@ interface Message {
   timestamp: Date;
 }
 
-type ChatTab = "assistant" | "feedback";
+type ChatTab = "assistant" | "feedback" | "my-tickets";
 
 export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -171,26 +172,38 @@ export function ChatbotWidget() {
             <button
               onClick={() => setActiveTab("assistant")}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
+                "flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors",
                 activeTab === "assistant"
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <MessageCircle className="h-3.5 w-3.5" />
+              <MessageCircle className="h-3.5 w-3.5 shrink-0" />
               Assistant
             </button>
             <button
               onClick={() => setActiveTab("feedback")}
               className={cn(
-                "flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
+                "flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors",
                 activeTab === "feedback"
                   ? "text-primary border-b-2 border-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Bug className="h-3.5 w-3.5" />
-              Bug / Évolution
+              <Bug className="h-3.5 w-3.5 shrink-0" />
+              Signaler
+            </button>
+            <button
+              onClick={() => setActiveTab("my-tickets")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-xs font-medium transition-colors",
+                activeTab === "my-tickets"
+                  ? "text-primary border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Inbox className="h-3.5 w-3.5 shrink-0" />
+              Mes tickets
             </button>
           </div>
 
@@ -307,8 +320,10 @@ export function ChatbotWidget() {
                 </div>
               </div>
             </>
-          ) : (
+          ) : activeTab === "feedback" ? (
             <ChatbotFeedbackTab />
+          ) : (
+            <ChatbotMyTicketsTab />
           )}
         </>
       )}
