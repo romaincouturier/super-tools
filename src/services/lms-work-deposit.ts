@@ -120,6 +120,37 @@ export async function fetchDepositComments(depositId: string, learnerEmail: stri
   return (data || []) as DepositComment[];
 }
 
+export async function createDepositComment(
+  depositId: string,
+  authorEmail: string,
+  content: string,
+): Promise<DepositComment> {
+  const c = clientFor(authorEmail);
+  const { data, error } = await comments(c)
+    .insert({ deposit_id: depositId, author_email: authorEmail, content })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as DepositComment;
+}
+
+export async function updateDepositComment(
+  id: string,
+  authorEmail: string,
+  content: string,
+): Promise<DepositComment> {
+  const c = clientFor(authorEmail);
+  const { data, error } = await comments(c).update({ content }).eq("id", id).select().single();
+  if (error) throw error;
+  return data as DepositComment;
+}
+
+export async function deleteDepositComment(id: string, authorEmail: string): Promise<void> {
+  const c = clientFor(authorEmail);
+  const { error } = await comments(c).delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ── Feedback (Stage 3 surface) ──────────────────────────────────────
 
 export async function fetchDepositFeedback(depositId: string, learnerEmail: string): Promise<DepositFeedback[]> {

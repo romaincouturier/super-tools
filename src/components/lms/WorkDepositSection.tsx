@@ -21,10 +21,12 @@ import { toastError } from "@/lib/toastError";
 import { formatFileSize } from "@/lib/file-utils";
 import {
   useMyDeposit,
+  useVisibleDeposits,
   useCreateDeposit,
   useUpdateDeposit,
   uploadDepositFile,
 } from "@/hooks/useLmsWorkDeposit";
+import DepositCommentList from "@/components/lms/DepositCommentList";
 import {
   withDepositDefaults,
   isFileFormatAllowed,
@@ -97,28 +99,89 @@ export default function WorkDepositSection({
   }
 
   return (
-    <DepositSummary
-      deposit={deposit}
-      config={config}
-      saving={updateDeposit.isPending}
-      onUpdate={async (updates) => {
-        await updateDeposit.mutateAsync({ id: deposit.id, updates });
-      }}
-      onReplaceFile={async (file) => {
-        const upload = await uploadDepositFile(file, lessonId, learnerEmail);
-        await updateDeposit.mutateAsync({
-          id: deposit.id,
-          updates: {
-            file_url: upload.url,
-            file_name: upload.name,
-            file_size: upload.size,
-            file_mime: upload.mime,
-          },
-        });
-        toast({ title: "Fichier remplacé." });
-      }}
-      onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
-    />
+    <div className="space-y-4">
+      <DepositSummary
+        deposit={deposit}
+        config={config}
+        saving={updateDeposit.isPending}
+        onUpdate={async (updates) => {
+          await updateDeposit.mutateAsync({ id: deposit.id, updates });
+        }}
+        onReplaceFile={async (file) => {
+          const upload = await uploadDepositFile(file, lessonId, learnerEmail);
+          await updateDeposit.mutateAsync({
+            id: deposit.id,
+            updates: {
+              file_url: upload.url,
+              file_name: upload.name,
+              file_size: upload.size,
+              file_mime: upload.mime,
+            },
+          });
+          toast({ title: "Fichier remplacé." });
+        }}
+        onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
+      />
+
+      {config.comments_enabled && deposit.visibility === "shared" && (
+        <div className="rounded-lg border bg-card p-4 sm:p-5">
+          <DepositCommentList depositId={deposit.id} learnerEmail={learnerEmail} canPost={true} />
+        </div>
+      )}
+
+      <PeerDepositsSection
+        lessonId={lessonId}
+        learnerEmail={learnerEmail}
+        ownDepositId={deposit.id}
+        commentsEnabled={config.comments_enabled}
+      />
+    </div>
+  );
+}
+
+// ── Peer deposits (other learners, shared) ────────────────────────
+
+function PeerDepositsSection({
+  lessonId,
+  learnerEmail,
+  ownDepositId,
+  commentsEnabled,
+}: {
+  lessonId: string;
+  learnerEmail: string;
+  ownDepositId: string;
+  commentsEnabled: boolean;
+}) {
+  const { data: deposits = [] } = useVisibleDeposits(lessonId, learnerEmail);
+  const peers = deposits.filter((d) => d.id !== ownDepositId);
+
+  if (peers.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-muted-foreground">
+        Travaux partagés des autres apprenants ({peers.length})
+      </h3>
+      <ul className="space-y-3">
+        {peers.map((d) => (
+          <li key={d.id} className="rounded-lg border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="text-muted-foreground break-all">{d.learner_email}</span>
+              <span className="text-muted-foreground shrink-0">
+                {new Date(d.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+              </span>
+            </div>
+            <DepositPreview deposit={d} />
+            {d.comment && (
+              <p className="text-sm italic text-muted-foreground break-words">« {d.comment} »</p>
+            )}
+            {commentsEnabled && (
+              <DepositCommentList depositId={d.id} learnerEmail={learnerEmail} canPost={true} />
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

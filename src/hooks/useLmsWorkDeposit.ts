@@ -7,6 +7,9 @@ import {
   deleteDeposit,
   uploadDepositFile,
   fetchDepositComments,
+  createDepositComment,
+  updateDepositComment,
+  deleteDepositComment,
   fetchDepositFeedback,
 } from "@/services/lms-work-deposit";
 import type {
@@ -79,6 +82,31 @@ export function useDepositComments(depositId: string | undefined, learnerEmail: 
     queryKey: KEYS.comments(depositId || ""),
     enabled: !!depositId && !!learnerEmail,
     queryFn: () => fetchDepositComments(depositId!, learnerEmail!),
+  });
+}
+
+export function useCreateDepositComment(depositId: string, learnerEmail: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (content: string) => createDepositComment(depositId, learnerEmail, content),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.comments(depositId) }),
+  });
+}
+
+export function useUpdateDepositComment(depositId: string, learnerEmail: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) =>
+      updateDepositComment(id, learnerEmail, content),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.comments(depositId) }),
+  });
+}
+
+export function useDeleteDepositComment(depositId: string, learnerEmail: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteDepositComment(id, learnerEmail),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.comments(depositId) }),
   });
 }
 
