@@ -7,11 +7,23 @@ import type {
   FileBlockContent,
   QuizBlockContent,
   AssignmentBlockContent,
+  CalloutBlockContent,
+  KeyPointsBlockContent,
+  ChecklistBlockContent,
+  ButtonBlockContent,
+  ExerciseBlockContent,
+  SelfAssessmentBlockContent,
 } from "@/types/lms-blocks";
 import TextBlockViewer from "./viewers/TextBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
 import ImageBlockViewer from "./viewers/ImageBlockViewer";
 import FileBlockViewer from "./viewers/FileBlockViewer";
+import CalloutBlockViewer from "./viewers/CalloutBlockViewer";
+import KeyPointsBlockViewer from "./viewers/KeyPointsBlockViewer";
+import ChecklistBlockViewer from "./viewers/ChecklistBlockViewer";
+import ButtonBlockViewer from "./viewers/ButtonBlockViewer";
+import ExerciseBlockViewer from "./viewers/ExerciseBlockViewer";
+import SelfAssessmentBlockViewer from "./viewers/SelfAssessmentBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -74,6 +86,18 @@ function BlockRenderer({
         </div>
       );
     }
+    case "callout":
+      return <CalloutBlockViewer content={block.content as CalloutBlockContent} />;
+    case "key_points":
+      return <KeyPointsBlockViewer content={block.content as KeyPointsBlockContent} />;
+    case "checklist":
+      return <ChecklistBlockViewer content={block.content as ChecklistBlockContent} />;
+    case "button":
+      return <ButtonBlockViewer content={block.content as ButtonBlockContent} />;
+    case "exercise":
+      return <ExerciseBlockViewer content={block.content as ExerciseBlockContent} />;
+    case "self_assessment":
+      return <SelfAssessmentBlockViewer content={block.content as SelfAssessmentBlockContent} />;
     default:
       return null;
   }

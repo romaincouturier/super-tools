@@ -15,7 +15,13 @@ export type LessonBlockType =
   | "image"
   | "file"
   | "quiz"
-  | "assignment";
+  | "assignment"
+  | "callout"
+  | "key_points"
+  | "checklist"
+  | "button"
+  | "exercise"
+  | "self_assessment";
 
 export interface TextBlockContent {
   html: string;
@@ -47,13 +53,64 @@ export interface AssignmentBlockContent {
   instructions_html?: string | null;
 }
 
+export type CalloutColor = "blue" | "amber" | "green" | "red" | "gray";
+
+export interface CalloutBlockContent {
+  color: CalloutColor;
+  title?: string | null;
+  body_html: string;
+}
+
+export interface KeyPointsBlockContent {
+  title?: string | null;
+  items: string[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  label: string;
+}
+
+export interface ChecklistBlockContent {
+  title?: string | null;
+  items: ChecklistItem[];
+}
+
+export type ButtonVariant = "primary" | "secondary" | "outline";
+
+export interface ButtonBlockContent {
+  label: string;
+  url: string;
+  variant: ButtonVariant;
+  open_in_new_tab: boolean;
+}
+
+export interface ExerciseBlockContent {
+  prompt_html: string;
+  answer_html?: string | null;
+}
+
+export type SelfAssessmentScale = "stars" | "labels";
+
+export interface SelfAssessmentBlockContent {
+  prompt: string;
+  scale: SelfAssessmentScale;
+  labels?: string[];
+}
+
 export type LessonBlockContent =
   | TextBlockContent
   | VideoBlockContent
   | ImageBlockContent
   | FileBlockContent
   | QuizBlockContent
-  | AssignmentBlockContent;
+  | AssignmentBlockContent
+  | CalloutBlockContent
+  | KeyPointsBlockContent
+  | ChecklistBlockContent
+  | ButtonBlockContent
+  | ExerciseBlockContent
+  | SelfAssessmentBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -95,5 +152,30 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { quiz_id: null };
     case "assignment":
       return { assignment_id: null, instructions_html: null };
+    case "callout":
+      return { color: "blue", title: null, body_html: "" };
+    case "key_points":
+      return { title: "À retenir", items: [""] };
+    case "checklist":
+      return { title: null, items: [{ id: cryptoRandomId(), label: "" }] };
+    case "button":
+      return { label: "En savoir plus", url: "", variant: "primary", open_in_new_tab: true };
+    case "exercise":
+      return { prompt_html: "", answer_html: "" };
+    case "self_assessment":
+      return {
+        prompt: "Comment évaluez-vous votre maîtrise de cette leçon ?",
+        scale: "labels",
+        labels: ["Pas du tout", "Un peu", "Bien", "Très bien", "Maîtrisé"],
+      };
   }
 }
+
+function cryptoRandomId(): string {
+  if (typeof globalThis.crypto !== "undefined" && typeof globalThis.crypto.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  return Math.random().toString(36).slice(2);
+}
+
+export { cryptoRandomId };
