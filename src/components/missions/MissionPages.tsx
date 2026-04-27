@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { formatFileSize } from "@/lib/file-utils";
-import { useEditor, EditorContent, Node, mergeAttributes } from "@tiptap/react";
+import { useEditor, EditorContent, Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -114,6 +114,28 @@ interface PageTreeItemProps {
 
 // ─── Custom TipTap Extensions ────────────────────────────
 
+function DetailsNodeView() {
+  const [open, setOpen] = useState(true);
+  return (
+    <NodeViewWrapper as="div" className="my-2 border rounded-lg relative group/details">
+      <button
+        type="button"
+        contentEditable={false}
+        onClick={() => setOpen((o) => !o)}
+        title={open ? "Replier" : "Déplier"}
+        aria-label={open ? "Replier le bloc" : "Déplier le bloc"}
+        aria-expanded={open}
+        className="absolute top-1.5 right-1.5 z-10 h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
+      >
+        <ChevronDown className={cn("h-4 w-4 transition-transform", !open && "-rotate-90")} />
+      </button>
+      <NodeViewContent
+        className={cn("p-3 pr-9", !open && "[&>*+*]:hidden")}
+      />
+    </NodeViewWrapper>
+  );
+}
+
 const DetailsNode = Node.create({
   name: "details",
   group: "block",
@@ -123,7 +145,10 @@ const DetailsNode = Node.create({
     return [{ tag: "details" }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["details", mergeAttributes(HTMLAttributes, { open: "", class: "my-2 border rounded-lg p-3" }), 0];
+    return ["details", mergeAttributes(HTMLAttributes, { class: "my-2 border rounded-lg p-3" }), 0];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(DetailsNodeView);
   },
 });
 
@@ -623,8 +648,14 @@ const PageEditor = ({
     editor.chain().focus().insertContent({
       type: "details",
       content: [
-        { type: "summary", content: [{ type: "text", text: "Cliquez pour déplier" }] },
-        { type: "paragraph", content: [{ type: "text", text: "Contenu masquable..." }] },
+        { type: "summary", content: [{ type: "text", text: "Titre du bloc" }] },
+        {
+          type: "bulletList",
+          content: [
+            { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Élément 1" }] }] },
+            { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Élément 2" }] }] },
+          ],
+        },
       ],
     }).run();
   };
