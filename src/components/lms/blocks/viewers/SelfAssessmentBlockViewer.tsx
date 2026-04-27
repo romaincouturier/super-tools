@@ -26,7 +26,7 @@ export default function SelfAssessmentBlockViewer({ content }: Props) {
               type="button"
               onClick={() => setValue(n)}
               aria-label={`${n} étoile${n > 1 ? "s" : ""}`}
-              className="p-1 rounded hover:bg-muted transition-colors"
+              className="p-2 rounded hover:bg-muted transition-colors"
             >
               <Star
                 className={cn(

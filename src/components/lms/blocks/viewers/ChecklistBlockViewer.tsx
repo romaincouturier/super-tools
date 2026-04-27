@@ -30,11 +30,14 @@ export default function ChecklistBlockViewer({ content }: Props) {
               id={`checklist-${item.id}`}
               checked={!!checked[item.id]}
               onCheckedChange={() => toggle(item.id)}
-              className="mt-0.5"
+              className="mt-0.5 shrink-0"
             />
             <label
               htmlFor={`checklist-${item.id}`}
-              className={cn("text-sm cursor-pointer flex-1", checked[item.id] && "line-through text-muted-foreground")}
+              className={cn(
+                "text-sm cursor-pointer flex-1 min-w-0 break-words",
+                checked[item.id] && "line-through text-muted-foreground",
+              )}
             >
               {item.label}
             </label>
