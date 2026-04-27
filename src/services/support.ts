@@ -62,8 +62,10 @@ export async function createSupportTicket(
     }
   }
 
-  // Notify admin of new ticket (fire-and-forget)
+  // Notify admin of new ticket and send a confirmation copy to the submitter
+  // (both fire-and-forget; failures are logged, ticket creation succeeds either way)
   notifyNewTicket(data);
+  notifyNewTicketCopy(data);
 
   return data;
 }
@@ -84,6 +86,26 @@ async function notifyNewTicket(ticket: SupportTicket): Promise<void> {
     });
   } catch (err) {
     console.error("Failed to send new ticket notification:", err);
+  }
+}
+
+/** Best-effort confirmation copy to the submitter of a new ticket. */
+async function notifyNewTicketCopy(ticket: SupportTicket): Promise<void> {
+  if (!ticket.submitted_by_email) return;
+  try {
+    await supabase.functions.invoke("send-support-notification", {
+      body: {
+        type: "new_ticket_copy",
+        recipientEmail: ticket.submitted_by_email,
+        ticketNumber: ticket.ticket_number,
+        ticketTitle: ticket.title,
+        ticketType: ticket.type,
+        ticketPriority: ticket.priority,
+        description: ticket.description,
+      },
+    });
+  } catch (err) {
+    console.error("Failed to send new ticket copy:", err);
   }
 }
 
