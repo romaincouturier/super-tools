@@ -27,6 +27,8 @@ import {
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import WorkDepositSection from "@/components/lms/WorkDepositSection";
+import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -349,6 +351,18 @@ export default function LmsCoursePlayer() {
                     />
                   )}
                 </div>
+              )}
+
+              {/* Work deposit (per-lesson opt-in) */}
+              {selectedLesson.work_deposit_enabled && courseId && (
+                <WorkDepositSection
+                  lessonId={selectedLesson.id}
+                  courseId={courseId}
+                  moduleId={selectedLesson.module_id}
+                  learnerEmail={learnerEmail}
+                  rawConfig={(selectedLesson.work_deposit_config || {}) as WorkDepositConfig}
+                  lessonTitle={selectedLesson.title}
+                />
               )}
 
               {/* Comments */}
