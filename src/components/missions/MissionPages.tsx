@@ -15,6 +15,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import {
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Plus,
   FileText,
   Trash2,
@@ -87,7 +88,7 @@ interface MissionPagesProps {
   onActivityPageCreated?: () => void;
 }
 
-type PageSortMode = "date_desc" | "date_asc" | "name_asc" | "name_desc";
+type PageSortMode = "manual" | "date_desc" | "date_asc" | "name_asc" | "name_desc";
 
 const SIDEBAR_WIDTH_KEY = "supertools.missionPages.sidebarWidth";
 const SIDEBAR_DEFAULT_WIDTH = 256;
@@ -104,6 +105,9 @@ interface PageTreeItemProps {
   onDuplicate: (page: MissionPage) => void;
   onToggleExpand: (page: MissionPage) => void;
   onUpdateIcon: (page: MissionPage, icon: string | null) => void;
+  onMoveUp: (page: MissionPage) => void;
+  onMoveDown: (page: MissionPage) => void;
+  manualOrder: boolean;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
 }
@@ -166,6 +170,9 @@ const PageTreeItem = ({
   onDuplicate,
   onToggleExpand,
   onUpdateIcon,
+  onMoveUp,
+  onMoveDown,
+  manualOrder,
   selectedPageId,
   sortFn,
 }: PageTreeItemProps) => {
@@ -173,6 +180,13 @@ const PageTreeItem = ({
     .filter((p) => p.parent_page_id === page.id)
     .sort(sortFn);
   const hasChildren = childPages.length > 0;
+
+  const siblings = allPages
+    .filter((p) => p.parent_page_id === page.parent_page_id)
+    .sort((a, b) => a.position - b.position);
+  const siblingIndex = siblings.findIndex((p) => p.id === page.id);
+  const canMoveUp = manualOrder && siblingIndex > 0;
+  const canMoveDown = manualOrder && siblingIndex !== -1 && siblingIndex < siblings.length - 1;
 
   return (
     <div>
@@ -216,12 +230,41 @@ const PageTreeItem = ({
         </span>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">
+          {manualOrder && (
+            <>
+              <button
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveUp(page);
+                }}
+                disabled={!canMoveUp}
+                title="Monter"
+                aria-label="Monter la page"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveDown(page);
+                }}
+                disabled={!canMoveDown}
+                title="Descendre"
+                aria-label="Descendre la page"
+              >
+                <ChevronUp className="h-3 w-3 rotate-180" />
+              </button>
+            </>
+          )}
           <button
             className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted"
             onClick={(e) => {
               e.stopPropagation();
               onAddChild(page.id);
             }}
+            title="Ajouter une sous-page"
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -270,6 +313,9 @@ const PageTreeItem = ({
               onDuplicate={onDuplicate}
               onToggleExpand={onToggleExpand}
               onUpdateIcon={onUpdateIcon}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              manualOrder={manualOrder}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
             />
@@ -793,6 +839,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
 
   const sortFn = useCallback((a: MissionPage, b: MissionPage): number => {
     switch (sortMode) {
+      case "manual": return a.position - b.position;
       case "name_asc": return a.title.localeCompare(b.title, "fr");
       case "name_desc": return b.title.localeCompare(a.title, "fr");
       case "date_asc": return a.updated_at.localeCompare(b.updated_at);
@@ -869,6 +916,39 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     } catch (error: unknown) {
       toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
+  };
+
+  const swapPagePositions = async (a: MissionPage, b: MissionPage) => {
+    if (a.id === b.id) return;
+    if (sortMode !== "manual") setSortMode("manual");
+    try {
+      await Promise.all([
+        updatePage.mutateAsync({ id: a.id, missionId: mission.id, updates: { position: b.position } }),
+        updatePage.mutateAsync({ id: b.id, missionId: mission.id, updates: { position: a.position } }),
+      ]);
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const findSiblingNeighbour = (page: MissionPage, direction: -1 | 1): MissionPage | null => {
+    const siblings = (pages || [])
+      .filter((p) => p.parent_page_id === page.parent_page_id)
+      .sort((a, b) => a.position - b.position);
+    const idx = siblings.findIndex((p) => p.id === page.id);
+    if (idx === -1) return null;
+    const neighbour = siblings[idx + direction];
+    return neighbour ?? null;
+  };
+
+  const handleMovePageUp = async (page: MissionPage) => {
+    const prev = findSiblingNeighbour(page, -1);
+    if (prev) await swapPagePositions(page, prev);
+  };
+
+  const handleMovePageDown = async (page: MissionPage) => {
+    const next = findSiblingNeighbour(page, 1);
+    if (next) await swapPagePositions(page, next);
   };
 
   const handleDeletePage = async (page: MissionPage) => {
@@ -982,6 +1062,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortMode("manual")} className={sortMode === "manual" ? "font-medium bg-muted" : ""}>
+                  Manuel
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSortMode("date_desc")} className={sortMode === "date_desc" ? "font-medium bg-muted" : ""}>
                   Date modif. (récent)
                 </DropdownMenuItem>
@@ -1036,6 +1119,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               onDuplicate={handleDuplicatePage}
               onToggleExpand={handleToggleExpand}
               onUpdateIcon={handleUpdatePageIcon}
+              onMoveUp={handleMovePageUp}
+              onMoveDown={handleMovePageDown}
+              manualOrder={sortMode === "manual"}
               selectedPageId={selectedPage?.id || null}
               sortFn={sortFn}
             />
