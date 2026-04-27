@@ -123,16 +123,16 @@ export default function DepositCommentList({ depositId, learnerEmail, canPost }:
               )}
               {isMine && !isEditing && (
                 <div className="flex gap-1 mt-2">
-                  <Button size="sm" variant="ghost" onClick={() => startEdit(c)} className="h-7 text-xs">
-                    <Pencil className="h-3 w-3 mr-1" /> Modifier
+                  <Button size="sm" variant="ghost" onClick={() => startEdit(c)} className="h-8 text-xs">
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Modifier
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => handleDelete(c)}
-                    className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                    className="h-8 text-xs text-muted-foreground hover:text-destructive"
                   >
-                    <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Supprimer
                   </Button>
                 </div>
               )}

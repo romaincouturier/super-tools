@@ -244,7 +244,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                   ) : (
                     <>
                       <p className="text-sm whitespace-pre-wrap break-words">{f.content}</p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -252,7 +252,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                             setEditingFeedbackId(f.id);
                             setEditFeedbackDraft(f.content);
                           }}
-                          className="h-7 text-xs"
+                          className="h-8 text-xs"
                         >
                           Modifier
                         </Button>
@@ -260,9 +260,9 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDeleteFeedback(f.id)}
-                          className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                          className="h-8 text-xs text-muted-foreground hover:text-destructive"
                         >
-                          <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Supprimer
                         </Button>
                       </div>
                     </>
@@ -305,15 +305,15 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                     </span>
                   </div>
                   <p className="text-sm whitespace-pre-wrap break-words">{c.content}</p>
-                  <div className="flex gap-1 pt-1">
+                  <div className="flex flex-wrap gap-1 pt-1">
                     {c.status !== "hidden" && (
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => moderateComment.mutate({ id: c.id, status: "hidden" })}
-                        className="h-7 text-xs"
+                        className="h-8 text-xs"
                       >
-                        <EyeOff className="h-3 w-3 mr-1" /> Masquer
+                        <EyeOff className="h-3.5 w-3.5 mr-1" /> Masquer
                       </Button>
                     )}
                     {c.status === "hidden" && (
@@ -321,9 +321,9 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                         size="sm"
                         variant="ghost"
                         onClick={() => moderateComment.mutate({ id: c.id, status: "published" })}
-                        className="h-7 text-xs"
+                        className="h-8 text-xs"
                       >
-                        <Eye className="h-3 w-3 mr-1" /> Réafficher
+                        <Eye className="h-3.5 w-3.5 mr-1" /> Réafficher
                       </Button>
                     )}
                     {c.status !== "deleted" && (
@@ -331,9 +331,9 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
                         size="sm"
                         variant="ghost"
                         onClick={() => moderateComment.mutate({ id: c.id, status: "deleted" })}
-                        className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                        className="h-8 text-xs text-muted-foreground hover:text-destructive"
                       >
-                        <Trash2 className="h-3 w-3 mr-1" /> Supprimer
+                        <Trash2 className="h-3.5 w-3.5 mr-1" /> Supprimer
                       </Button>
                     )}
                   </div>

@@ -461,7 +461,7 @@ function DepositSummary({
       </div>
 
       {/* Actions */}
-      <div className="border-t pt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="border-t pt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         <Button
           variant="outline"
           size="sm"
