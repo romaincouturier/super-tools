@@ -384,13 +384,27 @@ const EmailTimelineComputed = ({
     return items;
   }, [dbEmails, participants, trainingStartDate, trainingEndDate, schedules, delaySettings, thankYouSentAt, trainerName, sponsorName, sponsorEmail, isInterSession, isElearning, hasCoaching, liveMeetings]);
 
-  // ─── Detect "missing" emails: predicted but date is in the past ──────
-  // If a predicted email's scheduled date passed >1h ago and it's not in DB,
-  // it means the system failed to schedule/send it. Flag it as "missing".
+  // ─── Detect "non envoyé" : seulement pour les emails CRITIQUES dont la date
+  // est passée de plus de 24h sans trace en DB ni envoi.
+  // Les autres (avis Google, témoignages, suite IA, émargement…) restent "Prévu"
+  // car ils peuvent être déclenchés manuellement ou ne sont pas bloquants.
+  const CRITICAL_TYPES = new Set([
+    "evaluation_reminder_1",
+    "evaluation_reminder_2",
+    "cold_evaluation",
+    "funder_reminder",
+    "reminder", // rappel logistique J-X
+    "trainer_summary",
+    "thank_you",
+  ]);
   const timelineWithMissing = useMemo(() => {
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     return timeline.map((item) => {
-      if (item.status === "predicted" && item.scheduledDate.getTime() < oneHourAgo) {
+      if (
+        item.status === "predicted" &&
+        CRITICAL_TYPES.has(item.emailType) &&
+        item.scheduledDate.getTime() < oneDayAgo
+      ) {
         return { ...item, status: "missing" as const };
       }
       return item;
