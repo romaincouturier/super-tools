@@ -82,19 +82,52 @@ const MicroDevis = () => {
     }
   }, [formulasHook.formationFormulas]);
 
-  // Auth
+  // Auth — robust handling: ignore transient events, redirect only after confirmed sign-out
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (!session?.user) navigate("/auth");
+    let mounted = true;
+    let resolved = false;
+
+    // Safety timeout: never block UI more than 8s
+    const timeout = window.setTimeout(() => {
+      if (mounted && !resolved) {
+        console.warn("[MicroDevis] Auth timeout reached, forcing loading to false");
+        setLoading(false);
+      }
+    }, 8000);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      // Ignore transient refresh events that can momentarily report no session
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setLoading(false);
+        navigate("/auth");
+        return;
+      }
+      if (session?.user) {
+        setUser(session.user);
+        resolved = true;
+        setLoading(false);
+      }
     });
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      resolved = true;
       setUser(session?.user ?? null);
       setLoading(false);
       if (!session?.user) navigate("/auth");
+    }).catch((err) => {
+      console.error("[MicroDevis] getSession error:", err);
+      if (mounted) setLoading(false);
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   // Apply initial defaults
