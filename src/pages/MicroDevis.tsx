@@ -361,7 +361,7 @@ const MicroDevis = () => {
         try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
         setTimeout(() => {
           if (crmCardId) {
-            navigate(`/crm?cardId=${crmCardId}`);
+            navigate(`/crm/card/${crmCardId}`);
           } else {
             navigate("/crm");
           }
