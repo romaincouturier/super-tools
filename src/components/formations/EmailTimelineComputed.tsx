@@ -622,7 +622,7 @@ function TimelineRow({
 }: {
   label: string;
   date: Date;
-  status: "sent" | "pending" | "predicted" | "error";
+  status: "sent" | "pending" | "predicted" | "error" | "missing";
   recipientLabel: string;
   recipientType: TimelineEmail["recipientType"];
   condition?: string;
@@ -635,7 +635,7 @@ function TimelineRow({
       ? "bg-primary"
       : status === "pending"
         ? "bg-amber-500"
-        : status === "error"
+        : status === "error" || status === "missing"
           ? "bg-destructive"
           : "border border-dashed border-muted-foreground";
 
