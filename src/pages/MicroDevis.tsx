@@ -82,14 +82,12 @@ const MicroDevis = () => {
     }
   }, [formulasHook.formationFormulas]);
 
-  // Auth — robust handling: ignore transient events, redirect only after confirmed sign-out
+  // Auth — robust handling: never redirect on transient null sessions
   useEffect(() => {
     let mounted = true;
-    let resolved = false;
 
-    // Safety timeout: never block UI more than 8s
     const timeout = window.setTimeout(() => {
-      if (mounted && !resolved) {
+      if (mounted) {
         console.warn("[MicroDevis] Auth timeout reached, forcing loading to false");
         setLoading(false);
       }
@@ -97,8 +95,13 @@ const MicroDevis = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      // Ignore transient refresh events that can momentarily report no session
-      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") return;
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED" || event === "INITIAL_SESSION") {
+        if (session?.user) {
+          setUser(session.user);
+          setLoading(false);
+        }
+        return;
+      }
       if (event === "SIGNED_OUT") {
         setUser(null);
         setLoading(false);
@@ -107,17 +110,34 @@ const MicroDevis = () => {
       }
       if (session?.user) {
         setUser(session.user);
-        resolved = true;
         setLoading(false);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
-      resolved = true;
-      setUser(session?.user ?? null);
-      setLoading(false);
-      if (!session?.user) navigate("/auth");
+      if (session?.user) {
+        setUser(session.user);
+        setLoading(false);
+        return;
+      }
+      // No session in memory yet — check localStorage before redirecting,
+      // to avoid false redirects when getSession() resolves before storage hydration.
+      try {
+        const url = import.meta.env.VITE_SUPABASE_URL || "";
+        const projectRef = url.match(/https:\/\/([^.]+)\./)?.[1];
+        const storageKey = projectRef ? `sb-${projectRef}-auth-token` : null;
+        const hasStoredSession = !!(storageKey && localStorage.getItem(storageKey));
+        if (!hasStoredSession) {
+          setLoading(false);
+          navigate("/auth");
+        } else {
+          console.info("[MicroDevis] Stored session found, waiting for hydration");
+        }
+      } catch {
+        setLoading(false);
+        navigate("/auth");
+      }
     }).catch((err) => {
       console.error("[MicroDevis] getSession error:", err);
       if (mounted) setLoading(false);
