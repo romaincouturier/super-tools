@@ -26,7 +26,7 @@ interface TimelineEmail {
   phase: "inscription" | "avant" | "pendant" | "fin" | "coaching" | "inter";
   /** "db" = from scheduled_emails table, "predicted" = computed from rules */
   source: "db" | "predicted";
-  status: "sent" | "pending" | "predicted" | "error" | "missing";
+  status: "sent" | "pending" | "predicted" | "error";
   participantId?: string | null;
   dbId?: string;
   /** Only for predicted: why it may not happen */
@@ -384,43 +384,17 @@ const EmailTimelineComputed = ({
     return items;
   }, [dbEmails, participants, trainingStartDate, trainingEndDate, schedules, delaySettings, thankYouSentAt, trainerName, sponsorName, sponsorEmail, isInterSession, isElearning, hasCoaching, liveMeetings]);
 
-  // ─── Detect "non envoyé" : seulement pour les emails CRITIQUES dont la date
-  // est passée de plus de 24h sans trace en DB ni envoi.
-  // Les autres (avis Google, témoignages, suite IA, émargement…) restent "Prévu"
-  // car ils peuvent être déclenchés manuellement ou ne sont pas bloquants.
-  const CRITICAL_TYPES = new Set([
-    "evaluation_reminder_1",
-    "evaluation_reminder_2",
-    "cold_evaluation",
-    "funder_reminder",
-    "reminder", // rappel logistique J-X
-    "trainer_summary",
-    "thank_you",
-  ]);
-  const timelineWithMissing = useMemo(() => {
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    return timeline.map((item) => {
-      if (
-        item.status === "predicted" &&
-        CRITICAL_TYPES.has(item.emailType) &&
-        item.scheduledDate.getTime() < oneDayAgo
-      ) {
-        return { ...item, status: "missing" as const };
-      }
-      return item;
-    });
-  }, [timeline]);
-
   // ─── Group by phase ──────────────────────────────────────────────────
   const groupedByPhase = useMemo(() => {
     const groups: Record<string, TimelineEmail[]> = {};
-    timelineWithMissing.forEach((item) => {
+    timeline.forEach((item) => {
       if (!groups[item.phase]) groups[item.phase] = [];
       groups[item.phase].push(item);
     });
+    // Sort each group by date
     Object.values(groups).forEach((g) => g.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()));
     return groups;
-  }, [timelineWithMissing]);
+  }, [timeline]);
 
   const sortedPhases = useMemo(() => {
     return Object.keys(groupedByPhase).sort((a, b) => (PHASE_LABELS[a]?.order ?? 99) - (PHASE_LABELS[b]?.order ?? 99));
@@ -428,13 +402,12 @@ const EmailTimelineComputed = ({
 
   // ─── Stats ───────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const sent = timelineWithMissing.filter((t) => t.status === "sent").length;
-    const pending = timelineWithMissing.filter((t) => t.status === "pending").length;
-    const predicted = timelineWithMissing.filter((t) => t.status === "predicted").length;
-    const missing = timelineWithMissing.filter((t) => t.status === "missing").length;
-    const error = timelineWithMissing.filter((t) => t.status === "error").length;
-    return { sent, pending, predicted, missing, error, total: timelineWithMissing.length };
-  }, [timelineWithMissing]);
+    const sent = timeline.filter((t) => t.status === "sent").length;
+    const pending = timeline.filter((t) => t.status === "pending").length;
+    const predicted = timeline.filter((t) => t.status === "predicted").length;
+    const error = timeline.filter((t) => t.status === "error").length;
+    return { sent, pending, predicted, error, total: timeline.length };
+  }, [timeline]);
 
   const togglePhase = (phase: string) => {
     setExpandedPhases((prev) => {
@@ -463,24 +436,18 @@ const EmailTimelineComputed = ({
           Timeline des emails
         </CardTitle>
         <CardDescription className="flex flex-wrap gap-3 text-xs">
-          <span className="flex items-center gap-1" title="Email parti dans la boîte du destinataire">
+          <span className="flex items-center gap-1">
             <CheckCircle className="h-3 w-3 text-primary" />
             {stats.sent} envoyé{stats.sent > 1 ? "s" : ""}
           </span>
-          <span className="flex items-center gap-1" title="Créé en base, partira automatiquement à la date prévue">
+          <span className="flex items-center gap-1">
             <Clock className="h-3 w-3 text-amber-500" />
             {stats.pending} programmé{stats.pending > 1 ? "s" : ""}
           </span>
-          <span className="flex items-center gap-1" title="Date future théorique — sera créé automatiquement le moment venu">
+          <span className="flex items-center gap-1">
             <Ghost className="h-3 w-3 text-muted-foreground" />
-            {stats.predicted} à venir
+            {stats.predicted} prévu{stats.predicted > 1 ? "s" : ""}
           </span>
-          {stats.missing > 0 && (
-            <span className="flex items-center gap-1 font-semibold text-destructive" title="Email critique dont la date est dépassée et qui n'a jamais été envoyé">
-              <AlertCircle className="h-3 w-3" />
-              {stats.missing} non envoyé{stats.missing > 1 ? "s" : ""}
-            </span>
-          )}
           {stats.error > 0 && (
             <span className="flex items-center gap-1">
               <AlertCircle className="h-3 w-3 text-destructive" />
@@ -539,23 +506,13 @@ const EmailTimelineComputed = ({
                           const sentCount = typeItems.filter((i) => i.status === "sent").length;
                           const pendingCount = typeItems.filter((i) => i.status === "pending").length;
                           const predictedCount = typeItems.filter((i) => i.status === "predicted").length;
-                          const missingCount = typeItems.filter((i) => i.status === "missing").length;
-
-                          const aggregatedStatus: "sent" | "pending" | "predicted" | "missing" =
-                            missingCount > 0
-                              ? "missing"
-                              : sentCount === typeItems.length
-                                ? "sent"
-                                : pendingCount > 0
-                                  ? "pending"
-                                  : "predicted";
 
                           return (
                             <TimelineRow
                               key={type}
                               label={EMAIL_TYPE_LABELS[type] || type}
                               date={firstItem.scheduledDate}
-                              status={aggregatedStatus}
+                              status={sentCount === typeItems.length ? "sent" : pendingCount > 0 ? "pending" : "predicted"}
                               recipientLabel={`${typeItems.length} participants`}
                               recipientType="all"
                               condition={firstItem.condition}
@@ -563,7 +520,6 @@ const EmailTimelineComputed = ({
                                 <span className="text-[10px] text-muted-foreground">
                                   {sentCount > 0 && <span className="text-primary">{sentCount}✓ </span>}
                                   {pendingCount > 0 && <span className="text-amber-600">{pendingCount}⏳ </span>}
-                                  {missingCount > 0 && <span className="text-destructive font-semibold">{missingCount}⚠️ </span>}
                                   {predictedCount > 0 && <span>{predictedCount}🔮</span>}
                                 </span>
                               }
@@ -594,16 +550,19 @@ const EmailTimelineComputed = ({
         {/* Legend */}
         <div className="flex flex-wrap gap-3 pt-3 border-t text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-primary" /> Envoyé (parti)
+            <span className="w-2 h-2 rounded-full bg-primary" /> Envoyé
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-500" /> Programmé (en file d'attente)
+            <span className="w-2 h-2 rounded-full bg-amber-500" /> Programmé en DB
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full border border-dashed border-muted-foreground" /> À venir (date future)
+            <span className="w-2 h-2 rounded-full border border-dashed border-muted-foreground" /> Prévu (pas encore créé)
           </span>
-          <span className="flex items-center gap-1 text-destructive">
-            <span className="w-2 h-2 rounded-full bg-destructive" /> Non envoyé (échec)
+          <span className="flex items-center gap-1">
+            <User className="h-3 w-3" /> Participant
+          </span>
+          <span className="flex items-center gap-1">
+            <Zap className="h-3 w-3" /> Formateur
           </span>
         </div>
       </CardContent>
@@ -633,7 +592,7 @@ function TimelineRow({
 }: {
   label: string;
   date: Date;
-  status: "sent" | "pending" | "predicted" | "error" | "missing";
+  status: "sent" | "pending" | "predicted" | "error";
   recipientLabel: string;
   recipientType: TimelineEmail["recipientType"];
   condition?: string;
@@ -646,7 +605,7 @@ function TimelineRow({
       ? "bg-primary"
       : status === "pending"
         ? "bg-amber-500"
-        : status === "error" || status === "missing"
+        : status === "error"
           ? "bg-destructive"
           : "border border-dashed border-muted-foreground";
 
@@ -666,12 +625,12 @@ function TimelineRow({
           {breakdown}
         </div>
         <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
+          <Icon className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate">{recipientLabel}</span>
+          <span className="text-muted-foreground/60">•</span>
           <span className="whitespace-nowrap">
             {format(date, "d MMM yyyy", { locale: fr })}
           </span>
-          <span className="text-muted-foreground/60">•</span>
-          <Icon className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">{recipientLabel}</span>
         </div>
         {condition && (
           <p className="text-[10px] text-muted-foreground/70 italic mt-0.5">
@@ -701,15 +660,9 @@ function TimelineRow({
           </Badge>
         )}
         {status === "predicted" && (
-          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed text-muted-foreground" title="Date future théorique — sera créé automatiquement">
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed text-muted-foreground">
             <Ghost className="h-2.5 w-2.5 mr-0.5" />
-            À venir
-          </Badge>
-        )}
-        {status === "missing" && (
-          <Badge variant="destructive" className="text-[10px] h-5 px-1.5" title="Email critique dont la date est dépassée et qui n'a jamais été envoyé. À investiguer.">
-            <AlertCircle className="h-2.5 w-2.5 mr-0.5" />
-            Non envoyé
+            Prévu
           </Badge>
         )}
       </div>
