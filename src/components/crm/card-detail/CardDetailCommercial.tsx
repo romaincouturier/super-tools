@@ -67,7 +67,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
                 ...(card?.id && { crmCardId: card.id }),
                 source: "crm",
               });
-              window.open(`/micro-devis?${params.toString()}`, "_blank");
+              navigate(`/micro-devis?${params.toString()}`);
             }}
           >
             <Receipt className="h-4 w-4 mr-2" />
