@@ -2,7 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot } from "lucide-react";
+import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot, Maximize2, Minimize2, Bug } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FeedbackForm } from "@/components/feedback/FeedbackForm";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
@@ -48,6 +51,8 @@ const MissionDetailDrawer = ({
   const { confirm, ConfirmDialog } = useConfirm();
   const [showDeliverables, setShowDeliverables] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const { loading: aiSummaryLoading, invoke: invokeMissionSummary } = useEdgeFunction<string>(
     "generate-mission-summary",
     { errorMessage: "Impossible de générer le résumé" },
@@ -312,16 +317,49 @@ const MissionDetailDrawer = ({
       >
         <Bot className="h-4 w-4" />
       </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setShowFeedback(true)}
+        title="Signaler un bug ou suggérer une évolution"
+      >
+        <Bug className="h-4 w-4" />
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => setIsFullScreen((v) => !v)}
+        title={isFullScreen ? "Réduire" : "Plein écran"}
+        aria-pressed={isFullScreen}
+      >
+        {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      </Button>
     </>
   );
+
+  const feedbackPrefill =
+    `Mission concernée : ${mission.title} (${mission.id})\n` +
+    `Lien : /missions/${mission.id}\n\n` +
+    `--- Décrivez le bug ou l'évolution ci-dessous ---\n`;
 
   return (
     <DetailDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title={mission.title}
+      title={
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <EmojiPickerButton emoji={missionEmoji} onEmojiChange={setMissionEmoji} size="md" />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titre de la mission"
+            aria-label="Titre de la mission"
+            className="flex-1 min-w-0 bg-transparent font-bold text-lg border-none outline-none focus:outline-none"
+          />
+        </div>
+      }
       actions={headerActions}
-      contentClassName="overflow-y-auto sm:max-w-5xl"
+      contentClassName={`overflow-y-auto transition-all duration-300 ${isFullScreen ? "sm:max-w-full" : "sm:max-w-5xl"}`}
     >
         {/* Linked CRM opportunity */}
         {linkedCard && (
@@ -510,6 +548,18 @@ const MissionDetailDrawer = ({
           open={showDeliverables}
           onOpenChange={setShowDeliverables}
         />
+        <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
+          <DialogContent className="w-full sm:max-w-lg p-0">
+            <DialogHeader className="px-4 pt-4">
+              <DialogTitle className="text-base">Signaler un bug ou suggérer une évolution</DialogTitle>
+            </DialogHeader>
+            <FeedbackForm
+              prefillDescription={feedbackPrefill}
+              pageUrlOverride={`/missions/${mission.id}`}
+              onSubmitted={() => setTimeout(() => setShowFeedback(false), 1500)}
+            />
+          </DialogContent>
+        </Dialog>
         <ConfirmDialog />
     </DetailDrawer>
   );

@@ -54,6 +54,7 @@ export interface CreateMissionInput {
   contact_email?: string;
   contact_phone?: string;
   assigned_to?: string | null;
+  emoji?: string;
 }
 
 export interface UpdateMissionInput {

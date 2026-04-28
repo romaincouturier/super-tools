@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { formatFileSize } from "@/lib/file-utils";
-import { useEditor, EditorContent, Node, mergeAttributes } from "@tiptap/react";
+import { useEditor, EditorContent, Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -15,6 +15,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import {
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Plus,
   FileText,
   Trash2,
@@ -50,11 +51,13 @@ import {
   LayoutTemplate,
   ArrowDownUp,
   Sparkles,
+  StickyNote,
   X,
   Copy,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { VoiceDictationButton } from "@/components/ui/voice-dictation-button";
 import {
   DropdownMenu,
@@ -86,7 +89,12 @@ interface MissionPagesProps {
   onActivityPageCreated?: () => void;
 }
 
-type PageSortMode = "date_desc" | "date_asc" | "name_asc" | "name_desc";
+type PageSortMode = "manual" | "date_desc" | "date_asc" | "name_asc" | "name_desc";
+
+const SIDEBAR_WIDTH_KEY = "supertools.missionPages.sidebarWidth";
+const SIDEBAR_DEFAULT_WIDTH = 256;
+const SIDEBAR_MIN_WIDTH = 180;
+const SIDEBAR_MAX_WIDTH = 600;
 
 interface PageTreeItemProps {
   page: MissionPage;
@@ -97,11 +105,96 @@ interface PageTreeItemProps {
   onDelete: (page: MissionPage) => void;
   onDuplicate: (page: MissionPage) => void;
   onToggleExpand: (page: MissionPage) => void;
+  onUpdateIcon: (page: MissionPage, icon: string | null) => void;
+  onMoveUp: (page: MissionPage) => void;
+  onMoveDown: (page: MissionPage) => void;
+  manualOrder: boolean;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
 }
 
 // ─── Custom TipTap Extensions ────────────────────────────
+
+// Callout (colored box) — color names are also Tailwind class fragments below.
+const CALLOUT_COLORS = ["blue", "amber", "green", "red", "gray"] as const;
+type CalloutColor = typeof CALLOUT_COLORS[number];
+const DEFAULT_CALLOUT_COLOR: CalloutColor = "blue";
+
+// Static class strings so Tailwind's JIT picks them up.
+const CALLOUT_CLASSES: Record<CalloutColor, string> = {
+  blue: "bg-blue-50 border-blue-400 text-blue-950",
+  amber: "bg-amber-50 border-amber-400 text-amber-950",
+  green: "bg-green-50 border-green-500 text-green-950",
+  red: "bg-red-50 border-red-400 text-red-950",
+  gray: "bg-gray-100 border-gray-400 text-gray-950",
+};
+const CALLOUT_LABELS: Record<CalloutColor, string> = {
+  blue: "Bleu",
+  amber: "Orange",
+  green: "Vert",
+  red: "Rouge",
+  gray: "Gris",
+};
+const CALLOUT_SWATCHES: Record<CalloutColor, string> = {
+  blue: "bg-blue-400",
+  amber: "bg-amber-400",
+  green: "bg-green-500",
+  red: "bg-red-400",
+  gray: "bg-gray-400",
+};
+
+const CalloutNode = Node.create({
+  name: "callout",
+  group: "block",
+  content: "block+",
+  defining: true,
+  addAttributes() {
+    return {
+      color: {
+        default: DEFAULT_CALLOUT_COLOR,
+        parseHTML: (el) => (el as HTMLElement).getAttribute("data-color") || DEFAULT_CALLOUT_COLOR,
+        renderHTML: (attrs) => ({ "data-color": attrs.color }),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-callout]" }];
+  },
+  renderHTML({ HTMLAttributes, node }) {
+    const color = (node.attrs.color as CalloutColor) || DEFAULT_CALLOUT_COLOR;
+    const colorClasses = CALLOUT_CLASSES[color] || CALLOUT_CLASSES[DEFAULT_CALLOUT_COLOR];
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, {
+        "data-callout": "",
+        class: `my-3 rounded-lg border-l-4 px-4 py-3 ${colorClasses}`,
+      }),
+      0,
+    ];
+  },
+});
+
+function DetailsNodeView() {
+  const [open, setOpen] = useState(true);
+  return (
+    <NodeViewWrapper as="div" className="my-2 border rounded-lg relative group/details">
+      <button
+        type="button"
+        contentEditable={false}
+        onClick={() => setOpen((o) => !o)}
+        title={open ? "Replier" : "Déplier"}
+        aria-label={open ? "Replier le bloc" : "Déplier le bloc"}
+        aria-expanded={open}
+        className="absolute top-1.5 right-1.5 z-10 h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
+      >
+        <ChevronDown className={cn("h-4 w-4 transition-transform", !open && "-rotate-90")} />
+      </button>
+      <NodeViewContent
+        className={cn("p-3 pr-9", !open && "[&>*+*]:hidden")}
+      />
+    </NodeViewWrapper>
+  );
+}
 
 const DetailsNode = Node.create({
   name: "details",
@@ -112,7 +205,10 @@ const DetailsNode = Node.create({
     return [{ tag: "details" }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["details", mergeAttributes(HTMLAttributes, { open: "", class: "my-2 border rounded-lg p-3" }), 0];
+    return ["details", mergeAttributes(HTMLAttributes, { class: "my-2 border rounded-lg p-3" }), 0];
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(DetailsNodeView);
   },
 });
 
@@ -158,6 +254,10 @@ const PageTreeItem = ({
   onDelete,
   onDuplicate,
   onToggleExpand,
+  onUpdateIcon,
+  onMoveUp,
+  onMoveDown,
+  manualOrder,
   selectedPageId,
   sortFn,
 }: PageTreeItemProps) => {
@@ -165,6 +265,13 @@ const PageTreeItem = ({
     .filter((p) => p.parent_page_id === page.id)
     .sort(sortFn);
   const hasChildren = childPages.length > 0;
+
+  const siblings = allPages
+    .filter((p) => p.parent_page_id === page.parent_page_id)
+    .sort((a, b) => a.position - b.position);
+  const siblingIndex = siblings.findIndex((p) => p.id === page.id);
+  const canMoveUp = manualOrder && siblingIndex > 0;
+  const canMoveDown = manualOrder && siblingIndex !== -1 && siblingIndex < siblings.length - 1;
 
   return (
     <div>
@@ -196,18 +303,53 @@ const PageTreeItem = ({
           )}
         </button>
 
-        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className="flex-1 text-sm overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <EmojiPickerButton
+          emoji={page.icon}
+          onEmojiChange={(icon) => onUpdateIcon(page, icon)}
+          size="sm"
+          className="shrink-0"
+          fallback={<FileText className="h-3.5 w-3.5 text-muted-foreground" />}
+        />
+        <span className="flex-1 text-sm truncate min-w-0">
           {page.title || "Sans titre"}
         </span>
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">
+          {manualOrder && (
+            <>
+              <button
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveUp(page);
+                }}
+                disabled={!canMoveUp}
+                title="Monter"
+                aria-label="Monter la page"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveDown(page);
+                }}
+                disabled={!canMoveDown}
+                title="Descendre"
+                aria-label="Descendre la page"
+              >
+                <ChevronUp className="h-3 w-3 rotate-180" />
+              </button>
+            </>
+          )}
           <button
             className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted"
             onClick={(e) => {
               e.stopPropagation();
               onAddChild(page.id);
             }}
+            title="Ajouter une sous-page"
           >
             <Plus className="h-3 w-3" />
           </button>
@@ -255,6 +397,10 @@ const PageTreeItem = ({
               onDelete={onDelete}
               onDuplicate={onDuplicate}
               onToggleExpand={onToggleExpand}
+              onUpdateIcon={onUpdateIcon}
+              onMoveUp={onMoveUp}
+              onMoveDown={onMoveDown}
+              manualOrder={manualOrder}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
             />
@@ -400,8 +546,15 @@ const PageEditor = ({
         horizontalRule: { HTMLAttributes: { class: "my-6 border-muted-foreground/30 border-t-2" } },
       }),
       LinkExtension.configure({
-        openOnClick: true,
-        HTMLAttributes: { class: "text-primary underline cursor-pointer" },
+        // Let the browser handle the click via the rendered <a target="_blank">
+        // anchor; TipTap's own window.open is blocked as a popup when the
+        // editor sits inside the mission Sheet drawer.
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline cursor-pointer",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
       }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
@@ -419,6 +572,7 @@ const PageEditor = ({
       Typography,
       DetailsNode,
       SummaryNode,
+      CalloutNode,
       VideoNode,
     ],
     content: ensureHtmlContent(page.content || ""),
@@ -557,13 +711,32 @@ const PageEditor = ({
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
+  const setCalloutColor = (color: CalloutColor) => {
+    if (!editor) return;
+    if (editor.isActive("callout")) {
+      editor.chain().focus().updateAttributes("callout", { color }).run();
+      return;
+    }
+    editor.chain().focus().insertContent({
+      type: "callout",
+      attrs: { color },
+      content: [{ type: "paragraph", content: [{ type: "text", text: "Note importante…" }] }],
+    }).run();
+  };
+
   const insertToggleBlock = () => {
     if (!editor) return;
     editor.chain().focus().insertContent({
       type: "details",
       content: [
-        { type: "summary", content: [{ type: "text", text: "Cliquez pour déplier" }] },
-        { type: "paragraph", content: [{ type: "text", text: "Contenu masquable..." }] },
+        { type: "summary", content: [{ type: "text", text: "Titre du bloc" }] },
+        {
+          type: "bulletList",
+          content: [
+            { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Élément 1" }] }] },
+            { type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "Élément 2" }] }] },
+          ],
+        },
       ],
     }).run();
   };
@@ -612,6 +785,29 @@ const PageEditor = ({
         <TB active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()} t="Code"><Code className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={() => editor.chain().focus().setHorizontalRule().run()} t="Séparateur"><Minus className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={insertToggleBlock} t="Dépliable"><ChevronDownSquare className="h-3.5 w-3.5" /></TB>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              title="Encadré coloré"
+              aria-label="Insérer un encadré coloré"
+              className={cn(
+                "h-7 w-7 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors",
+                editor.isActive("callout") && "bg-muted text-foreground",
+              )}
+            >
+              <StickyNote className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-44">
+            {CALLOUT_COLORS.map((color) => (
+              <DropdownMenuItem key={color} onClick={() => setCalloutColor(color)}>
+                <span className={cn("h-3 w-3 rounded-full mr-2 border border-black/10", CALLOUT_SWATCHES[color])} />
+                {CALLOUT_LABELS[color]}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <TB active={editor.isActive("link")} onClick={setLink} t="Lien"><LinkIcon className="h-3.5 w-3.5" /></TB>
 
         <TSep />
@@ -740,8 +936,45 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sortMode, setSortMode] = useState<PageSortMode>("date_desc");
 
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
+    const stored = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    const n = stored ? parseInt(stored, 10) : NaN;
+    if (!Number.isFinite(n)) return SIDEBAR_DEFAULT_WIDTH;
+    return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, n));
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  const startSidebarResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    setIsResizing(true);
+    const onMove = (ev: PointerEvent) => {
+      const next = startWidth + (ev.clientX - startX);
+      setSidebarWidth(Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, next)));
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }, [sidebarWidth]);
+
   const sortFn = useCallback((a: MissionPage, b: MissionPage): number => {
     switch (sortMode) {
+      case "manual": return a.position - b.position;
       case "name_asc": return a.title.localeCompare(b.title, "fr");
       case "name_desc": return b.title.localeCompare(a.title, "fr");
       case "date_asc": return a.updated_at.localeCompare(b.updated_at);
@@ -810,6 +1043,47 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     try {
       await updatePage.mutateAsync({ id: page.id, missionId: mission.id, updates: { is_expanded: !page.is_expanded } });
     } catch {}
+  };
+
+  const handleUpdatePageIcon = async (page: MissionPage, icon: string | null) => {
+    try {
+      await updatePage.mutateAsync({ id: page.id, missionId: mission.id, updates: { icon } });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const swapPagePositions = async (a: MissionPage, b: MissionPage) => {
+    if (a.id === b.id) return;
+    if (sortMode !== "manual") setSortMode("manual");
+    try {
+      await Promise.all([
+        updatePage.mutateAsync({ id: a.id, missionId: mission.id, updates: { position: b.position } }),
+        updatePage.mutateAsync({ id: b.id, missionId: mission.id, updates: { position: a.position } }),
+      ]);
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const findSiblingNeighbour = (page: MissionPage, direction: -1 | 1): MissionPage | null => {
+    const siblings = (pages || [])
+      .filter((p) => p.parent_page_id === page.parent_page_id)
+      .sort((a, b) => a.position - b.position);
+    const idx = siblings.findIndex((p) => p.id === page.id);
+    if (idx === -1) return null;
+    const neighbour = siblings[idx + direction];
+    return neighbour ?? null;
+  };
+
+  const handleMovePageUp = async (page: MissionPage) => {
+    const prev = findSiblingNeighbour(page, -1);
+    if (prev) await swapPagePositions(page, prev);
+  };
+
+  const handleMovePageDown = async (page: MissionPage) => {
+    const next = findSiblingNeighbour(page, 1);
+    if (next) await swapPagePositions(page, next);
   };
 
   const handleDeletePage = async (page: MissionPage) => {
@@ -905,10 +1179,14 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       )}
 
       {/* Sidebar */}
-      <div className={cn(
-        "border-r bg-muted/20 flex flex-col transition-all overflow-hidden",
-        sidebarCollapsed ? "w-0" : "w-64 shrink-0"
-      )}>
+      <div
+        className="border-r bg-muted/20 flex flex-col overflow-hidden"
+        style={{
+          width: sidebarCollapsed ? 0 : sidebarWidth,
+          flexShrink: 0,
+          transition: isResizing ? "none" : "width 150ms ease",
+        }}
+      >
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
           <div className="flex items-center gap-0.5">
@@ -919,6 +1197,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortMode("manual")} className={sortMode === "manual" ? "font-medium bg-muted" : ""}>
+                  Manuel
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSortMode("date_desc")} className={sortMode === "date_desc" ? "font-medium bg-muted" : ""}>
                   Date modif. (récent)
                 </DropdownMenuItem>
@@ -972,12 +1253,33 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               onDelete={handleDeletePage}
               onDuplicate={handleDuplicatePage}
               onToggleExpand={handleToggleExpand}
+              onUpdateIcon={handleUpdatePageIcon}
+              onMoveUp={handleMovePageUp}
+              onMoveDown={handleMovePageDown}
+              manualOrder={sortMode === "manual"}
               selectedPageId={selectedPage?.id || null}
               sortFn={sortFn}
             />
           ))}
         </div>
       </div>
+
+      {/* Resize handle between sidebar and editor */}
+      {!sidebarCollapsed && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Redimensionner la liste des pages"
+          aria-valuemin={SIDEBAR_MIN_WIDTH}
+          aria-valuemax={SIDEBAR_MAX_WIDTH}
+          aria-valuenow={sidebarWidth}
+          onPointerDown={startSidebarResize}
+          className={cn(
+            "w-1 shrink-0 cursor-col-resize transition-colors -ml-px relative z-10",
+            isResizing ? "bg-primary/40" : "bg-transparent hover:bg-primary/30",
+          )}
+        />
+      )}
 
       {/* Editor */}
       <div className="flex-1 min-w-0 overflow-hidden">

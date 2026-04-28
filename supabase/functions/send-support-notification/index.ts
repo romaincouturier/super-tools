@@ -6,7 +6,7 @@ import { emailButton, emailInfoBox, emailSuccessBox, wrapEmailHtml } from "../_s
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
-const VERSION = "send-support-notification@2026-04-02.1";
+const VERSION = "send-support-notification@2026-04-27.1";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -80,6 +80,68 @@ serve(async (req) => {
         subject,
         html: htmlContent,
         _emailType: "support_new_ticket",
+      });
+
+      if (!result.success) {
+        console.error("sendEmail error:", result.error);
+        return new Response(
+          JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, _version: VERSION }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Confirmation copy to the submitter when a new ticket is created ──
+    if (type === "new_ticket_copy") {
+      const {
+        recipientEmail: copyRecipient,
+        ticketNumber: copyNumber,
+        ticketTitle: copyTitle,
+        ticketType: copyType,
+        ticketPriority: copyPrio,
+        description: copyDescription,
+      } = body;
+
+      if (!copyRecipient || !copyNumber || !copyTitle) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields for new_ticket_copy", _version: VERSION }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const copyTypeLabel = copyType === "bug" ? "🐛 Bug" : "💡 Évolution";
+      const copyPriorityLabels: Record<string, string> = { critical: "🔴 Critique", high: "🟠 Haute", medium: "🟡 Moyenne", low: "🟢 Basse" };
+      const copyPrioLabel = copyPriorityLabels[copyPrio] || copyPrio || "Non définie";
+
+      console.log(`[${VERSION}] new ticket copy to=${copyRecipient} ticket=${copyNumber}`);
+
+      const copySubject = `${copyNumber} — Confirmation de votre signalement « ${copyTitle} »`;
+      const copyBodyHtml = `
+        <p>Bonjour,</p>
+        <p>Nous avons bien reçu votre signalement. Vous trouverez ci-dessous une copie des informations transmises pour votre suivi.</p>
+        ${emailInfoBox(`<strong>${copyNumber} — ${copyTitle}</strong>`)}
+        <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+          <tr><td style="padding:6px 12px;color:#666;">Type</td><td style="padding:6px 12px;font-weight:600;">${copyTypeLabel}</td></tr>
+          <tr><td style="padding:6px 12px;color:#666;">Priorité</td><td style="padding:6px 12px;font-weight:600;">${copyPrioLabel}</td></tr>
+        </table>
+        ${copyDescription ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;white-space:pre-wrap;">${copyDescription.slice(0, 2000)}${copyDescription.length > 2000 ? "…" : ""}</p>` : ""}
+        <p>Vous pouvez retrouver l'ensemble de vos signalements dans l'onglet « Mes tickets » de l'assistant Supertilt.</p>
+        ${emailButton("Voir mes tickets", `${APP_URL}/support`)}
+      `;
+
+      const copyHtmlContent = wrapEmailHtml(copyBodyHtml, signature);
+
+      const result = await sendEmail({
+        from: senderFrom,
+        to: [copyRecipient],
+        subject: copySubject,
+        html: copyHtmlContent,
+        _emailType: "support_new_ticket_copy",
       });
 
       if (!result.success) {
