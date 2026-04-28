@@ -153,12 +153,16 @@ serve(async (req) => {
     const urls = await getAppUrls();
     const baseUrl = urls.app_url;
 
-    // Resolve supports URL: use explicit URL if set, otherwise check for LMS course or editor-created support
-    let supportsUrl = training.supports_url || "";
-    if (!supportsUrl) {
+    // Resolve supports URL base: use explicit URL if set, otherwise check for LMS course or editor-created support.
+    // For internal /formation-support routes, the participant email is appended per recipient (LMS player requires it).
+    const explicitSupportsUrl = training.supports_url || "";
+    let supportsUrlBase = explicitSupportsUrl;
+    let supportsRequiresEmailParam = false;
+    if (!supportsUrlBase) {
       if (training.supports_type === "lms" && training.supports_lms_course_id) {
-        supportsUrl = `${baseUrl}/formation-support/${trainingId}`;
-        console.log("Using LMS course support URL:", supportsUrl);
+        supportsUrlBase = `${baseUrl}/formation-support/${trainingId}`;
+        supportsRequiresEmailParam = true;
+        console.log("Using LMS course support URL:", supportsUrlBase);
       } else {
         const { data: supportRecord } = await supabase
           .from("training_supports")
@@ -166,11 +170,20 @@ serve(async (req) => {
           .eq("training_id", trainingId)
           .maybeSingle();
         if (supportRecord) {
-          supportsUrl = `${baseUrl}/formation-support/${trainingId}`;
-          console.log("Using training support viewer URL:", supportsUrl);
+          supportsUrlBase = `${baseUrl}/formation-support/${trainingId}`;
+          supportsRequiresEmailParam = true;
+          console.log("Using training support viewer URL:", supportsUrlBase);
         }
       }
     }
+    const buildSupportsUrl = (email: string | null | undefined) => {
+      if (!supportsUrlBase) return "";
+      if (!supportsRequiresEmailParam || !email) return supportsUrlBase;
+      const sep = supportsUrlBase.includes("?") ? "&" : "?";
+      return `${supportsUrlBase}${sep}email=${encodeURIComponent(email)}`;
+    };
+    // Backwards-compat alias for the test-mode block below
+    const supportsUrl = supportsUrlBase;
 
     // TEST MODE: Send only to the test email
     if (testEmail) {
@@ -272,7 +285,7 @@ serve(async (req) => {
         first_name: participant.first_name,
         training_name: trainingName,
         evaluation_link: evaluationLink,
-        supports_url: supportsUrl,
+        supports_url: buildSupportsUrl(participant.email),
         is_presentiel: !isElearning,
         is_elearning: isElearning,
       };
