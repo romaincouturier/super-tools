@@ -6,12 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useUpdateLesson, LmsLesson, uploadLmsVideo, uploadLmsImage, uploadLmsFile } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Clock, Upload, Download, Paperclip, X } from "lucide-react";
+import { Save, Clock, Upload, Download, Paperclip, X, ChevronDown, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { formatFileSize } from "@/lib/file-utils";
 import LessonWorkDepositConfigSection from "@/components/lms/LessonWorkDepositConfigSection";
 import type { WorkDepositConfig } from "@/types/lms-work-deposit";
+import LessonBlocksEditor from "@/components/lms/blocks/LessonBlocksEditor";
 
 interface Props {
   lesson: LmsLesson;
@@ -24,6 +25,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docFileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [showLegacyFields, setShowLegacyFields] = useState(false);
   const [form, setForm] = useState({
     title: lesson.title,
     content_html: lesson.content_html || "",
@@ -87,7 +89,23 @@ export default function LmsLessonEditor({ lesson }: Props) {
         <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
       </div>
 
-      {lesson.lesson_type === "text" && (
+      <div className="space-y-2">
+        <Label>Contenu de la leçon</Label>
+        <LessonBlocksEditor lessonId={lesson.id} />
+      </div>
+
+      <div className="border-t pt-3">
+        <button
+          type="button"
+          onClick={() => setShowLegacyFields((v) => !v)}
+          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+        >
+          {showLegacyFields ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          Champs hérités (type initial : {lesson.lesson_type})
+        </button>
+      </div>
+
+      {showLegacyFields && lesson.lesson_type === "text" && (
         <div>
           <Label>Contenu</Label>
           <RichTextEditor
@@ -97,7 +115,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
         </div>
       )}
 
-      {lesson.lesson_type === "video" && (
+      {showLegacyFields && lesson.lesson_type === "video" && (
         <div className="space-y-3">
           <div className="flex gap-2 items-end">
             <div className="flex-1">
@@ -134,7 +152,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
         </div>
       )}
 
-      {lesson.lesson_type === "assignment" && (
+      {showLegacyFields && lesson.lesson_type === "assignment" && (
         <div>
           <Label>Instructions du devoir</Label>
           <RichTextEditor
@@ -144,7 +162,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
         </div>
       )}
 
-      {lesson.lesson_type === "image" && (
+      {showLegacyFields && lesson.lesson_type === "image" && (
         <div className="space-y-3">
           <div className="flex gap-2 items-end">
             <div className="flex-1">
@@ -205,7 +223,7 @@ export default function LmsLessonEditor({ lesson }: Props) {
         </div>
       )}
 
-      {lesson.lesson_type === "file" && (
+      {showLegacyFields && lesson.lesson_type === "file" && (
         <div className="space-y-3">
           <div className="flex gap-2 items-end">
             <div className="flex-1">

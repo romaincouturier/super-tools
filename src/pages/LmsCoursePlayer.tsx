@@ -19,6 +19,8 @@ import {
   LmsLesson, LmsModule, LmsQuizQuestion,
 } from "@/hooks/useLms";
 import LessonComments from "@/components/lms/LessonComments";
+import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
+import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import {
   BookOpen, CheckCircle2, Circle, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
@@ -252,106 +254,115 @@ export default function LmsCoursePlayer() {
                 )}
               </div>
 
-              {/* Lesson content */}
-              {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
-                <div
-                  className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                  dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                />
-              )}
-
-              {selectedLesson.lesson_type === "video" && selectedLesson.video_url && (
-                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                  {selectedLesson.video_url.includes("youtube") || selectedLesson.video_url.includes("youtu.be") ? (
-                    <iframe
-                      src={selectedLesson.video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : selectedLesson.video_url.includes("vimeo") ? (
-                    <iframe
-                      src={selectedLesson.video_url.replace("vimeo.com/", "player.vimeo.com/video/")}
-                      className="w-full h-full"
-                      allow="autoplay; fullscreen"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <video src={selectedLesson.video_url} controls className="w-full h-full" />
-                  )}
-                </div>
-              )}
-
-              {selectedLesson.lesson_type === "quiz" && selectedLesson.quiz_id && (
-                <QuizPlayer
-                  quizId={selectedLesson.quiz_id}
-                  learnerEmail={learnerEmail}
-                  onComplete={handleMarkComplete}
-                />
-              )}
-
-              {selectedLesson.lesson_type === "assignment" && (
-                <div className="space-y-4">
-                  {selectedLesson.content_html && (
-                    <div
-                      className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                    />
-                  )}
-                  <AssignmentSubmitter lessonId={selectedLesson.id} learnerEmail={learnerEmail} />
-                </div>
-              )}
-
-              {selectedLesson.lesson_type === "image" && (
-                <div className="space-y-4">
-                  {selectedLesson.image_url && (
-                    <div className="rounded-lg overflow-hidden bg-muted border w-full">
-                      <img
-                        src={selectedLesson.image_url}
-                        alt={selectedLesson.title}
-                        className="w-full h-auto object-contain max-h-[70vh]"
+              {/* Lesson content (block-based with legacy fallback) */}
+              <LessonContent
+                lessonId={selectedLesson.id}
+                renderQuiz={(quizId) => (
+                  <QuizPlayer quizId={quizId} learnerEmail={learnerEmail} onComplete={handleMarkComplete} />
+                )}
+                renderAssignment={(lessonId) => (
+                  <AssignmentSubmitter lessonId={lessonId} learnerEmail={learnerEmail} />
+                )}
+                legacy={
+                  <>
+                    {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
+                      <div
+                        className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                        dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
                       />
-                    </div>
-                  )}
-                  {selectedLesson.content_html && (
-                    <div
-                      className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                      dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                    />
-                  )}
-                </div>
-              )}
-
-              {selectedLesson.lesson_type === "file" && (
-                <div className="space-y-4">
-                  {selectedLesson.file_url && (
-                    <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border">
-                      <Paperclip className="w-5 h-5 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{selectedLesson.file_name || "Fichier"}</p>
-                        {selectedLesson.file_size && (
-                          <p className="text-sm text-muted-foreground">
-                            {selectedLesson.file_size < 1024 * 1024
-                              ? `${(selectedLesson.file_size / 1024).toFixed(1)} Ko`
-                              : `${(selectedLesson.file_size / (1024 * 1024)).toFixed(1)} Mo`}
-                          </p>
+                    )}
+                    {selectedLesson.lesson_type === "video" && selectedLesson.video_url && (
+                      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                        {selectedLesson.video_url.includes("youtube") || selectedLesson.video_url.includes("youtu.be") ? (
+                          <iframe
+                            src={selectedLesson.video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : selectedLesson.video_url.includes("vimeo") ? (
+                          <iframe
+                            src={selectedLesson.video_url.replace("vimeo.com/", "player.vimeo.com/video/")}
+                            className="w-full h-full"
+                            allow="autoplay; fullscreen"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video src={selectedLesson.video_url} controls className="w-full h-full" />
                         )}
                       </div>
-                      <Button asChild>
-                        <a href={selectedLesson.file_url} target="_blank" rel="noopener noreferrer" download>
-                          <Download className="w-4 h-4 mr-2" /> Télécharger
-                        </a>
-                      </Button>
-                    </div>
-                  )}
-                  {selectedLesson.content_html && (
-                    <div
-                      className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                      dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                    />
-                  )}
-                </div>
-              )}
+                    )}
+                    {selectedLesson.lesson_type === "quiz" && selectedLesson.quiz_id && (
+                      <QuizPlayer
+                        quizId={selectedLesson.quiz_id}
+                        learnerEmail={learnerEmail}
+                        onComplete={handleMarkComplete}
+                      />
+                    )}
+                    {selectedLesson.lesson_type === "assignment" && (
+                      <div className="space-y-4">
+                        {selectedLesson.content_html && (
+                          <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                          />
+                        )}
+                        <AssignmentSubmitter lessonId={selectedLesson.id} learnerEmail={learnerEmail} />
+                      </div>
+                    )}
+                    {selectedLesson.lesson_type === "image" && (
+                      <div className="space-y-4">
+                        {selectedLesson.image_url && (
+                          <div className="rounded-lg overflow-hidden bg-muted border w-full">
+                            <img
+                              src={selectedLesson.image_url}
+                              alt={selectedLesson.title}
+                              className="w-full h-auto object-contain max-h-[70vh]"
+                            />
+                          </div>
+                        )}
+                        {selectedLesson.content_html && (
+                          <div
+                            className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                            dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {selectedLesson.lesson_type === "file" && (
+                      <div className="space-y-4">
+                        {selectedLesson.file_url && (
+                          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border">
+                            <Paperclip className="w-5 h-5 text-muted-foreground shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{selectedLesson.file_name || "Fichier"}</p>
+                              {selectedLesson.file_size && (
+                                <p className="text-sm text-muted-foreground">
+                                  {selectedLesson.file_size < 1024 * 1024
+                                    ? `${(selectedLesson.file_size / 1024).toFixed(1)} Ko`
+                                    : `${(selectedLesson.file_size / (1024 * 1024)).toFixed(1)} Mo`}
+                                </p>
+                              )}
+                            </div>
+                            <Button asChild>
+                              <a href={selectedLesson.file_url} target="_blank" rel="noopener noreferrer" download>
+                                <Download className="w-4 h-4 mr-2" /> Télécharger
+                              </a>
+                            </Button>
+                          </div>
+                        )}
+                        {selectedLesson.content_html && (
+                          <div
+                            className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                            dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </>
+                }
+              />
+
 
               {/* Work deposit (per-lesson opt-in) */}
               {selectedLesson.work_deposit_enabled && courseId && (
@@ -407,6 +418,31 @@ export default function LmsCoursePlayer() {
         </main>
       </div>
     </div>
+  );
+}
+
+// ---- Lesson Content (block-based with legacy fallback) ----
+function LessonContent({
+  lessonId,
+  renderQuiz,
+  renderAssignment,
+  legacy,
+}: {
+  lessonId: string;
+  renderQuiz: (quizId: string, lessonId: string) => React.ReactNode;
+  renderAssignment: (lessonId: string) => React.ReactNode;
+  /** Rendered when no blocks exist for this lesson (e.g. before backfill). */
+  legacy: React.ReactNode;
+}) {
+  const { data: blocks = [], isLoading } = useLessonBlocks(lessonId);
+  if (isLoading) return null;
+  if (blocks.length === 0) return <>{legacy}</>;
+  return (
+    <LessonBlocksPlayer
+      blocks={blocks}
+      renderQuiz={renderQuiz}
+      renderAssignment={renderAssignment}
+    />
   );
 }
 
