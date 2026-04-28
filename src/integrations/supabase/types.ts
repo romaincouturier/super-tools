@@ -7811,6 +7811,7 @@ export type Database = {
           title: string
         }[]
       }
+      monitor_cron_failures: { Args: never; Returns: Json }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
         Returns: number
