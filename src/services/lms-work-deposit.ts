@@ -13,6 +13,7 @@ import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
 import type {
   WorkDeposit,
+  WorkDepositConfig,
   DepositComment,
   DepositFeedback,
   CreateWorkDepositInput,
@@ -31,6 +32,22 @@ const deposits = (c: any) => c.from("lms_work_deposits");
 const comments = (c: any) => c.from("lms_deposit_comments");
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const feedbacks = (c: any) => c.from("lms_deposit_feedback");
+
+// ── Lesson-level config ─────────────────────────────────────────────
+
+/** Persists the deposit feature toggle and its config on a lesson. */
+export async function updateLessonDepositConfig(
+  lessonId: string,
+  enabled: boolean,
+  config: WorkDepositConfig,
+): Promise<void> {
+  const { error } = await supabase
+    .from("lms_lessons")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .update({ work_deposit_enabled: enabled, work_deposit_config: config } as any)
+    .eq("id", lessonId);
+  if (error) throw error;
+}
 
 // ── Deposits ────────────────────────────────────────────────────────
 

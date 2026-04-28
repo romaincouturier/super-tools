@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Save, Upload } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { updateLessonDepositConfig } from "@/services/lms-work-deposit";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import {
   DEFAULT_WORK_DEPOSIT_CONFIG,
@@ -55,12 +55,7 @@ export default function LessonWorkDepositConfigSection({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("lms_lessons")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ work_deposit_enabled: enabled, work_deposit_config: config } as any)
-        .eq("id", lessonId);
-      if (error) throw error;
+      await updateLessonDepositConfig(lessonId, enabled, config);
       toast({ title: "Dépôt de travail enregistré" });
     } catch (err) {
       toastError(toast, err instanceof Error ? err : "Erreur d'enregistrement");
