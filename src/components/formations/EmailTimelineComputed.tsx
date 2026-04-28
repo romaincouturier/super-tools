@@ -695,6 +695,12 @@ function TimelineRow({
             Prévu
           </Badge>
         )}
+        {status === "missing" && (
+          <Badge variant="destructive" className="text-[10px] h-5 px-1.5" title="Cet email aurait dû être envoyé mais ne l'a pas été">
+            <AlertCircle className="h-2.5 w-2.5 mr-0.5" />
+            Manquant
+          </Badge>
+        )}
       </div>
     </div>
   );
