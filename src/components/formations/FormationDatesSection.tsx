@@ -79,6 +79,11 @@ export default function FormationDatesSection({
           <p className="text-xs text-muted-foreground">Saisissez les dates souhaitées ou "À définir" si pas encore fixées</p>
         </>
       )}
+      {formatFormation === "" && (
+        <p className="text-sm text-muted-foreground italic">
+          Choisissez d'abord le type de formation (intra ou inter) en haut du formulaire pour voir les dates disponibles.
+        </p>
+      )}
     </div>
   );
 }
