@@ -22,9 +22,9 @@ export const BLOCK_TYPES: BlockTypeMeta[] = [
   { type: "text", label: "Texte riche", icon: FileText, editable: true },
   { type: "video", label: "Vidéo", icon: Video, editable: true },
   { type: "image", label: "Image", icon: ImageIcon, editable: true },
-  { type: "file", label: "Fichier / ressource", icon: Paperclip, editable: false },
-  { type: "quiz", label: "Quiz", icon: HelpCircle, editable: false },
-  { type: "assignment", label: "Devoir", icon: ClipboardCheck, editable: false },
+  { type: "file", label: "Fichier / ressource", icon: Paperclip, editable: true },
+  { type: "quiz", label: "Quiz", icon: HelpCircle, editable: true },
+  { type: "assignment", label: "Devoir", icon: ClipboardCheck, editable: true },
 ];
 
 export const BLOCK_META: Record<LessonBlockType, BlockTypeMeta> = BLOCK_TYPES.reduce(

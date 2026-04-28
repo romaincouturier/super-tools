@@ -269,6 +269,22 @@ export function useQuiz(quizId: string | undefined) {
   });
 }
 
+export function useCourseQuizzes(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ["lms-course-quizzes", courseId],
+    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lms_quizzes")
+        .select("*")
+        .eq("course_id", courseId!)
+        .order("title", { ascending: true });
+      if (error) throw error;
+      return (data || []) as LmsQuiz[];
+    },
+  });
+}
+
 export function useQuizQuestions(quizId: string | undefined) {
   return useQuery({
     queryKey: ["lms-quiz-questions", quizId],

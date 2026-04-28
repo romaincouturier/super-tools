@@ -215,7 +215,7 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
             {selectedLesson.lesson_type === "quiz" ? (
               <LmsQuizBuilder lesson={selectedLesson} courseId={courseId} />
             ) : (
-              <LmsLessonEditor lesson={selectedLesson} />
+              <LmsLessonEditor lesson={selectedLesson} courseId={courseId} />
             )}
           </DialogContent>
         </Dialog>
