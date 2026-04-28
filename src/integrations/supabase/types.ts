@@ -2761,6 +2761,82 @@ export type Database = {
           },
         ]
       }
+      lms_deposit_comments: {
+        Row: {
+          author_email: string
+          content: string
+          created_at: string
+          deposit_id: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_email: string
+          content: string
+          created_at?: string
+          deposit_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string
+          content?: string
+          created_at?: string
+          deposit_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_deposit_comments_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "lms_work_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_deposit_feedback: {
+        Row: {
+          author_id: string | null
+          content: string
+          created_at: string
+          deposit_id: string
+          email_sent: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          created_at?: string
+          deposit_id: string
+          email_sent?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          created_at?: string
+          deposit_id?: string
+          email_sent?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_deposit_feedback_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "lms_work_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_enrollments: {
         Row: {
           completed_at: string | null
@@ -2950,6 +3026,8 @@ export type Database = {
           updated_at: string
           video_duration_seconds: number | null
           video_url: string | null
+          work_deposit_config: Json
+          work_deposit_enabled: boolean
         }
         Insert: {
           assignment_id?: string | null
@@ -2970,6 +3048,8 @@ export type Database = {
           updated_at?: string
           video_duration_seconds?: number | null
           video_url?: string | null
+          work_deposit_config?: Json
+          work_deposit_enabled?: boolean
         }
         Update: {
           assignment_id?: string | null
@@ -2990,6 +3070,8 @@ export type Database = {
           updated_at?: string
           video_duration_seconds?: number | null
           video_url?: string | null
+          work_deposit_config?: Json
+          work_deposit_enabled?: boolean
         }
         Relationships: [
           {
@@ -3393,6 +3475,85 @@ export type Database = {
             columns: ["badge_id"]
             isOneToOne: false
             referencedRelation: "lms_badges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_work_deposits: {
+        Row: {
+          comment: string | null
+          course_id: string
+          created_at: string
+          file_mime: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          learner_email: string
+          lesson_id: string
+          module_id: string | null
+          pedagogical_status: string
+          publication_status: string
+          updated_at: string
+          visibility: string
+          visibility_changed_at: string | null
+        }
+        Insert: {
+          comment?: string | null
+          course_id: string
+          created_at?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          learner_email: string
+          lesson_id: string
+          module_id?: string | null
+          pedagogical_status?: string
+          publication_status?: string
+          updated_at?: string
+          visibility?: string
+          visibility_changed_at?: string | null
+        }
+        Update: {
+          comment?: string | null
+          course_id?: string
+          created_at?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          learner_email?: string
+          lesson_id?: string
+          module_id?: string | null
+          pedagogical_status?: string
+          publication_status?: string
+          updated_at?: string
+          visibility?: string
+          visibility_changed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_work_deposits_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_work_deposits_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_work_deposits_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "lms_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -7603,6 +7764,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_feature_enabled: { Args: { _flag: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
+      lms_learner_is_enrolled: {
+        Args: { _course_id: string }
+        Returns: boolean
+      }
       mark_attendance_opened: {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
