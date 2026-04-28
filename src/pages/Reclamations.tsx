@@ -11,11 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2, MessageSquareWarning } from "lucide-react";
+import { Plus, Link2, Copy, Sparkles, FileDown, AlertCircle, Clock, CheckCircle2, MessageSquareWarning, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuth } from "@/hooks/useAuth";
@@ -66,6 +67,7 @@ const Reclamations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { copy } = useCopyToClipboard();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const [reclamations, setReclamations] = useState<Reclamation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,6 +216,29 @@ const Reclamations = () => {
         setSelectedRec((prev) => prev ? { ...prev, ...updates } : prev);
       }
     }
+  };
+
+  const deleteDraft = async (rec: Reclamation) => {
+    if (rec.status !== "draft") return;
+    const ok = await confirm({
+      title: "Supprimer ce brouillon ?",
+      description: "Le brouillon sera définitivement supprimé. Cette action est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    const { error } = await supabase.from("reclamations").delete().eq("id", rec.id);
+    if (error) {
+      toastError(toast, "Impossible de supprimer le brouillon.");
+      return;
+    }
+    toast({ title: "Brouillon supprimé" });
+    if (selectedRec?.id === rec.id) {
+      setDrawerOpen(false);
+      setSelectedRec(null);
+    }
+    fetchReclamations();
   };
 
   const runAiAssist = async (action: string) => {
@@ -428,6 +453,20 @@ const Reclamations = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs text-muted-foreground">{r.date_reclamation || ""}</span>
                       <Badge className={`text-xs ${STATUS_COLORS[r.status] || ""}`}>{STATUS_LABELS[r.status] || r.status}</Badge>
+                      {r.status === "draft" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          aria-label="Supprimer le brouillon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteDraft(r);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -592,11 +631,23 @@ const Reclamations = () => {
                 >
                   <Link2 className="h-4 w-4 mr-1" /> Copier le lien public
                 </Button>
+
+                {selectedRec.status === "draft" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={() => deleteDraft(selectedRec)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Supprimer le brouillon
+                  </Button>
+                )}
               </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+      <ConfirmDialog />
     </ModuleLayout>
   );
 };
