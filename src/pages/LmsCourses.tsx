@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useCourses, useCreateCourse, useDeleteCourse, LmsCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Users, Trash2, GraduationCap, Search, BarChart3 } from "lucide-react";
+import { Plus, BookOpen, Clock, Users, Trash2, GraduationCap, Search, BarChart3, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
@@ -112,12 +112,16 @@ export default function LmsCourses() {
               className="pl-9"
             />
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" /> Nouveau cours
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/lms/deposits")}>
+              <ClipboardList className="w-4 h-4 mr-2" /> Travaux déposés
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" /> Nouveau cours
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Créer un cours</DialogTitle>
@@ -161,7 +165,8 @@ export default function LmsCourses() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         {/* Course Grid */}
