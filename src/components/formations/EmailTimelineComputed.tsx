@@ -26,7 +26,7 @@ interface TimelineEmail {
   phase: "inscription" | "avant" | "pendant" | "fin" | "coaching" | "inter";
   /** "db" = from scheduled_emails table, "predicted" = computed from rules */
   source: "db" | "predicted";
-  status: "sent" | "pending" | "predicted" | "error";
+  status: "sent" | "pending" | "predicted" | "error" | "missing";
   participantId?: string | null;
   dbId?: string;
   /** Only for predicted: why it may not happen */
