@@ -463,22 +463,22 @@ const EmailTimelineComputed = ({
           Timeline des emails
         </CardTitle>
         <CardDescription className="flex flex-wrap gap-3 text-xs">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1" title="Email parti dans la boîte du destinataire">
             <CheckCircle className="h-3 w-3 text-primary" />
             {stats.sent} envoyé{stats.sent > 1 ? "s" : ""}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1" title="Créé en base, partira automatiquement à la date prévue">
             <Clock className="h-3 w-3 text-amber-500" />
             {stats.pending} programmé{stats.pending > 1 ? "s" : ""}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1" title="Date future théorique — sera créé automatiquement le moment venu">
             <Ghost className="h-3 w-3 text-muted-foreground" />
-            {stats.predicted} prévu{stats.predicted > 1 ? "s" : ""}
+            {stats.predicted} à venir
           </span>
           {stats.missing > 0 && (
-            <span className="flex items-center gap-1 font-semibold text-destructive">
+            <span className="flex items-center gap-1 font-semibold text-destructive" title="Email critique dont la date est dépassée et qui n'a jamais été envoyé">
               <AlertCircle className="h-3 w-3" />
-              {stats.missing} manquant{stats.missing > 1 ? "s" : ""}
+              {stats.missing} non envoyé{stats.missing > 1 ? "s" : ""}
             </span>
           )}
           {stats.error > 0 && (
