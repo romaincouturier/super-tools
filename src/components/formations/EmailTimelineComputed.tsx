@@ -525,13 +525,23 @@ const EmailTimelineComputed = ({
                           const sentCount = typeItems.filter((i) => i.status === "sent").length;
                           const pendingCount = typeItems.filter((i) => i.status === "pending").length;
                           const predictedCount = typeItems.filter((i) => i.status === "predicted").length;
+                          const missingCount = typeItems.filter((i) => i.status === "missing").length;
+
+                          const aggregatedStatus: "sent" | "pending" | "predicted" | "missing" =
+                            missingCount > 0
+                              ? "missing"
+                              : sentCount === typeItems.length
+                                ? "sent"
+                                : pendingCount > 0
+                                  ? "pending"
+                                  : "predicted";
 
                           return (
                             <TimelineRow
                               key={type}
                               label={EMAIL_TYPE_LABELS[type] || type}
                               date={firstItem.scheduledDate}
-                              status={sentCount === typeItems.length ? "sent" : pendingCount > 0 ? "pending" : "predicted"}
+                              status={aggregatedStatus}
                               recipientLabel={`${typeItems.length} participants`}
                               recipientType="all"
                               condition={firstItem.condition}
@@ -539,6 +549,7 @@ const EmailTimelineComputed = ({
                                 <span className="text-[10px] text-muted-foreground">
                                   {sentCount > 0 && <span className="text-primary">{sentCount}✓ </span>}
                                   {pendingCount > 0 && <span className="text-amber-600">{pendingCount}⏳ </span>}
+                                  {missingCount > 0 && <span className="text-destructive font-semibold">{missingCount}⚠️ </span>}
                                   {predictedCount > 0 && <span>{predictedCount}🔮</span>}
                                 </span>
                               }
