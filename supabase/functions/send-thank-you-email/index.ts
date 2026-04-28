@@ -285,7 +285,7 @@ serve(async (req) => {
         first_name: participant.first_name,
         training_name: trainingName,
         evaluation_link: evaluationLink,
-        supports_url: supportsUrl,
+        supports_url: buildSupportsUrl(participant.email),
         is_presentiel: !isElearning,
         is_elearning: isElearning,
       };
