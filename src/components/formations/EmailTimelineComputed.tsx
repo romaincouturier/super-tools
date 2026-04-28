@@ -26,7 +26,7 @@ interface TimelineEmail {
   phase: "inscription" | "avant" | "pendant" | "fin" | "coaching" | "inter";
   /** "db" = from scheduled_emails table, "predicted" = computed from rules */
   source: "db" | "predicted";
-  status: "sent" | "pending" | "predicted" | "error";
+  status: "sent" | "pending" | "predicted" | "error" | "missing";
   participantId?: string | null;
   dbId?: string;
   /** Only for predicted: why it may not happen */
@@ -384,17 +384,29 @@ const EmailTimelineComputed = ({
     return items;
   }, [dbEmails, participants, trainingStartDate, trainingEndDate, schedules, delaySettings, thankYouSentAt, trainerName, sponsorName, sponsorEmail, isInterSession, isElearning, hasCoaching, liveMeetings]);
 
+  // ─── Detect "missing" emails: predicted but date is in the past ──────
+  // If a predicted email's scheduled date passed >1h ago and it's not in DB,
+  // it means the system failed to schedule/send it. Flag it as "missing".
+  const timelineWithMissing = useMemo(() => {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    return timeline.map((item) => {
+      if (item.status === "predicted" && item.scheduledDate.getTime() < oneHourAgo) {
+        return { ...item, status: "missing" as const };
+      }
+      return item;
+    });
+  }, [timeline]);
+
   // ─── Group by phase ──────────────────────────────────────────────────
   const groupedByPhase = useMemo(() => {
     const groups: Record<string, TimelineEmail[]> = {};
-    timeline.forEach((item) => {
+    timelineWithMissing.forEach((item) => {
       if (!groups[item.phase]) groups[item.phase] = [];
       groups[item.phase].push(item);
     });
-    // Sort each group by date
     Object.values(groups).forEach((g) => g.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()));
     return groups;
-  }, [timeline]);
+  }, [timelineWithMissing]);
 
   const sortedPhases = useMemo(() => {
     return Object.keys(groupedByPhase).sort((a, b) => (PHASE_LABELS[a]?.order ?? 99) - (PHASE_LABELS[b]?.order ?? 99));
@@ -402,12 +414,13 @@ const EmailTimelineComputed = ({
 
   // ─── Stats ───────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const sent = timeline.filter((t) => t.status === "sent").length;
-    const pending = timeline.filter((t) => t.status === "pending").length;
-    const predicted = timeline.filter((t) => t.status === "predicted").length;
-    const error = timeline.filter((t) => t.status === "error").length;
-    return { sent, pending, predicted, error, total: timeline.length };
-  }, [timeline]);
+    const sent = timelineWithMissing.filter((t) => t.status === "sent").length;
+    const pending = timelineWithMissing.filter((t) => t.status === "pending").length;
+    const predicted = timelineWithMissing.filter((t) => t.status === "predicted").length;
+    const missing = timelineWithMissing.filter((t) => t.status === "missing").length;
+    const error = timelineWithMissing.filter((t) => t.status === "error").length;
+    return { sent, pending, predicted, missing, error, total: timelineWithMissing.length };
+  }, [timelineWithMissing]);
 
   const togglePhase = (phase: string) => {
     setExpandedPhases((prev) => {
@@ -448,6 +461,12 @@ const EmailTimelineComputed = ({
             <Ghost className="h-3 w-3 text-muted-foreground" />
             {stats.predicted} prévu{stats.predicted > 1 ? "s" : ""}
           </span>
+          {stats.missing > 0 && (
+            <span className="flex items-center gap-1 font-semibold text-destructive">
+              <AlertCircle className="h-3 w-3" />
+              {stats.missing} manquant{stats.missing > 1 ? "s" : ""}
+            </span>
+          )}
           {stats.error > 0 && (
             <span className="flex items-center gap-1">
               <AlertCircle className="h-3 w-3 text-destructive" />
@@ -506,13 +525,23 @@ const EmailTimelineComputed = ({
                           const sentCount = typeItems.filter((i) => i.status === "sent").length;
                           const pendingCount = typeItems.filter((i) => i.status === "pending").length;
                           const predictedCount = typeItems.filter((i) => i.status === "predicted").length;
+                          const missingCount = typeItems.filter((i) => i.status === "missing").length;
+
+                          const aggregatedStatus: "sent" | "pending" | "predicted" | "missing" =
+                            missingCount > 0
+                              ? "missing"
+                              : sentCount === typeItems.length
+                                ? "sent"
+                                : pendingCount > 0
+                                  ? "pending"
+                                  : "predicted";
 
                           return (
                             <TimelineRow
                               key={type}
                               label={EMAIL_TYPE_LABELS[type] || type}
                               date={firstItem.scheduledDate}
-                              status={sentCount === typeItems.length ? "sent" : pendingCount > 0 ? "pending" : "predicted"}
+                              status={aggregatedStatus}
                               recipientLabel={`${typeItems.length} participants`}
                               recipientType="all"
                               condition={firstItem.condition}
@@ -520,6 +549,7 @@ const EmailTimelineComputed = ({
                                 <span className="text-[10px] text-muted-foreground">
                                   {sentCount > 0 && <span className="text-primary">{sentCount}✓ </span>}
                                   {pendingCount > 0 && <span className="text-amber-600">{pendingCount}⏳ </span>}
+                                  {missingCount > 0 && <span className="text-destructive font-semibold">{missingCount}⚠️ </span>}
                                   {predictedCount > 0 && <span>{predictedCount}🔮</span>}
                                 </span>
                               }
@@ -592,7 +622,7 @@ function TimelineRow({
 }: {
   label: string;
   date: Date;
-  status: "sent" | "pending" | "predicted" | "error";
+  status: "sent" | "pending" | "predicted" | "error" | "missing";
   recipientLabel: string;
   recipientType: TimelineEmail["recipientType"];
   condition?: string;
@@ -605,7 +635,7 @@ function TimelineRow({
       ? "bg-primary"
       : status === "pending"
         ? "bg-amber-500"
-        : status === "error"
+        : status === "error" || status === "missing"
           ? "bg-destructive"
           : "border border-dashed border-muted-foreground";
 
@@ -663,6 +693,12 @@ function TimelineRow({
           <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed text-muted-foreground">
             <Ghost className="h-2.5 w-2.5 mr-0.5" />
             Prévu
+          </Badge>
+        )}
+        {status === "missing" && (
+          <Badge variant="destructive" className="text-[10px] h-5 px-1.5" title="Cet email aurait dû être envoyé mais ne l'a pas été">
+            <AlertCircle className="h-2.5 w-2.5 mr-0.5" />
+            Manquant
           </Badge>
         )}
       </div>
