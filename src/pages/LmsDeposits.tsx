@@ -15,9 +15,9 @@ import { ClipboardList, Globe2, Lock, Search, Eye, EyeOff } from "lucide-react";
 import { useAllDepositsAdmin } from "@/hooks/useLmsWorkDeposit";
 import {
   PEDAGOGICAL_STATUS_LABELS,
-  type AdminDepositRow,
   type DepositPedagogicalStatus,
 } from "@/types/lms-work-deposit";
+import type { AdminDepositRow } from "@/services/lms-work-deposit";
 import DepositAdminDetail from "@/components/lms/DepositAdminDetail";
 import { cn } from "@/lib/utils";
 

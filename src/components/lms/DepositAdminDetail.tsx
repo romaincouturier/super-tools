@@ -31,10 +31,10 @@ import {
 } from "@/hooks/useLmsWorkDeposit";
 import {
   PEDAGOGICAL_STATUS_LABELS,
-  type AdminDepositRow,
   type DepositPedagogicalStatus,
   type DepositPublicationStatus,
 } from "@/types/lms-work-deposit";
+import type { AdminDepositRow } from "@/services/lms-work-deposit";
 import DepositFilePreview from "@/components/lms/DepositFilePreview";
 
 interface Props {
