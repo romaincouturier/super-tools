@@ -701,15 +701,15 @@ function TimelineRow({
           </Badge>
         )}
         {status === "predicted" && (
-          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed text-muted-foreground">
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-dashed text-muted-foreground" title="Date future théorique — sera créé automatiquement">
             <Ghost className="h-2.5 w-2.5 mr-0.5" />
-            Prévu
+            À venir
           </Badge>
         )}
         {status === "missing" && (
-          <Badge variant="destructive" className="text-[10px] h-5 px-1.5" title="Cet email aurait dû être envoyé mais ne l'a pas été">
+          <Badge variant="destructive" className="text-[10px] h-5 px-1.5" title="Email critique dont la date est dépassée et qui n'a jamais été envoyé. À investiguer.">
             <AlertCircle className="h-2.5 w-2.5 mr-0.5" />
-            Manquant
+            Non envoyé
           </Badge>
         )}
       </div>
