@@ -26,7 +26,11 @@ export function useFormationFormulas(formationDemandee: string, formationConfigs
         .order("display_order");
       const formulas = (data as FormationFormula[]) || [];
       setFormationFormulas(formulas);
-      setSelectedFormulaId(formulas.length === 1 ? formulas[0].id : "");
+      setSelectedFormulaId(prev => {
+        // Preserve current selection if still valid (avoids reset on tab switch / configs reload)
+        if (prev && formulas.some(f => f.id === prev)) return prev;
+        return formulas.length === 1 ? formulas[0].id : "";
+      });
     };
     loadFormulas();
   }, [formationDemandee, formationConfigs]);
