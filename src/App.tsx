@@ -80,6 +80,7 @@ const AiTools = lazy(() => import("./pages/AiTools"));
 const LmsCourses = lazy(() => import("./pages/LmsCourses"));
 const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
+const LmsDeposits = lazy(() => import("./pages/LmsDeposits"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
 const AgentChat = lazy(() => import("./pages/AgentChat"));
@@ -168,6 +169,7 @@ const App = () => (
               <Route path="/ia" element={<AiTools />} />
               {/* LMS (M7) */}
               <Route path="/lms" element={<LmsCourses />} />
+              <Route path="/lms/deposits" element={<LmsDeposits />} />
               <Route path="/lms/:courseId" element={<LmsCourseBuilder />} />
               <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
               {/* Failed emails */}

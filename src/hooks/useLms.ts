@@ -67,6 +67,9 @@ export interface LmsLesson {
   position: number;
   estimated_minutes: number;
   is_mandatory: boolean;
+  /** Work-deposit feature (ST-2026-0043) — set by lesson editor in BO. */
+  work_deposit_enabled?: boolean;
+  work_deposit_config?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }

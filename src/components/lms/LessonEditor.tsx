@@ -10,6 +10,8 @@ import { Save, Clock, Upload, Download, Paperclip, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { formatFileSize } from "@/lib/file-utils";
+import LessonWorkDepositConfigSection from "@/components/lms/LessonWorkDepositConfigSection";
+import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 
 interface Props {
   lesson: LmsLesson;
@@ -293,6 +295,12 @@ export default function LmsLessonEditor({ lesson }: Props) {
       <Button onClick={handleSave} disabled={updateLesson.isPending}>
         <Save className="w-4 h-4 mr-2" /> Sauvegarder
       </Button>
+
+      <LessonWorkDepositConfigSection
+        lessonId={lesson.id}
+        initialEnabled={lesson.work_deposit_enabled ?? false}
+        initialConfig={(lesson.work_deposit_config || {}) as WorkDepositConfig}
+      />
     </div>
   );
 }
