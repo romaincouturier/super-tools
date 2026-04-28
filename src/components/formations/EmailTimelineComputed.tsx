@@ -384,17 +384,29 @@ const EmailTimelineComputed = ({
     return items;
   }, [dbEmails, participants, trainingStartDate, trainingEndDate, schedules, delaySettings, thankYouSentAt, trainerName, sponsorName, sponsorEmail, isInterSession, isElearning, hasCoaching, liveMeetings]);
 
+  // ─── Detect "missing" emails: predicted but date is in the past ──────
+  // If a predicted email's scheduled date passed >1h ago and it's not in DB,
+  // it means the system failed to schedule/send it. Flag it as "missing".
+  const timelineWithMissing = useMemo(() => {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    return timeline.map((item) => {
+      if (item.status === "predicted" && item.scheduledDate.getTime() < oneHourAgo) {
+        return { ...item, status: "missing" as const };
+      }
+      return item;
+    });
+  }, [timeline]);
+
   // ─── Group by phase ──────────────────────────────────────────────────
   const groupedByPhase = useMemo(() => {
     const groups: Record<string, TimelineEmail[]> = {};
-    timeline.forEach((item) => {
+    timelineWithMissing.forEach((item) => {
       if (!groups[item.phase]) groups[item.phase] = [];
       groups[item.phase].push(item);
     });
-    // Sort each group by date
     Object.values(groups).forEach((g) => g.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()));
     return groups;
-  }, [timeline]);
+  }, [timelineWithMissing]);
 
   const sortedPhases = useMemo(() => {
     return Object.keys(groupedByPhase).sort((a, b) => (PHASE_LABELS[a]?.order ?? 99) - (PHASE_LABELS[b]?.order ?? 99));
@@ -402,12 +414,13 @@ const EmailTimelineComputed = ({
 
   // ─── Stats ───────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const sent = timeline.filter((t) => t.status === "sent").length;
-    const pending = timeline.filter((t) => t.status === "pending").length;
-    const predicted = timeline.filter((t) => t.status === "predicted").length;
-    const error = timeline.filter((t) => t.status === "error").length;
-    return { sent, pending, predicted, error, total: timeline.length };
-  }, [timeline]);
+    const sent = timelineWithMissing.filter((t) => t.status === "sent").length;
+    const pending = timelineWithMissing.filter((t) => t.status === "pending").length;
+    const predicted = timelineWithMissing.filter((t) => t.status === "predicted").length;
+    const missing = timelineWithMissing.filter((t) => t.status === "missing").length;
+    const error = timelineWithMissing.filter((t) => t.status === "error").length;
+    return { sent, pending, predicted, missing, error, total: timelineWithMissing.length };
+  }, [timelineWithMissing]);
 
   const togglePhase = (phase: string) => {
     setExpandedPhases((prev) => {
