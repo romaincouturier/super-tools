@@ -35,7 +35,7 @@ import {
   type DepositPedagogicalStatus,
   type DepositPublicationStatus,
 } from "@/types/lms-work-deposit";
-import { formatFileSize } from "@/lib/file-utils";
+import DepositFilePreview from "@/components/lms/DepositFilePreview";
 
 interface Props {
   deposit: AdminDepositRow | null;
@@ -154,25 +154,7 @@ export default function DepositAdminDetail({ deposit, open, onOpenChange }: Prop
           </dl>
 
           {/* File preview */}
-          {deposit.file_url && (
-            <div className="rounded-md border bg-muted/30 overflow-hidden">
-              {deposit.file_mime?.startsWith("image/") ? (
-                <img src={deposit.file_url} alt={deposit.file_name || ""} className="w-full max-h-[420px] object-contain" />
-              ) : deposit.file_mime?.startsWith("video/") ? (
-                <video src={deposit.file_url} controls className="w-full max-h-[420px]" />
-              ) : (
-                <a
-                  href={deposit.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 text-sm font-medium hover:bg-muted"
-                >
-                  {deposit.file_name || "Fichier"}
-                  {deposit.file_size != null ? ` (${formatFileSize(deposit.file_size)})` : ""}
-                </a>
-              )}
-            </div>
-          )}
+          <DepositFilePreview deposit={deposit} />
 
           {deposit.comment && (
             <div>
