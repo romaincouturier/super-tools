@@ -356,7 +356,18 @@ const MicroDevis = () => {
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
-      if (searchParams.get("source") === "crm") { setTimeout(() => { window.close(); }, 1500); return; }
+      if (searchParams.get("source") === "crm") {
+        // Clear the saved form draft so we don't restore old data next time
+        try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+        setTimeout(() => {
+          if (crmCardId) {
+            navigate(`/crm?cardId=${crmCardId}`);
+          } else {
+            navigate("/crm");
+          }
+        }, 1500);
+        return;
+      }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
       setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
       setTypeDevis(""); setIsAdministration(""); setNoteDevis(""); setParticipants("");
