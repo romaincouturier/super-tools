@@ -512,9 +512,13 @@ serve(async (req) => {
 
       if (scheduleError) {
         console.error("Error scheduling follow-up emails:", scheduleError);
-      } else {
-        console.log(`Scheduled ${emailsToSchedule.length} follow-up emails`);
+        // CRITICAL: throw so monitoring catches it. Silent failure caused
+        // missing evaluation_reminder_1/2 for past trainings.
+        throw new Error(`Failed to schedule ${emailsToSchedule.length} follow-up emails: ${scheduleError.message}`);
       }
+      console.log(`Scheduled ${emailsToSchedule.length} follow-up emails`);
+    } else {
+      console.warn(`[send-thank-you-email] No follow-up emails to schedule for training ${trainingId} — check existingTypes logic.`);
     }
 
     // Schedule funder reminder emails
