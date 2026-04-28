@@ -461,6 +461,12 @@ const EmailTimelineComputed = ({
             <Ghost className="h-3 w-3 text-muted-foreground" />
             {stats.predicted} prévu{stats.predicted > 1 ? "s" : ""}
           </span>
+          {stats.missing > 0 && (
+            <span className="flex items-center gap-1 font-semibold text-destructive">
+              <AlertCircle className="h-3 w-3" />
+              {stats.missing} manquant{stats.missing > 1 ? "s" : ""}
+            </span>
+          )}
           {stats.error > 0 && (
             <span className="flex items-center gap-1">
               <AlertCircle className="h-3 w-3 text-destructive" />
