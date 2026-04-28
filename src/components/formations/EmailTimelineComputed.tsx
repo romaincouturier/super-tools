@@ -594,19 +594,16 @@ const EmailTimelineComputed = ({
         {/* Legend */}
         <div className="flex flex-wrap gap-3 pt-3 border-t text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-primary" /> Envoyé
+            <span className="w-2 h-2 rounded-full bg-primary" /> Envoyé (parti)
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-amber-500" /> Programmé en DB
+            <span className="w-2 h-2 rounded-full bg-amber-500" /> Programmé (en file d'attente)
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full border border-dashed border-muted-foreground" /> Prévu (pas encore créé)
+            <span className="w-2 h-2 rounded-full border border-dashed border-muted-foreground" /> À venir (date future)
           </span>
-          <span className="flex items-center gap-1">
-            <User className="h-3 w-3" /> Participant
-          </span>
-          <span className="flex items-center gap-1">
-            <Zap className="h-3 w-3" /> Formateur
+          <span className="flex items-center gap-1 text-destructive">
+            <span className="w-2 h-2 rounded-full bg-destructive" /> Non envoyé (échec)
           </span>
         </div>
       </CardContent>
