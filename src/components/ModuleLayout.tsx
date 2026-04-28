@@ -28,7 +28,7 @@ const ModuleLayout = ({ children, className = "", fitHeight, hideTopBar }: Modul
   );
 
   return (
-    <div className={`h-screen bg-background flex overflow-hidden ${className}`}>
+    <div className={`fixed inset-0 bg-background flex overflow-hidden ${className}`}>
       {/* Desktop sidebar */}
       <div className="hidden md:block h-full">
         <AppSidebar />
