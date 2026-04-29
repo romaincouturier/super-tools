@@ -93,6 +93,7 @@ const AttendanceSignatureBlock = (props: AttendanceSignatureBlockProps) => {
         onOpenChange={ctx.setShowTrainerSignDialog}
         signingSlot={ctx.signingSlot}
         setSigningSlot={ctx.setSigningSlot}
+        signatureStatuses={ctx.signatureStatuses}
         canvasRef={ctx.canvasRef as React.RefObject<HTMLCanvasElement>}
         signaturePadRef={ctx.signaturePadRef as any}
         signaturePadReady={ctx.signaturePadReady}

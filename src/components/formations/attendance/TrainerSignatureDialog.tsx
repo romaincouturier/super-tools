@@ -19,6 +19,7 @@ interface TrainerSignatureDialogProps {
   onOpenChange: (open: boolean) => void;
   signingSlot: { date: string; period: "AM" | "PM" } | null;
   setSigningSlot: (slot: { date: string; period: "AM" | "PM" } | null) => void;
+  signatureStatuses?: SignatureStatus[];
   canvasRef: RefObject<HTMLCanvasElement>;
   signaturePadRef: RefObject<SignaturePad | null>;
   signaturePadReady: boolean;
@@ -35,6 +36,7 @@ const TrainerSignatureDialog = ({
   onOpenChange,
   signingSlot,
   setSigningSlot,
+  signatureStatuses,
   canvasRef,
   signaturePadRef,
   signaturePadReady,
@@ -44,7 +46,14 @@ const TrainerSignatureDialog = ({
   onSaveSingle,
   onSignAll,
   onRetryInit,
-}: TrainerSignatureDialogProps) => (
+}: TrainerSignatureDialogProps) => {
+  const slotInfo = signingSlot
+    ? signatureStatuses?.find(s => s.date === signingSlot.date && s.period === signingSlot.period)
+    : null;
+  const timeRange = slotInfo
+    ? ` (${slotInfo.startTime.replace(":", "h")} - ${slotInfo.endTime.replace(":", "h")})`
+    : "";
+  return (
   <Dialog open={open} onOpenChange={(o) => {
     if (!o) {
       onOpenChange(false);
@@ -59,7 +68,7 @@ const TrainerSignatureDialog = ({
         </DialogTitle>
         <DialogDescription>
           {signingSlot
-            ? `Signez pour le ${formatDateSlot(signingSlot.date)} — ${getPeriodLabel(signingSlot.period)}`
+            ? `Signez pour le ${formatDateSlot(signingSlot.date)} — ${getPeriodLabel(signingSlot.period)}${timeRange}`
             : `Signez pour toutes les demi-journées non signées (${unsignedCount})`
           }
         </DialogDescription>
@@ -126,6 +135,7 @@ const TrainerSignatureDialog = ({
       </DialogFooter>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default TrainerSignatureDialog;

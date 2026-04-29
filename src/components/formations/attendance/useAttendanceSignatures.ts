@@ -162,14 +162,22 @@ export function useAttendanceSignatures({
         if (endHour > 13 || (endHour === 13 && endMin > 30)) periods.push("PM");
         if (periods.length === 0) periods.push("AM");
 
+        const isSplit = periods.length > 1;
+        const start = schedule.start_time.slice(0, 5);
+        const end = schedule.end_time.slice(0, 5);
+
         periods.forEach(period => {
           const slotSignatures = signatures?.filter(
             s => s.schedule_date === schedule.day_date && s.period === period
           ) || [];
           const trainerSig = trainerSigMap.get(`${schedule.day_date}-${period}`);
+          const startTime = isSplit ? (period === "AM" ? start : "14:00") : start;
+          const endTime = isSplit ? (period === "AM" ? "12:30" : end) : end;
           statuses.push({
             date: schedule.day_date,
             period,
+            startTime,
+            endTime,
             totalSent: slotSignatures.filter(s => s.email_sent_at).length,
             totalSigned: slotSignatures.filter(s => s.signed_at).length,
             hasSent: slotSignatures.some(s => s.email_sent_at),
