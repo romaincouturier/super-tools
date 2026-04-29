@@ -19,6 +19,7 @@ export default function ArenaSetup() {
     isSuggesting, suggestions, showExpertPool, setShowExpertPool,
     expertFilter, setExpertFilter, feedbackHistory, showSidebar, setShowSidebar,
     isLoading, isFirstVisit, setIsFirstVisit, step, setStep,
+    includeCrmReports, setIncludeCrmReports, crmReportsLoading, crmReportsReady,
     isListening, micSupported, voiceToTopic,
     filteredExperts, hasRequiredKey, canStart, hasAnyKey, usedProviders, modeLabel,
     addAgent, removeAgent, updateAgent, applyTemplate,
@@ -455,6 +456,33 @@ export default function ArenaSetup() {
                   );
                 })}
               </div>
+            </section>
+
+            {/* Data sources to inject as additional context */}
+            <section className="mb-6">
+              <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Donnees a injecter en contexte</h2>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary">
+                <input
+                  type="checkbox"
+                  checked={includeCrmReports}
+                  onChange={(e) => setIncludeCrmReports(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer accent-primary"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Reporting CRM (annee en cours)</span>
+                    {includeCrmReports && crmReportsLoading && (
+                      <span className="text-[10px] text-muted-foreground">chargement...</span>
+                    )}
+                    {includeCrmReports && crmReportsReady && (
+                      <span className="text-[10px] text-emerald-600">pret</span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    KPIs (pipeline, gagne, perdu, conversion), repartition par tags et tendance hebdomadaire seront ajoutes au contexte de tous les agents.
+                  </p>
+                </div>
+              </label>
             </section>
 
             {/* Advanced toggle -- API keys, params, agents */}

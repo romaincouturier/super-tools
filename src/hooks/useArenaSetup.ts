@@ -12,6 +12,9 @@ import { createDefaultAgent } from "@/lib/arena/store";
 import { CLAUDE_DEFAULT } from "@/lib/claude-models";
 import { callSuggestExperts, loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { useCrmReports } from "@/hooks/crm/useCrmReports";
+import { buildCrmReportsContext } from "@/lib/crm-reports-context";
+import { format, startOfYear, endOfYear } from "date-fns";
 
 export interface UseArenaSetupReturn {
   // State
@@ -58,6 +61,12 @@ export interface UseArenaSetupReturn {
   setIsFirstVisit: React.Dispatch<React.SetStateAction<boolean>>;
   step: number;
   setStep: React.Dispatch<React.SetStateAction<number>>;
+
+  // Data sources to inject as context
+  includeCrmReports: boolean;
+  setIncludeCrmReports: React.Dispatch<React.SetStateAction<boolean>>;
+  crmReportsLoading: boolean;
+  crmReportsReady: boolean;
 
   // Speech recognition
   isListening: boolean;
@@ -121,6 +130,14 @@ export function useArenaSetup(): UseArenaSetupReturn {
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [step, setStep] = useState(0);
   const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [includeCrmReports, setIncludeCrmReports] = useState(false);
+
+  // Lazy-fetched CRM reporting data — only hits the DB when the user opts in.
+  const crmReportsPeriod = {
+    startDate: format(startOfYear(new Date()), "yyyy-MM-dd"),
+    endDate: format(endOfYear(new Date()), "yyyy-MM-dd"),
+  };
+  const crmReportsQuery = useCrmReports(crmReportsPeriod, { enabled: includeCrmReports });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -330,9 +347,18 @@ export function useArenaSetup(): UseArenaSetupReturn {
 
   const startDiscussion = () => {
     if (!canStart) return;
+
+    let mergedContext = additionalContext;
+    if (includeCrmReports && crmReportsQuery.data) {
+      const crmBlock = buildCrmReportsContext(crmReportsQuery.data, "annee en cours");
+      mergedContext = mergedContext
+        ? `${crmBlock}\n\n${mergedContext}`
+        : crmBlock;
+    }
+
     const config: SessionConfig = {
       topic,
-      additionalContext: additionalContext || undefined,
+      additionalContext: mergedContext || undefined,
       mode,
       userMode,
       agents,
@@ -412,6 +438,12 @@ export function useArenaSetup(): UseArenaSetupReturn {
     setIsFirstVisit,
     step,
     setStep,
+
+    // Data sources
+    includeCrmReports,
+    setIncludeCrmReports,
+    crmReportsLoading: crmReportsQuery.isLoading || crmReportsQuery.isFetching,
+    crmReportsReady: crmReportsQuery.isSuccess && !!crmReportsQuery.data,
 
     // Speech recognition
     isListening,
