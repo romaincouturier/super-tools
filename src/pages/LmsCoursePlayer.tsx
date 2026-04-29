@@ -269,7 +269,7 @@ export default function LmsCoursePlayer() {
                     courseId={courseId}
                     moduleId={selectedLesson.module_id}
                     learnerEmail={learnerEmail}
-                    rawConfig={config}
+                    rawConfig={config as unknown as WorkDepositConfig}
                     lessonTitle={selectedLesson.title}
                   />
                 ) : null}
