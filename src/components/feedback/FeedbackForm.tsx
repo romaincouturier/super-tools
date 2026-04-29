@@ -1,14 +1,13 @@
-import { useState, useRef, useEffect } from "react";
-import { CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles, Mic, MicOff } from "lucide-react";
+import { useState, useRef } from "react";
+import { CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useCreateSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import { resolveContentType } from "@/lib/file-utils";
-import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { VoiceTextarea } from "@/components/ui/voice-textarea";
 
 const MAX_FILES = 5;
 const ACCEPTED_TYPES = [
@@ -48,42 +47,6 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
   const [files, setFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const { isListening, isSupported: micSupported, startListening, stopListening } =
-    useSpeechRecognition("fr-FR", false);
-
-  // Stop the recognition session if the form unmounts mid-dictation
-  // (e.g. user closes the chatbot panel) so it doesn't keep listening silently.
-  useEffect(() => {
-    return () => { stopListening(); };
-  }, [stopListening]);
-
-  const toggleDictation = () => {
-    if (isListening) {
-      stopListening();
-      return;
-    }
-    if (typeof window !== "undefined" && window.location.protocol === "http:" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-      toastError(toast, "La dictée vocale nécessite HTTPS.", { title: "Connexion non sécurisée" });
-      return;
-    }
-    startListening(
-      (text) => {
-        setDescription((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
-      },
-      (errorType) => {
-        if (errorType === "not-allowed" || errorType === "service-not-allowed") {
-          toastError(toast, "Autorisez l'accès au micro dans les réglages du navigateur.", { title: "Micro bloqué" });
-        } else if (errorType === "no-speech") {
-          toastError(toast, "Aucune parole détectée. Réessayez en parlant plus fort.", { title: "Dictée interrompue" });
-        } else if (errorType === "audio-capture") {
-          toastError(toast, "Aucun micro détecté sur cet appareil.", { title: "Micro indisponible" });
-        } else if (errorType !== "aborted") {
-          toastError(toast, `Erreur de dictée : ${errorType}`, { title: "Dictée indisponible" });
-        }
-      },
-    );
-  };
-
   const fallbackUrl = typeof window !== "undefined" ? window.location.pathname : "";
   const ticketUrl = pageUrlOverride !== undefined ? pageUrlOverride : fallbackUrl;
   const isSubmitting = analyzeTicket.isPending || createTicket.isPending;
@@ -116,7 +79,6 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
       toastError(toast, "Veuillez décrire votre problème ou votre idée.", { title: "Champ requis" });
       return;
     }
-    if (isListening) stopListening();
 
     try {
       const analysis = await analyzeTicket.mutateAsync(description.trim());
@@ -143,7 +105,6 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
   };
 
   const handleReset = () => {
-    if (isListening) stopListening();
     setDescription(prefillDescription ?? "");
     setFiles([]);
     setSubmitted(false);
@@ -178,36 +139,15 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
 
         <div className="space-y-1.5">
           <Label htmlFor="fb-desc" className="text-xs font-medium">Décrivez votre problème ou votre idée *</Label>
-          <div className="relative">
-            <Textarea
-              id="fb-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
-              rows={6}
-              className={`text-sm ${micSupported ? "pr-10" : ""}`}
-            />
-            {micSupported && (
-              <button
-                type="button"
-                onClick={toggleDictation}
-                className={`absolute right-2 top-2 rounded-md p-1.5 transition-colors ${
-                  isListening
-                    ? "bg-destructive/10 text-destructive animate-pulse"
-                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-                }`}
-                aria-label={isListening ? "Arrêter la dictée" : "Dicter la description"}
-                title={isListening ? "Arrêter la dictée" : "Dicter la description"}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </button>
-            )}
-          </div>
-          {isListening && (
-            <p className="text-[11px] text-destructive">
-              Dictée en cours… cliquez sur le micro pour arrêter.
-            </p>
-          )}
+          <VoiceTextarea
+            id="fb-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            onValueChange={setDescription}
+            placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
+            rows={6}
+            className="text-sm"
+          />
         </div>
 
         <div className="space-y-2">
