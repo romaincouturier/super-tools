@@ -13,6 +13,7 @@ import type {
   ButtonBlockContent,
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
+  WorkDepositBlockContent,
 } from "@/types/lms-blocks";
 import TextBlockViewer from "./viewers/TextBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
@@ -31,6 +32,8 @@ interface Props {
   renderQuiz?: (quizId: string, lessonId: string) => ReactNode;
   /** Renderer injected by the page so the AssignmentSubmitter keeps its context. */
   renderAssignment?: (lessonId: string) => ReactNode;
+  /** Renderer for work_deposit blocks — needs the learner context (email, course id, etc.). */
+  renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
 }
 
 /**
@@ -38,7 +41,7 @@ interface Props {
  * Quiz and assignment blocks are deferred to the parent page via render props
  * so they receive the learner email and completion callbacks.
  */
-export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment }: Props) {
+export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment, renderWorkDeposit }: Props) {
   const visible = blocks.filter((b) => !b.hidden);
   if (visible.length === 0) return null;
   return (
@@ -49,6 +52,7 @@ export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignmen
           block={block}
           renderQuiz={renderQuiz}
           renderAssignment={renderAssignment}
+          renderWorkDeposit={renderWorkDeposit}
         />
       ))}
     </div>
@@ -59,10 +63,12 @@ function BlockRenderer({
   block,
   renderQuiz,
   renderAssignment,
+  renderWorkDeposit,
 }: {
   block: LessonBlock;
   renderQuiz?: (quizId: string, lessonId: string) => ReactNode;
   renderAssignment?: (lessonId: string) => ReactNode;
+  renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
 }) {
   switch (block.type) {
     case "text":
@@ -103,6 +109,10 @@ function BlockRenderer({
       return <ExerciseBlockViewer content={block.content as ExerciseBlockContent} />;
     case "self_assessment":
       return <SelfAssessmentBlockViewer content={block.content as SelfAssessmentBlockContent} />;
+    case "work_deposit": {
+      const c = block.content as WorkDepositBlockContent;
+      return renderWorkDeposit ? <>{renderWorkDeposit(block.lesson_id, c)}</> : null;
+    }
     default:
       return null;
   }

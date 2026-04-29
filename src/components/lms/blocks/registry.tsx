@@ -11,6 +11,7 @@ import {
   MousePointerClick,
   Pencil,
   Gauge,
+  Upload,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType } from "@/types/lms-blocks";
@@ -35,6 +36,7 @@ export const BLOCK_TYPES: BlockTypeMeta[] = [
   { type: "button", label: "Bouton / lien", icon: MousePointerClick, editable: true },
   { type: "exercise", label: "Exercice", icon: Pencil, editable: true },
   { type: "self_assessment", label: "Auto-évaluation", icon: Gauge, editable: true },
+  { type: "work_deposit", label: "Dépôt de travail", icon: Upload, editable: true },
   { type: "quiz", label: "Quiz", icon: HelpCircle, editable: true },
   { type: "assignment", label: "Devoir", icon: ClipboardCheck, editable: true },
 ];

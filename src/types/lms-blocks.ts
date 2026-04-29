@@ -23,7 +23,8 @@ export type LessonBlockType =
   | "checklist"
   | "button"
   | "exercise"
-  | "self_assessment";
+  | "self_assessment"
+  | "work_deposit";
 
 export interface TextBlockContent {
   html: string;
@@ -100,6 +101,22 @@ export interface SelfAssessmentBlockContent {
   labels?: string[];
 }
 
+/**
+ * Work-deposit block content mirrors the WorkDepositConfig shape from the
+ * existing ST-2026-0043 feature so the same renderer (WorkDepositSection)
+ * can consume either source.
+ */
+export interface WorkDepositBlockContent {
+  title?: string;
+  instructions_html?: string | null;
+  expected_deliverable?: string | null;
+  accepted_formats?: string[];
+  max_size_mb?: number;
+  sharing_allowed?: boolean;
+  comments_enabled?: boolean;
+  feedback_enabled?: boolean;
+}
+
 export type LessonBlockContent =
   | TextBlockContent
   | VideoBlockContent
@@ -112,7 +129,8 @@ export type LessonBlockContent =
   | ChecklistBlockContent
   | ButtonBlockContent
   | ExerciseBlockContent
-  | SelfAssessmentBlockContent;
+  | SelfAssessmentBlockContent
+  | WorkDepositBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -169,6 +187,17 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
         prompt: "Comment évaluez-vous votre maîtrise de cette leçon ?",
         scale: "labels",
         labels: ["Pas du tout", "Un peu", "Bien", "Très bien", "Maîtrisé"],
+      };
+    case "work_deposit":
+      return {
+        title: "Déposer mon travail",
+        instructions_html: null,
+        expected_deliverable: null,
+        accepted_formats: ["jpg", "png", "pdf", "video"],
+        max_size_mb: 50,
+        sharing_allowed: true,
+        comments_enabled: true,
+        feedback_enabled: true,
       };
   }
 }
