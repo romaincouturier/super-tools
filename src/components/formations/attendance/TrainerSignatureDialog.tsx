@@ -135,6 +135,7 @@ const TrainerSignatureDialog = ({
       </DialogFooter>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default TrainerSignatureDialog;
