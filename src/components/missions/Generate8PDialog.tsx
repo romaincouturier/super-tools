@@ -88,7 +88,7 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
       if (!html) throw new Error("Réponse vide");
       onGenerated(html);
       onOpenChange(false);
-      toast({ title: "Page 8P générée", description: `${(data as { sources_count?: number }).sources_count ?? 0} sources compilées` });
+      toast({ title: "Page 9P générée", description: `${(data as { sources_count?: number }).sources_count ?? 0} sources compilées` });
     } catch (err: unknown) {
       toastError(toast, err instanceof Error ? err : "Erreur lors de la génération");
     } finally {
