@@ -1179,7 +1179,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
             Page vierge
           </Button>
           {pageTemplates && pageTemplates.length > 0 && (
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" disabled={createPage.isPending}>
                   <LayoutTemplate className="h-4 w-4 mr-2" />
