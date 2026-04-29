@@ -86,11 +86,11 @@ serve(async (req) => {
     const results: { email: string; success: boolean; error?: string }[] = [];
 
     for (const recipient of recipients) {
-      const { email, first_name, language } = recipient;
+      const { email, first_name, formal_address } = recipient;
       if (!email) continue;
 
-      // Use tutoiement for French, vouvoiement otherwise
-      const useTu = language === "fr";
+      // Tutoiement par défaut, vouvoiement uniquement si formal_address = true
+      const useTu = !formal_address;
       const custom = useTu ? customTu : customVous;
       const defaultContent = useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
 

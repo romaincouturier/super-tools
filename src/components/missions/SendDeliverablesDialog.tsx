@@ -114,7 +114,7 @@ const SendDeliverablesDialog = ({
   const previewContact = selectedContacts[0];
   const previewHtml = useMemo(() => {
     if (!previewContact) return "";
-    const useTu = previewContact.language === "fr"; // default tu for fr
+    const useTu = !(previewContact as any).formal_address; // false (default) = tutoiement
     const template = useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
     const link = `${window.location.origin}/mission-info/${missionId}`;
     const processed = processPreviewTemplate(template, {
@@ -139,7 +139,7 @@ const SendDeliverablesDialog = ({
     const recipients = selectedContacts.map((c) => ({
       email: c.email!,
       first_name: c.first_name || "",
-      language: c.language || "fr",
+      formal_address: !!(c as any).formal_address,
     }));
 
     const result = await invokeSend({ mission_id: missionId, recipients, subject });
