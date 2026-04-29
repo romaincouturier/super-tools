@@ -14,6 +14,11 @@ import type {
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
   WorkDepositBlockContent,
+  SectionBlockContent,
+  RowBlockContent,
+  ContainerBlockContent,
+  DividerBlockContent,
+  SpacerBlockContent,
 } from "@/types/lms-blocks";
 import TextBlockViewer from "./viewers/TextBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
@@ -25,6 +30,11 @@ import ChecklistBlockViewer from "./viewers/ChecklistBlockViewer";
 import ButtonBlockViewer from "./viewers/ButtonBlockViewer";
 import ExerciseBlockViewer from "./viewers/ExerciseBlockViewer";
 import SelfAssessmentBlockViewer from "./viewers/SelfAssessmentBlockViewer";
+import SectionBlockViewer from "./viewers/SectionBlockViewer";
+import RowBlockViewer from "./viewers/RowBlockViewer";
+import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
+import DividerBlockViewer from "./viewers/DividerBlockViewer";
+import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -113,6 +123,16 @@ function BlockRenderer({
       const c = block.content as WorkDepositBlockContent;
       return renderWorkDeposit ? <>{renderWorkDeposit(block.lesson_id, c)}</> : null;
     }
+    case "section":
+      return <SectionBlockViewer content={block.content as SectionBlockContent} />;
+    case "row":
+      return <RowBlockViewer content={block.content as RowBlockContent} />;
+    case "container":
+      return <ContainerBlockViewer content={block.content as ContainerBlockContent} />;
+    case "divider":
+      return <DividerBlockViewer content={block.content as DividerBlockContent} />;
+    case "spacer":
+      return <SpacerBlockViewer content={block.content as SpacerBlockContent} />;
     default:
       return null;
   }

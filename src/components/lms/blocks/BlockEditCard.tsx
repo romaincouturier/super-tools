@@ -21,6 +21,11 @@ import type {
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
   WorkDepositBlockContent,
+  SectionBlockContent,
+  RowBlockContent,
+  ContainerBlockContent,
+  DividerBlockContent,
+  SpacerBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import TextBlockEditor from "./editors/TextBlockEditor";
@@ -36,6 +41,11 @@ import ButtonBlockEditor from "./editors/ButtonBlockEditor";
 import ExerciseBlockEditor from "./editors/ExerciseBlockEditor";
 import SelfAssessmentBlockEditor from "./editors/SelfAssessmentBlockEditor";
 import WorkDepositBlockEditor from "./editors/WorkDepositBlockEditor";
+import SectionBlockEditor from "./editors/SectionBlockEditor";
+import RowBlockEditor from "./editors/RowBlockEditor";
+import ContainerBlockEditor from "./editors/ContainerBlockEditor";
+import DividerBlockEditor from "./editors/DividerBlockEditor";
+import SpacerBlockEditor from "./editors/SpacerBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -259,6 +269,41 @@ function BlockEditorBody({
       return (
         <WorkDepositBlockEditor
           content={content as WorkDepositBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "section":
+      return (
+        <SectionBlockEditor
+          content={content as SectionBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "row":
+      return (
+        <RowBlockEditor
+          content={content as RowBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "container":
+      return (
+        <ContainerBlockEditor
+          content={content as ContainerBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "divider":
+      return (
+        <DividerBlockEditor
+          content={content as DividerBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "spacer":
+      return (
+        <SpacerBlockEditor
+          content={content as SpacerBlockContent}
           onChange={(c) => onChange(c)}
         />
       );

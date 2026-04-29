@@ -32,7 +32,7 @@ import {
   useReorderLessonBlocks,
 } from "@/hooks/useLmsBlocks";
 import type { LessonBlock, LessonBlockType, LessonBlockContent } from "@/types/lms-blocks";
-import { BLOCK_TYPES } from "./registry";
+import { LAYOUT_BLOCKS, CONTENT_BLOCKS, type BlockTypeMeta } from "./registry";
 import BlockEditCard from "./BlockEditCard";
 
 interface Props {
@@ -132,33 +132,62 @@ export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
         </p>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" disabled={createBlock.isPending} className="w-full sm:w-auto">
-            {createBlock.isPending ? <Spinner className="mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-            Ajouter un bloc
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56 max-h-[60vh] overflow-y-auto">
-          {BLOCK_TYPES.map((meta) => {
-            const Icon = meta.icon;
-            return (
-              <DropdownMenuItem
-                key={meta.type}
-                onClick={() => handleAdd(meta.type)}
-                disabled={!meta.editable}
-              >
-                <Icon className="w-4 h-4 mr-2" />
-                <span className="flex-1">{meta.label}</span>
-                {!meta.editable && (
-                  <span className="text-[10px] text-muted-foreground ml-2">bientôt</span>
-                )}
-              </DropdownMenuItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <BlockTypePicker
+          label="Ajouter une section"
+          types={LAYOUT_BLOCKS}
+          disabled={createBlock.isPending}
+          onPick={handleAdd}
+        />
+        <BlockTypePicker
+          label="Ajouter un contenu"
+          types={CONTENT_BLOCKS}
+          disabled={createBlock.isPending}
+          onPick={handleAdd}
+        />
+      </div>
     </div>
+  );
+}
+
+function BlockTypePicker({
+  label,
+  types,
+  disabled,
+  onPick,
+}: {
+  label: string;
+  types: BlockTypeMeta[];
+  disabled?: boolean;
+  onPick: (type: LessonBlockType) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" disabled={disabled} className="w-full sm:w-auto">
+          {disabled ? <Spinner className="mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+          {label}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56 max-h-[60vh] overflow-y-auto">
+        {types.map((meta) => {
+          const Icon = meta.icon;
+          return (
+            <DropdownMenuItem
+              key={meta.type}
+              onClick={() => onPick(meta.type)}
+              disabled={!meta.editable}
+            >
+              <Icon className="w-4 h-4 mr-2" />
+              <span className="flex-1">{meta.label}</span>
+              {!meta.editable && (
+                <span className="text-[10px] text-muted-foreground ml-2">bientôt</span>
+              )}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
