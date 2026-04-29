@@ -180,7 +180,7 @@ export async function createPage(input: { mission_id: string; parent_page_id?: s
       title: input.title || "Sans titre",
       content: input.content || null,
       activity_id: input.activity_id || null,
-      icon: input.icon || null,
+      icon: input.icon || pickRandomEmoji(),
       position: maxPos + 1,
     })
     .select()
