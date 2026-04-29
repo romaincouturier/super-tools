@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useMissionPages, MissionPage } from "@/hooks/useMissions";
+import { htmlToPlainText } from "@/lib/htmlUtils";
 
 interface Generate8PDialogProps {
   open: boolean;
