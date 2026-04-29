@@ -10,7 +10,7 @@ import ArenaScrollButton from "@/components/arena/ArenaScrollButton";
 export default function ArenaDiscussion() {
   const arena = useArenaDiscussion();
 
-  if (!arena.config) {
+  if (!arena.config || !Array.isArray(arena.config.agents)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-muted-foreground">Chargement...</div>

@@ -98,7 +98,7 @@ export function useArenaDiscussion(): ArenaDiscussionState & ArenaDiscussionActi
   const [nextSpeakerSuggestion, setNextSpeakerSuggestion] = useState<NextSpeakerSuggestion | null>(null);
   const [userId, setUserId] = useState<string | undefined>(undefined);
 
-  const lang = config?.rules.language === "fr" ? "fr-FR" : "en-US";
+  const lang = config?.rules?.language === "fr" ? "fr-FR" : "en-US";
   const { isListening, isSupported: micSupported, startListening, stopListening } = useSpeechRecognition(lang);
 
   const voiceToInput = useCallback(() => {
@@ -203,7 +203,21 @@ export function useArenaDiscussion(): ArenaDiscussionState & ArenaDiscussionActi
     const keysStr = sessionStorage.getItem("ai-arena-api-keys") || localStorage.getItem("ai-arena-api-keys");
     if (!configStr) { navigate("/arena"); return; }
     try {
-      setConfig(JSON.parse(configStr));
+      const parsedConfig = JSON.parse(configStr);
+      // Defensive: a stale or partial config (no agents array, no rules) would
+      // crash downstream renders and produce a blank screen. Send the user
+      // back to setup instead.
+      if (
+        !parsedConfig
+        || !Array.isArray(parsedConfig.agents)
+        || parsedConfig.agents.length === 0
+        || !parsedConfig.rules
+      ) {
+        sessionStorage.removeItem("ai-arena-config");
+        navigate("/arena");
+        return;
+      }
+      setConfig(parsedConfig as SessionConfig);
       if (keysStr) setApiKeys(JSON.parse(keysStr));
       const savedMessages = sessionStorage.getItem("ai-arena-messages");
       const savedTurn = sessionStorage.getItem("ai-arena-turn");
