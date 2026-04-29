@@ -136,11 +136,11 @@ Questions/Réponses brief: ${briefText}`,
     }
 
     // 4. Build prompt
-    const userPrompt = `Voici les sources à compiler dans le canevas 8P :
+    const userPrompt = `Voici les sources à compiler dans le canevas 9P :
 
 ${sources.map((s, i) => `--- SOURCE ${i + 1} : ${s.label} ---\n${s.content}`).join("\n\n")}
 
-Génère maintenant le canevas 8P complet en HTML.`;
+Génère maintenant le canevas 9P complet en HTML.`;
 
     // 5. Call Lovable AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
