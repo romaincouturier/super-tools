@@ -114,7 +114,7 @@ const AttendanceSlotList = ({
               <div className="flex items-center gap-3">
                 <div className="text-sm">
                   <span className="font-medium">{formatDateSlot(status.date)}</span>
-                  <span className="text-muted-foreground ml-2">{getPeriodLabel(status.period)}</span>
+                  <span className="text-muted-foreground ml-2">{getPeriodLabel(status.period)} ({status.startTime.replace(":", "h")} - {status.endTime.replace(":", "h")})</span>
                 </div>
                 <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
                   {status.totalSigned}/{participantsCount} signés
