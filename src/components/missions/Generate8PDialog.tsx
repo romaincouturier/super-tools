@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useMissionPages, MissionPage } from "@/hooks/useMissions";
+import { htmlToPlainText } from "@/lib/htmlUtils";
 
 interface Generate8PDialogProps {
   open: boolean;
@@ -27,6 +28,7 @@ interface CrmCardSummary {
   id: string;
   title: string;
   company: string | null;
+  descriptionPreview: string;
 }
 
 const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Generate8PDialogProps) => {
@@ -45,12 +47,20 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
     (async () => {
       const { data } = await supabase
         .from("crm_cards")
-        .select("id, title, company")
+        .select("id, title, company, description_html, raw_input")
         .eq("linked_mission_id", missionId)
         .limit(1);
       if (!cancelled) {
         const card = data?.[0];
-        setCrmCard(card ? { id: card.id, title: card.title, company: card.company } : null);
+        const rawText = card
+          ? htmlToPlainText(card.description_html || "") || (card.raw_input || "")
+          : "";
+        const preview = rawText.replace(/\s+/g, " ").trim().slice(0, 200);
+        setCrmCard(
+          card
+            ? { id: card.id, title: card.title, company: card.company, descriptionPreview: preview }
+            : null,
+        );
         setIncludeCrm(!!card);
       }
     })();
@@ -125,11 +135,20 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
                   onCheckedChange={(v) => setIncludeCrm(!!v)}
                 />
                 <label htmlFor="crm-card" className="flex-1 cursor-pointer text-sm">
-                  <div className="font-medium">Descriptif de l'opportunité</div>
+                  <div className="font-medium">Descriptif & notes de l'opportunité</div>
                   <div className="text-muted-foreground text-xs">
                     {crmCard.title}
                     {crmCard.company ? ` — ${crmCard.company}` : ""}
                   </div>
+                  {crmCard.descriptionPreview ? (
+                    <div className="mt-1 text-muted-foreground text-xs italic line-clamp-3">
+                      « {crmCard.descriptionPreview}{crmCard.descriptionPreview.length >= 200 ? "…" : ""} »
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-muted-foreground text-xs italic">
+                      (aucun descriptif renseigné sur la carte CRM)
+                    </div>
+                  )}
                 </label>
               </div>
             </div>
