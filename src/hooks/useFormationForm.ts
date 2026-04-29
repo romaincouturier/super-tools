@@ -127,7 +127,7 @@ export function useFormationForm() {
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
-  const [sponsorFormalAddress, setSponsorFormalAddress] = useState(true);
+  const [sponsorFormalAddress, setSponsorFormalAddress] = useState(false);
 
   // Financeur
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
@@ -281,6 +281,7 @@ export function useFormationForm() {
         supertilt_link: supertiltLink || null,
         private_group_url: privateGroupUrl || null,
         sponsor_formal_address: isInter ? true : sponsorFormalAddress,
+        participants_formal_address: false,
         financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
         elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
         catalog_id: catalogId || null,
