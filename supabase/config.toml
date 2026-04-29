@@ -392,3 +392,6 @@ verify_jwt = false
 
 [functions.notify-lms-comment]
 verify_jwt = false
+
+[functions.generate-mission-8p]
+verify_jwt = false
