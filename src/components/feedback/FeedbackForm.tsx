@@ -131,109 +131,113 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Décrivez votre problème ou votre idée. L'IA se charge de classifier et structurer votre demande.
-      </p>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="fb-desc" className="text-xs font-medium">Décrivez votre problème ou votre idée *</Label>
-        <Textarea
-          id="fb-desc"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
-          rows={6}
-          className="text-sm"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-xs font-medium">Capture d'écran (optionnel)</Label>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={ACCEPTED_TYPES.join(",")}
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files) addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full text-sm"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={files.length >= MAX_FILES}
-        >
-          <Paperclip className="h-3.5 w-3.5 mr-2" />
-          Ajouter des fichiers
-        </Button>
-        <p className="text-[11px] text-muted-foreground">
-          Images, PDF, Word, Excel — {MAX_FILES} fichiers max
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Décrivez votre problème ou votre idée. L'IA se charge de classifier et structurer votre demande.
         </p>
 
-        {files.length > 0 && (
-          <div className="space-y-1.5">
-            {files.map((file, i) => (
-              <div
-                key={`${file.name}-${i}`}
-                className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
-              >
-                {isImageType(resolveContentType(file)) ? (
-                  <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                ) : (
-                  <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                )}
-                <span className="truncate flex-1 text-xs">{file.name}</span>
-                <span className="text-[10px] text-muted-foreground shrink-0">
-                  {formatFileSize(file.size)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(i)}
-                  className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+        <div className="space-y-1.5">
+          <Label htmlFor="fb-desc" className="text-xs font-medium">Décrivez votre problème ou votre idée *</Label>
+          <Textarea
+            id="fb-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
+            rows={6}
+            className="text-sm"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs font-medium">Capture d'écran (optionnel)</Label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ACCEPTED_TYPES.join(",")}
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full text-sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={files.length >= MAX_FILES}
+          >
+            <Paperclip className="h-3.5 w-3.5 mr-2" />
+            Ajouter des fichiers
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            Images, PDF, Word, Excel — {MAX_FILES} fichiers max
+          </p>
+
+          {files.length > 0 && (
+            <div className="space-y-1.5">
+              {files.map((file, i) => (
+                <div
+                  key={`${file.name}-${i}`}
+                  className="flex items-center gap-2 p-2 rounded-md bg-muted/50 text-sm"
                 >
-                  <X className="h-3 w-3 text-muted-foreground" />
-                </button>
-              </div>
-            ))}
-          </div>
+                  {isImageType(resolveContentType(file)) ? (
+                    <ImageIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                  ) : (
+                    <FileIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="truncate flex-1 text-xs">{file.name}</span>
+                  <span className="text-[10px] text-muted-foreground shrink-0">
+                    {formatFileSize(file.size)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="p-0.5 rounded hover:bg-muted transition-colors shrink-0"
+                  >
+                    <X className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {ticketUrl && ticketUrl !== "/" && (
+          <p className="text-xs text-muted-foreground">
+            Page concernée : <span className="font-mono">{ticketUrl}</span>
+          </p>
         )}
+
+        <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground flex items-start gap-2">
+          <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
+          <span>L'IA va analyser votre demande pour la classifier automatiquement (bug ou évolution), définir sa priorité et structurer le ticket.</span>
+        </div>
       </div>
 
-      {ticketUrl && ticketUrl !== "/" && (
-        <p className="text-xs text-muted-foreground">
-          Page concernée : <span className="font-mono">{ticketUrl}</span>
-        </p>
-      )}
-
-      <div className="rounded-lg bg-muted/50 border border-dashed p-3 text-xs text-muted-foreground flex items-start gap-2">
-        <Sparkles className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-        <span>L'IA va analyser votre demande pour la classifier automatiquement (bug ou évolution), définir sa priorité et structurer le ticket.</span>
+      <div className="shrink-0 border-t bg-background p-3">
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitting || !description.trim()}
+          className="w-full"
+          size="sm"
+        >
+          {isSubmitting ? (
+            <>
+              <Spinner className="mr-2" />
+              {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Soumettre la demande
+            </>
+          )}
+        </Button>
       </div>
-
-      <Button
-        onClick={handleSubmit}
-        disabled={isSubmitting || !description.trim()}
-        className="w-full"
-        size="sm"
-      >
-        {isSubmitting ? (
-          <>
-            <Spinner className="mr-2" />
-            {analyzeTicket.isPending ? "Analyse IA en cours..." : "Création du ticket..."}
-          </>
-        ) : (
-          <>
-            <Sparkles className="h-4 w-4 mr-2" />
-            Soumettre la demande
-          </>
-        )}
-      </Button>
     </div>
   );
 }
