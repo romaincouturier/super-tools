@@ -1327,6 +1327,13 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
           </div>
         )}
       </div>
+
+      <Generate8PDialog
+        open={show8PDialog}
+        onOpenChange={setShow8PDialog}
+        missionId={mission.id}
+        onGenerated={handle8PGenerated}
+      />
     </div>
   );
 };
