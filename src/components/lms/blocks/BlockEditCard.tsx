@@ -20,6 +20,7 @@ import type {
   ButtonBlockContent,
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
+  WorkDepositBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import TextBlockEditor from "./editors/TextBlockEditor";
@@ -34,6 +35,7 @@ import ChecklistBlockEditor from "./editors/ChecklistBlockEditor";
 import ButtonBlockEditor from "./editors/ButtonBlockEditor";
 import ExerciseBlockEditor from "./editors/ExerciseBlockEditor";
 import SelfAssessmentBlockEditor from "./editors/SelfAssessmentBlockEditor";
+import WorkDepositBlockEditor from "./editors/WorkDepositBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -250,6 +252,13 @@ function BlockEditorBody({
       return (
         <SelfAssessmentBlockEditor
           content={content as SelfAssessmentBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "work_deposit":
+      return (
+        <WorkDepositBlockEditor
+          content={content as WorkDepositBlockContent}
           onChange={(c) => onChange(c)}
         />
       );

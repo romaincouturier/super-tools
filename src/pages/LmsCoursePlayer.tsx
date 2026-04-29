@@ -263,6 +263,16 @@ export default function LmsCoursePlayer() {
                 renderAssignment={(lessonId) => (
                   <AssignmentSubmitter lessonId={lessonId} learnerEmail={learnerEmail} />
                 )}
+                renderWorkDeposit={(lessonId, config) => courseId ? (
+                  <WorkDepositSection
+                    lessonId={lessonId}
+                    courseId={courseId}
+                    moduleId={selectedLesson.module_id}
+                    learnerEmail={learnerEmail}
+                    rawConfig={config}
+                    lessonTitle={selectedLesson.title}
+                  />
+                ) : null}
                 legacy={
                   <>
                     {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
@@ -364,10 +374,11 @@ export default function LmsCoursePlayer() {
               />
 
 
-              {/* Work deposit (per-lesson opt-in) */}
-              {selectedLesson.work_deposit_enabled && courseId && (
-                <WorkDepositSection
+              {/* Legacy per-lesson opt-in (renders only if no work_deposit block exists for this lesson) */}
+              {courseId && (
+                <LegacyWorkDepositOptIn
                   lessonId={selectedLesson.id}
+                  enabled={!!selectedLesson.work_deposit_enabled}
                   courseId={courseId}
                   moduleId={selectedLesson.module_id}
                   learnerEmail={learnerEmail}
@@ -421,16 +432,52 @@ export default function LmsCoursePlayer() {
   );
 }
 
+// ---- Legacy work-deposit opt-in (suppressed when a work_deposit block exists) ----
+function LegacyWorkDepositOptIn({
+  lessonId,
+  enabled,
+  courseId,
+  moduleId,
+  learnerEmail,
+  rawConfig,
+  lessonTitle,
+}: {
+  lessonId: string;
+  enabled: boolean;
+  courseId: string;
+  moduleId: string;
+  learnerEmail: string;
+  rawConfig: WorkDepositConfig;
+  lessonTitle: string;
+}) {
+  const { data: blocks = [] } = useLessonBlocks(lessonId);
+  if (!enabled) return null;
+  // If a work_deposit block already covers this lesson, defer to it.
+  if (blocks.some((b) => b.type === "work_deposit" && !b.hidden)) return null;
+  return (
+    <WorkDepositSection
+      lessonId={lessonId}
+      courseId={courseId}
+      moduleId={moduleId}
+      learnerEmail={learnerEmail}
+      rawConfig={rawConfig}
+      lessonTitle={lessonTitle}
+    />
+  );
+}
+
 // ---- Lesson Content (block-based with legacy fallback) ----
 function LessonContent({
   lessonId,
   renderQuiz,
   renderAssignment,
+  renderWorkDeposit,
   legacy,
 }: {
   lessonId: string;
   renderQuiz: (quizId: string, lessonId: string) => React.ReactNode;
   renderAssignment: (lessonId: string) => React.ReactNode;
+  renderWorkDeposit: (lessonId: string, config: import("@/types/lms-blocks").WorkDepositBlockContent) => React.ReactNode;
   /** Rendered when no blocks exist for this lesson (e.g. before backfill). */
   legacy: React.ReactNode;
 }) {
@@ -442,6 +489,7 @@ function LessonContent({
       blocks={blocks}
       renderQuiz={renderQuiz}
       renderAssignment={renderAssignment}
+      renderWorkDeposit={renderWorkDeposit}
     />
   );
 }
