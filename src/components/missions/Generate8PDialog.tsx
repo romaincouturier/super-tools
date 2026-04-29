@@ -28,6 +28,7 @@ interface CrmCardSummary {
   id: string;
   title: string;
   company: string | null;
+  descriptionPreview: string;
 }
 
 const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Generate8PDialogProps) => {
