@@ -228,7 +228,9 @@ export async function exportAttendancePdf({
   } else {
     // Full session view
     for (const [slotKey, slotSignatures] of sortedSlots) {
-      const [date, period] = slotKey.split("-");
+      const lastDash = slotKey.lastIndexOf("-");
+      const date = slotKey.slice(0, lastDash);
+      const period = slotKey.slice(lastDash + 1);
       const signedCount = slotSignatures.filter((s) => s.signed_at).length;
       const trainerSig = trainerSigMap.get(slotKey);
 
