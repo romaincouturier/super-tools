@@ -91,6 +91,7 @@ export interface MissionContact {
   role: string | null;
   language: string;
   formal_address: boolean;
+  is_primary: boolean;
   position: number;
   created_at: string;
   updated_at: string;
