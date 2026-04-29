@@ -24,6 +24,8 @@ export interface AttendanceSignatureBlockProps {
 export interface SignatureStatus {
   date: string;
   period: "AM" | "PM";
+  startTime: string;
+  endTime: string;
   totalSent: number;
   totalSigned: number;
   hasSent: boolean;
