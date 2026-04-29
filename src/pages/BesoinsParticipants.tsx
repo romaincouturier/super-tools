@@ -129,7 +129,11 @@ const BesoinsParticipants = () => {
             client_name
           )
         `)
-        .eq("etat", "complete")
+        // Include "valide_formateur" — once a trainer validates a complete
+        // questionnaire its etat transitions out of "complete" (cf. stateMachine.ts).
+        // Filtering only on "complete" makes validated needs surveys silently
+        // disappear from this consolidated view.
+        .in("etat", ["complete", "valide_formateur"])
         .order("date_soumission", { ascending: false, nullsFirst: false })
         .range(offset, offset + batchSize - 1);
 

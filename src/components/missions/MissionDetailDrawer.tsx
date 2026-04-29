@@ -549,8 +549,8 @@ const MissionDetailDrawer = ({
           onOpenChange={setShowDeliverables}
         />
         <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
-          <DialogContent className="w-full sm:max-w-lg p-0">
-            <DialogHeader className="px-4 pt-4">
+          <DialogContent className="w-full sm:max-w-lg p-0 max-h-[85vh] flex flex-col">
+            <DialogHeader className="px-4 pt-4 shrink-0">
               <DialogTitle className="text-base">Signaler un bug ou suggérer une évolution</DialogTitle>
             </DialogHeader>
             <FeedbackForm

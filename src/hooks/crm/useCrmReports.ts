@@ -8,9 +8,13 @@ export interface CrmReportFilters {
   endDate: string | null;
 }
 
-export const useCrmReports = (filters?: CrmReportFilters) => {
+export const useCrmReports = (
+  filters?: CrmReportFilters,
+  options?: { enabled?: boolean },
+) => {
   return useQuery({
     queryKey: [CRM_QUERY_KEY, "reports", filters?.startDate, filters?.endDate],
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const [columnsRes, cardsRes, tagsRes, cardTagsRes] = await Promise.all([
         supabase.from("crm_columns").select("*").eq("is_archived", false).order("position"),

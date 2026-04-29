@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DOMPurify from "dompurify";
-import { Mail, Send, Eye, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays } from "lucide-react";
+import { Mail, Send, Eye, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays, Briefcase, Target, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useMissionEmailDrafts, type MissionEmailDraft } from "@/hooks/useMissionEmailDrafts";
+import { useMissionDraftLinks, type MissionDraftLinks } from "@/hooks/useMissionDraftLinks";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -62,6 +63,8 @@ const TYPE_LABELS: Record<string, string> = {
 export default function EmailDraftsList({ missionId, showMissionLabel = false }: Props) {
   const { drafts, isLoading, approveAndSend, rejectDraft, updateDraftContent, scheduleDraft } =
     useMissionEmailDrafts(missionId);
+  const missionIds = drafts.map((d) => d.mission_id).filter(Boolean);
+  const { data: linksByMission } = useMissionDraftLinks(missionIds);
 
   if (isLoading) {
     return (
@@ -95,6 +98,7 @@ export default function EmailDraftsList({ missionId, showMissionLabel = false }:
           key={draft.id}
           draft={draft}
           showMissionLabel={showMissionLabel}
+          links={linksByMission?.get(draft.mission_id)}
           onApproveAndSend={(id) => approveAndSend.mutate(id)}
           onReject={(id) => rejectDraft.mutate(id)}
           onUpdateContent={(id, subject, html) => updateDraftContent.mutate({ draftId: id, subject, html_content: html })}
@@ -106,7 +110,13 @@ export default function EmailDraftsList({ missionId, showMissionLabel = false }:
         <>
           <p className="text-xs text-muted-foreground pt-2">Historique</p>
           {otherDrafts.map((draft) => (
-            <DraftCard key={draft.id} draft={draft} showMissionLabel={showMissionLabel} isMutating={false} />
+            <DraftCard
+              key={draft.id}
+              draft={draft}
+              showMissionLabel={showMissionLabel}
+              links={linksByMission?.get(draft.mission_id)}
+              isMutating={false}
+            />
           ))}
         </>
       )}
@@ -117,6 +127,7 @@ export default function EmailDraftsList({ missionId, showMissionLabel = false }:
 function DraftCard({
   draft,
   showMissionLabel,
+  links,
   onApproveAndSend,
   onReject,
   onUpdateContent,
@@ -125,6 +136,7 @@ function DraftCard({
 }: {
   draft: MissionEmailDraft;
   showMissionLabel: boolean;
+  links?: MissionDraftLinks;
   onApproveAndSend?: (id: string) => void;
   onReject?: (id: string) => void;
   onUpdateContent?: (id: string, subject: string, html: string) => void;
@@ -176,12 +188,37 @@ function DraftCard({
               <p className="text-sm font-medium mt-1 truncate">{draft.subject}</p>
               <p className="text-xs text-muted-foreground">
                 → {draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email}
-                {showMissionLabel && (draft as MissionEmailDraft & { mission_id: string }).mission_id && (
-                  <span className="ml-2">
-                    · Mission <code className="text-[10px]">{draft.mission_id.slice(0, 8)}</code>
-                  </span>
-                )}
               </p>
+              {showMissionLabel && draft.mission_id && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
+                  <a
+                    href={`/missions/${draft.mission_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Briefcase className="h-3 w-3" />
+                    <span className="truncate max-w-[180px]">
+                      {links?.missionTitle || `Mission #${draft.mission_id.slice(0, 8)}`}
+                    </span>
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                  {links?.opportunityId && (
+                    <a
+                      href={`/crm/card/${links.opportunityId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Target className="h-3 w-3" />
+                      <span className="truncate max-w-[180px]">
+                        {links.opportunityTitle || "Opportunité"}
+                      </span>
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
             <button
               onClick={() => setExpanded(!expanded)}

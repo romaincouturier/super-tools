@@ -56,6 +56,7 @@ export interface Card {
   emoji?: string | null;
   newsletter_name?: string | null;
   created_at?: string;
+  updated_at?: string;
   deadline?: string | null;
   media_count?: number;
 }
@@ -260,6 +261,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           emoji: (c as unknown as { emoji?: string | null }).emoji || null,
           newsletter_name: cardNewsletterMap.get(c.id) || null,
           media_count: mediaCountsRes.get(c.id) || 0,
+          created_at: c.created_at,
+          updated_at: c.updated_at,
         }))
       );
     } catch (error) {
@@ -272,17 +275,19 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
 
   // --- Map data to GenericKanbanBoard types ---
 
-  const kanbanColumns: ContentKanbanColumn[] = useMemo(() => {
-    let cols = columns.map((col) => ({
+  const allKanbanColumns: ContentKanbanColumn[] = useMemo(
+    () => columns.map((col) => ({
       ...col,
       position: col.display_order,
       name: col.name,
-    }));
-    if (!showPublished) {
-      cols = cols.filter((c) => c.name.toLowerCase() !== "archive");
-    }
-    return cols;
-  }, [columns, showPublished]);
+    })),
+    [columns],
+  );
+
+  const kanbanColumns: ContentKanbanColumn[] = useMemo(() => {
+    if (showPublished) return allKanbanColumns;
+    return allKanbanColumns.filter((c) => c.name.toLowerCase() !== "archive");
+  }, [allKanbanColumns, showPublished]);
 
   const kanbanCards: ContentKanbanCard[] = useMemo(() => {
     let filtered = cards;
@@ -299,19 +304,22 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     }));
   }, [cards, filterReviewOnly, showPublished, cardIdsInReview, cardIdsInSentNewsletter]);
 
-  const statsItems: KanbanStatsItem[] = useMemo(() => {
-    return cards.map((c) => ({
-      id: c.id,
-      columnId: c.column_id,
-      createdAt: c.created_at || new Date().toISOString(),
-      completedAt: null,
-    }));
-  }, [cards]);
-
   const archiveColumnId = useMemo(() => {
     const archiveCol = columns.find((c) => c.name.toLowerCase() === "archive");
     return archiveCol ? [archiveCol.id] : [];
   }, [columns]);
+
+  const statsItems: KanbanStatsItem[] = useMemo(() => {
+    const archiveIds = new Set(archiveColumnId);
+    return cards.map((c) => ({
+      id: c.id,
+      columnId: c.column_id,
+      createdAt: c.created_at || new Date().toISOString(),
+      // No move history: approximate completion as updated_at when the card
+      // currently sits in the Archive column.
+      completedAt: archiveIds.has(c.column_id) ? c.updated_at ?? null : null,
+    }));
+  }, [cards, archiveColumnId]);
 
   // --- Column actions ---
 
@@ -879,7 +887,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       <KanbanStatsDialog
         open={showStats}
         onOpenChange={setShowStats}
-        columns={kanbanColumns}
+        columns={allKanbanColumns}
         items={statsItems}
         doneColumnIds={archiveColumnId}
       />

@@ -30,7 +30,8 @@ import { useCrmReports, type CrmReportFilters, type WeeklyPoint } from "@/hooks/
 import ModuleLayout from "@/components/ModuleLayout";
 import { format, startOfYear, startOfQuarter, startOfMonth, endOfMonth, endOfQuarter, endOfYear } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { CrmTag } from "@/types/crm";
+import type { CrmCard, CrmTag } from "@/types/crm";
+import PivotCellDetail from "@/components/crm/reports/PivotCellDetail";
 
 // ── Persistence ────────────────────────────────────────────
 
@@ -400,12 +401,7 @@ function DatePickerButton({
 
 // ── Pivot Table ─────────────────────────────────────────────
 
-interface CardWithTags {
-  id: string;
-  estimated_value: number | null;
-  sales_status: string;
-  tagObjects: CrmTag[];
-}
+type CardWithTags = CrmCard & { tagObjects: CrmTag[] };
 
 function PivotTable({
   storageKey,
@@ -477,20 +473,31 @@ function PivotTable({
   }, [safeCards, colCat, allTags]);
 
   // Build pivot matrix
-  const { matrix, rowTotals, colTotals, grandTotal } = useMemo(() => {
+  const { matrix, rowTotals, colTotals, grandTotal, cardsByCell, cardsByRow, cardsByCol, cardsTotal } = useMemo(() => {
     const mat: Record<string, Record<string, number>> = {};
     const rTotals: Record<string, number> = {};
     const cTotals: Record<string, number> = {};
     let total = 0;
 
+    const cellCards: Record<string, Record<string, CardWithTags[]>> = {};
+    const rowCards: Record<string, CardWithTags[]> = {};
+    const colCards: Record<string, CardWithTags[]> = {};
+    const totalCards: CardWithTags[] = [];
+
     for (const rt of rowTags) {
       mat[rt] = {};
       rTotals[rt] = 0;
+      cellCards[rt] = {};
+      rowCards[rt] = [];
       for (const ct of colTags) {
         mat[rt][ct] = 0;
+        cellCards[rt][ct] = [];
       }
     }
-    for (const ct of colTags) cTotals[ct] = 0;
+    for (const ct of colTags) {
+      cTotals[ct] = 0;
+      colCards[ct] = [];
+    }
 
     const cellSeen = new Map<string, Set<string>>();
     const rowSeen = new Map<string, Set<string>>();
@@ -511,28 +518,41 @@ function PivotTable({
           if (cellSeen.get(cellKey)!.has(card.id)) continue;
           cellSeen.get(cellKey)!.add(card.id);
           mat[rt][ct] += val;
+          cellCards[rt][ct].push(card);
 
           if (!rowSeen.has(rt)) rowSeen.set(rt, new Set());
           if (!rowSeen.get(rt)!.has(card.id)) {
             rowSeen.get(rt)!.add(card.id);
             rTotals[rt] += val;
+            rowCards[rt].push(card);
           }
 
           if (!colSeen.has(ct)) colSeen.set(ct, new Set());
           if (!colSeen.get(ct)!.has(card.id)) {
             colSeen.get(ct)!.add(card.id);
             cTotals[ct] += val;
+            colCards[ct].push(card);
           }
 
           if (!totalSeen.has(card.id)) {
             totalSeen.add(card.id);
             total += val;
+            totalCards.push(card);
           }
         }
       }
     }
 
-    return { matrix: mat, rowTotals: rTotals, colTotals: cTotals, grandTotal: total };
+    return {
+      matrix: mat,
+      rowTotals: rTotals,
+      colTotals: cTotals,
+      grandTotal: total,
+      cardsByCell: cellCards,
+      cardsByRow: rowCards,
+      cardsByCol: colCards,
+      cardsTotal: totalCards,
+    };
   }, [cardsWithTags, rowCat, colCat, rowTags, colTags]);
 
   if (rowTags.length === 0 || colTags.length === 0) {
@@ -606,12 +626,21 @@ function PivotTable({
                 <tr key={rt} className="border-b hover:bg-muted/30">
                   <td className="py-2 px-2 font-medium">{rt}</td>
                   {colTags.map((ct) => (
-                    <td key={ct} className="text-right py-2 px-2 tabular-nums">
-                      {matrix[rt][ct] ? `${fmt(matrix[rt][ct])} €` : <span className="text-muted-foreground">-</span>}
+                    <td key={ct} className="text-right py-2 px-2">
+                      <PivotCellDetail
+                        cards={cardsByCell[rt][ct]}
+                        value={matrix[rt][ct]}
+                        label={`${rowCat}: ${rt} × ${colCat}: ${ct}`}
+                      />
                     </td>
                   ))}
-                  <td className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(rowTotals[rt])} €
+                  <td className="text-right py-2 px-2">
+                    <PivotCellDetail
+                      cards={cardsByRow[rt]}
+                      value={rowTotals[rt]}
+                      label={`Total — ${rowCat}: ${rt}`}
+                      triggerClassName="font-semibold"
+                    />
                   </td>
                 </tr>
               ))}
@@ -620,12 +649,22 @@ function PivotTable({
               <tr className="border-t-2">
                 <td className="py-2 px-2 font-semibold">Total</td>
                 {colTags.map((ct) => (
-                  <td key={ct} className="text-right py-2 px-2 font-semibold tabular-nums">
-                    {fmt(colTotals[ct])} €
+                  <td key={ct} className="text-right py-2 px-2">
+                    <PivotCellDetail
+                      cards={cardsByCol[ct]}
+                      value={colTotals[ct]}
+                      label={`Total — ${colCat}: ${ct}`}
+                      triggerClassName="font-semibold"
+                    />
                   </td>
                 ))}
-                <td className="text-right py-2 px-2 font-bold tabular-nums">
-                  {fmt(grandTotal)} €
+                <td className="text-right py-2 px-2">
+                  <PivotCellDetail
+                    cards={cardsTotal}
+                    value={grandTotal}
+                    label="Total général"
+                    triggerClassName="font-bold"
+                  />
                 </td>
               </tr>
             </tfoot>

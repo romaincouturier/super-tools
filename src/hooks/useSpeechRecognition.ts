@@ -27,13 +27,15 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const onResultRef = useRef<((text: string) => void) | null>(null);
+  const onErrorRef = useRef<((errorType: string) => void) | null>(null);
   const intentionalStopRef = useRef(false);
 
   const isSupported = typeof window !== "undefined" &&
     !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const startListening = useCallback(
-    (onResult: (text: string) => void) => {
+    (onResult: (text: string) => void, onError?: (errorType: string) => void) => {
+      onErrorRef.current = onError ?? null;
       if (!isSupported) return;
 
       const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -83,10 +85,11 @@ export function useSpeechRecognition(lang: string = "fr-FR", continuous: boolean
           return;
         }
 
-        // Fatal errors
+        // Fatal errors — surface to consumer so it can show user-visible feedback
         if (errorType === "not-allowed") {
           console.error("[SpeechRecognition] Microphone permission denied");
         }
+        onErrorRef.current?.(errorType);
 
         setIsListening(false);
         recognitionRef.current = null;
