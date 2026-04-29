@@ -1,0 +1,1 @@
+ALTER TABLE public.trainings ALTER COLUMN participants_formal_address SET DEFAULT false;
