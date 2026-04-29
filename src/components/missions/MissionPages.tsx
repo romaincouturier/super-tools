@@ -77,6 +77,7 @@ import {
   MissionPageTemplate,
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
+import Generate8PDialog from "./Generate8PDialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
