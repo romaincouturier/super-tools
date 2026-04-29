@@ -92,7 +92,7 @@ const FormationEdit = () => {
       form.setSponsorFirstName(training.sponsor_first_name || "");
       form.setSponsorLastName(training.sponsor_last_name || "");
       form.setSponsorEmail(training.sponsor_email || "");
-      form.setSponsorFormalAddress(training.sponsor_formal_address ?? true);
+      form.setSponsorFormalAddress(training.sponsor_formal_address ?? false);
       form.setTrainerId(training.trainer_id || null);
       form.setAssignedTo((training as unknown as { assigned_to?: string | null }).assigned_to || null);
       form.setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
