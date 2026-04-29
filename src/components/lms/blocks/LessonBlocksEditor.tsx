@@ -139,7 +139,7 @@ export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
             Ajouter un bloc
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuContent align="start" className="w-56 max-h-[60vh] overflow-y-auto">
           {BLOCK_TYPES.map((meta) => {
             const Icon = meta.icon;
             return (
