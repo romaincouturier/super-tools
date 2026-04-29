@@ -244,7 +244,7 @@ export default function KanbanStatsDialog({
             ) : (
               <div className="h-[350px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <ScatterChart data={controlChart.points} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis
                       dataKey="name"
