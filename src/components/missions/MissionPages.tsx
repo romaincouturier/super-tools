@@ -1025,7 +1025,16 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     }
   };
 
+  const [show8PDialog, setShow8PDialog] = useState(false);
+  const [pending8PTemplate, setPending8PTemplate] = useState<MissionPageTemplate | null>(null);
+
   const handleCreateFromTemplate = async (template: MissionPageTemplate) => {
+    // Special case: 8P template triggers source-selection dialog and AI generation
+    if ((template.name || "").trim().toLowerCase() === "8p") {
+      setPending8PTemplate(template);
+      setShow8PDialog(true);
+      return;
+    }
     try {
       const newPage = await createPage.mutateAsync({
         mission_id: mission.id,
@@ -1035,6 +1044,22 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       });
       setSelectedPage(newPage);
       toast({ title: "Page créée à partir du modèle" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const handle8PGenerated = async (html: string) => {
+    try {
+      const tpl = pending8PTemplate;
+      const newPage = await createPage.mutateAsync({
+        mission_id: mission.id,
+        title: tpl?.name || "8P",
+        content: html,
+        icon: tpl?.icon || "🎯",
+      });
+      setSelectedPage(newPage);
+      setPending8PTemplate(null);
     } catch (error: unknown) {
       toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
