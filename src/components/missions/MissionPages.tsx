@@ -1065,7 +1065,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       const tpl = pending8PTemplate;
       const newPage = await createPage.mutateAsync({
         mission_id: mission.id,
-        title: tpl?.name || "8P",
+        title: tpl?.name || "9P",
         content: html,
         icon: tpl?.icon || "🎯",
       });
