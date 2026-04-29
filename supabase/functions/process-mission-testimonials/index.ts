@@ -93,7 +93,7 @@ serve(async (req: Request) => {
       // Fetch ALL contacts for this mission
       const { data: contacts } = await (supabase as any)
         .from("mission_contacts")
-        .select("first_name, last_name, email, language")
+        .select("first_name, last_name, email, language, formal_address")
         .eq("mission_id", mission.id);
 
       const validContacts = (contacts || []).filter((c: any) => c.email);
