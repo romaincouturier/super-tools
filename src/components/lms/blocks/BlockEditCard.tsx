@@ -11,15 +11,22 @@ import type {
   TextBlockContent,
   VideoBlockContent,
   ImageBlockContent,
+  FileBlockContent,
+  QuizBlockContent,
+  AssignmentBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import TextBlockEditor from "./editors/TextBlockEditor";
 import VideoBlockEditor from "./editors/VideoBlockEditor";
 import ImageBlockEditor from "./editors/ImageBlockEditor";
+import FileBlockEditor from "./editors/FileBlockEditor";
+import QuizBlockEditor from "./editors/QuizBlockEditor";
+import AssignmentBlockEditor from "./editors/AssignmentBlockEditor";
 
 interface Props {
   block: LessonBlock;
   lessonId: string;
+  courseId?: string;
   /** Saves content updates. */
   onUpdateContent: (content: LessonBlockContent) => Promise<void>;
   onToggleHidden: (hidden: boolean) => void;
@@ -31,6 +38,7 @@ interface Props {
 export default function BlockEditCard({
   block,
   lessonId,
+  courseId,
   onUpdateContent,
   onToggleHidden,
   onDelete,
@@ -114,6 +122,7 @@ export default function BlockEditCard({
           <BlockEditorBody
             block={block}
             lessonId={lessonId}
+            courseId={courseId}
             content={content}
             onChange={setContent}
           />
@@ -133,11 +142,13 @@ export default function BlockEditCard({
 function BlockEditorBody({
   block,
   lessonId,
+  courseId,
   content,
   onChange,
 }: {
   block: LessonBlock;
   lessonId: string;
+  courseId?: string;
   content: LessonBlockContent;
   onChange: (content: LessonBlockContent) => void;
 }) {
@@ -162,6 +173,29 @@ function BlockEditorBody({
         <ImageBlockEditor
           lessonId={lessonId}
           content={content as ImageBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "file":
+      return (
+        <FileBlockEditor
+          lessonId={lessonId}
+          content={content as FileBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "quiz":
+      return (
+        <QuizBlockEditor
+          courseId={courseId}
+          content={content as QuizBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "assignment":
+      return (
+        <AssignmentBlockEditor
+          content={content as AssignmentBlockContent}
           onChange={(c) => onChange(c)}
         />
       );
