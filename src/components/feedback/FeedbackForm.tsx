@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { CheckCircle2, Paperclip, X, ImageIcon, FileIcon, Sparkles, Mic, MicOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -49,16 +49,39 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
   const [submitted, setSubmitted] = useState(false);
 
   const { isListening, isSupported: micSupported, startListening, stopListening } =
-    useSpeechRecognition("fr-FR", true);
+    useSpeechRecognition("fr-FR", false);
+
+  // Stop the recognition session if the form unmounts mid-dictation
+  // (e.g. user closes the chatbot panel) so it doesn't keep listening silently.
+  useEffect(() => {
+    return () => { stopListening(); };
+  }, [stopListening]);
 
   const toggleDictation = () => {
     if (isListening) {
       stopListening();
       return;
     }
-    startListening((text) => {
-      setDescription((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
-    });
+    if (typeof window !== "undefined" && window.location.protocol === "http:" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      toastError(toast, "La dictée vocale nécessite HTTPS.", { title: "Connexion non sécurisée" });
+      return;
+    }
+    startListening(
+      (text) => {
+        setDescription((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+      },
+      (errorType) => {
+        if (errorType === "not-allowed" || errorType === "service-not-allowed") {
+          toastError(toast, "Autorisez l'accès au micro dans les réglages du navigateur.", { title: "Micro bloqué" });
+        } else if (errorType === "no-speech") {
+          toastError(toast, "Aucune parole détectée. Réessayez en parlant plus fort.", { title: "Dictée interrompue" });
+        } else if (errorType === "audio-capture") {
+          toastError(toast, "Aucun micro détecté sur cet appareil.", { title: "Micro indisponible" });
+        } else if (errorType !== "aborted") {
+          toastError(toast, `Erreur de dictée : ${errorType}`, { title: "Dictée indisponible" });
+        }
+      },
+    );
   };
 
   const fallbackUrl = typeof window !== "undefined" ? window.location.pathname : "";
