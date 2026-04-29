@@ -47,12 +47,20 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
     (async () => {
       const { data } = await supabase
         .from("crm_cards")
-        .select("id, title, company")
+        .select("id, title, company, description_html, raw_input")
         .eq("linked_mission_id", missionId)
         .limit(1);
       if (!cancelled) {
         const card = data?.[0];
-        setCrmCard(card ? { id: card.id, title: card.title, company: card.company } : null);
+        const rawText = card
+          ? htmlToPlainText(card.description_html || "") || (card.raw_input || "")
+          : "";
+        const preview = rawText.replace(/\s+/g, " ").trim().slice(0, 200);
+        setCrmCard(
+          card
+            ? { id: card.id, title: card.title, company: card.company, descriptionPreview: preview }
+            : null,
+        );
         setIncludeCrm(!!card);
       }
     })();
