@@ -93,7 +93,7 @@ serve(async (req: Request) => {
       // Fetch ALL contacts for this mission
       const { data: contacts } = await (supabase as any)
         .from("mission_contacts")
-        .select("first_name, last_name, email, language")
+        .select("first_name, last_name, email, language, formal_address")
         .eq("mission_id", mission.id);
 
       const validContacts = (contacts || []).filter((c: any) => c.email);
@@ -123,8 +123,9 @@ serve(async (req: Request) => {
         for (const contact of validContacts) {
           const clientName = contact.first_name || mission.client_name || "";
           const isFrench = contact.language === "fr" || !contact.language;
+          const useTu = !contact.formal_address;
 
-          const templateKey = "mission_google_review_vous";
+          const templateKey = useTu ? "mission_google_review_tu" : "mission_google_review_vous";
           const customTemplate = customTemplates?.find((t: any) => t.template_type === templateKey)
             || customTemplates?.find((t: any) => t.template_type === "mission_google_review");
 
@@ -141,11 +142,13 @@ serve(async (req: Request) => {
               .replace(/\{\{google_review_link\}\}/g, googleReviewUrl);
           } else {
             subject = isFrench
-              ? `🌟 Votre avis sur notre collaboration "${mission.title}"`
+              ? `🌟 ${useTu ? "Ton" : "Votre"} avis sur notre collaboration "${mission.title}"`
               : `🌟 Your feedback on our collaboration "${mission.title}"`;
 
             const bodyText = isFrench
-              ? `Bonjour${clientName ? ` ${clientName}` : ""},\n\nNotre collaboration sur "${mission.title}" touche à sa fin, et je tenais à vous remercier pour votre confiance.\n\nPour continuer à améliorer nos services, votre avis serait très précieux. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?\n\n👉 Laisser un avis : ${googleReviewUrl || siteUrl}\n\nVotre retour est essentiel pour nous permettre de progresser.\n\nMerci infiniment pour votre soutien !\n\nÀ bientôt,`
+              ? (useTu
+                  ? `Salut${clientName ? ` ${clientName}` : ""},\n\nNotre collaboration sur "${mission.title}" touche à sa fin, et je tenais à te remercier pour ta confiance.\n\nPour continuer à améliorer nos services, ton avis serait très précieux. Pourrais-tu nous accorder 1 minute pour laisser un commentaire sur notre page Google ?\n\n👉 Laisser un avis : ${googleReviewUrl || siteUrl}\n\nTon retour est essentiel pour nous permettre de progresser.\n\nMerci infiniment pour ton soutien !\n\nÀ bientôt,`
+                  : `Bonjour${clientName ? ` ${clientName}` : ""},\n\nNotre collaboration sur "${mission.title}" touche à sa fin, et je tenais à vous remercier pour votre confiance.\n\nPour continuer à améliorer nos services, votre avis serait très précieux. Pourriez-vous nous accorder 1 minute pour laisser un commentaire sur notre page Google ?\n\n👉 Laisser un avis : ${googleReviewUrl || siteUrl}\n\nVotre retour est essentiel pour nous permettre de progresser.\n\nMerci infiniment pour votre soutien !\n\nÀ bientôt,`)
               : `Hello${clientName ? ` ${clientName}` : ""},\n\nOur collaboration on "${mission.title}" is coming to an end. Could you spare 1 minute to leave a review on our Google page?\n\n👉 Leave a review: ${googleReviewUrl || siteUrl}\n\nThank you for your support!\n\nBest regards,`;
 
             body = textToHtml(bodyText);
@@ -205,8 +208,9 @@ serve(async (req: Request) => {
           for (const contact of validContacts) {
             const clientName = contact.first_name || mission.client_name || "";
             const isFrench = contact.language === "fr" || !contact.language;
+            const useTu = !contact.formal_address;
 
-            const templateKey = "mission_video_testimonial_vous";
+            const templateKey = useTu ? "mission_video_testimonial_tu" : "mission_video_testimonial_vous";
             const customTemplate = customTemplates?.find((t: any) => t.template_type === templateKey)
               || customTemplates?.find((t: any) => t.template_type === "mission_video_testimonial");
 
@@ -223,11 +227,13 @@ serve(async (req: Request) => {
                 .replace(/\{\{site_url\}\}/g, siteUrl);
             } else {
               subject = isFrench
-                ? `🎥 Partager votre expérience sur "${mission.title}"`
+                ? `🎥 Partager ${useTu ? "ton" : "votre"} expérience sur "${mission.title}"`
                 : `🎥 Share your experience about "${mission.title}"`;
 
               const bodyText = isFrench
-                ? `Bonjour${clientName ? ` ${clientName}` : ""},\n\nJe me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "${mission.title}".\n\nCe témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte publié sur ${siteUrl}.\n\nSi vous êtes partant(e), répondez simplement à cet email.\n\nMerci d'avance !\n\nBonne journée,`
+                ? (useTu
+                    ? `Salut${clientName ? ` ${clientName}` : ""},\n\nJe me permets de te contacter pour te proposer de partager ton retour d'expérience sur notre collaboration "${mission.title}".\n\nCe témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte publié sur ${siteUrl}.\n\nSi tu es partant(e), réponds simplement à cet email.\n\nMerci d'avance !\n\nBonne journée,`
+                    : `Bonjour${clientName ? ` ${clientName}` : ""},\n\nJe me permets de vous contacter pour vous proposer de partager votre retour d'expérience sur notre collaboration "${mission.title}".\n\nCe témoignage pourrait prendre la forme d'une courte interview en visioconférence (10 minutes maximum) ou d'un texte publié sur ${siteUrl}.\n\nSi vous êtes partant(e), répondez simplement à cet email.\n\nMerci d'avance !\n\nBonne journée,`)
                 : `Hello${clientName ? ` ${clientName}` : ""},\n\nI'm reaching out to invite you to share feedback about "${mission.title}".\n\nThis could be a short video call (10 min max) or written text published on ${siteUrl}.\n\nIf interested, simply reply to this email.\n\nThank you!\n\nBest regards,`;
 
               body = textToHtml(bodyText);

@@ -90,6 +90,7 @@ export interface MissionContact {
   phone: string | null;
   role: string | null;
   language: string;
+  formal_address: boolean;
   is_primary: boolean;
   position: number;
   created_at: string;

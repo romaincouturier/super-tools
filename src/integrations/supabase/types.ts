@@ -3752,6 +3752,7 @@ export type Database = {
           created_at: string
           email: string | null
           first_name: string | null
+          formal_address: boolean
           id: string
           is_primary: boolean
           language: string
@@ -3766,6 +3767,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string | null
+          formal_address?: boolean
           id?: string
           is_primary?: boolean
           language?: string
@@ -3780,6 +3782,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           first_name?: string | null
+          formal_address?: boolean
           id?: string
           is_primary?: boolean
           language?: string
@@ -4058,6 +4061,7 @@ export type Database = {
           description: string | null
           emoji: string | null
           end_date: string | null
+          formal_address: boolean
           hotel_booked: boolean | null
           id: string
           initial_amount: number | null
@@ -4091,6 +4095,7 @@ export type Database = {
           description?: string | null
           emoji?: string | null
           end_date?: string | null
+          formal_address?: boolean
           hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null
@@ -4124,6 +4129,7 @@ export type Database = {
           description?: string | null
           emoji?: string | null
           end_date?: string | null
+          formal_address?: boolean
           hotel_booked?: boolean | null
           id?: string
           initial_amount?: number | null

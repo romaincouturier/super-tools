@@ -4,6 +4,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -261,23 +262,35 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs">Langue</Label>
-            <Select
-              value={contact.language || "fr"}
-              onValueChange={(v) => onUpdate(contact, "language", v)}
-            >
-              <SelectTrigger className="h-8 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGE_OPTIONS.map((l) => (
-                  <SelectItem key={l.value} value={l.value}>
-                    {l.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-2 items-end">
+            <div>
+              <Label className="text-xs">Langue</Label>
+              <Select
+                value={contact.language || "fr"}
+                onValueChange={(v) => onUpdate(contact, "language", v)}
+              >
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_OPTIONS.map((l) => (
+                    <SelectItem key={l.value} value={l.value}>
+                      {l.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 h-8">
+              <Switch
+                id={`formal-${contact.id}`}
+                checked={!!(contact as any).formal_address}
+                onCheckedChange={(checked) => onUpdate(contact, "formal_address", checked)}
+              />
+              <Label htmlFor={`formal-${contact.id}`} className="text-xs cursor-pointer">
+                Vouvoiement
+              </Label>
+            </div>
           </div>
         </div>
       )}
