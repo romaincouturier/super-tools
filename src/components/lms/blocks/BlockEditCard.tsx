@@ -14,6 +14,12 @@ import type {
   FileBlockContent,
   QuizBlockContent,
   AssignmentBlockContent,
+  CalloutBlockContent,
+  KeyPointsBlockContent,
+  ChecklistBlockContent,
+  ButtonBlockContent,
+  ExerciseBlockContent,
+  SelfAssessmentBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import TextBlockEditor from "./editors/TextBlockEditor";
@@ -22,6 +28,12 @@ import ImageBlockEditor from "./editors/ImageBlockEditor";
 import FileBlockEditor from "./editors/FileBlockEditor";
 import QuizBlockEditor from "./editors/QuizBlockEditor";
 import AssignmentBlockEditor from "./editors/AssignmentBlockEditor";
+import CalloutBlockEditor from "./editors/CalloutBlockEditor";
+import KeyPointsBlockEditor from "./editors/KeyPointsBlockEditor";
+import ChecklistBlockEditor from "./editors/ChecklistBlockEditor";
+import ButtonBlockEditor from "./editors/ButtonBlockEditor";
+import ExerciseBlockEditor from "./editors/ExerciseBlockEditor";
+import SelfAssessmentBlockEditor from "./editors/SelfAssessmentBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -196,6 +208,48 @@ function BlockEditorBody({
       return (
         <AssignmentBlockEditor
           content={content as AssignmentBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "callout":
+      return (
+        <CalloutBlockEditor
+          content={content as CalloutBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "key_points":
+      return (
+        <KeyPointsBlockEditor
+          content={content as KeyPointsBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "checklist":
+      return (
+        <ChecklistBlockEditor
+          content={content as ChecklistBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "button":
+      return (
+        <ButtonBlockEditor
+          content={content as ButtonBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "exercise":
+      return (
+        <ExerciseBlockEditor
+          content={content as ExerciseBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "self_assessment":
+      return (
+        <SelfAssessmentBlockEditor
+          content={content as SelfAssessmentBlockContent}
           onChange={(c) => onChange(c)}
         />
       );
