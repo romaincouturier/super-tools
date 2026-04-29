@@ -52,7 +52,7 @@ const defaultSettings: ProfitabilitySettings = {
 const MissionProfitabilityDashboard = () => {
   const { toast } = useToast();
   const [showSettings, setShowSettings] = useState(false);
-  const [isOpen, setIsOpen] = useState(() => window.innerWidth >= 768);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Load settings from user preferences
   const {
