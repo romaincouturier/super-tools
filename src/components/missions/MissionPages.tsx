@@ -581,6 +581,16 @@ const PageEditor = ({
       attributes: {
         class: "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[calc(100vh-280px)] py-2 text-[15px] leading-normal",
       },
+      handleClick: (_view, _pos, event) => {
+        const target = event.target as HTMLElement | null;
+        const anchor = target?.closest("a") as HTMLAnchorElement | null;
+        if (anchor && anchor.href) {
+          event.preventDefault();
+          window.open(anchor.href, "_blank", "noopener,noreferrer");
+          return true;
+        }
+        return false;
+      },
       handlePaste: (_view, event) => {
         const items = event.clipboardData?.items;
         if (!items) return false;
