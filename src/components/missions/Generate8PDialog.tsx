@@ -178,7 +178,7 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Générer la page 8P
+                Générer la page 9P
               </>
             )}
           </Button>
