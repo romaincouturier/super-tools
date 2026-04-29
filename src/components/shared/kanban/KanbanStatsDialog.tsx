@@ -205,6 +205,7 @@ export default function KanbanStatsDialog({
                       contentStyle={{ fontSize: 12 }}
                       labelStyle={{ fontWeight: "bold" }}
                     />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
                     {reversedCols.map((col) => {
                       const isWon = wonColumnIds.includes(col.id);
                       const isLost = lostColumnIds.includes(col.id);

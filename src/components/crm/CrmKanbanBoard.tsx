@@ -25,6 +25,11 @@ import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult, KanbanStatsItem 
 type CrmKanbanCard = CrmCard & KanbanCardDef;
 type CrmKanbanColumn = CrmColumnType & KanbanColumnDef;
 
+// Synthetic columns used only by the stats dialog so won/lost bands are derived
+// from sales_status, regardless of how the user named their pipeline columns.
+const STATS_WON_COL_ID = "__stats_won__";
+const STATS_LOST_COL_ID = "__stats_lost__";
+
 interface CrmKanbanBoardProps {
   initialCardId?: string | null;
 }
@@ -189,26 +194,39 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     }));
   }, [boardData?.columns]);
 
+  // Stats use sales_status as the source of truth for won/lost (not column names),
+  // so won/lost bands appear regardless of which column a card sits in.
+  const statsColumns: CrmKanbanColumn[] = useMemo(() => {
+    if (!boardData?.columns) return [];
+    const realCols = boardData.columns
+      .filter((col) => !isWonColumnName(col.name) && !isLostColumnName(col.name))
+      .map((col) => ({ ...col }));
+    const lastPosition = realCols.length;
+    return [
+      ...realCols,
+      { id: STATS_WON_COL_ID, name: "Gagné", position: lastPosition, is_archived: false, created_at: "", updated_at: "" } as CrmKanbanColumn,
+      { id: STATS_LOST_COL_ID, name: "Perdu", position: lastPosition + 1, is_archived: false, created_at: "", updated_at: "" } as CrmKanbanColumn,
+    ];
+  }, [boardData?.columns]);
+
   const statsItems: KanbanStatsItem[] = useMemo(() => {
     if (!boardData?.cards) return [];
-    return boardData.cards.map((c) => ({
-      id: c.id,
-      columnId: c.column_id,
-      createdAt: c.created_at,
-      completedAt: c.won_at || c.lost_at,
-    }));
+    return boardData.cards.map((c) => {
+      const columnId =
+        c.sales_status === "WON" ? STATS_WON_COL_ID
+        : c.sales_status === "LOST" ? STATS_LOST_COL_ID
+        : c.column_id;
+      return {
+        id: c.id,
+        columnId,
+        createdAt: c.created_at,
+        completedAt: c.won_at || c.lost_at,
+      };
+    });
   }, [boardData?.cards]);
 
-  const wonColumnIds = useMemo(() => {
-    if (!boardData?.columns) return [];
-    return boardData.columns.filter((col) => isWonColumnName(col.name)).map((col) => col.id);
-  }, [boardData?.columns]);
-
-  const lostColumnIds = useMemo(() => {
-    if (!boardData?.columns) return [];
-    return boardData.columns.filter((col) => isLostColumnName(col.name)).map((col) => col.id);
-  }, [boardData?.columns]);
-
+  const wonColumnIds = useMemo(() => [STATS_WON_COL_ID], []);
+  const lostColumnIds = useMemo(() => [STATS_LOST_COL_ID], []);
   const doneColumnIds = useMemo(
     () => [...wonColumnIds, ...lostColumnIds],
     [wonColumnIds, lostColumnIds],
@@ -603,7 +621,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       <KanbanStatsDialog
         open={showStats}
         onOpenChange={setShowStats}
-        columns={kanbanColumns}
+        columns={statsColumns}
         items={statsItems}
         doneColumnIds={doneColumnIds}
         wonColumnIds={wonColumnIds}
