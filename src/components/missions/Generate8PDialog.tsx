@@ -88,7 +88,7 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
       if (!html) throw new Error("Réponse vide");
       onGenerated(html);
       onOpenChange(false);
-      toast({ title: "Page 8P générée", description: `${(data as { sources_count?: number }).sources_count ?? 0} sources compilées` });
+      toast({ title: "Page 9P générée", description: `${(data as { sources_count?: number }).sources_count ?? 0} sources compilées` });
     } catch (err: unknown) {
       toastError(toast, err instanceof Error ? err : "Erreur lors de la génération");
     } finally {
@@ -108,10 +108,10 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            Générer une page 8P
+            Générer une page 9P
           </DialogTitle>
           <DialogDescription>
-            Sélectionne les sources à compiler. L'IA structurera le contenu en 8 sections : Present, Purpose, Public, Process, Product, Pitfalls, Preparation, Prerequisites.
+            Sélectionne les sources à compiler. L'IA structurera le contenu en 9 sections : Present, Purpose, Public, Process, Product, Pitfalls, Preparation (Client / SuperTilt / Autres), Prerequisites, Puzzle.
           </DialogDescription>
         </DialogHeader>
 
@@ -178,7 +178,7 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Générer la page 8P
+                Générer la page 9P
               </>
             )}
           </Button>

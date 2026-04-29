@@ -1039,8 +1039,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [pending8PTemplate, setPending8PTemplate] = useState<MissionPageTemplate | null>(null);
 
   const handleCreateFromTemplate = async (template: MissionPageTemplate) => {
-    // Special case: 8P template triggers source-selection dialog and AI generation
-    if ((template.name || "").trim().toLowerCase() === "8p") {
+    // Special case: 9P (or legacy 8P) template triggers source-selection dialog and AI generation
+    const tplKey = (template.name || "").trim().toLowerCase();
+    if (tplKey === "9p" || tplKey === "8p") {
       setPending8PTemplate(template);
       setShow8PDialog(true);
       return;
@@ -1064,7 +1065,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       const tpl = pending8PTemplate;
       const newPage = await createPage.mutateAsync({
         mission_id: mission.id,
-        title: tpl?.name || "8P",
+        title: tpl?.name || "9P",
         content: html,
         icon: tpl?.icon || "🎯",
       });

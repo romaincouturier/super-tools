@@ -22,7 +22,7 @@ interface RequestBody {
   page_ids?: string[];
 }
 
-const SYSTEM_PROMPT = `Tu es un consultant senior. À partir des sources fournies (description d'opportunité CRM + extraits de pages d'une mission), produis un canevas "8P" structuré en HTML propre prêt à coller dans un éditeur de texte enrichi.
+const SYSTEM_PROMPT = `Tu es un consultant senior. À partir des sources fournies (description d'opportunité CRM + extraits de pages d'une mission), produis un canevas "9P" structuré en HTML propre prêt à coller dans un éditeur de texte enrichi.
 
 Structure obligatoire (dans cet ordre) :
 1. Present — Contexte
@@ -33,13 +33,21 @@ Structure obligatoire (dans cet ordre) :
 6. Pitfalls — Risques
 7. Preparation — Préparation
 8. Prerequisites — Prérequis logistiques
+9. Puzzle — Questions ouvertes / zones d'ombre
 
-Règles :
+Règles générales :
 - Pour chaque section : un <h2> avec le nom court (ex: "Present — Contexte"), suivi d'un ou plusieurs paragraphes <p> et/ou listes <ul><li>.
 - Utilise UNIQUEMENT les informations présentes dans les sources. Si une section n'a pas d'information, écris une seule phrase neutre du type "À compléter — pas d'information dans les sources fournies."
 - Ne pas inventer.
 - Ton clair, synthétique, professionnel, en français, tutoiement.
-- Pas de balises <html>, <body> ou <head>. Pas de markdown : uniquement du HTML.`;
+- Pas de balises <html>, <body> ou <head>. Pas de markdown : uniquement du HTML.
+
+Règles spécifiques :
+- Section "Preparation — Préparation" : organise les items en 3 sous-sections via <h3> dans cet ordre : "Client", "SuperTilt", "Autres". Chaque sous-section contient une liste de cases à cocher au format TipTap TaskList :
+  <ul data-type="taskList"><li data-type="taskItem" data-checked="false"><label><input type="checkbox"><span></span></label><div><p>Item à préparer</p></div></li></ul>
+  Si une sous-section n'a aucun item dans les sources, écris : <p>À compléter — pas d'information dans les sources fournies.</p>
+- Section "Puzzle — Questions ouvertes / zones d'ombre" : regroupe TOUTES les sections nommées "Puzzle" (insensible à la casse) trouvées dans les sources, ainsi que les questions ouvertes, hypothèses non vérifiées, ou zones d'ombre identifiées. Format : <ul><li>...</li></ul>.`;
+
 
 function htmlToText(html: string | null | undefined): string {
   if (!html) return "";
@@ -128,11 +136,11 @@ Questions/Réponses brief: ${briefText}`,
     }
 
     // 4. Build prompt
-    const userPrompt = `Voici les sources à compiler dans le canevas 8P :
+    const userPrompt = `Voici les sources à compiler dans le canevas 9P :
 
 ${sources.map((s, i) => `--- SOURCE ${i + 1} : ${s.label} ---\n${s.content}`).join("\n\n")}
 
-Génère maintenant le canevas 8P complet en HTML.`;
+Génère maintenant le canevas 9P complet en HTML.`;
 
     // 5. Call Lovable AI Gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
