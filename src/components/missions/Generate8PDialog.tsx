@@ -135,11 +135,20 @@ const Generate8PDialog = ({ open, onOpenChange, missionId, onGenerated }: Genera
                   onCheckedChange={(v) => setIncludeCrm(!!v)}
                 />
                 <label htmlFor="crm-card" className="flex-1 cursor-pointer text-sm">
-                  <div className="font-medium">Descriptif de l'opportunité</div>
+                  <div className="font-medium">Descriptif & notes de l'opportunité</div>
                   <div className="text-muted-foreground text-xs">
                     {crmCard.title}
                     {crmCard.company ? ` — ${crmCard.company}` : ""}
                   </div>
+                  {crmCard.descriptionPreview ? (
+                    <div className="mt-1 text-muted-foreground text-xs italic line-clamp-3">
+                      « {crmCard.descriptionPreview}{crmCard.descriptionPreview.length >= 200 ? "…" : ""} »
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-muted-foreground text-xs italic">
+                      (aucun descriptif renseigné sur la carte CRM)
+                    </div>
+                  )}
                 </label>
               </div>
             </div>
