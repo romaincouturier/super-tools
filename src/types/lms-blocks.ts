@@ -1,17 +1,27 @@
 /**
- * Stage 1 of ST-2026-0040 — composable lesson blocks.
+ * Composable lesson blocks (ST-2026-0040 + ST-2026-0060).
  *
- * Each lesson exposes an ordered list of typed content blocks. Block content
- * lives in a JSONB column; each type defines its own shape.
+ * Each lesson is a tree of typed blocks. Two families coexist:
+ *   • layout blocks  — structural containers that can host children
+ *                      (section, row, container, divider, spacer).
+ *   • content blocks — leaves that render an actual piece of content
+ *                      (text, video, image, file, callout, key_points,
+ *                      checklist, button, exercise, self_assessment,
+ *                      work_deposit, quiz, assignment).
  *
- * The set of types here matches the legacy lesson_type strings so existing
- * rows can be backfilled into a single block of the same type. Stage 2/3
- * extend this with custom pedagogical types (callout, key_points, …) and
- * Stage 4 with a "work_deposit" block type that wraps the existing
- * lms_work_deposits table.
+ * The tree is materialised in `lms_lesson_blocks` via `parent_block_id`
+ * (nullable self-FK) + `position` (sibling order). `kind` discriminates
+ * the two families and gates which blocks are allowed as parents.
  */
 
-export type LessonBlockType =
+export type LayoutBlockType =
+  | "section"
+  | "row"
+  | "container"
+  | "divider"
+  | "spacer";
+
+export type ContentBlockType =
   | "text"
   | "video"
   | "image"
@@ -25,6 +35,37 @@ export type LessonBlockType =
   | "exercise"
   | "self_assessment"
   | "work_deposit";
+
+export type LessonBlockType = LayoutBlockType | ContentBlockType;
+
+export type LessonBlockKind = "layout" | "content";
+
+export const LAYOUT_BLOCK_TYPES: readonly LayoutBlockType[] = [
+  "section",
+  "row",
+  "container",
+  "divider",
+  "spacer",
+] as const;
+
+export function isLayoutBlockType(type: LessonBlockType): type is LayoutBlockType {
+  return (LAYOUT_BLOCK_TYPES as readonly string[]).includes(type);
+}
+
+/**
+ * Layout blocks that can host children. `divider` and `spacer` are layout
+ * blocks (they organise the page) but they are leaves — they never carry
+ * children. Used by the editor to decide which blocks expose a drop zone.
+ */
+export const LAYOUT_CONTAINER_TYPES: readonly LayoutBlockType[] = [
+  "section",
+  "row",
+  "container",
+] as const;
+
+export function acceptsChildren(type: LessonBlockType): boolean {
+  return (LAYOUT_CONTAINER_TYPES as readonly string[]).includes(type);
+}
 
 export interface TextBlockContent {
   html: string;
@@ -117,6 +158,38 @@ export interface WorkDepositBlockContent {
   feedback_enabled?: boolean;
 }
 
+// ── Layout block contents ───────────────────────────────────────────
+
+export type SectionBackground = "default" | "muted" | "primary" | "accent";
+
+export interface SectionBlockContent {
+  title?: string | null;
+  background?: SectionBackground;
+}
+
+export type RowColumnCount = 1 | 2 | 3;
+
+export interface RowBlockContent {
+  /** Number of equal-width columns laid out horizontally on desktop. */
+  column_count: RowColumnCount;
+}
+
+export type ContainerMaxWidth = "sm" | "md" | "lg" | "xl" | "full";
+
+export interface ContainerBlockContent {
+  max_width: ContainerMaxWidth;
+}
+
+export type DividerStyle = "solid" | "dashed";
+
+export interface DividerBlockContent {
+  style: DividerStyle;
+}
+
+export interface SpacerBlockContent {
+  height_px: number;
+}
+
 export type LessonBlockContent =
   | TextBlockContent
   | VideoBlockContent
@@ -130,12 +203,19 @@ export type LessonBlockContent =
   | ButtonBlockContent
   | ExerciseBlockContent
   | SelfAssessmentBlockContent
-  | WorkDepositBlockContent;
+  | WorkDepositBlockContent
+  | SectionBlockContent
+  | RowBlockContent
+  | ContainerBlockContent
+  | DividerBlockContent
+  | SpacerBlockContent;
 
 export interface LessonBlock {
   id: string;
   lesson_id: string;
   type: LessonBlockType;
+  kind: LessonBlockKind;
+  parent_block_id: string | null;
   position: number;
   hidden: boolean;
   content: LessonBlockContent;
@@ -146,12 +226,16 @@ export interface LessonBlock {
 export interface CreateLessonBlockInput {
   lesson_id: string;
   type: LessonBlockType;
+  kind: LessonBlockKind;
+  parent_block_id?: string | null;
   position: number;
   content: LessonBlockContent;
 }
 
 export interface UpdateLessonBlockInput {
   type?: LessonBlockType;
+  kind?: LessonBlockKind;
+  parent_block_id?: string | null;
   position?: number;
   hidden?: boolean;
   content?: LessonBlockContent;
@@ -199,7 +283,22 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
         comments_enabled: true,
         feedback_enabled: true,
       };
+    case "section":
+      return { title: null, background: "default" };
+    case "row":
+      return { column_count: 2 };
+    case "container":
+      return { max_width: "lg" };
+    case "divider":
+      return { style: "solid" };
+    case "spacer":
+      return { height_px: 24 };
   }
+}
+
+/** Returns the kind ('layout' | 'content') of a block type. */
+export function blockKindOf(type: LessonBlockType): LessonBlockKind {
+  return isLayoutBlockType(type) ? "layout" : "content";
 }
 
 function cryptoRandomId(): string {

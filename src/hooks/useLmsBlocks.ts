@@ -6,6 +6,8 @@ import {
   deleteLessonBlock,
   reorderLessonBlocks,
   getMaxBlockPosition,
+  moveLessonBlock,
+  duplicateLessonBlock,
 } from "@/services/lms-blocks";
 import type {
   LessonBlock,
@@ -14,7 +16,7 @@ import type {
   LessonBlockType,
   LessonBlockContent,
 } from "@/types/lms-blocks";
-import { defaultBlockContent } from "@/types/lms-blocks";
+import { defaultBlockContent, blockKindOf } from "@/types/lms-blocks";
 
 const KEY = (lessonId: string) => ["lms-lesson-blocks", lessonId] as const;
 
@@ -29,11 +31,18 @@ export function useLessonBlocks(lessonId: string | null | undefined) {
 export function useCreateLessonBlock(lessonId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { type: LessonBlockType; content?: LessonBlockContent }) => {
-      const position = (await getMaxBlockPosition(lessonId)) + 1;
+    mutationFn: async (vars: {
+      type: LessonBlockType;
+      content?: LessonBlockContent;
+      parentBlockId?: string | null;
+    }) => {
+      const parentBlockId = vars.parentBlockId ?? null;
+      const position = (await getMaxBlockPosition(lessonId, parentBlockId)) + 1;
       const payload: CreateLessonBlockInput = {
         lesson_id: lessonId,
         type: vars.type,
+        kind: blockKindOf(vars.type),
+        parent_block_id: parentBlockId,
         position,
         content: vars.content ?? defaultBlockContent(vars.type),
       };
@@ -64,6 +73,23 @@ export function useReorderLessonBlocks(lessonId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (orderedIds: string[]) => reorderLessonBlocks(lessonId, orderedIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
+  });
+}
+
+export function useMoveLessonBlock(lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { blockId: string; newParentId: string | null; newPosition: number }) =>
+      moveLessonBlock({ ...vars, lessonId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
+  });
+}
+
+export function useDuplicateLessonBlock(lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (blockId: string) => duplicateLessonBlock({ blockId, lessonId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
   });
 }

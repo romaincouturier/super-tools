@@ -14,7 +14,13 @@ import type {
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
   WorkDepositBlockContent,
+  SectionBlockContent,
+  RowBlockContent,
+  ContainerBlockContent,
+  DividerBlockContent,
+  SpacerBlockContent,
 } from "@/types/lms-blocks";
+import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import TextBlockViewer from "./viewers/TextBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
 import ImageBlockViewer from "./viewers/ImageBlockViewer";
@@ -25,6 +31,11 @@ import ChecklistBlockViewer from "./viewers/ChecklistBlockViewer";
 import ButtonBlockViewer from "./viewers/ButtonBlockViewer";
 import ExerciseBlockViewer from "./viewers/ExerciseBlockViewer";
 import SelfAssessmentBlockViewer from "./viewers/SelfAssessmentBlockViewer";
+import SectionBlockViewer from "./viewers/SectionBlockViewer";
+import RowBlockViewer from "./viewers/RowBlockViewer";
+import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
+import DividerBlockViewer from "./viewers/DividerBlockViewer";
+import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -37,19 +48,20 @@ interface Props {
 }
 
 /**
- * Renders the visible blocks of a lesson in order. Hidden blocks are skipped.
- * Quiz and assignment blocks are deferred to the parent page via render props
- * so they receive the learner email and completion callbacks.
+ * Renders the visible blocks of a lesson as a nested tree (ST-2026-0060).
+ * Hidden blocks and their entire subtree are skipped. Quiz and assignment
+ * blocks are deferred to the parent page via render props so they receive
+ * the learner email and completion callbacks.
  */
 export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment, renderWorkDeposit }: Props) {
-  const visible = blocks.filter((b) => !b.hidden);
-  if (visible.length === 0) return null;
+  const tree = buildBlockTree(blocks).filter((n) => !n.block.hidden);
+  if (tree.length === 0) return null;
   return (
     <div className="space-y-6">
-      {visible.map((block) => (
-        <BlockRenderer
-          key={block.id}
-          block={block}
+      {tree.map((node) => (
+        <NodeRenderer
+          key={node.block.id}
+          node={node}
           renderQuiz={renderQuiz}
           renderAssignment={renderAssignment}
           renderWorkDeposit={renderWorkDeposit}
@@ -59,17 +71,27 @@ export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignmen
   );
 }
 
-function BlockRenderer({
-  block,
-  renderQuiz,
-  renderAssignment,
-  renderWorkDeposit,
-}: {
-  block: LessonBlock;
+interface RenderProps {
+  node: BlockTreeNode;
   renderQuiz?: (quizId: string, lessonId: string) => ReactNode;
   renderAssignment?: (lessonId: string) => ReactNode;
   renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
-}) {
+}
+
+function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }: RenderProps) {
+  const { block, children } = node;
+  const visibleChildren = children
+    .filter((c) => !c.block.hidden)
+    .map((c) => (
+      <NodeRenderer
+        key={c.block.id}
+        node={c}
+        renderQuiz={renderQuiz}
+        renderAssignment={renderAssignment}
+        renderWorkDeposit={renderWorkDeposit}
+      />
+    ));
+
   switch (block.type) {
     case "text":
       return <TextBlockViewer content={block.content as TextBlockContent} />;
@@ -113,6 +135,28 @@ function BlockRenderer({
       const c = block.content as WorkDepositBlockContent;
       return renderWorkDeposit ? <>{renderWorkDeposit(block.lesson_id, c)}</> : null;
     }
+    case "section":
+      return (
+        <SectionBlockViewer content={block.content as SectionBlockContent}>
+          {visibleChildren}
+        </SectionBlockViewer>
+      );
+    case "row":
+      return (
+        <RowBlockViewer content={block.content as RowBlockContent}>
+          {visibleChildren}
+        </RowBlockViewer>
+      );
+    case "container":
+      return (
+        <ContainerBlockViewer content={block.content as ContainerBlockContent}>
+          {visibleChildren}
+        </ContainerBlockViewer>
+      );
+    case "divider":
+      return <DividerBlockViewer content={block.content as DividerBlockContent} />;
+    case "spacer":
+      return <SpacerBlockViewer content={block.content as SpacerBlockContent} />;
     default:
       return null;
   }

@@ -111,8 +111,9 @@ if [ "$STAGED_MODE" = "true" ]; then
 
   # [010] registerMediaEntry sans deleteMediaFile = fichiers orphelins potentiels
   # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
+  # `xargs -r` évite que le grep final lise stdin quand aucun fichier ne matche.
   check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
-    "echo \"$STAGED_FILES\" | xargs grep -l 'registerMediaEntry' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
+    "echo \"$STAGED_FILES\" | xargs -r grep -l 'registerMediaEntry' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs -r grep -L 'deleteMediaFile' 2>/dev/null"
 
   # [011] PWA — globPatterns ne doit pas contenir js (staged vite.config.ts)
   STAGED_VITE=$(echo "$STAGED_FILES" | grep 'vite.config.ts' || true)

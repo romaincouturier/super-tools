@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
-import { Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { Copy, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   LessonBlock,
@@ -21,6 +21,11 @@ import type {
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
   WorkDepositBlockContent,
+  SectionBlockContent,
+  RowBlockContent,
+  ContainerBlockContent,
+  DividerBlockContent,
+  SpacerBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import TextBlockEditor from "./editors/TextBlockEditor";
@@ -36,6 +41,11 @@ import ButtonBlockEditor from "./editors/ButtonBlockEditor";
 import ExerciseBlockEditor from "./editors/ExerciseBlockEditor";
 import SelfAssessmentBlockEditor from "./editors/SelfAssessmentBlockEditor";
 import WorkDepositBlockEditor from "./editors/WorkDepositBlockEditor";
+import SectionBlockEditor from "./editors/SectionBlockEditor";
+import RowBlockEditor from "./editors/RowBlockEditor";
+import ContainerBlockEditor from "./editors/ContainerBlockEditor";
+import DividerBlockEditor from "./editors/DividerBlockEditor";
+import SpacerBlockEditor from "./editors/SpacerBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -45,6 +55,8 @@ interface Props {
   onUpdateContent: (content: LessonBlockContent) => Promise<void>;
   onToggleHidden: (hidden: boolean) => void;
   onDelete: () => void;
+  /** Optional duplicate handler. When omitted, the button is hidden. */
+  onDuplicate?: () => void;
   /** Drag-handle attributes from useSortable, applied to the grip icon. */
   dragHandleProps?: Record<string, unknown>;
 }
@@ -56,6 +68,7 @@ export default function BlockEditCard({
   onUpdateContent,
   onToggleHidden,
   onDelete,
+  onDuplicate,
   dragHandleProps,
 }: Props) {
   const meta = BLOCK_META[block.type];
@@ -119,6 +132,18 @@ export default function BlockEditCard({
         >
           {block.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>
+        {onDuplicate && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            onClick={onDuplicate}
+            title="Dupliquer le bloc"
+            aria-label="Dupliquer le bloc"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="icon"
@@ -259,6 +284,41 @@ function BlockEditorBody({
       return (
         <WorkDepositBlockEditor
           content={content as WorkDepositBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "section":
+      return (
+        <SectionBlockEditor
+          content={content as SectionBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "row":
+      return (
+        <RowBlockEditor
+          content={content as RowBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "container":
+      return (
+        <ContainerBlockEditor
+          content={content as ContainerBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "divider":
+      return (
+        <DividerBlockEditor
+          content={content as DividerBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "spacer":
+      return (
+        <SpacerBlockEditor
+          content={content as SpacerBlockContent}
           onChange={(c) => onChange(c)}
         />
       );

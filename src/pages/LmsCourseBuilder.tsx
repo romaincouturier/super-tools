@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import { Button } from "@/components/ui/button";
@@ -21,9 +21,8 @@ import {
 } from "@/hooks/useLms";
 import {
   Plus, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
-  FileText, Video, HelpCircle, ClipboardList, Trash2, Save,
-  Eye, Users, Settings, BookOpen, Pencil, ImageIcon, ExternalLink, BarChart3,
-  Paperclip,
+  FileText, Trash2, Save,
+  Eye, Users, Settings, BookOpen, Pencil, ExternalLink, BarChart3,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -32,24 +31,6 @@ import LmsQuizBuilder from "@/components/lms/QuizBuilder";
 import LmsAnalyticsTab from "@/components/lms/AnalyticsTab";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
-
-const lessonTypeIcons: Record<string, ComponentType<{ className?: string }>> = {
-  text: FileText,
-  video: Video,
-  quiz: HelpCircle,
-  assignment: ClipboardList,
-  image: ImageIcon,
-  file: Paperclip,
-};
-
-const lessonTypeLabels: Record<string, string> = {
-  text: "Texte",
-  video: "Vidéo",
-  quiz: "Quiz",
-  assignment: "Devoir",
-  image: "Image",
-  file: "Fichier",
-};
 
 function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: { mod: LmsModule; courseId: string; onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean }) {
   const [expanded, setExpanded] = useState(true);
@@ -62,17 +43,15 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
   const deleteModule = useDeleteModule();
   const reorderLessons = useReorderLessons();
   const [selectedLesson, setSelectedLesson] = useState<LmsLesson | null>(null);
-  const [addLessonType, setAddLessonType] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleAddLesson = async (type: string) => {
+  const handleAddLesson = async () => {
     await createLesson.mutateAsync({
       module_id: mod.id,
       title: `Nouvelle leçon`,
-      lesson_type: type,
+      lesson_type: "text",
       position: lessons.length,
     });
-    setAddLessonType(null);
     toast({ title: "Leçon ajoutée" });
   };
 
@@ -144,59 +123,46 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
         </CardHeader>
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-2">
-            {lessons.map((lesson, index) => {
-              const Icon = lessonTypeIcons[lesson.lesson_type] || FileText;
-              return (
-                <div
-                  key={lesson.id}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md border bg-background hover:bg-accent/50 cursor-pointer transition-colors"
-                  onClick={() => setSelectedLesson(lesson)}
-                >
-                  <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === 0} onClick={() => moveLessonUp(index)}>
-                      <ArrowUp className="w-2.5 h-2.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === lessons.length - 1} onClick={() => moveLessonDown(index)}>
-                      <ArrowDown className="w-2.5 h-2.5" />
-                    </Button>
-                  </div>
-                  <Icon className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm flex-1">{lesson.title}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {lessonTypeLabels[lesson.lesson_type]}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteLesson.mutateAsync(lesson.id);
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3 text-destructive" />
+            {lessons.map((lesson, index) => (
+              <div
+                key={lesson.id}
+                className="flex items-center gap-2 px-3 py-2 rounded-md border bg-background hover:bg-accent/50 cursor-pointer transition-colors"
+                onClick={() => setSelectedLesson(lesson)}
+              >
+                <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === 0} onClick={() => moveLessonUp(index)}>
+                    <ArrowUp className="w-2.5 h-2.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === lessons.length - 1} onClick={() => moveLessonDown(index)}>
+                    <ArrowDown className="w-2.5 h-2.5" />
                   </Button>
                 </div>
-              );
-            })}
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm flex-1">{lesson.title}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteLesson.mutateAsync(lesson.id);
+                  }}
+                >
+                  <Trash2 className="w-3 h-3 text-destructive" />
+                </Button>
+              </div>
+            ))}
 
-            {/* Add lesson buttons */}
-            <div className="flex gap-2 pt-2">
-              {["text", "video", "image", "file", "quiz", "assignment"].map((type) => {
-                const Icon = lessonTypeIcons[type];
-                return (
-                  <Button
-                    key={type}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => handleAddLesson(type)}
-                  >
-                    <Icon className="w-3.5 h-3.5 mr-1" />
-                    {lessonTypeLabels[type]}
-                  </Button>
-                );
-              })}
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddLesson}
+                disabled={createLesson.isPending}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Ajouter une leçon
+              </Button>
             </div>
           </CardContent>
         </CollapsibleContent>
