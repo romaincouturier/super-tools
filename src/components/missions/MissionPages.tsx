@@ -585,8 +585,22 @@ const PageEditor = ({
         const target = event.target as HTMLElement | null;
         const anchor = target?.closest("a") as HTMLAnchorElement | null;
         if (anchor && anchor.href) {
+          // Only intercept on modifier-less left clicks; let cmd/ctrl/middle
+          // clicks use native behaviour. Use a synthetic anchor click instead
+          // of window.open() to avoid popup-blocker issues (Dropbox links in
+          // particular were being blocked when opened from inside the editor).
+          const me = event as MouseEvent;
+          if (me.metaKey || me.ctrlKey || me.shiftKey || me.button === 1) {
+            return false;
+          }
           event.preventDefault();
-          window.open(anchor.href, "_blank", "noopener,noreferrer");
+          const a = document.createElement("a");
+          a.href = anchor.href;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
           return true;
         }
         return false;
