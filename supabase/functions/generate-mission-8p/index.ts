@@ -19,6 +19,8 @@ import {
 interface RequestBody {
   mission_id: string;
   include_crm_card?: boolean;
+  /** Optional explicit CRM card id to use as source (overrides linked_mission_id lookup). */
+  crm_card_id?: string;
   page_ids?: string[];
 }
 
