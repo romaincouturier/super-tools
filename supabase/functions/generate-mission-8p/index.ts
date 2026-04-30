@@ -97,13 +97,18 @@ Lieu: ${mission.location || ""}
 Description: ${mission.description || ""}`,
     });
 
-    // 2. CRM card (linked or explicitly requested)
-    if (body.include_crm_card) {
-      const { data: cards } = await supabase
+    // 2. CRM card (explicit id takes priority, otherwise look up via linked_mission_id)
+    if (body.include_crm_card || body.crm_card_id) {
+      let query = supabase
         .from("crm_cards")
         .select("title, description_html, first_name, last_name, company, email, service_type, raw_input, brief_questions")
-        .eq("linked_mission_id", body.mission_id)
         .limit(1);
+      if (body.crm_card_id) {
+        query = query.eq("id", body.crm_card_id);
+      } else {
+        query = query.eq("linked_mission_id", body.mission_id);
+      }
+      const { data: cards } = await query;
       const card = cards?.[0];
       if (card) {
         const briefText = Array.isArray(card.brief_questions)
