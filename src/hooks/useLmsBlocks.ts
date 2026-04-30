@@ -6,6 +6,8 @@ import {
   deleteLessonBlock,
   reorderLessonBlocks,
   getMaxBlockPosition,
+  moveLessonBlock,
+  duplicateLessonBlock,
 } from "@/services/lms-blocks";
 import type {
   LessonBlock,
@@ -71,6 +73,23 @@ export function useReorderLessonBlocks(lessonId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (orderedIds: string[]) => reorderLessonBlocks(lessonId, orderedIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
+  });
+}
+
+export function useMoveLessonBlock(lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { blockId: string; newParentId: string | null; newPosition: number }) =>
+      moveLessonBlock({ ...vars, lessonId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
+  });
+}
+
+export function useDuplicateLessonBlock(lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (blockId: string) => duplicateLessonBlock({ blockId, lessonId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
   });
 }

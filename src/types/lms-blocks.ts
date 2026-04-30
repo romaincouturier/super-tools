@@ -52,6 +52,21 @@ export function isLayoutBlockType(type: LessonBlockType): type is LayoutBlockTyp
   return (LAYOUT_BLOCK_TYPES as readonly string[]).includes(type);
 }
 
+/**
+ * Layout blocks that can host children. `divider` and `spacer` are layout
+ * blocks (they organise the page) but they are leaves — they never carry
+ * children. Used by the editor to decide which blocks expose a drop zone.
+ */
+export const LAYOUT_CONTAINER_TYPES: readonly LayoutBlockType[] = [
+  "section",
+  "row",
+  "container",
+] as const;
+
+export function acceptsChildren(type: LessonBlockType): boolean {
+  return (LAYOUT_CONTAINER_TYPES as readonly string[]).includes(type);
+}
+
 export interface TextBlockContent {
   html: string;
 }
