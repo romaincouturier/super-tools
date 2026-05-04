@@ -1,0 +1,1 @@
+UPDATE public.app_settings SET setting_value = TRIM(REPLACE(setting_value, ' ', '')) WHERE setting_key IN ('sender_email','bcc_email') AND setting_value LIKE '% %';
