@@ -2961,6 +2961,60 @@ export type Database = {
           },
         ]
       }
+      lms_lesson_blocks: {
+        Row: {
+          content: Json
+          created_at: string
+          hidden: boolean
+          id: string
+          kind: string
+          lesson_id: string
+          parent_block_id: string | null
+          position: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          kind?: string
+          lesson_id: string
+          parent_block_id?: string | null
+          position?: number
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          kind?: string
+          lesson_id?: string
+          parent_block_id?: string | null
+          position?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lesson_blocks_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_lesson_blocks_parent_block_id_fkey"
+            columns: ["parent_block_id"]
+            isOneToOne: false
+            referencedRelation: "lms_lesson_blocks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_lesson_comments: {
         Row: {
           content: string
