@@ -53,12 +53,19 @@ export function useCopyToClipboard({
         }
       };
 
+      let success = false;
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
-        } else if (!fallbackCopy(text)) {
-          throw new Error("Copy failed");
+          success = true;
         }
+      } catch {
+        success = false;
+      }
+      if (!success) {
+        success = fallbackCopy(text);
+      }
+      if (success) {
         setCopied(true);
         if (!options?.silent) {
           toast({
@@ -68,14 +75,13 @@ export function useCopyToClipboard({
         }
         setTimeout(() => setCopied(false), autoResetMs);
         return true;
-      } catch {
-        toast({
-          title: "Erreur",
-          description: "Impossible de copier dans le presse-papier.",
-          variant: "destructive",
-        });
-        return false;
       }
+      toast({
+        title: "Erreur",
+        description: "Impossible de copier dans le presse-papier.",
+        variant: "destructive",
+      });
+      return false;
     },
     [toast, autoResetMs, defaultToastTitle],
   );
