@@ -17,29 +17,44 @@ export function useCopyToClipboard({
       text: string,
       options?: { title?: string; description?: string; silent?: boolean },
     ) => {
+      let success = false;
+
       try {
         await navigator.clipboard.writeText(text);
+        success = true;
       } catch {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
         try {
-          document.execCommand("copy");
-        } finally {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.top = "0";
+          ta.style.left = "0";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          ta.setSelectionRange(0, text.length);
+          success = document.execCommand("copy");
           document.body.removeChild(ta);
+        } catch {
+          success = false;
         }
       }
-      setCopied(true);
-      if (!options?.silent) {
-        toast.success(options?.title ?? defaultToastTitle, {
-          description: options?.description,
-        });
+
+      if (success) {
+        setCopied(true);
+        if (!options?.silent) {
+          toast.success(options?.title ?? defaultToastTitle, {
+            description: options?.description,
+          });
+        }
+        setTimeout(() => setCopied(false), autoResetMs);
+      } else {
+        toast.error("Impossible de copier dans le presse-papier.");
       }
-      setTimeout(() => setCopied(false), autoResetMs);
-      return true;
+
+      return success;
     },
     [autoResetMs, defaultToastTitle],
   );
