@@ -109,11 +109,14 @@ Voici les documents relatifs à la formation "{{training_name}}" qui s'est déro
 - La facture
 {{/has_invoice}}
 {{#has_sheets}}
-- Les feuilles d'émargement signées
+- La feuille d'émargement signée
 {{/has_sheets}}
 {{#has_certificates}}
 - Les certificats de réalisation
 {{/has_certificates}}
+{{#has_evaluations}}
+- Les évaluations des participants
+{{/has_evaluations}}
 
 N'hésite pas à me contacter si tu as des questions.
 
@@ -125,11 +128,14 @@ Veuillez trouver ci-joint les documents relatifs à la formation "{{training_nam
 - La facture
 {{/has_invoice}}
 {{#has_sheets}}
-- Les feuilles d'émargement signées
+- La feuille d'émargement signée
 {{/has_sheets}}
 {{#has_certificates}}
 - Les certificats de réalisation
 {{/has_certificates}}
+{{#has_evaluations}}
+- Les évaluations des participants
+{{/has_evaluations}}
 
 N'hésitez pas à me contacter si vous avez des questions.
 
