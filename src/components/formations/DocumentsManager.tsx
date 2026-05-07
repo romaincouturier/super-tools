@@ -33,7 +33,7 @@ const DocumentsManager = ({
     documentsSentInfo, setDocumentsSentInfo,
     conventionSentAt, setConventionSentAt,
     conventionSignatureStatus, conventionSignatureUrl, setConventionSignatureUrl,
-    certificateUrls, evaluationCount,
+    certificateUrls, evaluationCount, signatureCount,
     saveSupportsUrl, saveSupportsType, saveSupportsFile, saveSupportsLmsCourseId,
   } = useDocumentsFetch({ trainingId, participants });
 
@@ -92,7 +92,7 @@ const DocumentsManager = ({
             attendanceSheetsUrls={attendanceSheetsUrls} certificateUrls={certificateUrls}
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
             sponsorFormalAddress={sponsorFormalAddress} documentsSentInfo={documentsSentInfo}
-            setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount}
+            setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount} signatureCount={signatureCount}
           />
         </CardContent>
       </Card>

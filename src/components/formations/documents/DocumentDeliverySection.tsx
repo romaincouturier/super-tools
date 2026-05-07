@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Send, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { exportAttendancePdf } from "../attendance/attendancePdfExport";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ interface DocumentDeliverySectionProps {
   documentsSentInfo: DocumentSentInfo;
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
   evaluationCount?: number;
+  signatureCount?: number;
 }
 
 const DocumentDeliverySection = ({
@@ -49,6 +52,7 @@ const DocumentDeliverySection = ({
   sponsorFormalAddress,
   setDocumentsSentInfo,
   evaluationCount = 0,
+  signatureCount = 0,
 }: DocumentDeliverySectionProps) => {
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
@@ -63,8 +67,24 @@ const DocumentDeliverySection = ({
 
   const hasCertificates = certificateUrls.length > 0;
   const hasEvaluations = evaluationCount > 0;
-  const hasDocuments = invoiceFileUrl || attendanceSheetsUrls.length > 0 || hasCertificates || hasEvaluations;
-  const docCount = (invoiceFileUrl ? 1 : 0) + (attendanceSheetsUrls.length > 0 ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
+  const hasSheets = attendanceSheetsUrls.length > 0 || signatureCount > 0;
+  const hasDocuments = invoiceFileUrl || hasSheets || hasCertificates || hasEvaluations;
+  const docCount = (invoiceFileUrl ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
+
+  const ensureAttendanceSheetsUrls = async (): Promise<string[]> => {
+    if (attendanceSheetsUrls.length > 0) return attendanceSheetsUrls;
+    if (signatureCount === 0) return [];
+    // Generate PDF on the fly from electronic signatures
+    try {
+      await exportAttendancePdf({ trainingId, trainingName, startDate });
+    } catch (e) {
+      console.error("Failed to generate attendance PDF:", e);
+      toast({ title: "Erreur", description: "Impossible de générer la feuille d'émargement.", variant: "destructive" });
+      return [];
+    }
+    const { data } = await supabase.from("trainings").select("attendance_sheets_urls").eq("id", trainingId).single();
+    return ((data?.attendance_sheets_urls as string[]) || []);
+  };
 
   const handleSendDocuments = async (type: DocumentType, recipientEmail?: string, cc?: string) => {
     const targetEmail = recipientEmail || sponsorEmail;
@@ -76,9 +96,14 @@ const DocumentDeliverySection = ({
       toast({ title: "Pas de facture", description: "Aucune facture n'a été uploadée.", variant: "destructive" });
       return;
     }
-    if (type === "sheets" && attendanceSheetsUrls.length === 0) {
-      toast({ title: "Pas de feuilles", description: "Aucune feuille d'émargement n'a été uploadée.", variant: "destructive" });
-      return;
+
+    let sheetsToSend = attendanceSheetsUrls;
+    if (type === "sheets" || type === "all") {
+      sheetsToSend = await ensureAttendanceSheetsUrls();
+      if (type === "sheets" && sheetsToSend.length === 0) {
+        toast({ title: "Pas de feuilles", description: "Aucune feuille d'émargement n'est disponible.", variant: "destructive" });
+        return;
+      }
     }
 
     const result = await invokeSendDocs({
@@ -87,9 +112,10 @@ const DocumentDeliverySection = ({
       recipientName: recipientEmail ? null : sponsorName,
       recipientFirstName: recipientEmail ? null : sponsorFirstName,
       documentType: type,
-      invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
-      attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
+      invoiceUrl: type === "sheets" || type === "certificates" || type === "evaluations" ? null : invoiceFileUrl,
+      attendanceSheetsUrls: type === "invoice" || type === "certificates" || type === "evaluations" ? [] : sheetsToSend,
       certificateUrls: type === "certificates" || type === "all" ? certificateUrls : [],
+      includeEvaluations: type === "all" && hasEvaluations,
       ccEmail: cc || null,
       formalAddress: sponsorFormalAddress,
     });
@@ -138,9 +164,9 @@ const DocumentDeliverySection = ({
   const renderInterEntrepriseMenu = () => (
     <DropdownMenuContent align="end" className="w-72">
       <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Envoyer à un destinataire</p>
-      {attendanceSheetsUrls.length > 0 && (
+      {hasSheets && (
         <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
-          <ClipboardList className="h-4 w-4 mr-2" />Feuilles d&apos;émargement
+          <ClipboardList className="h-4 w-4 mr-2" />Feuille d&apos;émargement
         </DropdownMenuItem>
       )}
       {hasCertificates && (
@@ -163,7 +189,7 @@ const DocumentDeliverySection = ({
           <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Envoyer au commanditaire</p>
           <p className="px-2 pb-1.5 text-xs text-muted-foreground truncate">{sponsorEmail}</p>
           {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}><Receipt className="h-4 w-4 mr-2" />Facture</DropdownMenuItem>}
-          {attendanceSheetsUrls.length > 0 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}><ClipboardList className="h-4 w-4 mr-2" />Feuilles d&apos;émargement</DropdownMenuItem>}
+          {hasSheets && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}><ClipboardList className="h-4 w-4 mr-2" />Feuille d&apos;émargement</DropdownMenuItem>}
           {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", true)}><Award className="h-4 w-4 mr-2" />Certificats ({certificateUrls.length})</DropdownMenuItem>}
           {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", true)}><Star className="h-4 w-4 mr-2" />Évaluations participants ({evaluationCount})</DropdownMenuItem>}
           {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}><FileText className="h-4 w-4 mr-2" />Tous les documents</DropdownMenuItem>}
@@ -172,7 +198,7 @@ const DocumentDeliverySection = ({
       )}
       <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Envoyer à un autre destinataire</p>
       {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", false)}><Mail className="h-4 w-4 mr-2" />Facture → autre email</DropdownMenuItem>}
-      {attendanceSheetsUrls.length > 0 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}><Mail className="h-4 w-4 mr-2" />Émargements → autre email</DropdownMenuItem>}
+      {hasSheets && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}><Mail className="h-4 w-4 mr-2" />Émargement → autre email</DropdownMenuItem>}
       {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", false)}><Mail className="h-4 w-4 mr-2" />Certificats → autre email</DropdownMenuItem>}
       {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", false)}><Mail className="h-4 w-4 mr-2" />Évaluations → autre email</DropdownMenuItem>}
       {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}><Mail className="h-4 w-4 mr-2" />Tous → autre email</DropdownMenuItem>}
@@ -183,7 +209,7 @@ const DocumentDeliverySection = ({
     <>
       <div className="pt-4 border-t space-y-3">
         {isInterEntreprise ? (
-          (attendanceSheetsUrls.length > 0 || hasCertificates) ? (
+          (hasSheets || hasCertificates || hasEvaluations) ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>{renderSendButton()}</DropdownMenuTrigger>
               {renderInterEntrepriseMenu()}
@@ -203,12 +229,12 @@ const DocumentDeliverySection = ({
             <Send className="h-4 w-4 mr-2" />Envoyer les documents
           </Button>
         )}
-        {!isInterEntreprise && !invoiceFileUrl && attendanceSheetsUrls.length === 0 && (
+        {!isInterEntreprise && !invoiceFileUrl && !hasSheets && (
           <p className="text-xs text-muted-foreground text-center">
             Uploadez une facture ou des feuilles d&apos;émargement pour les envoyer
           </p>
         )}
-        {isInterEntreprise && attendanceSheetsUrls.length === 0 && (
+        {isInterEntreprise && !hasSheets && !hasCertificates && !hasEvaluations && (
           <p className="text-xs text-muted-foreground text-center">
             Uploadez des feuilles d&apos;émargement pour les envoyer. Les factures sont gérées par participant.
           </p>

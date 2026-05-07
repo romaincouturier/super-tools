@@ -17,6 +17,7 @@ interface UseDocumentsFetchResult {
   setConventionSignatureUrl: (url: string | null) => void;
   certificateUrls: string[];
   evaluationCount: number;
+  signatureCount: number;
   saveSupportsUrl: (url: string) => Promise<void>;
   saveSupportsType: (type: "url" | "file" | "lms") => Promise<void>;
   saveSupportsFile: (url: string | null, fileName: string | null) => Promise<void>;
@@ -30,6 +31,7 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
   const [conventionSignatureStatus, setConventionSignatureStatus] = useState<ConventionSignatureStatus | null>(null);
   const [certificateUrls, setCertificateUrls] = useState<string[]>([]);
   const [evaluationCount, setEvaluationCount] = useState(0);
+  const [signatureCount, setSignatureCount] = useState(0);
 
   // Fetch document send dates from activity logs
   useEffect(() => {
@@ -132,6 +134,16 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     };
 
     fetchCertificatesAndEvaluations();
+
+    const fetchSignatureCount = async () => {
+      const { count } = await supabase
+        .from("attendance_signatures")
+        .select("id", { count: "exact", head: true })
+        .eq("training_id", trainingId)
+        .not("signature_data", "is", null);
+      setSignatureCount(count || 0);
+    };
+    fetchSignatureCount();
   }, [trainingId, participants]);
 
   const saveSupportsUrl = useCallback(async (url: string) => {
@@ -190,6 +202,7 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     setConventionSignatureUrl,
     certificateUrls,
     evaluationCount,
+    signatureCount,
     saveSupportsUrl,
     saveSupportsType,
     saveSupportsFile,

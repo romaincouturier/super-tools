@@ -62,7 +62,8 @@ serve(async (req) => {
       certificateUrls,
       ccEmail,
       participantId,
-      formalAddress = true
+      formalAddress = true,
+      includeEvaluations = false,
     } = await req.json();
 
     if (!recipientEmail) {
@@ -108,11 +109,14 @@ Voici les documents relatifs à la formation "{{training_name}}" qui s'est déro
 - La facture
 {{/has_invoice}}
 {{#has_sheets}}
-- Les feuilles d'émargement signées
+- La feuille d'émargement signée
 {{/has_sheets}}
 {{#has_certificates}}
 - Les certificats de réalisation
 {{/has_certificates}}
+{{#has_evaluations}}
+- Les évaluations des participants
+{{/has_evaluations}}
 
 N'hésite pas à me contacter si tu as des questions.
 
@@ -124,11 +128,14 @@ Veuillez trouver ci-joint les documents relatifs à la formation "{{training_nam
 - La facture
 {{/has_invoice}}
 {{#has_sheets}}
-- Les feuilles d'émargement signées
+- La feuille d'émargement signée
 {{/has_sheets}}
 {{#has_certificates}}
 - Les certificats de réalisation
 {{/has_certificates}}
+{{#has_evaluations}}
+- Les évaluations des participants
+{{/has_evaluations}}
 
 N'hésitez pas à me contacter si vous avez des questions.
 
@@ -154,6 +161,7 @@ Bonne réception.`;
     const hasInvoice = documentType === "invoice" || (documentType === "all" && !!invoiceUrl);
     const hasSheets = documentType === "sheets" || (documentType === "all" && attendanceSheetsUrls?.length > 0);
     const hasCertificates = documentType === "certificates" || (documentType === "all" && certificateUrls?.length > 0);
+    const hasEvaluationsAll = documentType === "all" && includeEvaluations;
 
     // Build template variables
     const variables = {
@@ -164,6 +172,7 @@ Bonne réception.`;
       has_invoice: hasInvoice ? "true" : null,
       has_sheets: hasSheets ? "true" : null,
       has_certificates: hasCertificates ? "true" : null,
+      has_evaluations: hasEvaluationsAll ? "true" : null,
     };
 
     // Process subject with training name and date info
@@ -205,7 +214,7 @@ Bonne réception.`;
     }
 
     // Handle evaluations export
-    if (documentType === "evaluations" && trainingId) {
+    if ((documentType === "evaluations" || (documentType === "all" && includeEvaluations)) && trainingId) {
       const { data: evaluations } = await supabase
         .from("training_evaluations")
         .select("first_name, last_name, email, company, appreciation_generale, objectifs_evaluation, rythme, equilibre_theorie_pratique, recommandation, message_recommandation, amelioration_suggeree, remarques_libres, date_soumission")
@@ -214,11 +223,14 @@ Bonne réception.`;
         .order("date_soumission", { ascending: true });
 
       if (!evaluations || evaluations.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "Aucune évaluation soumise pour cette formation" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+        if (documentType === "evaluations") {
+          return new Response(
+            JSON.stringify({ error: "Aucune évaluation soumise pour cette formation" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // For "all": just skip evaluations silently
+      } else {
 
       // Build xlsx rows
       const ratingLabels: Record<string, string> = {
@@ -301,16 +313,19 @@ Bonne réception.`;
         content: xlsxBuffer,
       });
 
-      // Override subject and content for evaluations
-      subject = `Évaluations participants - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
+      // Override subject and content for evaluations-only sends
+      if (documentType === "evaluations") {
+        subject = `Évaluations participants - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
 
-      const evalGreeting = formalAddress ? "Bonjour" : (firstName ? `Bonjour ${firstName}` : "Bonjour");
-      const evalBody = formalAddress
-        ? `${evalGreeting},\n\nVeuillez trouver ci-joint les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception.`
-        : `${evalGreeting},\n\nVoici les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception !`;
+        const evalGreeting = formalAddress ? "Bonjour" : (firstName ? `Bonjour ${firstName}` : "Bonjour");
+        const evalBody = formalAddress
+          ? `${evalGreeting},\n\nVeuillez trouver ci-joint les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception.`
+          : `${evalGreeting},\n\nVoici les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception !`;
 
-      const evalHtml = textToHtml(evalBody);
-      htmlContent = `${evalHtml}\n${signature}`;
+        const evalHtml = textToHtml(evalBody);
+        htmlContent = `${evalHtml}\n${signature}`;
+      }
+      } // end else (evaluations exist)
     }
 
     if (attachments.length === 0) {
