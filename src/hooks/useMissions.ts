@@ -205,6 +205,15 @@ export const useDeleteMissionPage = () => {
   });
 };
 
+export const useReorderMissionPages = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ missionId, orderedIds }: { missionId: string; orderedIds: string[] }) =>
+      missionService.reorderPages(missionId, orderedIds),
+    onSuccess: (_, { missionId }) => qc.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, missionId] }),
+  });
+};
+
 // ── Page Template hooks ──────────────────────────────────────────────
 
 export const useMissionPageTemplates = () =>

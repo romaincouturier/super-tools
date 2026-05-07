@@ -1,4 +1,19 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { formatFileSize } from "@/lib/file-utils";
 import { useEditor, EditorContent, Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from "@tiptap/react";
@@ -15,7 +30,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import {
   ChevronRight,
   ChevronDown,
-  ChevronUp,
+  GripVertical,
   Plus,
   FileText,
   Trash2,
@@ -72,6 +87,7 @@ import {
   useCreateMissionPage,
   useUpdateMissionPage,
   useDeleteMissionPage,
+  useReorderMissionPages,
   useMissionPageTemplates,
   MissionPage,
   MissionPageTemplate,
@@ -107,8 +123,6 @@ interface PageTreeItemProps {
   onDuplicate: (page: MissionPage) => void;
   onToggleExpand: (page: MissionPage) => void;
   onUpdateIcon: (page: MissionPage, icon: string | null) => void;
-  onMoveUp: (page: MissionPage) => void;
-  onMoveDown: (page: MissionPage) => void;
   manualOrder: boolean;
   selectedPageId: string | null;
   sortFn: (a: MissionPage, b: MissionPage) => number;
@@ -256,32 +270,38 @@ const PageTreeItem = ({
   onDuplicate,
   onToggleExpand,
   onUpdateIcon,
-  onMoveUp,
-  onMoveDown,
   manualOrder,
   selectedPageId,
   sortFn,
 }: PageTreeItemProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: page.id,
+    data: { parentId: page.parent_page_id ?? null },
+    disabled: !manualOrder,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: "relative",
+  };
+
   const childPages = allPages
     .filter((p) => p.parent_page_id === page.id)
     .sort(sortFn);
+  const childIds = childPages.map((p) => p.id);
   const hasChildren = childPages.length > 0;
 
-  const siblings = allPages
-    .filter((p) => p.parent_page_id === page.parent_page_id)
-    .sort((a, b) => a.position - b.position);
-  const siblingIndex = siblings.findIndex((p) => p.id === page.id);
-  const canMoveUp = manualOrder && siblingIndex > 0;
-  const canMoveDown = manualOrder && siblingIndex !== -1 && siblingIndex < siblings.length - 1;
-
   return (
-    <div>
+    <div ref={setNodeRef} style={style}>
       <div
         className={cn(
           "group flex items-center gap-1 py-1.5 px-1.5 rounded-md cursor-pointer transition-colors",
           selectedPageId === page.id
             ? "bg-primary/10 text-primary font-medium"
-            : "hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+            : "hover:bg-muted/60 text-muted-foreground hover:text-foreground",
+          isDragging && "z-50",
         )}
         style={{ paddingLeft: `${level * 12 + 4}px` }}
         onClick={() => onSelect(page)}
@@ -317,32 +337,16 @@ const PageTreeItem = ({
 
         <div className="opacity-0 group-hover:opacity-100 flex items-center shrink-0">
           {manualOrder && (
-            <>
-              <button
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveUp(page);
-                }}
-                disabled={!canMoveUp}
-                title="Monter"
-                aria-label="Monter la page"
-              >
-                <ChevronUp className="h-3 w-3" />
-              </button>
-              <button
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMoveDown(page);
-                }}
-                disabled={!canMoveDown}
-                title="Descendre"
-                aria-label="Descendre la page"
-              >
-                <ChevronUp className="h-3 w-3 rotate-180" />
-              </button>
-            </>
+            <button
+              {...attributes}
+              {...listeners}
+              className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted cursor-grab active:cursor-grabbing"
+              onClick={(e) => e.stopPropagation()}
+              title="Déplacer"
+              aria-label="Glisser pour déplacer la page"
+            >
+              <GripVertical className="h-3 w-3" />
+            </button>
           )}
           <button
             className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted"
@@ -386,7 +390,7 @@ const PageTreeItem = ({
       </div>
 
       {hasChildren && page.is_expanded && (
-        <div>
+        <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
           {childPages.map((child) => (
             <PageTreeItem
               key={child.id}
@@ -399,14 +403,12 @@ const PageTreeItem = ({
               onDuplicate={onDuplicate}
               onToggleExpand={onToggleExpand}
               onUpdateIcon={onUpdateIcon}
-              onMoveUp={onMoveUp}
-              onMoveDown={onMoveDown}
               manualOrder={manualOrder}
               selectedPageId={selectedPageId}
               sortFn={sortFn}
             />
           ))}
-        </div>
+        </SortableContext>
       )}
     </div>
   );
@@ -956,6 +958,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const createPage = useCreateMissionPage();
   const updatePage = useUpdateMissionPage();
   const deletePage = useDeleteMissionPage();
+  const reorderPages = useReorderMissionPages();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const [selectedPage, setSelectedPage] = useState<MissionPage | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -1104,37 +1108,32 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
     }
   };
 
-  const swapPagePositions = async (a: MissionPage, b: MissionPage) => {
-    if (a.id === b.id) return;
-    if (sortMode !== "manual") setSortMode("manual");
-    try {
-      await Promise.all([
-        updatePage.mutateAsync({ id: a.id, missionId: mission.id, updates: { position: b.position } }),
-        updatePage.mutateAsync({ id: b.id, missionId: mission.id, updates: { position: a.position } }),
-      ]);
-    } catch (error: unknown) {
-      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
-    }
-  };
+  const handlePageDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
 
-  const findSiblingNeighbour = (page: MissionPage, direction: -1 | 1): MissionPage | null => {
+    const activeData = active.data.current as { parentId: string | null } | undefined;
+    const overData = over.data.current as { parentId: string | null } | undefined;
+    if (!activeData || !overData) return;
+
+    // Only allow reordering within the same parent group.
+    if (activeData.parentId !== overData.parentId) return;
+
+    const parentId = activeData.parentId;
     const siblings = (pages || [])
-      .filter((p) => p.parent_page_id === page.parent_page_id)
+      .filter((p) => (p.parent_page_id ?? null) === parentId)
       .sort((a, b) => a.position - b.position);
-    const idx = siblings.findIndex((p) => p.id === page.id);
-    if (idx === -1) return null;
-    const neighbour = siblings[idx + direction];
-    return neighbour ?? null;
-  };
 
-  const handleMovePageUp = async (page: MissionPage) => {
-    const prev = findSiblingNeighbour(page, -1);
-    if (prev) await swapPagePositions(page, prev);
-  };
+    const oldIdx = siblings.findIndex((p) => p.id === String(active.id));
+    const newIdx = siblings.findIndex((p) => p.id === String(over.id));
+    if (oldIdx < 0 || newIdx < 0 || oldIdx === newIdx) return;
 
-  const handleMovePageDown = async (page: MissionPage) => {
-    const next = findSiblingNeighbour(page, 1);
-    if (next) await swapPagePositions(page, next);
+    const reordered = arrayMove(siblings.map((p) => p.id), oldIdx, newIdx);
+    if (sortMode !== "manual") setSortMode("manual");
+    reorderPages.mutate(
+      { missionId: mission.id, orderedIds: reordered },
+      { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de réorganisation") },
+    );
   };
 
   const handleDeletePage = async (page: MissionPage) => {
@@ -1293,25 +1292,31 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
           </div>
         </div>
         <div className="flex-1 overflow-y-auto py-1 px-1">
-          {rootPages.map((page) => (
-            <PageTreeItem
-              key={page.id}
-              page={page}
-              allPages={pages || []}
-              level={0}
-              onSelect={setSelectedPage}
-              onAddChild={handleCreatePage}
-              onDelete={handleDeletePage}
-              onDuplicate={handleDuplicatePage}
-              onToggleExpand={handleToggleExpand}
-              onUpdateIcon={handleUpdatePageIcon}
-              onMoveUp={handleMovePageUp}
-              onMoveDown={handleMovePageDown}
-              manualOrder={sortMode === "manual"}
-              selectedPageId={selectedPage?.id || null}
-              sortFn={sortFn}
-            />
-          ))}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handlePageDragEnd}
+          >
+            <SortableContext items={rootPages.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              {rootPages.map((page) => (
+                <PageTreeItem
+                  key={page.id}
+                  page={page}
+                  allPages={pages || []}
+                  level={0}
+                  onSelect={setSelectedPage}
+                  onAddChild={handleCreatePage}
+                  onDelete={handleDeletePage}
+                  onDuplicate={handleDuplicatePage}
+                  onToggleExpand={handleToggleExpand}
+                  onUpdateIcon={handleUpdatePageIcon}
+                  manualOrder={sortMode === "manual"}
+                  selectedPageId={selectedPage?.id || null}
+                  sortFn={sortFn}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         </div>
       </div>
 
