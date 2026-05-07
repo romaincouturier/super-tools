@@ -17,6 +17,7 @@ interface UseDocumentsFetchResult {
   setConventionSignatureUrl: (url: string | null) => void;
   certificateUrls: string[];
   evaluationCount: number;
+  signatureCount: number;
   saveSupportsUrl: (url: string) => Promise<void>;
   saveSupportsType: (type: "url" | "file" | "lms") => Promise<void>;
   saveSupportsFile: (url: string | null, fileName: string | null) => Promise<void>;
