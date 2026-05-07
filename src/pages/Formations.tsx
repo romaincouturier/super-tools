@@ -142,14 +142,17 @@ const Formations = () => {
 
       const trainingsWithCount = (trainingsResult.data || []).map((t) => {
         const participants = pMap.get(t.id) || [];
-        const unbilledCount = participants.filter(
-          (p) => p.payment_mode === "invoice" && !p.invoice_file_url
-        ).length;
+        const isIntra = t.session_type === "intra";
+        const unbilledCount = isIntra
+          ? (t.sold_price_ht != null && t.sold_price_ht > 0 && !t.invoice_file_url ? 1 : 0)
+          : participants.filter(
+              (p) => p.payment_mode === "invoice" && !p.invoice_file_url
+            ).length;
         return {
           ...t,
           participant_count: countMap.get(t.id) || 0,
           unbilled_count: unbilledCount,
-          is_intra: t.session_type === "intra",
+          is_intra: isIntra,
         };
       });
       setTrainings(trainingsWithCount);
@@ -330,15 +333,12 @@ const Formations = () => {
   // Billing status styling for past trainings
   const getPastTrainingStyle = (training: Training) => {
     if (filter !== "past") return "";
-    // Intra: billing is at training level, not per-participant → no red styling
-    if (training.is_intra) return "";
     if ((training.unbilled_count ?? 0) > 0) return "border-red-300 bg-red-50/50";
     return "opacity-60";
   };
 
   const getPastRowStyle = (training: Training) => {
     if (filter !== "past") return "";
-    if (training.is_intra) return "";
     if ((training.unbilled_count ?? 0) > 0) return "bg-red-50/50 hover:bg-red-50/70";
     return "opacity-60";
   };
@@ -558,9 +558,11 @@ const Formations = () => {
                                 {training.participant_count}
                               </Badge>
                             )}
-                            {filter === "past" && !training.is_intra && (training.unbilled_count ?? 0) > 0 && (
+                            {filter === "past" && (training.unbilled_count ?? 0) > 0 && (
                               <Badge variant="destructive" className="text-xs px-1.5 py-0">
-                                {training.unbilled_count} non facturé{(training.unbilled_count ?? 0) > 1 ? "s" : ""}
+                                {training.is_intra
+                                  ? "non facturée"
+                                  : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
                               </Badge>
                             )}
                             {hasActions(training.id) && (
@@ -681,9 +683,11 @@ const Formations = () => {
                                   {training.participant_count}
                                 </Badge>
                               )}
-                              {filter === "past" && !training.is_intra && (training.unbilled_count ?? 0) > 0 && (
+                              {filter === "past" && (training.unbilled_count ?? 0) > 0 && (
                                 <Badge variant="destructive" className="text-xs px-1.5 py-0">
-                                  {training.unbilled_count} non facturé{(training.unbilled_count ?? 0) > 1 ? "s" : ""}
+                                  {training.is_intra
+                                    ? "non facturée"
+                                    : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
                                 </Badge>
                               )}
                               {hasActions(training.id) && (
