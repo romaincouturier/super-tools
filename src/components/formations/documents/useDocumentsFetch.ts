@@ -202,6 +202,7 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     setConventionSignatureUrl,
     certificateUrls,
     evaluationCount,
+    signatureCount,
     saveSupportsUrl,
     saveSupportsType,
     saveSupportsFile,
