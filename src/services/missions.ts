@@ -199,6 +199,14 @@ export async function deletePage(id: string): Promise<void> {
   throwIfError(result);
 }
 
+export async function reorderPages(missionId: string, orderedIds: string[]): Promise<void> {
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      db().from("mission_pages").update({ position: index }).eq("id", id).eq("mission_id", missionId),
+    ),
+  );
+}
+
 // ── Page Templates ───────────────────────────────────────────────────
 
 export async function fetchPageTemplates(): Promise<MissionPageTemplate[]> {
