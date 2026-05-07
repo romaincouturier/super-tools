@@ -62,7 +62,8 @@ serve(async (req) => {
       certificateUrls,
       ccEmail,
       participantId,
-      formalAddress = true
+      formalAddress = true,
+      includeEvaluations = false,
     } = await req.json();
 
     if (!recipientEmail) {
