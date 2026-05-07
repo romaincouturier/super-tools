@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CalendarDays, User, Trash2, Pencil, Check, X } from "lucide-react";
+import { CalendarDays, Trash2, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
