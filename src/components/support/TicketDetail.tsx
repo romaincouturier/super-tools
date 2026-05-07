@@ -183,6 +183,48 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           </div>
         </div>
 
+        {/* Action "à discuter" — visible uniquement en Qualification */}
+        {ticket.status === "qualification" && (
+          <Card className="border-dashed border-amber-300 bg-amber-50/40">
+            <CardContent className="pt-4 space-y-2">
+              <div className="flex items-start gap-2">
+                <MessageCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  Si le besoin n'est pas clair, marque-le « à discuter ». Un email sera envoyé à{" "}
+                  <strong className="text-foreground">{ticket.submitted_by_email || "—"}</strong>{" "}
+                  pour proposer un échange de vive voix.
+                </div>
+              </div>
+              {ticket.discussion_requested_at && (
+                <div className="text-xs text-amber-700">
+                  ✓ Demande envoyée {formatDistanceToNow(new Date(ticket.discussion_requested_at), { addSuffix: true, locale: fr })}
+                </div>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full gap-2"
+                disabled={requestingDiscussion || !ticket.submitted_by_email}
+                onClick={async () => {
+                  setRequestingDiscussion(true);
+                  try {
+                    await requestTicketDiscussion(ticket);
+                    onUpdate(ticket.id, { discussion_requested_at: new Date().toISOString() } as Partial<SupportTicket>);
+                    toast.success("Email « à discuter » envoyé");
+                  } catch {
+                    toast.error("Impossible d'envoyer l'email");
+                  } finally {
+                    setRequestingDiscussion(false);
+                  }
+                }}
+              >
+                {requestingDiscussion ? <Spinner /> : <MessageCircle className="h-4 w-4" />}
+                {ticket.discussion_requested_at ? "Renvoyer la demande de discussion" : "Marquer « à discuter » & envoyer l'email"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Assigné à — sélecteur d'équipe */}
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">Assigné à</Label>
