@@ -245,9 +245,9 @@ export default function LmsCoursePlayer() {
         <main className="flex-1 overflow-auto">
           {selectedLesson ? (
             <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 {lessonTypeIcon(selectedLesson.lesson_type)}
-                <h2 className="text-xl font-bold flex-1">{selectedLesson.title}</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold flex-1 leading-tight text-foreground">{selectedLesson.title}</h2>
                 {selectedLesson.estimated_minutes > 0 && (
                   <Badge variant="outline">
                     <Clock className="w-3 h-3 mr-1" /> {selectedLesson.estimated_minutes} min
