@@ -134,6 +134,16 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
     };
 
     fetchCertificatesAndEvaluations();
+
+    const fetchSignatureCount = async () => {
+      const { count } = await supabase
+        .from("attendance_signatures")
+        .select("id", { count: "exact", head: true })
+        .eq("training_id", trainingId)
+        .not("signature_data", "is", null);
+      setSignatureCount(count || 0);
+    };
+    fetchSignatureCount();
   }, [trainingId, participants]);
 
   const saveSupportsUrl = useCallback(async (url: string) => {
