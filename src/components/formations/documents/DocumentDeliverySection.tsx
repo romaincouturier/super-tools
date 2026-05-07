@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Send, FileText, Receipt, ClipboardList, Mail, Award, Star } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { exportAttendancePdf } from "../attendance/attendancePdfExport";
+import { supabase } from "@/integrations/supabase/client";
 
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
