@@ -53,7 +53,7 @@ export default function FormationDatesSection({
             <Input id="dateFormation" placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026" value={dateFormation} onChange={(e) => setDateFormation(e.target.value)} required />
           )}
           <p className="text-xs text-muted-foreground">
-            {formationDates.length > 0 ? "Sélectionnez une date ou gérez les dates disponibles" : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"}
+            {formationDates.length > 0 ? "Sélectionnez une session inter-entreprises à venir" : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"}
           </p>
         </>
       )}
