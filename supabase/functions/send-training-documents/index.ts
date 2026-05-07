@@ -208,7 +208,7 @@ Bonne réception.`;
     }
 
     // Handle evaluations export
-    if (documentType === "evaluations" && trainingId) {
+    if ((documentType === "evaluations" || (documentType === "all" && includeEvaluations)) && trainingId) {
       const { data: evaluations } = await supabase
         .from("training_evaluations")
         .select("first_name, last_name, email, company, appreciation_generale, objectifs_evaluation, rythme, equilibre_theorie_pratique, recommandation, message_recommandation, amelioration_suggeree, remarques_libres, date_soumission")
