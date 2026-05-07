@@ -67,8 +67,24 @@ const DocumentDeliverySection = ({
 
   const hasCertificates = certificateUrls.length > 0;
   const hasEvaluations = evaluationCount > 0;
-  const hasDocuments = invoiceFileUrl || attendanceSheetsUrls.length > 0 || hasCertificates || hasEvaluations;
-  const docCount = (invoiceFileUrl ? 1 : 0) + (attendanceSheetsUrls.length > 0 ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
+  const hasSheets = attendanceSheetsUrls.length > 0 || signatureCount > 0;
+  const hasDocuments = invoiceFileUrl || hasSheets || hasCertificates || hasEvaluations;
+  const docCount = (invoiceFileUrl ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
+
+  const ensureAttendanceSheetsUrls = async (): Promise<string[]> => {
+    if (attendanceSheetsUrls.length > 0) return attendanceSheetsUrls;
+    if (signatureCount === 0) return [];
+    // Generate PDF on the fly from electronic signatures
+    try {
+      await exportAttendancePdf({ trainingId, trainingName, startDate });
+    } catch (e) {
+      console.error("Failed to generate attendance PDF:", e);
+      toast({ title: "Erreur", description: "Impossible de générer la feuille d'émargement.", variant: "destructive" });
+      return [];
+    }
+    const { data } = await supabase.from("trainings").select("attendance_sheets_urls").eq("id", trainingId).single();
+    return ((data?.attendance_sheets_urls as string[]) || []);
+  };
 
   const handleSendDocuments = async (type: DocumentType, recipientEmail?: string, cc?: string) => {
     const targetEmail = recipientEmail || sponsorEmail;
@@ -80,9 +96,14 @@ const DocumentDeliverySection = ({
       toast({ title: "Pas de facture", description: "Aucune facture n'a été uploadée.", variant: "destructive" });
       return;
     }
-    if (type === "sheets" && attendanceSheetsUrls.length === 0) {
-      toast({ title: "Pas de feuilles", description: "Aucune feuille d'émargement n'a été uploadée.", variant: "destructive" });
-      return;
+
+    let sheetsToSend = attendanceSheetsUrls;
+    if (type === "sheets" || type === "all") {
+      sheetsToSend = await ensureAttendanceSheetsUrls();
+      if (type === "sheets" && sheetsToSend.length === 0) {
+        toast({ title: "Pas de feuilles", description: "Aucune feuille d'émargement n'est disponible.", variant: "destructive" });
+        return;
+      }
     }
 
     const result = await invokeSendDocs({
@@ -91,9 +112,10 @@ const DocumentDeliverySection = ({
       recipientName: recipientEmail ? null : sponsorName,
       recipientFirstName: recipientEmail ? null : sponsorFirstName,
       documentType: type,
-      invoiceUrl: type === "sheets" || type === "certificates" ? null : invoiceFileUrl,
-      attendanceSheetsUrls: type === "invoice" || type === "certificates" ? [] : attendanceSheetsUrls,
+      invoiceUrl: type === "sheets" || type === "certificates" || type === "evaluations" ? null : invoiceFileUrl,
+      attendanceSheetsUrls: type === "invoice" || type === "certificates" || type === "evaluations" ? [] : sheetsToSend,
       certificateUrls: type === "certificates" || type === "all" ? certificateUrls : [],
+      includeEvaluations: type === "all" && hasEvaluations,
       ccEmail: cc || null,
       formalAddress: sponsorFormalAddress,
     });
