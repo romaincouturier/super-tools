@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,17 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
   const [tags, setTags] = useState<string[]>(item.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Resync form state each time the dialog opens (avoids stale values after a mutation).
+  useEffect(() => {
+    if (open) {
+      setTitle(item.title);
+      setBody(item.body);
+      setSourceUrl(item.source_url ?? "");
+      setTags(item.tags || []);
+      setTagInput("");
+    }
+  }, [open]);
 
   const updateMutation = useUpdateWatchItem();
   const { data: allTags } = useWatchTags();
@@ -59,7 +70,7 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-lg">
+      <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier la carte de veille</DialogTitle>
         </DialogHeader>
@@ -75,7 +86,7 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
             />
           </div>
 
-          {item.content_type === "text" && (
+          {item.content_type === "text" && open && (
             <div>
               <Label>Contenu</Label>
               <WatchRichEditor
