@@ -96,7 +96,12 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
     },
   });
 
-  if (!editor) return null;
+  if (!editor) return (
+    <div className={cn("border rounded-md bg-background", className)}>
+      <div className="h-[38px] border-b bg-muted/30" />
+      <div className="min-h-[160px] p-3" />
+    </div>
+  );
 
   return (
     <div className={cn("border rounded-md bg-background relative", className)}>

@@ -195,7 +195,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
           Ajouter
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full max-w-lg">
+      <DialogContent className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ajouter un contenu de veille</DialogTitle>
         </DialogHeader>
