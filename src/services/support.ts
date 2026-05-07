@@ -90,16 +90,26 @@ export async function createSupportTicket(
   const data = throwIfError(result) as SupportTicket;
 
   if (files && files.length > 0) {
+    let firstImageUrl: string | null = null;
     for (const file of files) {
       const filePath = `${data.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
-      await supabase.storage.from("support-attachments").upload(filePath, file);
+      const mime = resolveContentType(file);
+      await supabase.storage.from("support-attachments").upload(filePath, file, { contentType: mime });
       await db().from("support_ticket_attachments").insert({
         ticket_id: data.id,
         file_name: file.name,
         file_path: filePath,
         file_size: file.size,
-        mime_type: resolveContentType(file),
+        mime_type: mime,
       });
+      if (!firstImageUrl && mime.startsWith("image/")) {
+        const { data: urlData } = supabase.storage.from("support-attachments").getPublicUrl(filePath);
+        firstImageUrl = urlData.publicUrl;
+      }
+    }
+    if (firstImageUrl) {
+      await db().from("support_tickets").update({ screenshot_url: firstImageUrl }).eq("id", data.id);
+      data.screenshot_url = firstImageUrl;
     }
   }
 
