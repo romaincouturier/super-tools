@@ -220,12 +220,15 @@ const ParticipantTraceabilityDrawer = ({
                   </p>
                 ) : (
                   <div className="space-y-2 pr-4">
-                    {emails.map((email) => {
-                    <br />
-                    <span className="text-xs">Les emails envoyés à partir de maintenant seront tracés automatiquement.</span>
-                  </p>
-                ) : (
-                  <div className="space-y-2 pr-4">
+                    {participantAddedAt && (
+                      <div className="border rounded-lg px-4 py-3 flex items-center gap-3 bg-muted/30">
+                        <UserCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Inscription confirmée</p>
+                          <span className="text-xs text-muted-foreground">{formatDate(participantAddedAt)}</span>
+                        </div>
+                      </div>
+                    )}
                     {emails.map((email) => {
                       const isExpanded = expandedEmailId === email.id;
                       return (
