@@ -42,10 +42,13 @@ async function fetchSettings(): Promise<EmailSettings> {
       .in("setting_key", ["bcc_email", "bcc_enabled", "sender_email", "sender_name"]);
 
     if (data) {
+      // Strip ALL whitespace from email values — a stray space breaks Resend's `from` validation
+      const cleanEmail = (v: string) => v.replace(/\s+/g, "");
+      const cleanName = (v: string) => v.trim();
       for (const s of data) {
-        if (s.setting_key === "bcc_email" && s.setting_value) defaults.senderEmail = s.setting_value;
-        if (s.setting_key === "sender_email" && s.setting_value) defaults.senderEmail = s.setting_value;
-        if (s.setting_key === "sender_name" && s.setting_value) defaults.senderName = s.setting_value;
+        if (s.setting_key === "bcc_email" && s.setting_value) defaults.senderEmail = cleanEmail(s.setting_value);
+        if (s.setting_key === "sender_email" && s.setting_value) defaults.senderEmail = cleanEmail(s.setting_value);
+        if (s.setting_key === "sender_name" && s.setting_value) defaults.senderName = cleanName(s.setting_value);
         if (s.setting_key === "bcc_enabled") defaults.bccEnabled = s.setting_value === "true";
       }
     }
