@@ -84,6 +84,10 @@ export async function exportAttendancePdf({
   const training = data.training;
   const signatures = data.signatures;
   const trainerSigs: TrainerSignature[] = data.trainerSignatures || [];
+  const schedules: { day_date: string; start_time: string; end_time: string }[] = data.schedules || [];
+
+  const scheduleMap = new Map(schedules.map(s => [s.day_date, s]));
+  const formatTime = (t: string) => (t || "").slice(0, 5);
 
   const trainerSigMap = new Map(
     trainerSigs.map((ts: TrainerSignature) => [`${ts.schedule_date}-${ts.period}`, ts])
