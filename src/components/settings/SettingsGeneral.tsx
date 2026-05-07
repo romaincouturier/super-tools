@@ -214,6 +214,61 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
 
           <Separator />
 
+          {/* Tampon société */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Tampon de la société</h3>
+            <p className="text-sm text-muted-foreground">Image (PNG, JPG, WebP) du tampon de la société. Apposé en bas des feuilles d'émargement, à côté de la signature du formateur.</p>
+            {settings.company_stamp_url ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 max-w-lg">
+                <img src={settings.company_stamp_url} alt="Tampon société" className="h-16 w-16 object-contain bg-white rounded" />
+                <span className="text-sm font-medium truncate flex-1">Tampon société</span>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={settings.company_stamp_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1.5" />Voir</a>
+                </Button>
+                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => updateSetting("company_stamp_url", "")}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="stamp-upload" className="sr-only">Tampon (image)</Label>
+                <div className="flex items-center gap-2 max-w-lg">
+                  <Button variant="outline" disabled={uploadingStamp} onClick={() => document.getElementById("stamp-upload")?.click()}>
+                    {uploadingStamp ? <Spinner className="mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                    Choisir une image
+                  </Button>
+                  <input id="stamp-upload" type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const ct = resolveContentType(file);
+                    if (!["image/png", "image/jpeg", "image/webp"].includes(ct)) {
+                      toast({ title: "Format invalide", description: "Seules les images PNG, JPG ou WebP sont acceptées.", variant: "destructive" });
+                      return;
+                    }
+                    setUploadingStamp(true);
+                    try {
+                      const ext = file.name.split(".").pop();
+                      const filePath = `company-stamp/tampon-${Date.now()}.${ext}`;
+                      const { error: uploadError } = await supabase.storage.from("training-documents").upload(filePath, file, { upsert: true, contentType: ct });
+                      if (uploadError) throw uploadError;
+                      const { data: urlData } = supabase.storage.from("training-documents").getPublicUrl(filePath);
+                      updateSetting("company_stamp_url", urlData.publicUrl);
+                      toast({ title: "Tampon uploadé" });
+                    } catch (error: unknown) {
+                      console.error("Upload error:", error);
+                      toast({ title: "Erreur d'upload", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+                    } finally {
+                      setUploadingStamp(false);
+                      e.target.value = "";
+                    }
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Permissions */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Droits et permissions</h3>
