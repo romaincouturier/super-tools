@@ -45,6 +45,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
   const [type, setType] = useState<TicketType>(ticket.type);
   const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
   const [reanalyzing, setReanalyzing] = useState(false);
+  const [requestingDiscussion, setRequestingDiscussion] = useState(false);
   const { copied, copy } = useCopyToClipboard();
 
   // AI analysis handlers
