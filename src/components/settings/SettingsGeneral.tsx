@@ -73,7 +73,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
             {bccEnabled && (
               <div className="space-y-2 pl-0 pt-2">
                 <Label htmlFor="bcc-email">Adresse email BCC</Label>
-                <Input id="bcc-email" type="email" value={settings.bcc_email} onChange={(e) => updateSetting("bcc_email", e.target.value)} placeholder="email@exemple.com" className="max-w-md" />
+                <Input id="bcc-email" type="email" value={settings.bcc_email} onChange={(e) => updateSetting("bcc_email", e.target.value.replace(/\s+/g, ""))} placeholder="email@exemple.com" className="max-w-md" />
               </div>
             )}
           </div>
