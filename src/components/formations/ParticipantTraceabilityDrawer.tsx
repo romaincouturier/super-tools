@@ -221,6 +221,12 @@ const ParticipantTraceabilityDrawer = ({
                 ) : (
                   <div className="space-y-2 pr-4">
                     {emails.map((email) => {
+                    <br />
+                    <span className="text-xs">Les emails envoyés à partir de maintenant seront tracés automatiquement.</span>
+                  </p>
+                ) : (
+                  <div className="space-y-2 pr-4">
+                    {emails.map((email) => {
                       const isExpanded = expandedEmailId === email.id;
                       return (
                         <div key={email.id} className="border rounded-lg overflow-hidden">
