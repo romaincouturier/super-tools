@@ -7161,6 +7161,7 @@ export type Database = {
           session_type: string | null
           signed_convention_urls: string[] | null
           sold_price_ht: number | null
+          specific_instructions: string | null
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_formal_address: boolean
@@ -7222,6 +7223,7 @@ export type Database = {
           session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
+          specific_instructions?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
@@ -7283,6 +7285,7 @@ export type Database = {
           session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
+          specific_instructions?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
