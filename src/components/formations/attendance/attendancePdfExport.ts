@@ -377,6 +377,65 @@ export async function exportAttendancePdf({
     }
   }
 
+  // "Fait à ... Le ..." + signature formateur
+  if (yPos + 50 > pageHeight - 15) { doc.addPage(); yPos = margin; }
+
+  const extractCity = (loc: string | null | undefined): string => {
+    if (!loc) return "Francheville";
+    const m = loc.match(/\b\d{5}\s+([^,]+)/);
+    if (m && m[1]) return m[1].trim();
+    return "Francheville";
+  };
+  const city = extractCity(training.location);
+
+  const sortedDates = [...schedules].map(s => s.day_date).sort();
+  const lastDate = sortedDates.length > 0
+    ? sortedDates[sortedDates.length - 1]
+    : (training.end_date || training.start_date);
+  const lastDateFr = lastDate ? formatDateLong(lastDate) : "";
+
+  const latestTrainerSig = [...trainerSigs]
+    .filter(ts => ts.signed_at && ts.signature_data)
+    .sort((a, b) => (b.signed_at || "").localeCompare(a.signed_at || ""))[0];
+
+  yPos += 4;
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Fait à : ${city}`, margin, yPos);
+  yPos += 5;
+  doc.text(`Le : ${lastDateFr}`, margin, yPos);
+  yPos += 6;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("Signature du formateur :", margin, yPos);
+  yPos += 3;
+
+  if (latestTrainerSig?.signature_data) {
+    try {
+      doc.addImage(
+        latestTrainerSig.signature_data,
+        getImageFormat(latestTrainerSig.signature_data),
+        margin, yPos, 45, 18,
+      );
+    } catch { /* skip broken image */ }
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(latestTrainerSig.trainer_name || training.trainer_name || "", margin + 50, yPos + 12);
+    doc.setTextColor(0, 0, 0);
+    yPos += 22;
+  } else {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150, 150, 150);
+    doc.text("(non signé)", margin, yPos + 8);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    yPos += 14;
+  }
+
   // Legal notice
   if (yPos + 25 > pageHeight - 15) { doc.addPage(); yPos = margin; }
 
