@@ -155,6 +155,9 @@ export async function requestTicketDiscussion(ticket: SupportTicket): Promise<vo
     .from("support_tickets")
     .update({ discussion_requested_at: new Date().toISOString() })
     .eq("id", ticket.id);
+}
+
+export async function updateSupportTicket(
   id: string,
   updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>
 ): Promise<SupportTicket> {
