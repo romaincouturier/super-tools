@@ -99,6 +99,9 @@ export function useSupertiltColumns() {
 
   const deleteColumn = useMutation({
     mutationFn: async (id: string) => {
+      // Delete contained actions first (no FK cascade)
+      const { error: actErr } = await sb.from(TABLE).delete().eq("column_id", id);
+      if (actErr) throw actErr;
       const { error } = await sb.from(COLS_TABLE).delete().eq("id", id);
       if (error) throw error;
     },
