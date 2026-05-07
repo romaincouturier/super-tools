@@ -558,9 +558,11 @@ const Formations = () => {
                                 {training.participant_count}
                               </Badge>
                             )}
-                            {filter === "past" && !training.is_intra && (training.unbilled_count ?? 0) > 0 && (
+                            {filter === "past" && (training.unbilled_count ?? 0) > 0 && (
                               <Badge variant="destructive" className="text-xs px-1.5 py-0">
-                                {training.unbilled_count} non facturé{(training.unbilled_count ?? 0) > 1 ? "s" : ""}
+                                {training.is_intra
+                                  ? "non facturée"
+                                  : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
                               </Badge>
                             )}
                             {hasActions(training.id) && (
