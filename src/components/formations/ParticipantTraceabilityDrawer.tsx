@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 
