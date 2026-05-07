@@ -455,7 +455,7 @@ async function executeTool(
           }
 
           case "update_ticket_status": {
-            const validTicketStatuses = ["nouveau", "en_cours", "en_attente", "resolu", "ferme"];
+            const validTicketStatuses = ["nouveau", "qualification", "vibe_coding", "resolu"];
             if (!validTicketStatuses.includes(params.status as string)) {
               return JSON.stringify({ error: `Statut invalide. Valeurs: ${validTicketStatuses.join(", ")}` });
             }

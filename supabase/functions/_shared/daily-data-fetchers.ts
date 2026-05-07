@@ -1104,11 +1104,11 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
 }
 
 /**
- * Fetch pending support tickets (nouveau, en_cours, en_attente).
- * Excludes resolved/closed tickets.
+ * Fetch pending support tickets (nouveau, qualification, vibe_coding).
+ * Excludes resolved tickets.
  */
 export async function fetchPendingSupportTickets(supabase: SupabaseClient, today: string): Promise<SupportTicketItem[]> {
-  const PENDING_STATUSES = ["nouveau", "en_cours", "en_attente"];
+  const PENDING_STATUSES = ["nouveau", "qualification", "vibe_coding"];
 
   const { data, error } = await supabase
     .from("support_tickets")

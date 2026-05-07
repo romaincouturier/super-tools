@@ -5953,6 +5953,7 @@ export type Database = {
           assigned_to: string | null
           created_at: string
           description: string
+          discussion_requested_at: string | null
           id: string
           page_url: string | null
           position: number
@@ -5973,6 +5974,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           description: string
+          discussion_requested_at?: string | null
           id?: string
           page_url?: string | null
           position?: number
@@ -5993,6 +5995,7 @@ export type Database = {
           assigned_to?: string | null
           created_at?: string
           description?: string
+          discussion_requested_at?: string | null
           id?: string
           page_url?: string | null
           position?: number

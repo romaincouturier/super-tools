@@ -109,7 +109,7 @@ async function notifyNewTicketCopy(ticket: SupportTicket): Promise<void> {
   }
 }
 
-const RESOLVED_STATUSES: TicketStatus[] = ["resolu", "ferme"];
+const RESOLVED_STATUSES: TicketStatus[] = ["resolu"];
 
 function withResolvedAt(payload: Record<string, unknown>, status?: string): Record<string, unknown> {
   if (status && RESOLVED_STATUSES.includes(status as TicketStatus)) {
@@ -134,6 +134,27 @@ async function notifyTicketResolved(ticket: SupportTicket): Promise<void> {
   } catch (err) {
     console.error("Failed to send support notification:", err);
   }
+}
+
+/** Best-effort email asking the submitter to schedule a discussion. */
+export async function requestTicketDiscussion(ticket: SupportTicket): Promise<void> {
+  if (!ticket.submitted_by_email) {
+    throw new Error("Pas d'email pour ce ticket");
+  }
+  const { error } = await supabase.functions.invoke("send-support-notification", {
+    body: {
+      type: "discussion_request",
+      recipientEmail: ticket.submitted_by_email,
+      ticketNumber: ticket.ticket_number,
+      ticketTitle: ticket.title,
+      description: ticket.description,
+    },
+  });
+  if (error) throw error;
+  await db()
+    .from("support_tickets")
+    .update({ discussion_requested_at: new Date().toISOString() })
+    .eq("id", ticket.id);
 }
 
 export async function updateSupportTicket(
