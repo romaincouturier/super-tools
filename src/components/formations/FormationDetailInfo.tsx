@@ -47,6 +47,30 @@ const FormationDetailInfo = ({
   const { copy: copyClientAddress } = useCopyToClipboard();
   const { copied: copiedLocation, copy: copyLocation } = useCopyToClipboard();
   const { copied: copiedEmail, copy: copyEmail } = useCopyToClipboard();
+  const { copied: copiedInvoiceInfo, copy: copyInvoiceInfo } = useCopyToClipboard();
+
+  const handleCopyInvoiceInfo = () => {
+    const duree = `${calculateTotalDuration()}h`;
+    const names = participants
+      .map((p) => [p.first_name, p.last_name].filter(Boolean).join(" ").trim() || p.email)
+      .filter(Boolean)
+      .join(", ") || "—";
+    const sortedDates = [...schedules]
+      .map((s) => s.day_date)
+      .sort();
+    const dates = sortedDates.length > 0
+      ? (() => {
+          const start = parseISO(sortedDates[0]);
+          const end = parseISO(sortedDates[sortedDates.length - 1]);
+          const sameDay = sortedDates[0] === sortedDates[sortedDates.length - 1];
+          return sameDay
+            ? format(start, "d MMMM yyyy", { locale: fr })
+            : `${format(start, "d MMMM yyyy", { locale: fr })} au ${format(end, "d MMMM yyyy", { locale: fr })}`;
+        })()
+      : "—";
+    const text = `Durée : ${duree}\nParticipants : ${names}\nDates : ${dates}\nLieu : ${training.location || "—"}`;
+    copyInvoiceInfo(text, { title: "Infos copiées", description: "Les informations de facturation ont été copiées." });
+  };
 
   const handleSendLogisticsEmail = async () => {
     const result = await invokeSendLogistics({ trainingId: training.id });
