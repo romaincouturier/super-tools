@@ -31,6 +31,7 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
   const [conventionSignatureStatus, setConventionSignatureStatus] = useState<ConventionSignatureStatus | null>(null);
   const [certificateUrls, setCertificateUrls] = useState<string[]>([]);
   const [evaluationCount, setEvaluationCount] = useState(0);
+  const [signatureCount, setSignatureCount] = useState(0);
 
   // Fetch document send dates from activity logs
   useEffect(() => {
