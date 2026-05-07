@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { notifyContentUser } from "@/services/contentNotifications";
@@ -320,6 +321,11 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
       completedAt: archiveIds.has(c.column_id) ? c.updated_at ?? null : null,
     }));
   }, [cards, archiveColumnId]);
+
+  const meanCycleTimeDays = useMemo(
+    () => computeMeanCycleTime(statsItems, archiveColumnId),
+    [statsItems, archiveColumnId],
+  );
 
   // --- Column actions ---
 
@@ -669,17 +675,27 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           columnSortable: true,
           enableKeyboard: true,
         }}
-        renderCard={(card, isDragging) => (
-          <ContentCard
-            card={card}
-            isDragging={isDragging}
-            typeColors={colors}
-            onView={() => setEditingCard(card)}
-            onEdit={() => setEditingCard(card)}
-            onDelete={() => handleDeleteCard(card.id)}
-            onEmojiChange={handleCardEmojiChange}
-          />
-        )}
+        renderCard={(card, isDragging) => {
+          const overdue = !isDragging && meanCycleTimeDays > 0
+            && !archiveColumnId.includes(card.columnId)
+            && cardAgeDays(card.created_at || "") > meanCycleTimeDays;
+          return (
+            <div
+              style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+              title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at || ""))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
+            >
+              <ContentCard
+                card={card}
+                isDragging={isDragging}
+                typeColors={colors}
+                onView={() => setEditingCard(card)}
+                onEdit={() => setEditingCard(card)}
+                onDelete={() => handleDeleteCard(card.id)}
+                onEmojiChange={handleCardEmojiChange}
+              />
+            </div>
+          );
+        }}
         renderColumnHeader={(column, colCards, dragHandle) => {
           const assignedNames = (column.assigned_user_ids || [])
             .map((uid) => collaborators.find((c) => c.id === uid))

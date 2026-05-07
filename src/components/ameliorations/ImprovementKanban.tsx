@@ -7,6 +7,7 @@ import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import { Button } from "@/components/ui/button";
 import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
+import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 
 type ImprovementKanbanCard = Improvement & KanbanCardDef;
 type ImprovementKanbanColumn = KanbanColumnDef;
@@ -57,6 +58,12 @@ export default function ImprovementKanban({
     [cards],
   );
 
+  const IMPROVEMENT_DONE_COLS = ["done"] as const;
+  const meanCycleTimeDays = useMemo(
+    () => computeMeanCycleTime(statsItems, [...IMPROVEMENT_DONE_COLS]),
+    [statsItems],
+  );
+
   return (
     <>
     <div className="flex justify-end mb-2">
@@ -69,16 +76,26 @@ export default function ImprovementKanban({
       columns={columns}
       cards={cards}
       columnClassName="max-h-[calc(100vh-320px)]"
-      renderCard={(card, isDragging) => (
-        <ImprovementCard
-          improvement={card}
-          onStatusChange={isDragging ? () => {} : onStatusChange}
-          onEdit={isDragging ? () => {} : onEdit}
-          onDelete={isDragging ? () => {} : onDelete}
-          onClick={isDragging ? () => {} : onClick}
-          compact
-        />
-      )}
+      renderCard={(card, isDragging) => {
+        const overdue = !isDragging && meanCycleTimeDays > 0
+          && !IMPROVEMENT_DONE_COLS.includes(card.columnId as typeof IMPROVEMENT_DONE_COLS[number])
+          && cardAgeDays(card.created_at) > meanCycleTimeDays;
+        return (
+          <div
+            style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+            title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
+          >
+            <ImprovementCard
+              improvement={card}
+              onStatusChange={isDragging ? () => {} : onStatusChange}
+              onEdit={isDragging ? () => {} : onEdit}
+              onDelete={isDragging ? () => {} : onDelete}
+              onClick={isDragging ? () => {} : onClick}
+              compact
+            />
+          </div>
+        );
+      }}
       renderColumnHeader={(col, colCards) => (
         <div className="flex items-center justify-between p-3 pb-0">
           <h3 className="font-semibold text-sm flex items-center gap-2">
