@@ -202,10 +202,14 @@ export async function exportAttendancePdf({
       xPos += colWidths[0];
 
       const sched = scheduleMap.get(sig.schedule_date);
-      const periodLabel = sched
-        ? `${getPeriodLabel(sig.period)}\n(${formatTime(sched.start_time)}-${formatTime(sched.end_time)})`
-        : getPeriodLabel(sig.period);
-      doc.text(periodLabel, xPos + 2, yPos + 6);
+      doc.text(getPeriodLabel(sig.period), xPos + 2, yPos + 6);
+      if (sched) {
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}`, xPos + 2, yPos + 12);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+      }
       doc.line(xPos + colWidths[1], yPos, xPos + colWidths[1], yPos + rowHeight);
       xPos += colWidths[1];
 
