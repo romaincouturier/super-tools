@@ -71,9 +71,16 @@ export interface TextBlockContent {
   html: string;
 }
 
+export type VideoDisplayStyle = "simple" | "styled";
+
 export interface VideoBlockContent {
   url: string | null;
   duration_seconds?: number | null;
+  display_style?: VideoDisplayStyle;
+  bg_color?: string | null;
+  container_radius?: number | null;
+  video_radius?: number | null;
+  padding?: number | null;
 }
 
 export interface ImageBlockContent {
@@ -97,12 +104,20 @@ export interface AssignmentBlockContent {
   instructions_html?: string | null;
 }
 
-export type CalloutColor = "blue" | "amber" | "green" | "red" | "gray";
+export type CalloutColor =
+  | "blue" | "amber" | "green" | "red" | "gray"
+  | "supertilt_yellow" | "supertilt_black" | "gray_light" | "gray_very_light" | "white"
+  | "teal" | "coral";
+
+export type CalloutLevel = "info" | "warning" | "tip" | "example" | "resource";
 
 export interface CalloutBlockContent {
   color: CalloutColor;
   title?: string | null;
   body_html: string;
+  level?: CalloutLevel | null;
+  border_radius?: number | null;
+  show_icon?: boolean;
 }
 
 export interface KeyPointsBlockContent {
