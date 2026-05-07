@@ -7081,6 +7081,42 @@ export type Database = {
           },
         ]
       }
+      training_venues: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          email: string
+          formal_address: boolean
+          id: string
+          name: string
+          postal_code: string
+          room_name: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          email: string
+          formal_address?: boolean
+          id?: string
+          name: string
+          postal_code: string
+          room_name?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          email?: string
+          formal_address?: boolean
+          id?: string
+          name?: string
+          postal_code?: string
+          room_name?: string | null
+        }
+        Relationships: []
+      }
       trainings: {
         Row: {
           assigned_to: string | null
@@ -7125,6 +7161,7 @@ export type Database = {
           session_type: string | null
           signed_convention_urls: string[] | null
           sold_price_ht: number | null
+          specific_instructions: string | null
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_formal_address: boolean
@@ -7140,6 +7177,8 @@ export type Database = {
           trainer_name: string
           training_name: string
           updated_at: string
+          venue_booking_sent_at: string | null
+          venue_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -7184,6 +7223,7 @@ export type Database = {
           session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
+          specific_instructions?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
@@ -7199,6 +7239,8 @@ export type Database = {
           trainer_name?: string
           training_name: string
           updated_at?: string
+          venue_booking_sent_at?: string | null
+          venue_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -7243,6 +7285,7 @@ export type Database = {
           session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
+          specific_instructions?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
@@ -7258,6 +7301,8 @@ export type Database = {
           trainer_name?: string
           training_name?: string
           updated_at?: string
+          venue_booking_sent_at?: string | null
+          venue_id?: string | null
         }
         Relationships: [
           {
@@ -7286,6 +7331,13 @@ export type Database = {
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "training_venues"
             referencedColumns: ["id"]
           },
         ]
