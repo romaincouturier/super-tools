@@ -77,12 +77,19 @@ serve(async (req) => {
       .select("schedule_date, period, signature_data, signed_at, trainer_name")
       .eq("training_id", trainingId);
 
+    // Fetch training schedules (horaires par jour)
+    const { data: schedules } = await supabase
+      .from("training_schedules")
+      .select("day_date, start_time, end_time")
+      .eq("training_id", trainingId);
+
     return new Response(
       JSON.stringify({
         success: true,
         training,
         signatures: enrichedSignatures,
         trainerSignatures: trainerSignatures || [],
+        schedules: schedules || [],
         signaturesCount: enrichedSignatures.length,
         signedCount: enrichedSignatures.filter(s => s.signed_at).length,
       }),

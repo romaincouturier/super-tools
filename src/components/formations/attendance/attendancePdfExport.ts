@@ -84,6 +84,10 @@ export async function exportAttendancePdf({
   const training = data.training;
   const signatures = data.signatures;
   const trainerSigs: TrainerSignature[] = data.trainerSignatures || [];
+  const schedules: { day_date: string; start_time: string; end_time: string }[] = data.schedules || [];
+
+  const scheduleMap = new Map(schedules.map(s => [s.day_date, s]));
+  const formatTime = (t: string) => (t || "").slice(0, 5);
 
   const trainerSigMap = new Map(
     trainerSigs.map((ts: TrainerSignature) => [`${ts.schedule_date}-${ts.period}`, ts])
@@ -197,7 +201,15 @@ export async function exportAttendancePdf({
       doc.line(xPos + colWidths[0], yPos, xPos + colWidths[0], yPos + rowHeight);
       xPos += colWidths[0];
 
+      const sched = scheduleMap.get(sig.schedule_date);
       doc.text(getPeriodLabel(sig.period), xPos + 2, yPos + 6);
+      if (sched) {
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}`, xPos + 2, yPos + 12);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+      }
       doc.line(xPos + colWidths[1], yPos, xPos + colWidths[1], yPos + rowHeight);
       xPos += colWidths[1];
 
@@ -242,8 +254,10 @@ export async function exportAttendancePdf({
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
+      const sched = scheduleMap.get(date);
+      const horaireText = sched ? ` — ${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}` : "";
       doc.text(
-        `${formatDateFr(date)} - ${getPeriodLabel(period)} (${signedCount}/${slotSignatures.length} signatures)`,
+        `${formatDateFr(date)} - ${getPeriodLabel(period)}${horaireText} (${signedCount}/${slotSignatures.length} signatures)`,
         margin + 3, yPos + 5.5
       );
       doc.setTextColor(0, 0, 0);
