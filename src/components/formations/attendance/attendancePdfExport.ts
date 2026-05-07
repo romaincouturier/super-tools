@@ -201,7 +201,11 @@ export async function exportAttendancePdf({
       doc.line(xPos + colWidths[0], yPos, xPos + colWidths[0], yPos + rowHeight);
       xPos += colWidths[0];
 
-      doc.text(getPeriodLabel(sig.period), xPos + 2, yPos + 6);
+      const sched = scheduleMap.get(sig.schedule_date);
+      const periodLabel = sched
+        ? `${getPeriodLabel(sig.period)}\n(${formatTime(sched.start_time)}-${formatTime(sched.end_time)})`
+        : getPeriodLabel(sig.period);
+      doc.text(periodLabel, xPos + 2, yPos + 6);
       doc.line(xPos + colWidths[1], yPos, xPos + colWidths[1], yPos + rowHeight);
       xPos += colWidths[1];
 
