@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useUpdateLesson, LmsLesson } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Clock } from "lucide-react";
+import { Save, Clock, Eye } from "lucide-react";
 import LessonWorkDepositConfigSection from "@/components/lms/LessonWorkDepositConfigSection";
 import type { WorkDepositConfig } from "@/types/lms-work-deposit";
 import LessonBlocksEditor from "@/components/lms/blocks/LessonBlocksEditor";
@@ -62,9 +62,19 @@ export default function LmsLessonEditor({ lesson, courseId }: Props) {
         </div>
       </div>
 
-      <Button onClick={handleSave} disabled={updateLesson.isPending}>
-        <Save className="w-4 h-4 mr-2" /> Sauvegarder
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button onClick={handleSave} disabled={updateLesson.isPending}>
+          <Save className="w-4 h-4 mr-2" /> Sauvegarder
+        </Button>
+        {courseId && (
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/lms/${courseId}/player?preview=admin&lesson=${lesson.id}`, "_blank")}
+          >
+            <Eye className="w-4 h-4 mr-2" /> Prévisualiser
+          </Button>
+        )}
+      </div>
 
       <LessonWorkDepositConfigSection
         lessonId={lesson.id}

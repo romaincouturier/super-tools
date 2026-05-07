@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -38,10 +38,6 @@ export default function LessonWorkDepositConfigSection({
   const [config, setConfig] = useState<Required<WorkDepositConfig>>(withDepositDefaults(initialConfig));
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setEnabled(initialEnabled);
-    setConfig(withDepositDefaults(initialConfig));
-  }, [initialEnabled, initialConfig]);
 
   const toggleFormat = (fmt: DepositFormat) => {
     setConfig((prev) => {

@@ -38,6 +38,7 @@ export default function LmsCoursePlayer() {
   const [searchParams] = useSearchParams();
   const learnerEmail = searchParams.get("email") || "";
   const isPreview = searchParams.get("preview") === "admin";
+  const initialLessonId = searchParams.get("lesson");
 
   const { data: course } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
@@ -64,10 +65,11 @@ export default function LmsCoursePlayer() {
     return modules.flatMap((m) => lessonsByModule[m.id] || []);
   }, [modules, lessonsByModule]);
 
-  // Auto-select first lesson
+  // Auto-select lesson: prefer ?lesson= param, else first lesson
   useEffect(() => {
     if (!selectedLessonId && orderedLessons.length > 0) {
-      setSelectedLessonId(orderedLessons[0].id);
+      const target = initialLessonId && orderedLessons.find((l) => l.id === initialLessonId);
+      setSelectedLessonId(target ? target.id : orderedLessons[0].id);
     }
   }, [orderedLessons, selectedLessonId]);
 
