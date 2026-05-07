@@ -48,11 +48,11 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
     const loadFormationDates = async () => {
       try {
         const today = new Date().toISOString().slice(0, 10);
-        // Upcoming inter-entreprise sessions, soonest first, excluding past ones.
+        // Upcoming inter sessions (présentiel, classe virtuelle, e-learning), soonest first, excluding past ones.
         const { data, error } = await supabase
           .from("trainings")
           .select("id, training_name, start_date, end_date, format_formation, session_type")
-          .eq("format_formation", "inter-entreprises")
+          .in("format_formation", ["inter-entreprises", "classe_virtuelle", "e_learning"])
           .gte("end_date", today)
           .order("start_date", { ascending: true });
 
