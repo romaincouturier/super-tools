@@ -1,4 +1,4 @@
-import { Pencil, Loader2, Check, Copy } from "lucide-react";
+import { Pencil, Loader2, Check, Copy, ArrowRightLeft } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Dialog,
@@ -19,6 +19,7 @@ import { useEditParticipant } from "@/hooks/useEditParticipant";
 import type { Participant } from "@/hooks/useEditParticipant";
 import { ParticipantFormFields, SponsorFormFields, ParticipantFiles } from "./edit-participant";
 import { formatDateRange } from "@/lib/dateFormatters";
+import RepositionParticipantDialog from "./RepositionParticipantDialog";
 
 export type { Participant };
 
