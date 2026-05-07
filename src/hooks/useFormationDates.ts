@@ -83,12 +83,13 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
   }, [user, toast]);
 
   // Management handlers are no-ops: dates are derived from training sessions.
-  const notManageable = () =>
+  const notManageable = async () => {
     toast({
       title: "Gestion non disponible",
       description:
         "Les dates proviennent des prochaines sessions inter-entreprises programmées.",
     });
+  };
 
   return {
     formationDates,
