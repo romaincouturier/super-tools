@@ -256,7 +256,7 @@ const ParticipantActions = ({
         <TooltipContent><p>Traçabilité participant</p></TooltipContent>
       </Tooltip>
 
-      {/* 7. Edit */}
+      {/* 7. Edit (contient aussi le bouton Repositionner pour inter/e-learning) */}
       <EditParticipantDialog
         participant={participant}
         trainingId={trainingId}
@@ -269,26 +269,6 @@ const ParticipantActions = ({
         trainingLocation={trainingLocation}
         onParticipantUpdated={onParticipantUpdated}
       />
-
-      {/* 7b. Repositionner — inter / e-learning uniquement */}
-      {isInterEntreprise && (
-        participant.repositioned_to_training_id ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex items-center justify-center h-7 w-7 opacity-50">
-                <RotateCw className="h-3.5 w-3.5" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent><p>Déjà repositionné sur une autre session</p></TooltipContent>
-          </Tooltip>
-        ) : (
-          <RepositionParticipantDialog
-            participant={participant}
-            trainingId={trainingId}
-            onRepositioned={onParticipantUpdated}
-          />
-        )
-      )}
 
       {/* 8. Delete */}
       {participantsWithSignatures.has(participant.id) ? (
