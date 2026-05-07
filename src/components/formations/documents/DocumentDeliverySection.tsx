@@ -229,12 +229,12 @@ const DocumentDeliverySection = ({
             <Send className="h-4 w-4 mr-2" />Envoyer les documents
           </Button>
         )}
-        {!isInterEntreprise && !invoiceFileUrl && attendanceSheetsUrls.length === 0 && (
+        {!isInterEntreprise && !invoiceFileUrl && !hasSheets && (
           <p className="text-xs text-muted-foreground text-center">
             Uploadez une facture ou des feuilles d&apos;émargement pour les envoyer
           </p>
         )}
-        {isInterEntreprise && attendanceSheetsUrls.length === 0 && (
+        {isInterEntreprise && !hasSheets && !hasCertificates && !hasEvaluations && (
           <p className="text-xs text-muted-foreground text-center">
             Uploadez des feuilles d&apos;émargement pour les envoyer. Les factures sont gérées par participant.
           </p>
