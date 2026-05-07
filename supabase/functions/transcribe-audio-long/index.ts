@@ -79,12 +79,21 @@ serve(async (req) => {
       const result = await pollResponse.json();
 
       if (result.status === "completed") {
-        // Build speaker-labeled transcript if utterances are available
+        // Build speaker-labeled transcript only when multiple speakers are detected
         let transcript = result.text;
         if (result.utterances && result.utterances.length > 0) {
-          transcript = result.utterances
-            .map((u: { speaker: string; text: string }) => `Speaker ${u.speaker}: ${u.text}`)
-            .join("\n\n");
+          const uniqueSpeakers = new Set(
+            result.utterances.map((u: { speaker: string }) => u.speaker),
+          );
+          if (uniqueSpeakers.size > 1) {
+            transcript = result.utterances
+              .map((u: { speaker: string; text: string }) => `Speaker ${u.speaker}: ${u.text}`)
+              .join("\n\n");
+          } else {
+            transcript = result.utterances
+              .map((u: { text: string }) => u.text)
+              .join(" ");
+          }
         }
         return createJsonResponse({ transcript });
       }
