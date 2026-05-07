@@ -83,7 +83,7 @@ const Support = () => {
       total: tickets.length,
       bugs: tickets.filter((t) => t.type === "bug").length,
       evolutions: tickets.filter((t) => t.type === "evolution").length,
-      open: tickets.filter((t) => t.status !== "ferme" && t.status !== "resolu").length,
+      open: tickets.filter((t) => t.status !== "resolu").length,
     };
   }, [tickets]);
 
@@ -363,7 +363,7 @@ const Support = () => {
         onOpenChange={setShowStats}
         columns={SUPPORT_COLUMNS}
         items={statsItems}
-        doneColumnIds={["resolu", "ferme"]}
+        doneColumnIds={["resolu"]}
       />
     </ModuleLayout>
   );

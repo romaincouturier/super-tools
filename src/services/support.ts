@@ -109,7 +109,7 @@ async function notifyNewTicketCopy(ticket: SupportTicket): Promise<void> {
   }
 }
 
-const RESOLVED_STATUSES: TicketStatus[] = ["resolu", "ferme"];
+const RESOLVED_STATUSES: TicketStatus[] = ["resolu"];
 
 function withResolvedAt(payload: Record<string, unknown>, status?: string): Record<string, unknown> {
   if (status && RESOLVED_STATUSES.includes(status as TicketStatus)) {
