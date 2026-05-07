@@ -20,10 +20,14 @@ export function resolveTemplateKey(args: {
     return args.isRemote ? "mission.remote" : "mission.presentiel";
   }
   // Training
-  const fmt = args.format || "presentiel";
-  if (fmt === "classe_virtuelle") return "training.classe_virtuelle";
-  if (fmt === "e_learning") return "training.e_learning";
-  // Presentiel — split inter / intra (default to inter when unknown)
-  const session = args.sessionType === "intra" ? "intra" : "inter";
+  const rawFmt = args.format || "presentiel";
+  if (rawFmt === "classe_virtuelle") return "training.classe_virtuelle";
+  if (rawFmt === "e_learning") return "training.e_learning";
+  // Normalise les variantes présentielles ("inter-entreprises", "intra", "presentiel"…)
+  // vers la sous-clé "presentiel" attendue par les templates.
+  const fmt = "presentiel";
+  // Détermine inter / intra depuis sessionType OU format_formation
+  const isIntra = args.sessionType === "intra" || rawFmt === "intra";
+  const session = isIntra ? "intra" : "inter";
   return `training.${session}.${fmt}`;
 }
