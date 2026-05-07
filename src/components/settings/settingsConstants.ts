@@ -1206,6 +1206,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   delay_follow_up_news_days: { default: "30", description: "Délai après formation pour envoyer un message informel de prise de nouvelles (en jours ouvrables)" },
   can_delete_evaluations_emails: { default: "", description: "Emails des utilisateurs autorisés à supprimer des évaluations (séparés par des virgules)" },
   reglement_interieur_url: { default: "", description: "URL du règlement intérieur des formations (PDF uploadé)" },
+  company_stamp_url: { default: "", description: "URL du tampon de la société (image), apposé sur les feuilles d'émargement" },
   slack_crm_channel: { default: "general", description: "Nom du canal Slack pour les notifications CRM (ex: crm, general)" },
   crm_inbound_email: { default: "", description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
   openai_api_key: { default: "", description: "Clé API OpenAI utilisée pour l'OCR, les embeddings RAG et les analyses automatiques" },
