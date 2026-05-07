@@ -16,6 +16,7 @@ interface ParticipantTraceabilityDrawerProps {
   participantName: string;
   trainingId: string;
   trainingName: string;
+  participantAddedAt?: string | null;
 }
 
 interface SentEmail {
