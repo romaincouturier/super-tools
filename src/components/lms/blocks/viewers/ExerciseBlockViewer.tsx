@@ -11,7 +11,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
   const [revealed, setRevealed] = useState(false);
   if (!content.prompt_html && !content.answer_html) return null;
   return (
-    <div className="rounded-lg border bg-card px-4 py-3 space-y-3">
+    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 space-y-3">
       <div className="flex items-center gap-2 text-foreground">
         <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
         <p className="font-semibold">Exercice</p>
