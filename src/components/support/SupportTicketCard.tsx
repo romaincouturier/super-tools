@@ -26,9 +26,9 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-background border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing space-y-2 ${
-        isDragging ? "opacity-50 shadow-lg rotate-2" : ""
-      }`}
+      className={`border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing space-y-2 ${
+        t.discussion_requested_at ? "bg-amber-50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-700" : "bg-background"
+      } ${isDragging ? "opacity-50 shadow-lg rotate-2" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5">
