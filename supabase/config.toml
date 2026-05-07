@@ -321,6 +321,9 @@ verify_jwt = false
 [functions.notify-session-full]
 verify_jwt = false
 
+[functions.send-template-review-reminder]
+verify_jwt = false
+
 [functions.network-ai-assistant]
 verify_jwt = false
 

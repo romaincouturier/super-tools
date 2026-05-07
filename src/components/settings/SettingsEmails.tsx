@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import PostEvaluationEmailManager from "@/components/settings/PostEvaluationEmailManager";
+import TemplateReviewReminderCard from "@/components/settings/TemplateReviewReminderCard";
 import EmailTemplateEditor from "@/components/settings/EmailTemplateEditor";
 import { DEFAULT_TEMPLATES, type EmailTemplate, type AddressMode, type TemplateConfig } from "@/components/settings/settingsConstants";
 
@@ -208,6 +209,7 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
         </CardContent>
       </Card>
       <PostEvaluationEmailManager />
+      <TemplateReviewReminderCard />
     </>
   );
 };
