@@ -267,10 +267,16 @@ export default function AgentIndexationSettings() {
           </div>
         )}
 
-        <Button onClick={runAllBackfill} disabled={runningAll} className="gap-2">
-          {runningAll ? <Spinner /> : <Play className="h-4 w-4" />}
-          Tout indexer
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={runAllBackfill} disabled={runningAll} className="gap-2">
+            {runningAll ? <Spinner /> : <Play className="h-4 w-4" />}
+            Tout indexer
+          </Button>
+          <Button onClick={runReconcile} disabled={reconciling} variant="outline" className="gap-2">
+            {reconciling ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Réconcilier (filet de sécurité)
+          </Button>
+        </div>
 
         <div className="grid gap-2">
           {SOURCE_TYPES.map((source) => {
