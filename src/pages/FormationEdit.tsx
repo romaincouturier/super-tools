@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
+import VenueSelector from "@/components/formations/VenueSelector";
+import type { TrainingVenue } from "@/types/training-venue";
 import { Calendar, Save } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
@@ -40,6 +42,8 @@ const FormationEdit = () => {
 
   // Edit uses a plain location string (not radio group)
   const [location, setLocation] = useState("");
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -62,6 +66,8 @@ const FormationEdit = () => {
       // Set form values
       form.setTrainingName(training.training_name);
       setLocation(training.location);
+      const loadedVenueId = (training as unknown as { venue_id?: string | null }).venue_id ?? null;
+      setVenueId(loadedVenueId);
       form.setClientName(training.client_name);
       form.setClientAddress(training.client_address || "");
       form.setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
@@ -183,7 +189,8 @@ const FormationEdit = () => {
       ? !!(form.elearningStartDate && form.elearningEndDate)
       : form.selectedDates.length > 0;
 
-    if (!hasValidDates || !form.trainingName || !location || (!form.isInter && !form.clientName) || !user || !id) {
+    const locationValid = form.isInter ? (form.isElearning || !!venueId) : !!location;
+    if (!hasValidDates || !form.trainingName || !locationValid || (!form.isInter && !form.clientName) || !user || !id) {
       toast({
         title: "Champs requis",
         description: form.isElearning
@@ -198,7 +205,15 @@ const FormationEdit = () => {
 
     try {
       const payload = form.buildTrainingPayload({ isCreate: false });
-      payload.location = location;
+      if (form.isInter && venueId && selectedVenue) {
+        payload.venue_id = venueId;
+        payload.location = `${selectedVenue.name} — ${selectedVenue.city}`;
+      } else if (form.isInter && venueId) {
+        payload.venue_id = venueId;
+      } else {
+        payload.venue_id = venueId;
+        payload.location = location;
+      }
 
       const { error: trainingError } = await supabase
         .from("trainings")
@@ -330,16 +345,15 @@ const FormationEdit = () => {
 
                   {/* Location and client */}
                   {form.isInter ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="location">Lieu *</Label>
-                      <Input
-                        id="location"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Ex: Paris, Visio, Chez le client"
-                        required
-                      />
-                    </div>
+                    !form.isElearning && (
+                      <div className="space-y-2">
+                        <Label>Lieu *</Label>
+                        <VenueSelector
+                          value={venueId}
+                          onChange={(id, venue) => { setVenueId(id); setSelectedVenue(venue); }}
+                        />
+                      </div>
+                    )
                   ) : (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

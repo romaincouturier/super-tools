@@ -1,4 +1,6 @@
-import { MapPin, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { MapPin, ExternalLink, Mail, Loader2 } from "lucide-react";
+import { toastError } from "@/lib/toastError";
 import { Spinner } from "@/components/ui/spinner";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { Button } from "@/components/ui/button";
@@ -16,9 +18,27 @@ import FormationDetailInfo from "@/components/formations/FormationDetailInfo";
 import FormationDetailParticipants from "@/components/formations/FormationDetailParticipants";
 import FormationDetailSections from "@/components/formations/FormationDetailSections";
 import { useFormationDetail } from "@/hooks/useFormationDetail";
+import { sendVenueBookingRequest } from "@/services/training-venues";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const FormationDetail = () => {
   const fd = useFormationDetail();
+  const [sendingVenueBooking, setSendingVenueBooking] = useState(false);
+
+  const handleResendVenueBooking = async () => {
+    if (!fd.training?.id) return;
+    setSendingVenueBooking(true);
+    try {
+      await sendVenueBookingRequest(fd.training.id);
+      fd.setTraining((t) => t ? { ...t, venue_booking_sent_at: new Date().toISOString() } : t);
+      fd.toast({ title: "E-mail envoyé", description: "La demande de réservation a été envoyée au lieu." });
+    } catch {
+      toastError(fd.toast, "Impossible d'envoyer la demande de réservation.");
+    } finally {
+      setSendingVenueBooking(false);
+    }
+  };
 
   if (fd.loading) {
     return (
@@ -50,6 +70,30 @@ const FormationDetail = () => {
           setDuplicateDialogOpen={fd.setDuplicateDialogOpen}
           requiredEquipment={fd.catalogRequiredEquipment}
         />
+
+        {/* Venue booking resend button — inter sessions with a venue */}
+        {fd.isInterSession && fd.training.venue_id && (
+          <div className="mb-4 flex items-center gap-3 rounded-lg border px-4 py-3 bg-muted/30 text-sm">
+            <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="flex-1 text-muted-foreground">
+              {fd.training.venue_booking_sent_at
+                ? `Demande de réservation envoyée le ${format(parseISO(fd.training.venue_booking_sent_at), "d MMMM yyyy", { locale: fr })}`
+                : "Aucune demande de réservation envoyée"}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResendVenueBooking}
+              disabled={sendingVenueBooking}
+            >
+              {sendingVenueBooking ? (
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Envoi…</>
+              ) : (
+                <><Mail className="h-3.5 w-3.5 mr-1.5" />{fd.training.venue_booking_sent_at ? "Renvoyer" : "Envoyer"}</>
+              )}
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <FormationDetailInfo
