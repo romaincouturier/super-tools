@@ -16,7 +16,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
 import { formatFileSize } from "@/lib/file-utils";
-import { useEditor, EditorContent, Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from "@tiptap/react";
+import { useEditor, EditorContent, Node, mergeAttributes, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent, type NodeViewProps } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -189,20 +189,24 @@ const CalloutNode = Node.create({
   },
 });
 
-function DetailsNodeView() {
-  const [open, setOpen] = useState(true);
+function DetailsNodeView({ node, updateAttributes }: NodeViewProps) {
+  const open = node.attrs.open !== false;
   return (
     <NodeViewWrapper as="div" className="my-2 border rounded-lg relative group/details">
       <button
         type="button"
         contentEditable={false}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => updateAttributes({ open: !open })}
         title={open ? "Replier" : "Déplier"}
         aria-label={open ? "Replier le bloc" : "Déplier le bloc"}
         aria-expanded={open}
         className="absolute top-1.5 right-1.5 z-10 h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
       >
-        <ChevronDown className={cn("h-4 w-4 transition-transform", !open && "-rotate-90")} />
+        {open ? (
+          <ChevronDown className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
       </button>
       <NodeViewContent
         className={cn("p-3 pr-9", !open && "[&>*+*]:hidden")}
@@ -216,11 +220,20 @@ const DetailsNode = Node.create({
   group: "block",
   content: "block+",
   defining: true,
+  addAttributes() {
+    return {
+      open: {
+        default: true,
+        parseHTML: (el) => (el as HTMLElement).getAttribute("data-open") !== "false",
+        renderHTML: (attrs) => ({ "data-open": String(attrs.open) }),
+      },
+    };
+  },
   parseHTML() {
     return [{ tag: "details" }];
   },
-  renderHTML({ HTMLAttributes }) {
-    return ["details", mergeAttributes(HTMLAttributes, { class: "my-2 border rounded-lg p-3" }), 0];
+  renderHTML({ HTMLAttributes, node }) {
+    return ["details", mergeAttributes(HTMLAttributes, { class: "my-2 border rounded-lg p-3", ...(node.attrs.open ? {} : { "data-open": "false" }) }), 0];
   },
   addNodeView() {
     return ReactNodeViewRenderer(DetailsNodeView);
