@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   FileText, Link, Image, Mic, ExternalLink, Trash2,
-  Share2, MoreVertical, Copy, Clock, Plus, X,
+  Share2, MoreVertical, Copy, Clock, Plus, X, Pencil,
 } from "lucide-react";
 import { stripWatchHtml } from "./WatchRichEditor";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import {
 } from "@/hooks/useWatch";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import MultiUserSelector from "@/components/shared/MultiUserSelector";
+import WatchEditDialog from "./WatchEditDialog";
 import { displayNameOf, initialsOf, type UserProfileLite } from "@/lib/userDisplay";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,7 @@ const contentTypeConfig: Record<string, { icon: typeof FileText; label: string; 
 const WatchItemCard = ({ item }: WatchItemCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const [editingTags, setEditingTags] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const tagInputRef = useRef<HTMLInputElement>(null);
   const deleteMutation = useDeleteWatchItem();
@@ -174,6 +176,12 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
   const suggestions = (allTags || []).filter((t) => !(item.tags || []).includes(t));
 
   return (
+    <>
+    <WatchEditDialog
+      item={item}
+      open={editDialogOpen}
+      onOpenChange={setEditDialogOpen}
+    />
     <Card className="p-4 space-y-3 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
@@ -200,6 +208,10 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Modifier
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleCopyBody}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copier le contenu
@@ -361,6 +373,7 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
         </div>
       </div>
     </Card>
+    </>
   );
 };
 
