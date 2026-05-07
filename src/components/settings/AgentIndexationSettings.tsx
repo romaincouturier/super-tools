@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert } from "lucide-react";
+import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert, Activity, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const SOURCE_TYPES = [
   { key: "crm_card", label: "Cartes CRM", description: "Titres, descriptions, notes" },
@@ -43,23 +45,54 @@ export default function AgentIndexationSettings() {
   const [results, setResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
   const [stuckCount, setStuckCount] = useState<number | null>(null);
+  const [pendingTotal, setPendingTotal] = useState<number | null>(null);
+  const [lastProcessedAt, setLastProcessedAt] = useState<string | null>(null);
+  const [oldestPendingAt, setOldestPendingAt] = useState<string | null>(null);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [queueProgress, setQueueProgress] = useState<{ processed: number; remaining: number } | null>(null);
 
-  const refreshStuckCount = useCallback(async () => {
+  const refreshHealth = useCallback(async () => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { count, error } = await supabase
-      .from("indexation_queue")
-      .select("*", { count: "exact", head: true })
-      .is("processed_at", null)
-      .lt("created_at", fiveMinAgo);
-    if (!error) setStuckCount(count ?? 0);
+    const [stuckRes, pendingRes, lastRes, oldestRes] = await Promise.all([
+      supabase.from("indexation_queue").select("*", { count: "exact", head: true }).is("processed_at", null).lt("created_at", fiveMinAgo),
+      supabase.from("indexation_queue").select("*", { count: "exact", head: true }).is("processed_at", null),
+      supabase.from("indexation_queue").select("processed_at").not("processed_at", "is", null).order("processed_at", { ascending: false }).limit(1),
+      supabase.from("indexation_queue").select("created_at").is("processed_at", null).order("created_at", { ascending: true }).limit(1),
+    ]);
+    if (!stuckRes.error) setStuckCount(stuckRes.count ?? 0);
+    if (!pendingRes.error) setPendingTotal(pendingRes.count ?? 0);
+    if (!lastRes.error && lastRes.data?.[0]) setLastProcessedAt(lastRes.data[0].processed_at);
+    if (!oldestRes.error) setOldestPendingAt(oldestRes.data?.[0]?.created_at ?? null);
   }, []);
+  const refreshStuckCount = refreshHealth;
 
-  // Initial check + re-check after backfills complete
+  // Initial check + re-check after backfills complete + auto-refresh every 30s
   useEffect(() => {
-    refreshStuckCount();
-  }, [statuses, refreshStuckCount]);
+    refreshHealth();
+    const interval = setInterval(refreshHealth, 30_000);
+    return () => clearInterval(interval);
+  }, [statuses, refreshHealth]);
+
+  const runReconcile = async () => {
+    setReconciling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Non authentifié");
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reconcile-indexation`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({}) },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      toast.success(`Réconciliation : ${data.total_enqueued ?? 0} contenus ré-enfilés`);
+      await refreshHealth();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur de réconciliation");
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   /**
    * Drain the queue in successive batches until empty (or until we hit
@@ -179,6 +212,32 @@ export default function AgentIndexationSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Widget santé permanent */}
+        <div className="grid gap-3 sm:grid-cols-3 p-3 rounded-lg border bg-muted/30">
+          <div className="flex items-start gap-2">
+            <Activity className={`h-4 w-4 mt-0.5 shrink-0 ${stuckCount && stuckCount > 0 ? "text-amber-600" : "text-green-600"}`} />
+            <div className="text-xs">
+              <div className="font-medium">État</div>
+              <div className="text-muted-foreground">
+                {stuckCount === null ? "—" : stuckCount > 0 ? `${stuckCount} bloqué(s) +5 min` : "Sain"}
+              </div>
+            </div>
+          </div>
+          <div className="text-xs">
+            <div className="font-medium">En attente</div>
+            <div className="text-muted-foreground">
+              {pendingTotal === null ? "—" : `${pendingTotal} item(s)`}
+              {oldestPendingAt && pendingTotal && pendingTotal > 0 ? ` · plus ancien il y a ${formatDistanceToNow(new Date(oldestPendingAt), { locale: fr })}` : ""}
+            </div>
+          </div>
+          <div className="text-xs">
+            <div className="font-medium">Dernière indexation</div>
+            <div className="text-muted-foreground">
+              {lastProcessedAt ? `il y a ${formatDistanceToNow(new Date(lastProcessedAt), { locale: fr })}` : "—"}
+            </div>
+          </div>
+        </div>
+
         {stuckCount !== null && stuckCount > 0 && (
           <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900">
             <TriangleAlert className="h-5 w-5 shrink-0" />
@@ -208,10 +267,16 @@ export default function AgentIndexationSettings() {
           </div>
         )}
 
-        <Button onClick={runAllBackfill} disabled={runningAll} className="gap-2">
-          {runningAll ? <Spinner /> : <Play className="h-4 w-4" />}
-          Tout indexer
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={runAllBackfill} disabled={runningAll} className="gap-2">
+            {runningAll ? <Spinner /> : <Play className="h-4 w-4" />}
+            Tout indexer
+          </Button>
+          <Button onClick={runReconcile} disabled={reconciling} variant="outline" className="gap-2">
+            {reconciling ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Réconcilier (filet de sécurité)
+          </Button>
+        </div>
 
         <div className="grid gap-2">
           {SOURCE_TYPES.map((source) => {
