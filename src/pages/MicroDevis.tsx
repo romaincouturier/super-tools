@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { CRM_QUERY_KEY } from "@/hooks/crm/useCrmMutation";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Loader2, FileText, Send, Eye } from "lucide-react";
@@ -32,6 +34,7 @@ const MicroDevis = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [crmCardId, setCrmCardId] = useState<string | null>(null);
   const [nomClient, setNomClient] = useState("");
@@ -359,6 +362,8 @@ const MicroDevis = () => {
       if (searchParams.get("source") === "crm") {
         // Clear the saved form draft so we don't restore old data next time
         try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+        // Invalidate CRM cache so the card appears in its new column ("Devis envoyé")
+        await queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
         setTimeout(() => {
           if (crmCardId) {
             navigate(`/crm/card/${crmCardId}`);
