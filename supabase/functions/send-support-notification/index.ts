@@ -158,6 +158,60 @@ serve(async (req) => {
       );
     }
 
+    // ── Discussion request — propose un échange de vive voix ──
+    if (type === "discussion_request") {
+      const {
+        recipientEmail: discRecipient,
+        ticketNumber: discNumber,
+        ticketTitle: discTitle,
+        description: discDescription,
+      } = body;
+
+      if (!discRecipient || !discNumber || !discTitle) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields for discussion_request", _version: VERSION }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`[${VERSION}] discussion request to=${discRecipient} ticket=${discNumber}`);
+
+      const discSubject = `${discNumber} — Échangeons de vive voix sur ta demande « ${discTitle} »`;
+      const discBodyHtml = `
+        <p>Bonjour,</p>
+        <p>Merci pour ta demande de support. Pour bien comprendre ton besoin et te proposer la meilleure solution, j'aimerais qu'on prenne quelques minutes pour en discuter de vive voix.</p>
+        ${emailInfoBox(`<strong>${discNumber} — ${discTitle}</strong>`)}
+        ${discDescription ? `<p style="background:#f8f9fa;padding:12px;border-radius:8px;color:#333;white-space:pre-wrap;">${discDescription.slice(0, 1500)}${discDescription.length > 1500 ? "…" : ""}</p>` : ""}
+        <p>Peux-tu me proposer un créneau qui te convient cette semaine ? Un simple mail en réponse avec 2 ou 3 disponibilités me permettra de bloquer un temps d'échange rapidement.</p>
+        <p>À très vite,</p>
+        ${emailButton("Voir le ticket", `${APP_URL}/support`)}
+      `;
+
+      const discHtmlContent = wrapEmailHtml(discBodyHtml, signature);
+
+      const result = await sendEmail({
+        from: senderFrom,
+        to: [discRecipient],
+        bcc: bccList,
+        subject: discSubject,
+        html: discHtmlContent,
+        _emailType: "support_discussion_request",
+      });
+
+      if (!result.success) {
+        console.error("sendEmail error:", result.error);
+        return new Response(
+          JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, _version: VERSION }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Ticket resolved notification (to submitter, legacy) ──
     const { recipientEmail, ticketNumber, ticketTitle, status, resolutionNotes } = body ?? {};
 
