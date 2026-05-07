@@ -1,12 +1,9 @@
-import { Settings, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormationDate } from "@/types/formations";
 import type { DateManagerActions } from "@/components/formations/formationFormTypes";
-import FormationDateManager from "@/components/formations/FormationDateManager";
 
 interface FormationDatesSectionProps {
   formatFormation: "intra" | "inter" | "";
@@ -30,22 +27,6 @@ export default function FormationDatesSection({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Label>Dates de la formation *</Label>
-        {formatFormation === "inter" && (
-          <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 px-2">
-                <Settings className="w-3 h-3 mr-1" />Gérer
-              </Button>
-            </DialogTrigger>
-            <FormationDateManager
-              formationDates={formationDates} loadingDates={loadingDates}
-              editingDate={a.editingDate} setEditingDate={a.setEditingDate}
-              newDate={a.newDate} setNewDate={a.setNewDate}
-              onAdd={a.onAdd} onSetDefault={a.onSetDefault}
-              onDelete={a.onDelete} onSave={a.onSave}
-            />
-          </Dialog>
-        )}
       </div>
       {formatFormation === "inter" && (
         <>
@@ -69,7 +50,7 @@ export default function FormationDatesSection({
             <Input id="dateFormation" placeholder="Ex: 15 et 16 janvier 2026, ou Du 10 au 14 mars 2026" value={dateFormation} onChange={(e) => setDateFormation(e.target.value)} required />
           )}
           <p className="text-xs text-muted-foreground">
-            {formationDates.length > 0 ? "Sélectionnez une date ou gérez les dates disponibles" : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"}
+            {formationDates.length > 0 ? "Sélectionnez une session inter-entreprises à venir" : "Saisissez les dates au format souhaité (ex: \"26 et 27 janvier 2026\")"}
           </p>
         </>
       )}
