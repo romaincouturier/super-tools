@@ -155,6 +155,7 @@ Bonne réception.`;
     const hasInvoice = documentType === "invoice" || (documentType === "all" && !!invoiceUrl);
     const hasSheets = documentType === "sheets" || (documentType === "all" && attendanceSheetsUrls?.length > 0);
     const hasCertificates = documentType === "certificates" || (documentType === "all" && certificateUrls?.length > 0);
+    const hasEvaluationsAll = documentType === "all" && includeEvaluations;
 
     // Build template variables
     const variables = {
@@ -165,6 +166,7 @@ Bonne réception.`;
       has_invoice: hasInvoice ? "true" : null,
       has_sheets: hasSheets ? "true" : null,
       has_certificates: hasCertificates ? "true" : null,
+      has_evaluations: hasEvaluationsAll ? "true" : null,
     };
 
     // Process subject with training name and date info
