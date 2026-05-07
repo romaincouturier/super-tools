@@ -217,11 +217,14 @@ Bonne réception.`;
         .order("date_soumission", { ascending: true });
 
       if (!evaluations || evaluations.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "Aucune évaluation soumise pour cette formation" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+        if (documentType === "evaluations") {
+          return new Response(
+            JSON.stringify({ error: "Aucune évaluation soumise pour cette formation" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // For "all": just skip evaluations silently
+      } else {
 
       // Build xlsx rows
       const ratingLabels: Record<string, string> = {
