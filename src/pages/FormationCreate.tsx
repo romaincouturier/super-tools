@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
+import { sendVenueBookingRequest } from "@/services/training-venues";
 import { Calendar, Save } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
@@ -18,7 +19,9 @@ import { useFormationForm } from "@/hooks/useFormationForm";
 import ScheduleEditor from "@/components/formations/ScheduleEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import ScheduledActionsEditor from "@/components/formations/ScheduledActionsEditor";
+import VenueSelector from "@/components/formations/VenueSelector";
 import { FormationFormula } from "@/types/training";
+import type { TrainingVenue } from "@/types/training-venue";
 import {
   SessionTypeFormatSelector,
   ElearningDatesFields,
@@ -36,6 +39,8 @@ const FormationCreate = () => {
   const { toast } = useToast();
   const { user, loading } = useAuth();
   const form = useFormationForm();
+  const [venueId, setVenueId] = useState<string | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
 
   const fromCrmCardId = searchParams.get("fromCrmCardId");
 
@@ -80,7 +85,8 @@ const FormationCreate = () => {
     if (!form.catalogId) missingFields.push("formation du catalogue (sélectionnez une entrée du catalogue)");
     if (form.isPermanent && !form.selectedFormulaId) missingFields.push("formule (sélectionnez une formule pour la session permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
-    if (!form.isPermanent && !form.isElearning && !form.getFinalLocation()) missingFields.push("lieu de la formation");
+    if (!form.isPermanent && !form.isElearning && form.isInter && !venueId) missingFields.push("lieu de la formation (sélectionnez un lieu)");
+    if (!form.isPermanent && !form.isElearning && !form.isInter && !form.getFinalLocation()) missingFields.push("lieu de la formation");
     if (!form.isInter && !form.clientName) missingFields.push("client");
     if (!form.isPermanent && (!form.maxParticipants || parseInt(form.maxParticipants, 10) < 1)) missingFields.push("nombre maximum de participants (minimum 1)");
 
@@ -98,6 +104,10 @@ const FormationCreate = () => {
     try {
       const payload = form.buildTrainingPayload({ isCreate: true });
       payload.created_by = user.id;
+      if (venueId && selectedVenue) {
+        payload.venue_id = venueId;
+        payload.location = `${selectedVenue.name} — ${selectedVenue.city}`;
+      }
 
       const { data: training, error: trainingError } = await supabase
         .from("trainings")
@@ -120,6 +130,13 @@ const FormationCreate = () => {
             }))
           );
         if (schedulesError) throw schedulesError;
+      }
+
+      // Auto-send venue booking request if a venue is selected (fire-and-forget)
+      if (venueId) {
+        sendVenueBookingRequest(training.id).catch((err) =>
+          console.error("Failed to send venue booking request:", err)
+        );
       }
 
       // Bootstrap logistics checklist from default template (best-effort).
@@ -333,8 +350,17 @@ const FormationCreate = () => {
                     </>
                   )}
 
-                  {/* Location - hidden for permanent */}
-                  {!form.isPermanent && <LocationRadioGroup form={form} />}
+                  {/* Location */}
+                  {!form.isPermanent && form.isInter && !form.isElearning && (
+                    <div className="space-y-2">
+                      <Label>Lieu *</Label>
+                      <VenueSelector
+                        value={venueId}
+                        onChange={(id, venue) => { setVenueId(id); setSelectedVenue(venue); }}
+                      />
+                    </div>
+                  )}
+                  {!form.isPermanent && !form.isInter && <LocationRadioGroup form={form} />}
 
                   {/* Sold price HT - hidden for permanent and inter */}
                   {!form.isPermanent && !form.isInter && (

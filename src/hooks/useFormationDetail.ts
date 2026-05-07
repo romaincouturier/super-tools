@@ -55,6 +55,8 @@ export interface Training {
   is_cancelled?: boolean;
   cancellation_reason?: string | null;
   cancelled_at?: string | null;
+  venue_id?: string | null;
+  venue_booking_sent_at?: string | null;
 }
 
 export interface Schedule {
