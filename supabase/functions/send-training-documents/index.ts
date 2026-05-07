@@ -307,16 +307,19 @@ Bonne réception.`;
         content: xlsxBuffer,
       });
 
-      // Override subject and content for evaluations
-      subject = `Évaluations participants - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
+      // Override subject and content for evaluations-only sends
+      if (documentType === "evaluations") {
+        subject = `Évaluations participants - ${trainingName || ""}${dateInfo ? ` - ${dateInfo}` : ""} - Supertilt`;
 
-      const evalGreeting = formalAddress ? "Bonjour" : (firstName ? `Bonjour ${firstName}` : "Bonjour");
-      const evalBody = formalAddress
-        ? `${evalGreeting},\n\nVeuillez trouver ci-joint les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception.`
-        : `${evalGreeting},\n\nVoici les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception !`;
+        const evalGreeting = formalAddress ? "Bonjour" : (firstName ? `Bonjour ${firstName}` : "Bonjour");
+        const evalBody = formalAddress
+          ? `${evalGreeting},\n\nVeuillez trouver ci-joint les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception.`
+          : `${evalGreeting},\n\nVoici les évaluations des ${evaluations.length} participant(s) de la formation "${trainingName || ""}"${trainingDates ? ` qui s'est déroulée ${trainingDates}` : ""}.\n\nNote moyenne : ${avgRating}/5\n\nBonne réception !`;
 
-      const evalHtml = textToHtml(evalBody);
-      htmlContent = `${evalHtml}\n${signature}`;
+        const evalHtml = textToHtml(evalBody);
+        htmlContent = `${evalHtml}\n${signature}`;
+      }
+      } // end else (evaluations exist)
     }
 
     if (attachments.length === 0) {
