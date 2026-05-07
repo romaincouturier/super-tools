@@ -89,6 +89,23 @@ export async function exportAttendancePdf({
   const scheduleMap = new Map(schedules.map(s => [s.day_date, s]));
   const formatTime = (t: string) => (t || "").slice(0, 5);
 
+  // Compute AM/PM time range for a given date+period, mirroring useAttendanceSignatures logic.
+  const getSlotTimeRange = (date: string, period: string): { start: string; end: string } | null => {
+    const sched = scheduleMap.get(date);
+    if (!sched) return null;
+    const start = formatTime(sched.start_time);
+    const end = formatTime(sched.end_time);
+    const startHour = parseInt(sched.start_time.split(":")[0], 10);
+    const endHour = parseInt(sched.end_time.split(":")[0], 10);
+    const endMin = parseInt(sched.end_time.split(":")[1], 10);
+    const hasAM = startHour < 13;
+    const hasPM = endHour > 13 || (endHour === 13 && endMin > 30);
+    const isSplit = hasAM && hasPM;
+    if (!isSplit) return { start, end };
+    if (period === "AM") return { start, end: "12:30" };
+    return { start: "14:00", end };
+  };
+
   const trainerSigMap = new Map(
     trainerSigs.map((ts: TrainerSignature) => [`${ts.schedule_date}-${ts.period}`, ts])
   );
