@@ -6,7 +6,7 @@ import { emailButton, emailInfoBox, emailSuccessBox, wrapEmailHtml } from "../_s
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
-const VERSION = "send-support-notification@2026-04-27.1";
+const VERSION = "send-support-notification@2026-05-07.1";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
