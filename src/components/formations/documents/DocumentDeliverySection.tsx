@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,7 +80,7 @@ const DocumentDeliverySection = ({
       await exportAttendancePdf({ trainingId, trainingName, startDate });
     } catch (e) {
       console.error("Failed to generate attendance PDF:", e);
-      toast({ title: "Erreur", description: "Impossible de générer la feuille d'émargement.", variant: "destructive" });
+      toastError("Impossible de générer la feuille d'émargement.");
       return [];
     }
     const { data } = await supabase.from("trainings").select("attendance_sheets_urls").eq("id", trainingId).single();
