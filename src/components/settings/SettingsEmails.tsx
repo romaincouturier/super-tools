@@ -209,6 +209,7 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
         </CardContent>
       </Card>
       <PostEvaluationEmailManager />
+      <TemplateReviewReminderCard />
     </>
   );
 };
