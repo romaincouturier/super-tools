@@ -34,6 +34,7 @@ interface DocumentDeliverySectionProps {
   documentsSentInfo: DocumentSentInfo;
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
   evaluationCount?: number;
+  signatureCount?: number;
 }
 
 const DocumentDeliverySection = ({
