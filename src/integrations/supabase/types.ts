@@ -5918,37 +5918,70 @@ export type Database = {
       supertilt_actions: {
         Row: {
           assigned_to: string | null
+          column_id: string | null
           completed_at: string | null
           created_at: string
           deadline: string | null
           description: string | null
           id: string
           is_completed: boolean
+          position: number
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
           assigned_to?: string | null
+          column_id?: string | null
           completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           id?: string
           is_completed?: boolean
+          position?: number
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
           assigned_to?: string | null
+          column_id?: string | null
           completed_at?: string | null
           created_at?: string
           deadline?: string | null
           description?: string | null
           id?: string
           is_completed?: boolean
+          position?: number
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      supertilt_columns: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
           updated_at?: string
           user_id?: string
         }
