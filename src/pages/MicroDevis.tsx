@@ -34,6 +34,7 @@ const MicroDevis = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [crmCardId, setCrmCardId] = useState<string | null>(null);
   const [nomClient, setNomClient] = useState("");
