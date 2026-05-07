@@ -3,6 +3,9 @@ project_id = "yewffntzgrdgztrwtava"
 [functions.cleanup-pending-email-drafts]
 verify_jwt = false
 
+[functions.send-venue-booking-request]
+verify_jwt = false
+
 [functions.generate-certificates]
 verify_jwt = false
 
