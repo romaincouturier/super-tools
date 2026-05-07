@@ -92,7 +92,7 @@ const DocumentsManager = ({
             attendanceSheetsUrls={attendanceSheetsUrls} certificateUrls={certificateUrls}
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
             sponsorFormalAddress={sponsorFormalAddress} documentsSentInfo={documentsSentInfo}
-            setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount}
+            setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount} signatureCount={signatureCount}
           />
         </CardContent>
       </Card>
