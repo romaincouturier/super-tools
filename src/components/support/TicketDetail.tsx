@@ -29,7 +29,8 @@ import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import AiAnalysisSection from "./AiAnalysisSection";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
-import { analyzeTicket } from "@/services/support";
+import { analyzeTicket, requestTicketDiscussion } from "@/services/support";
+import { MessageCircle } from "lucide-react";
 
 interface Props {
   ticket: SupportTicket;
