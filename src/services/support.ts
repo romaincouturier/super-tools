@@ -136,7 +136,25 @@ async function notifyTicketResolved(ticket: SupportTicket): Promise<void> {
   }
 }
 
-export async function updateSupportTicket(
+/** Best-effort email asking the submitter to schedule a discussion. */
+export async function requestTicketDiscussion(ticket: SupportTicket): Promise<void> {
+  if (!ticket.submitted_by_email) {
+    throw new Error("Pas d'email pour ce ticket");
+  }
+  const { error } = await supabase.functions.invoke("send-support-notification", {
+    body: {
+      type: "discussion_request",
+      recipientEmail: ticket.submitted_by_email,
+      ticketNumber: ticket.ticket_number,
+      ticketTitle: ticket.title,
+      description: ticket.description,
+    },
+  });
+  if (error) throw error;
+  await db()
+    .from("support_tickets")
+    .update({ discussion_requested_at: new Date().toISOString() })
+    .eq("id", ticket.id);
   id: string,
   updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>
 ): Promise<SupportTicket> {
