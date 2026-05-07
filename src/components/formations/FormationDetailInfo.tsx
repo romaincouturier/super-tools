@@ -189,6 +189,14 @@ const FormationDetailInfo = ({
                   </Button>
                 </div>
               )}
+              {!isInterSession && (
+                <div className="flex items-center gap-2 pt-1">
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyInvoiceInfo}>
+                    {copiedInvoiceInfo ? <Check className="h-3 w-3 mr-1.5 text-primary" /> : <Copy className="h-3 w-3 mr-1.5" />}
+                    {copiedInvoiceInfo ? "Copié" : "Copier infos facturation"}
+                  </Button>
+                </div>
+              )}
               {/* Logistics email button - only for presentiel intra */}
               {isPresentiel && training.sponsor_email && !isInterSession && (
                 <div className="flex items-center gap-2 pt-1">
