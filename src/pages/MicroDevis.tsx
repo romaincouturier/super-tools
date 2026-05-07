@@ -362,6 +362,8 @@ const MicroDevis = () => {
       if (searchParams.get("source") === "crm") {
         // Clear the saved form draft so we don't restore old data next time
         try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
+        // Invalidate CRM cache so the card appears in its new column ("Devis envoyé")
+        await queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
         setTimeout(() => {
           if (crmCardId) {
             navigate(`/crm/card/${crmCardId}`);
