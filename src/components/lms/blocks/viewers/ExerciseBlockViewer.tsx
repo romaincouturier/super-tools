@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
+import ActionBlockShell from "./ActionBlockShell";
 
 interface Props {
   content: ExerciseBlockContent;
@@ -11,11 +12,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
   const [revealed, setRevealed] = useState(false);
   if (!content.prompt_html && !content.answer_html) return null;
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 space-y-3">
-      <div className="flex items-center gap-2 text-foreground">
-        <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <p className="font-semibold">Exercice</p>
-      </div>
+    <ActionBlockShell icon={Pencil} label="Exercice">
       {content.prompt_html && (
         <div
           className="prose prose-sm max-w-none break-words"
@@ -41,6 +38,6 @@ export default function ExerciseBlockViewer({ content }: Props) {
           )}
         </div>
       )}
-    </div>
+    </ActionBlockShell>
   );
 }

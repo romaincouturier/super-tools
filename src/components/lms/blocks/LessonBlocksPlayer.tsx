@@ -21,6 +21,7 @@ import type {
   SpacerBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
+import { HelpCircle, ClipboardList, Upload } from "lucide-react";
 import TextBlockViewer from "./viewers/TextBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
 import ImageBlockViewer from "./viewers/ImageBlockViewer";
@@ -31,6 +32,7 @@ import ChecklistBlockViewer from "./viewers/ChecklistBlockViewer";
 import ButtonBlockViewer from "./viewers/ButtonBlockViewer";
 import ExerciseBlockViewer from "./viewers/ExerciseBlockViewer";
 import SelfAssessmentBlockViewer from "./viewers/SelfAssessmentBlockViewer";
+import ActionBlockShell from "./viewers/ActionBlockShell";
 import SectionBlockViewer from "./viewers/SectionBlockViewer";
 import RowBlockViewer from "./viewers/RowBlockViewer";
 import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
@@ -103,20 +105,27 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
       return <FileBlockViewer content={block.content as FileBlockContent} />;
     case "quiz": {
       const c = block.content as QuizBlockContent;
-      return c.quiz_id && renderQuiz ? <>{renderQuiz(c.quiz_id, block.lesson_id)}</> : null;
+      if (!c.quiz_id || !renderQuiz) return null;
+      return (
+        <ActionBlockShell icon={HelpCircle} label="Quiz">
+          {renderQuiz(c.quiz_id, block.lesson_id)}
+        </ActionBlockShell>
+      );
     }
     case "assignment": {
       const c = block.content as AssignmentBlockContent;
       return (
-        <div className="space-y-4">
-          {c.instructions_html && (
-            <div
-              className="prose prose-sm max-w-none break-words"
-              dangerouslySetInnerHTML={{ __html: c.instructions_html }}
-            />
-          )}
-          {renderAssignment?.(block.lesson_id)}
-        </div>
+        <ActionBlockShell icon={ClipboardList} label="Devoir">
+          <div className="space-y-4">
+            {c.instructions_html && (
+              <div
+                className="prose prose-sm max-w-none break-words"
+                dangerouslySetInnerHTML={{ __html: c.instructions_html }}
+              />
+            )}
+            {renderAssignment?.(block.lesson_id)}
+          </div>
+        </ActionBlockShell>
       );
     }
     case "callout":
@@ -133,7 +142,12 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
       return <SelfAssessmentBlockViewer content={block.content as SelfAssessmentBlockContent} />;
     case "work_deposit": {
       const c = block.content as WorkDepositBlockContent;
-      return renderWorkDeposit ? <>{renderWorkDeposit(block.lesson_id, c)}</> : null;
+      if (!renderWorkDeposit) return null;
+      return (
+        <ActionBlockShell icon={Upload} label="Dépôt de travail">
+          {renderWorkDeposit(block.lesson_id, c)}
+        </ActionBlockShell>
+      );
     }
     case "section":
       return (
