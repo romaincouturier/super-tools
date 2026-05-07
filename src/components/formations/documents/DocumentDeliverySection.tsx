@@ -164,9 +164,9 @@ const DocumentDeliverySection = ({
   const renderInterEntrepriseMenu = () => (
     <DropdownMenuContent align="end" className="w-72">
       <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Envoyer à un destinataire</p>
-      {attendanceSheetsUrls.length > 0 && (
+      {hasSheets && (
         <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}>
-          <ClipboardList className="h-4 w-4 mr-2" />Feuilles d&apos;émargement
+          <ClipboardList className="h-4 w-4 mr-2" />Feuille d&apos;émargement
         </DropdownMenuItem>
       )}
       {hasCertificates && (
