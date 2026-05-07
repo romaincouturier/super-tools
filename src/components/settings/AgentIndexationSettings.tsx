@@ -212,6 +212,32 @@ export default function AgentIndexationSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Widget santé permanent */}
+        <div className="grid gap-3 sm:grid-cols-3 p-3 rounded-lg border bg-muted/30">
+          <div className="flex items-start gap-2">
+            <Activity className={`h-4 w-4 mt-0.5 shrink-0 ${stuckCount && stuckCount > 0 ? "text-amber-600" : "text-green-600"}`} />
+            <div className="text-xs">
+              <div className="font-medium">État</div>
+              <div className="text-muted-foreground">
+                {stuckCount === null ? "—" : stuckCount > 0 ? `${stuckCount} bloqué(s) +5 min` : "Sain"}
+              </div>
+            </div>
+          </div>
+          <div className="text-xs">
+            <div className="font-medium">En attente</div>
+            <div className="text-muted-foreground">
+              {pendingTotal === null ? "—" : `${pendingTotal} item(s)`}
+              {oldestPendingAt && pendingTotal && pendingTotal > 0 ? ` · plus ancien il y a ${formatDistanceToNow(new Date(oldestPendingAt), { locale: fr })}` : ""}
+            </div>
+          </div>
+          <div className="text-xs">
+            <div className="font-medium">Dernière indexation</div>
+            <div className="text-muted-foreground">
+              {lastProcessedAt ? `il y a ${formatDistanceToNow(new Date(lastProcessedAt), { locale: fr })}` : "—"}
+            </div>
+          </div>
+        </div>
+
         {stuckCount !== null && stuckCount > 0 && (
           <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-900">
             <TriangleAlert className="h-5 w-5 shrink-0" />
