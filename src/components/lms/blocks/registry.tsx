@@ -56,6 +56,7 @@ export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "callout", label: "Encadré pédagogique", icon: Info, kind: "content", editable: true },
   { type: "key_points", label: "Points clés à retenir", icon: Lightbulb, kind: "content", editable: true },
   { type: "checklist", label: "Liste à cocher", icon: ListChecks, kind: "content", editable: true },
+  { type: "bullet_list", label: "Liste à puces", icon: ListChecks, kind: "content", editable: true },
   { type: "button", label: "Bouton / lien", icon: MousePointerClick, kind: "content", editable: true },
   { type: "exercise", label: "Exercice", icon: Pencil, kind: "content", editable: true },
   { type: "self_assessment", label: "Auto-évaluation", icon: Gauge, kind: "content", editable: true },

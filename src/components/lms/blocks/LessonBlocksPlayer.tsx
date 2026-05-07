@@ -10,6 +10,7 @@ import type {
   CalloutBlockContent,
   KeyPointsBlockContent,
   ChecklistBlockContent,
+  BulletListBlockContent,
   ButtonBlockContent,
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
@@ -29,6 +30,7 @@ import FileBlockViewer from "./viewers/FileBlockViewer";
 import CalloutBlockViewer from "./viewers/CalloutBlockViewer";
 import KeyPointsBlockViewer from "./viewers/KeyPointsBlockViewer";
 import ChecklistBlockViewer from "./viewers/ChecklistBlockViewer";
+import BulletListBlockViewer from "./viewers/BulletListBlockViewer";
 import ButtonBlockViewer from "./viewers/ButtonBlockViewer";
 import ExerciseBlockViewer from "./viewers/ExerciseBlockViewer";
 import SelfAssessmentBlockViewer from "./viewers/SelfAssessmentBlockViewer";
@@ -134,6 +136,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
       return <KeyPointsBlockViewer content={block.content as KeyPointsBlockContent} />;
     case "checklist":
       return <ChecklistBlockViewer content={block.content as ChecklistBlockContent} />;
+    case "bullet_list":
+      return <BulletListBlockViewer content={block.content as BulletListBlockContent} />;
     case "button":
       return <ButtonBlockViewer content={block.content as ButtonBlockContent} />;
     case "exercise":

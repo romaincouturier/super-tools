@@ -15,6 +15,8 @@ import {
 } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { List, LayoutList } from "lucide-react";
+import LessonOutlineView from "./LessonOutlineView";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -80,6 +82,8 @@ export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
   }, [blocks]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  const [viewMode, setViewMode] = useState<"editor" | "outline">("editor");
 
   // Active block during a drag — used to skip drop targets that would create a cycle.
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -195,6 +199,17 @@ export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
     });
   };
 
+  const handleMoveRoot = (id: string, dir: -1 | 1) => {
+    const roots = childrenIdsByParent.get(null) || [];
+    const idx = roots.indexOf(id);
+    const newIdx = idx + dir;
+    if (idx < 0 || newIdx < 0 || newIdx >= roots.length) return;
+    const reordered = arrayMove(roots, idx, newIdx);
+    reorderBlocks.mutate(reordered, {
+      onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de réorganisation"),
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
@@ -207,53 +222,89 @@ export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
 
   return (
     <div className="space-y-3">
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <RootDropzone hasChildren={tree.length > 0}>
-          <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
-            {tree.map((node) => (
-              <BlockTreeNodeView
-                key={node.block.id}
-                node={node}
-                parentId={null}
-                lessonId={lessonId}
-                courseId={courseId}
-                onUpdateContent={handleUpdateContent}
-                onToggleHidden={handleToggleHidden}
-                onDelete={handleDelete}
-                onDuplicate={handleDuplicate}
-                onAddChild={(parentId, type) => handleAdd(type, parentId)}
-              />
-            ))}
-          </SortableContext>
-        </RootDropzone>
-      </DndContext>
+      {/* View mode toggle */}
+      <div className="flex items-center gap-1 self-end justify-end">
+        <Button
+          variant={viewMode === "editor" ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 px-2 gap-1.5 text-xs"
+          onClick={() => setViewMode("editor")}
+        >
+          <LayoutList className="h-3.5 w-3.5" />
+          Éditeur
+        </Button>
+        <Button
+          variant={viewMode === "outline" ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 px-2 gap-1.5 text-xs"
+          onClick={() => setViewMode("outline")}
+        >
+          <List className="h-3.5 w-3.5" />
+          Plan
+        </Button>
+      </div>
 
-      {tree.length === 0 && (
-        <p className="text-sm text-muted-foreground italic py-4 text-center border border-dashed rounded-lg">
-          Aucun bloc pour le moment. Ajoutez-en un ci-dessous.
-        </p>
+      {viewMode === "outline" && (
+        <LessonOutlineView
+          tree={tree}
+          onMoveRoot={handleMoveRoot}
+          onToggleHidden={handleToggleHidden}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+        />
       )}
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <RootAddButton
-          label="Ajouter une section"
-          types={LAYOUT_BLOCKS}
-          disabled={createBlock.isPending}
-          onPick={(t) => handleAdd(t, null)}
-        />
-        <RootAddButton
-          label="Ajouter un contenu"
-          types={CONTENT_BLOCKS}
-          disabled={createBlock.isPending}
-          onPick={(t) => handleAdd(t, null)}
-        />
-        <TemplatePicker lessonId={lessonId} disabled={createBlock.isPending} />
-      </div>
+      {viewMode === "editor" && (
+        <>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <RootDropzone hasChildren={tree.length > 0}>
+              <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+                {tree.map((node) => (
+                  <BlockTreeNodeView
+                    key={node.block.id}
+                    node={node}
+                    parentId={null}
+                    lessonId={lessonId}
+                    courseId={courseId}
+                    onUpdateContent={handleUpdateContent}
+                    onToggleHidden={handleToggleHidden}
+                    onDelete={handleDelete}
+                    onDuplicate={handleDuplicate}
+                    onAddChild={(parentId, type) => handleAdd(type, parentId)}
+                  />
+                ))}
+              </SortableContext>
+            </RootDropzone>
+          </DndContext>
+
+          {tree.length === 0 && (
+            <p className="text-sm text-muted-foreground italic py-4 text-center border border-dashed rounded-lg">
+              Aucun bloc pour le moment. Ajoutez-en un ci-dessous.
+            </p>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <RootAddButton
+              label="Ajouter une section"
+              types={LAYOUT_BLOCKS}
+              disabled={createBlock.isPending}
+              onPick={(t) => handleAdd(t, null)}
+            />
+            <RootAddButton
+              label="Ajouter un contenu"
+              types={CONTENT_BLOCKS}
+              disabled={createBlock.isPending}
+              onPick={(t) => handleAdd(t, null)}
+            />
+            <TemplatePicker lessonId={lessonId} disabled={createBlock.isPending} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
