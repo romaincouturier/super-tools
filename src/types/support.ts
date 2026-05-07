@@ -41,6 +41,7 @@ export interface SupportTicket {
   assigned_to: string | null;
   resolution_notes: string | null;
   ai_analysis: TicketAiAnalysis | null;
+  discussion_requested_at: string | null;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;
