@@ -137,6 +137,25 @@ const SettingsGeneralDelays = ({ settings, updateSetting }: SettingsGeneralDelay
       <Separator />
 
       <div className="space-y-4">
+        <h3 className="text-sm font-medium">Nettoyage automatique des brouillons</h3>
+        <p className="text-sm text-muted-foreground">
+          Les brouillons d'emails en attente de validation (statuts «&nbsp;En attente&nbsp;» et «&nbsp;Rejeté&nbsp;») sont supprimés automatiquement après ce délai.
+        </p>
+        <DelayField
+          id="email-draft-retention"
+          label="Durée de rétention"
+          prefix="Supprimer après"
+          suffix="jours sans validation"
+          min={1}
+          max={90}
+          value={settings.email_draft_pending_retention_days}
+          onChange={(v) => updateSetting("email_draft_pending_retention_days", v)}
+        />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4">
         <h3 className="text-sm font-medium">Prise de nouvelles informelle</h3>
         <p className="text-sm text-muted-foreground">
           Un message personnalisé généré par l'IA est envoyé à chaque participant pour prendre de ses nouvelles et savoir ce qu'il a mis en pratique.
