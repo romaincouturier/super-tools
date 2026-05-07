@@ -397,7 +397,7 @@ serve(async (req) => {
 
       // 16. Tickets support en attente
       const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
-      const statusLabels: Record<string, string> = { nouveau: "Nouveau", en_cours: "En cours", en_attente: "En attente" };
+      const statusLabels: Record<string, string> = { nouveau: "Nouveau", qualification: "Qualification", vibe_coding: "Vibe Coding" };
       add("🎫", "Tickets support en attente", COLORS.red,
         data.supportTickets.map(t => {
           const emoji = priorityEmojis[t.priority] || "🎫";
