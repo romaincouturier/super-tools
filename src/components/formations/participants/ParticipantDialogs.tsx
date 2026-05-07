@@ -81,6 +81,7 @@ const ParticipantDialogs = ({
           }
           trainingId={trainingId}
           trainingName={trainingName}
+          participantAddedAt={traceabilityParticipant.added_at}
         />
       )}
     </>
