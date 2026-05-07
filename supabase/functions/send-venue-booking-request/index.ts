@@ -72,6 +72,13 @@ serve(async (req) => {
       );
     }
 
+    if (!venue.email) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Venue has no email", _version: VERSION }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch schedules ordered by date
     const { data: schedules } = await supabase
       .from("training_schedules")
@@ -129,13 +136,14 @@ serve(async (req) => {
       subject,
       html: htmlContent,
       _emailType: "venue_booking_request",
+      _trainingId: trainingId,
     });
 
     if (!result.success) {
       console.error("sendEmail error:", result.error);
       return new Response(
-        JSON.stringify({ success: false, error: "Email sending failed", _version: VERSION }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: result.error || "Email sending failed", _version: VERSION }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
