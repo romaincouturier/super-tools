@@ -1,12 +1,9 @@
-import { Settings, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { FormationDate } from "@/types/formations";
 import type { DateManagerActions } from "@/components/formations/formationFormTypes";
-import FormationDateManager from "@/components/formations/FormationDateManager";
 
 interface FormationDatesSectionProps {
   formatFormation: "intra" | "inter" | "";
