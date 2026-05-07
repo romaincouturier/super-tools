@@ -112,6 +112,21 @@ export async function exportAttendancePdf({
 
   const logoBase64 = await loadImageAsBase64(supertiltLogoJpg);
 
+  // Load company stamp from app_settings (optional)
+  let stampBase64: string | null = null;
+  try {
+    const { data: stampSetting } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "company_stamp_url")
+      .maybeSingle();
+    const stampUrl = stampSetting?.setting_value;
+    if (stampUrl) {
+      stampBase64 = await loadImageAsBase64(stampUrl);
+    }
+  } catch { /* stamp is optional */ }
+
+
   for (const sig of signatures) {
     if (sig.signature_data) {
       sig.signature_data = await compressSignatureAsync(sig.signature_data);
