@@ -229,7 +229,6 @@ const ParticipantTraceabilityDrawer = ({
                   ) : (
                     emails.map((email) => {
                       const isExpanded = expandedEmailId === email.id;
-                      const isExpanded = expandedEmailId === email.id;
                       return (
                         <div key={email.id} className="border rounded-lg overflow-hidden">
                           <button
