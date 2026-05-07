@@ -90,6 +90,7 @@ const ParticipantTraceabilityDrawer = ({
   participantName,
   trainingId,
   trainingName,
+  participantAddedAt,
 }: ParticipantTraceabilityDrawerProps) => {
   const [emails, setEmails] = useState<SentEmail[]>([]);
   const [needsSurvey, setNeedsSurvey] = useState<NeedsSurvey | null>(null);
