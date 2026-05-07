@@ -89,6 +89,23 @@ export async function exportAttendancePdf({
   const scheduleMap = new Map(schedules.map(s => [s.day_date, s]));
   const formatTime = (t: string) => (t || "").slice(0, 5);
 
+  // Compute AM/PM time range for a given date+period, mirroring useAttendanceSignatures logic.
+  const getSlotTimeRange = (date: string, period: string): { start: string; end: string } | null => {
+    const sched = scheduleMap.get(date);
+    if (!sched) return null;
+    const start = formatTime(sched.start_time);
+    const end = formatTime(sched.end_time);
+    const startHour = parseInt(sched.start_time.split(":")[0], 10);
+    const endHour = parseInt(sched.end_time.split(":")[0], 10);
+    const endMin = parseInt(sched.end_time.split(":")[1], 10);
+    const hasAM = startHour < 13;
+    const hasPM = endHour > 13 || (endHour === 13 && endMin > 30);
+    const isSplit = hasAM && hasPM;
+    if (!isSplit) return { start, end };
+    if (period === "AM") return { start, end: "12:30" };
+    return { start: "14:00", end };
+  };
+
   const trainerSigMap = new Map(
     trainerSigs.map((ts: TrainerSignature) => [`${ts.schedule_date}-${ts.period}`, ts])
   );
@@ -201,12 +218,12 @@ export async function exportAttendancePdf({
       doc.line(xPos + colWidths[0], yPos, xPos + colWidths[0], yPos + rowHeight);
       xPos += colWidths[0];
 
-      const sched = scheduleMap.get(sig.schedule_date);
+      const slotRange = getSlotTimeRange(sig.schedule_date, sig.period);
       doc.text(getPeriodLabel(sig.period), xPos + 2, yPos + 6);
-      if (sched) {
+      if (slotRange) {
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
-        doc.text(`${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}`, xPos + 2, yPos + 12);
+        doc.text(`${slotRange.start} - ${slotRange.end}`, xPos + 2, yPos + 12);
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
       }
@@ -254,8 +271,8 @@ export async function exportAttendancePdf({
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
-      const sched = scheduleMap.get(date);
-      const horaireText = sched ? ` — ${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}` : "";
+      const slotRange = getSlotTimeRange(date, period);
+      const horaireText = slotRange ? ` — ${slotRange.start} - ${slotRange.end}` : "";
       doc.text(
         `${formatDateFr(date)} - ${getPeriodLabel(period)}${horaireText} (${signedCount}/${slotSignatures.length} signatures)`,
         margin + 3, yPos + 5.5
