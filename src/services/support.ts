@@ -4,14 +4,55 @@ import { db, throwIfError } from "@/lib/supabase-helpers";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 import type { KanbanRepository } from "./repository";
 
+/**
+ * Resolves the displayable screenshot URL for a ticket by looking up the first
+ * image attachment in the private `support-attachments` bucket and generating a
+ * short-lived signed URL. The bucket stays private — no public URLs are ever
+ * exposed. Falls back to whatever was stored historically in `screenshot_url`.
+ */
+async function resolveTicketScreenshots<T extends { id: string; screenshot_url: string | null }>(
+  tickets: T[]
+): Promise<T[]> {
+  if (tickets.length === 0) return tickets;
+  const ids = tickets.map((t) => t.id);
+  const { data: attachments } = await db()
+    .from("support_ticket_attachments")
+    .select("ticket_id, file_path, mime_type, created_at")
+    .in("ticket_id", ids)
+    .order("created_at", { ascending: true });
+
+  const firstImageByTicket = new Map<string, string>();
+  for (const a of (attachments || []) as Array<{ ticket_id: string; file_path: string; mime_type: string | null }>) {
+    if (!firstImageByTicket.has(a.ticket_id) && (a.mime_type || "").startsWith("image/")) {
+      firstImageByTicket.set(a.ticket_id, a.file_path);
+    }
+  }
+
+  await Promise.all(
+    tickets.map(async (t) => {
+      const path = firstImageByTicket.get(t.id);
+      if (!path) return;
+      const { data } = await supabase.storage
+        .from("support-attachments")
+        .createSignedUrl(path, 3600);
+      if (data?.signedUrl) t.screenshot_url = data.signedUrl;
+    })
+  );
+
+  return tickets;
+}
+
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
   const result = await db().from("support_tickets").select("*").order("created_at", { ascending: false });
-  return (throwIfError(result) || []) as SupportTicket[];
+  const tickets = (throwIfError(result) || []) as SupportTicket[];
+  return resolveTicketScreenshots(tickets);
 }
 
 export async function fetchSupportTicketById(id: string): Promise<SupportTicket> {
   const result = await db().from("support_tickets").select("*").eq("id", id).single();
-  return throwIfError(result) as SupportTicket;
+  const ticket = throwIfError(result) as SupportTicket;
+  const [enriched] = await resolveTicketScreenshots([ticket]);
+  return enriched;
 }
 
 export async function deleteSupportTicket(id: string): Promise<void> {
