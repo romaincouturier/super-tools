@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 
@@ -16,6 +16,7 @@ interface ParticipantTraceabilityDrawerProps {
   participantName: string;
   trainingId: string;
   trainingName: string;
+  participantAddedAt?: string | null;
 }
 
 interface SentEmail {
@@ -89,6 +90,7 @@ const ParticipantTraceabilityDrawer = ({
   participantName,
   trainingId,
   trainingName,
+  participantAddedAt,
 }: ParticipantTraceabilityDrawerProps) => {
   const [emails, setEmails] = useState<SentEmail[]>([]);
   const [needsSurvey, setNeedsSurvey] = useState<NeedsSurvey | null>(null);
@@ -210,15 +212,22 @@ const ParticipantTraceabilityDrawer = ({
             {/* EMAILS TAB */}
             <TabsContent value="emails" className="flex-1 overflow-hidden mt-4">
               <ScrollArea className="h-full">
-                {emails.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    Aucun email enregistré pour ce participant.
-                    <br />
-                    <span className="text-xs">Les emails envoyés à partir de maintenant seront tracés automatiquement.</span>
-                  </p>
-                ) : (
-                  <div className="space-y-2 pr-4">
-                    {emails.map((email) => {
+                <div className="space-y-2 pr-4">
+                  {participantAddedAt && (
+                    <div className="border rounded-lg px-4 py-3 flex items-center gap-3 bg-muted/30">
+                      <UserCheck className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Inscription confirmée</p>
+                        <span className="text-xs text-muted-foreground">{formatDate(participantAddedAt)}</span>
+                      </div>
+                    </div>
+                  )}
+                  {emails.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-6 text-xs">
+                      Aucun email enregistré pour ce participant.
+                    </p>
+                  ) : (
+                    emails.map((email) => {
                       const isExpanded = expandedEmailId === email.id;
                       return (
                         <div key={email.id} className="border rounded-lg overflow-hidden">
@@ -259,9 +268,9 @@ const ParticipantTraceabilityDrawer = ({
                           )}
                         </div>
                       );
-                    })}
-                  </div>
-                )}
+                    })
+                  )}
+                </div>
               </ScrollArea>
             </TabsContent>
 
