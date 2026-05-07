@@ -24,6 +24,7 @@ interface SettingsGeneralProps {
 const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGeneralProps) => {
   const { toast } = useToast();
   const [uploadingReglement, setUploadingReglement] = useState(false);
+  const [uploadingStamp, setUploadingStamp] = useState(false);
 
   const bccEnabled = settings.bcc_enabled === "true";
 
