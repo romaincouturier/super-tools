@@ -42,6 +42,7 @@ import { LAYOUT_BLOCKS, CONTENT_BLOCKS, type BlockTypeMeta } from "./registry";
 import BlockTreeNodeView, { dropzoneId, parseDropzoneId } from "./BlockTreeNode";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
+import TemplatePicker from "./TemplatePicker";
 
 interface Props {
   lessonId: string;
@@ -251,6 +252,7 @@ export default function LessonBlocksEditor({ lessonId, courseId }: Props) {
           disabled={createBlock.isPending}
           onPick={(t) => handleAdd(t, null)}
         />
+        <TemplatePicker lessonId={lessonId} disabled={createBlock.isPending} />
       </div>
     </div>
   );
