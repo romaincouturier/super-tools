@@ -6640,6 +6640,8 @@ export type Database = {
           needs_survey_token: string | null
           notes: string | null
           payment_mode: string
+          repositioned_at: string | null
+          repositioned_to_training_id: string | null
           signed_convention_url: string | null
           sold_price_ht: number | null
           sponsor_email: string | null
@@ -6671,6 +6673,8 @@ export type Database = {
           needs_survey_token?: string | null
           notes?: string | null
           payment_mode?: string
+          repositioned_at?: string | null
+          repositioned_to_training_id?: string | null
           signed_convention_url?: string | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
@@ -6702,6 +6706,8 @@ export type Database = {
           needs_survey_token?: string | null
           notes?: string | null
           payment_mode?: string
+          repositioned_at?: string | null
+          repositioned_to_training_id?: string | null
           signed_convention_url?: string | null
           sold_price_ht?: number | null
           sponsor_email?: string | null
@@ -6715,6 +6721,13 @@ export type Database = {
             columns: ["formula_id"]
             isOneToOne: false
             referencedRelation: "formation_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_participants_repositioned_to_training_id_fkey"
+            columns: ["repositioned_to_training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
             referencedColumns: ["id"]
           },
           {
