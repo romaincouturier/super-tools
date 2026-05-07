@@ -662,33 +662,8 @@ serve(async (req: Request): Promise<Response> => {
           actor_email: body.senderEmail || contactEmail,
         });
 
-        // Schedule follow-up 3 working days later
-        const defaultWorkingDays = [false, true, true, true, true, true, false];
-        let workingDays = defaultWorkingDays;
-        try {
-          const { data: wdSetting } = await supabase
-            .from("app_settings")
-            .select("setting_value")
-            .eq("setting_key", "working_days")
-            .single();
-          if (wdSetting?.setting_value) {
-            const parsed = JSON.parse(wdSetting.setting_value);
-            if (Array.isArray(parsed) && parsed.length === 7) {
-              workingDays = parsed;
-            }
-          }
-        } catch { /* use default */ }
-
-        // Calculate 5 working days from now
-        let followUpDate = new Date();
-        let remaining = 5;
-        while (remaining > 0) {
-          followUpDate.setDate(followUpDate.getDate() + 1);
-          if (workingDays[followUpDate.getDay()]) {
-            remaining--;
-          }
-        }
-        const followUpDateStr = followUpDate.toISOString().split("T")[0];
+        // Schedule follow-up today (J+0) so the card stays visible in the default Kanban view
+        const followUpDateStr = new Date().toISOString().split("T")[0];
 
         await supabase.from("crm_cards")
           .update({

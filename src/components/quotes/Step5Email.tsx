@@ -205,14 +205,8 @@ export default function Step5Email({
           }
         }
 
-        // Set follow-up: WAITING + J+5 working days (same as MicroDevis)
+        // Set follow-up: WAITING + today (J+0) so the card stays visible in the default Kanban view
         const followUpDate = new Date();
-        let daysAdded = 0;
-        while (daysAdded < 5) {
-          followUpDate.setDate(followUpDate.getDate() + 1);
-          const day = followUpDate.getDay();
-          if (day !== 0 && day !== 6) daysAdded++;
-        }
         await supabase
           .from("crm_cards")
           .update({
