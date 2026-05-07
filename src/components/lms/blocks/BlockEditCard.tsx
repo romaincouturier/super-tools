@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useAutoSaveForm } from "@/hooks/useAutoSaveForm";
-import { Copy, Eye, EyeOff, GripVertical, Trash2 } from "lucide-react";
+import { Copy, Eye, EyeOff, GripVertical, Trash2, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
   LessonBlock,
@@ -28,6 +28,7 @@ import type {
   SpacerBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
+import { exampleBlockContent } from "@/types/lms-blocks";
 import TextBlockEditor from "./editors/TextBlockEditor";
 import VideoBlockEditor from "./editors/VideoBlockEditor";
 import ImageBlockEditor from "./editors/ImageBlockEditor";
@@ -74,7 +75,9 @@ export default function BlockEditCard({
   const meta = BLOCK_META[block.type];
   const Icon = meta.icon;
   const [content, setContent] = useState<LessonBlockContent>(block.content);
+  const [isExample, setIsExample] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
+  const exampleContent = useMemo(() => exampleBlockContent(block.type), [block.type]);
 
   const formValues = useMemo(() => ({ content }), [content]);
 
@@ -91,6 +94,17 @@ export default function BlockEditCard({
       }
     },
   });
+
+  const handleInsertExample = () => {
+    if (!exampleContent) return;
+    setContent(exampleContent);
+    setIsExample(true);
+  };
+
+  const handleContentChange = (c: LessonBlockContent) => {
+    setContent(c);
+    setIsExample(false);
+  };
 
   const handleDelete = async () => {
     const ok = await confirm({
@@ -132,6 +146,18 @@ export default function BlockEditCard({
         >
           {block.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </Button>
+        {exampleContent && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 gap-1 text-xs text-muted-foreground"
+            onClick={handleInsertExample}
+            title="Insérer un exemple"
+          >
+            <Wand2 className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">Exemple</span>
+          </Button>
+        )}
         {onDuplicate && (
           <Button
             variant="ghost"
@@ -156,6 +182,12 @@ export default function BlockEditCard({
         </Button>
       </div>
 
+      {isExample && (
+        <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs">
+          <Wand2 className="h-3 w-3 shrink-0" />
+          Contenu d'exemple — pensez à le remplacer par votre contenu réel
+        </div>
+      )}
       <div className="p-3 sm:p-4">
         {meta.editable ? (
           <BlockEditorBody
@@ -163,7 +195,7 @@ export default function BlockEditCard({
             lessonId={lessonId}
             courseId={courseId}
             content={content}
-            onChange={setContent}
+            onChange={handleContentChange}
           />
         ) : (
           <p className="text-sm text-muted-foreground italic">

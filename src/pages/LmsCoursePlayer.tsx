@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -398,27 +399,33 @@ export default function LmsCoursePlayer() {
               )}
 
               {/* Navigation */}
-              <Separator />
-              <div className="flex items-center justify-between">
-                <Button variant="outline" onClick={goPrev} disabled={currentIndex <= 0}>
-                  <ChevronLeft className="w-4 h-4 mr-1" /> Précédent
-                </Button>
-
+              <div className="rounded-lg border bg-card p-4 space-y-3">
                 {!completedIds.has(selectedLesson.id) && selectedLesson.lesson_type !== "quiz" && (
-                  <Button onClick={handleMarkComplete} disabled={markComplete.isPending}>
-                    <CheckCircle2 className="w-4 h-4 mr-1" /> Marquer comme terminé
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    onClick={handleMarkComplete}
+                    disabled={markComplete.isPending}
+                  >
+                    {markComplete.isPending
+                      ? <Spinner className="mr-2" />
+                      : <CheckCircle2 className="w-5 h-5 mr-2" />}
+                    Marquer comme terminé
                   </Button>
                 )}
-
                 {completedIds.has(selectedLesson.id) && (
-                  <Badge variant="outline" className="bg-primary/10 text-primary">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Terminé
-                  </Badge>
+                  <div className="flex items-center justify-center gap-2 py-1 text-sm font-medium text-primary">
+                    <CheckCircle2 className="w-4 h-4" /> Leçon terminée
+                  </div>
                 )}
-
-                <Button variant="outline" onClick={goNext} disabled={currentIndex >= orderedLessons.length - 1}>
-                  Suivant <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" className="flex-1" onClick={goPrev} disabled={currentIndex <= 0}>
+                    <ChevronLeft className="w-4 h-4 mr-1" /> Précédent
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={goNext} disabled={currentIndex >= orderedLessons.length - 1}>
+                    Suivant <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
