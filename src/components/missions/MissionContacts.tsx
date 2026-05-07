@@ -61,10 +61,12 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
 
   const handleUpdate = async (contact: MissionContact, field: string, value: string | boolean) => {
     try {
+      // Booleans must be passed as-is (false ≠ null), only empty strings become null
+      const normalized = typeof value === "boolean" ? value : (value || null);
       await updateContact.mutateAsync({
         id: contact.id,
         missionId,
-        updates: { [field]: value || null },
+        updates: { [field]: normalized },
       });
     } catch (err: unknown) {
       toastError(toast, err instanceof Error ? err : "Erreur inconnue");
