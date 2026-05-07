@@ -205,10 +205,10 @@ export default function Step5Email({
           }
         }
 
-        // Set follow-up: WAITING + J+3 working days (same as MicroDevis)
+        // Set follow-up: WAITING + J+5 working days (same as MicroDevis)
         const followUpDate = new Date();
         let daysAdded = 0;
-        while (daysAdded < 3) {
+        while (daysAdded < 5) {
           followUpDate.setDate(followUpDate.getDate() + 1);
           const day = followUpDate.getDay();
           if (day !== 0 && day !== 6) daysAdded++;
