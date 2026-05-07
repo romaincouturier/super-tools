@@ -188,16 +188,32 @@ const EditParticipantDialog = ({
           )}
         </div>
 
-        <div className="flex justify-between pt-4 border-t">
-          {isInterEntreprise && trainingDuree && trainingDates ? (
-            <CopyParticipantInfoButton
-              firstName={hook.firstName}
-              lastName={hook.lastName}
-              duree={trainingDuree}
-              dates={formatDateRange(trainingDates[0], trainingDates[1])}
-              lieu={trainingLocation || ""}
-            />
-          ) : <div />}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            {isInterEntreprise && trainingDuree && trainingDates ? (
+              <CopyParticipantInfoButton
+                firstName={hook.firstName}
+                lastName={hook.lastName}
+                duree={trainingDuree}
+                dates={formatDateRange(trainingDates[0], trainingDates[1])}
+                lieu={trainingLocation || ""}
+              />
+            ) : null}
+            {isInterEntreprise && (
+              participant.repositioned_to_training_id ? (
+                <Button type="button" variant="outline" size="sm" disabled>
+                  <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+                  Déjà repositionné
+                </Button>
+              ) : (
+                <RepositionParticipantDialog
+                  participant={participant}
+                  trainingId={trainingId}
+                  onRepositioned={() => { hook.handleClose(); onParticipantUpdated(); }}
+                />
+              )
+            )}
+          </div>
           <Button type="button" variant="outline" onClick={hook.handleClose}>
             Fermer
           </Button>
