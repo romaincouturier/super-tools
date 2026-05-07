@@ -296,6 +296,83 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
   }
 }
 
+/** Example content for each block type. Returns null for blocks without meaningful examples (quiz, video, layout). */
+export function exampleBlockContent(type: LessonBlockType): LessonBlockContent | null {
+  switch (type) {
+    case "text":
+      return {
+        html: "<h2>Introduction</h2><p>Dans cette section, vous découvrirez les concepts fondamentaux qui vous permettront de progresser efficacement. Prenez le temps de lire attentivement chaque partie avant de passer à la suite.</p>",
+      };
+    case "image":
+      return {
+        url: null,
+        caption_html: "<p>Légende — décrivez ici le contenu de l'image</p>",
+      };
+    case "file":
+      return {
+        url: null,
+        name: "Guide pratique — Module 1.pdf",
+        size: null,
+        description_html: "<p>Téléchargez ce document pour approfondir les notions abordées dans cette leçon.</p>",
+      };
+    case "assignment":
+      return {
+        assignment_id: null,
+        instructions_html: "<p>Rédigez un document de synthèse (1 à 2 pages) résumant les points clés de ce module. Appuyez-vous sur vos notes et les ressources partagées.</p>",
+      };
+    case "callout":
+      return {
+        color: "blue",
+        title: "À noter",
+        body_html: "<p>Retenez bien ce point essentiel : chaque concept présenté s'appuie sur les notions précédentes. Ne sautez pas les étapes !</p>",
+      };
+    case "key_points":
+      return {
+        title: "À retenir",
+        items: [
+          "Comprendre les bases avant d'aller plus loin.",
+          "Pratiquer régulièrement pour ancrer les connaissances.",
+          "Ne pas hésiter à revenir sur les notions difficiles.",
+        ],
+      };
+    case "checklist":
+      return {
+        title: "Avant de continuer, vérifiez que vous avez :",
+        items: [
+          { id: cryptoRandomId(), label: "Lu attentivement la partie précédente" },
+          { id: cryptoRandomId(), label: "Noté les points clés dans votre carnet" },
+          { id: cryptoRandomId(), label: "Posé vos questions en commentaire" },
+        ],
+      };
+    case "button":
+      return { label: "En savoir plus", url: "https://example.com", variant: "primary", open_in_new_tab: true };
+    case "exercise":
+      return {
+        prompt_html: "<p><strong>Exercice :</strong> En vous basant sur ce que vous venez d'apprendre, rédigez en 3 à 5 phrases les grandes étapes du processus décrit dans ce module.</p>",
+        answer_html: "<p><em>[Complétez ici avec un exemple de réponse attendue]</em></p>",
+      };
+    case "self_assessment":
+      return {
+        prompt: "Comment évaluez-vous votre niveau de compréhension sur cette section ?",
+        scale: "stars",
+        labels: ["Très difficile", "Difficile", "Assez bien", "Bien", "Très bien"],
+      };
+    case "work_deposit":
+      return {
+        title: "Déposer mon travail",
+        instructions_html: "<p>Déposez ici votre document de synthèse. Nommez votre fichier avec votre prénom et le titre du module (ex. : <strong>Prénom_NomDuModule.pdf</strong>).</p>",
+        expected_deliverable: "<p>Un fichier PDF ou Word, 2 pages maximum.</p>",
+        accepted_formats: ["pdf", "docx"],
+        max_size_mb: 10,
+        sharing_allowed: true,
+        comments_enabled: true,
+        feedback_enabled: true,
+      };
+    default:
+      return null;
+  }
+}
+
 /** Returns the kind ('layout' | 'content') of a block type. */
 export function blockKindOf(type: LessonBlockType): LessonBlockKind {
   return isLayoutBlockType(type) ? "layout" : "content";
