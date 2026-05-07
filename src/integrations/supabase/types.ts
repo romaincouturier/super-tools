@@ -3639,6 +3639,51 @@ export type Database = {
         }
         Relationships: []
       }
+      logistics_checklist_items: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          due_date: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          is_done: boolean
+          label: string
+          legacy_field: string | null
+          notify_days_before: number | null
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          due_date?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          is_done?: boolean
+          label: string
+          legacy_field?: string | null
+          notify_days_before?: number | null
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          due_date?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          is_done?: boolean
+          label?: string
+          legacy_field?: string | null
+          notify_days_before?: number | null
+          position?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           created_at: string | null
