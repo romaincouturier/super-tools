@@ -80,7 +80,7 @@ const DocumentDeliverySection = ({
       await exportAttendancePdf({ trainingId, trainingName, startDate });
     } catch (e) {
       console.error("Failed to generate attendance PDF:", e);
-      toastError("Impossible de générer la feuille d'émargement.");
+      toastError(toast, "Impossible de générer la feuille d'émargement.");
       return [];
     }
     const { data } = await supabase.from("trainings").select("attendance_sheets_urls").eq("id", trainingId).single();

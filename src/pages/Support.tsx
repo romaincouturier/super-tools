@@ -182,12 +182,12 @@ const Support = () => {
 
   const renderCard = (card: SupportTicketCard, isDragging?: boolean) => {
     const overdue = !isDragging && meanCycleTimeDays > 0
-      && !SUPPORT_DONE_COLS.includes(card.status as typeof SUPPORT_DONE_COLS[number])
-      && cardAgeDays(card.created_at) > meanCycleTimeDays;
+      && !SUPPORT_DONE_COLS.includes(card.ticket.status as typeof SUPPORT_DONE_COLS[number])
+      && cardAgeDays(card.ticket.created_at) > meanCycleTimeDays;
     return (
       <div
         style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
-        title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
+        title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.ticket.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
       >
         <SupportTicketCardComponent card={card} isDragging={isDragging} />
       </div>
