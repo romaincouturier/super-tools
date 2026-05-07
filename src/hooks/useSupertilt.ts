@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 export interface SupertiltAction {
   id: string;
@@ -14,15 +15,120 @@ export interface SupertiltAction {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  column_id: string | null;
+  position: number;
+}
+
+export interface SupertiltColumn {
+  id: string;
+  user_id: string;
+  name: string;
+  position: number;
 }
 
 type InsertAction = Pick<SupertiltAction, "title"> &
-  Partial<Pick<SupertiltAction, "description" | "assigned_to" | "deadline">>;
+  Partial<Pick<SupertiltAction, "description" | "assigned_to" | "deadline" | "column_id" | "position">>;
 
-type UpdateAction = Partial<Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline" | "is_completed">>;
+type UpdateAction = Partial<
+  Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline" | "is_completed" | "column_id" | "position">
+>;
 
 const sb = supabase as any;
 const TABLE = "supertilt_actions";
+const COLS_TABLE = "supertilt_columns";
+
+const DEFAULT_COLUMNS = ["À faire", "En cours", "Terminé"];
+
+export function useSupertiltColumns() {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const key = ["supertilt-columns"];
+
+  const query = useQuery({
+    queryKey: key,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from(COLS_TABLE)
+        .select("*")
+        .order("position", { ascending: true });
+      if (error) throw error;
+      return data as SupertiltColumn[];
+    },
+    enabled: !!user,
+  });
+
+  // Auto-create default columns if user has none
+  useEffect(() => {
+    if (!user || query.isLoading || !query.data) return;
+    if (query.data.length === 0) {
+      (async () => {
+        const rows = DEFAULT_COLUMNS.map((name, position) => ({
+          user_id: user.id,
+          name,
+          position,
+        }));
+        const { error } = await sb.from(COLS_TABLE).insert(rows);
+        if (!error) qc.invalidateQueries({ queryKey: key });
+      })();
+    }
+  }, [user, query.data, query.isLoading]);
+
+  const addColumn = useMutation({
+    mutationFn: async (name: string) => {
+      const cols = query.data || [];
+      const position = cols.length;
+      const { error } = await sb
+        .from(COLS_TABLE)
+        .insert({ name, position, user_id: user!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      toast.success("Colonne ajoutée");
+    },
+    onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Erreur"),
+  });
+
+  const renameColumn = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await sb.from(COLS_TABLE).update({ name }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const deleteColumn = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await sb.from(COLS_TABLE).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      qc.invalidateQueries({ queryKey: ["supertilt-actions"] });
+      toast.success("Colonne supprimée");
+    },
+  });
+
+  const reorderColumns = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, position) =>
+          sb.from(COLS_TABLE).update({ position }).eq("id", id),
+        ),
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  return {
+    columns: query.data ?? [],
+    isLoading: query.isLoading,
+    addColumn,
+    renameColumn,
+    deleteColumn,
+    reorderColumns,
+  };
+}
 
 export function useSupertiltActions() {
   const { user } = useAuth();
@@ -35,8 +141,7 @@ export function useSupertiltActions() {
       const { data, error } = await sb
         .from(TABLE)
         .select("*")
-        .order("is_completed", { ascending: true })
-        .order("deadline", { ascending: true, nullsFirst: false })
+        .order("position", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as SupertiltAction[];
