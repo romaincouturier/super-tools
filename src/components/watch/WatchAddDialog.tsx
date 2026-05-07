@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Link, Image, Mic, FileText, X, AlertTriangle } from "lucide-react";
+import { Plus, Link, Image, Mic, FileText, X, AlertTriangle, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
@@ -14,6 +14,7 @@ import { detectContentType, checkDuplicates, processWatchItem } from "@/services
 import { resolveContentType } from "@/lib/file-utils";
 import WatchRichEditor, { stripWatchHtml } from "./WatchRichEditor";
 import { extractMentionedUserIdsFromHtml } from "@/lib/tiptapMentionSuggestion";
+import MultiUserSelector from "@/components/shared/MultiUserSelector";
 
 interface WatchAddDialogProps {
   allTags: string[];
@@ -27,6 +28,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
@@ -41,6 +43,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setUrl("");
     setTags([]);
     setTagInput("");
+    setAssignedUserIds([]);
     setFile(null);
     setDuplicateWarning(null);
     setTab("text");
@@ -117,7 +120,12 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         file_size: fileSize,
         mime_type: mimeType,
         tags,
-        assigned_user_ids: extractMentionedUserIdsFromHtml(finalBody),
+        assigned_user_ids: [
+          ...new Set([
+            ...assignedUserIds,
+            ...extractMentionedUserIdsFromHtml(finalBody),
+          ]),
+        ],
       });
 
       // Trigger async processing (AI title/tags, scraping, OCR, transcription)
@@ -167,7 +175,12 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         file_size: fileSize,
         mime_type: mimeType,
         tags,
-        assigned_user_ids: extractMentionedUserIdsFromHtml(body),
+        assigned_user_ids: [
+          ...new Set([
+            ...assignedUserIds,
+            ...extractMentionedUserIdsFromHtml(body),
+          ]),
+        ],
       });
 
       const processed = await processWatchItem(item.id);
@@ -358,6 +371,19 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
                   +
                 </Button>
               </div>
+            </div>
+
+            {/* Assigned users */}
+            <div>
+              <Label className="flex items-center gap-1.5 mb-2">
+                <Users className="h-3.5 w-3.5" />
+                Taguer des personnes (optionnel)
+              </Label>
+              <MultiUserSelector
+                value={assignedUserIds}
+                onChange={setAssignedUserIds}
+                triggerLabel={assignedUserIds.length === 0 ? "Taguer…" : `${assignedUserIds.length} personne${assignedUserIds.length > 1 ? "s" : ""} taguée${assignedUserIds.length > 1 ? "s" : ""}`}
+              />
             </div>
 
             {/* Duplicate warning */}
