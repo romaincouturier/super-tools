@@ -1,5 +1,4 @@
 import { useCallback, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Bug, Lightbulb, Sparkles, Copy, Check, Bot } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
