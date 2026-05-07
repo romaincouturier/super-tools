@@ -8,7 +8,9 @@ import {
   getMaxBlockPosition,
   moveLessonBlock,
   duplicateLessonBlock,
+  insertLessonTemplate,
 } from "@/services/lms-blocks";
+import type { TemplateBlockDef } from "@/types/lms-templates";
 import type {
   LessonBlock,
   CreateLessonBlockInput,
@@ -90,6 +92,14 @@ export function useDuplicateLessonBlock(lessonId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (blockId: string) => duplicateLessonBlock({ blockId, lessonId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
+  });
+}
+
+export function useInsertLessonTemplate(lessonId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (blocks: TemplateBlockDef[]) => insertLessonTemplate(lessonId, blocks),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY(lessonId) }),
   });
 }

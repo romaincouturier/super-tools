@@ -15,7 +15,8 @@ import type {
   CreateLessonBlockInput,
   UpdateLessonBlockInput,
 } from "@/types/lms-blocks";
-import { blockKindOf } from "@/types/lms-blocks";
+import { blockKindOf, defaultBlockContent } from "@/types/lms-blocks";
+import type { TemplateBlockDef } from "@/types/lms-templates";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const blocks = () => (supabase as any).from("lms_lesson_blocks");
@@ -246,6 +247,39 @@ export async function duplicateLessonBlock(params: {
   }
 
   return cloneSubtree(source, source.parent_block_id ?? null, source.position + 1);
+}
+
+// ── Template insertion ────────────────────────────────────────────────
+
+/**
+ * Insert a template (a list of TemplateBlockDef) at the end of the lesson.
+ * Each def is merged with defaultBlockContent so callers only need to
+ * override the fields they care about. Children are inserted sequentially
+ * top-down so their parent_block_id always points to an existing row.
+ */
+export async function insertLessonTemplate(lessonId: string, templateBlocks: TemplateBlockDef[]): Promise<void> {
+  const basePosition = await getMaxBlockPosition(lessonId, null);
+
+  async function insertBlock(def: TemplateBlockDef, parentId: string | null, position: number): Promise<void> {
+    const content = { ...defaultBlockContent(def.type), ...(def.content ?? {}) } as LessonBlockContent;
+    const created = await createLessonBlock({
+      lesson_id: lessonId,
+      type: def.type,
+      kind: blockKindOf(def.type),
+      parent_block_id: parentId,
+      position,
+      content,
+    });
+    if (def.children) {
+      for (let i = 0; i < def.children.length; i++) {
+        await insertBlock(def.children[i], created.id, i);
+      }
+    }
+  }
+
+  for (let i = 0; i < templateBlocks.length; i++) {
+    await insertBlock(templateBlocks[i], null, basePosition + i + 1);
+  }
 }
 
 export type { LessonBlock, LessonBlockContent, LessonBlockType };
