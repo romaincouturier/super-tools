@@ -209,7 +209,7 @@ const DocumentDeliverySection = ({
     <>
       <div className="pt-4 border-t space-y-3">
         {isInterEntreprise ? (
-          (attendanceSheetsUrls.length > 0 || hasCertificates) ? (
+          (hasSheets || hasCertificates || hasEvaluations) ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>{renderSendButton()}</DropdownMenuTrigger>
               {renderInterEntrepriseMenu()}
