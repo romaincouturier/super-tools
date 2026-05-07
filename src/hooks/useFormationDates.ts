@@ -3,34 +3,75 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { FormationDate } from "@/types/formations";
 import type { User } from "@supabase/supabase-js";
+import { format, parseISO, isSameMonth, isSameDay } from "date-fns";
+import { fr } from "date-fns/locale";
 
-export function useFormationDates(user: User | null, initialDefaultsApplied: boolean, dateFormation: string) {
+/**
+ * Format start/end dates into a French label suitable for the micro-devis.
+ * Examples:
+ *  - "le 15 juin 2026"            (single day)
+ *  - "15 et 16 juin 2026"          (same month)
+ *  - "du 30 juin au 2 juillet 2026" (cross-month)
+ */
+function formatSessionLabel(startISO: string, endISO: string): string {
+  const start = parseISO(startISO);
+  const end = parseISO(endISO);
+
+  if (isSameDay(start, end)) {
+    return `le ${format(start, "d MMMM yyyy", { locale: fr })}`;
+  }
+
+  if (isSameMonth(start, end)) {
+    // Same month: "15 et 16 juin 2026" (explicit list if 2 days, range otherwise)
+    const dayDiff = end.getDate() - start.getDate();
+    if (dayDiff === 1) {
+      return `${start.getDate()} et ${end.getDate()} ${format(end, "MMMM yyyy", { locale: fr })}`;
+    }
+    return `du ${start.getDate()} au ${end.getDate()} ${format(end, "MMMM yyyy", { locale: fr })}`;
+  }
+
+  // Cross-month
+  return `du ${format(start, "d MMMM", { locale: fr })} au ${format(end, "d MMMM yyyy", { locale: fr })}`;
+}
+
+export function useFormationDates(user: User | null, _initialDefaultsApplied: boolean, _dateFormation: string) {
   const [formationDates, setFormationDates] = useState<FormationDate[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
+  // Kept for backward compatibility with FormationDatesSection props,
+  // but the dates now come from upcoming inter sessions and are not editable here.
   const [editingDate, setEditingDate] = useState<FormationDate | null>(null);
   const [datesDialogOpen, setDatesDialogOpen] = useState(false);
   const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
   const { toast } = useToast();
 
-  // Load formation dates from DB
   useEffect(() => {
     const loadFormationDates = async () => {
       try {
+        const today = new Date().toISOString().slice(0, 10);
+        // Upcoming inter-entreprise sessions, soonest first, excluding past ones.
         const { data, error } = await supabase
-          .from("formation_dates")
-          .select("*")
-          .order("created_at", { ascending: true });
+          .from("trainings")
+          .select("id, training_name, start_date, end_date, format_formation, session_type")
+          .eq("format_formation", "inter-entreprises")
+          .gte("end_date", today)
+          .order("start_date", { ascending: true });
 
         if (error) throw error;
 
-        if (data && data.length > 0) {
-          setFormationDates(data as FormationDate[]);
-        }
+        const rows: FormationDate[] = (data || [])
+          .filter((t) => t.start_date && t.end_date)
+          .map((t, idx) => ({
+            id: t.id,
+            date_label: formatSessionLabel(t.start_date as string, t.end_date as string),
+            is_default: idx === 0,
+          }));
+
+        setFormationDates(rows);
       } catch (error) {
         console.error("Error loading formation dates:", error);
         toast({
           title: "Erreur",
-          description: "Impossible de charger les dates de formations",
+          description: "Impossible de charger les prochaines sessions inter",
           variant: "destructive",
         });
       } finally {
@@ -38,114 +79,16 @@ export function useFormationDates(user: User | null, initialDefaultsApplied: boo
       }
     };
 
-    if (user) {
-      loadFormationDates();
-    }
-  }, [user, toast, initialDefaultsApplied, dateFormation]);
+    if (user) loadFormationDates();
+  }, [user, toast]);
 
-  const handleAddDate = async () => {
-    if (!newDate?.date_label) return;
-    try {
-      const { data, error } = await supabase
-        .from("formation_dates")
-        .insert({
-          date_label: newDate.date_label,
-          is_default: false,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      setFormationDates(prev => [...prev, data as FormationDate]);
-      toast({
-        title: "Date ajoutée",
-        description: `"${newDate.date_label}" a été ajoutée.`,
-      });
-      setNewDate(null);
-    } catch (error) {
-      console.error("Error adding date:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible d'ajouter la date",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSetDefaultDate = async (dateConfig: FormationDate) => {
-    try {
-      await supabase
-        .from("formation_dates")
-        .update({ is_default: false })
-        .neq("id", "");
-      const { error } = await supabase
-        .from("formation_dates")
-        .update({ is_default: true })
-        .eq("id", dateConfig.id);
-      if (error) throw error;
-      setFormationDates(prev =>
-        prev.map(d => ({ ...d, is_default: d.id === dateConfig.id }))
-      );
-      toast({
-        title: "Date par défaut",
-        description: `"${dateConfig.date_label}" est maintenant la date par défaut.`,
-      });
-    } catch (error) {
-      console.error("Error setting default:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de définir la date par défaut",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteDate = async (dateConfig: FormationDate) => {
-    try {
-      const { error } = await supabase
-        .from("formation_dates")
-        .delete()
-        .eq("id", dateConfig.id);
-      if (error) throw error;
-      setFormationDates(prev => prev.filter(d => d.id !== dateConfig.id));
-      toast({
-        title: "Date supprimée",
-        description: `"${dateConfig.date_label}" a été supprimée.`,
-      });
-    } catch (error) {
-      console.error("Error deleting date:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer la date",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSaveDate = async () => {
-    if (!editingDate) return;
-    try {
-      const { error } = await supabase
-        .from("formation_dates")
-        .update({ date_label: editingDate.date_label })
-        .eq("id", editingDate.id);
-      if (error) throw error;
-      setFormationDates(prev =>
-        prev.map(d => d.id === editingDate.id ? editingDate : d)
-      );
-      toast({
-        title: "Date sauvegardée",
-        description: `Les modifications ont été enregistrées.`,
-      });
-      setEditingDate(null);
-    } catch (error) {
-      console.error("Error saving date:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder la date",
-        variant: "destructive",
-      });
-    }
-  };
+  // Management handlers are no-ops: dates are derived from training sessions.
+  const notManageable = () =>
+    toast({
+      title: "Gestion non disponible",
+      description:
+        "Les dates proviennent des prochaines sessions inter-entreprises programmées.",
+    });
 
   return {
     formationDates,
@@ -157,9 +100,9 @@ export function useFormationDates(user: User | null, initialDefaultsApplied: boo
     setDatesDialogOpen,
     newDate,
     setNewDate,
-    handleAddDate,
-    handleSetDefaultDate,
-    handleDeleteDate,
-    handleSaveDate,
+    handleAddDate: notManageable,
+    handleSetDefaultDate: notManageable,
+    handleDeleteDate: notManageable,
+    handleSaveDate: notManageable,
   };
 }
