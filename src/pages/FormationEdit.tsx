@@ -207,7 +207,13 @@ const FormationEdit = () => {
       const payload = form.buildTrainingPayload({ isCreate: false });
       if (form.isInter && venueId && selectedVenue) {
         payload.venue_id = venueId;
-        payload.location = `${selectedVenue.name} — ${selectedVenue.city}`;
+        payload.location = [
+          selectedVenue.name,
+          selectedVenue.address,
+          [selectedVenue.postal_code, selectedVenue.city].filter(Boolean).join(" "),
+        ]
+          .filter(Boolean)
+          .join(", ");
       } else if (form.isInter && venueId) {
         payload.venue_id = venueId;
       } else {
