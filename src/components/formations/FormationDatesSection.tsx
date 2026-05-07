@@ -30,22 +30,6 @@ export default function FormationDatesSection({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Label>Dates de la formation *</Label>
-        {formatFormation === "inter" && (
-          <Dialog open={datesDialogOpen} onOpenChange={setDatesDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 px-2">
-                <Settings className="w-3 h-3 mr-1" />Gérer
-              </Button>
-            </DialogTrigger>
-            <FormationDateManager
-              formationDates={formationDates} loadingDates={loadingDates}
-              editingDate={a.editingDate} setEditingDate={a.setEditingDate}
-              newDate={a.newDate} setNewDate={a.setNewDate}
-              onAdd={a.onAdd} onSetDefault={a.onSetDefault}
-              onDelete={a.onDelete} onSave={a.onSave}
-            />
-          </Dialog>
-        )}
       </div>
       {formatFormation === "inter" && (
         <>
