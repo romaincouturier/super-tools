@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert } from "lucide-react";
+import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert, Activity, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const SOURCE_TYPES = [
   { key: "crm_card", label: "Cartes CRM", description: "Titres, descriptions, notes" },
