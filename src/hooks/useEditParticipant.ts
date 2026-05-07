@@ -38,6 +38,8 @@ export interface Participant {
   coaching_sessions_total?: number;
   coaching_sessions_completed?: number;
   coaching_deadline?: string | null;
+  repositioned_to_training_id?: string | null;
+  repositioned_at?: string | null;
 }
 
 export interface UseEditParticipantOptions {

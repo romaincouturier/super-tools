@@ -9,7 +9,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateRange } from "@/lib/dateFormatters";
 import {
@@ -23,9 +22,11 @@ interface Props {
   participant: Participant;
   trainingId: string;
   onRepositioned: () => void;
+  /** Custom trigger element. If omitted, a default icon button is rendered. */
+  trigger?: React.ReactNode;
 }
 
-const RepositionParticipantDialog = ({ participant, trainingId, onRepositioned }: Props) => {
+const RepositionParticipantDialog = ({ participant, trainingId, onRepositioned, trigger }: Props) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState<string | null>(null);
@@ -74,24 +75,16 @@ const RepositionParticipantDialog = ({ participant, trainingId, onRepositioned }
     }
   };
 
+  const defaultTrigger = (
+    <Button variant="outline" size="sm">
+      <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+      Repositionner
+    </Button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-primary"
-            >
-              <ArrowRightLeft className="h-3.5 w-3.5" />
-            </Button>
-          </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Repositionner sur une autre session</p>
-        </TooltipContent>
-      </Tooltip>
+      <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Repositionner le participant</DialogTitle>
