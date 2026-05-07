@@ -80,7 +80,7 @@ export function useParticipantHistory() {
       // Get all participations for this email
       const { data: allParticipations } = await supabase
         .from("training_participants")
-        .select("*, trainings(id, training_name, start_date, end_date)")
+        .select("*, trainings!training_participants_training_id_fkey(id, training_name, start_date, end_date)")
         .eq("email", email)
         .order("added_at", { ascending: false });
 
