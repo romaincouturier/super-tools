@@ -43,6 +43,14 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
         <span className="text-[10px] text-muted-foreground font-mono shrink-0">{t.ticket_number}</span>
       </div>
       <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
+      {t.screenshot_url && (
+        <img
+          src={t.screenshot_url}
+          alt="Capture d'écran"
+          className="w-full rounded object-cover max-h-20"
+          draggable={false}
+        />
+      )}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>
         <span>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: fr })}</span>

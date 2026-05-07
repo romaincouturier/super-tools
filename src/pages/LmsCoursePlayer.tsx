@@ -161,7 +161,7 @@ export default function LmsCoursePlayer() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {isPreview && (
         <div className="bg-amber-500 text-white text-center text-sm py-1 font-medium">
           🔍 Mode prévisualisation admin — les progressions ne sont pas enregistrées
