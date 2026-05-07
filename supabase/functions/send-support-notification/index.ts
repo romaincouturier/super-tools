@@ -213,7 +213,7 @@ serve(async (req) => {
     }
 
     // ── Ticket resolved notification (to submitter, legacy) ──
-    const { recipientEmail, ticketNumber, ticketTitle, status, resolutionNotes } = body ?? {};
+    const { recipientEmail, ticketNumber, ticketId, ticketTitle, description, status, resolutionNotes } = body ?? {};
 
     if (!recipientEmail || !ticketNumber || !ticketTitle) {
       return new Response(
@@ -228,15 +228,31 @@ serve(async (req) => {
       `[${VERSION}] support notification to=${recipientEmail} ticket=${ticketNumber} status=${status}`
     );
 
+    // Build 3-line preview of the original description (plain text, no HTML).
+    const descriptionPreview = (() => {
+      if (!description) return null;
+      const plain = String(description)
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const lines = plain.split(/\n/).map((l) => l.trim()).filter(Boolean);
+      const preview = lines.slice(0, 3).join(" ");
+      return preview.length > 300 ? preview.slice(0, 297) + "…" : preview;
+    })();
+
+    const ticketUrl = ticketId
+      ? `${APP_URL}/support?q=${encodeURIComponent(ticketNumber)}`
+      : `${APP_URL}/support`;
+
     const subject = `${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
 
     const bodyHtml = `
       <p>Bonjour,</p>
       <p>Votre demande de support a été traitée et son statut est maintenant : <strong>${statusLabel}</strong>.</p>
-      ${emailInfoBox(`<strong>${ticketNumber} — ${ticketTitle}</strong>`)}
+      ${emailInfoBox(`<strong>${ticketNumber} — ${ticketTitle}</strong>${descriptionPreview ? `<br><span style="color:#6b7280;font-size:0.9em">${descriptionPreview}</span>` : ""}`)}
       ${resolutionNotes ? emailSuccessBox("Notes de résolution :", resolutionNotes) : ""}
       <p>Si vous avez des questions, n'hésitez pas à créer un nouveau ticket de support.</p>
-      ${emailButton("Voir mes tickets", `${APP_URL}/support`)}
+      ${emailButton("Voir le ticket", ticketUrl)}
     `;
 
     const htmlContent = wrapEmailHtml(bodyHtml, signature);

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
@@ -40,7 +41,8 @@ const Support = () => {
   const moveTicket = useMoveSupportTicket();
   const analyzeTicket = useAnalyzeTicket();
 
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [filterType, setFilterType] = useState<"all" | TicketType>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [detailTicket, setDetailTicket] = useState<SupportTicket | null>(null);

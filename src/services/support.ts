@@ -177,7 +177,9 @@ async function notifyTicketResolved(ticket: SupportTicket): Promise<void> {
       body: {
         recipientEmail: ticket.submitted_by_email,
         ticketNumber: ticket.ticket_number,
+        ticketId: ticket.id,
         ticketTitle: ticket.title,
+        description: ticket.description || null,
         status: ticket.status,
         resolutionNotes: ticket.resolution_notes || null,
       },
