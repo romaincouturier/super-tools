@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ViewQuestionnaireDialog from "../ViewQuestionnaireDialog";
 import EditParticipantDialog from "../EditParticipantDialog";
-import RepositionParticipantDialog from "../RepositionParticipantDialog";
 import type { ParticipantActionsProps } from "./types";
 
 const ParticipantActions = ({
