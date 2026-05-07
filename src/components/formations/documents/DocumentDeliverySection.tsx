@@ -198,7 +198,7 @@ const DocumentDeliverySection = ({
       )}
       <p className="px-2 py-1.5 text-xs text-muted-foreground font-medium">Envoyer à un autre destinataire</p>
       {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", false)}><Mail className="h-4 w-4 mr-2" />Facture → autre email</DropdownMenuItem>}
-      {attendanceSheetsUrls.length > 0 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}><Mail className="h-4 w-4 mr-2" />Émargements → autre email</DropdownMenuItem>}
+      {hasSheets && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", false)}><Mail className="h-4 w-4 mr-2" />Émargement → autre email</DropdownMenuItem>}
       {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", false)}><Mail className="h-4 w-4 mr-2" />Certificats → autre email</DropdownMenuItem>}
       {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", false)}><Mail className="h-4 w-4 mr-2" />Évaluations → autre email</DropdownMenuItem>}
       {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", false)}><Mail className="h-4 w-4 mr-2" />Tous → autre email</DropdownMenuItem>}
