@@ -7081,6 +7081,42 @@ export type Database = {
           },
         ]
       }
+      training_venues: {
+        Row: {
+          address: string
+          city: string
+          created_at: string
+          email: string
+          formal_address: boolean
+          id: string
+          name: string
+          postal_code: string
+          room_name: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          created_at?: string
+          email: string
+          formal_address?: boolean
+          id?: string
+          name: string
+          postal_code: string
+          room_name?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          created_at?: string
+          email?: string
+          formal_address?: boolean
+          id?: string
+          name?: string
+          postal_code?: string
+          room_name?: string | null
+        }
+        Relationships: []
+      }
       trainings: {
         Row: {
           assigned_to: string | null
@@ -7140,6 +7176,8 @@ export type Database = {
           trainer_name: string
           training_name: string
           updated_at: string
+          venue_booking_sent_at: string | null
+          venue_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -7199,6 +7237,8 @@ export type Database = {
           trainer_name?: string
           training_name: string
           updated_at?: string
+          venue_booking_sent_at?: string | null
+          venue_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -7258,6 +7298,8 @@ export type Database = {
           trainer_name?: string
           training_name?: string
           updated_at?: string
+          venue_booking_sent_at?: string | null
+          venue_id?: string | null
         }
         Relationships: [
           {
@@ -7286,6 +7328,13 @@ export type Database = {
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainings_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "training_venues"
             referencedColumns: ["id"]
           },
         ]
