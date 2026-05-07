@@ -679,9 +679,9 @@ serve(async (req: Request): Promise<Response> => {
           }
         } catch { /* use default */ }
 
-        // Calculate 3 working days from now
+        // Calculate 5 working days from now
         let followUpDate = new Date();
-        let remaining = 3;
+        let remaining = 5;
         while (remaining > 0) {
           followUpDate.setDate(followUpDate.getDate() + 1);
           if (workingDays[followUpDate.getDay()]) {
