@@ -106,7 +106,13 @@ const FormationCreate = () => {
       payload.created_by = user.id;
       if (venueId && selectedVenue) {
         payload.venue_id = venueId;
-        payload.location = `${selectedVenue.name} — ${selectedVenue.city}`;
+        payload.location = [
+          selectedVenue.name,
+          selectedVenue.address,
+          [selectedVenue.postal_code, selectedVenue.city].filter(Boolean).join(" "),
+        ]
+          .filter(Boolean)
+          .join(", ");
       }
 
       const { data: training, error: trainingError } = await supabase
