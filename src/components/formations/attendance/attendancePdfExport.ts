@@ -218,12 +218,12 @@ export async function exportAttendancePdf({
       doc.line(xPos + colWidths[0], yPos, xPos + colWidths[0], yPos + rowHeight);
       xPos += colWidths[0];
 
-      const sched = scheduleMap.get(sig.schedule_date);
+      const slotRange = getSlotTimeRange(sig.schedule_date, sig.period);
       doc.text(getPeriodLabel(sig.period), xPos + 2, yPos + 6);
-      if (sched) {
+      if (slotRange) {
         doc.setFontSize(7);
         doc.setTextColor(100, 100, 100);
-        doc.text(`${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}`, xPos + 2, yPos + 12);
+        doc.text(`${slotRange.start} - ${slotRange.end}`, xPos + 2, yPos + 12);
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
       }
