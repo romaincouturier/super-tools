@@ -23,8 +23,11 @@ export async function createTrainingVenue(
 }
 
 export async function sendVenueBookingRequest(trainingId: string): Promise<void> {
-  const { error } = await supabase.functions.invoke("send-venue-booking-request", {
+  const { data, error } = await supabase.functions.invoke("send-venue-booking-request", {
     body: { trainingId },
   });
   if (error) throw error;
+  if (data && data.success === false) {
+    throw new Error(data.error || "Impossible d'envoyer la demande de réservation.");
+  }
 }
