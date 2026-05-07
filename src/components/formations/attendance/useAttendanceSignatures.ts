@@ -171,7 +171,7 @@ export function useAttendanceSignatures({
             s => s.schedule_date === schedule.day_date && s.period === period
           ) || [];
           const trainerSig = trainerSigMap.get(`${schedule.day_date}-${period}`);
-          const startTime = isSplit ? (period === "AM" ? start : "14:00") : start;
+          const startTime = isSplit ? (period === "AM" ? start : "13:30") : start;
           const endTime = isSplit ? (period === "AM" ? "12:30" : end) : end;
           statuses.push({
             date: schedule.day_date,
