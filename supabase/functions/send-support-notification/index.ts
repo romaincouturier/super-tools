@@ -222,7 +222,7 @@ serve(async (req) => {
       );
     }
 
-    const statusLabel = status === "resolu" ? "Résolu" : "Fermé";
+    const statusLabel = "Résolu";
 
     console.log(
       `[${VERSION}] support notification to=${recipientEmail} ticket=${ticketNumber} status=${status}`
