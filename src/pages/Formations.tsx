@@ -142,14 +142,17 @@ const Formations = () => {
 
       const trainingsWithCount = (trainingsResult.data || []).map((t) => {
         const participants = pMap.get(t.id) || [];
-        const unbilledCount = participants.filter(
-          (p) => p.payment_mode === "invoice" && !p.invoice_file_url
-        ).length;
+        const isIntra = t.session_type === "intra";
+        const unbilledCount = isIntra
+          ? (t.sold_price_ht != null && t.sold_price_ht > 0 && !t.invoice_file_url ? 1 : 0)
+          : participants.filter(
+              (p) => p.payment_mode === "invoice" && !p.invoice_file_url
+            ).length;
         return {
           ...t,
           participant_count: countMap.get(t.id) || 0,
           unbilled_count: unbilledCount,
-          is_intra: t.session_type === "intra",
+          is_intra: isIntra,
         };
       });
       setTrainings(trainingsWithCount);
