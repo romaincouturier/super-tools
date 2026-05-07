@@ -52,6 +52,7 @@ const DocumentDeliverySection = ({
   sponsorFormalAddress,
   setDocumentsSentInfo,
   evaluationCount = 0,
+  signatureCount = 0,
 }: DocumentDeliverySectionProps) => {
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
