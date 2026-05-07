@@ -269,9 +269,9 @@ const ParticipantTraceabilityDrawer = ({
                           )}
                         </div>
                       );
-                    })}
-                  </div>
-                )}
+                    })
+                  )}
+                </div>
               </ScrollArea>
             </TabsContent>
 
