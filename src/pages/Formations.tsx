@@ -333,15 +333,12 @@ const Formations = () => {
   // Billing status styling for past trainings
   const getPastTrainingStyle = (training: Training) => {
     if (filter !== "past") return "";
-    // Intra: billing is at training level, not per-participant → no red styling
-    if (training.is_intra) return "";
     if ((training.unbilled_count ?? 0) > 0) return "border-red-300 bg-red-50/50";
     return "opacity-60";
   };
 
   const getPastRowStyle = (training: Training) => {
     if (filter !== "past") return "";
-    if (training.is_intra) return "";
     if ((training.unbilled_count ?? 0) > 0) return "bg-red-50/50 hover:bg-red-50/70";
     return "opacity-60";
   };
