@@ -45,23 +45,54 @@ export default function AgentIndexationSettings() {
   const [results, setResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
   const [stuckCount, setStuckCount] = useState<number | null>(null);
+  const [pendingTotal, setPendingTotal] = useState<number | null>(null);
+  const [lastProcessedAt, setLastProcessedAt] = useState<string | null>(null);
+  const [oldestPendingAt, setOldestPendingAt] = useState<string | null>(null);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [queueProgress, setQueueProgress] = useState<{ processed: number; remaining: number } | null>(null);
 
-  const refreshStuckCount = useCallback(async () => {
+  const refreshHealth = useCallback(async () => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    const { count, error } = await supabase
-      .from("indexation_queue")
-      .select("*", { count: "exact", head: true })
-      .is("processed_at", null)
-      .lt("created_at", fiveMinAgo);
-    if (!error) setStuckCount(count ?? 0);
+    const [stuckRes, pendingRes, lastRes, oldestRes] = await Promise.all([
+      supabase.from("indexation_queue").select("*", { count: "exact", head: true }).is("processed_at", null).lt("created_at", fiveMinAgo),
+      supabase.from("indexation_queue").select("*", { count: "exact", head: true }).is("processed_at", null),
+      supabase.from("indexation_queue").select("processed_at").not("processed_at", "is", null).order("processed_at", { ascending: false }).limit(1),
+      supabase.from("indexation_queue").select("created_at").is("processed_at", null).order("created_at", { ascending: true }).limit(1),
+    ]);
+    if (!stuckRes.error) setStuckCount(stuckRes.count ?? 0);
+    if (!pendingRes.error) setPendingTotal(pendingRes.count ?? 0);
+    if (!lastRes.error && lastRes.data?.[0]) setLastProcessedAt(lastRes.data[0].processed_at);
+    if (!oldestRes.error) setOldestPendingAt(oldestRes.data?.[0]?.created_at ?? null);
   }, []);
+  const refreshStuckCount = refreshHealth;
 
-  // Initial check + re-check after backfills complete
+  // Initial check + re-check after backfills complete + auto-refresh every 30s
   useEffect(() => {
-    refreshStuckCount();
-  }, [statuses, refreshStuckCount]);
+    refreshHealth();
+    const interval = setInterval(refreshHealth, 30_000);
+    return () => clearInterval(interval);
+  }, [statuses, refreshHealth]);
+
+  const runReconcile = async () => {
+    setReconciling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Non authentifié");
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reconcile-indexation`,
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({}) },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      toast.success(`Réconciliation : ${data.total_enqueued ?? 0} contenus ré-enfilés`);
+      await refreshHealth();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur de réconciliation");
+    } finally {
+      setReconciling(false);
+    }
+  };
 
   /**
    * Drain the queue in successive batches until empty (or until we hit
