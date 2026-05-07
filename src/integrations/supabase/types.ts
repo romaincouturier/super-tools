@@ -5950,6 +5950,7 @@ export type Database = {
       support_tickets: {
         Row: {
           ai_analysis: Json | null
+          archived_at: string | null
           assigned_to: string | null
           created_at: string
           description: string
@@ -5971,6 +5972,7 @@ export type Database = {
         }
         Insert: {
           ai_analysis?: Json | null
+          archived_at?: string | null
           assigned_to?: string | null
           created_at?: string
           description: string
@@ -5992,6 +5994,7 @@ export type Database = {
         }
         Update: {
           ai_analysis?: Json | null
+          archived_at?: string | null
           assigned_to?: string | null
           created_at?: string
           description?: string
