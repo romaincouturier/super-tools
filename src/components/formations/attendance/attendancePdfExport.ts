@@ -103,7 +103,7 @@ export async function exportAttendancePdf({
     const isSplit = hasAM && hasPM;
     if (!isSplit) return { start, end };
     if (period === "AM") return { start, end: "12:30" };
-    return { start: "14:00", end };
+    return { start: "13:30", end };
   };
 
   const trainerSigMap = new Map(
