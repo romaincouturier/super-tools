@@ -271,8 +271,8 @@ export async function exportAttendancePdf({
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
-      const sched = scheduleMap.get(date);
-      const horaireText = sched ? ` — ${formatTime(sched.start_time)} - ${formatTime(sched.end_time)}` : "";
+      const slotRange = getSlotTimeRange(date, period);
+      const horaireText = slotRange ? ` — ${slotRange.start} - ${slotRange.end}` : "";
       doc.text(
         `${formatDateFr(date)} - ${getPeriodLabel(period)}${horaireText} (${signedCount}/${slotSignatures.length} signatures)`,
         margin + 3, yPos + 5.5
