@@ -15,6 +15,7 @@ import AddColumnDialog from "@/components/shared/AddColumnDialog";
 import { CreateTrainingDialog } from "./CreateTrainingDialog";
 import { useNavigate } from "react-router-dom";
 import { isAfter, startOfDay } from "date-fns";
+import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { celebrateWin } from "@/lib/celebrateWin";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
@@ -230,6 +231,11 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const doneColumnIds = useMemo(
     () => [...wonColumnIds, ...lostColumnIds],
     [wonColumnIds, lostColumnIds],
+  );
+
+  const meanCycleTimeDays = useMemo(
+    () => computeMeanCycleTime(statsItems, doneColumnIds),
+    [statsItems, doneColumnIds],
   );
 
   // Handle loss reason dialog confirmation from drag
@@ -557,13 +563,23 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         cards={kanbanCards}
         loading={isLoading}
         config={{ enableKeyboard: true }}
-        renderCard={(card, isDragging) => (
-          <CrmCardComponent
-            card={card}
-            isDragging={isDragging}
-            serviceTypeColors={serviceTypeColors}
-          />
-        )}
+        renderCard={(card, isDragging) => {
+          const overdue = !isDragging && meanCycleTimeDays > 0
+            && card.sales_status !== "WON" && card.sales_status !== "LOST"
+            && cardAgeDays(card.created_at) > meanCycleTimeDays;
+          return (
+            <div
+              style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+              title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
+            >
+              <CrmCardComponent
+                card={card}
+                isDragging={isDragging}
+                serviceTypeColors={serviceTypeColors}
+              />
+            </div>
+          );
+        }}
         renderColumnHeader={(col, colCards) => (
           <CrmColumnHeader column={col} cards={colCards} />
         )}

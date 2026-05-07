@@ -29,6 +29,7 @@ import {
 } from "@/types/support";
 import type { KanbanDropResult, KanbanStatsItem } from "@/types/kanban";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 
 const Support = () => {
   const { toast } = useToast();
@@ -96,6 +97,12 @@ const Support = () => {
       completedAt: t.resolved_at,
     }));
   }, [tickets]);
+
+  const SUPPORT_DONE_COLS = ["resolu"] as const;
+  const meanCycleTimeDays = useMemo(
+    () => computeMeanCycleTime(statsItems, [...SUPPORT_DONE_COLS]),
+    [statsItems],
+  );
 
   const handleCardMove = async (result: KanbanDropResult<SupportTicketCard>) => {
     try {
@@ -173,9 +180,19 @@ const Support = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const renderCard = (card: SupportTicketCard, isDragging?: boolean) => (
-    <SupportTicketCardComponent card={card} isDragging={isDragging} />
-  );
+  const renderCard = (card: SupportTicketCard, isDragging?: boolean) => {
+    const overdue = !isDragging && meanCycleTimeDays > 0
+      && !SUPPORT_DONE_COLS.includes(card.status as typeof SUPPORT_DONE_COLS[number])
+      && cardAgeDays(card.created_at) > meanCycleTimeDays;
+    return (
+      <div
+        style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+        title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
+      >
+        <SupportTicketCardComponent card={card} isDragging={isDragging} />
+      </div>
+    );
+  };
 
   const renderColumnHeader = (column: typeof SUPPORT_COLUMNS[0], columnCards: SupportTicketCard[]) => (
     <div className="flex items-center justify-between px-2 py-1">

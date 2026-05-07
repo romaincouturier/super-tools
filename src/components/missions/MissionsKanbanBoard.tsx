@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { closestCenter } from "@dnd-kit/core";
 import { Plus, Info } from "lucide-react";
 import { startOfDay, isAfter } from "date-fns";
+import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { Button } from "@/components/ui/button";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useMissions, useMoveMission, useUpdateMission, useMissionIdsWithFutureScheduledActions } from "@/hooks/useMissions";
@@ -141,6 +142,12 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
     }));
   }, [missions]);
 
+  const MISSION_DONE_COLS = ["completed", "cancelled"] as const;
+  const meanCycleTimeDays = useMemo(
+    () => computeMeanCycleTime(statsItems, [...MISSION_DONE_COLS]),
+    [statsItems],
+  );
+
   const getColumnRules = (colId: string): string[] => {
     const rules: string[] = [];
     if (colId !== "cancelled") {
@@ -189,13 +196,23 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         cards={cards}
         loading={isLoading}
         config={{ collisionDetection: closestCenter }}
-        renderCard={(card, isDragging) => (
-          <MissionCard
-            mission={card}
-            isDragging={isDragging}
-            onEmojiChange={handleMissionEmojiChange}
-          />
-        )}
+        renderCard={(card, isDragging) => {
+          const overdue = !isDragging && meanCycleTimeDays > 0
+            && !MISSION_DONE_COLS.includes(card.status as typeof MISSION_DONE_COLS[number])
+            && cardAgeDays(card.created_at) > meanCycleTimeDays;
+          return (
+            <div
+              style={overdue ? { boxShadow: "0 0 0 2px #fbbf24", borderRadius: "8px" } : undefined}
+              title={overdue ? `Délai dépassé (${Math.round(cardAgeDays(card.created_at))}j > moy. ${Math.round(meanCycleTimeDays)}j)` : undefined}
+            >
+              <MissionCard
+                mission={card}
+                isDragging={isDragging}
+                onEmojiChange={handleMissionEmojiChange}
+              />
+            </div>
+          );
+        }}
         renderColumnHeader={(col, colCards) => (
           <div className="p-3 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
