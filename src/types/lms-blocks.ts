@@ -31,6 +31,7 @@ export type ContentBlockType =
   | "callout"
   | "key_points"
   | "checklist"
+  | "bullet_list"
   | "button"
   | "exercise"
   | "self_assessment"
@@ -147,6 +148,30 @@ export interface ButtonBlockContent {
 export interface ExerciseBlockContent {
   prompt_html: string;
   answer_html?: string | null;
+  checklist_title?: string | null;
+  checklist_items?: ChecklistItem[] | null;
+}
+
+export type BulletStyle = "round" | "square" | "check" | "arrow" | "star" | "diamond";
+
+export const BULLET_CHARS: Record<BulletStyle, string> = {
+  round:   "•",
+  square:  "■",
+  check:   "✓",
+  arrow:   "→",
+  star:    "★",
+  diamond: "◆",
+};
+
+export type BulletSpacing = "compact" | "normal" | "relaxed";
+
+export interface BulletListBlockContent {
+  title?: string | null;
+  items: string[];
+  bullet_style?: BulletStyle;
+  bullet_color?: string | null;
+  text_color?: string | null;
+  item_spacing?: BulletSpacing;
 }
 
 export type SelfAssessmentScale = "stars" | "labels";
@@ -215,6 +240,7 @@ export type LessonBlockContent =
   | CalloutBlockContent
   | KeyPointsBlockContent
   | ChecklistBlockContent
+  | BulletListBlockContent
   | ButtonBlockContent
   | ExerciseBlockContent
   | SelfAssessmentBlockContent
@@ -277,6 +303,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { title: "À retenir", items: [""] };
     case "checklist":
       return { title: null, items: [{ id: cryptoRandomId(), label: "" }] };
+    case "bullet_list":
+      return { title: null, items: [""], bullet_style: "round", bullet_color: null, text_color: null, item_spacing: "normal" };
     case "button":
       return { label: "En savoir plus", url: "", variant: "primary", open_in_new_tab: true };
     case "exercise":
@@ -358,6 +386,14 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
           { id: cryptoRandomId(), label: "Noté les points clés dans votre carnet" },
           { id: cryptoRandomId(), label: "Posé vos questions en commentaire" },
         ],
+      };
+    case "bullet_list":
+      return {
+        title: "Points importants",
+        items: ["Premier point clé à retenir", "Deuxième point clé", "Troisième point clé"],
+        bullet_style: "round",
+        bullet_color: "#FFD100",
+        item_spacing: "normal",
       };
     case "button":
       return { label: "En savoir plus", url: "https://example.com", variant: "primary", open_in_new_tab: true };

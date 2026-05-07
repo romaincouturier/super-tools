@@ -17,6 +17,7 @@ import type {
   CalloutBlockContent,
   KeyPointsBlockContent,
   ChecklistBlockContent,
+  BulletListBlockContent,
   ButtonBlockContent,
   ExerciseBlockContent,
   SelfAssessmentBlockContent,
@@ -38,6 +39,7 @@ import AssignmentBlockEditor from "./editors/AssignmentBlockEditor";
 import CalloutBlockEditor from "./editors/CalloutBlockEditor";
 import KeyPointsBlockEditor from "./editors/KeyPointsBlockEditor";
 import ChecklistBlockEditor from "./editors/ChecklistBlockEditor";
+import BulletListBlockEditor from "./editors/BulletListBlockEditor";
 import ButtonBlockEditor from "./editors/ButtonBlockEditor";
 import ExerciseBlockEditor from "./editors/ExerciseBlockEditor";
 import SelfAssessmentBlockEditor from "./editors/SelfAssessmentBlockEditor";
@@ -288,6 +290,13 @@ function BlockEditorBody({
       return (
         <ChecklistBlockEditor
           content={content as ChecklistBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "bullet_list":
+      return (
+        <BulletListBlockEditor
+          content={content as BulletListBlockContent}
           onChange={(c) => onChange(c)}
         />
       );
