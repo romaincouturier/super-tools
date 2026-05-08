@@ -26,7 +26,7 @@ export function useBalanceSheets() {
         .order("annee", { ascending: false })
         .limit(10);
       if (error) throw error;
-      return (data ?? []) as BalanceSheetRow[];
+      return (data ?? []) as unknown as BalanceSheetRow[];
     },
     staleTime: 60 * 1000,
   });
