@@ -419,3 +419,10 @@ verify_jwt = false
 
 [functions.pennylane-proxy]
 verify_jwt = false
+
+[functions.generate-monthly-report]
+verify_jwt = false
+
+[functions.extract-balance-sheet]
+verify_jwt = false
+

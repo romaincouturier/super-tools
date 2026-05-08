@@ -5,6 +5,7 @@ import type { FormationDate } from "@/types/formations";
 import type { User } from "@supabase/supabase-js";
 import { format, parseISO, isSameMonth, isSameDay } from "date-fns";
 import { fr } from "date-fns/locale";
+import { todayAsISO } from "@/lib/dateFormatters";
 
 /**
  * Format start/end dates into a French label suitable for the micro-devis.
@@ -47,7 +48,7 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
   useEffect(() => {
     const loadFormationDates = async () => {
       try {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayAsISO();
         // Upcoming inter sessions across all formats (présentiel, classe virtuelle, e-learning), soonest first, excluding past ones.
         const { data, error } = await supabase
           .from("trainings")
