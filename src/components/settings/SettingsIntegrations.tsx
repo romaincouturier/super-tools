@@ -196,6 +196,26 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Pennylane</CardTitle>
+          <CardDescription>Token API Pennylane v2 pour alimenter le module Finances (factures clients/fournisseurs, trésorerie).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="pennylane-token">Token API Pennylane</Label>
+          <Input
+            id="pennylane-token"
+            type="password"
+            value={settings.pennylane_api_token || ""}
+            onChange={(e) => updateSetting("pennylane_api_token", e.target.value)}
+            placeholder="Bearer token Pennylane"
+          />
+          <p className="text-xs text-muted-foreground">
+            Dans Pennylane : Paramètres entreprise → Connectivité → API → générer un Company API Token avec les scopes <code>customer_invoices:all</code>, <code>supplier_invoices:readonly</code>, <code>customers:all</code>, <code>products:readonly</code>, <code>bank_accounts:readonly</code>, <code>transactions:readonly</code>.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">OpenAI</CardTitle>
           <CardDescription>Clé API OpenAI utilisée pour l'OCR (images veille), les embeddings RAG et les analyses automatiques.</CardDescription>
         </CardHeader>

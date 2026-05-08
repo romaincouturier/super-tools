@@ -25,6 +25,7 @@ const SIDEBAR_MODULE_ORDER = [
   "missions",
   "formations",
   "okr",
+  "finances",
   "contenu",
   "events",
   "medias",
