@@ -1233,6 +1233,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   convention_frais_default: { default: "0", description: "Montant des frais par défaut sur la convention" },
   convention_affiche_frais: { default: "Non", description: "Afficher les frais sur la convention (Oui/Non)" },
   wp_statistics_api_token: { default: "", description: "Token API WP-Statistics pour récupérer les statistiques du site WordPress" },
+  pennylane_api_token: { default: "", description: "Token API Pennylane (Bearer token v2) pour le module Finances : factures clients, fournisseurs, trésorerie" },
 };
 
 export const SETTINGS_DEFAULTS = Object.fromEntries(

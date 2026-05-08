@@ -23,6 +23,7 @@ import {
   Eye,
   Zap,
   Globe,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -57,4 +58,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   veille: { icon: Eye, label: "Veille", path: "/veille" },
   supertilt: { icon: Zap, label: "SuperTilt", path: "/supertilt" },
   "web-analytics": { icon: Globe, label: "Stats site web", path: "/web-analytics" },
+  finances: { icon: Wallet, label: "Finances", path: "/finances" },
 };
