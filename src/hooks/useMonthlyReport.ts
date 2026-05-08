@@ -44,7 +44,7 @@ export function useMonthlyReport(month: string | null) {
         .eq("month", `${month}-01`)
         .maybeSingle();
       if (error) throw error;
-      return (data as MonthlyReportRow | null) ?? null;
+      return (data as unknown as MonthlyReportRow | null) ?? null;
     },
     staleTime: 60 * 1000,
   });
