@@ -76,7 +76,7 @@ export function useUpdateBalanceSheetData() {
     mutationFn: async (input: { id: string; data: BalanceSheetData }): Promise<void> => {
       const { error } = await supabase
         .from("balance_sheets")
-        .update({ data: input.data })
+        .update({ data: input.data as unknown as never })
         .eq("id", input.id);
       if (error) throw error;
     },
