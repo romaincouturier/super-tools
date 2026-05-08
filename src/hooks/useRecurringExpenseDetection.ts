@@ -1,17 +1,12 @@
 import { useMemo } from "react";
 import { useSupplierInvoices, type PennylaneInvoice } from "@/hooks/usePennylane";
+import { toNumber as toAmount } from "@/lib/financeFormatters";
 
 export interface RecurringExpenseCandidate {
   supplierName: string;
   avgAmount: number;
   lastDate: string;
   occurrences: number;
-}
-
-function toAmount(v: string | number | undefined): number {
-  if (v === undefined || v === null) return 0;
-  const n = typeof v === "string" ? parseFloat(v) : v;
-  return Number.isFinite(n) ? n : 0;
 }
 
 /**

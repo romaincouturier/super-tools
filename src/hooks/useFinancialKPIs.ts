@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useCustomerInvoices, useSupplierInvoices, useBankAccounts, type PennylaneInvoice } from "@/hooks/usePennylane";
 import { isFixedCost } from "@/lib/pennylaneCategoryMap";
+import { toNumber as toAmount } from "@/lib/financeFormatters";
 
 export interface PeriodRange {
   from: string; // YYYY-MM-DD
@@ -37,12 +38,6 @@ export interface FinancialKPIs {
   cashAccountsCount: number;
   monthlySeries: MonthlySeriesPoint[];
   expenseBreakdown: ExpenseBreakdownSlice[];
-}
-
-function toAmount(v: string | number | undefined | null): number {
-  if (v === undefined || v === null) return 0;
-  const n = typeof v === "string" ? parseFloat(v) : v;
-  return Number.isFinite(n) ? n : 0;
 }
 
 function withinRange(dateStr: string | undefined, range: PeriodRange): boolean {

@@ -1,23 +1,11 @@
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { PennylaneInvoice } from "@/hooks/usePennylane";
+import { EUR, toNumber, formatDate } from "@/lib/financeFormatters";
 
-export const EUR = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
-
-export function toNumber(v: string | number | undefined): number {
-  if (v === undefined || v === null) return 0;
-  const n = typeof v === "string" ? parseFloat(v) : v;
-  return Number.isFinite(n) ? n : 0;
-}
-
-export function formatDate(s: string | undefined): string {
-  if (!s) return "—";
-  try {
-    return new Date(s).toLocaleDateString("fr-FR");
-  } catch {
-    return s;
-  }
-}
+// Re-exports : la majorité des composants finance importe encore EUR/toNumber/formatDate
+// depuis ce fichier, on les expose pour ne pas casser les imports existants.
+export { EUR, toNumber, formatDate };
 
 export const InvoicesLoader = ({ rows = 4 }: { rows?: number }) => (
   <div className="flex flex-col gap-2 py-4">

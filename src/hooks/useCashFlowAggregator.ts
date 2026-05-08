@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useCustomerInvoices, useSupplierInvoices, useBankAccounts, type PennylaneInvoice } from "@/hooks/usePennylane";
 import { useCashFlowForecast, type CashFlowForecastRow } from "@/hooks/useCashFlowForecast";
 import { useCrmPipelineForecast, type CrmPipelineDeal } from "@/hooks/useCrmPipelineForecast";
+import { toNumber as toAmount } from "@/lib/financeFormatters";
 
 export interface CashFlowMonthRow {
   month: string; // YYYY-MM
@@ -18,12 +19,6 @@ export interface CashFlowAggregation {
   hasError: boolean;
   startingCash: number;
   rows: CashFlowMonthRow[];
-}
-
-function toAmount(v: string | number | undefined | null): number {
-  if (v === undefined || v === null) return 0;
-  const n = typeof v === "string" ? parseFloat(v) : v;
-  return Number.isFinite(n) ? n : 0;
 }
 
 function monthKey(date: string | undefined): string | null {
