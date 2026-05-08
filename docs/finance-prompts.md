@@ -380,3 +380,144 @@ ARCHITECTURE :
 7. VÉRIFICATION
    `bash scripts/check-rules.sh` + commit + push.
 ```
+
+---
+
+## Use case 5 — BalanceSheetAnalyzer (analyse de bilan annuel via IA)
+
+```
+Tu travailles sur SuperTools (React/Vite + Supabase + Edge Functions Deno).
+Tu vas créer un nouveau use case dans le module Finances : analyse de
+bilan comptable annuel via extraction IA.
+
+PRÉREQUIS : étape 0 du fichier docs/finance-prompts.md déjà effectuée
+(tab "Bilan annuel" à ajouter dans Finances.tsx, en plus des 4 existants).
+
+ARCHITECTURE OBLIGATOIRE (cf. IMPROVEMENTS.md règle #014) :
+- Composant : src/components/finance/BalanceSheetAnalyzer.tsx (< 400 lignes)
+  + sous-composants si besoin (BalanceSheetUploader, BalanceSheetEditor,
+  BalanceSheetMultiYearComparison).
+- Service de calculs purs : src/lib/balanceSheetParser.ts (BFR, ratios,
+  évolutions — aucune donnée externe).
+- Hooks :
+  - src/hooks/useBalanceSheets.ts : CRUD bilans (< 300 lignes).
+  - src/hooks/useExtractBalanceSheet.ts : appelle l'edge function via
+    useEdgeFunction (règle #020).
+- Edge function : supabase/functions/extract-balance-sheet/index.ts
+  (Anthropic Claude Sonnet via API REST, support PDF natif).
+
+1. STORAGE BUCKET
+   Migration séparée : créer un bucket Supabase storage `balance-sheets`
+   (privé), avec RLS qui n'autorise que le propriétaire (user_id préfixé
+   dans le path : `<user_id>/<annee>.pdf`).
+
+2. MIGRATION TABLE
+   supabase/migrations/<timestamp>_create_balance_sheets.sql :
+   - Table balance_sheets :
+     id UUID PK,
+     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+     annee INTEGER NOT NULL CHECK (annee BETWEEN 2000 AND 2100),
+     data JSONB NOT NULL,
+     pdf_filename TEXT,
+     pdf_storage_path TEXT,
+     extracted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+     UNIQUE (user_id, annee)
+   - Index (user_id, annee DESC).
+   - RLS pattern user_module_access + finances + admin email
+     (cf. autres tables finance, ex : breakeven_scenarios).
+   - Trigger update_updated_at_column.
+
+3. EDGE FUNCTION extract-balance-sheet
+   - Auth : exige Bearer JWT (cf. pattern de pennylane-proxy/index.ts:36-51).
+   - Body : { storage_path: string, annee: number }.
+   - Récupère le PDF depuis le bucket via service role
+     (admin.storage.from('balance-sheets').download(path)).
+   - Appelle Anthropic API REST (pattern de crm-ai-assist/index.ts) :
+     - Endpoint : https://api.anthropic.com/v1/messages
+     - Model : import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts"
+     - Header : x-api-key = Deno.env.get("ANTHROPIC_API_KEY")
+     - anthropic-version: 2023-06-01
+     - PDF en content block document/base64 (PAS image_url) :
+       { role: "user", content: [
+         { type: "document", source: { type: "base64",
+           media_type: "application/pdf", data: base64 } },
+         { type: "text", text: "Extrait les données ..." }
+       ]}
+     - Prompt caching sur le system prompt :
+       system: [{ type: "text", text: SYSTEM_PROMPT,
+                  cache_control: { type: "ephemeral" } }]
+   - SYSTEM_PROMPT : extrait les données du bilan en JSON strict avec
+     un schéma riche (immobilisations détaillées, dettes éclatées
+     fournisseurs/financières/fiscales, compte de résultat complet).
+     Toutes valeurs en euros, 0 si rubrique absente.
+   - Validation côté edge : parser JSON, vérifier que total_actif === total_passif
+     (tolérance ±1€). Si incohérent, retourner le JSON quand même mais avec
+     un flag warning : { result: {...}, warnings: ["actif != passif"] }.
+   - Upsert dans balance_sheets ON CONFLICT (user_id, annee) DO UPDATE.
+   - Réponse : { result: { ...data, warnings? } }.
+
+4. SERVICE balanceSheetParser.ts (calculs purs)
+   - Types BalanceSheetData (matching le schéma JSON).
+   - Fonctions :
+     - computeBFR(d): stocks + creances_clients - dettes_fournisseurs_court_terme
+     - computeTresorerieNette(d): disponibilites + valeurs_mobilieres_placement
+                                  - dettes_financieres_court_terme
+     - computeRatioAutonomie(d): capitaux_propres / total_passif (en %)
+     - computeRentabiliteNette(d): resultat_net / chiffre_affaires (en %)
+     - computeFondsRoulement(d): capitaux_propres + dettes_financieres_long_terme
+                                 - actif_immobilise_total
+   - Tests unitaires (.test.ts) avec un bilan d'exemple.
+
+5. HOOK useBalanceSheets
+   - useBalanceSheets() : SELECT * FROM balance_sheets ORDER BY annee DESC.
+   - useDeleteBalanceSheet(id).
+   - useUploadBalanceSheetPDF() : upload PDF dans le bucket
+     `balance-sheets` au path `<user_id>/<annee>-<timestamp>.pdf`.
+   - useUpdateBalanceSheetData(id, data) : édition manuelle des
+     valeurs extraites par l'IA.
+
+6. HOOK useExtractBalanceSheet
+   - Wrap useEdgeFunction<{ result: BalanceSheetData; warnings?: string[] }>
+     ("extract-balance-sheet", { errorMessage: "Échec de l'extraction" }).
+
+7. COMPOSANT BalanceSheetAnalyzer.tsx
+   Étape 1 — Upload + extraction + correction :
+   - Input file (accept=".pdf"), bouton "Analyser le bilan".
+   - Pendant l'extraction : Spinner taille md.
+   - Une fois extrait : tableau éditable avec valeurs proposées,
+     bouton "Confirmer et enregistrer". Affiche warnings IA.
+
+   Étape 2 — Dashboard :
+   - Sélecteur multi-années (jusqu'à 3 années via Checkbox).
+   - 4 KpiCard : BFR, Trésorerie nette, Ratio autonomie, Rentabilité nette.
+   - BarChart grouped (CA / Résultat / Capitaux propres × années).
+   - BarChart stacked structure du passif.
+   - Alert si BFR < 0 OU ratio autonomie < 20%.
+
+8. CROISEMENT PENNYLANE (année en cours estimée)
+   - Réutiliser useFinancialKPIs({ from: '<année-courante>-01-01',
+     to: todayAsISO() }) pour afficher une "colonne" année courante
+     marquée d'un Badge "estimé Pennylane".
+   - PAS d'écriture en base : calculé à la volée.
+
+9. WIRING
+   - Ajouter le tab "Bilan annuel" dans src/pages/Finances.tsx.
+
+10. RÈGLES À RESPECTER (IMPROVEMENTS.md)
+    #014 séparation Pages/Hooks/Client, #017 Spinner, #019 toastError,
+    #020 useEdgeFunction, #021 useConfirm, #023 todayAsISO.
+    Composants < 400 lignes, hooks < 300 lignes.
+    Couleurs via vars Tailwind HSL.
+
+11. SECRETS
+    ANTHROPIC_API_KEY doit être configuré dans les secrets Supabase
+    (déjà présent : utilisé par crm-ai-assist).
+
+12. VÉRIFICATION FINALE
+    bash scripts/check-rules.sh 20/20.
+    npx tsc --noEmit clean.
+    Tester le flow complet sur un bilan réel avant commit + push.
+```
+

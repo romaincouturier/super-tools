@@ -11,6 +11,7 @@ import BreakEvenSimulator from "@/components/finance/BreakEvenSimulator";
 import FinancialDashboard from "@/components/finance/FinancialDashboard";
 import CashFlowBudget from "@/components/finance/CashFlowBudget";
 import MonthlyReport from "@/components/finance/MonthlyReport";
+import BalanceSheetAnalyzer from "@/components/finance/BalanceSheetAnalyzer";
 import {
   useCustomerInvoices,
   useSupplierInvoices,
@@ -94,6 +95,7 @@ export default function Finances() {
             <TabsTrigger value="cashflow">Trésorerie prévisionnelle</TabsTrigger>
             <TabsTrigger value="breakeven">Point mort</TabsTrigger>
             <TabsTrigger value="report">Rapport mensuel</TabsTrigger>
+            <TabsTrigger value="balance">Bilan annuel</TabsTrigger>
             <TabsTrigger value="accounting">Comptabilité</TabsTrigger>
           </TabsList>
 
@@ -111,6 +113,10 @@ export default function Finances() {
 
           <TabsContent value="report" className="mt-4">
             <MonthlyReport />
+          </TabsContent>
+
+          <TabsContent value="balance" className="mt-4">
+            <BalanceSheetAnalyzer />
           </TabsContent>
 
           <TabsContent value="accounting" className="mt-4 space-y-4">
