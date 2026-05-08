@@ -10,26 +10,13 @@ import InvoicesTable, { EUR, InvoicesLoader, toNumber, formatDate } from "@/comp
 import BreakEvenSimulator from "@/components/finance/BreakEvenSimulator";
 import FinancialDashboard from "@/components/finance/FinancialDashboard";
 import CashFlowBudget from "@/components/finance/CashFlowBudget";
+import MonthlyReport from "@/components/finance/MonthlyReport";
 import {
   useCustomerInvoices,
   useSupplierInvoices,
   useBankAccounts,
   usePennylaneMe,
 } from "@/hooks/usePennylane";
-
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{label}</CardTitle>
-        <CardDescription>À venir.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground text-sm">Cette section sera implémentée prochainement.</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function Finances() {
   const customerQ = useCustomerInvoices({ limit: 100 });
@@ -123,7 +110,7 @@ export default function Finances() {
           </TabsContent>
 
           <TabsContent value="report" className="mt-4">
-            <ComingSoon label="Rapport de pilotage mensuel" />
+            <MonthlyReport />
           </TabsContent>
 
           <TabsContent value="accounting" className="mt-4 space-y-4">
