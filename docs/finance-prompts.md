@@ -25,11 +25,14 @@ TÂCHES :
    - Mettre à jour l'import dans Finances.tsx.
 
 2. AJOUTER `expected_close_date` SUR `crm_cards`
-   - Créer une migration `supabase/migrations/<timestamp>_add_close_date_to_crm_cards.sql`
-   - Colonnes à ajouter (nullable) :
-     `expected_close_date DATE`, `closed_at TIMESTAMPTZ`
+   - Créer une migration `supabase/migrations/<timestamp>_add_expected_close_date_to_crm_cards.sql`
+   - Colonne à ajouter (nullable) : `expected_close_date DATE`
+   - PAS de `closed_at` : les colonnes `won_at` et `lost_at` existent
+     déjà sur `crm_cards` et couvrent le closing réalisé.
    - PAS de default. PAS de backfill. RLS inchangée.
-   - Mettre à jour `src/types/crm.ts` (ou équivalent) si typage existe.
+   - Index conditionnel `WHERE expected_close_date IS NOT NULL`.
+   - Mettre à jour `src/types/crm.ts` pour ajouter `expected_close_date`
+     dans `CrmCard` et `UpdateCardInput`.
 
 3. AJOUTER `html2canvas` AUX DEPS
    - `npm install html2canvas` (jsPDF est déjà présent).
@@ -326,8 +329,8 @@ ARCHITECTURE :
    - Récupère :
      - factures clients/fournisseurs du mois,
      - factures clients/fournisseurs du mois précédent (pour M-1),
-     - `crm_cards` du user : closed_at dans le mois (gagnés) +
-       OPEN avec expected_close_date dans M+1 (pipeline).
+     - `crm_cards` du user : `won_at` dans le mois (gagnés) +
+       `sales_status = 'OPEN'` avec `expected_close_date` dans M+1 (pipeline).
    - Calcule : CA, résultat net, taux de marge, nb clients actifs
      (distinct customer_id sur factures du mois), panier moyen,
      évolution vs M-1, prévision M+1 (somme estimated_value pipeline).
