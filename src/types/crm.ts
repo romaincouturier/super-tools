@@ -93,7 +93,7 @@ export interface CrmCard {
   // Temporal tracking
   won_at: string | null;
   lost_at: string | null;
-  expected_close_date: string | null;
+  expected_close_date?: string | null;
   // Acquisition source
   acquisition_source: AcquisitionSource | null;
   // Loss reason
