@@ -417,6 +417,42 @@ export type Database = {
           },
         ]
       }
+      balance_sheets: {
+        Row: {
+          annee: number
+          created_at: string
+          data: Json
+          extracted_at: string
+          id: string
+          pdf_filename: string | null
+          pdf_storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annee: number
+          created_at?: string
+          data: Json
+          extracted_at?: string
+          id?: string
+          pdf_filename?: string | null
+          pdf_storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annee?: number
+          created_at?: string
+          data?: Json
+          extracted_at?: string
+          id?: string
+          pdf_filename?: string | null
+          pdf_storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       billing_plans: {
         Row: {
           created_at: string
@@ -471,6 +507,90 @@ export type Database = {
           slug?: string
           stripe_price_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      breakeven_scenarios: {
+        Row: {
+          avg_unit_price: number
+          created_at: string
+          fixed_costs: number
+          id: string
+          monthly_units: number
+          name: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          variable_cost_rate: number
+        }
+        Insert: {
+          avg_unit_price?: number
+          created_at?: string
+          fixed_costs?: number
+          id?: string
+          monthly_units?: number
+          name: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          variable_cost_rate?: number
+        }
+        Update: {
+          avg_unit_price?: number
+          created_at?: string
+          fixed_costs?: number
+          id?: string
+          monthly_units?: number
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          variable_cost_rate?: number
+        }
+        Relationships: []
+      }
+      cashflow_forecast: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          is_recurring: boolean
+          month: string
+          notes: string | null
+          source: string
+          source_ref: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category: string
+          created_at?: string
+          id?: string
+          is_recurring?: boolean
+          month: string
+          notes?: string | null
+          source?: string
+          source_ref?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          is_recurring?: boolean
+          month?: string
+          notes?: string | null
+          source?: string
+          source_ref?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1134,6 +1254,7 @@ export type Database = {
           email: string | null
           emoji: string | null
           estimated_value: number | null
+          expected_close_date: string | null
           first_name: string | null
           gender: string | null
           id: string
@@ -1178,6 +1299,7 @@ export type Database = {
           email?: string | null
           emoji?: string | null
           estimated_value?: number | null
+          expected_close_date?: string | null
           first_name?: string | null
           gender?: string | null
           id?: string
@@ -1222,6 +1344,7 @@ export type Database = {
           email?: string | null
           emoji?: string | null
           estimated_value?: number | null
+          expected_close_date?: string | null
           first_name?: string | null
           gender?: string | null
           id?: string
@@ -4258,6 +4381,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      monthly_reports: {
+        Row: {
+          generated_at: string
+          id: string
+          month: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          month: string
+          payload: Json
+          user_id: string
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          month?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: []
       }
       network_actions: {
         Row: {
