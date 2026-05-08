@@ -8,6 +8,7 @@ import PageHeader from "@/components/PageHeader";
 import KpiCard from "@/components/finance/KpiCard";
 import InvoicesTable, { EUR, InvoicesLoader, toNumber, formatDate } from "@/components/finance/InvoicesTable";
 import BreakEvenSimulator from "@/components/finance/BreakEvenSimulator";
+import FinancialDashboard from "@/components/finance/FinancialDashboard";
 import {
   useCustomerInvoices,
   useSupplierInvoices,
@@ -109,7 +110,7 @@ export default function Finances() {
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-4">
-            <ComingSoon label="Dashboard financier" />
+            <FinancialDashboard />
           </TabsContent>
 
           <TabsContent value="cashflow" className="mt-4">
