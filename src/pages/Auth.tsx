@@ -27,41 +27,41 @@ const Auth = () => {
   const { toast } = useToast();
   const { status, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session) {
-          // Check if user must change password
-          const { data: metadata } = await supabase
-            .from("user_security_metadata")
-            .select("must_change_password")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
+    const checkAndRedirect = async (userId: string) => {
+      try {
+        const { data: metadata } = await supabase
+          .from("user_security_metadata")
+          .select("must_change_password")
+          .eq("user_id", userId)
+          .maybeSingle();
+        navigate(metadata?.must_change_password ? "/force-password-change" : "/dashboard");
+      } catch (e) {
+        console.error("[Auth] metadata check failed:", e);
+        navigate("/dashboard");
+      }
+    };
 
-          if (metadata?.must_change_password) {
-            navigate("/force-password-change");
-          } else {
-            navigate("/dashboard");
-          }
+    // IMPORTANT: do NOT call async supabase methods inside onAuthStateChange
+    // (it deadlocks the auth lock). Defer with setTimeout(0).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session?.user) {
+          setTimeout(() => { void checkAndRedirect(session.user.id); }, 0);
         }
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        // Check if user must change password
-        const { data: metadata } = await supabase
-          .from("user_security_metadata")
-          .select("must_change_password")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (metadata?.must_change_password) {
-          navigate("/force-password-change");
-        } else {
-          navigate("/dashboard");
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session?.user) {
+          void checkAndRedirect(session.user.id);
         }
-      }
-    });
+      })
+      .catch(async (err) => {
+        // Stale/corrupt token in storage — clear it so the user can log in again.
+        console.error("[Auth] getSession error, clearing stale session:", err);
+        try { await supabase.auth.signOut(); } catch { /* noop */ }
+      });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
