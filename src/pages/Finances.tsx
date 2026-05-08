@@ -3,7 +3,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ExternalLink, AlertCircle, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { ExternalLink, AlertCircle, Info, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import {
@@ -56,12 +57,14 @@ function KpiCard({
   title,
   value,
   hint,
+  info,
   icon: Icon,
   tone = "default",
 }: {
   title: string;
   value: string;
   hint?: string;
+  info?: string;
   icon: React.ComponentType<{ className?: string }>;
   tone?: "default" | "positive" | "negative";
 }) {
@@ -70,7 +73,21 @@ function KpiCard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          {info && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground/60 hover:text-muted-foreground transition-colors" aria-label={`Info ${title}`}>
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                {info}
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
         <Icon className={`h-4 w-4 ${toneClass}`} />
       </CardHeader>
       <CardContent>
@@ -206,13 +223,46 @@ export default function Finances() {
           </Alert>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <KpiCard title="Trésorerie" value={EUR.format(kpis.cash)} icon={Wallet} hint={`${banks.length} compte(s)`} />
-          <KpiCard title="CA encaissé" value={EUR.format(kpis.revenuePaid)} icon={CheckCircle2} tone="positive" />
-          <KpiCard title="CA en attente" value={EUR.format(kpis.revenueOpen)} icon={Clock} hint="Factures non payées" />
-          <KpiCard title="CA en retard" value={EUR.format(kpis.revenueLate)} icon={TrendingDown} tone="negative" />
-          <KpiCard title="Dépenses" value={EUR.format(kpis.expenses)} icon={TrendingUp} tone="negative" hint="Factures fournisseurs" />
-        </div>
+        <TooltipProvider delayDuration={150}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <KpiCard
+              title="Trésorerie"
+              value={EUR.format(kpis.cash)}
+              icon={Wallet}
+              hint={`${banks.length} compte(s)`}
+              info="Somme des soldes actuels de tous les comptes bancaires synchronisés dans Pennylane (onglet Trésorerie)."
+            />
+            <KpiCard
+              title="CA encaissé"
+              value={EUR.format(kpis.revenuePaid)}
+              icon={CheckCircle2}
+              tone="positive"
+              info="Total TTC des factures clients dont le statut Pennylane est « payée ». Calculé sur les 100 dernières factures émises."
+            />
+            <KpiCard
+              title="CA en attente"
+              value={EUR.format(kpis.revenueOpen)}
+              icon={Clock}
+              hint="Factures non payées"
+              info="Total restant dû sur les factures clients émises mais non encore payées (hors brouillons et annulées). Inclut les factures à venir et en retard."
+            />
+            <KpiCard
+              title="CA en retard"
+              value={EUR.format(kpis.revenueLate)}
+              icon={TrendingDown}
+              tone="negative"
+              info="Total restant dû sur les factures clients dont l'échéance de paiement est dépassée (statut Pennylane « late »)."
+            />
+            <KpiCard
+              title="Dépenses"
+              value={EUR.format(kpis.expenses)}
+              icon={TrendingUp}
+              tone="negative"
+              hint="Factures fournisseurs"
+              info="Total TTC des 100 dernières factures fournisseurs reçues, tous statuts confondus (payées et à payer)."
+            />
+          </div>
+        </TooltipProvider>
 
         <Tabs defaultValue="customers" className="w-full">
           <TabsList>
