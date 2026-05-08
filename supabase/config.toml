@@ -416,3 +416,6 @@ verify_jwt = false
 
 [functions.archive-resolved-tickets]
 verify_jwt = false
+
+[functions.pennylane-proxy]
+verify_jwt = false
