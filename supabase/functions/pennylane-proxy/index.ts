@@ -10,6 +10,7 @@ const PENNYLANE_BASE = "https://app.pennylane.com/api/external/v2";
 // Whitelist endpoint paths to avoid open proxy abuse.
 // Pattern matched via prefix on the requested `path`.
 const ALLOWED_PREFIXES = [
+  "me",
   "customer_invoices",
   "supplier_invoices",
   "customers",

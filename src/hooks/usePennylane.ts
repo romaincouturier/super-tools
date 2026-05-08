@@ -56,6 +56,12 @@ export interface PennylaneBankAccount {
   last_sync_at?: string;
 }
 
+export interface PennylaneMe {
+  company?: { id?: string | number; name?: string; reg_no?: string };
+  user?: { id?: string | number; email?: string };
+  scopes?: string[];
+}
+
 // ── Hooks ───────────────────────────────────────────────────────────────────
 
 export function useCustomerInvoices(params: { limit?: number; status?: string } = {}) {
@@ -97,6 +103,14 @@ export function useBankAccounts() {
         query: { per_page: 50 },
       }),
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePennylaneMe() {
+  return useQuery({
+    queryKey: ["pennylane", "me"],
+    queryFn: async () => callPennylane<PennylaneMe>({ path: "me" }),
+    staleTime: 10 * 60 * 1000,
   });
 }
 
