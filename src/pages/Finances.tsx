@@ -14,6 +14,14 @@ import {
   type PennylaneInvoice,
 } from "@/hooks/usePennylane";
 
+const Loader = ({ rows = 4 }: { rows?: number }) => (
+  <div className="flex flex-col gap-2 py-4">
+    {Array.from({ length: rows }).map((_, i) => (
+      <div key={i} className="h-10 w-full rounded-md bg-muted/50 animate-pulse" />
+    ))}
+  </div>
+);
+
 const EUR = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 
 function toNumber(v: string | number | undefined): number {
@@ -101,11 +109,7 @@ function InvoiceRow({ inv, kind }: { inv: PennylaneInvoice; kind: "customer" | "
 
 function InvoicesTable({ invoices, kind, loading }: { invoices: PennylaneInvoice[]; kind: "customer" | "supplier"; loading: boolean }) {
   if (loading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-      </div>
-    );
+    return <Loader rows={5} />;
   }
   if (!invoices.length) {
     return <p className="text-sm text-muted-foreground py-8 text-center">Aucune facture trouvée.</p>;
@@ -161,11 +165,12 @@ export default function Finances() {
   }, [customers, suppliers, banks]);
 
   return (
-    <ModuleLayout module="finances">
+    <ModuleLayout>
       <div className="container mx-auto p-6 space-y-6">
         <PageHeader
+          icon={Wallet}
           title="Finances"
-          description="Vue consolidée Pennylane : revenus, dépenses, trésorerie."
+          subtitle="Vue consolidée Pennylane : revenus, dépenses, trésorerie."
         />
 
         {tokenMissing && (
@@ -233,9 +238,7 @@ export default function Finances() {
               </CardHeader>
               <CardContent>
                 {banksQ.isLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-                  </div>
+                  <Loader rows={3} />
                 ) : banks.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">Aucun compte bancaire trouvé.</p>
                 ) : (
