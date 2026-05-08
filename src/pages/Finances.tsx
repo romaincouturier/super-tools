@@ -9,6 +9,7 @@ import KpiCard from "@/components/finance/KpiCard";
 import InvoicesTable, { EUR, InvoicesLoader, toNumber, formatDate } from "@/components/finance/InvoicesTable";
 import BreakEvenSimulator from "@/components/finance/BreakEvenSimulator";
 import FinancialDashboard from "@/components/finance/FinancialDashboard";
+import CashFlowBudget from "@/components/finance/CashFlowBudget";
 import {
   useCustomerInvoices,
   useSupplierInvoices,
@@ -114,7 +115,7 @@ export default function Finances() {
           </TabsContent>
 
           <TabsContent value="cashflow" className="mt-4">
-            <ComingSoon label="Trésorerie prévisionnelle" />
+            <CashFlowBudget />
           </TabsContent>
 
           <TabsContent value="breakeven" className="mt-4">
