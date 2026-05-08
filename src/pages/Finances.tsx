@@ -7,6 +7,7 @@ import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import KpiCard from "@/components/finance/KpiCard";
 import InvoicesTable, { EUR, InvoicesLoader, toNumber, formatDate } from "@/components/finance/InvoicesTable";
+import BreakEvenSimulator from "@/components/finance/BreakEvenSimulator";
 import {
   useCustomerInvoices,
   useSupplierInvoices,
@@ -116,7 +117,7 @@ export default function Finances() {
           </TabsContent>
 
           <TabsContent value="breakeven" className="mt-4">
-            <ComingSoon label="Simulateur de point mort" />
+            <BreakEvenSimulator />
           </TabsContent>
 
           <TabsContent value="report" className="mt-4">
