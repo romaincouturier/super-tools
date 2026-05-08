@@ -10,6 +10,7 @@ import {
   useCustomerInvoices,
   useSupplierInvoices,
   useBankAccounts,
+  usePennylaneMe,
   type PennylaneInvoice,
 } from "@/hooks/usePennylane";
 
@@ -139,12 +140,17 @@ export default function Finances() {
   const customerQ = useCustomerInvoices({ limit: 100 });
   const supplierQ = useSupplierInvoices({ limit: 100 });
   const banksQ = useBankAccounts();
+  const meQ = usePennylaneMe();
 
   const customers = customerQ.data?.items ?? [];
   const suppliers = supplierQ.data?.items ?? [];
   const banks = banksQ.data?.items ?? [];
+  const isEmptyPennylane = !customerQ.isLoading && !supplierQ.isLoading && !banksQ.isLoading &&
+    customers.length === 0 && suppliers.length === 0 && banks.length === 0;
+  const companyName = meQ.data?.company?.name;
+  const isSandbox = companyName?.toLowerCase().includes("sandbox");
 
-  const error = customerQ.error || supplierQ.error || banksQ.error;
+  const error = customerQ.error || supplierQ.error || banksQ.error || meQ.error;
   const tokenMissing = error?.message?.toLowerCase().includes("pennylane non configuré") ||
     error?.message?.toLowerCase().includes("token api pennylane");
 
@@ -187,6 +193,16 @@ export default function Finances() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Erreur Pennylane</AlertTitle>
             <AlertDescription>{error.message}</AlertDescription>
+          </Alert>
+        )}
+
+        {!error && isEmptyPennylane && companyName && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Aucune donnée renvoyée par Pennylane</AlertTitle>
+            <AlertDescription>
+              Le token est connecté à « {companyName} »{isSandbox ? " (environnement Sandbox)" : ""}, mais Pennylane renvoie 0 facture et 0 compte bancaire. Utilise un token du compte de production si tu veux afficher les données réelles.
+            </AlertDescription>
           </Alert>
         )}
 
