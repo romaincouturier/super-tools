@@ -8105,6 +8105,7 @@ export type Database = {
         | "supertilt"
         | "support"
         | "catalogue"
+        | "finances"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -8266,6 +8267,7 @@ export const Constants = {
         "supertilt",
         "support",
         "catalogue",
+        "finances",
       ],
       notification_type: [
         "review_requested",
