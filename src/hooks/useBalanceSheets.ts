@@ -26,7 +26,7 @@ export function useBalanceSheets() {
         .order("annee", { ascending: false })
         .limit(10);
       if (error) throw error;
-      return (data ?? []) as BalanceSheetRow[];
+      return (data ?? []) as unknown as BalanceSheetRow[];
     },
     staleTime: 60 * 1000,
   });
@@ -76,7 +76,7 @@ export function useUpdateBalanceSheetData() {
     mutationFn: async (input: { id: string; data: BalanceSheetData }): Promise<void> => {
       const { error } = await supabase
         .from("balance_sheets")
-        .update({ data: input.data })
+        .update({ data: input.data as unknown as never })
         .eq("id", input.id);
       if (error) throw error;
     },
