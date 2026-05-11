@@ -302,6 +302,12 @@ export function useEditParticipant({
     setEmail: participantForm.setEmail,
     company: participantForm.company,
     setCompany: participantForm.setCompany,
+    companyAddress: participantForm.companyAddress,
+    setCompanyAddress: participantForm.setCompanyAddress,
+    companyZip: participantForm.companyZip,
+    setCompanyZip: participantForm.setCompanyZip,
+    companyCity: participantForm.companyCity,
+    setCompanyCity: participantForm.setCompanyCity,
 
     // Sponsor fields
     sponsorFirstName: sponsorInfo.sponsorFirstName,
