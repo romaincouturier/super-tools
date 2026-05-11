@@ -43,6 +43,7 @@ const SIDEBAR_MODULE_ORDER = [
   "supertilt",
   "veille",
   "web-analytics",
+  "archives",
 ];
 
 function toAppModule(moduleIconKey: string): string {

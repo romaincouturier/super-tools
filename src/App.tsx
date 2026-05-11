@@ -87,6 +87,7 @@ const AgentChat = lazy(() => import("./pages/AgentChat"));
 const SuperTilt = lazy(() => import("./pages/SuperTilt"));
 const WebAnalytics = lazy(() => import("./pages/WebAnalytics"));
 const Finances = lazy(() => import("./pages/Finances"));
+const AdminArchives = lazy(() => import("./pages/AdminArchives"));
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
@@ -228,6 +229,8 @@ const App = () => (
               <Route path="/supertilt" element={<SuperTilt />} />
               {/* Finances (Pennylane) */}
               <Route path="/finances" element={<Finances />} />
+              {/* Archives administratives */}
+              <Route path="/archives" element={<AdminArchives />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
