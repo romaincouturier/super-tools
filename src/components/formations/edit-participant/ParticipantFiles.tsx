@@ -126,14 +126,13 @@ const ParticipantFiles = ({
               className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0"
             >
               <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <a
-                href={pf.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-sm text-primary hover:underline truncate"
+              <button
+                type="button"
+                onClick={() => handleOpenFile(pf)}
+                className="flex-1 text-left text-sm text-primary hover:underline truncate"
               >
                 {pf.file_name}
-              </a>
+              </button>
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {new Date(pf.uploaded_at).toLocaleDateString("fr-FR")}
               </span>
