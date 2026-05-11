@@ -59,9 +59,12 @@ export function useVoiceDictation({
         try {
           const ext = blob.type.includes("webm") ? "webm" : "mp4";
           const fileName = `dictation/${uuidv4()}.${ext}`;
+          // Strip codec parameter (e.g. "audio/webm;codecs=opus") — Supabase
+          // bucket allowed_mime_types matches the base mime exactly.
+          const baseMime = (blob.type || `audio/${ext}`).split(";")[0].trim();
           const { error: uploadError } = await supabase.storage
             .from("media")
-            .upload(fileName, blob, { contentType: blob.type });
+            .upload(fileName, blob, { contentType: baseMime });
           if (uploadError) throw uploadError;
 
           const { data: urlData } = supabase.storage.from("media").getPublicUrl(fileName);
