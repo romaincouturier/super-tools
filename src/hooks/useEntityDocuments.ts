@@ -165,12 +165,14 @@ export const uploadEntityDocument = async (
   entityType: DocumentEntityType,
   entityId: string,
 ): Promise<string> => {
-  if (entityType === "mission") {
+  if (entityType === "mission" || entityType === "training") {
     const formData = new FormData();
-    formData.append("missionId", entityId);
+    const idKey = entityType === "mission" ? "missionId" : "trainingId";
+    const fnName = entityType === "mission" ? "upload-mission-document" : "upload-training-document";
+    formData.append(idKey, entityId);
     formData.append("file", file);
 
-    const { data, error } = await supabase.functions.invoke("upload-mission-document", {
+    const { data, error } = await supabase.functions.invoke(fnName, {
       body: formData,
     });
 
