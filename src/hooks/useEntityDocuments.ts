@@ -180,6 +180,7 @@ export const uploadEntityDocument = async (
     const document = (data as { document?: { file_url?: string } } | null)?.document;
     if (!document?.file_url) throw new Error("URL du document introuvable après upload");
     return document.file_url;
+  }
 
   throw new Error(`Type d'entité non supporté: ${entityType}`);
 };
