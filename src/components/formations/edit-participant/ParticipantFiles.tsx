@@ -13,7 +13,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FileText, Upload, Trash2, Paperclip } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { ParticipantFile } from "@/services/participants";
+
+/** Extract storage path from a public/sign supabase URL pointing to training-documents. */
+function extractStoragePath(url: string): string | null {
+  const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/training-documents\/([^?]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 interface ParticipantFilesProps {
   participantId: string;
@@ -30,6 +38,46 @@ const ParticipantFiles = ({
   handleFileUpload,
   handleDeleteFile,
 }: ParticipantFilesProps) => {
+  const { toast } = useToast();
+
+  const handleOpenFile = async (pf: ParticipantFile) => {
+    // Open a blank window synchronously to preserve the user gesture (avoid popup blocker)
+    const win = window.open("about:blank", "_blank");
+    try {
+      const path = extractStoragePath(pf.file_url);
+      if (!path) throw new Error("Chemin du fichier introuvable");
+      const { data, error } = await supabase.storage
+        .from("training-documents")
+        .createSignedUrl(path, 3600);
+      if (error || !data?.signedUrl) throw error || new Error("URL signée indisponible");
+
+      // Fetch and open as blob to bypass extension blockers (Brave Shields, etc.)
+      const resp = await fetch(data.signedUrl);
+      if (!resp.ok) throw new Error(`Téléchargement impossible (${resp.status})`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      if (win) {
+        win.location.href = blobUrl;
+      } else {
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.click();
+      }
+      // Revoke after a delay to let the new tab load
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (err) {
+      win?.close();
+      console.error("[ParticipantFiles] open file error", err);
+      toast({
+        title: "Impossible d'ouvrir le fichier",
+        description: err instanceof Error ? err.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       {/* Fichiers libres */}
@@ -78,14 +126,13 @@ const ParticipantFiles = ({
               className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg min-w-0"
             >
               <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <a
-                href={pf.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-sm text-primary hover:underline truncate"
+              <button
+                type="button"
+                onClick={() => handleOpenFile(pf)}
+                className="flex-1 text-left text-sm text-primary hover:underline truncate"
               >
                 {pf.file_name}
-              </a>
+              </button>
               <span className="text-xs text-muted-foreground flex-shrink-0">
                 {new Date(pf.uploaded_at).toLocaleDateString("fr-FR")}
               </span>
