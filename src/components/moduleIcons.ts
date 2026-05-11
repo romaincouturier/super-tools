@@ -24,6 +24,7 @@ import {
   Zap,
   Globe,
   Wallet,
+  Archive,
   type LucideIcon,
 } from "lucide-react";
 
@@ -59,4 +60,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   supertilt: { icon: Zap, label: "SuperTilt", path: "/supertilt" },
   "web-analytics": { icon: Globe, label: "Stats site web", path: "/web-analytics" },
   finances: { icon: Wallet, label: "Finances", path: "/finances" },
+  archives: { icon: Archive, label: "Archives", path: "/archives" },
 };

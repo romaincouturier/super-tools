@@ -407,12 +407,11 @@ export async function uploadParticipantFile(
   const sanitized = sanitizeUploadName(file.name);
   const path = `${trainingId}/participant_${participantId}/fichier_${Date.now()}_${sanitized}`;
 
-  // Resolve a reliable content-type (iOS/Safari sometimes leave file.type empty)
   const { resolveContentType } = await import("@/lib/file-utils");
   const contentType = resolveContentType(file);
 
   const { error: uploadErr } = await supabase.storage
-    .from("training-documents")
+    .from("participant-files")
     .upload(path, file, { contentType, upsert: false });
   if (uploadErr) {
     console.error("[uploadParticipantFile] storage upload error", uploadErr);
@@ -421,7 +420,7 @@ export async function uploadParticipantFile(
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from("training-documents").getPublicUrl(path);
+  } = supabase.storage.from("participant-files").getPublicUrl(path);
 
   const { data: insertedFile, error: insertErr } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
     .from("participant_files")
@@ -436,7 +435,7 @@ export async function uploadParticipantFile(
   if (insertErr) {
     console.error("[uploadParticipantFile] DB insert error", insertErr);
     // Best-effort cleanup: remove the orphan storage object
-    await supabase.storage.from("training-documents").remove([path]).catch(() => {});
+    await supabase.storage.from("participant-files").remove([path]).catch(() => {});
     throw insertErr;
   }
   return insertedFile;
@@ -446,9 +445,13 @@ export async function uploadParticipantFile(
 export async function deleteParticipantFile(
   fileToDelete: ParticipantFile,
 ): Promise<void> {
-  const urlParts = fileToDelete.file_url.split("/training-documents/");
-  if (urlParts.length > 1) {
-    await supabase.storage.from("training-documents").remove([urlParts[1]]);
+  // Support both old training-documents URLs and new participant-files URLs
+  const newBucketParts = fileToDelete.file_url.split("/participant-files/");
+  const oldBucketParts = fileToDelete.file_url.split("/training-documents/");
+  if (newBucketParts.length > 1) {
+    await supabase.storage.from("participant-files").remove([newBucketParts[1]]);
+  } else if (oldBucketParts.length > 1) {
+    await supabase.storage.from("training-documents").remove([oldBucketParts[1]]);
   }
 
   await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })

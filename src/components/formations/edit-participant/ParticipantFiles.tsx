@@ -17,10 +17,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { ParticipantFile } from "@/services/participants";
 
-/** Extract storage path from a public/sign supabase URL pointing to training-documents. */
-function extractStoragePath(url: string): string | null {
-  const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/training-documents\/([^?]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
+/** Extract bucket name and storage path from a Supabase storage URL. */
+function extractStorageInfo(url: string): { bucket: string; path: string } | null {
+  const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/(participant-files|training-documents)\/([^?]+)/);
+  return m ? { bucket: m[1], path: decodeURIComponent(m[2]) } : null;
 }
 
 interface ParticipantFilesProps {
@@ -44,11 +44,11 @@ const ParticipantFiles = ({
     // Open a blank window synchronously to preserve the user gesture (avoid popup blocker)
     const win = window.open("about:blank", "_blank");
     try {
-      const path = extractStoragePath(pf.file_url);
-      if (!path) throw new Error("Chemin du fichier introuvable");
+      const info = extractStorageInfo(pf.file_url);
+      if (!info) throw new Error("Chemin du fichier introuvable");
       const { data, error } = await supabase.storage
-        .from("training-documents")
-        .createSignedUrl(path, 3600);
+        .from(info.bucket)
+        .createSignedUrl(info.path, 3600);
       if (error || !data?.signedUrl) throw error || new Error("URL signée indisponible");
 
       // Fetch and open as blob to bypass extension blockers (Brave Shields, etc.)
