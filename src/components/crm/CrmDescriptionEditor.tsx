@@ -1,9 +1,6 @@
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
+import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Table as TableIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
