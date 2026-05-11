@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import SupertiltLogo from "@/components/SupertiltLogo";
-import { useAppSetting } from "@/hooks/useAppSetting";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 
 // ── Material Symbol helper ──────────────────────────────────────────────────

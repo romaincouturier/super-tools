@@ -407,10 +407,17 @@ export async function uploadParticipantFile(
   const sanitized = sanitizeUploadName(file.name);
   const path = `${trainingId}/participant_${participantId}/fichier_${Date.now()}_${sanitized}`;
 
+  // Resolve a reliable content-type (iOS/Safari sometimes leave file.type empty)
+  const { resolveContentType } = await import("@/lib/file-utils");
+  const contentType = resolveContentType(file);
+
   const { error: uploadErr } = await supabase.storage
     .from("training-documents")
-    .upload(path, file);
-  if (uploadErr) throw uploadErr;
+    .upload(path, file, { contentType, upsert: false });
+  if (uploadErr) {
+    console.error("[uploadParticipantFile] storage upload error", uploadErr);
+    throw uploadErr;
+  }
 
   const {
     data: { publicUrl },
@@ -426,7 +433,12 @@ export async function uploadParticipantFile(
     .select("id, file_url, file_name, uploaded_at")
     .single();
 
-  if (insertErr) throw insertErr;
+  if (insertErr) {
+    console.error("[uploadParticipantFile] DB insert error", insertErr);
+    // Best-effort cleanup: remove the orphan storage object
+    await supabase.storage.from("training-documents").remove([path]).catch(() => {});
+    throw insertErr;
+  }
   return insertedFile;
 }
 
