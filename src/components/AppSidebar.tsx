@@ -42,7 +42,6 @@ const SIDEBAR_MODULE_ORDER = [
   "reseau",
   "supertilt",
   "veille",
-  "arena",
   "web-analytics",
   "archives",
 ];
