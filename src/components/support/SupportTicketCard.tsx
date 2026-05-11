@@ -44,12 +44,22 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
       </div>
       <p className="text-sm font-medium leading-tight line-clamp-2">{t.title}</p>
       {t.screenshot_url && (
-        <img
-          src={t.screenshot_url}
-          alt="Capture d'écran"
-          className="w-full rounded object-cover max-h-20"
-          draggable={false}
-        />
+        <a
+          href={t.screenshot_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="block"
+        >
+          <img
+            src={t.screenshot_url}
+            alt="Capture d'écran"
+            loading="lazy"
+            className="w-full rounded border object-contain max-h-48 bg-muted"
+            draggable={false}
+          />
+        </a>
       )}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>{t.submitted_by_email?.split("@")[0] || "—"}</span>
