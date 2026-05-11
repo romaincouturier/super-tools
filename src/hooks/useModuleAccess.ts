@@ -29,7 +29,8 @@ export type AppModule =
   | "supertilt"
   | "catalogue"
   | "web_analytics"
-  | "finances";
+  | "finances"
+  | "archives";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -60,6 +61,7 @@ export const ALL_MODULES: AppModule[] = [
   "catalogue",
   "web_analytics",
   "finances",
+  "archives",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -91,6 +93,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   catalogue: "Catalogue",
   web_analytics: "Stats site web",
   finances: "Finances",
+  archives: "Archives",
 };
 
 export function useModuleAccess() {
