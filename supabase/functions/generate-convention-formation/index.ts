@@ -301,11 +301,22 @@ serve(async (req: Request): Promise<Response> => {
     if (isIndividualConvention && singleParticipant) {
       const participantWithCompany = singleParticipant as Participant & {
         company?: string;
+        company_address?: string | null;
+        company_zip?: string | null;
+        company_city?: string | null;
         sponsor_first_name?: string;
         sponsor_last_name?: string;
       };
       if (participantWithCompany.company) {
         clientName = participantWithCompany.company;
+      }
+      const addrParts = [
+        participantWithCompany.company_address,
+        [participantWithCompany.company_zip, participantWithCompany.company_city]
+          .filter(Boolean).join(" "),
+      ].filter((p) => p && p.trim().length > 0);
+      if (addrParts.length > 0) {
+        clientAddress = addrParts.join(" – ");
       }
     }
 
