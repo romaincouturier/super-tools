@@ -417,6 +417,9 @@ verify_jwt = false
 [functions.upload-mission-document]
 verify_jwt = false
 
+[functions.upload-participant-file]
+verify_jwt = false
+
 [functions.archive-resolved-tickets]
 verify_jwt = false
 
