@@ -64,14 +64,16 @@ export default function CalloutBlockEditor({ content, onChange }: Props) {
         <div>
           <Label>Niveau visuel</Label>
           <Select
-            value={content.level ?? ""}
-            onValueChange={(v) => onChange({ ...content, level: (v || null) as CalloutLevel | null })}
+            value={content.level ?? "__none__"}
+            onValueChange={(v) =>
+              onChange({ ...content, level: (v === "__none__" ? null : v) as CalloutLevel | null })
+            }
           >
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Aucun" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Aucun</SelectItem>
+              <SelectItem value="__none__">Aucun</SelectItem>
               {CALLOUT_LEVEL_LIST.map((lvl) => {
                 const entry = CALLOUT_LEVELS[lvl];
                 return (
