@@ -46,6 +46,7 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
   const [open, setOpen] = useState(false);
   const [formations, setFormations] = useState<FormationConfig[]>([]);
   const [inputValue, setInputValue] = useState(value);
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     fetchFormations();
@@ -54,6 +55,11 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
   useEffect(() => {
     setInputValue(value);
   }, [value]);
+
+  // Reset search when popover opens so the full catalog is visible
+  useEffect(() => {
+    if (open) setSearchValue("");
+  }, [open]);
 
   const fetchFormations = async () => {
     const { data, error } = await supabase
@@ -77,7 +83,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
     onFormationSelect?.(selectedFormation || null);
   };
 
-  const handleInputChange = (newValue: string) => {
+  const handleSearchChange = (newValue: string) => {
+    setSearchValue(newValue);
     setInputValue(newValue);
     onChange(newValue);
     // Clear formation selection when typing custom value
@@ -86,8 +93,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
     }
   };
 
-  const isNewFormation = inputValue && !formations.some(
-    f => f.formation_name.toLowerCase() === inputValue.toLowerCase()
+  const isNewFormation = searchValue && !formations.some(
+    f => f.formation_name.toLowerCase() === searchValue.toLowerCase()
   );
 
   return (
@@ -109,14 +116,14 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Rechercher ou saisir..."
-            value={inputValue}
-            onValueChange={handleInputChange}
+            value={searchValue}
+            onValueChange={handleSearchChange}
           />
           <CommandList>
             <CommandEmpty>
-              {inputValue ? (
+              {searchValue ? (
                 <div className="py-2 px-3 text-sm text-muted-foreground">
-                  Appuyez sur Entrée pour créer "{inputValue}"
+                  Appuyez sur Entrée pour créer "{searchValue}"
                 </div>
               ) : (
                 "Aucune formation trouvée."
@@ -128,12 +135,12 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
               <>
                 <CommandGroup heading="Nouvelle formation">
                   <CommandItem
-                    value={`create-${inputValue}`}
-                    onSelect={() => handleSelect(inputValue)}
+                    value={`create-${searchValue}`}
+                    onSelect={() => handleSelect(searchValue)}
                     className="cursor-pointer"
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Créer "{inputValue}"
+                    Créer "{searchValue}"
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
@@ -145,8 +152,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
               <CommandGroup heading="Catalogue de formations">
                 {formations
                   .filter(f =>
-                    !inputValue ||
-                    f.formation_name.toLowerCase().includes(inputValue.toLowerCase())
+                    !searchValue ||
+                    f.formation_name.toLowerCase().includes(searchValue.toLowerCase())
                   )
                   .map((formation) => (
                     <CommandItem
