@@ -417,24 +417,36 @@ const WpStatisticsDashboard = () => {
         <TabsContent value="referrers">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                Sources de trafic
-                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
-              </CardTitle>
+              <CardTitle className="text-base">Sources de trafic</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">{GLOBAL_NOTICE}</p>
             </CardHeader>
             <CardContent>
-              {loadingReferrers ? <Spinner /> : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <DataTable
-                    data={Array.isArray(referrers) ? referrers : referrers ? Object.entries(referrers).map(([domain, val]) => ({ domain, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
-                    columns={[
-                      { key: "domain", label: "Source", render: (r) => r.domain || r.referrer || "—" },
-                      { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || 0 },
-                    ]}
-                  />
-                  <PieChartCard data={referrers} />
-                </div>
-              )}
+              {loadingReferrers ? <Spinner /> : (() => {
+                const list = Array.isArray(referrers)
+                  ? (referrers as any[]).map((r) => ({
+                      domain: r.referred || r.domain || r.referrer || "(direct)",
+                      count: Number(r.total ?? r.count ?? r.hits ?? 0),
+                    }))
+                  : referrers
+                    ? Object.entries(referrers).map(([domain, val]) => ({
+                        domain: domain || "(direct)",
+                        count: typeof val === "number" ? val : Number((val as any)?.total ?? (val as any)?.count ?? 0),
+                      }))
+                    : [];
+                const sorted = list.filter((r) => r.count > 0).sort((a, b) => b.count - a.count);
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <DataTable
+                      data={sorted}
+                      columns={[
+                        { key: "domain", label: "Source", render: (r) => r.domain || "—" },
+                        { key: "count", label: "Visites", align: "right", render: (r) => r.count },
+                      ]}
+                    />
+                    <PieChartCard data={sorted} nameKey="domain" valueKey="count" />
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
@@ -442,12 +454,9 @@ const WpStatisticsDashboard = () => {
         <TabsContent value="search">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                Moteurs de recherche
-                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
-              </CardTitle>
+              <CardTitle className="text-base">Moteurs de recherche</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Visites entrantes provenant de Google, Bing, etc. (pas la recherche interne au site).
+                Visites entrantes provenant de Google, Bing, etc. (pas la recherche interne au site). {GLOBAL_NOTICE}
               </p>
             </CardHeader>
             <CardContent>
@@ -470,10 +479,8 @@ const WpStatisticsDashboard = () => {
         <TabsContent value="browsers">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                Navigateurs
-                <span className="ml-2 text-xs font-normal text-muted-foreground">{periodLabel}</span>
-              </CardTitle>
+              <CardTitle className="text-base">Navigateurs</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">{GLOBAL_NOTICE}</p>
             </CardHeader>
             <CardContent>
               {loadingBrowsers ? <Spinner /> : (
