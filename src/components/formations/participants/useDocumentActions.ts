@@ -176,6 +176,21 @@ export function useDocumentActions({
   };
 
   const handleGenerateConvention = async (participant: Participant) => {
+    // For inter-entreprises (participant has its own company), require an address
+    const hasCompany = !!(participant.company && participant.company.trim());
+    const hasAddress = !!(
+      (participant.company_address && participant.company_address.trim()) ||
+      (participant.company_zip && participant.company_zip.trim()) ||
+      (participant.company_city && participant.company_city.trim())
+    );
+    if (hasCompany && !hasAddress) {
+      toast({
+        title: "Adresse manquante",
+        description: `Merci de renseigner l'adresse de la société de ${participant.first_name || participant.email} avant de générer la convention.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setGeneratingConventionId(participant.id);
     try {
       const { data, error } = await supabase.functions.invoke("generate-convention-formation", {

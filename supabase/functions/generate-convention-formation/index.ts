@@ -230,7 +230,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch single participant for inter/e-learning
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, elearning_duration")
+        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, elearning_duration")
         .eq("id", participantId)
         .single();
 
@@ -301,11 +301,22 @@ serve(async (req: Request): Promise<Response> => {
     if (isIndividualConvention && singleParticipant) {
       const participantWithCompany = singleParticipant as Participant & {
         company?: string;
+        company_address?: string | null;
+        company_zip?: string | null;
+        company_city?: string | null;
         sponsor_first_name?: string;
         sponsor_last_name?: string;
       };
       if (participantWithCompany.company) {
         clientName = participantWithCompany.company;
+      }
+      const addrParts = [
+        participantWithCompany.company_address,
+        [participantWithCompany.company_zip, participantWithCompany.company_city]
+          .filter(Boolean).join(" "),
+      ].filter((p) => p && p.trim().length > 0);
+      if (addrParts.length > 0) {
+        clientAddress = addrParts.join(" – ");
       }
     }
 
