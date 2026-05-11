@@ -64,7 +64,7 @@ const EntityDocumentsManager = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const { data: documents = [], isLoading } = useEntityDocuments(entityType, entityId);
+  const { data: documents = [], isLoading, refetch } = useEntityDocuments(entityType, entityId);
   const addDocument = useAddEntityDocument(entityType);
   const deleteDocument = useDeleteEntityDocument(entityType);
   const toggleDeliverable = useToggleDocumentDeliverable(entityType);
@@ -111,6 +111,9 @@ const EntityDocumentsManager = ({
       }
 
       if (successCount > 0) {
+        if (entityType === "mission") {
+          await refetch();
+        }
         toast.success(
           successCount === 1
             ? "Document ajouté"
