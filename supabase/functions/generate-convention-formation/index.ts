@@ -230,7 +230,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch single participant for inter/e-learning
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, elearning_duration")
+        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, elearning_duration")
         .eq("id", participantId)
         .single();
 
