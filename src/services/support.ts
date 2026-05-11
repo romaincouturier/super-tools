@@ -228,6 +228,7 @@ async function notifyTicketResolved(ticket: SupportTicket): Promise<void> {
         ticketNumber: ticket.ticket_number,
         ticketId: ticket.id,
         ticketTitle: ticket.title,
+        moduleLabel: moduleLabelFromPageUrl(ticket.page_url),
         description: ticket.description || null,
         status: ticket.status,
         resolutionNotes: ticket.resolution_notes || null,
