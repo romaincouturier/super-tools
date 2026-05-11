@@ -271,7 +271,24 @@ const WpStatisticsDashboard = () => {
   const { data: visitors, isLoading: loadingVisitors } = useWpVisitors(range);
   const { data: search, isLoading: loadingSearch, error: errorSearch } = useWpSearch(range);
 
-  const productPages = useMemo(() => detectProductPages(pages), [pages]);
+  // Aggregate pages by URI (the API returns one row per day per URI)
+  const aggregatedPages = useMemo(() => {
+    if (!Array.isArray(pages)) return [];
+    const map = new Map<string, { uri: string; title?: string; count: number }>();
+    for (const p of pages as any[]) {
+      const uri: string = p?.uri || p?.page || "";
+      if (!uri) continue;
+      const c = Number(p?.count ?? p?.hits ?? p?.views ?? 0);
+      const cur = map.get(uri);
+      if (cur) cur.count += c;
+      else map.set(uri, { uri, title: p?.title, count: c });
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [pages]);
+
+  const productPages = useMemo(() => detectProductPages(aggregatedPages), [aggregatedPages]);
+
+  const GLOBAL_NOTICE = "Donnée globale (l'API WP-Statistics ne filtre pas ce rapport par période).";
 
   if (loadingSummary) {
     return (
