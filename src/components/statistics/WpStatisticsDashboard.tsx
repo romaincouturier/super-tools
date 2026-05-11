@@ -369,11 +369,11 @@ const WpStatisticsDashboard = () => {
             <CardContent>
               {loadingPages ? <Spinner /> : errorPages ? <ErrorState message="Erreur chargement pages" /> : (
                 <DataTable
-                  data={pages}
+                  data={aggregatedPages}
                   maxRows={20}
                   columns={[
-                    { key: "title", label: "Page", render: (r) => r.title || r.uri || r.page || "—" },
-                    { key: "count", label: "Vues", align: "right", render: (r) => r.count || r.hits || r.views || 0 },
+                    { key: "title", label: "Page", render: (r) => r.title || r.uri || "—" },
+                    { key: "count", label: "Vues", align: "right", render: (r) => r.count ?? 0 },
                   ]}
                 />
               )}
