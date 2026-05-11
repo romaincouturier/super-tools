@@ -435,3 +435,6 @@ verify_jwt = false
 [functions.upload-training-document]
 verify_jwt = false
 
+[functions.upload-mission-media]
+verify_jwt = false
+
