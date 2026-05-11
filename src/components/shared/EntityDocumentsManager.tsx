@@ -84,7 +84,8 @@ const EntityDocumentsManager = ({
       for (const file of Array.from(files)) {
         try {
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
-          const inserted = entityType === "mission"
+          const insertedViaEdgeFn = entityType === "mission" || entityType === "training";
+          const inserted = insertedViaEdgeFn
             ? { id: crypto.randomUUID() }
             : await addDocument.mutateAsync({
                 entityId,
