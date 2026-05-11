@@ -2,6 +2,7 @@ import { EditorContent } from "@tiptap/react";
 import TextAlign from "@tiptap/extension-text-align";
 import Mention from "@tiptap/extension-mention";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
+import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import {
   Bold,
   Italic,
@@ -19,6 +20,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Table as TableIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -57,6 +59,7 @@ const RichTextEditor = ({
         },
         suggestion: mentionSuggestion,
       }),
+      ...tableExtensions("normal"),
     ],
     editorProps: {
       attributes: {
@@ -198,6 +201,18 @@ const RichTextEditor = ({
         >
           <ListOrdered className="h-4 w-4" />
         </Toggle>
+
+        <div className="w-px h-6 bg-border mx-1" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          title="Insérer un tableau (3×3, en-tête)"
+          className="h-8 w-8 p-0"
+        >
+          <TableIcon className="h-4 w-4" />
+        </Button>
 
         <div className="w-px h-6 bg-border mx-1" />
 
