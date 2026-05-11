@@ -44,6 +44,9 @@ export function useMonthlyReport(month: string | null) {
         .eq("month", `${month}-01`)
         .maybeSingle();
       if (error) throw error;
+      // Supabase types `payload` comme `Json` (union large) ; on coerce vers
+      // le type domaine. La donnée est produite par notre edge function
+      // generate-monthly-report qui garantit la forme du JSON.
       return (data as unknown as MonthlyReportRow | null) ?? null;
     },
     staleTime: 60 * 1000,
