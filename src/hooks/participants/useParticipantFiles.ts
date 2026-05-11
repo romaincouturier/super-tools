@@ -45,7 +45,7 @@ export function useParticipantFiles({
 
       setUploadingFile(true);
       const uploadedFiles: ParticipantFile[] = [];
-      let errorCount = 0;
+      const errors: string[] = [];
 
       try {
         for (const file of Array.from(files)) {
@@ -57,11 +57,9 @@ export function useParticipantFiles({
             );
             uploadedFiles.push(uploaded);
           } catch (error: unknown) {
-            console.error(
-              `File upload error for ${file.name}:`,
-              error instanceof Error ? error.message : "Erreur inconnue",
-            );
-            errorCount++;
+            const msg = error instanceof Error ? error.message : "Erreur inconnue";
+            console.error(`File upload error for ${file.name}:`, error);
+            errors.push(`${file.name}: ${msg}`);
           }
         }
 
@@ -69,15 +67,15 @@ export function useParticipantFiles({
           setParticipantFiles((prev) => [...uploadedFiles, ...prev]);
           toast({
             title: `${uploadedFiles.length} fichier${uploadedFiles.length > 1 ? "s" : ""} ajouté${uploadedFiles.length > 1 ? "s" : ""}`,
-            ...(errorCount > 0 && {
-              description: `${errorCount} fichier${errorCount > 1 ? "s" : ""} en erreur.`,
+            ...(errors.length > 0 && {
+              description: errors.join(" — "),
               variant: "destructive" as const,
             }),
           });
-        } else if (errorCount > 0) {
+        } else if (errors.length > 0) {
           toast({
             title: "Erreur d'upload",
-            description: "Aucun fichier n'a pu être uploadé.",
+            description: errors.join(" — "),
             variant: "destructive",
           });
         }
