@@ -199,6 +199,9 @@ export function useEditParticipant({
     lastName: participantForm.lastName,
     email: participantForm.email,
     company: participantForm.company,
+    companyAddress: participantForm.companyAddress,
+    companyZip: participantForm.companyZip,
+    companyCity: participantForm.companyCity,
     sponsorFirstName: sponsorInfo.sponsorFirstName,
     sponsorLastName: sponsorInfo.sponsorLastName,
     sponsorEmail: sponsorInfo.sponsorEmail,
@@ -211,7 +214,7 @@ export function useEditParticipant({
     notes,
     formula,
     coachingSessionsTotal,
-  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal]);
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(
