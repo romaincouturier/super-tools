@@ -405,8 +405,8 @@ const WpStatisticsDashboard = () => {
                   maxRows={50}
                   emptyMsg={`Aucune vue sur les pages /${productPages.slug}/ pour cette période.`}
                   columns={[
-                    { key: "title", label: "Produit", render: (r) => r.title || r.uri || r.page || "—" },
-                    { key: "count", label: "Vues", align: "right", render: (r) => r.count || r.hits || r.views || 0 },
+                    { key: "title", label: "Produit", render: (r) => r.title || r.uri || "—" },
+                    { key: "count", label: "Vues", align: "right", render: (r) => r.count ?? 0 },
                   ]}
                 />
               )}
