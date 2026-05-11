@@ -165,12 +165,14 @@ export const uploadEntityDocument = async (
   entityType: DocumentEntityType,
   entityId: string,
 ): Promise<string> => {
-  if (entityType === "mission") {
+  if (entityType === "mission" || entityType === "training") {
     const formData = new FormData();
-    formData.append("missionId", entityId);
+    const idKey = entityType === "mission" ? "missionId" : "trainingId";
+    const fnName = entityType === "mission" ? "upload-mission-document" : "upload-training-document";
+    formData.append(idKey, entityId);
     formData.append("file", file);
 
-    const { data, error } = await supabase.functions.invoke("upload-mission-document", {
+    const { data, error } = await supabase.functions.invoke(fnName, {
       body: formData,
     });
 
@@ -180,21 +182,7 @@ export const uploadEntityDocument = async (
     return document.file_url;
   }
 
-  const config = configs[entityType];
-  const sanitized = sanitizeFileName(file.name);
-  const path = `${entityId}/docs/${Date.now()}_${sanitized}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(config.bucket)
-    .upload(path, file, { contentType: resolveContentType(file) });
-
-  if (uploadError) throw uploadError;
-
-  const { data: urlData } = supabase.storage
-    .from(config.bucket)
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  throw new Error(`Type d'entité non supporté: ${entityType}`);
 };
 
 export const deleteEntityDocumentFile = async (
