@@ -52,6 +52,44 @@ serve(async (req) => {
 
     const dateStr = new Date().toLocaleDateString("fr-FR", { timeZone: "Europe/Paris", day: "2-digit", month: "long", year: "numeric" });
 
+    // ── User-friendly summary (AI-generated, forwardable) ─────────────
+    let userSummaryHtml = "";
+    if (archivedCount > 0) {
+      try {
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        if (LOVABLE_API_KEY) {
+          const ticketsList = (tickets || [])
+            .map((t) => `- [${t.type === "bug" ? "Bug" : "Évolution"}] ${t.title}${t.resolution_notes ? ` — Résolution : ${t.resolution_notes}` : ""}`)
+            .join("\n");
+          const prompt = `Tu rédiges une note hebdomadaire à destination des utilisateurs finaux d'une application interne. Résume de manière claire, bienveillante et non technique les améliorations et corrections livrées cette semaine, à partir de la liste de tickets résolus ci-dessous. Ne mentionne pas de numéros de tickets ni de jargon technique. Structure ta réponse en HTML simple : un court paragraphe d'introduction, puis deux sections optionnelles "🐛 Corrections" et "✨ Améliorations" sous forme de listes à puces (1 phrase claire par item). Si une catégorie est vide, ne l'affiche pas. Termine par une phrase de remerciement.\n\nTickets résolus :\n${ticketsList}`;
+          const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "user", content: prompt }],
+            }),
+          });
+          if (aiResp.ok) {
+            const aiData = await aiResp.json();
+            const summary = aiData?.choices?.[0]?.message?.content?.trim() || "";
+            if (summary) {
+              userSummaryHtml = `
+                <div style="margin:24px 0;padding:20px;background:#f0f9ff;border-left:4px solid #0ea5e9;border-radius:6px;">
+                  <h3 style="margin:0 0 12px 0;font-size:15px;color:#0c4a6e;">📣 Note hebdomadaire — à transférer aux utilisateurs</h3>
+                  <div style="font-size:14px;color:#0f172a;line-height:1.5;">${summary}</div>
+                </div>
+              `;
+            }
+          } else {
+            console.warn("[archive-resolved-tickets] AI summary failed:", aiResp.status);
+          }
+        }
+      } catch (err) {
+        console.warn("[archive-resolved-tickets] AI summary error:", err);
+      }
+    }
+
     const rowsHtml = (tickets || [])
       .map((t) => {
         const typeLabel = t.type === "bug" ? "🐛 Bug" : "💡 Évolution";
