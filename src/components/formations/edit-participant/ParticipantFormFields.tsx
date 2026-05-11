@@ -19,6 +19,12 @@ interface ParticipantFormFieldsProps {
   setEmail: (v: string) => void;
   company: string;
   setCompany: (v: string) => void;
+  companyAddress: string;
+  setCompanyAddress: (v: string) => void;
+  companyZip: string;
+  setCompanyZip: (v: string) => void;
+  companyCity: string;
+  setCompanyCity: (v: string) => void;
   isInterEntreprise: boolean;
   soldPriceHt: string;
   setSoldPriceHt: (v: string) => void;
