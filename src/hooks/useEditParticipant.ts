@@ -22,6 +22,9 @@ export interface Participant {
   last_name: string | null;
   email: string;
   company: string | null;
+  company_address?: string | null;
+  company_zip?: string | null;
+  company_city?: string | null;
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
@@ -58,6 +61,9 @@ interface FormValues {
   lastName: string;
   email: string;
   company: string;
+  companyAddress: string;
+  companyZip: string;
+  companyCity: string;
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
@@ -144,6 +150,12 @@ export function useEditParticipant({
       };
 
       if (isInterEntreprise) {
+        updateData.company_address = v.companyAddress.trim() || null;
+        updateData.company_zip = v.companyZip.trim() || null;
+        updateData.company_city = v.companyCity.trim() || null;
+      }
+
+      if (isInterEntreprise) {
         updateData.notes = v.notes.trim() || null;
         updateData.sponsor_first_name = v.sponsorFirstName.trim() || null;
         updateData.sponsor_last_name = v.sponsorLastName.trim() || null;
@@ -187,6 +199,9 @@ export function useEditParticipant({
     lastName: participantForm.lastName,
     email: participantForm.email,
     company: participantForm.company,
+    companyAddress: participantForm.companyAddress,
+    companyZip: participantForm.companyZip,
+    companyCity: participantForm.companyCity,
     sponsorFirstName: sponsorInfo.sponsorFirstName,
     sponsorLastName: sponsorInfo.sponsorLastName,
     sponsorEmail: sponsorInfo.sponsorEmail,
@@ -199,7 +214,7 @@ export function useEditParticipant({
     notes,
     formula,
     coachingSessionsTotal,
-  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal]);
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(
@@ -287,6 +302,12 @@ export function useEditParticipant({
     setEmail: participantForm.setEmail,
     company: participantForm.company,
     setCompany: participantForm.setCompany,
+    companyAddress: participantForm.companyAddress,
+    setCompanyAddress: participantForm.setCompanyAddress,
+    companyZip: participantForm.companyZip,
+    setCompanyZip: participantForm.setCompanyZip,
+    companyCity: participantForm.companyCity,
+    setCompanyCity: participantForm.setCompanyCity,
 
     // Sponsor fields
     sponsorFirstName: sponsorInfo.sponsorFirstName,

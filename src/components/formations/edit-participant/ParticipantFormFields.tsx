@@ -19,6 +19,12 @@ interface ParticipantFormFieldsProps {
   setEmail: (v: string) => void;
   company: string;
   setCompany: (v: string) => void;
+  companyAddress: string;
+  setCompanyAddress: (v: string) => void;
+  companyZip: string;
+  setCompanyZip: (v: string) => void;
+  companyCity: string;
+  setCompanyCity: (v: string) => void;
   isInterEntreprise: boolean;
   soldPriceHt: string;
   setSoldPriceHt: (v: string) => void;
@@ -47,6 +53,12 @@ const ParticipantFormFields = ({
   setEmail,
   company,
   setCompany,
+  companyAddress,
+  setCompanyAddress,
+  companyZip,
+  setCompanyZip,
+  companyCity,
+  setCompanyCity,
   isInterEntreprise,
   soldPriceHt,
   setSoldPriceHt,
@@ -109,6 +121,33 @@ const ParticipantFormFields = ({
           placeholder="ACME Corp"
         />
       </div>
+
+      {isInterEntreprise && (
+        <div className="space-y-2">
+          <Label htmlFor="edit-company-address">Adresse de la société</Label>
+          <Input
+            id="edit-company-address"
+            value={companyAddress}
+            onChange={(e) => setCompanyAddress(e.target.value)}
+            placeholder="12 rue de la République"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Input
+              value={companyZip}
+              onChange={(e) => setCompanyZip(e.target.value)}
+              placeholder="Code postal"
+            />
+            <div className="sm:col-span-2">
+              <Input
+                value={companyCity}
+                onChange={(e) => setCompanyCity(e.target.value)}
+                placeholder="Ville"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {isInterEntreprise && (
         <>

@@ -14,6 +14,12 @@ export interface UseParticipantFormReturn {
   setEmail: React.Dispatch<React.SetStateAction<string>>;
   company: string;
   setCompany: React.Dispatch<React.SetStateAction<string>>;
+  companyAddress: string;
+  setCompanyAddress: React.Dispatch<React.SetStateAction<string>>;
+  companyZip: string;
+  setCompanyZip: React.Dispatch<React.SetStateAction<string>>;
+  companyCity: string;
+  setCompanyCity: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export function useParticipantForm({
@@ -23,12 +29,18 @@ export function useParticipantForm({
   const [lastName, setLastName] = useState(participant.last_name || "");
   const [email, setEmail] = useState(participant.email);
   const [company, setCompany] = useState(participant.company || "");
+  const [companyAddress, setCompanyAddress] = useState(participant.company_address || "");
+  const [companyZip, setCompanyZip] = useState(participant.company_zip || "");
+  const [companyCity, setCompanyCity] = useState(participant.company_city || "");
 
   useEffect(() => {
     setFirstName(participant.first_name || "");
     setLastName(participant.last_name || "");
     setEmail(participant.email);
     setCompany(participant.company || "");
+    setCompanyAddress(participant.company_address || "");
+    setCompanyZip(participant.company_zip || "");
+    setCompanyCity(participant.company_city || "");
   }, [participant]);
 
   return {
@@ -40,5 +52,11 @@ export function useParticipantForm({
     setEmail,
     company,
     setCompany,
+    companyAddress,
+    setCompanyAddress,
+    companyZip,
+    setCompanyZip,
+    companyCity,
+    setCompanyCity,
   };
 }

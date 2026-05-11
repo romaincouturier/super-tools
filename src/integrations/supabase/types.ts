@@ -6892,6 +6892,9 @@ export type Database = {
           coaching_sessions_completed: number
           coaching_sessions_total: number
           company: string | null
+          company_address: string | null
+          company_city: string | null
+          company_zip: string | null
           convention_document_id: string | null
           convention_file_url: string | null
           elearning_duration: number | null
@@ -6925,6 +6928,9 @@ export type Database = {
           coaching_sessions_completed?: number
           coaching_sessions_total?: number
           company?: string | null
+          company_address?: string | null
+          company_city?: string | null
+          company_zip?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
           elearning_duration?: number | null
@@ -6958,6 +6964,9 @@ export type Database = {
           coaching_sessions_completed?: number
           coaching_sessions_total?: number
           company?: string | null
+          company_address?: string | null
+          company_city?: string | null
+          company_zip?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
           elearning_duration?: number | null
