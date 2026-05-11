@@ -87,19 +87,34 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
     file: File,
     cardId: string | null,
   ): Promise<string | null> => {
-    if (!resolveContentType(file).startsWith("image/")) {
+    const resolvedContentType = resolveContentType(file);
+    if (!resolvedContentType.startsWith("image/")) {
       toast.error("Veuillez sélectionner une image");
       return null;
     }
 
     setUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const safeName = sanitizeFileName(file.name);
+      const fileName = `${crypto.randomUUID()}_${safeName}`;
+
+      // Some browsers (notably iOS Safari) attach unsupported non-standard MIME types
+      // to the File object. Rebuild the file with normalized type so storage validation
+      // checks the supported MIME.
+      const normalizedFile =
+        file.type && file.type !== resolvedContentType
+          ? new File([file], file.name, {
+              type: resolvedContentType,
+              lastModified: file.lastModified,
+            })
+          : file;
 
       const { error: uploadError } = await supabase.storage
         .from("content-images")
-        .upload(fileName, file);
+        .upload(fileName, normalizedFile, {
+          contentType: resolvedContentType,
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
@@ -116,7 +131,7 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
           file_url: publicUrl,
           file_name: file.name,
           file_type: "image",
-          mime_type: resolveContentType(file),
+          mime_type: resolvedContentType,
           file_size: file.size,
           source_type: "content",
           source_id: cardId,
@@ -129,7 +144,8 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
       return publicUrl;
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Erreur lors du téléchargement");
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      toast.error(`Erreur lors du téléchargement: ${message}`);
       return null;
     } finally {
       setUploading(false);
