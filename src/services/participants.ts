@@ -398,47 +398,29 @@ export async function fetchCouponCode(
   return data?.coupon_code || null;
 }
 
-/** Upload a file to storage and insert a participant_files record. */
+/** Upload a file to storage and insert a participant_files record (via edge function to bypass RLS). */
 export async function uploadParticipantFile(
   trainingId: string,
   participantId: string,
   file: File,
 ): Promise<ParticipantFile> {
-  const sanitized = sanitizeUploadName(file.name);
-  const path = `${trainingId}/participant_${participantId}/fichier_${Date.now()}_${sanitized}`;
+  const formData = new FormData();
+  formData.append("trainingId", trainingId);
+  formData.append("participantId", participantId);
+  formData.append("file", file);
 
-  const { resolveContentType } = await import("@/lib/file-utils");
-  const contentType = resolveContentType(file);
+  const { data, error } = await supabase.functions.invoke("upload-participant-file", {
+    body: formData,
+  });
 
-  const { error: uploadErr } = await supabase.storage
-    .from("participant-files")
-    .upload(path, file, { contentType, upsert: false });
-  if (uploadErr) {
-    console.error("[uploadParticipantFile] storage upload error", uploadErr);
-    throw uploadErr;
+  if (error) {
+    console.error("[uploadParticipantFile] edge function error", error);
+    throw error;
   }
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("participant-files").getPublicUrl(path);
-
-  const { data: insertedFile, error: insertErr } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
-    .from("participant_files")
-    .insert({
-      participant_id: participantId,
-      file_url: publicUrl,
-      file_name: file.name,
-    })
-    .select("id, file_url, file_name, uploaded_at")
-    .single();
-
-  if (insertErr) {
-    console.error("[uploadParticipantFile] DB insert error", insertErr);
-    // Best-effort cleanup: remove the orphan storage object
-    await supabase.storage.from("participant-files").remove([path]).catch(() => {});
-    throw insertErr;
+  if (!data?.file) {
+    throw new Error("Upload échoué : aucune donnée retournée");
   }
-  return insertedFile;
+  return data.file as ParticipantFile;
 }
 
 /** Delete a participant file (storage + DB record). */
