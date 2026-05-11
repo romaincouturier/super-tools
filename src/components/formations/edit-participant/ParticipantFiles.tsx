@@ -38,6 +38,46 @@ const ParticipantFiles = ({
   handleFileUpload,
   handleDeleteFile,
 }: ParticipantFilesProps) => {
+  const { toast } = useToast();
+
+  const handleOpenFile = async (pf: ParticipantFile) => {
+    // Open a blank window synchronously to preserve the user gesture (avoid popup blocker)
+    const win = window.open("about:blank", "_blank");
+    try {
+      const path = extractStoragePath(pf.file_url);
+      if (!path) throw new Error("Chemin du fichier introuvable");
+      const { data, error } = await supabase.storage
+        .from("training-documents")
+        .createSignedUrl(path, 3600);
+      if (error || !data?.signedUrl) throw error || new Error("URL signée indisponible");
+
+      // Fetch and open as blob to bypass extension blockers (Brave Shields, etc.)
+      const resp = await fetch(data.signedUrl);
+      if (!resp.ok) throw new Error(`Téléchargement impossible (${resp.status})`);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      if (win) {
+        win.location.href = blobUrl;
+      } else {
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.click();
+      }
+      // Revoke after a delay to let the new tab load
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (err) {
+      win?.close();
+      console.error("[ParticipantFiles] open file error", err);
+      toast({
+        title: "Impossible d'ouvrir le fichier",
+        description: err instanceof Error ? err.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       {/* Fichiers libres */}
