@@ -316,7 +316,7 @@ serve(async (req: Request): Promise<Response> => {
           .filter(Boolean).join(" "),
       ].filter((p) => p && p.trim().length > 0);
       if (addrParts.length > 0) {
-        clientAddress = addrParts.join(" – ");
+        clientAddress = addrParts.join(", ");
       }
     }
 
