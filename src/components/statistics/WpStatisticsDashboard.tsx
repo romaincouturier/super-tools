@@ -328,7 +328,7 @@ const WpStatisticsDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {(loadingHits || loadingVisitors) ? <Spinner /> : <TrendChart hitsData={hits} visitorsData={visitors} days={days} />}
+          {loadingHits ? <Spinner /> : <TrendChart hitsData={hits} days={days} />}
         </CardContent>
       </Card>
 
