@@ -37,12 +37,19 @@ Deno.serve(async (req) => {
       return createErrorResponse(`Invalid endpoint. Allowed: ${ALLOWED_ENDPOINTS.join(", ")}`, 400);
     }
 
-    // Forward extra query params (e.g. per_page, paged, from, to)
+    // Forward extra query params, translating from/to into the API's expected names
     const forwardParams = new URLSearchParams();
+    const rawFrom = url.searchParams.get("from");
+    const rawTo = url.searchParams.get("to");
     for (const [key, value] of url.searchParams.entries()) {
-      if (key !== "endpoint") {
-        forwardParams.set(key, value);
-      }
+      if (key === "endpoint" || key === "from" || key === "to") continue;
+      forwardParams.set(key, value);
+    }
+    if (RANGE_ENDPOINTS.has(endpoint)) {
+      if (rawFrom) forwardParams.set("rangestartdate", rawFrom);
+      if (rawTo) forwardParams.set("rangeenddate", rawTo);
+    } else if (DAYS_ENDPOINTS.has(endpoint) && rawFrom && rawTo) {
+      forwardParams.set("days", String(daysBetween(rawFrom, rawTo)));
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
