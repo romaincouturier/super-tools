@@ -84,12 +84,14 @@ const EntityDocumentsManager = ({
       for (const file of Array.from(files)) {
         try {
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
-          const inserted = await addDocument.mutateAsync({
-            entityId,
-            file_name: file.name,
-            file_url: fileUrl,
-            file_size: file.size,
-          });
+          const inserted = entityType === "mission"
+            ? { id: crypto.randomUUID() }
+            : await addDocument.mutateAsync({
+                entityId,
+                file_name: file.name,
+                file_url: fileUrl,
+                file_size: file.size,
+              });
           successCount++;
           if (onUploadComplete && inserted && (inserted as { id?: string }).id) {
             onUploadComplete({
