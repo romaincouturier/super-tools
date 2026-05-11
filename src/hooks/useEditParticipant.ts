@@ -150,6 +150,12 @@ export function useEditParticipant({
       };
 
       if (isInterEntreprise) {
+        updateData.company_address = v.companyAddress.trim() || null;
+        updateData.company_zip = v.companyZip.trim() || null;
+        updateData.company_city = v.companyCity.trim() || null;
+      }
+
+      if (isInterEntreprise) {
         updateData.notes = v.notes.trim() || null;
         updateData.sponsor_first_name = v.sponsorFirstName.trim() || null;
         updateData.sponsor_last_name = v.sponsorLastName.trim() || null;
