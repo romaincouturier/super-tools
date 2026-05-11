@@ -244,7 +244,8 @@ serve(async (req) => {
       ? `${APP_URL}/support?q=${encodeURIComponent(ticketNumber)}`
       : `${APP_URL}/support`;
 
-    const subject = `${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
+    const modulePrefix = moduleLabel ? `[${moduleLabel}] ` : "";
+    const subject = `${modulePrefix}${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
 
     const bodyHtml = `
       <p>Bonjour,</p>
