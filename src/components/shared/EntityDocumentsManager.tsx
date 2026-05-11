@@ -112,7 +112,7 @@ const EntityDocumentsManager = ({
       }
 
       if (successCount > 0) {
-        if (entityType === "mission") {
+        if (entityType === "mission" || entityType === "training") {
           await refetch();
         }
         toast.success(
