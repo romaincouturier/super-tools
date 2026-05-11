@@ -72,18 +72,31 @@ async function resolveTicketScreenshots<T extends { id: string; screenshot_url: 
 
   const firstImageByTicket = new Map<string, string>();
   for (const a of (attachments || []) as Array<{ ticket_id: string; file_path: string; mime_type: string | null }>) {
-    if (!firstImageByTicket.has(a.ticket_id) && (a.mime_type || "").startsWith("image/")) {
-      firstImageByTicket.set(a.ticket_id, a.file_path);
-    }
+    if (firstImageByTicket.has(a.ticket_id)) continue;
+    const mime = (a.mime_type || "").toLowerCase();
+    const isImage = mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(a.file_path);
+    if (isImage) firstImageByTicket.set(a.ticket_id, a.file_path);
   }
+
+  // Extract file path from a stored screenshot_url that may be a public/sign URL
+  // pointing to the private support-attachments bucket. Fallback for legacy rows.
+  const extractPath = (url: string | null): string | null => {
+    if (!url) return null;
+    const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/support-attachments\/([^?]+)/);
+    return m ? decodeURIComponent(m[1]) : null;
+  };
 
   await Promise.all(
     tickets.map(async (t) => {
-      const path = firstImageByTicket.get(t.id);
+      const path = firstImageByTicket.get(t.id) ?? extractPath(t.screenshot_url);
       if (!path) return;
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from("support-attachments")
         .createSignedUrl(path, 3600);
+      if (error) {
+        console.warn("[support] createSignedUrl failed", { path, error: error.message });
+        return;
+      }
       if (data?.signedUrl) t.screenshot_url = data.signedUrl;
     })
   );
