@@ -1,6 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeUploadName } from "@/services/participants";
-import { resolveContentType } from "@/lib/file-utils";
 
 export interface AdminDocument {
   id: string;
