@@ -41,6 +41,51 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_documents: {
+        Row: {
+          analysis_status: string | null
+          analyzed_at: string | null
+          category: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          summary: string | null
+          tags: string[] | null
+          uploaded_at: string | null
+          year: number | null
+        }
+        Insert: {
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          category?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          uploaded_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          analysis_status?: string | null
+          analyzed_at?: string | null
+          category?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          uploaded_at?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
       agent_conversations: {
         Row: {
           created_at: string
@@ -8253,6 +8298,7 @@ export type Database = {
         | "support"
         | "catalogue"
         | "finances"
+        | "archives"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -8415,6 +8461,7 @@ export const Constants = {
         "support",
         "catalogue",
         "finances",
+        "archives",
       ],
       notification_type: [
         "review_requested",
