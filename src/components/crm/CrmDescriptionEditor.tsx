@@ -1,6 +1,6 @@
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
+import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Table as TableIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -77,10 +77,7 @@ const CrmDescriptionEditor = ({
           class: "max-w-full rounded",
         },
       }),
-      Table.configure({ resizable: true, HTMLAttributes: { class: "border-collapse my-2 w-full text-xs" } }),
-      TableRow,
-      TableHeader.configure({ HTMLAttributes: { class: "border border-muted-foreground/30 bg-muted/50 font-semibold p-1.5 text-left" } }),
-      TableCell.configure({ HTMLAttributes: { class: "border border-muted-foreground/30 p-1.5 align-top" } }),
+      ...tableExtensions("compact"),
     ],
     editorProps: {
       attributes: {

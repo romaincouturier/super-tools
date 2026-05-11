@@ -27,7 +27,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TextAlign from "@tiptap/extension-text-align";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
+import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import {
   ChevronRight,
   ChevronDown,
@@ -593,10 +593,7 @@ const PageEditor = ({
       SummaryNode,
       CalloutNode,
       VideoNode,
-      Table.configure({ resizable: true, HTMLAttributes: { class: "border-collapse my-3 w-full text-sm" } }),
-      TableRow,
-      TableHeader.configure({ HTMLAttributes: { class: "border border-muted-foreground/30 bg-muted/50 font-semibold p-2 text-left" } }),
-      TableCell.configure({ HTMLAttributes: { class: "border border-muted-foreground/30 p-2 align-top" } }),
+      ...tableExtensions("normal"),
     ],
     content: ensureHtmlContent(page.content || ""),
     editorProps: {

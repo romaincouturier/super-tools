@@ -1,6 +1,6 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
+import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,10 +30,7 @@ export default function TableBlockEditor({ content, onChange }: Props) {
         blockquote: false,
         horizontalRule: false,
       }),
-      Table.configure({ resizable: true, HTMLAttributes: { class: "border-collapse w-full text-sm" } }),
-      TableRow,
-      TableHeader.configure({ HTMLAttributes: { class: "border border-muted-foreground/30 bg-muted/50 font-semibold p-2 text-left" } }),
-      TableCell.configure({ HTMLAttributes: { class: "border border-muted-foreground/30 p-2 align-top" } }),
+      ...tableExtensions("normal"),
     ],
     content: content.html || "",
     editorProps: {
