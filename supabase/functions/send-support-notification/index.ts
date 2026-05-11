@@ -213,7 +213,7 @@ serve(async (req) => {
     }
 
     // ── Ticket resolved notification (to submitter, legacy) ──
-    const { recipientEmail, ticketNumber, ticketId, ticketTitle, description, status, resolutionNotes } = body ?? {};
+    const { recipientEmail, ticketNumber, ticketId, ticketTitle, moduleLabel, description, status, resolutionNotes } = body ?? {};
 
     if (!recipientEmail || !ticketNumber || !ticketTitle) {
       return new Response(
