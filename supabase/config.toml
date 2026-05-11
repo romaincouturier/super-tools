@@ -438,3 +438,6 @@ verify_jwt = false
 [functions.upload-mission-media]
 verify_jwt = false
 
+[functions.upload-admin-document]
+verify_jwt = false
+
