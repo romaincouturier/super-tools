@@ -180,23 +180,8 @@ export const uploadEntityDocument = async (
     const document = (data as { document?: { file_url?: string } } | null)?.document;
     if (!document?.file_url) throw new Error("URL du document introuvable après upload");
     return document.file_url;
-  }
 
-  const config = configs[entityType];
-  const sanitized = sanitizeFileName(file.name);
-  const path = `${entityId}/docs/${Date.now()}_${sanitized}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(config.bucket)
-    .upload(path, file, { contentType: resolveContentType(file) });
-
-  if (uploadError) throw uploadError;
-
-  const { data: urlData } = supabase.storage
-    .from(config.bucket)
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  throw new Error(`Type d'entité non supporté: ${entityType}`);
 };
 
 export const deleteEntityDocumentFile = async (
