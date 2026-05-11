@@ -414,6 +414,9 @@ verify_jwt = false
 [functions.generate-mission-8p]
 verify_jwt = false
 
+[functions.upload-mission-document]
+verify_jwt = false
+
 [functions.archive-resolved-tickets]
 verify_jwt = false
 
