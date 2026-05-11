@@ -548,10 +548,11 @@ const PageEditor = ({
         return urlData.publicUrl;
       } catch (err) {
         console.error("Upload error:", err);
+        toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");
         return null;
       }
     },
-    [page.id]
+    [page.id, toast]
   );
 
   const editor = useEditor({
@@ -732,6 +733,7 @@ const PageEditor = ({
   const handleDocumentUpload = async (files: FileList) => {
     if (!editor) return;
     setFileUploading(true);
+    let uploadedCount = 0;
     for (const file of Array.from(files)) {
       const url = await uploadDocument(file);
       if (url) {
@@ -740,10 +742,11 @@ const PageEditor = ({
         editor.chain().focus().insertContent(
           `<p><a href="${url}" target="_blank" rel="noopener">${icon} ${file.name} <em>(${size})</em></a></p>`
         ).run();
+        uploadedCount++;
       }
     }
     setFileUploading(false);
-    toast({ title: "Document(s) ajouté(s)" });
+    if (uploadedCount > 0) toast({ title: "Document(s) ajouté(s)" });
   };
 
   const setLink = useCallback(() => {
