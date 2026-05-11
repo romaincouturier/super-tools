@@ -213,7 +213,7 @@ serve(async (req) => {
     }
 
     // ── Ticket resolved notification (to submitter, legacy) ──
-    const { recipientEmail, ticketNumber, ticketId, ticketTitle, description, status, resolutionNotes } = body ?? {};
+    const { recipientEmail, ticketNumber, ticketId, ticketTitle, moduleLabel, description, status, resolutionNotes } = body ?? {};
 
     if (!recipientEmail || !ticketNumber || !ticketTitle) {
       return new Response(
@@ -244,7 +244,8 @@ serve(async (req) => {
       ? `${APP_URL}/support?q=${encodeURIComponent(ticketNumber)}`
       : `${APP_URL}/support`;
 
-    const subject = `${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
+    const modulePrefix = moduleLabel ? `[${moduleLabel}] ` : "";
+    const subject = `${modulePrefix}${ticketNumber} — Votre demande "${ticketTitle}" a été traitée`;
 
     const bodyHtml = `
       <p>Bonjour,</p>

@@ -3,6 +3,55 @@ import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import { db, throwIfError } from "@/lib/supabase-helpers";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 import type { KanbanRepository } from "./repository";
+import { MODULE_LABELS, type AppModule } from "@/hooks/useModuleAccess";
+
+/** Maps the first path segment of a page URL to a human module label. */
+function moduleLabelFromPageUrl(pageUrl: string | null | undefined): string | null {
+  if (!pageUrl) return null;
+  let path = pageUrl;
+  try {
+    path = new URL(pageUrl, "http://x").pathname;
+  } catch {
+    // pageUrl may already be a path
+  }
+  const seg = path.split("/").filter(Boolean)[0];
+  if (!seg) return null;
+  const map: Record<string, AppModule> = {
+    "dashboard": "parametres",
+    "micro-devis": "micro_devis",
+    "historique": "historique",
+    "parametres": "parametres",
+    "formations": "formations",
+    "besoins": "besoins",
+    "evaluations": "evaluations",
+    "ameliorations": "ameliorations",
+    "contenu": "contenu",
+    "emails": "emails",
+    "emails-a-valider": "emails",
+    "emails-erreur": "emails",
+    "web-analytics": "web_analytics",
+    "crm": "crm",
+    "missions": "missions",
+    "okr": "okr",
+    "medias": "medias",
+    "events": "events",
+    "monitoring": "monitoring",
+    "screenshots": "screenshots",
+    "catalogue": "catalogue",
+    "lms": "lms",
+    "certificates": "certificates",
+    "support": "support",
+    "supertilt": "supertilt",
+    "veille": "veille",
+    "reseau": "reseau",
+    "reclamations": "reclamations",
+    "arena": "arena",
+    "finances": "finances",
+    "statistiques": "statistiques",
+  };
+  const mod = map[seg];
+  return mod ? MODULE_LABELS[mod] : null;
+}
 
 /**
  * Resolves the displayable screenshot URL for a ticket by looking up the first
@@ -179,6 +228,7 @@ async function notifyTicketResolved(ticket: SupportTicket): Promise<void> {
         ticketNumber: ticket.ticket_number,
         ticketId: ticket.id,
         ticketTitle: ticket.title,
+        moduleLabel: moduleLabelFromPageUrl(ticket.page_url),
         description: ticket.description || null,
         status: ticket.status,
         resolutionNotes: ticket.resolution_notes || null,
