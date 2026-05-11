@@ -46,6 +46,7 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
   const [open, setOpen] = useState(false);
   const [formations, setFormations] = useState<FormationConfig[]>([]);
   const [inputValue, setInputValue] = useState(value);
+  const [searchValue, setSearchValue] = useState("");
 
   useEffect(() => {
     fetchFormations();
@@ -54,6 +55,11 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
   useEffect(() => {
     setInputValue(value);
   }, [value]);
+
+  // Reset search when popover opens so the full catalog is visible
+  useEffect(() => {
+    if (open) setSearchValue("");
+  }, [open]);
 
   const fetchFormations = async () => {
     const { data, error } = await supabase
