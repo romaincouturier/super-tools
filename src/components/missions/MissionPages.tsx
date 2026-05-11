@@ -503,28 +503,18 @@ const PageEditor = ({
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
       try {
-        const ext = file.name.split(".").pop() || "png";
-        const fileName = `pages/${page.id}/${Date.now()}.${ext}`;
-        const contentType = resolveContentType(file);
-        const { error } = await supabase.storage
-          .from("mission-media")
-          .upload(fileName, file, { contentType });
+        const form = new FormData();
+        form.append("missionId", missionId);
+        form.append("pageId", page.id);
+        form.append("file", file, file.name || "image.png");
+        const { data, error } = await supabase.functions.invoke(
+          "upload-mission-media",
+          { body: form },
+        );
         if (error) throw error;
-        const { data: urlData } = supabase.storage
-          .from("mission-media")
-          .getPublicUrl(fileName);
-        const publicUrl = urlData.publicUrl;
-        const fileType = contentType.startsWith("video/") ? "video" as const : "image" as const;
-        await registerMediaEntry({
-          file_url: publicUrl,
-          file_name: file.name,
-          file_type: fileType,
-          mime_type: contentType,
-          file_size: file.size,
-          source_type: "mission",
-          source_id: missionId,
-        });
-        return publicUrl;
+        const url = (data as { url?: string } | null)?.url;
+        if (!url) throw new Error("URL manquante dans la réponse");
+        return url;
       } catch (err) {
         console.error("Upload error:", err);
         toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");
