@@ -120,6 +120,7 @@ serve(async (req) => {
             </table>`
           : `<p style="color:#666;">Aucun ticket résolu à archiver cette semaine.</p>`
       }
+      ${userSummaryHtml}
       ${emailButton("Ouvrir le support", `${APP_URL}/support`)}
     `;
 
