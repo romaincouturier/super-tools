@@ -9,6 +9,7 @@ import type {
   LessonBlock,
   LessonBlockContent,
   TextBlockContent,
+  TableBlockContent,
   VideoBlockContent,
   ImageBlockContent,
   FileBlockContent,
@@ -31,6 +32,7 @@ import type {
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
 import TextBlockEditor from "./editors/TextBlockEditor";
+import TableBlockEditor from "./editors/TableBlockEditor";
 import VideoBlockEditor from "./editors/VideoBlockEditor";
 import ImageBlockEditor from "./editors/ImageBlockEditor";
 import FileBlockEditor from "./editors/FileBlockEditor";
@@ -230,6 +232,13 @@ function BlockEditorBody({
       return (
         <TextBlockEditor
           content={content as TextBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
+    case "table":
+      return (
+        <TableBlockEditor
+          content={content as TableBlockContent}
           onChange={(c) => onChange(c)}
         />
       );

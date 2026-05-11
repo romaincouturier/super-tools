@@ -611,7 +611,17 @@ const CardDetailDrawer = ({
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!card || !user?.email || !e.target.files?.length) return;
+    if (!e.target.files?.length) return;
+    if (!card) {
+      toastError(toast, "Carte introuvable — réouvre l'opportunité.");
+      e.target.value = "";
+      return;
+    }
+    if (!user?.email) {
+      toastError(toast, "Session sans email — reconnecte-toi pour ajouter une pièce jointe.");
+      e.target.value = "";
+      return;
+    }
     const files = Array.from(e.target.files);
     try {
       for (const file of files) {
@@ -619,7 +629,7 @@ const CardDetailDrawer = ({
       }
     } catch (err) {
       console.error("handleFileUpload error:", err);
-      toastError(toast, "Impossible d'uploader le fichier.");
+      toastError(toast, err instanceof Error ? err : "Impossible d'uploader le fichier.");
     }
     e.target.value = "";
   };

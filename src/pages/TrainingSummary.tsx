@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { formatDateWithDayOfWeek, formatDateLong } from "@/lib/dateFormatters";
 import { Loader2, MapPin } from "lucide-react";
+import { useAppSetting } from "@/hooks/useAppSetting";
 import SupportViewer from "@/components/formations/support/SupportViewer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -107,6 +108,7 @@ const c = {
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
   const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
+  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
 
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -623,27 +625,27 @@ END:VCALENDAR`;
                 className="rounded-xl overflow-hidden border shadow-sm"
                 style={{ background: c.surfaceContainerHighest, borderColor: `${c.outlineVariant}20` }}
               >
-                <a
-                  href={getGoogleMapsSearchUrl(training.location)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative block h-32"
-                  style={{ background: `${c.surfaceContainerHighest}` }}
-                >
-                  <div className="flex h-full items-center justify-center">
-                    <MapPin className="h-8 w-8" style={{ color: c.outline }} />
-                  </div>
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: `linear-gradient(to top, ${c.surfaceContainerHighest}, transparent)` }}
+                <div className="relative block h-48" style={{ background: c.surfaceContainerHighest }}>
+                  <iframe
+                    title="Carte du lieu de formation"
+                    src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(training.location)}`}
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
                   />
-                  <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm">
+                  <a
+                    href={getGoogleMapsSearchUrl(training.location)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm hover:bg-white transition-colors"
+                  >
                     <MIcon icon="location_on" className="text-sm" />
                     <span className="text-xs font-bold">
                       {training.location.split(",").pop()?.trim() || training.location}
                     </span>
-                  </div>
-                </a>
+                  </a>
+                </div>
                 <div className="p-4 flex justify-between items-center">
                   <div className="flex-1 pr-4">
                     <p className="text-sm font-bold leading-snug break-words" style={{ color: c.onSurface }}>

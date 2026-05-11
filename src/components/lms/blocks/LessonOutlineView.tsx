@@ -17,6 +17,12 @@ function getBlockSummary(block: LessonBlock): string {
   if (!c) return "";
   switch (block.type) {
     case "text":     return c.html ? stripHtml(String(c.html)).slice(0, 60) : "";
+    case "table": {
+      const html = c.html ? String(c.html) : "";
+      const rows = (html.match(/<tr\b/gi) || []).length;
+      const cols = (html.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/i)?.[1]?.match(/<(?:td|th)\b/gi) || []).length;
+      return rows && cols ? `Tableau ${rows} × ${cols}` : "Tableau vide";
+    }
     case "video":    return c.url ? String(c.url).replace(/^https?:\/\//, "").slice(0, 50) : "Aucune URL";
     case "image":    return c.url ? "Image" : "Aucune image";
     case "file":     return c.name ? String(c.name) : c.url ? "Fichier" : "Aucun fichier";

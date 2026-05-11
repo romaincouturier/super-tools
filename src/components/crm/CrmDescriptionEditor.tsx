@@ -1,7 +1,8 @@
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
+import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
-import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail } from "lucide-react";
+import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Table as TableIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -76,6 +77,7 @@ const CrmDescriptionEditor = ({
           class: "max-w-full rounded",
         },
       }),
+      ...tableExtensions("compact"),
     ],
     editorProps: {
       attributes: {
@@ -232,6 +234,18 @@ const CrmDescriptionEditor = ({
         >
           <ListOrdered className="h-3.5 w-3.5" />
         </Toggle>
+
+        <div className="w-px h-5 bg-border mx-0.5" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          title="Insérer un tableau (3×3, en-tête)"
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+        >
+          <TableIcon className="h-3.5 w-3.5" />
+        </Button>
 
         <div className="w-px h-5 bg-border mx-0.5" />
 

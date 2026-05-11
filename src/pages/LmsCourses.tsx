@@ -10,9 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useCourses, useCreateCourse, useDeleteCourse, LmsCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Users, Trash2, GraduationCap, Search, BarChart3 } from "lucide-react";
+import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -32,6 +33,7 @@ export default function LmsCourses() {
   const createCourse = useCreateCourse();
   const deleteCourse = useDeleteCourse();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ title: "", description: "", difficulty_level: "beginner" });
@@ -51,7 +53,13 @@ export default function LmsCourses() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Supprimer ce cours et tout son contenu ?")) return;
+    const ok = await confirm({
+      title: "Supprimer cet e-learning ?",
+      description: "Cette action supprimera définitivement le cours et tout son contenu (leçons, blocs, quiz). Elle est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     await deleteCourse.mutateAsync(id);
   };
 
@@ -63,6 +71,7 @@ export default function LmsCourses() {
 
   return (
     <ModuleLayout>
+      <ConfirmDialog />
       <div className="container py-6 space-y-6 max-w-7xl">
         <PageHeader
           icon={GraduationCap}

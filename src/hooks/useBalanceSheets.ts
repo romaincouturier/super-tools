@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { BalanceSheetData } from "@/lib/balanceSheetParser";
 
 export interface BalanceSheetRow {
@@ -26,6 +27,9 @@ export function useBalanceSheets() {
         .order("annee", { ascending: false })
         .limit(10);
       if (error) throw error;
+      // Supabase types `data` comme `Json` (union large) ; on coerce vers
+      // le type domaine. La donnée est produite par notre edge function
+      // qui garantit la forme du JSON (cf. extract-balance-sheet).
       return (data ?? []) as unknown as BalanceSheetRow[];
     },
     staleTime: 60 * 1000,
@@ -76,7 +80,7 @@ export function useUpdateBalanceSheetData() {
     mutationFn: async (input: { id: string; data: BalanceSheetData }): Promise<void> => {
       const { error } = await supabase
         .from("balance_sheets")
-        .update({ data: input.data as unknown as never })
+        .update({ data: input.data as unknown as Json })
         .eq("id", input.id);
       if (error) throw error;
     },

@@ -27,6 +27,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TextAlign from "@tiptap/extension-text-align";
+import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import {
   ChevronRight,
   ChevronDown,
@@ -61,6 +62,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronDownSquare,
+  Table as TableIcon,
   Undo,
   Redo,
   LayoutTemplate,
@@ -525,10 +527,11 @@ const PageEditor = ({
         return publicUrl;
       } catch (err) {
         console.error("Upload error:", err);
+        toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");
         return null;
       }
     },
-    [page.id, missionId]
+    [page.id, missionId, toast]
   );
 
   const uploadDocument = useCallback(
@@ -590,6 +593,7 @@ const PageEditor = ({
       SummaryNode,
       CalloutNode,
       VideoNode,
+      ...tableExtensions("normal"),
     ],
     content: ensureHtmlContent(page.content || ""),
     editorProps: {
@@ -781,6 +785,11 @@ const PageEditor = ({
     }).run();
   };
 
+  const insertTable = () => {
+    if (!editor) return;
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  };
+
   if (!editor) return null;
 
   return (
@@ -825,6 +834,7 @@ const PageEditor = ({
         <TB active={editor.isActive("codeBlock")} onClick={() => editor.chain().focus().toggleCodeBlock().run()} t="Code"><Code className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={() => editor.chain().focus().setHorizontalRule().run()} t="Séparateur"><Minus className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={insertToggleBlock} t="Dépliable"><ChevronDownSquare className="h-3.5 w-3.5" /></TB>
+        <TB active={editor.isActive("table")} onClick={insertTable} t="Tableau (3×3, en-tête)"><TableIcon className="h-3.5 w-3.5" /></TB>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
