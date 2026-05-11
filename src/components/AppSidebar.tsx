@@ -30,7 +30,9 @@ const SIDEBAR_MODULE_ORDER = [
   "events",
   "medias",
   "catalogue",
+  "micro-devis",
   "evaluations",
+  "certificates",
   "besoins",
   "lms",
   "reclamations",
@@ -42,6 +44,7 @@ const SIDEBAR_MODULE_ORDER = [
   "reseau",
   "supertilt",
   "veille",
+  "arena",
   "web-analytics",
   "archives",
 ];
