@@ -8,15 +8,22 @@ const ENDPOINT_MAP: Record<string, string> = {
   pages: "pages",
   browsers: "browsers",
   referrers: "referrers",
-  search: "search-engines",
-  countries: "countries",
-  platforms: "platforms",
+  search: "search_engines",
   online: "online",
-  categories: "categories",
-  authors: "authors",
-  top_visitors: "top-visitors",
 };
 const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
+
+// Endpoints that accept rangestartdate/rangeenddate
+const RANGE_ENDPOINTS = new Set(["browsers", "referrers", "pages", "visitors"]);
+// Endpoints that accept "days" (last N days)
+const DAYS_ENDPOINTS = new Set(["hits"]);
+
+function daysBetween(from: string, to: string): number {
+  const a = new Date(from + "T00:00:00Z").getTime();
+  const b = new Date(to + "T00:00:00Z").getTime();
+  if (Number.isNaN(a) || Number.isNaN(b)) return 30;
+  return Math.max(1, Math.round((b - a) / 86400000) + 1);
+}
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -30,12 +37,19 @@ Deno.serve(async (req) => {
       return createErrorResponse(`Invalid endpoint. Allowed: ${ALLOWED_ENDPOINTS.join(", ")}`, 400);
     }
 
-    // Forward extra query params (e.g. per_page, paged, from, to)
+    // Forward extra query params, translating from/to into the API's expected names
     const forwardParams = new URLSearchParams();
+    const rawFrom = url.searchParams.get("from");
+    const rawTo = url.searchParams.get("to");
     for (const [key, value] of url.searchParams.entries()) {
-      if (key !== "endpoint") {
-        forwardParams.set(key, value);
-      }
+      if (key === "endpoint" || key === "from" || key === "to") continue;
+      forwardParams.set(key, value);
+    }
+    if (RANGE_ENDPOINTS.has(endpoint)) {
+      if (rawFrom) forwardParams.set("rangestartdate", rawFrom);
+      if (rawTo) forwardParams.set("rangeenddate", rawTo);
+    } else if (DAYS_ENDPOINTS.has(endpoint) && rawFrom && rawTo) {
+      forwardParams.set("days", String(daysBetween(rawFrom, rawTo)));
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

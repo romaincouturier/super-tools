@@ -149,52 +149,19 @@ function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: an
   );
 }
 
-/* ─── Hits / Visitors trend chart ─── */
-function TrendChart({ hitsData, visitorsData, days }: { hitsData: any; visitorsData: any; days: number }) {
-  const hitsSeries = toDailySeries(hitsData, ["views", "count", "hits", "visit", "value"]);
-  const visitorsSeries = toDailySeries(visitorsData, ["visitors", "visitor", "count", "value"]);
-
-  const byDate = new Map<string, { date: string; views: number; visitors: number }>();
-  for (const h of hitsSeries) {
-    byDate.set(h.date, { date: h.date, views: h.value, visitors: 0 });
-  }
-  for (const v of visitorsSeries) {
-    const existing = byDate.get(v.date);
-    if (existing) existing.visitors = v.value;
-    else byDate.set(v.date, { date: v.date, views: 0, visitors: v.value });
+/* ─── Hits trend chart (hits payload contains daily { date, visitor, visit }) ─── */
+function TrendChart({ hitsData, days }: { hitsData: any; days: number }) {
+  if (!Array.isArray(hitsData) || hitsData.length === 0) {
+    return <p className="text-sm text-muted-foreground">Aucune donnée de tendance</p>;
   }
 
-  const chartData = Array.from(byDate.values())
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(-days);
+  const chartData = hitsData.map((e: any) => ({
+    date: String(e.date ?? e.day ?? ""),
+    views: Number(e.visit ?? e.views ?? e.hits ?? e.count ?? 0),
+    visitors: Number(e.visitor ?? e.visitors ?? 0),
+  }));
 
-  if (chartData.length === 0) return <p className="text-sm text-muted-foreground">Aucune donnée de tendance</p>;
-
-  // For periods ≥ 60 days : show one tick per month (1st day of month), label = short month name ("janv.").
-  // For shorter periods : show ticks as short day+month ("15 janv.").
   const isMonthlyTicks = days >= 60;
-  const monthlyTickDates = isMonthlyTicks
-    ? chartData
-        .filter((d) => d.date.endsWith("-01"))
-        .map((d) => d.date)
-    : undefined;
-
-  const formatTick = (iso: string) => {
-    try {
-      const d = parseISO(iso);
-      return isMonthlyTicks ? format(d, "MMM yyyy", { locale: fr }) : format(d, "d MMM", { locale: fr });
-    } catch {
-      return iso;
-    }
-  };
-
-  const formatTooltipLabel = (iso: string) => {
-    try {
-      return format(parseISO(iso), "EEEE d MMMM yyyy", { locale: fr });
-    } catch {
-      return iso;
-    }
-  };
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -203,13 +170,11 @@ function TrendChart({ hitsData, visitorsData, days }: { hitsData: any; visitorsD
         <XAxis
           dataKey="date"
           tick={{ fontSize: 11 }}
-          tickFormatter={formatTick}
-          ticks={monthlyTickDates}
-          interval={isMonthlyTicks ? 0 : "preserveStartEnd"}
+          interval={isMonthlyTicks ? Math.floor(chartData.length / 8) : "preserveStartEnd"}
           minTickGap={16}
         />
         <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-        <Tooltip labelFormatter={formatTooltipLabel} />
+        <Tooltip />
         <Legend />
         <Area type="monotone" dataKey="views" name="Vues" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
         <Area type="monotone" dataKey="visitors" name="Visiteurs" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.1} strokeWidth={2} />
@@ -363,7 +328,7 @@ const WpStatisticsDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {(loadingHits || loadingVisitors) ? <Spinner /> : <TrendChart hitsData={hits} visitorsData={visitors} days={days} />}
+          {loadingHits ? <Spinner /> : <TrendChart hitsData={hits} days={days} />}
         </CardContent>
       </Card>
 
