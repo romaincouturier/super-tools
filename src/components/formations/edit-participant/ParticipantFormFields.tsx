@@ -123,6 +123,33 @@ const ParticipantFormFields = ({
       </div>
 
       {isInterEntreprise && (
+        <div className="space-y-2">
+          <Label htmlFor="edit-company-address">Adresse de la société</Label>
+          <Input
+            id="edit-company-address"
+            value={companyAddress}
+            onChange={(e) => setCompanyAddress(e.target.value)}
+            placeholder="12 rue de la République"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Input
+              value={companyZip}
+              onChange={(e) => setCompanyZip(e.target.value)}
+              placeholder="Code postal"
+            />
+            <div className="sm:col-span-2">
+              <Input
+                value={companyCity}
+                onChange={(e) => setCompanyCity(e.target.value)}
+                placeholder="Ville"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {isInterEntreprise && (
         <>
           <div className="space-y-2">
             <Label htmlFor="edit-soldPriceHt">Montant vendu HT (€)</Label>
