@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
-const LOVABLE_AI_URL = "https://api.lovable.dev/v1/chat/completions";
+const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
 
 serve(async (req) => {
