@@ -16,7 +16,6 @@ import { formatFileSize, downloadFile, getFileType } from "@/lib/file-utils";
 import {
   DocumentEntityType,
   useEntityDocuments,
-  useAddEntityDocument,
   useDeleteEntityDocument,
   useToggleDocumentDeliverable,
   uploadEntityDocument,
@@ -69,7 +68,6 @@ const EntityDocumentsManager = ({
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const { data: documents = [], isLoading, refetch } = useEntityDocuments(entityType, entityId);
-  const addDocument = useAddEntityDocument(entityType);
   const deleteDocument = useDeleteEntityDocument(entityType);
   const toggleDeliverable = useToggleDocumentDeliverable(entityType);
 
@@ -98,21 +96,15 @@ const EntityDocumentsManager = ({
     try {
       for (const file of Array.from(files)) {
         try {
+          // Edge function handles both storage upload AND DB insert via service role (bypasses RLS).
+          // Never do a second direct insert after this — it would fail with "new row violates RLS policy".
           const uploadResult = await uploadEntityDocument(file, entityType, entityId);
           const fileUrl = uploadResult.file_url;
-          const insertedViaEdgeFn = entityType === "mission" || entityType === "training";
-          const inserted = insertedViaEdgeFn
-            ? uploadResult.document
-            : await addDocument.mutateAsync({
-                entityId,
-                file_name: file.name,
-                file_url: fileUrl,
-                file_size: file.size,
-              });
+          const id = uploadResult.document?.id ?? crypto.randomUUID();
           successCount++;
-          if (onUploadComplete && inserted && (inserted as { id?: string }).id) {
+          if (onUploadComplete) {
             onUploadComplete({
-              id: (inserted as { id: string }).id,
+              id,
               file_name: file.name,
               file_url: fileUrl,
               file_size: file.size,
@@ -128,9 +120,7 @@ const EntityDocumentsManager = ({
       }
 
       if (successCount > 0) {
-        if (entityType === "mission" || entityType === "training") {
-          await refetch();
-        }
+        await refetch();
         toast.success(
           successCount === 1
             ? "Document ajouté"
