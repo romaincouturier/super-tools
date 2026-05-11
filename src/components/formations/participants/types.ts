@@ -11,6 +11,9 @@ export interface Participant {
   last_name: string | null;
   email: string;
   company: string | null;
+  company_address?: string | null;
+  company_zip?: string | null;
+  company_city?: string | null;
   needs_survey_status: string;
   needs_survey_sent_at: string | null;
   added_at: string;
