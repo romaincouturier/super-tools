@@ -61,6 +61,9 @@ interface FormValues {
   lastName: string;
   email: string;
   company: string;
+  companyAddress: string;
+  companyZip: string;
+  companyCity: string;
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
