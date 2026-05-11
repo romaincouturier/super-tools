@@ -83,7 +83,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
     onFormationSelect?.(selectedFormation || null);
   };
 
-  const handleInputChange = (newValue: string) => {
+  const handleSearchChange = (newValue: string) => {
+    setSearchValue(newValue);
     setInputValue(newValue);
     onChange(newValue);
     // Clear formation selection when typing custom value
@@ -92,8 +93,8 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
     }
   };
 
-  const isNewFormation = inputValue && !formations.some(
-    f => f.formation_name.toLowerCase() === inputValue.toLowerCase()
+  const isNewFormation = searchValue && !formations.some(
+    f => f.formation_name.toLowerCase() === searchValue.toLowerCase()
   );
 
   return (
