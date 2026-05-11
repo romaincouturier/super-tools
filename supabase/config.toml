@@ -432,3 +432,6 @@ verify_jwt = false
 [functions.extract-balance-sheet]
 verify_jwt = false
 
+[functions.upload-training-document]
+verify_jwt = false
+
