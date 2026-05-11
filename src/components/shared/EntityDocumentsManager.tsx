@@ -64,7 +64,7 @@ const EntityDocumentsManager = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const { data: documents = [], isLoading } = useEntityDocuments(entityType, entityId);
+  const { data: documents = [], isLoading, refetch } = useEntityDocuments(entityType, entityId);
   const addDocument = useAddEntityDocument(entityType);
   const deleteDocument = useDeleteEntityDocument(entityType);
   const toggleDeliverable = useToggleDocumentDeliverable(entityType);
@@ -84,12 +84,14 @@ const EntityDocumentsManager = ({
       for (const file of Array.from(files)) {
         try {
           const fileUrl = await uploadEntityDocument(file, entityType, entityId);
-          const inserted = await addDocument.mutateAsync({
-            entityId,
-            file_name: file.name,
-            file_url: fileUrl,
-            file_size: file.size,
-          });
+          const inserted = entityType === "mission"
+            ? { id: crypto.randomUUID() }
+            : await addDocument.mutateAsync({
+                entityId,
+                file_name: file.name,
+                file_url: fileUrl,
+                file_size: file.size,
+              });
           successCount++;
           if (onUploadComplete && inserted && (inserted as { id?: string }).id) {
             onUploadComplete({
@@ -109,6 +111,9 @@ const EntityDocumentsManager = ({
       }
 
       if (successCount > 0) {
+        if (entityType === "mission") {
+          await refetch();
+        }
         toast.success(
           successCount === 1
             ? "Document ajouté"

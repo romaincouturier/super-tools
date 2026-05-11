@@ -165,6 +165,21 @@ export const uploadEntityDocument = async (
   entityType: DocumentEntityType,
   entityId: string,
 ): Promise<string> => {
+  if (entityType === "mission") {
+    const formData = new FormData();
+    formData.append("missionId", entityId);
+    formData.append("file", file);
+
+    const { data, error } = await supabase.functions.invoke("upload-mission-document", {
+      body: formData,
+    });
+
+    if (error) throw error;
+    const document = (data as { document?: { file_url?: string } } | null)?.document;
+    if (!document?.file_url) throw new Error("URL du document introuvable après upload");
+    return document.file_url;
+  }
+
   const config = configs[entityType];
   const sanitized = sanitizeFileName(file.name);
   const path = `${entityId}/docs/${Date.now()}_${sanitized}`;
