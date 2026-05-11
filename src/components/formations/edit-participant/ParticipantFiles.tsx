@@ -13,7 +13,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FileText, Upload, Trash2, Paperclip } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import type { ParticipantFile } from "@/services/participants";
+
+/** Extract storage path from a public/sign supabase URL pointing to training-documents. */
+function extractStoragePath(url: string): string | null {
+  const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/training-documents\/([^?]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 interface ParticipantFilesProps {
   participantId: string;
