@@ -182,6 +182,27 @@ const Support = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handlePasteImage = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const pasted: File[] = [];
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const f = item.getAsFile();
+        if (f) pasted.push(f);
+      }
+    }
+    if (pasted.length > 0) {
+      // On laisse le paste texte natif s'exécuter (clipboard mixte texte+image
+      // possible quand on copie depuis une page web) — on intercepte uniquement
+      // pour annexer les images en pièces jointes.
+      setNewFiles((prev) => [...prev, ...pasted]);
+      toast({
+        title: `${pasted.length} image${pasted.length > 1 ? "s" : ""} attachée${pasted.length > 1 ? "s" : ""}`,
+      });
+    }
+  };
+
   const renderCard = (card: SupportTicketCard, isDragging?: boolean) => {
     const overdue = !isDragging && meanCycleTimeDays > 0
       && !SUPPORT_DONE_COLS.includes(card.ticket.status as typeof SUPPORT_DONE_COLS[number])
@@ -257,8 +278,9 @@ const Support = () => {
                         value={newDescription}
                         onValueChange={setNewDescription}
                         onChange={(e) => setNewDescription(e.target.value)}
+                        onPaste={handlePasteImage}
                         rows={6}
-                        placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez..."
+                        placeholder="Décrivez ce qui ne fonctionne pas, ou l'amélioration que vous souhaitez. Astuce : tu peux coller (Ctrl/Cmd+V) une capture d'écran directement ici."
                       />
                     </div>
                     <div className="space-y-2">
