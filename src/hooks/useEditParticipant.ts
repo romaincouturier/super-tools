@@ -22,6 +22,9 @@ export interface Participant {
   last_name: string | null;
   email: string;
   company: string | null;
+  company_address?: string | null;
+  company_zip?: string | null;
+  company_city?: string | null;
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
