@@ -626,20 +626,40 @@ const PageEditor = ({
         return false;
       },
       handlePaste: (_view, event) => {
+        // Collect any image present in the clipboard. Some browsers (Safari,
+        // Firefox) populate `files` but leave `items` empty for screenshots,
+        // so we check both sources before falling back to text handling.
+        const imageFiles: File[] = [];
         const items = event.clipboardData?.items;
-        if (!items) return false;
-        for (const item of Array.from(items)) {
-          if (item.type.startsWith("image/")) {
-            event.preventDefault();
-            const file = item.getAsFile();
-            if (!file) continue;
-            setImageUploading(true);
-            uploadImage(file).then((url) => {
-              setImageUploading(false);
-              if (url && editor) editor.chain().focus().setImage({ src: url }).run();
-            });
-            return true;
+        if (items) {
+          for (const item of Array.from(items)) {
+            if (item.kind === "file" && item.type.startsWith("image/")) {
+              const f = item.getAsFile();
+              if (f) imageFiles.push(f);
+            }
           }
+        }
+        if (imageFiles.length === 0 && event.clipboardData?.files) {
+          for (const f of Array.from(event.clipboardData.files)) {
+            if (f.type.startsWith("image/")) imageFiles.push(f);
+          }
+        }
+        if (imageFiles.length > 0) {
+          event.preventDefault();
+          setImageUploading(true);
+          (async () => {
+            try {
+              for (const file of imageFiles) {
+                const url = await uploadImage(file);
+                if (url && editor) {
+                  editor.chain().focus().setImage({ src: url }).run();
+                }
+              }
+            } finally {
+              setImageUploading(false);
+            }
+          })();
+          return true;
         }
 
         // Plain text paste: preserve line breaks
