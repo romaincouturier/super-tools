@@ -355,12 +355,26 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                                 className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] h-5 font-normal max-w-[250px] truncate bg-secondary text-secondary-foreground hover:bg-accent transition-colors cursor-pointer"
                                 onClick={async (e) => {
                                   e.stopPropagation();
+                                  // Open blank window synchronously to preserve user gesture (avoids popup blocker after await)
+                                  const win = window.open("about:blank", "_blank");
                                   const { data, error } = await supabase.storage
                                     .from("crm-attachments")
-                                    .createSignedUrl(storagePath, 3600);
+                                    .createSignedUrl(storagePath, 3600, { download: name });
                                   if (data?.signedUrl && !error) {
-                                    window.open(data.signedUrl, "_blank");
+                                    if (win) {
+                                      win.location.href = data.signedUrl;
+                                    } else {
+                                      const a = document.createElement("a");
+                                      a.href = data.signedUrl;
+                                      a.download = name;
+                                      a.rel = "noopener";
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      a.remove();
+                                    }
                                   } else {
+                                    if (win) win.close();
+                                    console.error("Signed URL error", error);
                                     toast.error("Impossible de télécharger la pièce jointe");
                                   }
                                 }}
