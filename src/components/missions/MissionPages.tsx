@@ -525,10 +525,11 @@ const PageEditor = ({
         return publicUrl;
       } catch (err) {
         console.error("Upload error:", err);
+        toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");
         return null;
       }
     },
-    [page.id, missionId]
+    [page.id, missionId, toast]
   );
 
   const uploadDocument = useCallback(
