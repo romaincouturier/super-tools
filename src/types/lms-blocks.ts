@@ -35,7 +35,8 @@ export type ContentBlockType =
   | "button"
   | "exercise"
   | "self_assessment"
-  | "work_deposit";
+  | "work_deposit"
+  | "table";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -69,6 +70,11 @@ export function acceptsChildren(type: LessonBlockType): boolean {
 }
 
 export interface TextBlockContent {
+  html: string;
+}
+
+export interface TableBlockContent {
+  /** HTML du tableau (produit par Tiptap : `<table><thead><tr><th>...</th></tr></thead><tbody>...</tbody></table>`). */
   html: string;
 }
 
@@ -232,6 +238,7 @@ export interface SpacerBlockContent {
 
 export type LessonBlockContent =
   | TextBlockContent
+  | TableBlockContent
   | VideoBlockContent
   | ImageBlockContent
   | FileBlockContent
@@ -287,6 +294,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
   switch (type) {
     case "text":
       return { html: "" };
+    case "table":
+      return { html: '<table><tbody><tr><th>Colonne 1</th><th>Colonne 2</th><th>Colonne 3</th></tr><tr><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td></tr></tbody></table>' };
     case "video":
       return { url: null, duration_seconds: null };
     case "image":

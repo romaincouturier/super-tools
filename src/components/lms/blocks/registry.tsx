@@ -17,6 +17,7 @@ import {
   Square,
   Minus,
   MoveVertical,
+  Table as TableIcon,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType, LessonBlockKind } from "@/types/lms-blocks";
@@ -50,6 +51,7 @@ export const LAYOUT_BLOCKS: BlockTypeMeta[] = [
  */
 export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "text", label: "Texte riche", icon: FileText, kind: "content", editable: true },
+  { type: "table", label: "Tableau", icon: TableIcon, kind: "content", editable: true },
   { type: "video", label: "Vidéo", icon: Video, kind: "content", editable: true },
   { type: "image", label: "Image", icon: ImageIcon, kind: "content", editable: true },
   { type: "file", label: "Fichier / ressource", icon: Paperclip, kind: "content", editable: true },

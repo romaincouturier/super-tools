@@ -32,10 +32,12 @@ describe("isLayoutBlockType", () => {
       "callout",
       "key_points",
       "checklist",
+      "bullet_list",
       "button",
       "exercise",
       "self_assessment",
       "work_deposit",
+      "table",
     ];
     for (const t of contentTypes) {
       expect(isLayoutBlockType(t)).toBe(false);
@@ -105,10 +107,12 @@ describe("defaultBlockContent — regression on existing content types", () => {
       "callout",
       "key_points",
       "checklist",
+      "bullet_list",
       "button",
       "exercise",
       "self_assessment",
       "work_deposit",
+      "table",
     ] as const;
     for (const t of allTypes) {
       expect(defaultBlockContent(t)).toBeDefined();

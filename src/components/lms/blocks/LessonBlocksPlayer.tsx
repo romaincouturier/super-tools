@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type {
   LessonBlock,
   TextBlockContent,
+  TableBlockContent,
   VideoBlockContent,
   ImageBlockContent,
   FileBlockContent,
@@ -24,6 +25,7 @@ import type {
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
 import TextBlockViewer from "./viewers/TextBlockViewer";
+import TableBlockViewer from "./viewers/TableBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
 import ImageBlockViewer from "./viewers/ImageBlockViewer";
 import FileBlockViewer from "./viewers/FileBlockViewer";
@@ -99,6 +101,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
   switch (block.type) {
     case "text":
       return <TextBlockViewer content={block.content as TextBlockContent} />;
+    case "table":
+      return <TableBlockViewer content={block.content as TableBlockContent} />;
     case "video":
       return <VideoBlockViewer content={block.content as VideoBlockContent} />;
     case "image":
