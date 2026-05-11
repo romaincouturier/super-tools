@@ -1,6 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeUploadName } from "@/services/participants";
-import { resolveContentType } from "@/lib/file-utils";
 
 export interface AdminDocument {
   id: string;
@@ -79,46 +77,29 @@ export async function fetchAdminDocumentYears(): Promise<number[]> {
  * Returns the inserted record immediately so the UI can show a loading state.
  */
 export async function uploadAdminDocument(file: File): Promise<AdminDocument> {
-  const sanitized = sanitizeUploadName(file.name);
-  const path = `documents/${Date.now()}_${sanitized}`;
-  const contentType = resolveContentType(file);
+  const formData = new FormData();
+  formData.append("file", file);
 
-  const { error: uploadErr } = await supabase.storage
-    .from("admin-archives")
-    .upload(path, file, { contentType, upsert: false });
+  const { data, error } = await supabase.functions.invoke("upload-admin-document", {
+    body: formData,
+  });
 
-  if (uploadErr) throw uploadErr;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from("admin-archives")
-    .getPublicUrl(path);
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: inserted, error: insertErr } = await (supabase as any)
-    .from("admin_documents")
-    .insert({
-      file_url: publicUrl,
-      file_name: file.name,
-      file_size: file.size,
-      mime_type: contentType,
-      analysis_status: "pending",
-    })
-    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at")
-    .single();
-
-  if (insertErr) {
-    await supabase.storage.from("admin-archives").remove([path]).catch(() => {});
-    throw insertErr;
-  }
+  if (error) throw error;
+  if (!data?.document) throw new Error("Upload échoué : aucun document retourné");
 
   // Fire-and-forget: trigger analysis in background
   supabase.functions
     .invoke("analyze-admin-document", {
-      body: { documentId: inserted.id, filePath: path, mimeType: contentType, fileName: file.name },
+      body: {
+        documentId: data.document.id,
+        filePath: data.filePath,
+        mimeType: data.mimeType,
+        fileName: data.fileName,
+      },
     })
     .catch((err) => console.error("[uploadAdminDocument] analysis trigger failed:", err));
 
-  return inserted as AdminDocument;
+  return data.document as AdminDocument;
 }
 
 /** Delete a document (storage + DB). */
