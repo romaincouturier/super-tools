@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatSentDateTime } from "@/lib/dateFormatters";
-import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { resolveContentType } from "@/lib/file-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,29 +65,18 @@ const InvoiceSection = ({
     setUploadingInvoice(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const baseName = file.name.replace(`.${fileExt}`, "");
-      const sanitizedName = sanitizeFileName(baseName);
-      const fileName = `${trainingId}/facture_${Date.now()}_${sanitizedName}.${fileExt}`;
+      const formData = new FormData();
+      formData.append("trainingId", trainingId);
+      formData.append("field", "invoice_file_url");
+      formData.append("file", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("training-documents")
-        .upload(fileName, file);
+      const { data, error: uploadError } = await supabase.functions.invoke("upload-training-document-field", {
+        body: formData,
+      });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("training-documents")
-        .getPublicUrl(fileName);
-
-      const { error: updateError } = await supabase
-        .from("trainings")
-        .update({ invoice_file_url: publicUrl })
-        .eq("id", trainingId);
-
-      if (updateError) throw updateError;
-
-      setInvoiceFileUrl(publicUrl);
+      setInvoiceFileUrl(data?.fileUrl ?? null);
       onUpdate?.();
 
       toast({

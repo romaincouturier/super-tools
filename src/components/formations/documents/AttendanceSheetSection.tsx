@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatSentDateTime } from "@/lib/dateFormatters";
-import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { resolveContentType } from "@/lib/file-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -99,33 +99,20 @@ const AttendanceSheetSection = ({
       const uploadedUrls: string[] = [];
 
       for (const file of validFiles) {
-        const fileExt = file.name.split(".").pop();
-        const baseName = file.name.replace(`.${fileExt}`, "");
-        const sanitizedName = sanitizeFileName(baseName);
-        const fileName = `${trainingId}/emargement_${Date.now()}_${sanitizedName}.${fileExt}`;
+        const formData = new FormData();
+        formData.append("trainingId", trainingId);
+        formData.append("field", "attendance_sheets_urls");
+        formData.append("file", file);
 
-        const { error: uploadError } = await supabase.storage
-          .from("training-documents")
-          .upload(fileName, file);
+        const { data, error: uploadError } = await supabase.functions.invoke("upload-training-document-field", {
+          body: formData,
+        });
 
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("training-documents")
-          .getPublicUrl(fileName);
-
-        uploadedUrls.push(publicUrl);
+        if (data?.fileUrl) uploadedUrls.push(data.fileUrl);
       }
 
       const newSheetsUrls = [...attendanceSheetsUrls, ...uploadedUrls];
-
-      const { error: updateError } = await supabase
-        .from("trainings")
-        .update({ attendance_sheets_urls: newSheetsUrls })
-        .eq("id", trainingId);
-
-      if (updateError) throw updateError;
-
       setAttendanceSheetsUrls(newSheetsUrls);
       onUpdate?.();
 

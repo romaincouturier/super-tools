@@ -496,37 +496,21 @@ export async function exportAttendancePdf({
     return { success: true, message: "La feuille d'émargement a été téléchargée." };
   }
 
-  // Full session: upload to storage
+  // Full session: upload to storage via edge function (service role bypasses RLS)
   const pdfBlob = doc.output("blob");
-  const storagePath = `${trainingId}/emargement_electronique_${Date.now()}.pdf`;
+  const pdfFile = new File([pdfBlob], `emargement_electronique_${Date.now()}.pdf`, { type: "application/pdf" });
 
-  const { data: trainingData } = await supabase
-    .from("trainings")
-    .select("attendance_sheets_urls")
-    .eq("id", trainingId)
-    .single();
+  const formData = new FormData();
+  formData.append("trainingId", trainingId);
+  formData.append("field", "attendance_sheets_urls");
+  formData.append("filterPattern", "/emargement_electronique_");
+  formData.append("file", pdfFile);
 
-  const currentUrls: string[] = (trainingData?.attendance_sheets_urls as string[]) || [];
-
-  const oldElectronicUrls = currentUrls.filter(url => url.includes("/emargement_electronique_"));
-  for (const oldUrl of oldElectronicUrls) {
-    try {
-      const oldPath = oldUrl.split("/training-documents/").pop();
-      if (oldPath) {
-        await supabase.storage.from("training-documents").remove([decodeURIComponent(oldPath)]);
-      }
-    } catch { /* best-effort */ }
-  }
-
-  const { error: uploadError } = await supabase.storage
-    .from("training-documents")
-    .upload(storagePath, pdfBlob, { contentType: "application/pdf" });
+  const { error: uploadError } = await supabase.functions.invoke("upload-training-document-field", {
+    body: formData,
+  });
 
   if (!uploadError) {
-    const { data: { publicUrl } } = supabase.storage.from("training-documents").getPublicUrl(storagePath);
-    const nonElectronicUrls = currentUrls.filter(url => !url.includes("/emargement_electronique_"));
-    const newUrls = [...nonElectronicUrls, publicUrl];
-    await supabase.from("trainings").update({ attendance_sheets_urls: newUrls }).eq("id", trainingId);
     onUpdate?.();
   }
 

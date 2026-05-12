@@ -203,25 +203,16 @@ export default function TrainerManager() {
 
     setUploadingDoc(true);
     try {
-      const fileName = `trainer-doc-${Date.now()}_${file.name}`;
-      const filePath = `trainers/docs/${fileName}`;
+      const formData = new FormData();
+      formData.append("trainerId", editingTrainer.id);
+      formData.append("documentType", docType);
+      formData.append("file", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("training-documents")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.functions.invoke("upload-trainer-document", {
+        body: formData,
+      });
 
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("training-documents")
-        .getPublicUrl(filePath);
-
-      await supabase.from("trainer_documents").insert({
-        trainer_id: editingTrainer.id,
-        file_name: file.name,
-        file_url: urlData.publicUrl,
-        document_type: docType,
-      });
 
       await fetchDocuments(editingTrainer.id);
       toast({ title: "Document ajouté" });
@@ -230,7 +221,6 @@ export default function TrainerManager() {
       toastError(toast, "Impossible d'uploader le document.");
     } finally {
       setUploadingDoc(false);
-      // Reset input
       e.target.value = "";
     }
   };
