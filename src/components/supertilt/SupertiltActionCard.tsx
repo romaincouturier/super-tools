@@ -46,6 +46,11 @@ export default function SupertiltActionCard({ action, isDragging, onToggle }: Pr
             </p>
           )}
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {action.mission_id && (
+              <Badge variant="secondary" className="text-[10px] gap-1 px-1.5 py-0">
+                <Briefcase className="w-2.5 h-2.5" /> Mission
+              </Badge>
+            )}
             {action.assigned_to && (
               <Badge variant="outline" className="text-[10px] gap-1 px-1.5 py-0">
                 <User className="w-2.5 h-2.5" /> {action.assigned_to}
