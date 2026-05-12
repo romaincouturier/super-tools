@@ -442,7 +442,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              );})}
             </TableBody>
           </Table>
         </div>
