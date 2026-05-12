@@ -110,6 +110,7 @@ export function useFormationForm() {
 
   // Pricing / participants
   const [soldPriceHt, setSoldPriceHt] = useState("");
+  const [ancillaryFeesHt, setAncillaryFeesHt] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
 
   // Session type/format
