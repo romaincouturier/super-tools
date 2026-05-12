@@ -192,6 +192,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const consumedFromCredits = activities?.reduce((sum, a) => a.credit_id ? sum + (a.billable_amount || 0) : sum, 0) || 0;
   const remainingCredits = totalCredits - consumedFromCredits;
   const hasCredits = (credits?.length || 0) > 0;
+  const creditsById = new Map((credits || []).map((c) => [c.id, c]));
 
   const handleAddCredit = async () => {
     const amt = parseFloat(creditAmount);
