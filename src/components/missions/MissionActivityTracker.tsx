@@ -205,7 +205,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   };
 
   // Calculate totals
-  const totalConsumed = activities?.reduce((sum, a) => sum + (a.billable_amount || 0), 0) || 0;
+  const totalConsumed = activities?.reduce((sum, a) => a.credit_id ? sum : sum + (a.billable_amount || 0), 0) || 0;
   const totalBilled = activities?.reduce((sum, a) => a.is_billed ? sum + (a.billable_amount || 0) : sum, 0) || 0;
   const remainingToBill = (mission.initial_amount || 0) - totalBilled;
   const totalHours = activities?.filter(a => a.duration_type === "hours").reduce((sum, a) => sum + a.duration, 0) || 0;
