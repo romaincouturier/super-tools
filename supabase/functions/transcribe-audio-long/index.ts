@@ -38,7 +38,9 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         audio_url,
-        language_code: "fr",
+        // Auto-detect spoken language instead of forcing French.
+        language_detection: true,
+        language_confidence_threshold: 0.5,
         punctuate: true,
         format_text: true,
         speaker_labels: true,
