@@ -16,9 +16,17 @@ export interface EntityDocument {
   file_name: string;
   file_url: string;
   file_size: number | null;
+  mime_type: string | null;
   uploaded_by: string | null;
   created_at: string;
   is_deliverable: boolean;
+  processing_status: "none" | "pending" | "processing" | "completed" | "failed";
+  processing_progress: number;
+  processing_started_at: string | null;
+  processing_completed_at: string | null;
+  processing_error: string | null;
+  processing_estimated_seconds: number | null;
+  transcript_page_id: string | null;
 }
 
 // ── Config per entity type ───────────────────────────────────────────
@@ -67,10 +75,22 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
         file_name: row.file_name,
         file_url: row.file_url,
         file_size: row.file_size,
+        mime_type: row.mime_type ?? null,
         uploaded_by: row.uploaded_by,
         created_at: row.created_at,
         is_deliverable: row.is_deliverable ?? false,
+        processing_status: row.processing_status ?? "none",
+        processing_progress: row.processing_progress ?? 0,
+        processing_started_at: row.processing_started_at ?? null,
+        processing_completed_at: row.processing_completed_at ?? null,
+        processing_error: row.processing_error ?? null,
+        processing_estimated_seconds: row.processing_estimated_seconds ?? null,
+        transcript_page_id: row.transcript_page_id ?? null,
       }));
+    },
+    refetchInterval: (query) => {
+      const docs = query.state.data ?? [];
+      return docs.some((doc: EntityDocument) => ["pending", "processing"].includes(doc.processing_status)) ? 3000 : false;
     },
   });
 };
@@ -164,7 +184,7 @@ export const uploadEntityDocument = async (
   file: File,
   entityType: DocumentEntityType,
   entityId: string,
-): Promise<string> => {
+): Promise<{ file_url: string; document?: EntityDocument }> => {
   if (entityType === "mission" || entityType === "training") {
     const formData = new FormData();
     const idKey = entityType === "mission" ? "missionId" : "trainingId";
@@ -177,9 +197,9 @@ export const uploadEntityDocument = async (
     });
 
     if (error) throw error;
-    const document = (data as { document?: { file_url?: string } } | null)?.document;
+    const document = (data as { document?: EntityDocument & { file_url?: string } } | null)?.document;
     if (!document?.file_url) throw new Error("URL du document introuvable après upload");
-    return document.file_url;
+    return { file_url: document.file_url, document };
   }
 
   throw new Error(`Type d'entité non supporté: ${entityType}`);
