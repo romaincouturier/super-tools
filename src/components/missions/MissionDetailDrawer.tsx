@@ -9,7 +9,7 @@ import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { Mission, MissionStatus } from "@/types/missions";
-import { useUpdateMission, useDeleteMission, useCreateMissionActivity, useCreateMissionPage } from "@/hooks/useMissions";
+import { useUpdateMission, useDeleteMission, useCreateMissionActivity } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import MissionActivityTracker from "./MissionActivityTracker";
 import MissionPages from "./MissionPages";
@@ -448,7 +448,6 @@ const MissionDetailDrawer = ({
               entityId={mission.id}
               variant="bare"
               title="Documents contractuels"
-              onUploadComplete={handleDocumentUploaded}
             />
           </TabsContent>
 
