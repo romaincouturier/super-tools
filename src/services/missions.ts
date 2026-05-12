@@ -14,7 +14,13 @@ import type { KanbanRepository } from "./repository";
 // ── Missions CRUD ────────────────────────────────────────────────────
 
 export async function fetchMissions(): Promise<Mission[]> {
-  const result = await db().from("missions").select("*").order("position", { ascending: true });
+  // Exclude missions archived (e.g. moved to SuperTilt) from the Missions Kanban.
+  // The underlying mission rows + pages/docs stay intact and accessible via SuperTilt.
+  const result = await db()
+    .from("missions")
+    .select("*")
+    .or("archived.is.null,archived.eq.false")
+    .order("position", { ascending: true });
   return (throwIfError(result) || []) as Mission[];
 }
 
