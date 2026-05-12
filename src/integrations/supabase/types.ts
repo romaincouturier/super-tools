@@ -4398,6 +4398,7 @@ export type Database = {
       }
       missions: {
         Row: {
+          archived: boolean
           assigned_to: string | null
           billed_amount: number | null
           client_contact: string | null
@@ -4432,6 +4433,7 @@ export type Database = {
           waiting_next_action_text: string | null
         }
         Insert: {
+          archived?: boolean
           assigned_to?: string | null
           billed_amount?: number | null
           client_contact?: string | null
@@ -4466,6 +4468,7 @@ export type Database = {
           waiting_next_action_text?: string | null
         }
         Update: {
+          archived?: boolean
           assigned_to?: string | null
           billed_amount?: number | null
           client_contact?: string | null
@@ -6199,6 +6202,7 @@ export type Database = {
           description: string | null
           id: string
           is_completed: boolean
+          mission_id: string | null
           position: number
           title: string
           updated_at: string
@@ -6213,6 +6217,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_completed?: boolean
+          mission_id?: string | null
           position?: number
           title: string
           updated_at?: string
@@ -6227,12 +6232,21 @@ export type Database = {
           description?: string | null
           id?: string
           is_completed?: boolean
+          mission_id?: string | null
           position?: number
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "supertilt_actions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supertilt_columns: {
         Row: {

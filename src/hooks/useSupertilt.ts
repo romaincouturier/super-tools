@@ -17,6 +17,7 @@ export interface SupertiltAction {
   updated_at: string;
   column_id: string | null;
   position: number;
+  mission_id: string | null;
 }
 
 export interface SupertiltColumn {
