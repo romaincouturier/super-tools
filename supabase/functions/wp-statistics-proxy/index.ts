@@ -14,7 +14,37 @@ const ENDPOINT_MAP: Record<string, string> = {
 const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
 
 // Endpoints that accept rangestartdate/rangeenddate
-const RANGE_ENDPOINTS = new Set(["browsers", "referrers", "pages", "visitors"]);
+// NOTE: "browsers" advertises range params but returns an empty body when they
+// are passed on this WP install — so we omit range and return the global counts.
+const RANGE_ENDPOINTS = new Set(["referrers", "pages", "visitors"]);
+
+// Known search-engine host fragments → display name. Used to derive
+// per-engine visit counts from the global referrers endpoint, since the
+// /search_engines endpoint only returns engine *definitions* (no counts).
+const SEARCH_ENGINE_DOMAINS: Array<{ match: RegExp; name: string }> = [
+  { match: /(^|\.)google\./i, name: "Google" },
+  { match: /(^|\.)bing\.com$/i, name: "Bing" },
+  { match: /(^|\.)yahoo\./i, name: "Yahoo" },
+  { match: /(^|\.)yandex\./i, name: "Yandex" },
+  { match: /(^|\.)duckduckgo\.com$/i, name: "DuckDuckGo" },
+  { match: /(^|\.)ecosia\.org$/i, name: "Ecosia" },
+  { match: /(^|\.)qwant\.com$/i, name: "Qwant" },
+  { match: /(^|\.)brave\.com$/i, name: "Brave Search" },
+  { match: /search\.brave\.com$/i, name: "Brave Search" },
+  { match: /(^|\.)baidu\.com$/i, name: "Baidu" },
+  { match: /(^|\.)lilo\./i, name: "Lilo" },
+  { match: /(^|\.)startpage\.com$/i, name: "Startpage" },
+  { match: /(^|\.)chatgpt\.com$/i, name: "ChatGPT" },
+  { match: /(^|\.)perplexity\.ai$/i, name: "Perplexity" },
+];
+
+function matchSearchEngine(domain: string): string | null {
+  const d = domain.toLowerCase().trim();
+  for (const { match, name } of SEARCH_ENGINE_DOMAINS) {
+    if (match.test(d)) return name;
+  }
+  return null;
+}
 // Endpoints that accept "days" (last N days)
 const DAYS_ENDPOINTS = new Set(["hits"]);
 
@@ -76,6 +106,35 @@ Deno.serve(async (req) => {
     // Build WP-Statistics REST API URL
     const baseUrl = storeUrl.replace(/\/$/, "");
     forwardParams.set("token_auth", token);
+
+    // Special case: derive search-engine traffic counts from the global
+    // referrers list, since /search_engines only returns engine definitions.
+    if (endpoint === "search") {
+      const refParams = new URLSearchParams({ token_auth: token, top_referrers: "200" });
+      const refUrl = `${baseUrl}/wp-json/wpstatistics/v1/referrers?${refParams.toString()}`;
+      const refRes = await fetch(refUrl, { headers: { "Accept": "application/json" } });
+      if (!refRes.ok) {
+        const t = await refRes.text();
+        console.error("WP-Statistics referrers error:", refRes.status, t);
+        return createErrorResponse(`WP-Statistics API error: ${refRes.status}`, refRes.status);
+      }
+      const refList = await refRes.json();
+      const totals = new Map<string, number>();
+      if (Array.isArray(refList)) {
+        for (const r of refList) {
+          const domain = String(r?.referred ?? "").trim();
+          if (!domain) continue;
+          const name = matchSearchEngine(domain);
+          if (!name) continue;
+          totals.set(name, (totals.get(name) || 0) + Number(r?.total ?? 0));
+        }
+      }
+      const result = [...totals.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+      return createJsonResponse(result);
+    }
+
     const wpEndpoint = ENDPOINT_MAP[endpoint];
     const apiUrl = `${baseUrl}/wp-json/wpstatistics/v1/${wpEndpoint}?${forwardParams.toString()}`;
 
@@ -91,7 +150,10 @@ Deno.serve(async (req) => {
       return createErrorResponse(`WP-Statistics API error: ${wpResponse.status}`, wpResponse.status);
     }
 
-    const data = await wpResponse.json();
+    // Some endpoints may return an empty body for certain param combos.
+    // Fall back to {} instead of throwing on JSON parse.
+    const rawBody = await wpResponse.text();
+    const data = rawBody.trim() ? JSON.parse(rawBody) : {};
     return createJsonResponse(data);
   } catch (error) {
     console.error("wp-statistics-proxy error:", error);

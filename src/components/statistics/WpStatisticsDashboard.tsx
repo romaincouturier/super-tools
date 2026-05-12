@@ -13,15 +13,17 @@ import { dateAsISO } from "@/lib/dateFormatters";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 
+// Concrete palette — avoids relying on `--chart-N` CSS vars which may be
+// undefined in some themes and would render the pie cells as solid black.
 const COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(var(--muted-foreground))",
-  "#6366f1",
-  "#f59e0b",
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#06b6d4", // cyan
+  "#ec4899", // pink
+  "#84cc16", // lime
 ];
 
 /* ─── Period helpers ─── */
@@ -177,7 +179,7 @@ function TrendChart({ hitsData, days }: { hitsData: any; days: number }) {
         <Tooltip />
         <Legend />
         <Area type="monotone" dataKey="views" name="Vues" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
-        <Area type="monotone" dataKey="visitors" name="Visiteurs" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.1} strokeWidth={2} />
+        <Area type="monotone" dataKey="visitors" name="Visiteurs" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   );
