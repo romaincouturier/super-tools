@@ -404,49 +404,44 @@ describe("deleteParticipantFile", () => {
 describe("uploadSignedConvention", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStorageBucket.upload.mockResolvedValue({ error: null });
-    mockStorageBucket.getPublicUrl.mockReturnValue({
-      data: { publicUrl: "https://example.com/convention.pdf" },
-    });
-    mockFrom.mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      insert: mockInsert,
-      update: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })),
-      delete: vi.fn(() => ({ eq: vi.fn() })),
-      eq: vi.fn().mockReturnThis(),
-      not: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      single: mockSingle,
-      maybeSingle: vi.fn(),
-    });
   });
 
-  it("uploads to the training-documents bucket", async () => {
+  it("invokes the upload-participant-convention edge function, never direct storage", async () => {
+    mockInvoke.mockResolvedValue({ data: { fileUrl: "https://example.com/convention.pdf" }, error: null });
     const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
 
     await uploadSignedConvention("training-1", "participant-1", file);
 
-    expect(mockStorageFrom).toHaveBeenCalledWith("training-documents");
-    expect(mockStorageBucket.upload).toHaveBeenCalledWith(
-      expect.stringContaining("training-1/participant_participant-1/convention_signee_"),
-      file,
-    );
+    expect(mockInvoke).toHaveBeenCalledWith("upload-participant-convention", expect.objectContaining({ body: expect.any(FormData) }));
+    expect(mockStorageFrom).not.toHaveBeenCalled();
   });
 
-  it("updates training_participants with the signed_convention_url", async () => {
+  it("passes participantId, trainingId and file in FormData", async () => {
+    mockInvoke.mockResolvedValue({ data: { fileUrl: "https://example.com/convention.pdf" }, error: null });
+    const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
+
+    await uploadSignedConvention("training-1", "participant-1", file);
+
+    const [fnName, options] = mockInvoke.mock.calls[0] as [string, { body: FormData }];
+    expect(fnName).toBe("upload-participant-convention");
+    expect(options.body.get("trainingId")).toBe("training-1");
+    expect(options.body.get("participantId")).toBe("participant-1");
+    expect(options.body.get("file")).toBe(file);
+  });
+
+  it("returns the fileUrl from the edge function response", async () => {
+    mockInvoke.mockResolvedValue({ data: { fileUrl: "https://example.com/convention.pdf" }, error: null });
     const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
 
     const result = await uploadSignedConvention("training-1", "participant-1", file);
 
-    expect(mockFrom).toHaveBeenCalledWith("training_participants");
     expect(result).toBe("https://example.com/convention.pdf");
   });
 
-  it("throws when storage upload fails", async () => {
-    mockStorageBucket.upload.mockResolvedValue({ error: new Error("Storage quota exceeded") });
+  it("throws when the edge function returns an error", async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: new Error("RLS violation") });
     const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
 
-    await expect(uploadSignedConvention("training-1", "participant-1", file)).rejects.toThrow("Storage quota exceeded");
+    await expect(uploadSignedConvention("training-1", "participant-1", file)).rejects.toThrow("RLS violation");
   });
 });

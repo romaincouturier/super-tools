@@ -465,6 +465,9 @@ verify_jwt = false
 [functions.upload-crm-image]
 verify_jwt = false
 
+[functions.upload-participant-convention]
+verify_jwt = false
+
 [functions.process-event-reminders]
 verify_jwt = false
 

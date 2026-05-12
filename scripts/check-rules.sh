@@ -239,6 +239,21 @@ else
   check "025" "Dialogs d'ajout de participant utilisent le catch-up mid-session" \
     "for f in src/components/formations/*AddParticipant*.tsx; do [ -f \"\$f\" ] || continue; has_hook=\$(grep -l 'useAddParticipant\\|isTrainingOngoing\\|catchUpAttendanceSignatures' \"\$f\" | wc -l); [ \"\$has_hook\" -eq 0 ] && echo \"VIOLATION: \$(basename \"\$f\") ne s'appuie pas sur le catch-up mid-session\"; done"
 
+  # [026] Uploads — jamais de supabase.storage.upload() + supabase.from().insert/update() dans le même fichier src/
+  # Le pattern dangereux est la combinaison storage.upload() + DB insert/update côté frontend :
+  # il dépend des policies RLS qui peuvent être cassées par Lovable. Doit passer par une edge function.
+  # Cas légitimes exclus : SettingsGeneral (setState local, pas d'insert), useBalanceSheets (bucket OK, pas d'insert), AgentChat (pas d'insert media).
+  # Exclusions légitimes :
+  #   useMedia.ts       — uploadMediaFile() et registerMediaEntry() sont des fonctions SÉPARÉES, les callers
+  #                       passent par des edge functions pour l'upload avant d'appeler registerMediaEntry.
+  #   useTrainingSupport.ts — upload TUS resumable (gros fichiers) dans une fn isolée, inserts dans d'autres fns.
+  check "026" "Pas de storage.upload() + insert/update DB dans le même fichier src/ (passer par edge function)" \
+    "for f in \$(grep -rln 'supabase\.storage\.' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v '\.spec\.' | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts'); do \
+       has_upload=\$(grep -c '\.upload(' \"\$f\" 2>/dev/null || echo 0); \
+       has_insert=\$(grep -cE '\.from\(.*\)\.(insert|update)\(' \"\$f\" 2>/dev/null || echo 0); \
+       [ \"\$has_upload\" -gt 0 ] && [ \"\$has_insert\" -gt 0 ] && echo \"VIOLATION: \$f (storage.upload + DB insert/update direct)\"; \
+     done"
+
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
 fi

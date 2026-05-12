@@ -6,6 +6,28 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ---
 
+## Uploads de fichiers / RLS
+
+### [026] Uploads — toujours passer par une edge function avec service_role_key, jamais de storage+insert direct depuis le frontend
+
+- **Constat** : Entre février et mai 2026, plusieurs tables (`crm_attachments`, `trainer_documents`, `support_ticket_attachments`, `training_participants`) ont accumulé des policies RLS contradictoires ou insuffisantes (email en dur, doublon de policies de même nom avec syntaxes différentes, jeux de policies ajoutés sans DROP des précédents). Chaque fois que Lovable créait une table ou modifiait un bucket, il ajoutait de nouvelles policies sans supprimer les anciennes. Le frontend qui faisait `supabase.storage.upload()` + `supabase.from(table).insert()` directement dépendait de cette configuration fragile — elle cassait silencieusement dès qu'un utilisateur non-admin uploadait.
+- **Règle** : **Toute opération combinant un upload storage et un insert/update en base de données DOIT passer par une edge function Supabase utilisant `createClient(url, SUPABASE_SERVICE_ROLE_KEY)`.** La service role key bypass intégralement les RLS — son comportement ne dépend d'aucune policy. Le frontend n'appelle que `supabase.functions.invoke("upload-xxx", { body: formData })` et ne touche jamais directement au storage ni à la DB pour les écritures liées aux uploads.
+- **Pattern obligatoire** :
+  ```ts
+  // ✅ Correct — edge function avec service role
+  const { data, error } = await supabase.functions.invoke("upload-mon-document", { body: formData });
+  
+  // ❌ Interdit — storage direct + insert direct (dépend des RLS policies)
+  await supabase.storage.from("mon-bucket").upload(path, file);
+  await supabase.from("ma_table").insert({ ... });
+  ```
+- **Vérification** : `grep -rn "supabase\.storage\.from" src/ --include="*.ts" --include="*.tsx"` ne doit retourner que des appels en **lecture** (getPublicUrl, createSignedUrl, download, remove) — jamais `.upload()`. Tout `.upload()` dans `src/` est une violation.
+- **Fichiers de référence** : `supabase/functions/upload-trainer-document/index.ts`, `supabase/functions/upload-training-document-field/index.ts`, `supabase/functions/upload-participant-invoice/index.ts`, `supabase/functions/upload-crm-image/index.ts`, `supabase/functions/upload-crm-attachment/index.ts`, `supabase/functions/upload-support-attachment/index.ts`
+- **Origine** : Régression majeure — 4 mois d'accumulation de policies RLS contradictoires générées par Lovable, causant des erreurs "new row violates row-level security policy" sur tous les uploads utilisateurs non-admin.
+- **Date** : 2026-05-12
+
+---
+
 ## Catch-up mid-session
 
 ### [025] Ajout participant en cours de session — rattraper welcome + émargements déjà envoyés
