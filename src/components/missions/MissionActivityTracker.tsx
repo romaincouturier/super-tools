@@ -349,8 +349,10 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               </TableRow>
             </TableHeader>
             <TableBody>
-              {activities.map((activity) => (
-                <TableRow key={activity.id}>
+              {activities.map((activity) => {
+                const linkedCredit = activity.credit_id ? creditsById.get(activity.credit_id) : null;
+                return (
+                <TableRow key={activity.id} className={linkedCredit ? "bg-amber-50/50" : ""}>
                   <TableCell className="whitespace-nowrap">
                     {format(parseISO(activity.activity_date), "dd/MM/yyyy")}
                   </TableCell>
