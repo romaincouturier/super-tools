@@ -169,6 +169,29 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     }
   };
 
+  const handleDuplicate = async (activity: MissionActivity) => {
+    try {
+      await createActivity.mutateAsync({
+        mission_id: mission.id,
+        description: activity.description,
+        activity_date: format(new Date(), "yyyy-MM-dd"),
+        duration_type: activity.duration_type,
+        duration: activity.duration,
+        billable_amount: activity.billable_amount,
+        invoice_url: null,
+        invoice_number: null,
+        is_billed: false,
+        notes: activity.notes,
+        google_event_id: null,
+        google_event_link: null,
+        credit_id: activity.credit_id || null,
+      });
+      toast({ title: "Activité dupliquée" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
   const toggleBilled = async (activity: MissionActivity) => {
     try {
       await updateActivity.mutateAsync({
