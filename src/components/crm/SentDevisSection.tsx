@@ -353,14 +353,24 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                               <button
                                 key={idx}
                                 className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] h-5 font-normal max-w-[250px] truncate bg-secondary text-secondary-foreground hover:bg-accent transition-colors cursor-pointer"
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  const { data } = supabase.storage
-                                    .from("crm-attachments")
-                                    .getPublicUrl(storagePath);
-                                  if (data?.publicUrl) {
-                                    window.open(data.publicUrl, "_blank", "noopener");
-                                  } else {
+                                  try {
+                                    const { data, error } = await supabase.storage
+                                      .from("crm-attachments")
+                                      .download(storagePath);
+                                    if (error || !data) throw error || new Error("no data");
+                                    const url = URL.createObjectURL(data);
+                                    const a = document.createElement("a");
+                                    a.href = url;
+                                    a.download = name;
+                                    a.rel = "noopener";
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                                  } catch (err) {
+                                    console.error("Download error", err);
                                     toast.error("Impossible de télécharger la pièce jointe");
                                   }
                                 }}
