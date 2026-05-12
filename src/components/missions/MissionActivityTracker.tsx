@@ -37,11 +37,15 @@ import {
   useCreateMissionActivity,
   useUpdateMissionActivity,
   useDeleteMissionActivity,
+  useMissionCredits,
+  useCreateMissionCredit,
+  useDeleteMissionCredit,
   MissionActivity,
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
 import GenerateInvoiceDialog from "./GenerateInvoiceDialog";
 import ImportGoogleEventsDialog from "./ImportGoogleEventsDialog";
+import { Wallet, Plus as PlusIcon, X as XIcon } from "lucide-react";
 
 interface MissionActivityTrackerProps {
   mission: Mission;
