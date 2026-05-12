@@ -73,7 +73,7 @@ export async function fetchAdminDocumentYears(): Promise<number[]> {
 
 /**
  * Upload a file to admin-archives, insert a DB record (status=pending),
- * then invoke the analyze-admin-document edge function asynchronously.
+ * and let the backend trigger the analysis in background.
  * Returns the inserted record immediately so the UI can show a loading state.
  */
 export async function uploadAdminDocument(file: File): Promise<AdminDocument> {
@@ -86,18 +86,6 @@ export async function uploadAdminDocument(file: File): Promise<AdminDocument> {
 
   if (error) throw error;
   if (!data?.document) throw new Error("Upload échoué : aucun document retourné");
-
-  // Fire-and-forget: trigger analysis in background
-  supabase.functions
-    .invoke("analyze-admin-document", {
-      body: {
-        documentId: data.document.id,
-        filePath: data.filePath,
-        mimeType: data.mimeType,
-        fileName: data.fileName,
-      },
-    })
-    .catch((err) => console.error("[uploadAdminDocument] analysis trigger failed:", err));
 
   return data.document as AdminDocument;
 }
