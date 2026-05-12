@@ -8,7 +8,7 @@ import { pickRandomEmoji } from "@/lib/randomEmoji";
 import { bootstrapChecklist } from "@/services/logistics";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
-import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/useMissions";
+import type { MissionActivity, MissionPage, MissionPageTemplate, MissionCredit } from "@/hooks/useMissions";
 import type { KanbanRepository } from "./repository";
 
 // ── Missions CRUD ────────────────────────────────────────────────────
