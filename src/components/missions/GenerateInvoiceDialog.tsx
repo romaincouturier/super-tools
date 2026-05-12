@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { Receipt, Upload, Check, ExternalLink } from "lucide-react";
+import { fr } from "date-fns/locale";
+import { Receipt, Upload, Check, ExternalLink, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { resolveContentType } from "@/lib/file-utils";
@@ -213,13 +214,46 @@ const GenerateInvoiceDialog = ({
 
             {/* Total */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border">
+              <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border gap-3">
                 <span className="text-sm font-medium">
                   {selectedIds.size} activité(s) sélectionnée(s)
                 </span>
-                <span className="text-lg font-bold text-primary">
-                  {selectedTotal.toLocaleString("fr-FR")} € HT
-                </span>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      const selected = unbilledActivities.filter((a) => selectedIds.has(a.id));
+                      if (selected.length === 0) return;
+                      const sorted = [...selected].sort((a, b) =>
+                        a.activity_date.localeCompare(b.activity_date)
+                      );
+                      const start = parseISO(sorted[0].activity_date);
+                      const end = parseISO(sorted[sorted.length - 1].activity_date);
+                      const startStr = format(start, "d MMMM yyyy", { locale: fr });
+                      const endStr = format(end, "d MMMM yyyy", { locale: fr });
+                      const header =
+                        sorted[0].activity_date === sorted[sorted.length - 1].activity_date
+                          ? `Pour le ${startStr}`
+                          : `Pour la période du ${startStr} au ${endStr}`;
+                      const lines = sorted.map((a) => `- ${a.description}`).join("\n");
+                      const text = `${header}\n${lines}`;
+                      try {
+                        await navigator.clipboard.writeText(text);
+                        toast({ title: "Copié dans le presse-papier" });
+                      } catch {
+                        toastError(toast, "Impossible de copier");
+                      }
+                    }}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copier les intitulés
+                  </Button>
+                  <span className="text-lg font-bold text-primary">
+                    {selectedTotal.toLocaleString("fr-FR")} € HT
+                  </span>
+                </div>
               </div>
             )}
 
