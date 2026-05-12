@@ -4,8 +4,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const { mockFrom, mockSingle, mockInvoke, mockStorageFrom, mockStorageBucket } = vi.hoisted(() => {
   const mockSingle = vi.fn();
   const mockStorageBucket = {
-    upload: vi.fn().mockResolvedValue({ error: null }),
-    getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.com/admin-archives/documents/123_file.pdf" } })),
     remove: vi.fn().mockResolvedValue({ data: null, error: null }),
   };
   const mockStorageFrom = vi.fn().mockReturnValue(mockStorageBucket);
@@ -34,14 +32,6 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-vi.mock("@/services/participants", () => ({
-  sanitizeUploadName: (name: string) => name.replace(/[^a-zA-Z0-9_.-]/g, "_"),
-}));
-
-vi.mock("@/lib/file-utils", () => ({
-  resolveContentType: (file: File) => file.type || "application/octet-stream",
-}));
-
 import {
   uploadAdminDocument,
   deleteAdminDocument,
@@ -54,89 +44,66 @@ import {
 
 describe("uploadAdminDocument", () => {
   const file = new File(["pdf content"], "facture-2024.pdf", { type: "application/pdf" });
+  const mockDoc: AdminDocument = {
+    id: "doc-1",
+    file_url: "https://example.com/admin-archives/documents/123_facture-2024.pdf",
+    file_name: "facture-2024.pdf",
+    file_size: 1024,
+    mime_type: "application/pdf",
+    year: null,
+    category: null,
+    tags: [],
+    summary: null,
+    analysis_status: "pending",
+    uploaded_at: "2024-01-01T00:00:00Z",
+    analyzed_at: null,
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStorageBucket.upload.mockResolvedValue({ error: null });
-    mockStorageBucket.getPublicUrl.mockReturnValue({
-      data: { publicUrl: "https://example.com/admin-archives/documents/123_facture-2024.pdf" },
-    });
-    mockSingle.mockResolvedValue({
-      data: {
-        id: "doc-1",
-        file_url: "https://example.com/admin-archives/documents/123_facture-2024.pdf",
-        file_name: "facture-2024.pdf",
-        file_size: 1024,
-        mime_type: "application/pdf",
-        year: null,
-        category: null,
-        tags: [],
-        summary: null,
-        analysis_status: "pending",
-        uploaded_at: "2024-01-01T00:00:00Z",
-        analyzed_at: null,
-      },
-      error: null,
-    });
+    mockInvoke.mockResolvedValue({ data: { document: mockDoc }, error: null });
   });
 
-  it("uploads to the admin-archives bucket", async () => {
+  it("invokes the upload-admin-document edge function (not direct storage)", async () => {
     await uploadAdminDocument(file);
-
-    expect(mockStorageFrom).toHaveBeenCalledWith("admin-archives");
-    expect(mockStorageBucket.upload).toHaveBeenCalledWith(
-      expect.stringMatching(/^documents\/\d+_/),
-      file,
-      expect.objectContaining({ contentType: "application/pdf", upsert: false }),
-    );
-  });
-
-  it("inserts a DB record with analysis_status = 'pending'", async () => {
-    await uploadAdminDocument(file);
-
-    expect(mockFrom).toHaveBeenCalledWith("admin_documents");
-    const chain = mockFrom.mock.results.find(
-      (r) => mockFrom.mock.calls[mockFrom.mock.results.indexOf(r)]?.[0] === "admin_documents",
-    );
-    expect(chain).toBeDefined();
-    // The insert receives the pending status — verified via the single() mock above
-  });
-
-  it("triggers the analyze-admin-document edge function asynchronously", async () => {
-    await uploadAdminDocument(file);
-
-    // Wait for fire-and-forget
-    await new Promise((r) => setTimeout(r, 0));
 
     expect(mockInvoke).toHaveBeenCalledWith(
-      "analyze-admin-document",
-      expect.objectContaining({
-        body: expect.objectContaining({ documentId: "doc-1", mimeType: "application/pdf" }),
-      }),
+      "upload-admin-document",
+      expect.objectContaining({ body: expect.any(FormData) }),
     );
+    // Direct storage must NEVER be called — edge function handles it with service role
+    expect(mockStorageFrom).not.toHaveBeenCalled();
   });
 
-  it("returns the inserted document immediately (before analysis)", async () => {
+  it("passes the file in the FormData body", async () => {
+    await uploadAdminDocument(file);
+
+    const [fnName, options] = mockInvoke.mock.calls[0] as [string, { body: FormData }];
+    expect(fnName).toBe("upload-admin-document");
+    expect(options.body.get("file")).toBe(file);
+  });
+
+  it("returns the document from the edge function response", async () => {
     const result = await uploadAdminDocument(file);
 
+    expect(result).toEqual(mockDoc);
     expect(result.analysis_status).toBe("pending");
     expect(result.id).toBe("doc-1");
-    expect(result.file_name).toBe("facture-2024.pdf");
   });
 
-  it("throws and does NOT insert DB record when storage upload fails", async () => {
-    mockStorageBucket.upload.mockResolvedValue({ error: new Error("Bucket quota exceeded") });
-
-    await expect(uploadAdminDocument(file)).rejects.toThrow("Bucket quota exceeded");
-    expect(mockFrom).not.toHaveBeenCalledWith("admin_documents");
-  });
-
-  it("removes the storage file and throws when DB insert fails", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: new Error("new row violates row-level security policy") });
+  it("throws when the edge function returns an error", async () => {
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: new Error("new row violates row-level security policy"),
+    });
 
     await expect(uploadAdminDocument(file)).rejects.toThrow("row-level security policy");
-    // Cleanup: storage file must be removed
-    expect(mockStorageBucket.remove).toHaveBeenCalled();
+  });
+
+  it("throws when the edge function returns no document data", async () => {
+    mockInvoke.mockResolvedValue({ data: {}, error: null });
+
+    await expect(uploadAdminDocument(file)).rejects.toThrow("aucun document retourné");
   });
 });
 
@@ -177,18 +144,6 @@ describe("deleteAdminDocument", () => {
 // ── fetchAdminDocuments ──────────────────────────────────────────────────────
 
 describe("fetchAdminDocuments", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockFrom.mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      or: vi.fn().mockReturnThis(),
-      not: vi.fn().mockReturnThis(),
-      then: vi.fn().mockResolvedValue({ data: [], error: null }),
-    });
-  });
-
   it("queries the admin_documents table", async () => {
     const chain = {
       select: vi.fn().mockReturnThis(),
@@ -197,7 +152,6 @@ describe("fetchAdminDocuments", () => {
       or: vi.fn().mockReturnThis(),
       not: vi.fn().mockReturnThis(),
     };
-    // Simulate resolved value at end of chain
     (chain.order as ReturnType<typeof vi.fn>).mockReturnValue(
       Object.assign(Promise.resolve({ data: [], error: null }), chain),
     );

@@ -56,15 +56,15 @@ describe("uploadEntityDocument — mission", () => {
     expect(options.body.get("file")).toBe(file);
   });
 
-  it("returns the id and file_url from the edge function response", async () => {
+  it("returns file_url and document from the edge function response", async () => {
     mockInvoke.mockResolvedValue({
-      data: { document: { id: "doc-abc", file_url: "https://example.com/mission-doc.pdf" } },
+      data: { document: { id: "doc-abc", file_url: "https://example.com/mission-doc.pdf", file_name: "doc.pdf" } },
       error: null,
     });
 
     const result = await uploadEntityDocument(file, "mission", "mission-1");
     expect(result.file_url).toBe("https://example.com/mission-doc.pdf");
-    expect(result.id).toBe("doc-abc");
+    expect(result.document?.id).toBe("doc-abc");
   });
 
   it("throws when the edge function returns an error", async () => {
