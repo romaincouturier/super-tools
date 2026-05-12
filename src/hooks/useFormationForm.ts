@@ -364,6 +364,7 @@ export function useFormationForm() {
     clientName, setClientName,
     clientAddress, setClientAddress,
     soldPriceHt, setSoldPriceHt,
+    ancillaryFeesHt, setAncillaryFeesHt,
     maxParticipants, setMaxParticipants,
     sessionType, setSessionType,
     sessionFormat, setSessionFormat,
