@@ -373,6 +373,12 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                       ) : null}
                       {activity.description}
                     </div>
+                    {linkedCredit && (
+                      <div className="text-xs text-amber-700 flex items-center gap-1 mt-0.5">
+                        <Wallet className="h-3 w-3" />
+                        Déduit du crédit « {linkedCredit.label || "Crédit"} »
+                      </div>
+                    )}
                     {activity.invoice_number && (
                       <div className="text-xs text-muted-foreground flex items-center gap-1">
                         <Receipt className="h-3 w-3" />
