@@ -29,8 +29,18 @@ export interface MissionActivity {
   notes: string | null;
   google_event_id: string | null;
   google_event_link: string | null;
+  credit_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface MissionCredit {
+  id: string;
+  mission_id: string;
+  amount: number;
+  label: string | null;
+  created_at: string;
+  created_by: string | null;
 }
 
 export interface MissionPage {
