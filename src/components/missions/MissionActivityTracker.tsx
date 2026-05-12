@@ -55,13 +55,19 @@ interface MissionActivityTrackerProps {
 const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionActivityTrackerProps) => {
   const { toast } = useToast();
   const { data: activities, isLoading } = useMissionActivities(mission.id);
+  const { data: credits } = useMissionCredits(mission.id);
   const createActivity = useCreateMissionActivity();
   const updateActivity = useUpdateMissionActivity();
   const deleteActivity = useDeleteMissionActivity();
+  const createCredit = useCreateMissionCredit();
+  const deleteCredit = useDeleteMissionCredit();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditLabel, setCreditLabel] = useState("");
   const [editingActivity, setEditingActivity] = useState<MissionActivity | null>(null);
   
 
@@ -75,6 +81,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [isBilled, setIsBilled] = useState(false);
   const [notes, setNotes] = useState("");
+  const [creditId, setCreditId] = useState<string>("none");
 
   const resetForm = () => {
     setDescription("");
@@ -86,6 +93,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     setInvoiceNumber("");
     setIsBilled(false);
     setNotes("");
+    setCreditId("none");
     setEditingActivity(null);
   };
 
