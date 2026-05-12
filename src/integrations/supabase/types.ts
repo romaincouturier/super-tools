@@ -4072,33 +4072,63 @@ export type Database = {
       }
       mission_documents: {
         Row: {
+          assemblyai_transcript_id: string | null
           created_at: string | null
           file_name: string
           file_size: number | null
           file_url: string
           id: string
           is_deliverable: boolean
+          mime_type: string | null
           mission_id: string
+          processing_completed_at: string | null
+          processing_error: string | null
+          processing_estimated_seconds: number | null
+          processing_progress: number
+          processing_started_at: string | null
+          processing_status: string
+          processing_updated_at: string | null
+          transcript_page_id: string | null
           uploaded_by: string | null
         }
         Insert: {
+          assemblyai_transcript_id?: string | null
           created_at?: string | null
           file_name: string
           file_size?: number | null
           file_url: string
           id?: string
           is_deliverable?: boolean
+          mime_type?: string | null
           mission_id: string
+          processing_completed_at?: string | null
+          processing_error?: string | null
+          processing_estimated_seconds?: number | null
+          processing_progress?: number
+          processing_started_at?: string | null
+          processing_status?: string
+          processing_updated_at?: string | null
+          transcript_page_id?: string | null
           uploaded_by?: string | null
         }
         Update: {
+          assemblyai_transcript_id?: string | null
           created_at?: string | null
           file_name?: string
           file_size?: number | null
           file_url?: string
           id?: string
           is_deliverable?: boolean
+          mime_type?: string | null
           mission_id?: string
+          processing_completed_at?: string | null
+          processing_error?: string | null
+          processing_estimated_seconds?: number | null
+          processing_progress?: number
+          processing_started_at?: string | null
+          processing_status?: string
+          processing_updated_at?: string | null
+          transcript_page_id?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
@@ -4107,6 +4137,13 @@ export type Database = {
             columns: ["mission_id"]
             isOneToOne: false
             referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_documents_transcript_page_id_fkey"
+            columns: ["transcript_page_id"]
+            isOneToOne: false
+            referencedRelation: "mission_pages"
             referencedColumns: ["id"]
           },
         ]
