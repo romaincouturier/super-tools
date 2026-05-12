@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Clock, Calendar, FileText, Trash2, Edit2, Receipt, ExternalLink, Download } from "lucide-react";
+import { Plus, Clock, Calendar, FileText, Trash2, Edit2, Receipt, ExternalLink, Download, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
