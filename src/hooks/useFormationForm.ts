@@ -340,7 +340,7 @@ export function useFormationForm() {
       programFileUrl, supertiltLink, privateGroupUrl,
       sponsorFormalAddress, financeurSameAsSponsor,
       elearningDuration, catalogId,
-      clientName, clientAddress, soldPriceHt, maxParticipants,
+      clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail,
       financeurName, financeurUrl,
       locationType, locationCustom,
