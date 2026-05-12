@@ -602,6 +602,45 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Credit Dialog */}
+      <Dialog open={showCreditDialog} onOpenChange={setShowCreditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter un crédit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Montant (€) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>Libellé (optionnel)</Label>
+              <Input
+                value={creditLabel}
+                onChange={(e) => setCreditLabel(e.target.value)}
+                placeholder="Ex : Avenant #1, Forfait support…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreditDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddCredit} disabled={createCredit.isPending}>
+              {createCredit.isPending && <Spinner className="mr-2" />}
+              Ajouter
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
