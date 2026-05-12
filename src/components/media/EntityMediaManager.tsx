@@ -77,6 +77,8 @@ const EntityMediaManager = ({
     });
   };
 
+  const queryClient = useQueryClient();
+
   const uploadFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter((f) => getFileType(f) !== null);
@@ -88,6 +90,7 @@ const EntityMediaManager = ({
 
     setUploading(true);
     let successCount = 0;
+    let routedAudioToDocs = 0;
 
     try {
       const uploadedAudioItems: MediaItem[] = [];
@@ -95,6 +98,18 @@ const EntityMediaManager = ({
       for (const file of validFiles) {
         try {
           const fileType = getFileType(file)!;
+
+          // Audio on missions → route through the documents pipeline so the
+          // file shows in the "Documents" tab AND a transcript page is auto-
+          // created with the language detected by AssemblyAI.
+          if (fileType === "audio" && sourceType === "mission") {
+            await uploadEntityDocument(file, "mission", sourceId);
+            queryClient.invalidateQueries({ queryKey: ["mission-documents", sourceId] });
+            successCount++;
+            routedAudioToDocs++;
+            continue;
+          }
+
           const fileUrl = await uploadMediaFile(file, sourceType, sourceId);
 
           const result = await addMedia.mutateAsync({
@@ -110,7 +125,7 @@ const EntityMediaManager = ({
 
           successCount++;
 
-          // Collect audio items for auto-transcription
+          // Collect audio items for auto-transcription (non-mission entities)
           if (fileType === "audio" && result) {
             uploadedAudioItems.push({
               ...result,
@@ -134,15 +149,22 @@ const EntityMediaManager = ({
             : `${successCount} fichiers ajoutés`
         );
       }
+      if (routedAudioToDocs > 0) {
+        toast.info(
+          routedAudioToDocs === 1
+            ? "Audio ajouté à l'onglet Documents — transcription en cours."
+            : `${routedAudioToDocs} audios ajoutés à l'onglet Documents — transcription en cours.`,
+        );
+      }
 
-      // Auto-transcribe uploaded audio files
+      // Auto-transcribe uploaded audio files (non-mission entities only)
       for (const audioItem of uploadedAudioItems) {
         handleTranscribe(audioItem);
       }
     } finally {
       setUploading(false);
     }
-  }, [sourceType, sourceId, addMedia]);
+  }, [sourceType, sourceId, addMedia, queryClient]);
 
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));
