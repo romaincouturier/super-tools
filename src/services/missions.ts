@@ -266,6 +266,23 @@ export async function deleteContact(id: string): Promise<void> {
   throwIfError(result);
 }
 
+// ── Credits ──────────────────────────────────────────────────────────
+
+export async function fetchCredits(missionId: string): Promise<MissionCredit[]> {
+  const result = await db().from("mission_credits" as never).select("*").eq("mission_id", missionId).order("created_at", { ascending: true });
+  return (throwIfError(result) || []) as MissionCredit[];
+}
+
+export async function createCredit(input: { mission_id: string; amount: number; label?: string | null }): Promise<MissionCredit> {
+  const result = await db().from("mission_credits" as never).insert(input as never).select().single();
+  return throwIfError(result) as MissionCredit;
+}
+
+export async function deleteCredit(id: string): Promise<void> {
+  const result = await db().from("mission_credits" as never).delete().eq("id", id);
+  throwIfError(result);
+}
+
 // ── Compile-time contract check ─────────────────────────────────────
 ({
   fetch: fetchMissions,
