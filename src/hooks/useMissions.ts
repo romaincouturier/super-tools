@@ -142,8 +142,8 @@ export const useAllMissionActivities = () =>
 export const useCreateMissionActivity = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Omit<MissionActivity, "id" | "created_at" | "updated_at">) =>
-      missionService.createActivity(input),
+    mutationFn: (input: Omit<MissionActivity, "id" | "created_at" | "updated_at" | "credit_id"> & { credit_id?: string | null }) =>
+      missionService.createActivity({ credit_id: null, ...input } as Omit<MissionActivity, "id" | "created_at" | "updated_at">),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: [MISSION_ACTIVITIES_QUERY_KEY, data.mission_id] });
       qc.invalidateQueries({ queryKey: [MISSIONS_QUERY_KEY] });
