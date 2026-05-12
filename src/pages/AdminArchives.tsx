@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { toastError } from "@/lib/toastError";
 import {
   fetchAdminDocuments,
@@ -133,7 +134,44 @@ export default function AdminArchives() {
   };
 
   const handleOpenDocument = async (doc: AdminDocument) => {
-    window.open(doc.file_url, "_blank", "noopener noreferrer");
+    // Some browsers (Brave Shields, ad-blockers, strict tracking protection)
+    // block direct navigation to *.supabase.co. Fetch the file through the
+    // Supabase SDK and open it as a local blob: URL to bypass the block.
+    try {
+      const marker = "/admin-archives/";
+      const idx = doc.file_url.indexOf(marker);
+      const path = idx >= 0 ? doc.file_url.slice(idx + marker.length).split("?")[0] : null;
+      if (!path) throw new Error("Chemin de fichier introuvable");
+
+      const { data, error } = await supabase.storage.from("admin-archives").download(path);
+      if (error || !data) throw error ?? new Error("Téléchargement impossible");
+
+      const mime = doc.mime_type || data.type || "application/octet-stream";
+      const blob = data.type ? data : new Blob([data], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const win = window.open(blobUrl, "_blank", "noopener,noreferrer");
+      if (!win) {
+        // Popup bloqué : on déclenche un téléchargement direct
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = doc.file_name || "document";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      // Libère l'URL après quelques secondes (laisse le temps au viewer)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (e: any) {
+      console.error("[AdminArchives] open document failed", e);
+      toast({
+        title: "Impossible d'ouvrir le document",
+        description:
+          e?.message ??
+          "Votre navigateur bloque l'accès au stockage. Essayez de désactiver Brave Shields / le bloqueur sur ce site.",
+        variant: "destructive",
+      });
+    }
   };
 
   const clearFilters = () => {
