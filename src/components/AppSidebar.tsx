@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, Settings, Shield } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
