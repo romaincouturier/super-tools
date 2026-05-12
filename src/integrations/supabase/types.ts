@@ -7353,6 +7353,7 @@ export type Database = {
       }
       trainings: {
         Row: {
+          ancillary_fees_ht: number | null
           assigned_to: string | null
           attendance_sheets_urls: string[] | null
           cancellation_reason: string | null
@@ -7415,6 +7416,7 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
+          ancillary_fees_ht?: number | null
           assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
           cancellation_reason?: string | null
@@ -7477,6 +7479,7 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
+          ancillary_fees_ht?: number | null
           assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
           cancellation_reason?: string | null
