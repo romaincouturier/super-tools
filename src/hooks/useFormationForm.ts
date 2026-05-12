@@ -30,6 +30,7 @@ export interface FormationFormState {
 
   // Pricing / participants
   soldPriceHt: string;
+  ancillaryFeesHt: string;
   maxParticipants: string;
 
   // Session type/format
@@ -109,6 +110,7 @@ export function useFormationForm() {
 
   // Pricing / participants
   const [soldPriceHt, setSoldPriceHt] = useState("");
+  const [ancillaryFeesHt, setAncillaryFeesHt] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
 
   // Session type/format
@@ -299,6 +301,11 @@ export function useFormationForm() {
           : soldPriceHt
             ? Math.round(parseFloat(soldPriceHt) * 100) / 100
             : null;
+        base.ancillary_fees_ht = isPermanent
+          ? null
+          : ancillaryFeesHt
+            ? Math.round(parseFloat(ancillaryFeesHt) * 100) / 100
+            : null;
         base.max_participants = isPermanent ? 0 : (maxParticipants ? parseInt(maxParticipants, 10) : 0);
         base.evaluation_link = "";
         base.sponsor_first_name = isInter ? null : (sponsorFirstName || null);
@@ -312,6 +319,7 @@ export function useFormationForm() {
         base.client_name = clientName;
         base.client_address = clientAddress || null;
         base.sold_price_ht = soldPriceHt ? Math.round(parseFloat(soldPriceHt) * 100) / 100 : null;
+        base.ancillary_fees_ht = ancillaryFeesHt ? Math.round(parseFloat(ancillaryFeesHt) * 100) / 100 : null;
         base.max_participants = maxParticipants ? parseInt(maxParticipants, 10) : 0;
         base.sponsor_first_name = sponsorFirstName || null;
         base.sponsor_last_name = sponsorLastName || null;
@@ -332,7 +340,7 @@ export function useFormationForm() {
       programFileUrl, supertiltLink, privateGroupUrl,
       sponsorFormalAddress, financeurSameAsSponsor,
       elearningDuration, catalogId,
-      clientName, clientAddress, soldPriceHt, maxParticipants,
+      clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail,
       financeurName, financeurUrl,
       locationType, locationCustom,
@@ -356,6 +364,7 @@ export function useFormationForm() {
     clientName, setClientName,
     clientAddress, setClientAddress,
     soldPriceHt, setSoldPriceHt,
+    ancillaryFeesHt, setAncillaryFeesHt,
     maxParticipants, setMaxParticipants,
     sessionType, setSessionType,
     sessionFormat, setSessionFormat,
