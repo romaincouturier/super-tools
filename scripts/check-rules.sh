@@ -183,7 +183,7 @@ else
 
   # [008] CORS centralisé — toutes les fonctions doivent importer depuis _shared/cors.ts
   check "008" "Pas de CORS headers définis localement dans les edge functions" \
-    "grep -rn '\"Access-Control-Allow-Origin\": \"\*\"' supabase/functions/ --include='*.ts' | grep -v '_shared/cors.ts' | grep -v node_modules"
+    "grep -rn '\"Access-Control-Allow-Origin\": \"\*\"' supabase/functions/ --include='*.ts' | grep -v '_shared/cors.ts' | grep -v '\.test\.ts' | grep -v node_modules"
 
   # [009] RLS — pas de FOR ALL TO anon USING(true) (full open access)
   # Exclude old migrations whose policies are dropped by later fix migrations
@@ -253,6 +253,25 @@ else
        has_insert=\$(grep -cE '\.from\(.*\)\.(insert|update)\(' \"\$f\" 2>/dev/null || echo 0); \
        [ \"\$has_upload\" -gt 0 ] && [ \"\$has_insert\" -gt 0 ] && echo \"VIOLATION: \$f (storage.upload + DB insert/update direct)\"; \
      done"
+
+  # [026b] Les 8 edge functions d'upload critiques doivent exister et utiliser le handler partagé.
+  # Vérifie qu'aucune ne régresse vers un pattern inline (sans import de upload-handler.ts).
+  check "026b" "Les edge functions d'upload utilisent _shared/upload-handler.ts (pas de pattern inline)" \
+    "for fn in upload-crm-attachment upload-support-attachment upload-trainer-document upload-training-document-field upload-participant-invoice upload-crm-image upload-participant-convention upload-participant-file; do \
+       f=\"supabase/functions/\$fn/index.ts\"; \
+       [ ! -f \"\$f\" ] && echo \"VIOLATION: \$f manquant\" && continue; \
+       grep -q 'upload-handler' \"\$f\" || echo \"VIOLATION: \$f n'utilise pas _shared/upload-handler.ts\"; \
+     done"
+
+  # [026c] Les services frontend qui wrappent des uploads doivent invoquer une edge function,
+  # jamais appeler supabase.storage.upload() directement.
+  # Vérifie les services connus pour avoir été corrigés (regression guard).
+  check "026c" "uploadSignedConvention et uploadParticipantFile passent par edge function (pas de storage direct)" \
+    "f=\"src/services/participants.ts\"; \
+     grep -q 'upload-participant-convention' \"\$f\" || echo \"VIOLATION: participants.ts n'invoke plus upload-participant-convention\"; \
+     grep -q 'upload-participant-file' \"\$f\" || echo \"VIOLATION: participants.ts n'invoke plus upload-participant-file\"; \
+     grep -q 'storage\.upload' \"\$f\" && echo \"VIOLATION: participants.ts utilise storage.upload direct\"; \
+     true"
 
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
