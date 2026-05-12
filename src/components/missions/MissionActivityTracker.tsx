@@ -210,7 +210,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const remainingToBill = (mission.initial_amount || 0) - totalBilled;
   const totalHours = activities?.filter(a => a.duration_type === "hours").reduce((sum, a) => sum + a.duration, 0) || 0;
   const totalDays = activities?.filter(a => a.duration_type === "days").reduce((sum, a) => sum + a.duration, 0) || 0;
-  const unbilledCount = activities?.filter(a => !a.is_billed && !a.invoice_number).length || 0;
+  const unbilledCount = activities?.filter(a => !a.is_billed && !a.invoice_number && !a.credit_id).length || 0;
   const totalCredits = credits?.reduce((sum, c) => sum + Number(c.amount || 0), 0) || 0;
   const consumedFromCredits = activities?.reduce((sum, a) => a.credit_id ? sum + (a.billable_amount || 0) : sum, 0) || 0;
   const remainingCredits = totalCredits - consumedFromCredits;
