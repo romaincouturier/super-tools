@@ -30,6 +30,7 @@ export interface FormationFormState {
 
   // Pricing / participants
   soldPriceHt: string;
+  ancillaryFeesHt: string;
   maxParticipants: string;
 
   // Session type/format
