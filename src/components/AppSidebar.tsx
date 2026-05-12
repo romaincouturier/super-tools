@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, Settings, Shield } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
@@ -178,6 +178,15 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             onClick={() => go(m.path)}
           />
         ))}
+        {hasAccess("emails") && (
+          <RailItem
+            icon={MailCheck}
+            label="Emails à valider"
+            active={isActive("/emails-a-valider")}
+            showLabels={showLabels}
+            onClick={() => go("/emails-a-valider")}
+          />
+        )}
       </div>
 
       {/* Bottom section: admin, settings, expand toggle, avatar */}
