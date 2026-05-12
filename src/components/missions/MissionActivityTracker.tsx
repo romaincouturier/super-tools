@@ -113,6 +113,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     setInvoiceNumber(activity.invoice_number || "");
     setIsBilled(activity.is_billed);
     setNotes(activity.notes || "");
+    setCreditId(activity.credit_id || "none");
     setShowAddDialog(true);
   };
 
@@ -135,6 +136,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       notes: notes.trim() || null,
       google_event_id: editingActivity?.google_event_id || null,
       google_event_link: editingActivity?.google_event_link || null,
+      credit_id: creditId === "none" ? null : creditId,
     };
 
     try {
