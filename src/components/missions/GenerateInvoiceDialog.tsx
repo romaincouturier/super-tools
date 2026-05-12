@@ -48,7 +48,7 @@ const GenerateInvoiceDialog = ({
   const updateActivity = useUpdateMissionActivity();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const unbilledActivities = activities.filter((a) => !a.is_billed && !a.invoice_number);
+  const unbilledActivities = activities.filter((a) => !a.is_billed && !a.invoice_number && !a.credit_id);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [invoiceNumber, setInvoiceNumber] = useState("");
