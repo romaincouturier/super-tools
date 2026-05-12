@@ -71,6 +71,7 @@ const FormationEdit = () => {
       form.setClientName(training.client_name);
       form.setClientAddress(training.client_address || "");
       form.setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
+      form.setAncillaryFeesHt((training as any).ancillary_fees_ht != null ? String((training as any).ancillary_fees_ht) : "");
       form.setMaxParticipants(training.max_participants != null ? String(training.max_participants) : "");
 
       // Load session_type/session_format with fallback from legacy format_formation
