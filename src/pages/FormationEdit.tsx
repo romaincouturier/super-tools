@@ -400,22 +400,39 @@ const FormationEdit = () => {
                     </>
                   )}
 
-                  {/* Sold price HT */}
-                  {!form.hasFormulas && !form.isInter && (
-                    <div className="space-y-2">
-                      <Label htmlFor="soldPriceHt">Prix HT global (€)</Label>
-                      <Input
-                        id="soldPriceHt"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={form.soldPriceHt}
-                        onChange={(e) => form.setSoldPriceHt(e.target.value)}
-                        placeholder="Ex: 3500"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Montant total HT, utilisé dans la convention de formation
-                      </p>
+                  {/* Sold price HT + Ancillary fees */}
+                  {!form.isInter && (!form.hasFormulas || form.sessionType === "intra") && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="soldPriceHt">Prix vendu HT (€)</Label>
+                        <Input
+                          id="soldPriceHt"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={form.soldPriceHt}
+                          onChange={(e) => form.setSoldPriceHt(e.target.value)}
+                          placeholder="Ex: 3500"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Repris de l'opportunité CRM si gagnée. Modifiable.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="ancillaryFeesHt">Frais annexes HT (€)</Label>
+                        <Input
+                          id="ancillaryFeesHt"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={form.ancillaryFeesHt}
+                          onChange={(e) => form.setAncillaryFeesHt(e.target.value)}
+                          placeholder="Ex: 250"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Additionnés au prix vendu dans la convention de formation.
+                        </p>
+                      </div>
                     </div>
                   )}
 
