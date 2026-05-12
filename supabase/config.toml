@@ -438,6 +438,9 @@ verify_jwt = false
 [functions.upload-mission-media]
 verify_jwt = false
 
+[functions.upload-event-media]
+verify_jwt = false
+
 [functions.process-mission-audio-transcriptions]
 verify_jwt = false
 
