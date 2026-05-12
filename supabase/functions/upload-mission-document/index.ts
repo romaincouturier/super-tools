@@ -4,6 +4,15 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const BUCKET = "mission-documents";
 
+function isAudioMime(mimeType: string): boolean {
+  return mimeType.startsWith("audio/");
+}
+
+function estimateProcessingSeconds(fileSize: number): number {
+  const sizeMb = Math.max(1, fileSize / (1024 * 1024));
+  return Math.min(900, Math.max(90, Math.round(35 + sizeMb * 8)));
+}
+
 function sanitizeFileName(name: string): string {
   return name
     .normalize("NFD")
@@ -13,7 +22,8 @@ function sanitizeFileName(name: string): string {
 }
 
 function resolveContentType(file: File): string {
-  if (file.type) return file.type.toLowerCase().split(";")[0].trim();
+  const detected = file.type?.toLowerCase().split(";")[0].trim();
+  if (detected && detected !== "audio/x-m4a") return detected;
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
   const map: Record<string, string> = {
     pdf: "application/pdf",
@@ -35,6 +45,23 @@ function resolveContentType(file: File): string {
     m4a: "audio/mp4",
   };
   return map[ext] || "application/octet-stream";
+}
+
+async function triggerAudioProcessing(supabaseUrl: string, serviceKey: string, documentId: string) {
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/process-mission-audio-transcriptions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ documentId }),
+    });
+    if (!response.ok) console.error("[upload-mission-document] audio processing trigger failed", response.status, await response.text());
+  } catch (error) {
+    console.error("[upload-mission-document] audio processing trigger error", error);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -70,12 +97,14 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
     const sanitizedName = sanitizeFileName(file.name || "document");
+    const mimeType = resolveContentType(file);
+    const isAudio = isAudioMime(mimeType);
     const path = `${missionId}/docs/${Date.now()}_${sanitizedName}`;
 
     const { error: uploadError } = await admin.storage
       .from(BUCKET)
       .upload(path, file, {
-        contentType: resolveContentType(file),
+        contentType: mimeType,
         upsert: false,
       });
 
@@ -93,7 +122,12 @@ Deno.serve(async (req) => {
         file_name: file.name,
         file_url: urlData.publicUrl,
         file_size: file.size,
+        mime_type: mimeType,
         uploaded_by: user.id,
+        processing_status: isAudio ? "pending" : "none",
+        processing_progress: isAudio ? 3 : 0,
+        processing_estimated_seconds: isAudio ? estimateProcessingSeconds(file.size) : null,
+        processing_updated_at: isAudio ? new Date().toISOString() : null,
       })
       .select("*")
       .single();
@@ -102,6 +136,12 @@ Deno.serve(async (req) => {
       console.error("[upload-mission-document] db error", insertError);
       await admin.storage.from(BUCKET).remove([path]);
       return createErrorResponse(insertError.message || "Erreur d'enregistrement", 500);
+    }
+
+    if (isAudio) {
+      const job = triggerAudioProcessing(supabaseUrl, serviceKey, document.id);
+      const edgeRuntime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void } }).EdgeRuntime;
+      edgeRuntime?.waitUntil(job);
     }
 
     return createJsonResponse({ document });

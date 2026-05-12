@@ -104,7 +104,7 @@ const SupportsSection = ({
     if (!file) return;
     setUploading(true);
     try {
-      const publicUrl = await uploadEntityDocument(file, "training", trainingId);
+      const { file_url: publicUrl } = await uploadEntityDocument(file, "training", trainingId);
       await saveSupportsFile(publicUrl, file.name);
       setFileUrl(publicUrl);
       setFileName(file.name);

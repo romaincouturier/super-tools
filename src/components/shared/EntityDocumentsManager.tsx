@@ -2,8 +2,9 @@
  * Reusable document manager for any entity (missions, trainings, etc.).
  * Handles upload, download, delete with consistent UI.
  */
-import { useRef, useState, useCallback } from "react";
-import { FileText, Upload, Download, Trash2, Package } from "lucide-react";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { FileText, Upload, Download, Trash2, Package, FileAudio, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,6 +24,7 @@ import {
 } from "@/hooks/useEntityDocuments";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 
 export type EntityDocumentMediaKind = "image" | "video" | "audio" | null;
 
@@ -60,6 +62,8 @@ const EntityDocumentsManager = ({
   onUploadComplete,
 }: EntityDocumentsManagerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const completedAudioIdsRef = useRef<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -68,6 +72,17 @@ const EntityDocumentsManager = ({
   const addDocument = useAddEntityDocument(entityType);
   const deleteDocument = useDeleteEntityDocument(entityType);
   const toggleDeliverable = useToggleDocumentDeliverable(entityType);
+
+  useEffect(() => {
+    if (entityType !== "mission") return;
+    for (const doc of documents) {
+      if (doc.processing_status === "completed" && doc.transcript_page_id && !completedAudioIdsRef.current.has(doc.id)) {
+        completedAudioIdsRef.current.add(doc.id);
+        queryClient.invalidateQueries({ queryKey: ["mission-pages", entityId] });
+        toast.success("Transcription terminée", { description: `Page créée pour ${doc.file_name}` });
+      }
+    }
+  }, [documents, entityType, entityId, queryClient]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -83,10 +98,11 @@ const EntityDocumentsManager = ({
     try {
       for (const file of Array.from(files)) {
         try {
-          const fileUrl = await uploadEntityDocument(file, entityType, entityId);
+          const uploadResult = await uploadEntityDocument(file, entityType, entityId);
+          const fileUrl = uploadResult.file_url;
           const insertedViaEdgeFn = entityType === "mission" || entityType === "training";
           const inserted = insertedViaEdgeFn
-            ? { id: crypto.randomUUID() }
+            ? uploadResult.document
             : await addDocument.mutateAsync({
                 entityId,
                 file_name: file.name,
@@ -162,6 +178,20 @@ const EntityDocumentsManager = ({
     }
   }, [entityType, deleteDocument, entityId]);
 
+  const getProcessingLabel = (doc: typeof documents[number]) => {
+    if (doc.processing_status === "pending") return "Transcription en attente…";
+    if (doc.processing_status === "processing") {
+      const started = doc.processing_started_at ? new Date(doc.processing_started_at).getTime() : Date.now();
+      const elapsed = Math.max(0, Math.round((Date.now() - started) / 1000));
+      const remaining = Math.max(0, (doc.processing_estimated_seconds || 180) - elapsed);
+      const minutes = Math.ceil(remaining / 60);
+      return minutes > 0 ? `Transcription en cours · environ ${minutes} min restantes` : "Finalisation…";
+    }
+    if (doc.processing_status === "completed") return "Transcription terminée · page créée";
+    if (doc.processing_status === "failed") return doc.processing_error || "Transcription échouée";
+    return null;
+  };
+
   const content = (
     <>
       <input
@@ -207,14 +237,31 @@ const EntityDocumentsManager = ({
               className="flex items-center justify-between gap-2 py-2 px-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
+                {(doc.mime_type?.startsWith("audio/") || doc.processing_status !== "none") ? (
+                  <FileAudio className="h-4 w-4 text-primary shrink-0" />
+                ) : (
+                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">{doc.file_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {doc.created_at && format(parseISO(doc.created_at), "d MMM yyyy", { locale: fr })}
                     {doc.created_at && doc.file_size != null && <>{" "}&middot;{" "}</>}
                     {formatFileSize(doc.file_size)}
                   </p>
+                  {getProcessingLabel(doc) && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {doc.processing_status === "failed" ? <AlertCircle className="h-3.5 w-3.5 text-destructive" /> : null}
+                        {doc.processing_status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : null}
+                        {doc.processing_status === "pending" || doc.processing_status === "processing" ? <Spinner size="sm" /> : null}
+                        <span>{getProcessingLabel(doc)}</span>
+                      </div>
+                      {doc.processing_status !== "none" && doc.processing_status !== "failed" && (
+                        <Progress value={doc.processing_progress} className="h-1.5" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
