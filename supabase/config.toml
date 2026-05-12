@@ -449,3 +449,6 @@ verify_jwt = false
 
 [functions.process-event-reminders]
 verify_jwt = false
+
+[functions.process-mission-scheduled-actions]
+verify_jwt = false
