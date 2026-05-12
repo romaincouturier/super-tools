@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Clock, Calendar, FileText, Trash2, Edit2, Receipt, ExternalLink, Download } from "lucide-react";
+import { Plus, Clock, Calendar, FileText, Trash2, Edit2, Receipt, ExternalLink, Download, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,6 +164,29 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     try {
       await deleteActivity.mutateAsync({ id: activity.id, missionId: mission.id });
       toast({ title: "Activité supprimée" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const handleDuplicate = async (activity: MissionActivity) => {
+    try {
+      await createActivity.mutateAsync({
+        mission_id: mission.id,
+        description: activity.description,
+        activity_date: format(new Date(), "yyyy-MM-dd"),
+        duration_type: activity.duration_type,
+        duration: activity.duration,
+        billable_amount: activity.billable_amount,
+        invoice_url: null,
+        invoice_number: null,
+        is_billed: false,
+        notes: activity.notes,
+        google_event_id: null,
+        google_event_link: null,
+        credit_id: activity.credit_id || null,
+      });
+      toast({ title: "Activité dupliquée" });
     } catch (error: unknown) {
       toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }
@@ -423,6 +446,15 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                           <FileText className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Dupliquer cette activité"
+                        onClick={() => handleDuplicate(activity)}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
