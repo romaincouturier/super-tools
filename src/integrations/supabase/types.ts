@@ -3957,6 +3957,7 @@ export type Database = {
           activity_date: string
           billable_amount: number | null
           created_at: string | null
+          credit_id: string | null
           description: string
           duration: number
           duration_type: string
@@ -3974,6 +3975,7 @@ export type Database = {
           activity_date: string
           billable_amount?: number | null
           created_at?: string | null
+          credit_id?: string | null
           description: string
           duration?: number
           duration_type?: string
@@ -3991,6 +3993,7 @@ export type Database = {
           activity_date?: string
           billable_amount?: number | null
           created_at?: string | null
+          credit_id?: string | null
           description?: string
           duration?: number
           duration_type?: string
@@ -4005,6 +4008,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "mission_activities_credit_id_fkey"
+            columns: ["credit_id"]
+            isOneToOne: false
+            referencedRelation: "mission_credits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mission_activities_mission_id_fkey"
             columns: ["mission_id"]
@@ -4063,6 +4073,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "mission_contacts_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_credits: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string | null
+          mission_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          mission_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string | null
+          mission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_credits_mission_id_fkey"
             columns: ["mission_id"]
             isOneToOne: false
             referencedRelation: "missions"

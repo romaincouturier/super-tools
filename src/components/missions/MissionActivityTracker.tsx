@@ -37,11 +37,15 @@ import {
   useCreateMissionActivity,
   useUpdateMissionActivity,
   useDeleteMissionActivity,
+  useMissionCredits,
+  useCreateMissionCredit,
+  useDeleteMissionCredit,
   MissionActivity,
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
 import GenerateInvoiceDialog from "./GenerateInvoiceDialog";
 import ImportGoogleEventsDialog from "./ImportGoogleEventsDialog";
+import { Wallet, X as XIcon } from "lucide-react";
 
 interface MissionActivityTrackerProps {
   mission: Mission;
@@ -51,13 +55,19 @@ interface MissionActivityTrackerProps {
 const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionActivityTrackerProps) => {
   const { toast } = useToast();
   const { data: activities, isLoading } = useMissionActivities(mission.id);
+  const { data: credits } = useMissionCredits(mission.id);
   const createActivity = useCreateMissionActivity();
   const updateActivity = useUpdateMissionActivity();
   const deleteActivity = useDeleteMissionActivity();
+  const createCredit = useCreateMissionCredit();
+  const deleteCredit = useDeleteMissionCredit();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditLabel, setCreditLabel] = useState("");
   const [editingActivity, setEditingActivity] = useState<MissionActivity | null>(null);
   
 
@@ -71,6 +81,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [isBilled, setIsBilled] = useState(false);
   const [notes, setNotes] = useState("");
+  const [creditId, setCreditId] = useState<string>("none");
 
   const resetForm = () => {
     setDescription("");
@@ -82,6 +93,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     setInvoiceNumber("");
     setIsBilled(false);
     setNotes("");
+    setCreditId("none");
     setEditingActivity(null);
   };
 
@@ -101,6 +113,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
     setInvoiceNumber(activity.invoice_number || "");
     setIsBilled(activity.is_billed);
     setNotes(activity.notes || "");
+    setCreditId(activity.credit_id || "none");
     setShowAddDialog(true);
   };
 
@@ -123,6 +136,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       notes: notes.trim() || null,
       google_event_id: editingActivity?.google_event_id || null,
       google_event_link: editingActivity?.google_event_link || null,
+      credit_id: creditId === "none" ? null : creditId,
     };
 
     try {
@@ -174,11 +188,46 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const totalHours = activities?.filter(a => a.duration_type === "hours").reduce((sum, a) => sum + a.duration, 0) || 0;
   const totalDays = activities?.filter(a => a.duration_type === "days").reduce((sum, a) => sum + a.duration, 0) || 0;
   const unbilledCount = activities?.filter(a => !a.is_billed && !a.invoice_number).length || 0;
+  const totalCredits = credits?.reduce((sum, c) => sum + Number(c.amount || 0), 0) || 0;
+  const consumedFromCredits = activities?.reduce((sum, a) => a.credit_id ? sum + (a.billable_amount || 0) : sum, 0) || 0;
+  const remainingCredits = totalCredits - consumedFromCredits;
+  const hasCredits = (credits?.length || 0) > 0;
+
+  const handleAddCredit = async () => {
+    const amt = parseFloat(creditAmount);
+    if (!amt || amt <= 0) {
+      toastError(toast, "Montant invalide");
+      return;
+    }
+    try {
+      await createCredit.mutateAsync({
+        mission_id: mission.id,
+        amount: amt,
+        label: creditLabel.trim() || null,
+      });
+      setCreditAmount("");
+      setCreditLabel("");
+      setShowCreditDialog(false);
+      toast({ title: "Crédit ajouté" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const handleDeleteCredit = async (id: string) => {
+    if (!confirm("Supprimer ce crédit ? Les activités liées resteront mais seront détachées.")) return;
+    try {
+      await deleteCredit.mutateAsync({ id, missionId: mission.id });
+      toast({ title: "Crédit supprimé" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
 
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-2 gap-3 ${hasCredits ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
           <div className="text-xs text-blue-600 font-medium">Budget initial HT</div>
           <div className="text-lg font-bold text-blue-700">
@@ -203,7 +252,45 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
             {remainingToBill.toLocaleString("fr-FR")} €
           </div>
         </div>
+        {hasCredits && (
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <div className="text-xs text-amber-700 font-medium flex items-center gap-1">
+              <Wallet className="h-3 w-3" />
+              Crédit restant
+            </div>
+            <div className="text-lg font-bold text-amber-800">
+              {remainingCredits.toLocaleString("fr-FR")} €
+            </div>
+            <div className="text-[10px] text-amber-600 mt-0.5">
+              sur {totalCredits.toLocaleString("fr-FR")} €
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Credits list */}
+      {hasCredits && (
+        <div className="border rounded-lg p-3 bg-amber-50/30 space-y-1.5">
+          <div className="text-xs font-medium text-amber-900 flex items-center gap-1 mb-1">
+            <Wallet className="h-3.5 w-3.5" />
+            Crédits disponibles
+          </div>
+          {credits!.map((c) => (
+            <div key={c.id} className="flex items-center justify-between text-sm bg-white rounded px-2 py-1 border border-amber-100">
+              <span>
+                {c.label || "Crédit"} — <strong>{Number(c.amount).toLocaleString("fr-FR")} €</strong>
+              </span>
+              <button
+                onClick={() => handleDeleteCredit(c.id)}
+                className="text-muted-foreground hover:text-red-600"
+                title="Supprimer ce crédit"
+              >
+                <XIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Time Summary */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -218,9 +305,13 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       </div>
 
       {/* Activity List Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h4 className="font-medium">Activités ({activities?.length || 0})</h4>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={() => setShowCreditDialog(true)}>
+            <Wallet className="h-4 w-4 mr-1" />
+            Ajouter un crédit
+          </Button>
           {unbilledCount > 0 && (
             <Button size="sm" variant="outline" onClick={() => setShowInvoiceDialog(true)}>
               <Receipt className="h-4 w-4 mr-1" />
@@ -464,6 +555,25 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               <Label htmlFor="is-billed">Facturé</Label>
             </div>
 
+            {hasCredits && (
+              <div>
+                <Label>À déduire d'un crédit ?</Label>
+                <Select value={creditId} onValueChange={setCreditId}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non — ne pas déduire d'un crédit</SelectItem>
+                    {credits!.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.label || "Crédit"} ({Number(c.amount).toLocaleString("fr-FR")} €)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div>
               <Label>Notes</Label>
               <VoiceTextarea
@@ -488,6 +598,45 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                 <Spinner className="mr-2" />
               )}
               {editingActivity ? "Modifier" : "Ajouter"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Credit Dialog */}
+      <Dialog open={showCreditDialog} onOpenChange={setShowCreditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajouter un crédit</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Montant (€) *</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label>Libellé (optionnel)</Label>
+              <Input
+                value={creditLabel}
+                onChange={(e) => setCreditLabel(e.target.value)}
+                placeholder="Ex : Avenant #1, Forfait support…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreditDialog(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleAddCredit} disabled={createCredit.isPending}>
+              {createCredit.isPending && <Spinner className="mr-2" />}
+              Ajouter
             </Button>
           </DialogFooter>
         </DialogContent>

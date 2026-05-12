@@ -8,7 +8,7 @@ import { pickRandomEmoji } from "@/lib/randomEmoji";
 import { bootstrapChecklist } from "@/services/logistics";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import type { Mission, CreateMissionInput, UpdateMissionInput, MissionStatus, MissionContact } from "@/types/missions";
-import type { MissionActivity, MissionPage, MissionPageTemplate } from "@/hooks/useMissions";
+import type { MissionActivity, MissionPage, MissionPageTemplate, MissionCredit } from "@/hooks/useMissions";
 import type { KanbanRepository } from "./repository";
 
 // ── Missions CRUD ────────────────────────────────────────────────────
@@ -263,6 +263,23 @@ export async function updateContact(id: string, missionId: string, updates: Part
 
 export async function deleteContact(id: string): Promise<void> {
   const result = await db().from("mission_contacts").delete().eq("id", id);
+  throwIfError(result);
+}
+
+// ── Credits ──────────────────────────────────────────────────────────
+
+export async function fetchCredits(missionId: string): Promise<MissionCredit[]> {
+  const result = await db().from("mission_credits" as never).select("*").eq("mission_id", missionId).order("created_at", { ascending: true });
+  return (throwIfError(result) || []) as MissionCredit[];
+}
+
+export async function createCredit(input: { mission_id: string; amount: number; label?: string | null }): Promise<MissionCredit> {
+  const result = await db().from("mission_credits" as never).insert(input as never).select().single();
+  return throwIfError(result) as MissionCredit;
+}
+
+export async function deleteCredit(id: string): Promise<void> {
+  const result = await db().from("mission_credits" as never).delete().eq("id", id);
   throwIfError(result);
 }
 
