@@ -179,7 +179,7 @@ function TrendChart({ hitsData, days }: { hitsData: any; days: number }) {
         <Tooltip />
         <Legend />
         <Area type="monotone" dataKey="views" name="Vues" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
-        <Area type="monotone" dataKey="visitors" name="Visiteurs" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.1} strokeWidth={2} />
+        <Area type="monotone" dataKey="visitors" name="Visiteurs" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   );
