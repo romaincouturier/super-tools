@@ -555,6 +555,25 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               <Label htmlFor="is-billed">Facturé</Label>
             </div>
 
+            {hasCredits && (
+              <div>
+                <Label>À déduire d'un crédit ?</Label>
+                <Select value={creditId} onValueChange={setCreditId}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Non — ne pas déduire d'un crédit</SelectItem>
+                    {credits!.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.label || "Crédit"} ({Number(c.amount).toLocaleString("fr-FR")} €)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div>
               <Label>Notes</Label>
               <VoiceTextarea
