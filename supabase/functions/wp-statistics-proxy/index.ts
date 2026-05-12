@@ -14,7 +14,37 @@ const ENDPOINT_MAP: Record<string, string> = {
 const ALLOWED_ENDPOINTS = Object.keys(ENDPOINT_MAP);
 
 // Endpoints that accept rangestartdate/rangeenddate
-const RANGE_ENDPOINTS = new Set(["browsers", "referrers", "pages", "visitors"]);
+// NOTE: "browsers" advertises range params but returns an empty body when they
+// are passed on this WP install — so we omit range and return the global counts.
+const RANGE_ENDPOINTS = new Set(["referrers", "pages", "visitors"]);
+
+// Known search-engine host fragments → display name. Used to derive
+// per-engine visit counts from the global referrers endpoint, since the
+// /search_engines endpoint only returns engine *definitions* (no counts).
+const SEARCH_ENGINE_DOMAINS: Array<{ match: RegExp; name: string }> = [
+  { match: /(^|\.)google\./i, name: "Google" },
+  { match: /(^|\.)bing\.com$/i, name: "Bing" },
+  { match: /(^|\.)yahoo\./i, name: "Yahoo" },
+  { match: /(^|\.)yandex\./i, name: "Yandex" },
+  { match: /(^|\.)duckduckgo\.com$/i, name: "DuckDuckGo" },
+  { match: /(^|\.)ecosia\.org$/i, name: "Ecosia" },
+  { match: /(^|\.)qwant\.com$/i, name: "Qwant" },
+  { match: /(^|\.)brave\.com$/i, name: "Brave Search" },
+  { match: /search\.brave\.com$/i, name: "Brave Search" },
+  { match: /(^|\.)baidu\.com$/i, name: "Baidu" },
+  { match: /(^|\.)lilo\./i, name: "Lilo" },
+  { match: /(^|\.)startpage\.com$/i, name: "Startpage" },
+  { match: /(^|\.)chatgpt\.com$/i, name: "ChatGPT" },
+  { match: /(^|\.)perplexity\.ai$/i, name: "Perplexity" },
+];
+
+function matchSearchEngine(domain: string): string | null {
+  const d = domain.toLowerCase().trim();
+  for (const { match, name } of SEARCH_ENGINE_DOMAINS) {
+    if (match.test(d)) return name;
+  }
+  return null;
+}
 // Endpoints that accept "days" (last N days)
 const DAYS_ENDPOINTS = new Set(["hits"]);
 
