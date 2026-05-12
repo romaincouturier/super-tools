@@ -1,6 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, User } from "lucide-react";
+import { CalendarDays, User, Briefcase } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
