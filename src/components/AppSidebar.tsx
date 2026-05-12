@@ -178,6 +178,15 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             onClick={() => go(m.path)}
           />
         ))}
+        {hasAccess("emails") && (
+          <RailItem
+            icon={MailCheck}
+            label="Emails à valider"
+            active={isActive("/emails-a-valider")}
+            showLabels={showLabels}
+            onClick={() => go("/emails-a-valider")}
+          />
+        )}
       </div>
 
       {/* Bottom section: admin, settings, expand toggle, avatar */}
