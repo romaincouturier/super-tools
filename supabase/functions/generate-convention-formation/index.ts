@@ -291,7 +291,12 @@ serve(async (req: Request): Promise<Response> => {
     const participantPrice = isIndividualConvention && singleParticipant
       ? (singleParticipant as any).sold_price_ht
       : null;
-    const priceHt = participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt;
+    const basePriceHt = participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt;
+    // For intra (and global conventions), add ancillary fees on top of the sold price
+    const ancillaryFees = !isIndividualConvention && (training as any).ancillary_fees_ht
+      ? Number((training as any).ancillary_fees_ht)
+      : 0;
+    const priceHt = Number(basePriceHt) + ancillaryFees;
 
     // Build client name and address
     let clientName = training.client_name;
