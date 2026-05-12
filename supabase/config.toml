@@ -447,6 +447,12 @@ verify_jwt = false
 [functions.upload-admin-document]
 verify_jwt = false
 
+[functions.upload-crm-attachment]
+verify_jwt = false
+
+[functions.upload-support-attachment]
+verify_jwt = false
+
 [functions.process-event-reminders]
 verify_jwt = false
 
