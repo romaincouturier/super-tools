@@ -2,8 +2,9 @@
  * Reusable document manager for any entity (missions, trainings, etc.).
  * Handles upload, download, delete with consistent UI.
  */
-import { useRef, useState, useCallback } from "react";
-import { FileText, Upload, Download, Trash2, Package } from "lucide-react";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { FileText, Upload, Download, Trash2, Package, FileAudio, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -23,6 +24,7 @@ import {
 } from "@/hooks/useEntityDocuments";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
 
 export type EntityDocumentMediaKind = "image" | "video" | "audio" | null;
 
@@ -60,6 +62,8 @@ const EntityDocumentsManager = ({
   onUploadComplete,
 }: EntityDocumentsManagerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const completedAudioIdsRef = useRef<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -68,6 +72,17 @@ const EntityDocumentsManager = ({
   const addDocument = useAddEntityDocument(entityType);
   const deleteDocument = useDeleteEntityDocument(entityType);
   const toggleDeliverable = useToggleDocumentDeliverable(entityType);
+
+  useEffect(() => {
+    if (entityType !== "mission") return;
+    for (const doc of documents) {
+      if (doc.processing_status === "completed" && doc.transcript_page_id && !completedAudioIdsRef.current.has(doc.id)) {
+        completedAudioIdsRef.current.add(doc.id);
+        queryClient.invalidateQueries({ queryKey: ["mission-pages", entityId] });
+        toast.success("Transcription terminée", { description: `Page créée pour ${doc.file_name}` });
+      }
+    }
+  }, [documents, entityType, entityId, queryClient]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -83,10 +98,11 @@ const EntityDocumentsManager = ({
     try {
       for (const file of Array.from(files)) {
         try {
-          const fileUrl = await uploadEntityDocument(file, entityType, entityId);
+          const uploadResult = await uploadEntityDocument(file, entityType, entityId);
+          const fileUrl = uploadResult.file_url;
           const insertedViaEdgeFn = entityType === "mission" || entityType === "training";
           const inserted = insertedViaEdgeFn
-            ? { id: crypto.randomUUID() }
+            ? uploadResult.document
             : await addDocument.mutateAsync({
                 entityId,
                 file_name: file.name,
