@@ -86,8 +86,8 @@ async function generateTitle(transcript: string, fileName: string): Promise<stri
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Tu génères des titres courts et descriptifs en français, sans guillemets ni ponctuation finale." },
-          { role: "user", content: `Génère un titre de 5 à 10 mots pour cette transcription.\n\n${transcript.slice(0, 4000)}` },
+          { role: "system", content: "You generate short, descriptive titles. Reply ONLY with the title, in the SAME LANGUAGE as the transcript provided. No quotes, no trailing punctuation." },
+          { role: "user", content: `Generate a 5–10 word title for this transcript. Use the transcript's own language.\n\n${transcript.slice(0, 4000)}` },
         ],
       }),
     });
@@ -114,7 +114,9 @@ async function submitAssemblyJob(apiKey: string, audioUrl: string): Promise<stri
     },
     body: JSON.stringify({
       audio_url: audioUrl,
-      language_code: "fr",
+      // Auto-detect spoken language instead of forcing French.
+      language_detection: true,
+      language_confidence_threshold: 0.5,
       punctuate: true,
       format_text: true,
       speaker_labels: true,
