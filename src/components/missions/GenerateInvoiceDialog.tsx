@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { Receipt, Upload, Check, ExternalLink } from "lucide-react";
+import { fr } from "date-fns/locale";
+import { Receipt, Upload, Check, ExternalLink, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { resolveContentType } from "@/lib/file-utils";
