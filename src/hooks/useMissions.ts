@@ -295,3 +295,37 @@ export const useDeleteMissionContact = () => {
     onSuccess: (data) => qc.invalidateQueries({ queryKey: [MISSION_CONTACTS_QUERY_KEY, data.missionId] }),
   });
 };
+
+// ── Credit hooks ─────────────────────────────────────────────────────
+
+const MISSION_CREDITS_QUERY_KEY = "mission-credits";
+
+export const useMissionCredits = (missionId: string | null) =>
+  useQuery({
+    queryKey: [MISSION_CREDITS_QUERY_KEY, missionId],
+    queryFn: () => missionService.fetchCredits(missionId!),
+    enabled: !!missionId,
+  });
+
+export const useCreateMissionCredit = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { mission_id: string; amount: number; label?: string | null }) =>
+      missionService.createCredit(input),
+    onSuccess: (data) => qc.invalidateQueries({ queryKey: [MISSION_CREDITS_QUERY_KEY, data.mission_id] }),
+  });
+};
+
+export const useDeleteMissionCredit = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, missionId }: { id: string; missionId: string }) => {
+      await missionService.deleteCredit(id);
+      return { missionId };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: [MISSION_CREDITS_QUERY_KEY, data.missionId] });
+      qc.invalidateQueries({ queryKey: [MISSION_ACTIVITIES_QUERY_KEY, data.missionId] });
+    },
+  });
+};
