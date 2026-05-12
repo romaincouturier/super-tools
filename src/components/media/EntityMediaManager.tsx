@@ -7,6 +7,7 @@ import {
   useToggleMediaDeliverable,
   useRenameMedia,
   useUpdateMediaTranscript,
+  useUploadEventMedia,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
@@ -50,6 +51,7 @@ const EntityMediaManager = ({
   const toggleDeliverable = useToggleMediaDeliverable();
   const renameMedia = useRenameMedia();
   const updateTranscript = useUpdateMediaTranscript();
+  const uploadEventMedia = useUploadEventMedia();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -110,18 +112,18 @@ const EntityMediaManager = ({
             continue;
           }
 
-          const fileUrl = await uploadMediaFile(file, sourceType, sourceId);
-
-          const result = await addMedia.mutateAsync({
-            file_url: fileUrl,
-            file_name: file.name,
-            file_type: fileType,
-            mime_type: resolveContentType(file),
-            file_size: file.size,
-            position: 0,
-            source_type: sourceType,
-            source_id: sourceId,
-          });
+          const result = sourceType === "event"
+            ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId })
+            : await addMedia.mutateAsync({
+                file_url: await uploadMediaFile(file, sourceType, sourceId),
+                file_name: file.name,
+                file_type: fileType,
+                mime_type: resolveContentType(file),
+                file_size: file.size,
+                position: 0,
+                source_type: sourceType,
+                source_id: sourceId,
+              });
 
           successCount++;
 
@@ -164,7 +166,7 @@ const EntityMediaManager = ({
     } finally {
       setUploading(false);
     }
-  }, [sourceType, sourceId, addMedia, queryClient]);
+  }, [sourceType, sourceId, addMedia, uploadEventMedia, queryClient]);
 
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));
