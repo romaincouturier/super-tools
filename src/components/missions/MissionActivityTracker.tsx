@@ -188,11 +188,46 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const totalHours = activities?.filter(a => a.duration_type === "hours").reduce((sum, a) => sum + a.duration, 0) || 0;
   const totalDays = activities?.filter(a => a.duration_type === "days").reduce((sum, a) => sum + a.duration, 0) || 0;
   const unbilledCount = activities?.filter(a => !a.is_billed && !a.invoice_number).length || 0;
+  const totalCredits = credits?.reduce((sum, c) => sum + Number(c.amount || 0), 0) || 0;
+  const consumedFromCredits = activities?.reduce((sum, a) => a.credit_id ? sum + (a.billable_amount || 0) : sum, 0) || 0;
+  const remainingCredits = totalCredits - consumedFromCredits;
+  const hasCredits = (credits?.length || 0) > 0;
+
+  const handleAddCredit = async () => {
+    const amt = parseFloat(creditAmount);
+    if (!amt || amt <= 0) {
+      toastError(toast, "Montant invalide");
+      return;
+    }
+    try {
+      await createCredit.mutateAsync({
+        mission_id: mission.id,
+        amount: amt,
+        label: creditLabel.trim() || null,
+      });
+      setCreditAmount("");
+      setCreditLabel("");
+      setShowCreditDialog(false);
+      toast({ title: "Crédit ajouté" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
+
+  const handleDeleteCredit = async (id: string) => {
+    if (!confirm("Supprimer ce crédit ? Les activités liées resteront mais seront détachées.")) return;
+    try {
+      await deleteCredit.mutateAsync({ id, missionId: mission.id });
+      toast({ title: "Crédit supprimé" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
 
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-2 gap-3 ${hasCredits ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
           <div className="text-xs text-blue-600 font-medium">Budget initial HT</div>
           <div className="text-lg font-bold text-blue-700">
@@ -217,7 +252,45 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
             {remainingToBill.toLocaleString("fr-FR")} €
           </div>
         </div>
+        {hasCredits && (
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <div className="text-xs text-amber-700 font-medium flex items-center gap-1">
+              <Wallet className="h-3 w-3" />
+              Crédit restant
+            </div>
+            <div className="text-lg font-bold text-amber-800">
+              {remainingCredits.toLocaleString("fr-FR")} €
+            </div>
+            <div className="text-[10px] text-amber-600 mt-0.5">
+              sur {totalCredits.toLocaleString("fr-FR")} €
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Credits list */}
+      {hasCredits && (
+        <div className="border rounded-lg p-3 bg-amber-50/30 space-y-1.5">
+          <div className="text-xs font-medium text-amber-900 flex items-center gap-1 mb-1">
+            <Wallet className="h-3.5 w-3.5" />
+            Crédits disponibles
+          </div>
+          {credits!.map((c) => (
+            <div key={c.id} className="flex items-center justify-between text-sm bg-white rounded px-2 py-1 border border-amber-100">
+              <span>
+                {c.label || "Crédit"} — <strong>{Number(c.amount).toLocaleString("fr-FR")} €</strong>
+              </span>
+              <button
+                onClick={() => handleDeleteCredit(c.id)}
+                className="text-muted-foreground hover:text-red-600"
+                title="Supprimer ce crédit"
+              >
+                <XIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Time Summary */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -232,9 +305,13 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
       </div>
 
       {/* Activity List Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h4 className="font-medium">Activités ({activities?.length || 0})</h4>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={() => setShowCreditDialog(true)}>
+            <Wallet className="h-4 w-4 mr-1" />
+            Ajouter un crédit
+          </Button>
           {unbilledCount > 0 && (
             <Button size="sm" variant="outline" onClick={() => setShowInvoiceDialog(true)}>
               <Receipt className="h-4 w-4 mr-1" />
