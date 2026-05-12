@@ -4,6 +4,13 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const BUCKET = "admin-archives";
 
+type AnalysisPayload = {
+  documentId: string;
+  filePath: string;
+  mimeType: string;
+  fileName: string;
+};
+
 function sanitizeFileName(name: string): string {
   return name
     .normalize("NFD")
@@ -34,6 +41,33 @@ function resolveContentType(file: File): string {
     csv: "text/csv",
   };
   return map[ext] || "application/octet-stream";
+}
+
+async function triggerAnalysisInBackground(
+  admin: ReturnType<typeof createClient>,
+  payload: AnalysisPayload,
+  supabaseUrl: string,
+  serviceKey: string,
+) {
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/analyze-admin-document`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      throw new Error(`Analysis failed with ${response.status}: ${details}`);
+    }
+  } catch (error) {
+    console.error("[upload-admin-document] analysis trigger failed", error);
+    await admin.from("admin_documents").update({ analysis_status: "failed" }).eq("id", payload.documentId);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -96,6 +130,20 @@ Deno.serve(async (req) => {
       await admin.storage.from(BUCKET).remove([path]);
       return createErrorResponse(insertError.message || "Erreur d'enregistrement", 500);
     }
+
+    const analysisJob = triggerAnalysisInBackground(
+      admin,
+      {
+        documentId: document.id,
+        filePath: path,
+        mimeType: contentType,
+        fileName: file.name || sanitizedName,
+      },
+      supabaseUrl,
+      serviceKey,
+    );
+    const edgeRuntime = (globalThis as typeof globalThis & { EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void } }).EdgeRuntime;
+    edgeRuntime?.waitUntil(analysisJob);
 
     return createJsonResponse({ document, filePath: path, mimeType: contentType, fileName: file.name || sanitizedName });
   } catch (error) {
