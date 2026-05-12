@@ -301,6 +301,11 @@ export function useFormationForm() {
           : soldPriceHt
             ? Math.round(parseFloat(soldPriceHt) * 100) / 100
             : null;
+        base.ancillary_fees_ht = isPermanent
+          ? null
+          : ancillaryFeesHt
+            ? Math.round(parseFloat(ancillaryFeesHt) * 100) / 100
+            : null;
         base.max_participants = isPermanent ? 0 : (maxParticipants ? parseInt(maxParticipants, 10) : 0);
         base.evaluation_link = "";
         base.sponsor_first_name = isInter ? null : (sponsorFirstName || null);
