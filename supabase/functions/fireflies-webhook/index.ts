@@ -43,14 +43,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data: settingsRows } = await (admin as any)
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["fireflies_webhook_secret", "slack_crm_channel"]);
+      .in("setting_key", ["fireflies_webhook_secret", "slack_content_channel"]);
 
     const get = (k: string) =>
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
     const storedSecret = get("fireflies_webhook_secret");
-    const slackChannel = get("slack_crm_channel") || "general";
+    const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     // ── Verify signing secret ────────────────────────────────────
     if (storedSecret) {
