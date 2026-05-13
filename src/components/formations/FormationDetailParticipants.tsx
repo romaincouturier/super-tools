@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Megaphone } from "lucide-react";
+import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Megaphone, MailQuestion } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
