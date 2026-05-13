@@ -42,11 +42,20 @@ function formatDuration(seconds: number | null): string {
 }
 
 function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) {
+  const displayTitle = t.ai_title || t.title || "Sans titre";
+  const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <CardContent className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-medium text-sm leading-snug line-clamp-2">{t.title || "Sans titre"}</p>
+          <div className="min-w-0">
+            <p className="font-medium text-sm leading-snug line-clamp-2">{displayTitle}</p>
+            {showFilename && (
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.title ?? ""}>
+                📄 {t.title}
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-1 shrink-0">
             <Badge variant={t.source === "fireflies" ? "secondary" : "outline"} className="text-xs">
               {SOURCE_LABELS[t.source]}
