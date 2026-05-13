@@ -10,7 +10,7 @@ const DEFAULT_TWEAKS: TweakValues = {
   contentWidth: 768,
   h1Size: 40,
   blockRadius: 20,
-  density: "normal",
+  density: "spacious",
   showArc: true,
 };
 

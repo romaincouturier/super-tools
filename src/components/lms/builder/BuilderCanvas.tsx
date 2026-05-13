@@ -29,12 +29,12 @@ import BlockTreeNodeView, { dropzoneId, parseDropzoneId } from "@/components/lms
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import BuilderBlockWrapper from "./BuilderBlockWrapper";
-import BuilderInsertMenu, { InsertButton } from "./BuilderInsertMenu";
+import BuilderInsertMenu from "./BuilderInsertMenu";
 import type { TweakValues } from "./BuilderTweaksPanel";
 import { Clock, BookOpen, Pencil } from "lucide-react";
 
-// Arc Tilt SVG watermark
-function TiltArc() {
+// Arc Tilt SVG watermarks
+function TiltArcTopRight() {
   return (
     <svg
       className="absolute top-0 right-0 pointer-events-none select-none"
@@ -47,6 +47,23 @@ function TiltArc() {
     >
       <circle cx="220" cy="0" r="160" stroke="#101820" strokeWidth="28" fill="none" />
       <circle cx="220" cy="0" r="110" stroke="#FFD100" strokeWidth="8" fill="none" />
+    </svg>
+  );
+}
+
+function TiltArcBottomLeft() {
+  return (
+    <svg
+      className="absolute bottom-0 left-0 pointer-events-none select-none"
+      width="180"
+      height="180"
+      viewBox="0 0 180 180"
+      fill="none"
+      aria-hidden="true"
+      style={{ opacity: 0.04 }}
+    >
+      <circle cx="0" cy="180" r="130" stroke="#101820" strokeWidth="22" fill="none" />
+      <circle cx="0" cy="180" r="85" stroke="#FFD100" strokeWidth="7" fill="none" />
     </svg>
   );
 }
@@ -228,12 +245,13 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
       className="relative min-h-full overflow-hidden"
       style={{ background: "var(--st-white)" }}
     >
-      {/* Arc Tilt watermark */}
-      {tweaks.showArc && <TiltArc />}
+      {/* Arc Tilt watermarks */}
+      {tweaks.showArc && <TiltArcTopRight />}
+      {tweaks.showArc && <TiltArcBottomLeft />}
 
       <div
-        className="mx-auto px-6 py-10"
-        style={{ maxWidth: contentWidth, position: "relative" }}
+        className="mx-auto"
+        style={{ maxWidth: contentWidth, position: "relative", padding: "4rem 2rem" }}
       >
         {/* Metadata chips */}
         <div className="flex flex-wrap items-center gap-2 mb-8">
@@ -301,14 +319,55 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       onDelete={handleDelete}
                       onDuplicate={handleDuplicate}
                       onAddChild={(parentId, type) => handleAdd(type, parentId)}
+                      slim
                     />
                   </BuilderBlockWrapper>
                 ))}
               </SortableContext>
             </RootDropzone>
           </DndContext>
+          {/* Add block at end */}
+          <AddAtEndButton onInsert={(type) => handleAdd(type, null)} />
         )}
       </div>
+    </div>
+  );
+}
+
+function AddAtEndButton({ onInsert }: { onInsert: (type: LessonBlockType) => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <div className="relative flex justify-center mt-6">
+      <button
+        ref={btnRef}
+        onClick={() => setMenuOpen((v) => !v)}
+        className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all hover:-translate-y-px border-2 border-dashed"
+        style={{
+          borderColor: "rgba(16,24,32,0.18)",
+          color: "var(--st-ink-muted)",
+          background: "transparent",
+          fontFamily: "inherit",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.borderColor = "var(--st-yellow)";
+          (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.borderColor = "rgba(16,24,32,0.18)";
+          (e.currentTarget as HTMLElement).style.color = "var(--st-ink-muted)";
+        }}
+      >
+        + Ajouter un bloc
+      </button>
+      {menuOpen && (
+        <BuilderInsertMenu
+          anchorRef={btnRef as React.RefObject<HTMLElement>}
+          onInsert={onInsert}
+          onClose={() => setMenuOpen(false)}
+        />
+      )}
     </div>
   );
 }

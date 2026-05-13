@@ -40,7 +40,7 @@ export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props)
 
   return (
     <header
-      className="sticky top-0 z-30 flex items-center gap-3 px-4 h-14 border-b"
+      className="sticky top-0 z-30 flex items-center gap-3 px-4 h-16 border-b"
       style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}
     >
       {/* Hamburger (mobile) */}
@@ -62,14 +62,20 @@ export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props)
         Retour
       </button>
 
+      {/* Divider */}
+      <div
+        className="hidden lg:block w-px self-stretch my-3 shrink-0"
+        style={{ background: "rgba(16,24,32,0.1)" }}
+      />
+
       {/* Title — centred */}
       <div className="flex-1 flex justify-center min-w-0 px-2">
         <input
           ref={inputRef}
           value={title}
           onChange={handleTitleChange}
-          className="w-full max-w-md text-center text-sm font-semibold bg-transparent border-none outline-none truncate"
-          style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+          className="w-full max-w-md text-center bg-transparent border-none outline-none truncate"
+          style={{ color: "var(--st-ink)", fontFamily: "inherit", fontSize: "1.25rem", fontWeight: 600 }}
           aria-label="Titre de la leçon"
         />
       </div>

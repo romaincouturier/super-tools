@@ -37,9 +37,11 @@ export default function BuilderBlockWrapper({
     <div
       className="relative group"
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-        // Keep menu open if user moves into it
+      onMouseLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setHovered(false);
+          if (!insertOpen) setInsertOpen(false);
+        }
       }}
     >
       {/* Block content */}

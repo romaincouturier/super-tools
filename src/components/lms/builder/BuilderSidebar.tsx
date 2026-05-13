@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, FileText, CheckCircle2, Circle } from "lucide-react";
+import { ChevronDown, ChevronRight, CheckCircle2, Circle, User } from "lucide-react";
 import { useCourseModules, useModuleLessons, LmsModule, LmsLesson } from "@/hooks/useLms";
 
 interface Props {
@@ -14,12 +14,34 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
 
   return (
     <aside
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex flex-col h-full overflow-hidden"
       style={{ background: "var(--st-surface)", fontFamily: "inherit" }}
     >
-      {/* Course title */}
+      {/* Brand section */}
       <div
-        className="px-5 py-4 border-b"
+        className="px-5 py-4 border-b flex items-center gap-3 shrink-0"
+        style={{ borderColor: "rgba(16,24,32,0.08)" }}
+      >
+        {/* ST logo mark */}
+        <div
+          className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0 font-bold text-sm select-none"
+          style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit" }}
+        >
+          ST
+        </div>
+        <div>
+          <p className="text-sm font-bold leading-none" style={{ color: "var(--st-ink)" }}>
+            SuperTilt
+          </p>
+          <p className="text-xs leading-none mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+            Builder
+          </p>
+        </div>
+      </div>
+
+      {/* Course info */}
+      <div
+        className="px-5 py-3 border-b shrink-0"
         style={{ borderColor: "rgba(16,24,32,0.08)" }}
       >
         <p
@@ -36,8 +58,18 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
         </p>
       </div>
 
+      {/* Section header */}
+      <div className="px-5 pt-4 pb-1 shrink-0">
+        <p
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: "var(--st-ink-muted)" }}
+        >
+          Structure du cours
+        </p>
+      </div>
+
       {/* Modules list */}
-      <nav className="flex-1 py-3">
+      <nav className="flex-1 overflow-y-auto py-1">
         {modules.map((mod, index) => (
           <ModuleItem
             key={mod.id}
@@ -48,6 +80,22 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
           />
         ))}
       </nav>
+
+      {/* User footer */}
+      <div
+        className="px-5 py-3 border-t flex items-center gap-2.5 shrink-0"
+        style={{ borderColor: "rgba(16,24,32,0.08)" }}
+      >
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: "rgba(16,24,32,0.1)" }}
+        >
+          <User size={14} style={{ color: "var(--st-ink-muted)" }} />
+        </div>
+        <p className="text-xs font-medium truncate" style={{ color: "var(--st-ink-muted)" }}>
+          Auteur
+        </p>
+      </div>
     </aside>
   );
 }

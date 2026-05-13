@@ -37,6 +37,8 @@ export interface BlockTreeNodeProps {
   onDelete: (blockId: string) => void;
   onDuplicate: (blockId: string) => void;
   onAddChild: (parentBlockId: string, type: LessonBlockType) => void;
+  /** Suppress the BlockEditCard action toolbar — used by the SuperTilt Builder. */
+  slim?: boolean;
 }
 
 /**
@@ -67,6 +69,7 @@ export default function BlockTreeNodeView(props: BlockTreeNodeProps) {
         onDelete={() => props.onDelete(node.block.id)}
         onDuplicate={() => props.onDuplicate(node.block.id)}
         dragHandleProps={{ ...attributes, ...listeners }}
+        slim={props.slim}
       />
       {acceptsChildren(node.block.type) && (
         <ChildrenZone
@@ -132,6 +135,7 @@ function ChildrenZone(props: ChildrenZoneProps) {
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
               onAddChild={props.onAddChild}
+              slim={props.slim}
             />
           ))}
           {isEmpty && (
