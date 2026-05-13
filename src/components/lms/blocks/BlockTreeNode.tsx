@@ -79,8 +79,7 @@ export default function BlockTreeNodeView(props: BlockTreeNodeProps) {
           isRow={node.block.type === "row"}
           {...props}
         />
-      )}
-    </div>
+      )}    </div>
   );
 }
 
@@ -98,7 +97,7 @@ const ROW_GRID_CLASS: Record<1 | 2 | 3, string> = {
 };
 
 function ChildrenZone(props: ChildrenZoneProps) {
-  const { parentBlockId, children, rowContent, isRow } = props;
+  const { parentBlockId, children, rowContent, isRow, slim } = props;
   const childIds = children.map((c) => c.block.id);
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: dropzoneId(parentBlockId),
@@ -109,6 +108,29 @@ function ChildrenZone(props: ChildrenZoneProps) {
   const layoutClass = isRow
     ? cn("grid gap-3", ROW_GRID_CLASS[(rowContent?.column_count ?? 1) as 1 | 2 | 3])
     : "space-y-3";
+
+  // In builder (slim) mode: no tree chrome, no add buttons
+  if (slim) {
+    return (
+      <div className={cn("mt-2", layoutClass)}>
+        {children.map((child) => (
+          <BlockTreeNodeView
+            key={child.block.id}
+            node={child}
+            parentId={parentBlockId}
+            lessonId={props.lessonId}
+            courseId={props.courseId}
+            onUpdateContent={props.onUpdateContent}
+            onToggleHidden={props.onToggleHidden}
+            onDelete={props.onDelete}
+            onDuplicate={props.onDuplicate}
+            onAddChild={props.onAddChild}
+            slim
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -135,7 +157,6 @@ function ChildrenZone(props: ChildrenZoneProps) {
               onDelete={props.onDelete}
               onDuplicate={props.onDuplicate}
               onAddChild={props.onAddChild}
-              slim={props.slim}
             />
           ))}
           {isEmpty && (
