@@ -6558,6 +6558,7 @@ export type Database = {
           created_at: string
           drive_file_id: string
           id: string
+          metadata: Json
           published_at: string | null
           raw_transcript: string | null
           reviewer_notes: string | null
@@ -6571,6 +6572,7 @@ export type Database = {
           created_at?: string
           drive_file_id: string
           id?: string
+          metadata?: Json
           published_at?: string | null
           raw_transcript?: string | null
           reviewer_notes?: string | null
@@ -6584,6 +6586,7 @@ export type Database = {
           created_at?: string
           drive_file_id?: string
           id?: string
+          metadata?: Json
           published_at?: string | null
           raw_transcript?: string | null
           reviewer_notes?: string | null

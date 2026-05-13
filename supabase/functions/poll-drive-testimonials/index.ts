@@ -141,37 +141,51 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const toProcess = files.filter((f) => !existingIds.includes(f.id)).slice(0, 5);
 
-    for (const file of toProcess) {
-      try {
-        const { data: inserted } = await (admin as any)
-          .from("testimonials")
-          .insert({ drive_file_id: file.id, status: "pending_review", metadata: { assemblyai_id: null } })
-          .select("id")
-          .single();
+    const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void } })
+      .EdgeRuntime?.waitUntil;
 
-        if (!inserted) continue;
+    // Process SERIALLY to keep memory usage predictable when several large files land at once.
+    const processSerially = async () => {
+      for (const file of toProcess) {
+        try {
+          const { data: inserted, error: insertErr } = await (admin as any)
+            .from("testimonials")
+            .insert({ drive_file_id: file.id, status: "pending_review", metadata: { assemblyai_id: null } })
+            .select("id")
+            .single();
 
-        const bytes = await downloadDriveFileBytes(file.id, accessToken);
-        const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
-        const jobId = await submitAssemblyAIJob(
-          uploadUrl,
-          ASSEMBLYAI_API_KEY,
-          ASSEMBLYAI_WEBHOOK_SECRET
-            ? {
-                url: ASSEMBLYAI_WEBHOOK_URL,
-                authHeaderName: "x-webhook-secret",
-                authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
-              }
-            : undefined,
-        );
+          if (insertErr) {
+            console.error(`[poll-drive-testimonials] insert failed for ${file.name}:`, insertErr);
+            results.errors++;
+            continue;
+          }
+          if (!inserted) continue;
 
-        await (admin as any).from("testimonials").update({ metadata: { assemblyai_id: jobId } }).eq("id", inserted.id);
-        results.submitted++;
-      } catch (err) {
-        console.error(`Failed to process testimonial ${file.name}:`, err);
-        results.errors++;
+          const bytes = await downloadDriveFileBytes(file.id, accessToken);
+          const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
+          const jobId = await submitAssemblyAIJob(
+            uploadUrl,
+            ASSEMBLYAI_API_KEY,
+            ASSEMBLYAI_WEBHOOK_SECRET
+              ? {
+                  url: ASSEMBLYAI_WEBHOOK_URL,
+                  authHeaderName: "x-webhook-secret",
+                  authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
+                }
+              : undefined,
+          );
+
+          await (admin as any).from("testimonials").update({ metadata: { assemblyai_id: jobId } }).eq("id", inserted.id);
+          results.submitted++;
+        } catch (err) {
+          console.error(`Failed to process testimonial ${file.name}:`, err);
+          results.errors++;
+        }
       }
-    }
+    };
+
+    if (waitUntil) waitUntil(processSerially());
+    else await processSerially();
 
     await (admin as any).from("polling_cursors").update({
       last_synced_at: new Date().toISOString(),
