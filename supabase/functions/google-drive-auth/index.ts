@@ -13,6 +13,14 @@ const SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/drive.readonly",
 ].join(" ");
+const REQUIRED_SCOPES = SCOPES.split(" ");
+
+async function getGrantedScopes(accessToken: string): Promise<string[]> {
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return String(data.scope ?? "").split(" ").filter(Boolean);
+}
 
 serve(async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -189,12 +197,19 @@ serve(async (req: Request): Promise<Response> => {
 
       const { data: tokenData } = await supabase
         .from("google_drive_tokens")
-        .select("id, token_expires_at")
+        .select("id, access_token, token_expires_at")
         .eq("user_id", userData.user.id)
         .single();
 
+      const grantedScopes = tokenData?.access_token
+        ? await getGrantedScopes(tokenData.access_token)
+        : [];
+      const missingScopes = REQUIRED_SCOPES.filter((scope) => !grantedScopes.includes(scope));
+
       return new Response(JSON.stringify({ 
-        connected: !!tokenData,
+        connected: !!tokenData && missingScopes.length === 0,
+        needsReconnect: !!tokenData && missingScopes.length > 0,
+        missingScopes,
         expiresAt: tokenData?.token_expires_at 
       }), {
         status: 200,
