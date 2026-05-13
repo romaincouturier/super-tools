@@ -274,3 +274,65 @@ All colors MUST be HSL.
   outline-offset: 2px;
 }
 
+
+/* ── SuperTilt Builder design tokens ── */
+:root {
+  --st-yellow: #FFD100;
+  --st-yellow-soft: rgba(255, 209, 0, 0.22);
+  --st-yellow-border: rgba(255, 209, 0, 0.6);
+  --st-ink: #101820;
+  --st-ink-muted: rgba(16, 24, 32, 0.55);
+  --st-ink-soft: rgba(16, 24, 32, 0.06);
+  --st-ink-06: rgba(16, 24, 32, 0.06);
+  --st-ink-08: rgba(16, 24, 32, 0.08);
+  --st-ink-12: rgba(16, 24, 32, 0.12);
+  --st-ink-50: rgba(16, 24, 32, 0.50);
+  --st-ink-60: rgba(16, 24, 32, 0.60);
+  --st-surface: #F2F4F4;
+  --st-white: #FFFFFF;
+  --st-radius-block: 20px;
+  --st-radius-pill: 999px;
+  --st-shadow-block: 0 2px 12px rgba(16, 24, 32, 0.07);
+  --st-content-width: 768px;
+}
+
+/* Builder layout — scoped to the .builder-layout wrapper */
+.builder-layout {
+  font-family: 'Lexend', ui-sans-serif, system-ui, sans-serif;
+}
+
+.builder-layout input,
+.builder-layout textarea,
+.builder-layout button,
+.builder-layout select {
+  font-family: inherit;
+}
+
+/* ProseMirror inside the builder */
+.builder-layout .ProseMirror {
+  font-family: 'Lexend', ui-sans-serif, system-ui, sans-serif;
+  color: var(--st-ink);
+  outline: none;
+  line-height: 1.7;
+}
+
+.builder-layout .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--st-ink-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+.builder-layout .ProseMirror a {
+  color: var(--st-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.builder-layout .ProseMirror mark {
+  background: var(--st-yellow);
+  color: var(--st-ink);
+  border-radius: 2px;
+  padding: 0 2px;
+}

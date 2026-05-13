@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,7 @@ function VariantEditor({
   const [selectedColumn, setSelectedColumn] = useState<string>("");
   const newsletters = useNewslettersDraft();
   const columns = useContentColumns();
+  const [, copyToClipboard] = useCopyToClipboard();
 
   const defaultColumn = useMemo(
     () => columns.data?.find((c) => /id[ée]e/i.test(c.name))?.id ?? columns.data?.[0]?.id ?? "",
@@ -176,7 +178,7 @@ function VariantEditor({
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
-        <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(variant.content); toast.success("Copié"); }}>
+        <Button size="sm" variant="outline" onClick={() => { copyToClipboard(variant.content); toast.success("Copié"); }}>
           <Copy className="h-3.5 w-3.5 mr-1" />Copier
         </Button>
       </div>

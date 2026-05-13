@@ -69,6 +69,7 @@ export default {
       },
       fontFamily: {
         serif: ['"Fraunces"', '"Playfair Display"', "Georgia", "serif"],
+        lexend: ["Lexend", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -20,14 +19,12 @@ import {
   LmsModule, LmsLesson,
 } from "@/hooks/useLms";
 import {
-  Plus, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
+  Plus, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
   FileText, Trash2, Save,
-  Eye, Users, Settings, BookOpen, Pencil, ExternalLink, BarChart3,
+  Eye, Users, Settings, BookOpen, ExternalLink, BarChart3,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
-import LmsLessonEditor from "@/components/lms/LessonEditor";
-import LmsQuizBuilder from "@/components/lms/QuizBuilder";
 import LmsAnalyticsTab from "@/components/lms/AnalyticsTab";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
@@ -42,8 +39,8 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
   const updateModule = useUpdateModule();
   const deleteModule = useDeleteModule();
   const reorderLessons = useReorderLessons();
-  const [selectedLesson, setSelectedLesson] = useState<LmsLesson | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleAddLesson = async () => {
     await createLesson.mutateAsync({
@@ -127,7 +124,7 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
               <div
                 key={lesson.id}
                 className="flex items-center gap-2 px-3 py-2 rounded-md border bg-background hover:bg-accent/50 cursor-pointer transition-colors"
-                onClick={() => setSelectedLesson(lesson)}
+                onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
               >
                 <div className="flex flex-col" onClick={(e) => e.stopPropagation()}>
                   <Button variant="ghost" size="icon" className="h-4 w-4" disabled={index === 0} onClick={() => moveLessonUp(index)}>
@@ -168,24 +165,6 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
         </CollapsibleContent>
       </Collapsible>
 
-      {/* Lesson Editor Dialog */}
-      {selectedLesson && (
-        <Dialog open={!!selectedLesson} onOpenChange={() => setSelectedLesson(null)}>
-          <DialogContent className="w-full sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Pencil className="w-4 h-4" />
-                {selectedLesson.title}
-              </DialogTitle>
-            </DialogHeader>
-            {selectedLesson.lesson_type === "quiz" ? (
-              <LmsQuizBuilder lesson={selectedLesson} courseId={courseId} />
-            ) : (
-              <LmsLessonEditor lesson={selectedLesson} courseId={courseId} />
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
     </Card>
   );
 }

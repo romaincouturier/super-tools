@@ -1,0 +1,286 @@
+import { useRef, useState, useEffect } from "react";
+import { Search, Plus } from "lucide-react";
+import { LAYOUT_BLOCKS, CONTENT_BLOCKS } from "@/components/lms/blocks/registry";
+import type { LessonBlockType } from "@/types/lms-blocks";
+
+// Description and shortcut hints per block type (matching design catalog)
+const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }>> = {
+  text:            { desc: "Paragraphe, titres, listes", kbd: "/ texte" },
+  key_points:      { desc: "Points clés en surbrillance", kbd: "/ retenir" },
+  callout:         { desc: "Mise en avant d'une phrase", kbd: "/ encadré" },
+  image:           { desc: "Illustration, schéma", kbd: "/ image" },
+  video:           { desc: "Lien ou fichier vidéo", kbd: "/ vidéo" },
+  file:            { desc: "PDF, document à télécharger", kbd: "/ fichier" },
+  quiz:            { desc: "Question à choix multiple", kbd: "/ quiz" },
+  checklist:       { desc: "Liste avec cases à cocher", kbd: "/ liste" },
+  bullet_list:     { desc: "Énumération simple", kbd: "/ puces" },
+  button:          { desc: "Lien ou action cliquable", kbd: "/ bouton" },
+  exercise:        { desc: "Exercice pratique guidé", kbd: "/ exercice" },
+  self_assessment: { desc: "Auto-évaluation apprenant", kbd: "/ éval" },
+  work_deposit:    { desc: "Dépôt de travail", kbd: "/ dépôt" },
+  assignment:      { desc: "Devoir à rendre", kbd: "/ devoir" },
+  table:           { desc: "Tableau structuré", kbd: "/ tableau" },
+  section:         { desc: "Conteneur pleine largeur", kbd: "/ section" },
+  row:             { desc: "Colonnes côte à côte", kbd: "/ colonnes" },
+  divider:         { desc: "Trait fin entre sections", kbd: "/ ---" },
+  spacer:          { desc: "Espace vertical", kbd: "/ espace" },
+  container:       { desc: "Conteneur générique" },
+};
+
+const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
+  "text", "key_points", "callout", "image", "video", "file",
+  "quiz", "checklist", "bullet_list", "button", "exercise",
+  "self_assessment", "work_deposit", "assignment", "table",
+];
+
+const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [
+  "section", "row", "divider", "spacer", "container",
+];
+
+interface Props {
+  onInsert: (type: LessonBlockType) => void;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLElement>;
+}
+
+export default function BuilderInsertMenu({ onInsert, onClose, anchorRef }: Props) {
+  const [search, setSearch] = useState("");
+  const menuRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        !anchorRef.current?.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose, anchorRef]);
+
+  const q = search.toLowerCase();
+
+  const filteredContent = CONTENT_BLOCKS.filter(
+    (b) => !q || b.label.toLowerCase().includes(q) || BLOCK_META[b.type]?.desc?.toLowerCase().includes(q)
+  ).map((b) => ({ ...b, active: ACTIVE_CONTENT_TYPES.includes(b.type) }));
+
+  const filteredLayout = LAYOUT_BLOCKS.filter(
+    (b) => !q || b.label.toLowerCase().includes(q) || BLOCK_META[b.type]?.desc?.toLowerCase().includes(q)
+  ).map((b) => ({ ...b, active: ACTIVE_LAYOUT_TYPES.includes(b.type) }));
+
+  return (
+    <div
+      ref={menuRef}
+      role="menu"
+      className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2"
+      style={{
+        width: 320,
+        maxHeight: 480,
+        overflowY: "auto",
+        background: "var(--st-white)",
+        border: "1px solid var(--st-ink-08)",
+        borderRadius: 20,
+        boxShadow: "0 10px 30px rgba(16,24,32,0.1)",
+        padding: ".75rem",
+        fontFamily: "inherit",
+        animation: "st-pop-in 140ms ease",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Search */}
+      <div className="flex items-center gap-2 pb-2">
+        <span className="flex items-center" style={{ color: "var(--st-ink-50)", padding: "0 .5rem" }}>
+          <Search size={14} />
+        </span>
+        <input
+          ref={inputRef}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher un bloc…"
+          className="flex-1 border-none outline-none text-sm"
+          style={{
+            background: "var(--st-surface)",
+            borderRadius: 8,
+            padding: ".5rem .75rem",
+            color: "var(--st-ink)",
+            fontFamily: "inherit",
+          }}
+        />
+      </div>
+
+      {filteredContent.length > 0 && (
+        <Section title="Contenu" items={filteredContent} onInsert={onInsert} onClose={onClose} />
+      )}
+      {filteredLayout.length > 0 && (
+        <Section title="Mise en page" items={filteredLayout} onInsert={onInsert} onClose={onClose} />
+      )}
+      {filteredContent.length === 0 && filteredLayout.length === 0 && (
+        <p className="text-xs text-center py-6" style={{ color: "var(--st-ink-50)" }}>
+          Aucun bloc trouvé
+        </p>
+      )}
+    </div>
+  );
+}
+
+type ItemWithActive = ReturnType<typeof CONTENT_BLOCKS.map>[number] & { active: boolean };
+
+function Section({
+  title,
+  items,
+  onInsert,
+  onClose,
+}: {
+  title: string;
+  items: ItemWithActive[];
+  onInsert: (type: LessonBlockType) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          fontWeight: 700,
+          fontSize: ".6875rem",
+          letterSpacing: ".05em",
+          color: "var(--st-ink-50)",
+          padding: ".625rem .875rem .375rem",
+          textTransform: "uppercase",
+        }}
+      >
+        {title}
+      </div>
+      {items.map((item) => {
+        const Icon = item.icon;
+        const meta = BLOCK_META[item.type as LessonBlockType];
+        return (
+          <button
+            key={item.type}
+            role="menuitem"
+            disabled={!item.active}
+            onClick={() => {
+              if (item.active) {
+                onInsert(item.type);
+                onClose();
+              }
+            }}
+            className="w-full flex items-center gap-3 text-left"
+            style={{
+              padding: ".625rem .875rem",
+              borderRadius: 12,
+              opacity: item.active ? 1 : 0.4,
+              cursor: item.active ? "pointer" : "not-allowed",
+              color: "var(--st-ink)",
+              fontFamily: "inherit",
+              transition: "background 120ms",
+            }}
+            onMouseEnter={(e) => {
+              if (item.active) (e.currentTarget as HTMLElement).style.background = "var(--st-yellow-soft)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+            }}
+          >
+            {/* Icon — 32×32 matching design */}
+            <span
+              className="flex items-center justify-center shrink-0"
+              style={{ width: 32, height: 32, borderRadius: 8, background: "var(--st-surface)", color: "var(--st-ink)" }}
+            >
+              <Icon size={18} />
+            </span>
+            {/* Label + description */}
+            <span className="flex-1 min-w-0">
+              <div style={{ fontWeight: 500, fontSize: ".875rem", color: "var(--st-ink)", lineHeight: 1.2 }}>
+                {item.label}
+              </div>
+              {meta?.desc && (
+                <div style={{ fontSize: ".75rem", color: "var(--st-ink-60)", marginTop: ".125rem", lineHeight: 1.3 }}>
+                  {meta.desc}
+                </div>
+              )}
+            </span>
+            {/* Keyboard shortcut or "soon" badge */}
+            {item.active && meta?.kbd && (
+              <span
+                style={{
+                  borderRadius: 6,
+                  padding: ".125rem .375rem",
+                  border: "1px solid var(--st-ink-08)",
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: ".6875rem",
+                  color: "var(--st-ink-60)",
+                  background: "var(--st-white)",
+                  flexShrink: 0,
+                }}
+              >
+                {meta.kbd}
+              </span>
+            )}
+            {!item.active && (
+              <span
+                style={{
+                  borderRadius: 6,
+                  padding: ".125rem .375rem",
+                  border: "1px solid var(--st-ink-08)",
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: ".6875rem",
+                  color: "var(--st-ink-60)",
+                  background: "var(--st-white)",
+                  flexShrink: 0,
+                }}
+              >
+                soon
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The circular "+" button shown between blocks */
+export function InsertButton({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="flex items-center justify-center"
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: "999px",
+        border: hovered ? "1px solid transparent" : "1px solid var(--st-ink-08)",
+        background: hovered ? "var(--st-yellow)" : "var(--st-white)",
+        color: "var(--st-ink)",
+        transform: hovered ? "translate(-50%, -50%) scale(1.08)" : "translate(-50%, -50%)",
+        boxShadow: hovered ? "0 6px 16px rgba(255,209,0,0.4)" : "0 2px 6px rgba(16,24,32,0.06)",
+        transition: "all 200ms ease",
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        zIndex: 3,
+      }}
+      aria-label="Insérer un bloc"
+    >
+      <Plus size={16} />
+    </button>
+  );
+}

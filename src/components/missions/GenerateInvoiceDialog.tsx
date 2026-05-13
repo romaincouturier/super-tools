@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { MissionActivity, useUpdateMissionActivity } from "@/hooks/useMissions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,6 +46,7 @@ const GenerateInvoiceDialog = ({
   missionTitle,
 }: GenerateInvoiceDialogProps) => {
   const { toast } = useToast();
+  const { copy: copyToClipboard } = useCopyToClipboard({ defaultToastTitle: "Copié dans le presse-papier" });
   const updateActivity = useUpdateMissionActivity();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -239,12 +241,7 @@ const GenerateInvoiceDialog = ({
                           : `Pour la période du ${startStr} au ${endStr}`;
                       const lines = sorted.map((a) => `- ${a.description}`).join("\n");
                       const text = `${header}\n${lines}`;
-                      try {
-                        await navigator.clipboard.writeText(text);
-                        toast({ title: "Copié dans le presse-papier" });
-                      } catch {
-                        toastError(toast, "Impossible de copier");
-                      }
+                      await copyToClipboard(text);
                     }}
                   >
                     <Copy className="h-4 w-4 mr-2" />

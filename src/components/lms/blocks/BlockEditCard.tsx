@@ -64,6 +64,11 @@ interface Props {
   onDuplicate?: () => void;
   /** Drag-handle attributes from useSortable, applied to the grip icon. */
   dragHandleProps?: Record<string, unknown>;
+  /**
+   * Slim mode — suppresses the action toolbar (used by the SuperTilt Builder
+   * which provides its own hover-reveal chrome via BuilderBlockWrapper).
+   */
+  slim?: boolean;
 }
 
 export default function BlockEditCard({
@@ -75,6 +80,7 @@ export default function BlockEditCard({
   onDelete,
   onDuplicate,
   dragHandleProps,
+  slim = false,
 }: Props) {
   const meta = BLOCK_META[block.type];
   const Icon = meta.icon;
@@ -123,11 +129,11 @@ export default function BlockEditCard({
   return (
     <div
       className={cn(
-        "border rounded-lg bg-card",
+        !slim && "border rounded-lg bg-card",
         block.hidden && "opacity-60",
       )}
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
+      {!slim && <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
         <button
           type="button"
           aria-label="Réordonner ce bloc"
@@ -184,15 +190,15 @@ export default function BlockEditCard({
         >
           <Trash2 className="h-4 w-4" />
         </Button>
-      </div>
+      </div>}
 
-      {isExample && (
+      {!slim && isExample && (
         <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs">
           <Wand2 className="h-3 w-3 shrink-0" />
           Contenu d'exemple — pensez à le remplacer par votre contenu réel
         </div>
       )}
-      <div className="p-3 sm:p-4">
+      <div className={slim ? "" : "p-3 sm:p-4"}>
         {meta.editable ? (
           <BlockEditorBody
             block={block}
