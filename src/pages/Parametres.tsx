@@ -25,6 +25,7 @@ import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 import VoiceSettings from "@/components/settings/VoiceSettings";
 import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
+import TranscriptPromptsSettings from "@/components/settings/TranscriptPromptsSettings";
 
 const Parametres = () => {
   const navigate = useNavigate();
