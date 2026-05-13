@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Megaphone } from "lucide-react";
+import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Megaphone, MailQuestion } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -58,6 +58,8 @@ const FormationDetailParticipants = ({
   fetchParticipants,
 }: Props) => {
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
+  const [requestingEmails, setRequestingEmails] = useState(false);
+  const [emailsRequestedAt, setEmailsRequestedAt] = useState<string | null>(null);
   const { copied: copiedParticipantEmails, copy } = useCopyToClipboard();
 
   useEffect(() => {
@@ -66,6 +68,22 @@ const FormationDetailParticipants = ({
       .then(({ data }: { data: any }) => { if (!cancelled) setHasSupportRecord(!!data); });
     return () => { cancelled = true; };
   }, [training.id]);
+
+  const handleRequestParticipantsEmails = async () => {
+    if (!training.sponsor_email) return;
+    setRequestingEmails(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-participants-emails-request", {
+        body: { trainingId: training.id },
+      });
+      if (error) throw error;
+      setEmailsRequestedAt(new Date().toISOString());
+    } catch (e) {
+      console.error("Error requesting participants emails:", e);
+    } finally {
+      setRequestingEmails(false);
+    }
+  };
 
   const effectiveEndDate = training.end_date || training.start_date;
   const endDate = effectiveEndDate ? parseISO(effectiveEndDate) : null;
@@ -109,6 +127,19 @@ const FormationDetailParticipants = ({
               <span>Vous</span>
             </div>
             <div className="flex gap-2">
+              {!isInterSession && participants.length === 0 && training.sponsor_email && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRequestParticipantsEmails}
+                  disabled={requestingEmails}
+                  title={`Demander au commanditaire (${training.sponsor_email}) la liste des emails des participants`}
+                >
+                  {requestingEmails ? <Spinner className="mr-2" /> : <MailQuestion className="h-4 w-4 mr-2" />}
+                  {emailsRequestedAt ? "Renvoyer la demande" : "Demander les emails"}
+                </Button>
+              )}
               <BulkAddParticipantsDialog
                 trainingId={training.id}
                 trainingStartDate={training.start_date}

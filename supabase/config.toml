@@ -473,3 +473,6 @@ verify_jwt = false
 
 [functions.process-mission-scheduled-actions]
 verify_jwt = false
+
+[functions.send-participants-emails-request]
+verify_jwt = false
