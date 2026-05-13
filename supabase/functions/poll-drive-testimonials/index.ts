@@ -73,11 +73,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Testimonials store assemblyai_id in a metadata column
     const { data: processing } = await (admin as any)
       .from("testimonials")
-      .select("id, drive_file_id, metadata")
+      .select("id, drive_file_id, drive_file_name, client_name, company, service_type, metadata")
       .eq("status", "pending_review")
       .not("metadata->assemblyai_id", "is", null);
 
-    for (const row of (processing ?? []) as Array<{ id: string; drive_file_id: string; metadata: Record<string, string> }>) {
+    for (const row of (processing ?? []) as Array<{
+      id: string;
+      drive_file_id: string;
+      drive_file_name: string | null;
+      client_name: string | null;
+      company: string | null;
+      service_type: string | null;
+      metadata: Record<string, string>;
+    }>) {
       const jobId = row.metadata?.assemblyai_id;
       if (!jobId) continue;
       results.checked++;
@@ -90,7 +98,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         continue;
       }
 
-      const meta = await extractTestimonialMeta(result.text);
+      // Prefer values already extracted from filename; fall back to AI only for missing pieces.
+      const fromName = parseTestimonialFilename(row.drive_file_name ?? "");
+      const haveAll = (row.client_name || fromName.client_name)
+        && (row.company || fromName.company)
+        && (row.service_type || fromName.service_type);
+      const aiMeta = haveAll
+        ? { client_name: "", company: "", service_type: "" }
+        : await extractTestimonialMeta(result.text);
+      const meta = {
+        client_name: row.client_name || fromName.client_name || aiMeta.client_name,
+        company: row.company || fromName.company || aiMeta.company,
+        service_type: row.service_type || fromName.service_type || aiMeta.service_type,
+      };
+
       await (admin as any).from("testimonials").update({
         raw_transcript: result.text,
         client_name: meta.client_name,
