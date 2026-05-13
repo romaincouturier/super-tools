@@ -8,6 +8,7 @@ export interface Transcript {
   id: string;
   source: TranscriptSource;
   title: string | null;
+  ai_title: string | null;
   external_id: string;
   raw_text: string | null;
   summary: string | null;
