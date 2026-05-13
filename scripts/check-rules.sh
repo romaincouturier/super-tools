@@ -183,7 +183,7 @@ else
 
   # [008] CORS centralisé — toutes les fonctions doivent importer depuis _shared/cors.ts
   check "008" "Pas de CORS headers définis localement dans les edge functions" \
-    "grep -rn '\"Access-Control-Allow-Origin\": \"\*\"' supabase/functions/ --include='*.ts' | grep -v '_shared/cors.ts' | grep -v node_modules"
+    "grep -rn '\"Access-Control-Allow-Origin\": \"\*\"' supabase/functions/ --include='*.ts' | grep -v '_shared/cors.ts' | grep -v '\.test\.ts' | grep -v node_modules"
 
   # [009] RLS — pas de FOR ALL TO anon USING(true) (full open access)
   # Exclude old migrations whose policies are dropped by later fix migrations
@@ -238,6 +238,40 @@ else
   # au moins un de ces helpers (via le hook ou directement).
   check "025" "Dialogs d'ajout de participant utilisent le catch-up mid-session" \
     "for f in src/components/formations/*AddParticipant*.tsx; do [ -f \"\$f\" ] || continue; has_hook=\$(grep -l 'useAddParticipant\\|isTrainingOngoing\\|catchUpAttendanceSignatures' \"\$f\" | wc -l); [ \"\$has_hook\" -eq 0 ] && echo \"VIOLATION: \$(basename \"\$f\") ne s'appuie pas sur le catch-up mid-session\"; done"
+
+  # [026] Uploads — jamais de supabase.storage.upload() + supabase.from().insert/update() dans le même fichier src/
+  # Le pattern dangereux est la combinaison storage.upload() + DB insert/update côté frontend :
+  # il dépend des policies RLS qui peuvent être cassées par Lovable. Doit passer par une edge function.
+  # Cas légitimes exclus : SettingsGeneral (setState local, pas d'insert), useBalanceSheets (bucket OK, pas d'insert), AgentChat (pas d'insert media).
+  # Exclusions légitimes :
+  #   useMedia.ts       — uploadMediaFile() et registerMediaEntry() sont des fonctions SÉPARÉES, les callers
+  #                       passent par des edge functions pour l'upload avant d'appeler registerMediaEntry.
+  #   useTrainingSupport.ts — upload TUS resumable (gros fichiers) dans une fn isolée, inserts dans d'autres fns.
+  check "026" "Pas de storage.upload() + insert/update DB dans le même fichier src/ (passer par edge function)" \
+    "for f in \$(grep -rln 'supabase\.storage\.' src/ --include='*.ts' --include='*.tsx' | grep -v '\.test\.' | grep -v '\.spec\.' | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts'); do \
+       has_upload=\$(grep -c '\.upload(' \"\$f\" 2>/dev/null || echo 0); \
+       has_insert=\$(grep -cE '\.from\(.*\)\.(insert|update)\(' \"\$f\" 2>/dev/null || echo 0); \
+       [ \"\$has_upload\" -gt 0 ] && [ \"\$has_insert\" -gt 0 ] && echo \"VIOLATION: \$f (storage.upload + DB insert/update direct)\"; \
+     done"
+
+  # [026b] Les 8 edge functions d'upload critiques doivent exister et utiliser le handler partagé.
+  # Vérifie qu'aucune ne régresse vers un pattern inline (sans import de upload-handler.ts).
+  check "026b" "Les edge functions d'upload utilisent _shared/upload-handler.ts (pas de pattern inline)" \
+    "for fn in upload-crm-attachment upload-support-attachment upload-trainer-document upload-training-document-field upload-participant-invoice upload-crm-image upload-participant-convention upload-participant-file; do \
+       f=\"supabase/functions/\$fn/index.ts\"; \
+       [ ! -f \"\$f\" ] && echo \"VIOLATION: \$f manquant\" && continue; \
+       grep -q 'upload-handler' \"\$f\" || echo \"VIOLATION: \$f n'utilise pas _shared/upload-handler.ts\"; \
+     done"
+
+  # [026c] Les services frontend qui wrappent des uploads doivent invoquer une edge function,
+  # jamais appeler supabase.storage.upload() directement.
+  # Vérifie les services connus pour avoir été corrigés (regression guard).
+  check "026c" "uploadSignedConvention et uploadParticipantFile passent par edge function (pas de storage direct)" \
+    "f=\"src/services/participants.ts\"; \
+     grep -q 'upload-participant-convention' \"\$f\" || echo \"VIOLATION: participants.ts n'invoke plus upload-participant-convention\"; \
+     grep -q 'upload-participant-file' \"\$f\" || echo \"VIOLATION: participants.ts n'invoke plus upload-participant-file\"; \
+     grep -q 'storage\.upload' \"\$f\" && echo \"VIOLATION: participants.ts utilise storage.upload direct\"; \
+     true"
 
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)

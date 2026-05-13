@@ -157,15 +157,6 @@ const ParticipantDocumentsDialog = ({
     }
   }, [trainingId, trainingName, startDate, onUpdate, toast]);
 
-  const sanitizeFileName = (name: string): string => {
-    return name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[()[\]{}]/g, "")
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_.-]/g, "");
-  };
-
   const participantName = participant.first_name || participant.last_name
     ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
     : participant.email;
@@ -192,30 +183,18 @@ const ParticipantDocumentsDialog = ({
     setUploadingInvoice(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const baseName = file.name.replace(`.${fileExt}`, "");
-      const sanitizedName = sanitizeFileName(baseName);
-      const fileName = `${trainingId}/participant_${participant.id}/facture_${Date.now()}_${sanitizedName}.${fileExt}`;
+      const formData = new FormData();
+      formData.append("participantId", participant.id);
+      formData.append("trainingId", trainingId);
+      formData.append("file", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("training-documents")
-        .upload(fileName, file);
+      const { data, error: uploadError } = await supabase.functions.invoke("upload-participant-invoice", {
+        body: formData,
+      });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("training-documents")
-        .getPublicUrl(fileName);
-
-      // Save to participant record
-      const { error: updateError } = await supabase
-        .from("training_participants")
-        .update({ invoice_file_url: publicUrl })
-        .eq("id", participant.id);
-
-      if (updateError) throw updateError;
-
-      setInvoiceFileUrl(publicUrl);
+      setInvoiceFileUrl(data?.fileUrl ?? null);
       onUpdate();
 
       toast({

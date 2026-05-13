@@ -448,24 +448,17 @@ export async function uploadSignedConvention(
   participantId: string,
   file: File,
 ): Promise<string> {
-  const sanitized = sanitizeUploadName(file.name);
-  const path = `${trainingId}/participant_${participantId}/convention_signee_${Date.now()}_${sanitized}`;
+  const formData = new FormData();
+  formData.append("participantId", participantId);
+  formData.append("trainingId", trainingId);
+  formData.append("file", file);
 
-  const { error: uploadErr } = await supabase.storage
-    .from("training-documents")
-    .upload(path, file);
-  if (uploadErr) throw uploadErr;
-
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("training-documents").getPublicUrl(path);
-
-  await supabase
-    .from("training_participants")
-    .update({ signed_convention_url: publicUrl } as Record<string, unknown>)
-    .eq("id", participantId);
-
-  return publicUrl;
+  const { data, error } = await supabase.functions.invoke("upload-participant-convention", {
+    body: formData,
+  });
+  if (error) throw error;
+  if (!data?.fileUrl) throw new Error("URL de la convention introuvable après upload");
+  return data.fileUrl as string;
 }
 
 /** Delete a signed convention (storage + clear DB field). */

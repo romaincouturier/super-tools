@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import { db, throwIfError } from "@/lib/supabase-helpers";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 import type { KanbanRepository } from "./repository";
@@ -154,19 +153,22 @@ export async function createSupportTicket(
   if (files && files.length > 0) {
     let firstImageUrl: string | null = null;
     for (const file of files) {
-      const filePath = `${data.id}/${Date.now()}_${sanitizeFileName(file.name)}`;
-      const mime = resolveContentType(file);
-      await supabase.storage.from("support-attachments").upload(filePath, file, { contentType: mime });
-      await db().from("support_ticket_attachments").insert({
-        ticket_id: data.id,
-        file_name: file.name,
-        file_path: filePath,
-        file_size: file.size,
-        mime_type: mime,
-      });
-      if (!firstImageUrl && mime.startsWith("image/")) {
-        const { data: urlData } = supabase.storage.from("support-attachments").getPublicUrl(filePath);
-        firstImageUrl = urlData.publicUrl;
+      const formData = new FormData();
+      formData.append("ticketId", data.id);
+      formData.append("file", file);
+
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke(
+        "upload-support-attachment",
+        { body: formData },
+      );
+
+      if (uploadError) {
+        console.error("[createSupportTicket] attachment upload failed:", uploadError);
+        continue;
+      }
+
+      if (!firstImageUrl && uploadData?.isImage && uploadData?.fileUrl) {
+        firstImageUrl = uploadData.fileUrl;
       }
     }
     if (firstImageUrl) {

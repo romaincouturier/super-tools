@@ -1,6 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 import { logCrmActivity } from "@/services/crmActivity";
-import { resolveContentType, sanitizeFileName } from "@/lib/file-utils";
 import { useCrmMutation } from "./useCrmMutation";
 
 export const useAddAttachment = () =>
@@ -14,23 +13,17 @@ export const useAddAttachment = () =>
       file: File;
       actorEmail: string;
     }) => {
-      const filePath = `${cardId}/${Date.now()}_${sanitizeFileName(file.name)}`;
-      const { error: uploadError } = await supabase.storage
-        .from("crm-attachments")
-        .upload(filePath, file, { contentType: resolveContentType(file) });
-      if (uploadError) {
-        // Don't insert a DB row pointing to a file that doesn't exist in storage.
-        console.error("Storage upload failed:", uploadError);
-        throw new Error(`Upload du fichier échoué: ${uploadError.message}`);
-      }
-      const { error } = await supabase.from("crm_attachments").insert({
-        card_id: cardId,
-        file_name: file.name,
-        file_path: filePath,
-        file_size: file.size,
-        mime_type: resolveContentType(file),
+      const formData = new FormData();
+      formData.append("cardId", cardId);
+      formData.append("file", file);
+
+      const { data, error } = await supabase.functions.invoke("upload-crm-attachment", {
+        body: formData,
       });
+
       if (error) throw error;
+      if (!data?.attachment) throw new Error("Upload échoué : aucune donnée retournée");
+
       await logCrmActivity(cardId, "attachment_added", actorEmail, null, file.name);
     },
     { successMessage: "Fichier ajouté" }

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { resolveContentType } from "@/lib/file-utils";
 
 interface SignedConventionFilesProps {
   trainingId: string;
@@ -35,22 +35,20 @@ const SignedConventionFiles = ({
           toastError(toast, "Seuls les fichiers PDF et images sont acceptés.", { title: "Format non supporté" });
           continue;
         }
-        const fileExt = file.name.split(".").pop();
-        const baseName = file.name.replace(`.${fileExt}`, "");
-        const sanitizedName = sanitizeFileName(baseName);
-        const fileName = `${trainingId}/convention_signee_${Date.now()}_${sanitizedName}.${fileExt}`;
+        const formData = new FormData();
+        formData.append("trainingId", trainingId);
+        formData.append("field", "signed_convention_urls");
+        formData.append("file", file);
 
-        const { error: uploadError } = await supabase.storage.from("training-documents").upload(fileName, file);
+        const { data, error: uploadError } = await supabase.functions.invoke("upload-training-document-field", {
+          body: formData,
+        });
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage.from("training-documents").getPublicUrl(fileName);
-        newUrls.push(publicUrl);
+        if (data?.fileUrl) newUrls.push(data.fileUrl);
       }
 
       if (newUrls.length > 0) {
         const allUrls = [...signedConventionUrls, ...newUrls];
-        const { error: updateError } = await supabase.from("trainings").update({ signed_convention_urls: allUrls }).eq("id", trainingId);
-        if (updateError) throw updateError;
         setSignedConventionUrls(allUrls);
         onUpdate?.();
         toast({ title: "Convention signée uploadée", description: `${newUrls.length} fichier(s) ajouté(s).` });

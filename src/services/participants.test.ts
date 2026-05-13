@@ -7,6 +7,8 @@ const {
   mockInsert,
   mockFrom,
   mockInvoke,
+  mockStorageFrom,
+  mockStorageBucket,
 } = vi.hoisted(() => {
   const mockSingle = vi.fn();
   const mockSelect = vi.fn((..._args: unknown[]) => ({ single: mockSingle }));
@@ -24,20 +26,20 @@ const {
     maybeSingle: vi.fn(),
   }));
   const mockInvoke = vi.fn();
-  return { mockSingle, mockSelect, mockInsert, mockFrom, mockInvoke };
+  const mockStorageBucket = {
+    upload: vi.fn().mockResolvedValue({ error: null }),
+    getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.com/file.pdf" } })),
+    remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+  const mockStorageFrom = vi.fn().mockReturnValue(mockStorageBucket);
+  return { mockSingle, mockSelect, mockInsert, mockFrom, mockInvoke, mockStorageFrom, mockStorageBucket };
 });
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (...args: unknown[]) => mockFrom(...args),
     functions: { invoke: mockInvoke },
-    storage: {
-      from: vi.fn(() => ({
-        upload: vi.fn().mockResolvedValue({ error: null }),
-        getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.com/file.pdf" } })),
-        remove: vi.fn().mockResolvedValue({ error: null }),
-      })),
-    },
+    storage: { from: mockStorageFrom },
   },
 }));
 
@@ -57,7 +59,12 @@ import {
   sanitizeUploadName,
   capitalizeOrEmpty,
   createParticipant,
+  uploadParticipantFile,
+  deleteParticipantFile,
+  uploadSignedConvention,
+  deleteSignedConvention,
   type CreateParticipantInput,
+  type ParticipantFile,
 } from "./participants";
 
 // ── Pure function tests ─────────────────────────────────────────────────────
@@ -262,5 +269,179 @@ describe("createParticipant", () => {
 
     expect(mockFrom).toHaveBeenCalledWith("training_participants");
     expect(mockFrom).toHaveBeenCalledWith("questionnaire_besoins");
+  });
+});
+
+// ── uploadParticipantFile tests ─────────────────────────────────────────────
+
+describe("uploadParticipantFile", () => {
+  const file = new File(["content"], "test.pdf", { type: "application/pdf" });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("invokes the upload-participant-file edge function (not direct storage)", async () => {
+    mockInvoke.mockResolvedValue({
+      data: { file: { id: "f1", file_url: "https://example.com/file.pdf", file_name: "test.pdf", uploaded_at: "2024-01-01" } },
+      error: null,
+    });
+
+    await uploadParticipantFile("training-1", "participant-1", file);
+
+    expect(mockInvoke).toHaveBeenCalledWith("upload-participant-file", expect.objectContaining({ body: expect.any(FormData) }));
+    // Must NOT call direct storage — RLS bypass is the whole point
+    expect(mockStorageFrom).not.toHaveBeenCalled();
+  });
+
+  it("passes trainingId and participantId in the FormData body", async () => {
+    mockInvoke.mockResolvedValue({
+      data: { file: { id: "f1", file_url: "https://example.com/file.pdf", file_name: "test.pdf", uploaded_at: "2024-01-01" } },
+      error: null,
+    });
+
+    await uploadParticipantFile("training-abc", "participant-xyz", file);
+
+    const [fnName, options] = mockInvoke.mock.calls[0] as [string, { body: FormData }];
+    expect(fnName).toBe("upload-participant-file");
+    expect(options.body.get("trainingId")).toBe("training-abc");
+    expect(options.body.get("participantId")).toBe("participant-xyz");
+    expect(options.body.get("file")).toBe(file);
+  });
+
+  it("returns the file record from the edge function response", async () => {
+    const expected: ParticipantFile = {
+      id: "f1",
+      file_url: "https://example.com/file.pdf",
+      file_name: "test.pdf",
+      uploaded_at: "2024-01-01T00:00:00Z",
+    };
+    mockInvoke.mockResolvedValue({ data: { file: expected }, error: null });
+
+    const result = await uploadParticipantFile("training-1", "participant-1", file);
+    expect(result).toEqual(expected);
+  });
+
+  it("throws when the edge function returns an error", async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: new Error("RLS violation") });
+
+    await expect(uploadParticipantFile("training-1", "participant-1", file)).rejects.toThrow("RLS violation");
+  });
+
+  it("throws when the edge function returns no file data", async () => {
+    mockInvoke.mockResolvedValue({ data: {}, error: null });
+
+    await expect(uploadParticipantFile("training-1", "participant-1", file)).rejects.toThrow();
+  });
+});
+
+// ── deleteParticipantFile tests ─────────────────────────────────────────────
+
+describe("deleteParticipantFile", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockStorageBucket.remove.mockResolvedValue({ data: null, error: null });
+    const mockEq = vi.fn().mockResolvedValue({ error: null });
+    const mockDelete = vi.fn(() => ({ eq: mockEq }));
+    mockFrom.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      insert: mockInsert,
+      update: vi.fn(() => ({ eq: vi.fn() })),
+      delete: mockDelete,
+      eq: vi.fn().mockReturnThis(),
+      not: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      single: mockSingle,
+      maybeSingle: vi.fn(),
+    });
+  });
+
+  it("removes from participant-files bucket for new-style URLs", async () => {
+    const fileRecord: ParticipantFile = {
+      id: "f1",
+      file_url: "https://project.supabase.co/storage/v1/object/public/participant-files/training-1/abc_test.pdf",
+      file_name: "test.pdf",
+      uploaded_at: "2024-01-01",
+    };
+
+    await deleteParticipantFile(fileRecord);
+
+    expect(mockStorageFrom).toHaveBeenCalledWith("participant-files");
+    expect(mockStorageBucket.remove).toHaveBeenCalledWith(["training-1/abc_test.pdf"]);
+  });
+
+  it("removes from training-documents bucket for legacy URLs", async () => {
+    const fileRecord: ParticipantFile = {
+      id: "f2",
+      file_url: "https://project.supabase.co/storage/v1/object/public/training-documents/training-1/legacy.pdf",
+      file_name: "legacy.pdf",
+      uploaded_at: "2024-01-01",
+    };
+
+    await deleteParticipantFile(fileRecord);
+
+    expect(mockStorageFrom).toHaveBeenCalledWith("training-documents");
+    expect(mockStorageBucket.remove).toHaveBeenCalledWith(["training-1/legacy.pdf"]);
+  });
+
+  it("always deletes the participant_files DB record", async () => {
+    const fileRecord: ParticipantFile = {
+      id: "f1",
+      file_url: "https://project.supabase.co/storage/v1/object/public/participant-files/path/file.pdf",
+      file_name: "file.pdf",
+      uploaded_at: "2024-01-01",
+    };
+
+    await deleteParticipantFile(fileRecord);
+
+    expect(mockFrom).toHaveBeenCalledWith("participant_files");
+  });
+});
+
+// ── uploadSignedConvention tests ────────────────────────────────────────────
+
+describe("uploadSignedConvention", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("invokes the upload-participant-convention edge function, never direct storage", async () => {
+    mockInvoke.mockResolvedValue({ data: { fileUrl: "https://example.com/convention.pdf" }, error: null });
+    const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
+
+    await uploadSignedConvention("training-1", "participant-1", file);
+
+    expect(mockInvoke).toHaveBeenCalledWith("upload-participant-convention", expect.objectContaining({ body: expect.any(FormData) }));
+    expect(mockStorageFrom).not.toHaveBeenCalled();
+  });
+
+  it("passes participantId, trainingId and file in FormData", async () => {
+    mockInvoke.mockResolvedValue({ data: { fileUrl: "https://example.com/convention.pdf" }, error: null });
+    const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
+
+    await uploadSignedConvention("training-1", "participant-1", file);
+
+    const [fnName, options] = mockInvoke.mock.calls[0] as [string, { body: FormData }];
+    expect(fnName).toBe("upload-participant-convention");
+    expect(options.body.get("trainingId")).toBe("training-1");
+    expect(options.body.get("participantId")).toBe("participant-1");
+    expect(options.body.get("file")).toBe(file);
+  });
+
+  it("returns the fileUrl from the edge function response", async () => {
+    mockInvoke.mockResolvedValue({ data: { fileUrl: "https://example.com/convention.pdf" }, error: null });
+    const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
+
+    const result = await uploadSignedConvention("training-1", "participant-1", file);
+
+    expect(result).toBe("https://example.com/convention.pdf");
+  });
+
+  it("throws when the edge function returns an error", async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: new Error("RLS violation") });
+    const file = new File(["pdf"], "convention.pdf", { type: "application/pdf" });
+
+    await expect(uploadSignedConvention("training-1", "participant-1", file)).rejects.toThrow("RLS violation");
   });
 });
