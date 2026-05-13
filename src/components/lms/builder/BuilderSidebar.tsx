@@ -9,21 +9,6 @@ interface Props {
   courseTitle: string;
 }
 
-// Triangle logo matching the design SVG
-function BrandLogo() {
-  return (
-    <div
-      className="flex items-center justify-center shrink-0"
-      style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--st-ink)", color: "var(--st-yellow)" }}
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M5 16 L12 6 L19 16" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="12" cy="6" r="1.6" fill="currentColor"/>
-      </svg>
-    </div>
-  );
-}
-
 export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }: Props) {
   const { data: modules = [] } = useCourseModules(courseId);
 
@@ -32,20 +17,6 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
       className="flex flex-col h-full overflow-y-auto"
       style={{ background: "var(--st-surface)", fontFamily: "inherit", padding: "1rem" }}
     >
-      {/* Brand */}
-      <div
-        className="flex items-center gap-2.5 pb-3 mb-3"
-        style={{ borderBottom: "1px solid var(--st-ink-06)" }}
-      >
-        <BrandLogo />
-        <div>
-          <div style={{ fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.01em", color: "var(--st-ink)", lineHeight: 1.2 }}>
-            Super<span style={{ color: "var(--st-ink-50)", fontWeight: 500 }}>Tilt</span>
-          </div>
-          <div style={{ fontSize: ".6875rem", color: "var(--st-ink-50)", marginTop: -2 }}>Builder</div>
-        </div>
-      </div>
-
       {/* Section header */}
       <div
         className="px-2 py-2"
@@ -97,7 +68,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
             className="flex items-center justify-center shrink-0 font-bold"
             style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--st-ink)", color: "var(--st-yellow)", fontSize: ".75rem" }}
           >
-            ST
+            {courseTitle ? courseTitle.slice(0, 2).toUpperCase() : "—"}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: ".8125rem", fontWeight: 600, color: "var(--st-ink)" }}>
