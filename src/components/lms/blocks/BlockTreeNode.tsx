@@ -37,16 +37,10 @@ export interface BlockTreeNodeProps {
   onDelete: (blockId: string) => void;
   onDuplicate: (blockId: string) => void;
   onAddChild: (parentBlockId: string, type: LessonBlockType) => void;
-  /** Suppress the BlockEditCard action toolbar — used by the SuperTilt Builder. */
+  /** Builder mode — suppresses the BlockEditCard toolbar and the whole nested tree UI. */
   slim?: boolean;
 }
 
-/**
- * One node of the block tree in the back-office editor. Sortable in its
- * parent's `SortableContext`. If the underlying block accepts children
- * (section, row, container), renders a nested children zone with its
- * own SortableContext + drop placeholder + add buttons.
- */
 export default function BlockTreeNodeView(props: BlockTreeNodeProps) {
   const { node, parentId } = props;
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -71,7 +65,8 @@ export default function BlockTreeNodeView(props: BlockTreeNodeProps) {
         dragHandleProps={{ ...attributes, ...listeners }}
         slim={props.slim}
       />
-      {acceptsChildren(node.block.type) && (
+      {/* Nested tree only exists outside the builder (slim mode has no hierarchy) */}
+      {!props.slim && acceptsChildren(node.block.type) && (
         <ChildrenZone
           parentBlockId={node.block.id}
           children={node.children}
@@ -79,7 +74,8 @@ export default function BlockTreeNodeView(props: BlockTreeNodeProps) {
           isRow={node.block.type === "row"}
           {...props}
         />
-      )}    </div>
+      )}
+    </div>
   );
 }
 
@@ -97,7 +93,7 @@ const ROW_GRID_CLASS: Record<1 | 2 | 3, string> = {
 };
 
 function ChildrenZone(props: ChildrenZoneProps) {
-  const { parentBlockId, children, rowContent, isRow, slim } = props;
+  const { parentBlockId, children, rowContent, isRow } = props;
   const childIds = children.map((c) => c.block.id);
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: dropzoneId(parentBlockId),
@@ -108,29 +104,6 @@ function ChildrenZone(props: ChildrenZoneProps) {
   const layoutClass = isRow
     ? cn("grid gap-3", ROW_GRID_CLASS[(rowContent?.column_count ?? 1) as 1 | 2 | 3])
     : "space-y-3";
-
-  // In builder (slim) mode: no tree chrome, no add buttons
-  if (slim) {
-    return (
-      <div className={cn("mt-2", layoutClass)}>
-        {children.map((child) => (
-          <BlockTreeNodeView
-            key={child.block.id}
-            node={child}
-            parentId={parentBlockId}
-            lessonId={props.lessonId}
-            courseId={props.courseId}
-            onUpdateContent={props.onUpdateContent}
-            onToggleHidden={props.onToggleHidden}
-            onDelete={props.onDelete}
-            onDuplicate={props.onDuplicate}
-            onAddChild={props.onAddChild}
-            slim
-          />
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div
