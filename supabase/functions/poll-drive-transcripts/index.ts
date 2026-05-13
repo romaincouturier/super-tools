@@ -142,6 +142,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const toProcess = files.filter((f) => !existingIds.includes(f.id)).slice(0, 5);
 
+    const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void } })
+      .EdgeRuntime?.waitUntil;
+
     for (const file of toProcess) {
       try {
         // Insert as pending first
@@ -153,20 +156,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         if (!inserted) continue;
 
-        const uploadUrl = await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
-        const jobId = await submitAssemblyAIJob(
-          uploadUrl,
-          ASSEMBLYAI_API_KEY,
-          ASSEMBLYAI_WEBHOOK_SECRET
-            ? {
-                url: ASSEMBLYAI_WEBHOOK_URL,
-                authHeaderName: "x-webhook-secret",
-                authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
-              }
-            : undefined,
-        );
-
-        await (admin as any).from("transcripts").update({ assemblyai_id: jobId }).eq("id", inserted.id);
+        const task = submitDriveTranscriptFile(admin, file, inserted.id, accessToken);
+        if (waitUntil) waitUntil(task);
+        else await task;
         results.submitted++;
       } catch (err) {
         console.error(`Failed to process file ${file.name}:`, err);
