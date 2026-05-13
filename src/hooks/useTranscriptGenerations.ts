@@ -4,12 +4,18 @@ import { toast } from "sonner";
 
 export type GenerationKind = "blog_article" | "linkedin_post";
 
+export interface GenerationVariant {
+  title: string;
+  content: string;
+}
+
 export interface TranscriptGeneration {
   id: string;
   transcript_id: string;
   kind: GenerationKind;
   content: string;
   title_suggestion: string | null;
+  variants: GenerationVariant[];
   tags: string[];
   model: string | null;
   created_by: string | null;
@@ -54,7 +60,7 @@ export function useGenerateTranscriptContent() {
 export function useUpdateTranscriptGeneration() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (vars: { id: string; transcript_id: string; content?: string; tags?: string[]; title_suggestion?: string | null }) => {
+    mutationFn: async (vars: { id: string; transcript_id: string; content?: string; tags?: string[]; title_suggestion?: string | null; variants?: GenerationVariant[] }) => {
       const { id, transcript_id, ...patch } = vars;
       const { error } = await (supabase as any)
         .from("transcript_generations")

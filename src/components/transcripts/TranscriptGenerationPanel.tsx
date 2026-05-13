@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,12 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, RefreshCw, Copy, Send, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   useGenerateTranscriptContent,
   useTranscriptGenerations,
   useUpdateTranscriptGeneration,
   type GenerationKind,
+  type GenerationVariant,
   type TranscriptGeneration,
 } from "@/hooks/useTranscriptGenerations";
 
@@ -79,37 +81,68 @@ async function createContentCard(opts: {
   return data!.id as string;
 }
 
-function GenerationView({ gen, kind, transcriptId }: { gen: TranscriptGeneration; kind: GenerationKind; transcriptId: string }) {
-  const [content, setContent] = useState(gen.content);
-  const [title, setTitle] = useState(gen.title_suggestion ?? "");
+function VariantEditor({
+  gen,
+  index,
+  variant,
+  kind,
+  transcriptId,
+  onChange,
+}: {
+  gen: TranscriptGeneration;
+  index: number;
+  variant: GenerationVariant;
+  kind: GenerationKind;
+  transcriptId: string;
+  onChange: (v: GenerationVariant) => void;
+}) {
   const [sendingNl, setSendingNl] = useState(false);
   const [sendingBoard, setSendingBoard] = useState(false);
   const [selectedNl, setSelectedNl] = useState<string>("");
   const [selectedColumn, setSelectedColumn] = useState<string>("");
-  const update = useUpdateTranscriptGeneration();
-  const generate = useGenerateTranscriptContent();
   const newsletters = useNewslettersDraft();
   const columns = useContentColumns();
 
-  // Default: "Idées" column if present
-  const defaultColumn = useMemo(() => columns.data?.find((c) => /id[ée]e/i.test(c.name))?.id ?? columns.data?.[0]?.id ?? "", [columns.data]);
+  const defaultColumn = useMemo(
+    () => columns.data?.find((c) => /id[ée]e/i.test(c.name))?.id ?? columns.data?.[0]?.id ?? "",
+    [columns.data],
+  );
+
+  const sendToBoard = async () => {
+    const colId = selectedColumn || defaultColumn;
+    if (!colId) { toast.error("Aucune colonne disponible"); return; }
+    setSendingBoard(true);
+    try {
+      await createContentCard({
+        columnId: colId,
+        title: variant.title || (kind === "linkedin_post" ? `Post LinkedIn ${index + 1}` : `Article ${index + 1}`),
+        description: variant.content,
+        tags: gen.tags,
+        cardType: kind === "linkedin_post" ? "linkedin" : "article",
+      });
+      toast.success("Envoyé vers le board Contenus");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSendingBoard(false);
+    }
+  };
 
   const sendToNewsletter = async () => {
-    const nlId = selectedNl;
-    if (!nlId) { toast.error("Sélectionne une newsletter"); return; }
+    if (!selectedNl) { toast.error("Sélectionne une newsletter"); return; }
     const colId = defaultColumn;
     if (!colId) { toast.error("Aucune colonne contenu disponible"); return; }
     setSendingNl(true);
     try {
       const cardId = await createContentCard({
         columnId: colId,
-        title: title || "Article généré",
-        description: content,
+        title: variant.title || `Article ${index + 1}`,
+        description: variant.content,
         tags: gen.tags,
         cardType: "article",
       });
       const { error } = await supabase.from("newsletter_cards").insert({
-        newsletter_id: nlId,
+        newsletter_id: selectedNl,
         card_id: cardId,
         display_order: 0,
       });
@@ -122,73 +155,34 @@ function GenerationView({ gen, kind, transcriptId }: { gen: TranscriptGeneration
     }
   };
 
-  const sendToBoard = async () => {
-    const colId = selectedColumn || defaultColumn;
-    if (!colId) { toast.error("Aucune colonne disponible"); return; }
-    setSendingBoard(true);
-    try {
-      await createContentCard({
-        columnId: colId,
-        title: title || (kind === "linkedin_post" ? "Post LinkedIn généré" : "Article généré"),
-        description: content,
-        tags: gen.tags,
-        cardType: kind === "linkedin_post" ? "linkedin" : "article",
-      });
-      toast.success("Envoyé vers le board Contenus");
-    } catch (e) {
-      toast.error((e as Error).message);
-    } finally {
-      setSendingBoard(false);
-    }
-  };
-
-  const dirty = content !== gen.content || title !== (gen.title_suggestion ?? "");
-
   return (
     <div className="space-y-3">
-      {gen.title_suggestion !== null && (
-        <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Titre suggéré</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
-          />
-        </div>
-      )}
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Titre</label>
+        <input
+          value={variant.title}
+          onChange={(e) => onChange({ ...variant, title: e.target.value })}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+        />
+      </div>
 
       <div>
         <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contenu</label>
         <Textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
+          value={variant.content}
+          onChange={(e) => onChange({ ...variant, content: e.target.value })}
           className="font-mono text-xs min-h-[300px] mt-1"
         />
       </div>
 
-      {gen.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {gen.tags.map((t) => <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>)}
-        </div>
-      )}
-
       <div className="flex flex-wrap gap-2 items-center">
-        {dirty && (
-          <Button size="sm" variant="outline" onClick={() => update.mutate({ id: gen.id, transcript_id: transcriptId, content, title_suggestion: title || null })} disabled={update.isPending}>
-            <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
-          </Button>
-        )}
-        <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(content); toast.success("Copié"); }}>
+        <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(variant.content); toast.success("Copié"); }}>
           <Copy className="h-3.5 w-3.5 mr-1" />Copier
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => generate.mutate({ transcript_id: transcriptId, kind })} disabled={generate.isPending}>
-          {generate.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-          Régénérer
         </Button>
       </div>
 
       <div className="border-t pt-3 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Envoyer vers le board Contenus</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Envoyer cette proposition vers le board Contenus</p>
         <div className="flex gap-2">
           <Select value={selectedColumn || defaultColumn} onValueChange={setSelectedColumn}>
             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Colonne…" /></SelectTrigger>
@@ -221,8 +215,104 @@ function GenerationView({ gen, kind, transcriptId }: { gen: TranscriptGeneration
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      <p className="text-xs text-muted-foreground">Généré le {new Date(gen.created_at).toLocaleString("fr-FR")} · {gen.model}</p>
+function GenerationView({ gen, kind, transcriptId }: { gen: TranscriptGeneration; kind: GenerationKind; transcriptId: string }) {
+  // Build variants list with backward-compat fallback
+  const initialVariants: GenerationVariant[] = useMemo(() => {
+    if (Array.isArray(gen.variants) && gen.variants.length > 0) return gen.variants;
+    return [{ title: gen.title_suggestion ?? "", content: gen.content ?? "" }];
+  }, [gen.id]);
+
+  const [variants, setVariants] = useState<GenerationVariant[]>(initialVariants);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const update = useUpdateTranscriptGeneration();
+  const generate = useGenerateTranscriptContent();
+
+  useEffect(() => {
+    setVariants(initialVariants);
+    setActiveIdx(0);
+  }, [gen.id]);
+
+  const dirty = JSON.stringify(variants) !== JSON.stringify(initialVariants);
+
+  const save = () => {
+    const first = variants[0] ?? { title: "", content: "" };
+    const concatenated = variants.length > 1
+      ? variants.map((v, i) => `═══ Proposition ${i + 1} : ${v.title} ═══\n\n${v.content}`).join("\n\n\n")
+      : first.content;
+    update.mutate({
+      id: gen.id,
+      transcript_id: transcriptId,
+      variants,
+      title_suggestion: first.title || null,
+      content: concatenated,
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground">
+          {variants.length} proposition{variants.length > 1 ? "s" : ""} · Généré le {new Date(gen.created_at).toLocaleString("fr-FR")} · {gen.model}
+        </div>
+        <div className="flex gap-2">
+          {dirty && (
+            <Button size="sm" variant="outline" onClick={save} disabled={update.isPending}>
+              <Save className="h-3.5 w-3.5 mr-1" />Sauvegarder
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => generate.mutate({ transcript_id: transcriptId, kind })} disabled={generate.isPending}>
+            {generate.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+            Régénérer
+          </Button>
+        </div>
+      </div>
+
+      {gen.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {gen.tags.map((t) => <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>)}
+        </div>
+      )}
+
+      {variants.length === 1 ? (
+        <VariantEditor
+          gen={gen}
+          index={0}
+          variant={variants[0]}
+          kind={kind}
+          transcriptId={transcriptId}
+          onChange={(v) => setVariants([v])}
+        />
+      ) : (
+        <Tabs value={String(activeIdx)} onValueChange={(v) => setActiveIdx(Number(v))}>
+          <TabsList className="flex-wrap h-auto">
+            {variants.map((v, i) => (
+              <TabsTrigger key={i} value={String(i)} className="text-xs">
+                #{i + 1} · {v.title?.slice(0, 30) || "Sans titre"}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {variants.map((v, i) => (
+            <TabsContent key={i} value={String(i)} className="mt-3">
+              <VariantEditor
+                gen={gen}
+                index={i}
+                variant={v}
+                kind={kind}
+                transcriptId={transcriptId}
+                onChange={(nv) => {
+                  const next = [...variants];
+                  next[i] = nv;
+                  setVariants(next);
+                }}
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
     </div>
   );
 }
@@ -244,7 +334,7 @@ export function TranscriptGenerationPanel({ transcriptId, kind }: Props) {
         </p>
         <Button onClick={() => generate.mutate({ transcript_id: transcriptId, kind })} disabled={generate.isPending}>
           {generate.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-          {kind === "blog_article" ? "Générer une proposition d'article" : "Générer un post LinkedIn"}
+          {kind === "blog_article" ? "Générer des propositions d'articles" : "Générer des posts LinkedIn"}
         </Button>
       </div>
     );

@@ -105,21 +105,33 @@ serve(async (req) => {
 
     const tool = {
       name: "propose_content",
-      description: "Retourne le contenu généré et les tags Supertilt sélectionnés.",
+      description: "Retourne plusieurs propositions de contenu (chacune avec son titre) et les tags Supertilt sélectionnés.",
       input_schema: {
         type: "object",
         properties: {
-          content: { type: "string", description: "Le contenu rédigé (markdown pour blog, texte plain pour LinkedIn)." },
-          title_suggestion: { type: "string", description: "Titre proposé." },
+          variants: {
+            type: "array",
+            description: "Entre 2 et 4 propositions distinctes, chacune prête à publier.",
+            minItems: 1,
+            maxItems: 5,
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string", description: "Titre court et accrocheur, propre à cette proposition." },
+                content: { type: "string", description: "Contenu rédigé en texte brut, prêt à publier." },
+              },
+              required: ["title", "content"],
+            },
+          },
           tags: {
             type: "array",
             items: { type: "string", enum: tagsList },
-            description: "1 à 3 tags choisis parmi la liste.",
+            description: "1 à 3 tags choisis parmi la liste, communs à toutes les propositions.",
             minItems: 1,
             maxItems: 3,
           },
         },
-        required: ["content", "tags"],
+        required: ["variants", "tags"],
       },
     };
 
@@ -132,7 +144,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: promptCfg.model || "claude-sonnet-4-6",
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: promptCfg.system_prompt,
         tools: [tool],
         tool_choice: { type: "tool", name: "propose_content" },
@@ -158,21 +170,34 @@ serve(async (req) => {
       });
     }
 
-    const { content, title_suggestion, tags } = toolUse.input as {
-      content: string;
-      title_suggestion?: string;
+    const { variants, tags } = toolUse.input as {
+      variants: Array<{ title: string; content: string }>;
       tags: string[];
     };
 
+    const cleanVariants = (variants || []).filter((v) => v?.content?.trim());
+    if (cleanVariants.length === 0) {
+      return new Response(JSON.stringify({ error: "Aucune variante générée" }), {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const filteredTags = (tags || []).filter((t) => tagsList.includes(t));
 
-    const { data: inserted, error: insErr } = await supabase
+    // Backward-compat: store first variant in legacy `content`/`title_suggestion` columns
+    const firstVariant = cleanVariants[0];
+    const concatenated = cleanVariants
+      .map((v, i) => `═══ Proposition ${i + 1} : ${v.title} ═══\n\n${v.content}`)
+      .join("\n\n\n");
+
+    const { data: inserted, error: insErr } = await (supabase as any)
       .from("transcript_generations")
       .insert({
         transcript_id,
         kind,
-        content,
-        title_suggestion: title_suggestion ?? null,
+        content: cleanVariants.length === 1 ? firstVariant.content : concatenated,
+        title_suggestion: firstVariant.title ?? null,
+        variants: cleanVariants,
         tags: filteredTags,
         model: promptCfg.model,
         created_by: userId,
