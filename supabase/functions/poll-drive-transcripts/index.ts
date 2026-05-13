@@ -29,38 +29,8 @@ const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY") ?? "";
 const ASSEMBLYAI_WEBHOOK_SECRET = Deno.env.get("ASSEMBLYAI_WEBHOOK_SECRET") ?? "";
 const ASSEMBLYAI_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/assemblyai-webhook`;
 
-async function submitDriveTranscriptFile(
-  admin: any,
-  file: { id: string; name: string; size?: string },
-  transcriptId: string,
-  accessToken: string,
-): Promise<void> {
-  try {
-    // Always stream the Drive file to AssemblyAI: passing a Drive URL with
-    // an OAuth access_token fails when AssemblyAI's download starts after the
-    // token has expired (~1h). uploadDriveFileToAssemblyAI streams the body
-    // without buffering, so it is safe for very large files too.
-    const uploadUrl = await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
-    const jobId = await submitAssemblyAIJob(
-      uploadUrl,
-      ASSEMBLYAI_API_KEY,
-      ASSEMBLYAI_WEBHOOK_SECRET
-        ? {
-            url: ASSEMBLYAI_WEBHOOK_URL,
-            authHeaderName: "x-webhook-secret",
-            authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
-          }
-        : undefined,
-    );
-
-    await (admin as any).from("transcripts").update({ assemblyai_id: jobId }).eq("id", transcriptId);
-  } catch (err) {
-    console.error(`Failed to submit Drive transcript file ${file.name}:`, err);
-    await (admin as any).from("transcripts")
-      .update({ status: "error", error_message: err instanceof Error ? err.message : String(err) })
-      .eq("id", transcriptId);
-  }
-}
+// Per-file submission moved to the dedicated `submit-drive-transcript`
+// edge function so each upload gets its own ~400s wall-clock budget.
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
