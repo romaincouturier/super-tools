@@ -171,12 +171,20 @@ serve(async (req) => {
       });
     }
 
-    const { variants, tags } = toolUse.input as {
-      variants: Array<{ title: string; content: string }>;
-      tags: string[];
-    };
+    const rawInput = toolUse.input as any;
+    let variants: Array<{ title: string; content: string }> = [];
+    if (Array.isArray(rawInput.variants)) {
+      variants = rawInput.variants;
+    } else if (rawInput.variants && typeof rawInput.variants === "object") {
+      // Some models return an object keyed by index instead of an array
+      variants = Object.values(rawInput.variants) as any[];
+    } else if (rawInput.content) {
+      // Backward-compat single content
+      variants = [{ title: rawInput.title_suggestion ?? rawInput.title ?? "", content: String(rawInput.content) }];
+    }
+    const tags: string[] = Array.isArray(rawInput.tags) ? rawInput.tags : [];
 
-    const cleanVariants = (variants || []).filter((v) => v?.content?.trim());
+    const cleanVariants = variants.filter((v) => v && typeof v.content === "string" && v.content.trim());
     if (cleanVariants.length === 0) {
       return new Response(JSON.stringify({ error: "Aucune variante générée" }), {
         status: 502,
