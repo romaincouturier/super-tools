@@ -19,6 +19,7 @@ import {
   submitAssemblyAIJob,
   pollAssemblyAIJob,
   extractTestimonialMeta,
+  parseTestimonialFilename,
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
 
