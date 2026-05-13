@@ -111,9 +111,9 @@ serve(async (req) => {
         properties: {
           variants: {
             type: "array",
-            description: "Entre 2 et 4 propositions distinctes, chacune prête à publier.",
-            minItems: 1,
-            maxItems: 5,
+            description: "OBLIGATOIRE : exactement 3 à 4 propositions distinctes (jamais une seule), chacune prête à publier avec son propre titre et angle éditorial différent.",
+            minItems: 3,
+            maxItems: 4,
             items: {
               type: "object",
               properties: {
@@ -144,7 +144,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: promptCfg.model || "claude-sonnet-4-6",
-        max_tokens: 8192,
+        max_tokens: 32000,
         system: promptCfg.system_prompt,
         tools: [tool],
         tool_choice: { type: "tool", name: "propose_content" },
@@ -162,6 +162,7 @@ serve(async (req) => {
     }
 
     const data = await anthropicResp.json();
+    console.log("Anthropic stop_reason:", data.stop_reason, "usage:", data.usage);
     const toolUse = data.content?.find((c: any) => c.type === "tool_use");
     if (!toolUse?.input) {
       return new Response(JSON.stringify({ error: "Réponse IA invalide" }), {
