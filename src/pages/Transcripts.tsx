@@ -172,22 +172,22 @@ export default function Transcripts() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-xs"
         />
-        <Select value={source} onValueChange={(v) => setSource(v as TranscriptSource | "")}>
+        <Select value={source || "all"} onValueChange={(v) => setSource(v === "all" ? "" : (v as TranscriptSource))}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="Toutes les sources" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Toutes les sources</SelectItem>
+            <SelectItem value="all">Toutes les sources</SelectItem>
             <SelectItem value="google_drive">Google Drive</SelectItem>
             <SelectItem value="fireflies">Fireflies</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={status} onValueChange={(v) => setStatus(v as TranscriptStatus | "")}>
+        <Select value={status || "all"} onValueChange={(v) => setStatus(v === "all" ? "" : (v as TranscriptStatus))}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="Tous les statuts" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tous les statuts</SelectItem>
+            <SelectItem value="all">Tous les statuts</SelectItem>
             <SelectItem value="ready">Prêt</SelectItem>
             <SelectItem value="processing">En cours</SelectItem>
             <SelectItem value="pending">En attente</SelectItem>
