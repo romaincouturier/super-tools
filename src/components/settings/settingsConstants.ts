@@ -1171,6 +1171,28 @@ Bien cordialement,`,
     },
     variables: ["first_name", "training_name", "participants_list"],
   },
+  request_participants_emails: {
+    name: "Demande des emails des participants au commanditaire",
+    timing: "manual",
+    sendingInfo: "✋ Envoyé manuellement depuis la fiche formation lorsqu'aucun participant n'est encore inscrit (formations intra)",
+    subject: {
+      tu: "Demande des emails des participants pour la formation {{training_name}}",
+      vous: "Demande des emails des participants pour la formation {{training_name}}",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+J'espère que tu vas bien. Pourrais-tu me transmettre la liste des emails des participants pour la session "{{training_name}}" prévue le {{training_date}}{{#training_location}} à {{training_location}}{{/training_location}} ?
+
+Merci d'avance et bonne journée.`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+J'espère que vous allez bien. Pourriez-vous me transmettre la liste des emails des participants pour la session "{{training_name}}" prévue le {{training_date}}{{#training_location}} à {{training_location}}{{/training_location}} ?
+
+Merci d'avance et bonne journée.`,
+    },
+    variables: ["first_name", "training_name", "training_date", "training_location"],
+  },
 };
 
 // Centralized settings registry: single source of truth for keys, defaults, and descriptions
