@@ -204,37 +204,42 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void } })
       .EdgeRuntime?.waitUntil;
 
-    for (const file of toProcess) {
-      try {
-        const existing = existingByExternalId.get(file.id);
-        const { data: inserted } = existing
-          ? await (admin as any)
-              .from("transcripts")
-              .update({ title: file.name, status: "processing", error_message: null })
-              .eq("id", existing.id)
-              .select("id")
-              .single()
-          : await (admin as any)
-              .from("transcripts")
-              .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
-              .select("id")
-              .single();
+    // Process files SERIALLY (one after the other) to avoid hammering AssemblyAI / Drive
+    // and keep memory usage predictable when several large files land at once.
+    const processSerially = async () => {
+      for (const file of toProcess) {
+        try {
+          const existing = existingByExternalId.get(file.id);
+          const { data: inserted } = existing
+            ? await (admin as any)
+                .from("transcripts")
+                .update({ title: file.name, status: "processing", error_message: null })
+                .eq("id", existing.id)
+                .select("id")
+                .single()
+            : await (admin as any)
+                .from("transcripts")
+                .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
+                .select("id")
+                .single();
 
-        if (!inserted) continue;
+          if (!inserted) continue;
 
-        const task = submitDriveTranscriptFile(admin, file, inserted.id, accessToken);
-        if (waitUntil) waitUntil(task);
-        else await task;
-        results.submitted++;
-      } catch (err) {
-        console.error(`Failed to process file ${file.name}:`, err);
-        await (admin as any).from("transcripts")
-          .update({ status: "error", error_message: String(err) })
-          .eq("external_id", file.id)
-          .eq("source", "google_drive");
-        results.errors++;
+          await submitDriveTranscriptFile(admin, file, inserted.id, accessToken);
+          results.submitted++;
+        } catch (err) {
+          console.error(`Failed to process file ${file.name}:`, err);
+          await (admin as any).from("transcripts")
+            .update({ status: "error", error_message: String(err) })
+            .eq("external_id", file.id)
+            .eq("source", "google_drive");
+          results.errors++;
+        }
       }
-    }
+    };
+
+    if (waitUntil) waitUntil(processSerially());
+    else await processSerially();
 
     await (admin as any).from("polling_cursors").update({
       last_synced_at: new Date().toISOString(),
