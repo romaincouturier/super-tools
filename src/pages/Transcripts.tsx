@@ -215,7 +215,13 @@ export default function Transcripts() {
         {[
           { label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" /> },
           { label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> },
-          { label: "En cours", value: counts.processing, icon: <Loader2 className="h-4 w-4 text-blue-600 animate-spin" /> },
+          {
+            label: "En cours",
+            value: counts.processing,
+            icon: counts.processing > 0
+              ? <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+              : <Clock className="h-4 w-4 text-blue-600" />,
+          },
         ].map(({ label, value, icon }) => (
           <Card key={label}>
             <CardContent className="p-4 flex items-center gap-3">
