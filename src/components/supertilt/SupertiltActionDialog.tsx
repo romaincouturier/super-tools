@@ -43,6 +43,8 @@ import { cn } from "@/lib/utils";
 import type { SupertiltAction } from "@/hooks/useSupertilt";
 import { fetchMissionById } from "@/services/missions";
 import MissionPages from "@/components/missions/MissionPages";
+import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
 
 interface SystemUser {
   user_id: string;
