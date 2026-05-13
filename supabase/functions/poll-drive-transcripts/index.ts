@@ -16,8 +16,7 @@ import {
   getModifiedAfterWithLookback,
   getValidDriveAccessToken,
   listDriveFolder,
-  downloadDriveFileBytes,
-  uploadToAssemblyAI,
+  uploadDriveFileToAssemblyAI,
   submitAssemblyAIJob,
   pollAssemblyAIJob,
   analyzeTranscript,
@@ -154,8 +153,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         if (!inserted) continue;
 
-        const bytes = await downloadDriveFileBytes(file.id, accessToken);
-        const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
+        const uploadUrl = await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
         const jobId = await submitAssemblyAIJob(
           uploadUrl,
           ASSEMBLYAI_API_KEY,
