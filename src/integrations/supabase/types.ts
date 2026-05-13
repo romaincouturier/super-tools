@@ -8746,6 +8746,9 @@ export type Database = {
         | "catalogue"
         | "finances"
         | "archives"
+        | "transcripts"
+        | "temoignages"
+        | "dropshipping"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -8909,6 +8912,9 @@ export const Constants = {
         "catalogue",
         "finances",
         "archives",
+        "transcripts",
+        "temoignages",
+        "dropshipping",
       ],
       notification_type: [
         "review_requested",
