@@ -170,7 +170,7 @@ const EntityMediaManager = ({
     } finally {
       setUploading(false);
     }
-  }, [sourceType, sourceId, addMedia, uploadEventMedia, queryClient]);
+  }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient]);
 
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));
