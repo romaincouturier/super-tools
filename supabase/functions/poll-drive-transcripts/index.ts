@@ -41,14 +41,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const { data: settingsRows } = await (admin as any)
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["google_drive_folder_transcripts", "slack_crm_channel"]);
+      .in("setting_key", ["google_drive_folder_transcripts", "slack_content_channel"]);
 
     const get = (k: string) =>
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
     const folderId = get("google_drive_folder_transcripts");
-    const slackChannel = get("slack_crm_channel") || "general";
+    const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     if (!folderId) {
       return new Response(
