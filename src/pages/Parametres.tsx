@@ -1,4 +1,4 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -25,6 +25,7 @@ import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 import VoiceSettings from "@/components/settings/VoiceSettings";
 import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
+import TranscriptPromptsSettings from "@/components/settings/TranscriptPromptsSettings";
 
 const Parametres = () => {
   const navigate = useNavigate();
@@ -88,6 +89,7 @@ const Parametres = () => {
             <TabsTrigger value="devis" className="flex items-center gap-2"><FileText className="h-4 w-4" />{tabLabel("devis", "Devis")}</TabsTrigger>
             <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />{tabLabel("voice", "Voix IA")}</TabsTrigger>
             {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />{tabLabel("agent", "Agent IA")}</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="transcripts" className="flex items-center gap-2"><Radio className="h-4 w-4" />Prompts Transcripts</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">
@@ -128,6 +130,7 @@ const Parametres = () => {
             <VoiceSettings />
           </TabsContent>
           {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
+          {isAdmin && <TabsContent value="transcripts"><TranscriptPromptsSettings /></TabsContent>}
         </Tabs>
       </main>
     </ModuleLayout>

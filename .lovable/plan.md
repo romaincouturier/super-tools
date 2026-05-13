@@ -1,64 +1,137 @@
+## Objectif
+
+Étendre le module **Transcripts** : depuis n'importe quel transcript `ready`, générer (1) une proposition d'article de blog et (2) une proposition de post LinkedIn via **Claude Sonnet 4.6**, avec tagging automatique sur les domaines Supertilt, puis pouvoir envoyer le résultat vers une **newsletter** existante.
+
+Tous les prompts (system + user) et la liste des tags Supertilt sont **paramétrables** depuis Paramètres → Prompts IA, sans redéploiement.
+
+---
+
+## 1. Stockage des prompts & tags (paramétrable)
+
+Nouvelle table `transcript_ai_prompts` :
 
 
-# Plan : Intégration WP-Statistics REST API
+| Colonne                | Type        | Notes                                                   |
+| ---------------------- | ----------- | ------------------------------------------------------- |
+| `id`                   | uuid PK     | &nbsp;                                                  |
+| `kind`                 | text        | `blog_article` | `linkedin_post`                        |
+| `system_prompt`        | text        | éditable                                                |
+| `user_prompt_template` | text        | supporte `{{transcript}}`, `{{title}}`, `{{tags_list}}` |
+| `model`                | text        | défaut `claude-sonnet-4-6`                              |
+| `updated_at`           | timestamptz | &nbsp;                                                  |
 
-## Contexte
 
-Tu veux afficher les statistiques de supertilt.fr (visites, pages vues, navigateurs, sources de trafic, etc.) dans l'application via l'add-on **WP-Statistics REST API**.
+RLS : lecture/écriture admin uniquement (via `is_admin()`).
 
-L'add-on WP-Statistics REST API expose les endpoints suivants sur ton WordPress :
-- `/wp-json/wp-statistics/v2/hits` — visites/pages vues
-- `/wp-json/wp-statistics/v2/visitors` — visiteurs uniques
-- `/wp-json/wp-statistics/v2/pages` — stats par page
-- `/wp-json/wp-statistics/v2/browsers` — navigateurs
-- `/wp-json/wp-statistics/v2/referrers` — sources de trafic
-- `/wp-json/wp-statistics/v2/search` — moteurs de recherche
-- `/wp-json/wp-statistics/v2/summary` — résumé global
+Tags Supertilt : stockés dans `app_settings` sous la clé `supertilt_content_tags` (JSON array). Valeurs initiales : `["organisation du travail", "intelligence collective", "intelligence artificielle", "facilitation graphique"]`.
 
-L'authentification se fait par **token** généré dans WP-Statistics → Réglages → API.
+Nouvelle table `transcript_generations` (pour persister les sorties) :
 
-## Prérequis à vérifier de ton côté
 
-1. **Vérifie que l'add-on REST API est bien installé** : dans ton WordPress, va dans WP Statistics → Add-ons et vérifie que "REST API" est actif.
-2. **Récupère le token API** : va dans WP Statistics → Réglages → onglet "API" → active le REST API → copie le token généré.
-3. **Teste un endpoint** : dans ton navigateur, essaie `https://www.supertilt.fr/wp-json/wp-statistics/v2/summary?token=TON_TOKEN` — tu devrais voir du JSON.
+| Colonne         | Type                                    |
+| --------------- | --------------------------------------- |
+| `id`            | uuid PK                                 |
+| `transcript_id` | uuid FK → transcripts                   |
+| `kind`          | text (`blog_article` / `linkedin_post`) |
+| `content`       | text                                    |
+| `tags`          | text[]                                  |
+| `model`         | text                                    |
+| `created_at`    | timestamptz                             |
+| `created_by`    | uuid                                    |
 
-## Plan d'implémentation
 
-### Étape 1 — Stocker le token dans les paramètres
+Permet de garder l'historique et d'éviter de régénérer à chaque ouverture.
 
-Ajouter dans **SettingsIntegrations.tsx** une carte "WP-Statistics" avec un champ pour le token API (clé `wp_statistics_api_token` dans `app_settings`). Même pattern que les clés WooCommerce existantes.
+---
 
-### Étape 2 — Créer l'Edge Function `wp-statistics-proxy`
+## 2. UI Paramètres → "Prompts IA Transcripts"
 
-Une edge function qui :
-- Lit le token et l'URL du store depuis `app_settings` (réutilise `woocommerce_store_url` comme base WordPress)
-- Proxie les requêtes vers les endpoints WP-Statistics en ajoutant le token
-- Retourne les données JSON avec CORS
-- Endpoints supportés : `summary`, `hits`, `visitors`, `pages`, `browsers`, `referrers`, `search`
+Nouvelle section dans `Parametres.tsx` (admin only) avec :
 
-### Étape 3 — Hook `useWpStatistics`
+- 2 cartes éditables (Article / LinkedIn) : `system_prompt` + `user_prompt_template` + sélecteur de modèle (Sonnet 4.6 par défaut, Haiku 4.5 secondaire)
+- Liste éditable des **tags Supertilt** (chips ajoutables/supprimables)
+- Auto-save debounced (pattern `useAutoSaveForm` du projet)
+- Aperçu des variables disponibles (`{{transcript}}`, `{{title}}`, `{{tags_list}}`)
 
-Un hook React qui appelle l'edge function pour récupérer les données des différents endpoints, avec React Query pour le cache.
+---
 
-### Étape 4 — Dashboard WP-Statistics
+## 3. Edge function `generate-transcript-content`
 
-Créer une nouvelle page ou un onglet dans Statistiques avec :
-- **Résumé** : visiteurs aujourd'hui, cette semaine, ce mois (endpoint `summary`)
-- **Graphique de visites** : évolution des hits sur les 30 derniers jours
-- **Top pages** : tableau des pages les plus visitées
-- **Navigateurs** : camembert des navigateurs
-- **Sources de trafic** : tableau des referrers
-- **Moteurs de recherche** : répartition des visites depuis Google, Bing, etc.
+Nouvelle edge function (JWT vérifié, admin requis) :
+
+**Input** : `{ transcript_id, kind: "blog_article" | "linkedin_post" }`
+
+**Logique** :
+
+1. Charge le transcript (`raw_text`, `title`)
+2. Charge le prompt correspondant depuis `transcript_ai_prompts`
+3. Charge la liste des tags depuis `app_settings.supertilt_content_tags`
+4. Substitue les variables dans le user_prompt
+5. Appelle l'API Anthropic Claude Sonnet 4.6 (utilise `ANTHROPIC_API_KEY` déjà présent — utilisé par AI Arena) en demandant via **tool calling** une sortie structurée :
+  ```json
+   { "content": "…markdown…", "tags": ["organisation du travail", …], "title_suggestion": "…" }
+  ```
+   Tags contraints à la liste Supertilt (enum dans le schema du tool).
+6. Insert dans `transcript_generations` et retourne le résultat.
+
+Streaming non requis (réponse one-shot, suffisamment rapide).
+
+---
+
+## 4. UI fenêtre Transcript (Sheet enrichi)
+
+`TranscriptDetail` passe en **tabs** :
+
+```
+[ Transcript ]  [ Article blog ]  [ Post LinkedIn ]
+```
+
+Onglet **Article blog** :
+
+- Si pas encore généré → bouton "Générer une proposition d'article" (loading state)
+- Si généré → éditeur (Tiptap, déjà utilisé) avec contenu, chips de tags, bouton "Régénérer"
+- Bouton **"Envoyer vers une newsletter"** → popover avec `Select` des newsletters en `draft` (réutilise pattern de `useContentCardData`). Confirme → crée une `content_card` puis l'attache via `newsletter_cards`.
+
+Onglet **Post LinkedIn** :
+
+- Identique mais pas de bouton newsletter (juste copier dans le presse-papier + tags)
+
+Les générations existantes sont rechargées depuis `transcript_generations` à l'ouverture.
+
+---
+
+## 5. Tags & domaines Supertilt
+
+- Claude reçoit la liste depuis `app_settings` et doit choisir **1 à 3 tags** parmi celle-ci (enum strict dans le tool schema → pas de hallucination)
+- Les tags choisis sont stockés sur `transcript_generations.tags` et affichés en chips
+- Quand on bascule vers une newsletter, les tags sont propagés sur la `content_card`
+
+---
+
+## 6. Étapes de livraison
+
+1. Migration DB : `transcript_ai_prompts`, `transcript_generations`, seed `app_settings.supertilt_content_tags`
+2. UI Paramètres : section "Prompts IA Transcripts" + tags éditables
+3. Edge function `generate-transcript-content` (config.toml `verify_jwt = true`)
+4. UI Transcripts : tabs + génération + envoi newsletter
+5. Hook `useTranscriptGenerations(transcriptId)`
+6. Vérifications : lint, build, test manuel d'une génération
+
+---
 
 ## Détails techniques
 
-- Le token API est stocké dans `app_settings` (champ masqué type `password`)
-- L'URL de base WordPress = `woocommerce_store_url` déjà configuré (supertilt.fr)
-- L'edge function évite d'exposer le token côté client
-- Ajout dans `supabase/config.toml` : `[functions.wp-statistics-proxy] verify_jwt = false`
+- **Modèle** : `claude-sonnet-4-6` (constante existante `CLAUDE_ADVANCED` dans `_shared/claude-models.ts`)
+- **Secret** : `ANTHROPIC_API_KEY` (déjà configuré, utilisé par AI Arena)
+- **Réutilisation** : helper d'appel Anthropic existant (cf. fonctions Arena), pattern `useAutoSaveForm`, `useEdgeFunction`
+- **Sécurité** : RLS admin sur `transcript_ai_prompts` ; `transcript_generations` accessible aux users ayant le module `transcripts`
+- **Note** : tu n'as pas (encore) collé les prompts Zapier dans la réponse — pas bloquant, on **seed** la table avec des prompts initiaux que tu pourras remplacer en 30 secondes via la nouvelle UI Paramètres dès que tu les retrouves.
 
-## Prochaine étape
+---
 
-**Avant que je code quoi que ce soit**, peux-tu vérifier les 3 points du prérequis ci-dessus ? En particulier, confirme que l'add-on REST API est bien installé et que tu as un token. Si tu me donnes le token, je le stockerai de manière sécurisée.
+## Questions ouvertes (non bloquantes)
 
+- Veux-tu un **3e onglet "Résumé enrichi"** (au-delà du résumé brut déjà stocké), ou le résumé existant suffit ? Résumé brut suffit
+- Pour le post LinkedIn : on ajoute aussi un bouton "Envoyer vers le board Contenus" (kanban) pour planification ? Sinon copier-coller manuel. ==> oui ajouter envoyer vers le board "contenus"
+
+À lancer ?
