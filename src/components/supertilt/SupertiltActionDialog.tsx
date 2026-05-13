@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Trash2, Check, X, FileText, Briefcase } from "lucide-react";
+import { CalendarDays, Trash2, Check, X, FileText, Briefcase, FolderOpen, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -43,6 +43,8 @@ import { cn } from "@/lib/utils";
 import type { SupertiltAction } from "@/hooks/useSupertilt";
 import { fetchMissionById } from "@/services/missions";
 import MissionPages from "@/components/missions/MissionPages";
+import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
+import EntityMediaManager from "@/components/media/EntityMediaManager";
 
 interface SystemUser {
   user_id: string;
@@ -71,7 +73,7 @@ export default function SupertiltActionDialog({
   const [description, setDescription] = useState("");
   const [assigned, setAssigned] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
-  const [tab, setTab] = useState<"details" | "pages">("details");
+  const [tab, setTab] = useState<"details" | "pages" | "documents" | "gallery">("details");
 
   const missionId = action?.mission_id ?? null;
 
@@ -79,7 +81,7 @@ export default function SupertiltActionDialog({
   const { data: linkedMission, isLoading: missionLoading } = useQuery({
     queryKey: ["mission-by-id", missionId],
     queryFn: () => fetchMissionById(missionId as string),
-    enabled: !!missionId && open && tab === "pages",
+    enabled: !!missionId && open && (tab === "pages" || tab === "documents" || tab === "gallery"),
   });
 
   useEffect(() => {
@@ -218,13 +220,19 @@ export default function SupertiltActionDialog({
         </DialogHeader>
 
         {hasMission ? (
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "details" | "pages")} className="flex-1 flex flex-col min-h-0">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
             <TabsList className="self-start">
               <TabsTrigger value="details" className="gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" /> Détails
               </TabsTrigger>
               <TabsTrigger value="pages" className="gap-1.5">
                 <FileText className="h-3.5 w-3.5" /> Pages
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5" /> Documents
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5" /> Galerie
               </TabsTrigger>
             </TabsList>
             <TabsContent value="details" className="mt-4">
@@ -239,6 +247,27 @@ export default function SupertiltActionDialog({
                 <div className="h-full overflow-hidden">
                   <MissionPages mission={linkedMission} />
                 </div>
+              )}
+            </TabsContent>
+            <TabsContent value="documents" className="flex-1 min-h-0 mt-4 overflow-auto">
+              {missionId && (
+                <EntityDocumentsManager
+                  entityType="mission"
+                  entityId={missionId}
+                  variant="bare"
+                  title="Documents contractuels"
+                />
+              )}
+            </TabsContent>
+            <TabsContent value="gallery" className="flex-1 min-h-0 mt-4 overflow-auto">
+              {missionId && (
+                <EntityMediaManager
+                  sourceType="mission"
+                  sourceId={missionId}
+                  sourceLabel={linkedMission?.title || action.title}
+                  variant="bare"
+                  enablePaste
+                />
               )}
             </TabsContent>
           </Tabs>
