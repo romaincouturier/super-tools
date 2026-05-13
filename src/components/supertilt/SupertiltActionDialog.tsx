@@ -73,7 +73,7 @@ export default function SupertiltActionDialog({
   const [description, setDescription] = useState("");
   const [assigned, setAssigned] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
-  const [tab, setTab] = useState<"details" | "pages">("details");
+  const [tab, setTab] = useState<"details" | "pages" | "documents" | "gallery">("details");
 
   const missionId = action?.mission_id ?? null;
 
