@@ -201,9 +201,9 @@ async function finalizeTestimonial(
   const { data: chRow } = await admin
     .from("app_settings")
     .select("setting_value")
-    .eq("setting_key", "slack_crm_channel")
+    .eq("setting_key", "slack_content_channel")
     .maybeSingle();
-  const slackChannel = (chRow?.setting_value as string) || "general";
+  const slackChannel = (chRow?.setting_value as string) || "publications-réso-sociaux";
 
   await notifySlack(
     `⭐ *Nouveau témoignage à valider*\n*Client :* ${meta.client_name || "Inconnu"} — ${meta.company || ""}\n*Prestation :* ${meta.service_type || "—"}`,
