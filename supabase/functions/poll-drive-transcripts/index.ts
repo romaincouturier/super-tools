@@ -12,6 +12,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import {
+  assertDriveFolderAccessible,
   getValidDriveAccessToken,
   listDriveFolder,
   downloadDriveFileBytes,
@@ -113,6 +114,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    await assertDriveFolderAccessible(folderId, accessToken);
 
     const { data: cursorRow } = await (admin as any)
       .from("polling_cursors")
