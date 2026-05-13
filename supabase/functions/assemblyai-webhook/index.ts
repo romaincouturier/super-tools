@@ -89,7 +89,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // Then testimonials (assemblyai_id stored in metadata JSONB)
   const { data: tmRows } = await (admin as any)
     .from("testimonials")
-    .select("id, drive_file_id, metadata")
+    .select("id, drive_file_id, drive_file_name, client_name, company, service_type, metadata")
     .eq("metadata->>assemblyai_id", jobId)
     .limit(1);
 
