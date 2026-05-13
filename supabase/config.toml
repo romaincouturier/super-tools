@@ -1,5 +1,8 @@
 project_id = "yewffntzgrdgztrwtava"
 
+[functions.assemblyai-webhook]
+verify_jwt = false
+
 [functions.cleanup-pending-email-drafts]
 verify_jwt = false
 
