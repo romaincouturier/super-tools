@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import RichTextEditor from "@/components/content/RichTextEditor";
+import { InlineEdit } from "./InlineEdit";
 import { cn } from "@/lib/utils";
 import {
   CALLOUT_PALETTE,
@@ -15,14 +16,57 @@ import type { CalloutBlockContent, CalloutColor, CalloutLevel } from "@/types/lm
 interface Props {
   content: CalloutBlockContent;
   onChange: (content: CalloutBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function CalloutBlockEditor({ content, onChange }: Props) {
+export default function CalloutBlockEditor({ content, onChange, slim }: Props) {
   const palette = CALLOUT_PALETTE[content.color] ?? CALLOUT_PALETTE.blue;
+  const level = content.level ? CALLOUT_LEVELS[content.level] : null;
+  const radius = content.border_radius ?? 8;
+
+  if (slim) {
+    return (
+      <div
+        style={{
+          background: palette.bg,
+          borderRadius: radius,
+          padding: "1rem 1.25rem",
+          borderLeft: level ? `4px solid ${palette.text}` : undefined,
+        }}
+      >
+        {/* Level icon + title */}
+        {(level || content.title !== undefined) && (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            {level && content.show_icon !== false && (
+              <span style={{ fontSize: "1.125rem" }}>{level.icon}</span>
+            )}
+            <InlineEdit
+              value={content.title || ""}
+              onChange={(v) => onChange({ ...content, title: v || null })}
+              placeholder={level?.defaultTitle ?? "Titre (optionnel)…"}
+              style={{
+                fontWeight: 700,
+                fontSize: "0.9375rem",
+                color: palette.text,
+                outline: "none",
+                flex: 1,
+              }}
+            />
+          </div>
+        )}
+        {/* Body — use RichTextEditor even in slim mode for proper inline editing */}
+        <div style={{ color: palette.text }}>
+          <RichTextEditor
+            content={content.body_html || ""}
+            onChange={(body_html) => onChange({ ...content, body_html })}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Colour palette grouped */}
       <div>
         <Label>Couleur de fond</Label>
         <div className="space-y-2 mt-1.5">
@@ -59,7 +103,6 @@ export default function CalloutBlockEditor({ content, onChange }: Props) {
         </p>
       </div>
 
-      {/* Level */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>Niveau visuel</Label>
@@ -98,7 +141,6 @@ export default function CalloutBlockEditor({ content, onChange }: Props) {
         </div>
       </div>
 
-      {/* Show icon toggle */}
       {content.level && (
         <div className="flex items-center gap-2">
           <Switch
@@ -110,7 +152,6 @@ export default function CalloutBlockEditor({ content, onChange }: Props) {
         </div>
       )}
 
-      {/* Title */}
       <div>
         <Label>Titre (optionnel)</Label>
         <Input
@@ -120,7 +161,6 @@ export default function CalloutBlockEditor({ content, onChange }: Props) {
         />
       </div>
 
-      {/* Body */}
       <div>
         <Label>Contenu</Label>
         <RichTextEditor

@@ -294,6 +294,19 @@ All colors MUST be HSL.
   --st-radius-pill: 999px;
   --st-shadow-block: 0 2px 12px rgba(16, 24, 32, 0.07);
   --st-content-width: 768px;
+  /* Block radius shorthand used by inline editors */
+  --st-br: 20px;
+}
+
+/* Inline contentEditable placeholder support */
+[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(16, 24, 32, 0.3);
+  pointer-events: none;
+}
+
+[contenteditable]:focus-visible {
+  outline: none;
 }
 
 /* Builder layout — scoped to the .builder-layout wrapper */

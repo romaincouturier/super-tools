@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -8,12 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { InlineEdit } from "./InlineEdit";
 import ButtonBlockViewer from "../viewers/ButtonBlockViewer";
 import type { ButtonBlockContent, ButtonVariant } from "@/types/lms-blocks";
 
 interface Props {
   content: ButtonBlockContent;
   onChange: (content: ButtonBlockContent) => void;
+  slim?: boolean;
 }
 
 const VARIANTS: { value: ButtonVariant; label: string }[] = [
@@ -22,7 +25,90 @@ const VARIANTS: { value: ButtonVariant; label: string }[] = [
   { value: "outline", label: "Contour" },
 ];
 
-export default function ButtonBlockEditor({ content, onChange }: Props) {
+export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
+  const [showUrlInput, setShowUrlInput] = useState(false);
+
+  if (slim) {
+    const isPrimary = content.variant === "primary";
+    const isOutline = content.variant === "outline";
+
+    const btnStyle: React.CSSProperties = isPrimary
+      ? {
+          background: "var(--st-ink)",
+          color: "#fff",
+          border: "none",
+          borderRadius: 999,
+          padding: "0.625rem 1.5rem",
+          fontWeight: 600,
+          fontSize: "0.9375rem",
+          cursor: "text",
+          display: "inline-block",
+        }
+      : isOutline
+      ? {
+          background: "transparent",
+          color: "var(--st-ink)",
+          border: "1px solid rgba(16,24,32,0.25)",
+          borderRadius: 999,
+          padding: "0.625rem 1.5rem",
+          fontWeight: 500,
+          fontSize: "0.9375rem",
+          cursor: "text",
+          display: "inline-block",
+        }
+      : {
+          background: "var(--st-surface)",
+          color: "var(--st-ink)",
+          border: "none",
+          borderRadius: 999,
+          padding: "0.625rem 1.5rem",
+          fontWeight: 500,
+          fontSize: "0.9375rem",
+          cursor: "text",
+          display: "inline-block",
+        };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.625rem" }}>
+        <InlineEdit
+          value={content.label}
+          onChange={(v) => onChange({ ...content, label: v })}
+          placeholder="Libellé du bouton"
+          style={btnStyle}
+        />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {showUrlInput ? (
+            <Input
+              autoFocus
+              type="url"
+              value={content.url}
+              onChange={(e) => onChange({ ...content, url: e.target.value })}
+              placeholder="https://…"
+              className="text-xs h-7 w-56"
+              onBlur={() => setShowUrlInput(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setShowUrlInput(true)}
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--st-ink-50)",
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                textDecoration: "underline",
+                textUnderlineOffset: 2,
+              }}
+            >
+              {content.url || "Ajouter une URL…"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Form mode
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

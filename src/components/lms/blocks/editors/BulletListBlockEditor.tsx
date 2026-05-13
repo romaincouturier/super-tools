@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X, ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BULLET_CHARS } from "@/types/lms-blocks";
+import { InlineEdit } from "./InlineEdit";
 import type { BulletListBlockContent, BulletStyle, BulletSpacing } from "@/types/lms-blocks";
 
 const BULLET_STYLES: { value: BulletStyle; label: string }[] = [
@@ -36,19 +38,29 @@ const SPACING_OPTIONS: { value: BulletSpacing; label: string }[] = [
 interface Props {
   content: BulletListBlockContent;
   onChange: (content: BulletListBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function BulletListBlockEditor({ content, onChange }: Props) {
+export default function BulletListBlockEditor({ content, onChange, slim }: Props) {
   const items = content.items || [""];
+  const itemRefs = useRef<(HTMLElement | null)[]>([]);
+  const bulletStyle = content.bullet_style ?? "round";
+  const bulletChar = BULLET_CHARS[bulletStyle];
+  const bulletColor = content.bullet_color || "var(--st-ink)";
 
   const setItem = (idx: number, value: string) =>
     onChange({ ...content, items: items.map((it, i) => (i === idx ? value : it)) });
 
-  const addItem = () =>
-    onChange({ ...content, items: [...items, ""] });
+  const addItem = (afterIndex?: number) => {
+    const next = [...items];
+    const idx = afterIndex !== undefined ? afterIndex + 1 : next.length;
+    next.splice(idx, 0, "");
+    onChange({ ...content, items: next });
+    setTimeout(() => itemRefs.current[idx]?.focus(), 10);
+  };
 
   const removeItem = (idx: number) =>
-    onChange({ ...content, items: items.filter((_, i) => i !== idx) });
+    onChange({ ...content, items: items.length > 1 ? items.filter((_, i) => i !== idx) : items });
 
   const moveItem = (idx: number, dir: -1 | 1) => {
     const next = idx + dir;
@@ -58,12 +70,88 @@ export default function BulletListBlockEditor({ content, onChange }: Props) {
     onChange({ ...content, items: arr });
   };
 
-  const bulletStyle = content.bullet_style ?? "round";
-  const bulletChar = BULLET_CHARS[bulletStyle];
+  if (slim) {
+    const gapMap = { compact: "0.25rem", normal: "0.5rem", relaxed: "0.875rem" };
+    const gap = gapMap[content.item_spacing ?? "normal"];
 
+    return (
+      <div>
+        {content.title && (
+          <InlineEdit
+            value={content.title || ""}
+            onChange={(v) => onChange({ ...content, title: v || null })}
+            placeholder="Titre (optionnel)"
+            style={{
+              fontWeight: 700,
+              fontSize: "1rem",
+              color: "var(--st-ink)",
+              outline: "none",
+              marginBottom: "0.75rem",
+              display: "block",
+            }}
+          />
+        )}
+        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap }}>
+          {items.map((item, i) => (
+            <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem" }}>
+              <span
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "1em",
+                  color: bulletColor,
+                  flexShrink: 0,
+                  lineHeight: "1.5",
+                  minWidth: "1em",
+                  textAlign: "center",
+                }}
+              >
+                {bulletChar}
+              </span>
+              <InlineEdit
+                value={item}
+                onChange={(v) => setItem(i, v)}
+                placeholder="Élément de la liste"
+                onEnter={() => addItem(i)}
+                onEmptyBackspace={() => {
+                  if (items.length > 1) {
+                    removeItem(i);
+                    setTimeout(() => itemRefs.current[Math.max(0, i - 1)]?.focus(), 10);
+                  }
+                }}
+                style={{ flex: 1, color: content.text_color || "var(--st-ink)", outline: "none", lineHeight: "1.5" }}
+              />
+              <button
+                onClick={() => items.length > 1 && removeItem(i)}
+                style={{
+                  opacity: 0.4, fontSize: 16, lineHeight: 1, padding: "1px 5px",
+                  borderRadius: 4, border: "none", background: "transparent",
+                  cursor: items.length > 1 ? "pointer" : "default", flexShrink: 0,
+                  color: "var(--st-ink)",
+                }}
+                aria-label="Supprimer"
+              >×</button>
+            </li>
+          ))}
+        </ul>
+        <button
+          onClick={() => addItem()}
+          style={{
+            marginTop: "0.75rem",
+            display: "flex", alignItems: "center", gap: "0.375rem",
+            fontSize: "0.8125rem", fontWeight: 500,
+            color: "var(--st-ink-60)", cursor: "pointer",
+            border: "none", background: "transparent", padding: "0.25rem 0",
+          }}
+        >
+          <Plus size={14} /> Ajouter un élément
+        </button>
+      </div>
+    );
+  }
+
+  // Form mode
   return (
     <div className="space-y-4">
-      {/* Title */}
       <div>
         <Label>Titre (optionnel)</Label>
         <Input
@@ -73,7 +161,6 @@ export default function BulletListBlockEditor({ content, onChange }: Props) {
         />
       </div>
 
-      {/* Style row */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Style de puce</Label>
@@ -109,7 +196,6 @@ export default function BulletListBlockEditor({ content, onChange }: Props) {
         </div>
       </div>
 
-      {/* Colour row */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Couleur des puces</Label>
@@ -158,7 +244,6 @@ export default function BulletListBlockEditor({ content, onChange }: Props) {
         </div>
       </div>
 
-      {/* Items */}
       <div className="space-y-2">
         <Label>Éléments</Label>
         {items.map((item, idx) => (
@@ -186,7 +271,7 @@ export default function BulletListBlockEditor({ content, onChange }: Props) {
             </div>
           </div>
         ))}
-        <Button type="button" variant="outline" size="sm" onClick={addItem}>
+        <Button type="button" variant="outline" size="sm" onClick={() => addItem()}>
           <Plus className="h-3.5 w-3.5 mr-1" />Ajouter un élément
         </Button>
       </div>

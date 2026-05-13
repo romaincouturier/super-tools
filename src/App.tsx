@@ -79,6 +79,7 @@ const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const AiTools = lazy(() => import("./pages/AiTools"));
 const LmsCourses = lazy(() => import("./pages/LmsCourses"));
 const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
+const LmsCourseEntry = lazy(() => import("./pages/LmsCourseEntry"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const LmsDeposits = lazy(() => import("./pages/LmsDeposits"));
 const LessonBuilderPage = lazy(() => import("./pages/LessonBuilderPage"));
@@ -177,7 +178,8 @@ const App = () => (
               {/* LMS (M7) */}
               <Route path="/lms" element={<LmsCourses />} />
               <Route path="/lms/deposits" element={<LmsDeposits />} />
-              <Route path="/lms/:courseId" element={<LmsCourseBuilder />} />
+              <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
+              <Route path="/lms/:courseId/settings" element={<LmsCourseBuilder />} />
               <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
               <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
               {/* Failed emails */}
