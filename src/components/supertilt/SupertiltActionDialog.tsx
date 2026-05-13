@@ -81,7 +81,7 @@ export default function SupertiltActionDialog({
   const { data: linkedMission, isLoading: missionLoading } = useQuery({
     queryKey: ["mission-by-id", missionId],
     queryFn: () => fetchMissionById(missionId as string),
-    enabled: !!missionId && open && tab === "pages",
+    enabled: !!missionId && open && (tab === "pages" || tab === "documents" || tab === "gallery"),
   });
 
   useEffect(() => {
