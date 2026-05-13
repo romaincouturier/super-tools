@@ -5,9 +5,12 @@ import type { RowBlockContent, RowColumnCount } from "@/types/lms-blocks";
 interface Props {
   content: RowBlockContent;
   onChange: (content: RowBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function RowBlockEditor({ content, onChange }: Props) {
+export default function RowBlockEditor({ content, onChange, slim }: Props) {
+  if (slim) return null;
+
   return (
     <div className="space-y-2">
       <Label>Nombre de colonnes</Label>

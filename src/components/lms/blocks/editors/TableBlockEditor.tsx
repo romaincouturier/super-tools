@@ -18,9 +18,10 @@ import type { TableBlockContent } from "@/types/lms-blocks";
 interface Props {
   content: TableBlockContent;
   onChange: (content: TableBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function TableBlockEditor({ content, onChange }: Props) {
+export default function TableBlockEditor({ content, onChange, slim }: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -55,6 +56,14 @@ export default function TableBlockEditor({ content, onChange }: Props) {
   }, [content.html, editor]);
 
   if (!editor) return null;
+
+  if (slim) {
+    return (
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--st-ink-08)" }}>
+        <EditorContent editor={editor} />
+      </div>
+    );
+  }
 
   const isInTable = editor.isActive("table");
 

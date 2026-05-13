@@ -5,9 +5,20 @@ import type { AssignmentBlockContent } from "@/types/lms-blocks";
 interface Props {
   content: AssignmentBlockContent;
   onChange: (content: AssignmentBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function AssignmentBlockEditor({ content, onChange }: Props) {
+export default function AssignmentBlockEditor({ content, onChange, slim }: Props) {
+  if (slim) {
+    return (
+      <RichTextEditor
+        content={content.instructions_html || ""}
+        onChange={(instructions_html) => onChange({ ...content, instructions_html })}
+        placeholder="Instructions du devoir…"
+      />
+    );
+  }
+
   return (
     <div className="space-y-2">
       <Label>Instructions du devoir</Label>

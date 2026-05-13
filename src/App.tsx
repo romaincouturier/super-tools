@@ -179,7 +179,6 @@ const App = () => (
               <Route path="/lms" element={<LmsCourses />} />
               <Route path="/lms/deposits" element={<LmsDeposits />} />
               <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
-              <Route path="/lms/:courseId/settings" element={<LmsCourseBuilder />} />
               <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
               <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
               {/* Failed emails */}

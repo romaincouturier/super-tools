@@ -5,9 +5,12 @@ import type { ContainerBlockContent, ContainerMaxWidth } from "@/types/lms-block
 interface Props {
   content: ContainerBlockContent;
   onChange: (content: ContainerBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function ContainerBlockEditor({ content, onChange }: Props) {
+export default function ContainerBlockEditor({ content, onChange, slim }: Props) {
+  if (slim) return null;
+
   return (
     <div className="space-y-2">
       <Label>Largeur maximale</Label>

@@ -4,6 +4,7 @@ import type { TextBlockContent } from "@/types/lms-blocks";
 interface Props {
   content: TextBlockContent;
   onChange: (content: TextBlockContent) => void;
+  slim?: boolean;
 }
 
 export default function TextBlockEditor({ content, onChange }: Props) {
