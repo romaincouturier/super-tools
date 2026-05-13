@@ -177,7 +177,7 @@ export default function Temoignages() {
     <ModuleLayout>
       <div className="flex items-center justify-between mb-2">
         <PageHeader title="Témoignages" />
-        <PollingIndicator source="drive_testimonials" label="Google Drive — Témoignages" />
+        <PollingIndicator source="drive_testimonials" label="Google Drive — Témoignages" functionName="poll-drive-testimonials" />
       </div>
 
       <Tabs defaultValue="pending_review">
