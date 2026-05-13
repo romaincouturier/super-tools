@@ -179,7 +179,7 @@ function Section({
           >
             <span
               className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0"
-              style={{ background: "var(--st-ink-soft)" }}
+              style={{ background: "var(--st-surface)" }}
             >
               <Icon size={14} />
             </span>

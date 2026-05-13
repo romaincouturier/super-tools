@@ -1,42 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, ArrowLeft, Eye, ArrowRight } from "lucide-react";
-import { useUpdateLesson, LmsLesson } from "@/hooks/useLms";
+import { LmsLesson } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   lesson: LmsLesson;
   courseId: string;
+  titleValue: string;
+  onTitleChange: (value: string) => void;
   onMenuToggle: () => void;
 }
 
-export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props) {
+export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleChange, onMenuToggle }: Props) {
   const navigate = useNavigate();
-  const updateLesson = useUpdateLesson();
   const { toast } = useToast();
-  const [title, setTitle] = useState(lesson.title);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setTitle(lesson.title);
-  }, [lesson.title]);
-
-  const handleTitleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setTitle(value);
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => {
-        if (value.trim() && value.trim() !== lesson.title) {
-          updateLesson.mutate({ id: lesson.id, title: value.trim() });
-        }
-      }, 1500);
-    },
-    [lesson.id, lesson.title, updateLesson],
-  );
-
-  const isPublished = (lesson as { status?: string }).status === "published";
 
   return (
     <header
@@ -68,12 +45,11 @@ export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props)
         style={{ background: "rgba(16,24,32,0.1)" }}
       />
 
-      {/* Title — centred */}
+      {/* Title — centred, shared state */}
       <div className="flex-1 flex justify-center min-w-0 px-2">
         <input
-          ref={inputRef}
-          value={title}
-          onChange={handleTitleChange}
+          value={titleValue}
+          onChange={(e) => onTitleChange(e.target.value)}
           className="w-full max-w-md text-center bg-transparent border-none outline-none truncate"
           style={{ color: "var(--st-ink)", fontFamily: "inherit", fontSize: "1.25rem", fontWeight: 600 }}
           aria-label="Titre de la leçon"
@@ -82,7 +58,7 @@ export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props)
 
       {/* Status + actions */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Status badge */}
+        {/* Status badge — always Brouillon (no status column in DB yet) */}
         <span
           className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border"
           style={{
@@ -91,18 +67,13 @@ export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props)
             fontFamily: "inherit",
           }}
         >
-          <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{ background: isPublished ? "#22c55e" : "var(--st-ink-muted)" }}
-          />
-          {isPublished ? "Publié" : "Brouillon"}
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--st-ink-muted)" }} />
+          Brouillon
         </span>
 
         {/* Preview */}
         <button
-          onClick={() =>
-            toast({ title: "Aperçu bientôt disponible" })
-          }
+          onClick={() => toast({ title: "Aperçu bientôt disponible" })}
           className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
           style={{
             color: "var(--st-ink)",
@@ -116,9 +87,7 @@ export default function BuilderTopbar({ lesson, courseId, onMenuToggle }: Props)
 
         {/* Publish */}
         <button
-          onClick={() =>
-            toast({ title: "Publication bientôt disponible" })
-          }
+          onClick={() => toast({ title: "Publication bientôt disponible" })}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-full transition-all hover:-translate-y-px active:translate-y-0"
           style={{
             background: "var(--st-ink)",

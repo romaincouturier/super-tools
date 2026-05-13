@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { useLesson, useCourse, useCourseModules, useModuleLessons } from "@/hooks/useLms";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom";
+import { useLesson, useCourse, useCourseModules, useModuleLessons, useUpdateLesson } from "@/hooks/useLms";
 import BuilderTopbar from "@/components/lms/builder/BuilderTopbar";
 import BuilderSidebar from "@/components/lms/builder/BuilderSidebar";
 import BuilderCanvas from "@/components/lms/builder/BuilderCanvas";
@@ -16,14 +16,35 @@ const DEFAULT_TWEAKS: TweakValues = {
 
 export default function LessonBuilderPage() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
-  const navigate = useNavigate();
 
   const { data: lesson, isLoading: lessonLoading } = useLesson(lessonId);
   const { data: course } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
+  const updateLesson = useUpdateLesson();
 
   const [tweaks, setTweaks] = useState<TweakValues>(DEFAULT_TWEAKS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Single source of truth for the title — shared by topbar input and canvas H1
+  const [titleValue, setTitleValue] = useState("");
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (lesson?.title) setTitleValue(lesson.title);
+  }, [lesson?.title]);
+
+  const handleTitleChange = useCallback(
+    (value: string) => {
+      setTitleValue(value);
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => {
+        if (lesson && value.trim() && value.trim() !== lesson.title) {
+          updateLesson.mutate({ id: lesson.id, title: value.trim() });
+        }
+      }, 1500);
+    },
+    [lesson, updateLesson],
+  );
 
   // Find the module this lesson belongs to
   const lessonModule = modules.find((m) => m.id === lesson?.module_id);
@@ -49,7 +70,6 @@ export default function LessonBuilderPage() {
       style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}
     >
       {/* Sidebar — fixed left on desktop, drawer overlay on mobile */}
-      {/* Desktop */}
       <div
         className="hidden lg:flex flex-col shrink-0 border-r"
         style={{ width: 288, borderColor: "rgba(16,24,32,0.08)" }}
@@ -86,6 +106,8 @@ export default function LessonBuilderPage() {
         <BuilderTopbar
           lesson={lesson}
           courseId={courseId}
+          titleValue={titleValue}
+          onTitleChange={handleTitleChange}
           onMenuToggle={() => setSidebarOpen((v) => !v)}
         />
 
@@ -97,6 +119,8 @@ export default function LessonBuilderPage() {
             tweaks={tweaks}
             moduleName={lessonModule?.title}
             sequenceNumber={sequenceNumber}
+            titleValue={titleValue}
+            onTitleChange={handleTitleChange}
           />
         </div>
       </div>

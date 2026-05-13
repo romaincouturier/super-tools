@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, CheckCircle2, Circle, User } from "lucide-react";
+import { ChevronDown, ChevronRight, Circle, User } from "lucide-react";
 import { useCourseModules, useModuleLessons, LmsModule, LmsLesson } from "@/hooks/useLms";
 
 interface Props {
@@ -172,23 +172,21 @@ function LessonItem({
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const isPublished = (lesson as { status?: string }).status === "published";
+  const [hovered, setHovered] = useState(false);
 
   return (
     <button
       onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className="w-full flex items-center gap-2.5 pl-11 pr-4 py-2 text-left transition-all relative"
       style={{
         fontFamily: "inherit",
-        background: isActive ? "var(--st-yellow-soft)" : "transparent",
+        background: isActive ? "var(--st-yellow-soft)" : hovered ? "rgba(16,24,32,0.04)" : "transparent",
         borderLeft: isActive ? "3px solid var(--st-yellow)" : "3px solid transparent",
       }}
     >
-      {isPublished ? (
-        <CheckCircle2 size={13} style={{ color: isActive ? "var(--st-ink)" : "var(--st-ink-muted)", shrink: 0 }} className="shrink-0" />
-      ) : (
-        <Circle size={13} style={{ color: isActive ? "var(--st-ink)" : "var(--st-ink-muted)" }} className="shrink-0" />
-      )}
+      <Circle size={13} style={{ color: isActive ? "var(--st-ink)" : "var(--st-ink-muted)" }} className="shrink-0" />
       <span
         className="text-xs leading-snug truncate flex-1"
         style={{

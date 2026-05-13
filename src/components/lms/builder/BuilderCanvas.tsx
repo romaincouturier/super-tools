@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useMemo } from "react";
-import { useUpdateLesson, LmsLesson } from "@/hooks/useLms";
+import { LmsLesson } from "@/hooks/useLms";
 import {
   useLessonBlocks,
   useCreateLessonBlock,
@@ -121,16 +121,17 @@ interface Props {
   tweaks: TweakValues;
   moduleName?: string;
   sequenceNumber?: number;
+  titleValue: string;
+  onTitleChange: (value: string) => void;
 }
 
-export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, sequenceNumber }: Props) {
+export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, sequenceNumber, titleValue, onTitleChange }: Props) {
   const { data: blocks = [], isLoading } = useLessonBlocks(lesson.id);
   const createBlock = useCreateLessonBlock(lesson.id);
   const updateBlock = useUpdateLessonBlock(lesson.id);
   const deleteBlock = useDeleteLessonBlock(lesson.id);
   const reorderBlocks = useReorderLessonBlocks(lesson.id);
   const duplicateBlock = useDuplicateLessonBlock(lesson.id);
-  const updateLesson = useUpdateLesson();
   const { toast } = useToast();
 
   const tree = useMemo(() => buildBlockTree(blocks), [blocks]);
@@ -151,24 +152,6 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   }, [blocks]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
-  // Title editing
-  const titleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [titleValue, setTitleValue] = useState(lesson.title);
-
-  const handleTitleChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const value = e.target.value;
-      setTitleValue(value);
-      if (titleTimer.current) clearTimeout(titleTimer.current);
-      titleTimer.current = setTimeout(() => {
-        if (value.trim() && value.trim() !== lesson.title) {
-          updateLesson.mutate({ id: lesson.id, title: value.trim() });
-        }
-      }, 1500);
-    },
-    [lesson.id, lesson.title, updateLesson],
-  );
 
   const handleAdd = useCallback(
     (type: LessonBlockType, parentBlockId: string | null = null) => {
@@ -268,10 +251,11 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
           )}
         </div>
 
-        {/* H1 — editable textarea that auto-resizes */}
+        {/* H1 — editable textarea that auto-resizes, state lifted to LessonBuilderPage */}
         <textarea
           value={titleValue}
-          onChange={handleTitleChange}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Titre de la leçon…"
           rows={1}
           className="w-full resize-none bg-transparent border-none outline-none mb-8 leading-tight overflow-hidden"
           style={{
@@ -298,7 +282,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
           <EmptyState onInsert={(type) => handleAdd(type, null)} />
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <RootDropzone hasChildren={tree.length > 0}>
+            <RootDropzone hasChildren={tree.length > 0} density={density}>
               <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
                 {tree.map((node, idx) => (
                   <BuilderBlockWrapper
@@ -388,16 +372,23 @@ function Chip({ icon, children }: { icon: React.ReactNode; children: React.React
   );
 }
 
-function RootDropzone({ hasChildren, children }: { hasChildren: boolean; children: React.ReactNode }) {
+const DENSITY_GAP: Record<string, string> = {
+  compact: "space-y-1",
+  normal: "space-y-3",
+  spacious: "space-y-5",
+};
+
+function RootDropzone({ hasChildren, density, children }: { hasChildren: boolean; density: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({
     id: dropzoneId(null),
     data: { type: "dropzone", parentId: null },
   });
+  const gapClass = DENSITY_GAP[density] ?? "space-y-3";
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "space-y-2",
+        gapClass,
         !hasChildren && "min-h-[80px] rounded-lg",
         isOver && !hasChildren && "border-2 border-dashed border-primary/50 bg-primary/5",
       )}

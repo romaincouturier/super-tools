@@ -54,7 +54,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
             </p>
             <button
               onClick={() => setOpen(false)}
-              className="w-6 h-6 flex items-center justify-center rounded-full transition-colors hover:bg-black/8"
+              className="w-6 h-6 flex items-center justify-center rounded-full transition-colors hover:bg-black/[0.08]"
               style={{ color: "var(--st-ink-muted)" }}
             >
               <X size={14} />
