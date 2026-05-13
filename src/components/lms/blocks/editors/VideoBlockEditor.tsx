@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
-import { Upload, Sparkles } from "lucide-react";
+import { Upload, Sparkles, Video as VideoIcon, X, Link as LinkIcon } from "lucide-react";
 import { uploadLmsVideo } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -24,11 +24,14 @@ interface Props {
   lessonId: string;
   content: VideoBlockContent;
   onChange: (content: VideoBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function VideoBlockEditor({ lessonId, content, onChange }: Props) {
+export default function VideoBlockEditor({ lessonId, content, onChange, slim }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [urlMode, setUrlMode] = useState(false);
   const { toast } = useToast();
 
   const isStyled = content.display_style === "styled";
@@ -50,9 +53,172 @@ export default function VideoBlockEditor({ lessonId, content, onChange }: Props)
     onChange({ ...content, ...SUPERTILT_PRESET });
   };
 
+  if (slim) {
+    if (content.url) {
+      return (
+        <div>
+          <div style={{ position: "relative" }}>
+            <VideoBlockViewer content={content} />
+            <button
+              onClick={() => onChange({ ...content, url: null })}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "rgba(16,24,32,0.6)",
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+              }}
+              aria-label="Supprimer la vidéo"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (urlMode) {
+      return (
+        <div
+          style={{
+            borderRadius: "var(--st-br, 20px)",
+            border: "2px dashed rgba(16,24,32,0.18)",
+            padding: "1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+          }}
+        >
+          <Input
+            autoFocus
+            value={content.url || ""}
+            onChange={(e) => onChange({ ...content, url: e.target.value || null })}
+            placeholder="https://youtube.com/… ou URL directe d'une vidéo"
+          />
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <Button size="sm" onClick={() => setUrlMode(false)} disabled={!content.url}>
+              Valider
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setUrlMode(false)}>
+              Annuler
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const f = e.dataTransfer.files[0];
+          if (f?.type.startsWith("video/")) handleUpload(f);
+        }}
+        style={{
+          borderRadius: "var(--st-br, 20px)",
+          border: `2px dashed ${dragOver ? "rgba(16,24,32,0.35)" : "rgba(16,24,32,0.18)"}`,
+          padding: "2.5rem 2rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "1rem",
+          background: dragOver ? "var(--st-ink-06)" : "transparent",
+          transition: "all 120ms",
+        }}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="video/*"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleUpload(f);
+            e.target.value = "";
+          }}
+        />
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            background: "var(--st-ink-06)",
+            display: "grid",
+            placeItems: "center",
+          }}
+        >
+          {uploading ? (
+            <Spinner className="h-5 w-5" />
+          ) : (
+            <VideoIcon size={20} style={{ color: "var(--st-ink-50)" }} />
+          )}
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 500, color: "var(--st-ink)" }}>
+            {uploading ? "Upload en cours…" : "Déposer une vidéo ou importer"}
+          </p>
+          <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "var(--st-ink-50)" }}>
+            MP4, WebM, MOV
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: "0.625rem" }}>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              padding: "0.5rem 1rem",
+              borderRadius: 999,
+              border: "1px solid rgba(16,24,32,0.15)",
+              background: "#fff",
+              cursor: "pointer",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              color: "var(--st-ink)",
+            }}
+          >
+            <Upload size={14} />
+            Importer
+          </button>
+          <button
+            onClick={() => setUrlMode(true)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              padding: "0.5rem 1rem",
+              borderRadius: 999,
+              border: "1px solid rgba(16,24,32,0.15)",
+              background: "#fff",
+              cursor: "pointer",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              color: "var(--st-ink)",
+            }}
+          >
+            <LinkIcon size={14} />
+            Coller une URL
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Form mode
   return (
     <div className="space-y-4">
-      {/* URL + upload */}
       <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
         <div className="flex-1">
           <Label>URL de la vidéo</Label>
@@ -81,7 +247,6 @@ export default function VideoBlockEditor({ lessonId, content, onChange }: Props)
         </div>
       </div>
 
-      {/* Style options */}
       <div className="rounded-lg border p-3 space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Style d'affichage</Label>
@@ -168,7 +333,6 @@ export default function VideoBlockEditor({ lessonId, content, onChange }: Props)
         )}
       </div>
 
-      {/* Live preview */}
       {content.url && <VideoBlockViewer content={content} />}
     </div>
   );

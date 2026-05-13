@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye, ArrowRight } from "lucide-react";
+import { Menu, ArrowLeft, Eye, ArrowRight, Settings } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,7 +31,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
 
       {/* Back */}
       <button
-        onClick={() => navigate(`/lms/${courseId}`)}
+        onClick={() => navigate(`/lms/${courseId}/settings`)}
         className="hidden lg:flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70 shrink-0"
         style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
       >
@@ -96,6 +96,17 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--st-ink-muted)" }} />
           Brouillon
         </span>
+
+        {/* Settings */}
+        <button
+          onClick={() => navigate(`/lms/${courseId}/settings`)}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full transition-all hover:bg-black/5"
+          style={{ color: "var(--st-ink-60)" }}
+          title="Paramètres du cours"
+          aria-label="Paramètres du cours"
+        >
+          <Settings size={16} />
+        </button>
 
         {/* Preview */}
         <button

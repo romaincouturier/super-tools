@@ -206,6 +206,7 @@ export default function BlockEditCard({
             courseId={courseId}
             content={content}
             onChange={handleContentChange}
+            slim={slim}
           />
         ) : (
           <p className="text-sm text-muted-foreground italic">
@@ -226,12 +227,14 @@ function BlockEditorBody({
   courseId,
   content,
   onChange,
+  slim,
 }: {
   block: LessonBlock;
   lessonId: string;
   courseId?: string;
   content: LessonBlockContent;
   onChange: (content: LessonBlockContent) => void;
+  slim?: boolean;
 }) {
   switch (block.type) {
     case "text":
@@ -254,6 +257,7 @@ function BlockEditorBody({
           lessonId={lessonId}
           content={content as VideoBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "image":
@@ -262,6 +266,7 @@ function BlockEditorBody({
           lessonId={lessonId}
           content={content as ImageBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "file":
@@ -270,6 +275,7 @@ function BlockEditorBody({
           lessonId={lessonId}
           content={content as FileBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "quiz":
@@ -292,6 +298,7 @@ function BlockEditorBody({
         <CalloutBlockEditor
           content={content as CalloutBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "key_points":
@@ -299,6 +306,7 @@ function BlockEditorBody({
         <KeyPointsBlockEditor
           content={content as KeyPointsBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "checklist":
@@ -306,6 +314,7 @@ function BlockEditorBody({
         <ChecklistBlockEditor
           content={content as ChecklistBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "bullet_list":
@@ -313,6 +322,7 @@ function BlockEditorBody({
         <BulletListBlockEditor
           content={content as BulletListBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "button":
@@ -320,6 +330,7 @@ function BlockEditorBody({
         <ButtonBlockEditor
           content={content as ButtonBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "exercise":
@@ -348,6 +359,7 @@ function BlockEditorBody({
         <SectionBlockEditor
           content={content as SectionBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "row":
@@ -369,6 +381,7 @@ function BlockEditorBody({
         <DividerBlockEditor
           content={content as DividerBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "spacer":
@@ -376,6 +389,7 @@ function BlockEditorBody({
         <SpacerBlockEditor
           content={content as SpacerBlockContent}
           onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     default:
