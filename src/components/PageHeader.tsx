@@ -4,7 +4,7 @@ import { ArrowLeft, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PageHeaderProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
   subtitle?: string;
   backTo?: string;
