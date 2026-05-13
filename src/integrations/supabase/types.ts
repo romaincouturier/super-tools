@@ -7925,6 +7925,7 @@ export type Database = {
           title_suggestion: string | null
           transcript_id: string
           updated_at: string
+          variants: Json
         }
         Insert: {
           content?: string
@@ -7937,6 +7938,7 @@ export type Database = {
           title_suggestion?: string | null
           transcript_id: string
           updated_at?: string
+          variants?: Json
         }
         Update: {
           content?: string
@@ -7949,6 +7951,7 @@ export type Database = {
           title_suggestion?: string | null
           transcript_id?: string
           updated_at?: string
+          variants?: Json
         }
         Relationships: [
           {
