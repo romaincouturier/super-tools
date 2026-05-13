@@ -1,4 +1,4 @@
-import { Copy } from "lucide-react";
+import { Copy, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -124,12 +124,24 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="drive-folder-transcripts">ID du dossier Transcripts</Label>
-            <Input
-              id="drive-folder-transcripts"
-              value={settings.google_drive_folder_transcripts || ""}
-              onChange={(e) => updateSetting("google_drive_folder_transcripts", e.target.value)}
-              placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="drive-folder-transcripts"
+                value={settings.google_drive_folder_transcripts || ""}
+                onChange={(e) => updateSetting("google_drive_folder_transcripts", e.target.value)}
+                placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={!settings.google_drive_folder_transcripts}
+                onClick={() => window.open(`https://drive.google.com/drive/folders/${settings.google_drive_folder_transcripts}`, "_blank", "noopener,noreferrer")}
+                title="Ouvrir dans Google Drive"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
               Ouvrez le dossier dans Google Drive → copiez l'ID depuis l'URL <code>drive.google.com/drive/folders/<strong>ID</strong></code>.
             </p>
@@ -137,12 +149,24 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
           <Separator />
           <div className="space-y-2">
             <Label htmlFor="drive-folder-testimonials">ID du dossier Témoignages</Label>
-            <Input
-              id="drive-folder-testimonials"
-              value={settings.google_drive_folder_testimonials || ""}
-              onChange={(e) => updateSetting("google_drive_folder_testimonials", e.target.value)}
-              placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="drive-folder-testimonials"
+                value={settings.google_drive_folder_testimonials || ""}
+                onChange={(e) => updateSetting("google_drive_folder_testimonials", e.target.value)}
+                placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={!settings.google_drive_folder_testimonials}
+                onClick={() => window.open(`https://drive.google.com/drive/folders/${settings.google_drive_folder_testimonials}`, "_blank", "noopener,noreferrer")}
+                title="Ouvrir dans Google Drive"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
               Dossier contenant les vidéos de témoignages clients. Chaque nouveau fichier <code>.mp4</code> / <code>.mov</code> sera transcrit et indexé automatiquement.
             </p>
