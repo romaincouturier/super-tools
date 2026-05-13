@@ -168,9 +168,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return !existing || existing.status === "error" || (existing.status === "processing" && !existing.assemblyai_id);
     }).slice(0, 5);
 
-    const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void } })
-      .EdgeRuntime?.waitUntil;
-    void waitUntil; // currently unused; reserved for future background work
+
 
     // Fan-out: each file is submitted by its OWN edge function execution
     // (`submit-drive-transcript`) so a slow streaming upload of a very
