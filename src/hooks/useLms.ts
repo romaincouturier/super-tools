@@ -193,6 +193,24 @@ export function useCourse(id: string | undefined) {
   });
 }
 
+export function useLesson(id: string | undefined) {
+  return useQuery({
+    queryKey: ["lms-lesson", id],
+    enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: "always",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lms_lessons")
+        .select("*")
+        .eq("id", id!)
+        .single();
+      if (error) throw error;
+      return data as LmsLesson;
+    },
+  });
+}
+
 export function useCourseModules(courseId: string | undefined) {
   return useQuery({
     queryKey: ["lms-modules", courseId],
