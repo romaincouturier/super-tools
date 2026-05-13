@@ -8,6 +8,7 @@ import {
   useRenameMedia,
   useUpdateMediaTranscript,
   useUploadEventMedia,
+  useUploadMissionMedia,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
