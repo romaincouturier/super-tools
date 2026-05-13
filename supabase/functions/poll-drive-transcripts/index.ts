@@ -31,12 +31,15 @@ const ASSEMBLYAI_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/assemblyai-webhook`
 
 async function submitDriveTranscriptFile(
   admin: any,
-  file: { id: string; name: string },
+  file: { id: string; name: string; size?: string },
   transcriptId: string,
   accessToken: string,
 ): Promise<void> {
   try {
-    const uploadUrl = await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
+    const sizeBytes = Number(file.size ?? 0);
+    const uploadUrl = sizeBytes > 100 * 1024 * 1024
+      ? `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&access_token=${encodeURIComponent(accessToken)}`
+      : await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
     const jobId = await submitAssemblyAIJob(
       uploadUrl,
       ASSEMBLYAI_API_KEY,
