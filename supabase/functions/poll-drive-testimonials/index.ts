@@ -134,6 +134,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       mimeTypePrefix: "video/",
     });
 
+    // Debug: also list without filters to compare
+    const { files: allFiles } = await listDriveFolder(folderId, accessToken, {});
+    console.log(`[poll-drive-testimonials] folder=${folderId} modifiedAfter=${modifiedAfter} videoFiles=${files.length} totalFiles=${allFiles.length}`);
+    console.log(`[poll-drive-testimonials] all files:`, JSON.stringify(allFiles.map(f => ({ id: f.id, name: f.name, mimeType: f.mimeType, createdTime: f.createdTime, modifiedTime: f.modifiedTime }))));
+
     const existingIds = files.length > 0
       ? ((await (admin as any).from("testimonials").select("drive_file_id").in("drive_file_id", files.map((f) => f.id))).data ?? [])
           .map((r: { drive_file_id: string }) => r.drive_file_id)
