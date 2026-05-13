@@ -36,10 +36,11 @@ async function submitDriveTranscriptFile(
   accessToken: string,
 ): Promise<void> {
   try {
-    const sizeBytes = Number(file.size ?? 0);
-    const uploadUrl = sizeBytes > 100 * 1024 * 1024
-      ? `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&access_token=${encodeURIComponent(accessToken)}`
-      : await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
+    // Always stream the Drive file to AssemblyAI: passing a Drive URL with
+    // an OAuth access_token fails when AssemblyAI's download starts after the
+    // token has expired (~1h). uploadDriveFileToAssemblyAI streams the body
+    // without buffering, so it is safe for very large files too.
+    const uploadUrl = await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
     const jobId = await submitAssemblyAIJob(
       uploadUrl,
       ASSEMBLYAI_API_KEY,
