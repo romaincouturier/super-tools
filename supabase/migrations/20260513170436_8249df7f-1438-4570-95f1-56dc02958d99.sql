@@ -1,0 +1,1 @@
+UPDATE public.testimonials SET client_name = NULL, company = NULL, service_type = NULL WHERE drive_file_name IS NOT NULL AND drive_file_name !~* '^t[eé]moignage';
