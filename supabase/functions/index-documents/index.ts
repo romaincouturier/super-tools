@@ -490,6 +490,38 @@ const extractors: Record<string, Extractor> = {
     }
     return results;
   },
+
+  async transcript(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "transcripts",
+      "id, title, summary, raw_text, tags, source, status, created_at",
+      sourceId,
+    );
+    return (data || []).filter((r) => r.status === "ready").map((r) => ({
+      source_id: r.id,
+      content: [r.title, r.summary, r.raw_text].filter(Boolean).join("\n"),
+      source_title: r.title || "Transcript",
+      source_date: r.created_at,
+      metadata: { source: r.source, tags: r.tags },
+    }));
+  },
+
+  async testimonial(supabase, sourceId) {
+    const { data } = await buildQuery(
+      supabase,
+      "testimonials",
+      "id, client_name, company, service_type, raw_transcript, status, created_at",
+      sourceId,
+    );
+    return (data || []).filter((r) => r.status === "published").map((r) => ({
+      source_id: r.id,
+      content: [r.client_name, r.company, r.service_type, r.raw_transcript].filter(Boolean).join("\n"),
+      source_title: `Témoignage — ${r.client_name || "Client"} (${r.company || ""})`,
+      source_date: r.created_at,
+      metadata: { client_name: r.client_name, company: r.company, service_type: r.service_type },
+    }));
+  },
 };
 
 // ── File content extraction from Storage ────────────────────

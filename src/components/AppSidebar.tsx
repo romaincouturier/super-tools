@@ -1,11 +1,11 @@
 import { forwardRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bot, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
+import { Bot, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MODULE_ICONS } from "@/components/moduleIcons";
 import { useAuth } from "@/hooks/useAuth";
-import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useModuleAccess, type AppModule } from "@/hooks/useModuleAccess";
 import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
@@ -16,52 +16,81 @@ const ANTHRACITE = "#101820";
 const YELLOW = "#ffd100";
 
 const COLLAPSED_WIDTH = 72;
-const EXPANDED_WIDTH = 232;
+const EXPANDED_WIDTH = 240;
 const SIDEBAR_EXPANDED_KEY = "supertools.sidebar.expanded";
 
-/** Module keys in display order for the sidebar. */
-const SIDEBAR_MODULE_ORDER = [
-  "crm",
-  "missions",
-  "formations",
-  "okr",
-  "finances",
-  "contenu",
-  "events",
-  "medias",
-  "catalogue",
-  "evaluations",
-  "besoins",
-  "lms",
-  "reclamations",
-  "emails",
-  "historique",
-  "monitoring",
-  "ameliorations",
-  "support",
-  "reseau",
-  "supertilt",
-  "veille",
-  "web-analytics",
-  "archives",
-  "transcripts",
-  "temoignages",
-  "dropshipping",
+// ── Nav config ─────────────────────────────────────────────────
+
+interface SubNavItem {
+  key: string;
+  sectionLabel?: string;
+}
+
+interface NavGroupConfig {
+  type: "group";
+  key: string;
+  children: SubNavItem[];
+}
+
+interface NavItemConfig {
+  type: "item";
+  key: string;
+}
+
+type NavConfig = NavGroupConfig | NavItemConfig;
+
+const NAV_CONFIG: NavConfig[] = [
+  { type: "item", key: "crm" },
+  { type: "item", key: "missions" },
+  {
+    type: "group",
+    key: "contenu",
+    children: [
+      { key: "transcripts" },
+      { key: "temoignages" },
+    ],
+  },
+  { type: "item", key: "supertilt" },
+  {
+    type: "group",
+    key: "formations",
+    children: [
+      { key: "catalogue", sectionLabel: "Statistiques" },
+      { key: "evaluations" },
+      { key: "besoins" },
+      { key: "reclamations" },
+      { key: "ameliorations" },
+    ],
+  },
+  { type: "item", key: "okr" },
+  { type: "item", key: "finances" },
+  { type: "item", key: "events" },
+  { type: "item", key: "medias" },
+  { type: "item", key: "lms" },
+  { type: "item", key: "emails" },
+  {
+    type: "group",
+    key: "monitoring",
+    children: [
+      { key: "historique" },
+    ],
+  },
+  { type: "item", key: "support" },
+  { type: "item", key: "reseau" },
+  { type: "item", key: "veille" },
+  { type: "item", key: "web-analytics" },
+  { type: "item", key: "archives" },
+  { type: "item", key: "dropshipping" },
 ];
 
-function toAppModule(moduleIconKey: string): string {
-  return moduleIconKey.replace("-", "_");
+function toAppModule(key: string): AppModule {
+  return key.replace("-", "_") as AppModule;
 }
 
-function emailInitial(email: string | undefined | null): string {
-  if (!email) return "?";
-  return email.trim().charAt(0).toUpperCase() || "?";
-}
+// ── AppSidebar ─────────────────────────────────────────────────
 
 interface AppSidebarProps {
-  /** When true, render as an always-expanded drawer (mobile). Tooltips disabled. */
   asDrawer?: boolean;
-  /** Called after a nav click (for closing mobile drawer). */
   onNavigate?: () => void;
 }
 
@@ -77,12 +106,41 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
     return window.localStorage.getItem(SIDEBAR_EXPANDED_KEY) === "true";
   });
 
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    NAV_CONFIG.forEach((entry) => {
+      if (entry.type !== "group") return;
+      const anyChildActive = entry.children.some((c) => {
+        const info = MODULE_ICONS[c.key];
+        return info && window.location.pathname.startsWith(info.path);
+      });
+      if (anyChildActive) initial.add(entry.key);
+    });
+    return initial;
+  });
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(SIDEBAR_EXPANDED_KEY, expanded ? "true" : "false");
   }, [expanded]);
 
-  // Drawer (mobile) is always full-width with labels. On desktop, labels show only when expanded.
+  // Auto-expand groups when navigating to a child path
+  useEffect(() => {
+    NAV_CONFIG.forEach((entry) => {
+      if (entry.type !== "group") return;
+      const anyChildActive = entry.children.some((c) => {
+        const info = MODULE_ICONS[c.key];
+        return info && location.pathname.startsWith(info.path);
+      });
+      if (anyChildActive) {
+        setOpenGroups((prev) => {
+          if (prev.has(entry.key)) return prev;
+          return new Set([...prev, entry.key]);
+        });
+      }
+    });
+  }, [location.pathname]);
+
   const showLabels = asDrawer || expanded;
 
   const isActive = (path: string) => location.pathname.startsWith(path);
@@ -92,12 +150,14 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
     onNavigate?.();
   };
 
-  const moduleItems = SIDEBAR_MODULE_ORDER.map((key) => {
-    const info = MODULE_ICONS[key];
-    if (!info) return null;
-    if (!hasAccess(toAppModule(key) as Parameters<typeof hasAccess>[0])) return null;
-    return { key, icon: info.icon, label: info.label, path: info.path };
-  }).filter((m): m is { key: string; icon: LucideIcon; label: string; path: string } => !!m);
+  const toggleGroup = (key: string) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <aside
@@ -171,16 +231,113 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           showLabels={showLabels}
           onClick={() => go("/dashboard")}
         />
-        {moduleItems.map((m) => (
-          <RailItem
-            key={m.key}
-            icon={m.icon}
-            label={m.label}
-            active={isActive(m.path)}
-            showLabels={showLabels}
-            onClick={() => go(m.path)}
-          />
-        ))}
+
+        {NAV_CONFIG.map((entry) => {
+          if (entry.type === "item") {
+            const info = MODULE_ICONS[entry.key];
+            if (!info) return null;
+            if (!hasAccess(toAppModule(entry.key))) return null;
+            return (
+              <RailItem
+                key={entry.key}
+                icon={info.icon}
+                label={info.label}
+                active={isActive(info.path)}
+                showLabels={showLabels}
+                onClick={() => go(info.path)}
+              />
+            );
+          }
+
+          if (entry.type === "group") {
+            const parentInfo = MODULE_ICONS[entry.key];
+            if (!parentInfo) return null;
+            const parentAccessible = hasAccess(toAppModule(entry.key));
+            const accessibleChildren = entry.children.filter((c) => hasAccess(toAppModule(c.key)));
+            if (!parentAccessible && accessibleChildren.length === 0) return null;
+
+            const anyChildActive = entry.children.some((c) => {
+              const info = MODULE_ICONS[c.key];
+              return info && isActive(info.path);
+            });
+            const isOpen = openGroups.has(entry.key);
+
+            if (!showLabels) {
+              return (
+                <RailItem
+                  key={entry.key}
+                  icon={parentInfo.icon}
+                  label={parentInfo.label}
+                  active={isActive(parentInfo.path) || anyChildActive}
+                  showLabels={false}
+                  onClick={() => go(parentInfo.path)}
+                />
+              );
+            }
+
+            return (
+              <div key={entry.key}>
+                {/* Group header */}
+                <GroupHeader
+                  icon={parentInfo.icon}
+                  label={parentInfo.label}
+                  active={isActive(parentInfo.path) && !anyChildActive}
+                  anyChildActive={anyChildActive}
+                  isOpen={isOpen}
+                  onNavigate={() => { go(parentInfo.path); setOpenGroups((prev) => new Set([...prev, entry.key])); }}
+                  onToggle={() => toggleGroup(entry.key)}
+                />
+
+                {/* Sub-items */}
+                {isOpen && accessibleChildren.length > 0 && (
+                  <div
+                    style={{
+                      marginLeft: 12,
+                      marginTop: 2,
+                      paddingLeft: 10,
+                      borderLeft: "1px solid rgba(247,245,240,0.12)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                    }}
+                  >
+                    {accessibleChildren.map((child) => {
+                      const childInfo = MODULE_ICONS[child.key];
+                      if (!childInfo) return null;
+                      return (
+                        <div key={child.key}>
+                          {child.sectionLabel && (
+                            <p
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 600,
+                                letterSpacing: "0.08em",
+                                textTransform: "uppercase",
+                                color: "rgba(247,245,240,0.3)",
+                                padding: "8px 10px 4px",
+                              }}
+                            >
+                              {child.sectionLabel}
+                            </p>
+                          )}
+                          <SubItem
+                            icon={childInfo.icon}
+                            label={childInfo.label}
+                            active={isActive(childInfo.path)}
+                            onClick={() => go(childInfo.path)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return null;
+        })}
+
         {hasAccess("emails") && (
           <RailItem
             icon={MailCheck}
@@ -192,7 +349,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
         )}
       </div>
 
-      {/* Bottom section: admin, settings, expand toggle, avatar */}
+      {/* Bottom section */}
       <div
         style={{
           display: "flex",
@@ -263,7 +420,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
                     flexShrink: 0,
                   }}
                 >
-                  {emailInitial(user.email)}
+                  {user.email?.trim().charAt(0).toUpperCase() ?? "?"}
                 </button>
               }
             />
@@ -275,6 +432,150 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
 };
 
 export default AppSidebar;
+
+// ── Group header ───────────────────────────────────────────────
+
+interface GroupHeaderProps {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  anyChildActive: boolean;
+  isOpen: boolean;
+  onNavigate: () => void;
+  onToggle: () => void;
+}
+
+function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavigate, onToggle }: GroupHeaderProps) {
+  const fg = active ? ANTHRACITE : anyChildActive ? CREAM : "rgba(247,245,240,0.6)";
+  const bg = active ? YELLOW : "transparent";
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        borderRadius: 10,
+        background: bg,
+        overflow: "hidden",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) (e.currentTarget as HTMLDivElement).style.background = "rgba(247,245,240,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.background = bg;
+      }}
+    >
+      {/* Navigate to main page */}
+      <button
+        type="button"
+        onClick={onNavigate}
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          height: 44,
+          paddingLeft: 12,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: fg,
+          fontSize: 14,
+          fontWeight: 500,
+          textAlign: "left",
+          overflow: "hidden",
+        }}
+      >
+        <Icon size={18} style={{ flexShrink: 0 }} />
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      </button>
+
+      {/* Toggle chevron */}
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={isOpen ? "Réduire" : "Développer"}
+        style={{
+          width: 32,
+          height: 44,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          color: "rgba(247,245,240,0.4)",
+          flexShrink: 0,
+          transition: "color 120ms",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = CREAM; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(247,245,240,0.4)"; }}
+      >
+        <ChevronDown
+          size={14}
+          style={{
+            transition: "transform 180ms ease",
+            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+    </div>
+  );
+}
+
+// ── Sub-item ───────────────────────────────────────────────────
+
+interface SubItemProps {
+  icon: LucideIcon;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}
+
+function SubItem({ icon: Icon, label, active, onClick }: SubItemProps) {
+  const fg = active ? ANTHRACITE : "rgba(247,245,240,0.6)";
+  const bg = active ? YELLOW : "transparent";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        width: "100%",
+        height: 36,
+        paddingLeft: 10,
+        paddingRight: 8,
+        borderRadius: 8,
+        background: bg,
+        color: fg,
+        border: "none",
+        cursor: "pointer",
+        fontSize: 13,
+        fontWeight: active ? 500 : 400,
+        textAlign: "left",
+        overflow: "hidden",
+        transition: "background 120ms, color 120ms",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) {
+          (e.currentTarget as HTMLButtonElement).style.background = "rgba(247,245,240,0.08)";
+          (e.currentTarget as HTMLButtonElement).style.color = CREAM;
+        }
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.background = bg;
+        (e.currentTarget as HTMLButtonElement).style.color = fg;
+      }}
+    >
+      <Icon size={15} style={{ flexShrink: 0 }} />
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+    </button>
+  );
+}
 
 // ── Rail item ──────────────────────────────────────────────────
 
@@ -306,12 +607,7 @@ const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
             ? "flex items-center gap-3 w-full h-11 px-3 rounded-[10px] text-sm font-medium text-left transition-colors"
             : "w-11 h-11 rounded-[10px] flex items-center justify-center transition-colors relative",
         )}
-        style={{
-          background: bg,
-          color: fg,
-          border: "none",
-          cursor: "pointer",
-        }}
+        style={{ background: bg, color: fg, border: "none", cursor: "pointer" }}
         onMouseEnter={(e) => {
           (e.currentTarget as HTMLButtonElement).style.background = hoverBg;
           if (!active) (e.currentTarget as HTMLButtonElement).style.color = highlight ? YELLOW : CREAM;

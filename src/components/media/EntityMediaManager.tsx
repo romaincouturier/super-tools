@@ -390,8 +390,11 @@ const EntityMediaManager = ({
               <div
                 key={item.id}
                 className={cn(
-                  "group relative rounded-lg overflow-hidden border bg-muted cursor-pointer",
-                  item.file_type === "audio" ? "col-span-2" : "aspect-square"
+                  "group relative rounded-lg overflow-hidden bg-muted cursor-pointer",
+                  item.file_type === "audio" ? "col-span-2 border" : "aspect-square border-2",
+                  item.is_deliverable && item.file_type !== "audio"
+                    ? "border-amber-400"
+                    : "border-border"
                 )}
                 onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
               >
@@ -474,54 +477,59 @@ const EntityMediaManager = ({
 
                 {/* Hover overlay (not for audio — handled inline) */}
                 {item.file_type !== "audio" && (
-                <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex items-center justify-center gap-1 z-10">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={item.is_deliverable ? "default" : "secondary"}
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleDeliverable(item);
-                        }}
-                      >
-                        <Package className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={(e) => handleRename(e, item)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Renommer</TooltipContent>
-                  </Tooltip>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={(e) => handleDelete(e, item)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex flex-col items-center justify-between p-2 z-10">
+                  <div className="flex items-center justify-center gap-1 flex-1">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={item.is_deliverable ? "default" : "secondary"}
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleDeliverable(item);
+                          }}
+                        >
+                          <Package className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => handleRename(e, item)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Renommer</TooltipContent>
+                    </Tooltip>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => handleDelete(e, item)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <p className="w-full text-center text-white text-[11px] leading-tight truncate px-1 drop-shadow">
+                    {item.file_name}
+                  </p>
                 </div>
                 )}
 
