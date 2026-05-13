@@ -93,36 +93,49 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
         <ScrollArea className="flex-1 mt-4">
           {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}
           {t && (
-            <div className="space-y-4 pr-4">
-              {t.summary && (
-                <>
+            <Tabs defaultValue="transcript" className="pr-4">
+              <TabsList>
+                <TabsTrigger value="transcript">Transcript</TabsTrigger>
+                <TabsTrigger value="blog" disabled={t.status !== "ready"}>Article blog</TabsTrigger>
+                <TabsTrigger value="linkedin" disabled={t.status !== "ready"}>Post LinkedIn</TabsTrigger>
+              </TabsList>
+              <TabsContent value="transcript" className="space-y-4">
+                {t.summary && (
+                  <>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Résumé</p>
+                      <p className="text-sm">{t.summary}</p>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                {t.tags?.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Résumé</p>
-                    <p className="text-sm">{t.summary}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Tags</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {t.tags.map((tag) => <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full">{tag}</span>)}
+                    </div>
                   </div>
-                  <Separator />
-                </>
-              )}
-              {t.tags?.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Tags</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {t.tags.map((tag) => <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full">{tag}</span>)}
+                )}
+                {t.raw_text && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Transcript complet</p>
+                    <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed text-foreground/80">{t.raw_text}</pre>
                   </div>
-                </div>
-              )}
-              {t.raw_text && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Transcript complet</p>
-                  <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed text-foreground/80">{t.raw_text}</pre>
-                </div>
-              )}
-              {t.error_message && (
-                <div className="rounded-md bg-destructive/10 p-3">
-                  <p className="text-xs text-destructive font-medium">Erreur : {t.error_message}</p>
-                </div>
-              )}
-            </div>
+                )}
+                {t.error_message && (
+                  <div className="rounded-md bg-destructive/10 p-3">
+                    <p className="text-xs text-destructive font-medium">Erreur : {t.error_message}</p>
+                  </div>
+                )}
+              </TabsContent>
+              <TabsContent value="blog">
+                <TranscriptGenerationPanel transcriptId={t.id} kind="blog_article" />
+              </TabsContent>
+              <TabsContent value="linkedin">
+                <TranscriptGenerationPanel transcriptId={t.id} kind="linkedin_post" />
+              </TabsContent>
+            </Tabs>
           )}
         </ScrollArea>
       </SheetContent>
