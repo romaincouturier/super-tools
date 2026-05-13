@@ -7962,6 +7962,7 @@ export type Database = {
       }
       transcripts: {
         Row: {
+          ai_title: string | null
           assemblyai_id: string | null
           created_at: string
           duration_seconds: number | null
@@ -7978,6 +7979,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_title?: string | null
           assemblyai_id?: string | null
           created_at?: string
           duration_seconds?: number | null
@@ -7994,6 +7996,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_title?: string | null
           assemblyai_id?: string | null
           created_at?: string
           duration_seconds?: number | null

@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -42,11 +45,20 @@ function formatDuration(seconds: number | null): string {
 }
 
 function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) {
+  const displayTitle = t.ai_title || t.title || "Sans titre";
+  const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <CardContent className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-medium text-sm leading-snug line-clamp-2">{t.title || "Sans titre"}</p>
+          <div className="min-w-0">
+            <p className="font-medium text-sm leading-snug line-clamp-2">{displayTitle}</p>
+            {showFilename && (
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5" title={t.title ?? ""}>
+                📄 {t.title}
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-1 shrink-0">
             <Badge variant={t.source === "fireflies" ? "secondary" : "outline"} className="text-xs">
               {SOURCE_LABELS[t.source]}
@@ -74,12 +86,49 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
 
 function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { data: t, isLoading } = useTranscript(id);
+  const [regenerating, setRegenerating] = useState(false);
+  const queryClient = useQueryClient();
+
+  const regenerateTitle = async () => {
+    if (!t) return;
+    setRegenerating(true);
+    const { data, error } = await supabase.functions.invoke("generate-transcript-title", {
+      body: { transcript_id: t.id },
+    });
+    setRegenerating(false);
+    if (error || (data as any)?.error) {
+      toast.error((error?.message || (data as any)?.error) ?? "Erreur");
+      return;
+    }
+    toast.success("Titre régénéré");
+    queryClient.invalidateQueries({ queryKey: ["transcript", t.id] });
+    queryClient.invalidateQueries({ queryKey: ["transcripts"] });
+  };
+
+  const headerTitle = t?.ai_title || t?.title || "Transcript";
+  const showFilename = !!t?.ai_title && !!t?.title && t.ai_title !== t.title;
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent className="w-full sm:max-w-2xl flex flex-col">
         <SheetHeader className="shrink-0">
-          <SheetTitle className="text-left line-clamp-2">{t?.title || "Transcript"}</SheetTitle>
+          <div className="flex items-start justify-between gap-2">
+            <SheetTitle className="text-left line-clamp-2 flex-1">{headerTitle}</SheetTitle>
+            {t && t.status === "ready" && t.raw_text && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={regenerateTitle}
+                disabled={regenerating}
+                title="Régénérer le titre IA"
+              >
+                {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            )}
+          </div>
+          {showFilename && (
+            <p className="text-xs text-muted-foreground text-left">📄 {t!.title}</p>
+          )}
           {t && (
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={t.source === "fireflies" ? "secondary" : "outline"}>{SOURCE_LABELS[t.source]}</Badge>
