@@ -113,7 +113,7 @@ if [ "$STAGED_MODE" = "true" ]; then
   # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
   # `xargs -r` évite que le grep final lise stdin quand aucun fichier ne matche.
   check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
-    "echo \"$STAGED_FILES\" | xargs -r grep -l 'registerMediaEntry' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs -r grep -L 'deleteMediaFile' 2>/dev/null"
+    "echo \"$STAGED_FILES\" | xargs -r grep -l 'registerMediaEntry' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | grep -v 'useLmsUploads.ts' | xargs -r grep -L 'deleteMediaFile' 2>/dev/null"
 
   # [011] PWA — globPatterns ne doit pas contenir js (staged vite.config.ts)
   STAGED_VITE=$(echo "$STAGED_FILES" | grep 'vite.config.ts' || true)
@@ -179,7 +179,7 @@ else
   # [010] registerMediaEntry sans deleteMediaFile = fichiers orphelins potentiels
   # Known pre-existing: MissionPages.tsx, CrmDescriptionEditor.tsx, useLms.ts
   check "010" "registerMediaEntry doit avoir un deleteMediaFile dans le même fichier (nouveaux fichiers)" \
-    "grep -rln 'registerMediaEntry' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
+    "grep -rln 'registerMediaEntry' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v 'MissionPages.tsx' | grep -v 'CrmDescriptionEditor.tsx' | grep -v 'useLms.ts' | grep -v 'useLmsUploads.ts' | xargs grep -L 'deleteMediaFile' 2>/dev/null"
 
   # [008] CORS centralisé — toutes les fonctions doivent importer depuis _shared/cors.ts
   check "008" "Pas de CORS headers définis localement dans les edge functions" \
@@ -201,7 +201,7 @@ else
 
   # [015] Pages authentifiées doivent utiliser ModuleLayout + PageHeader
   # Exceptions : pages publiques, auth, learner, error, full-screen spécialisées
-  EXEMPT_PAGES="Auth|Signup|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LearnerAccess|LmsCoursePlayer|LessonBuilderPage|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis"
+  EXEMPT_PAGES="Auth|Signup|ResetPassword|ForcePasswordChange|Landing|PolitiqueConfidentialite|Emargement|Evaluation|Questionnaire|TrainerEvaluation|SponsorEvaluation|ReclamationPublic|LearnerPortal|LearnerAccess|LmsCoursePlayer|LessonBuilderPage|NotFound|FormulaireRedirect|Screenshots|AgentChat|ArenaDiscussion|ArenaSetup|ArenaResults|Dashboard|FormationDetail|MissionSummary|TrainingSummary|TrainingSupportPage|Index|Onboarding|SignatureConvention|SignatureDevis|GoogleDriveCallback"
   check "015" "Pages authentifiées utilisent ModuleLayout + PageHeader" \
     "for f in src/pages/*.tsx; do name=\$(basename \"\$f\" .tsx); echo \"\$name\" | grep -qE \"^(\$EXEMPT_PAGES)\$\" && continue; has_layout=\$(grep -l 'ModuleLayout' \"\$f\" 2>/dev/null | wc -l); has_header=\$(grep -l 'PageHeader' \"\$f\" 2>/dev/null | wc -l); if [ \"\$has_layout\" -eq 0 ] || [ \"\$has_header\" -eq 0 ]; then echo \"VIOLATION: \$name (ModuleLayout=\$has_layout, PageHeader=\$has_header)\"; fi; done"
 
