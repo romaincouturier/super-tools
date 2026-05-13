@@ -180,12 +180,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    const isDriveAccessIssue = message.startsWith("Dossier Google Drive inaccessible")
+      || message.startsWith("Le dossier Google Drive")
+      || message.startsWith("L'identifiant Google Drive");
     console.error("poll-drive-transcripts error:", message);
     await (admin as any).from("polling_cursors")
       .update({ status: "error", last_error: message })
       .eq("source", "drive_transcripts");
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+    return new Response(JSON.stringify({
+      ok: false,
+      checked: 0,
+      completed: 0,
+      submitted: 0,
+      errors: isDriveAccessIssue ? 0 : 1,
+      warning: isDriveAccessIssue ? message : undefined,
+      error: isDriveAccessIssue ? undefined : message,
+    }), {
+      status: isDriveAccessIssue ? 200 : 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
