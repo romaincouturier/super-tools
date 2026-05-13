@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Trash2, Check, X, FileText, Briefcase } from "lucide-react";
+import { CalendarDays, Trash2, Check, X, FileText, Briefcase, FolderOpen, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
