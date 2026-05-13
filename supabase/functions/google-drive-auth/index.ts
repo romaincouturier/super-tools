@@ -15,6 +15,24 @@ const SCOPES = [
 ].join(" ");
 const REQUIRED_SCOPES = SCOPES.split(" ");
 
+function redirectToClientCallback(
+  appCallbackUrl: string | undefined,
+  params: Record<string, string>,
+): Response {
+  if (!appCallbackUrl) {
+    return new Response("Authentification Google Drive terminée. Vous pouvez fermer cette fenêtre.", {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
+  const callbackUrl = new URL(appCallbackUrl);
+  for (const [key, value] of Object.entries(params)) {
+    callbackUrl.searchParams.set(key, value);
+  }
+
+  return Response.redirect(callbackUrl.toString(), 303);
+}
+
 async function getGrantedScopes(accessToken: string): Promise<string[]> {
   const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
   if (!res.ok) return [];
@@ -58,9 +76,10 @@ serve(async (req: Request): Promise<Response> => {
       // Get redirect URI from request body
       const body = await req.json().catch(() => ({}));
       const redirectUri = body.redirectUri || `${SUPABASE_URL}/functions/v1/google-drive-auth?action=callback`;
+      const appCallbackUrl = body.appCallbackUrl;
 
       // Create state with user ID for callback
-      const state = btoa(JSON.stringify({ userId: userData.user.id, redirectUri }));
+      const state = btoa(JSON.stringify({ userId: userData.user.id, redirectUri, appCallbackUrl }));
 
       // Build Google OAuth URL
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -88,30 +107,27 @@ serve(async (req: Request): Promise<Response> => {
 
       if (error) {
         console.error("OAuth error:", error);
-        // Safely encode error for JavaScript context
-        const safeError = JSON.stringify(error);
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:${safeError}},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        let appCallbackUrl: string | undefined;
+        if (state) {
+          try {
+            appCallbackUrl = JSON.parse(atob(state)).appCallbackUrl;
+          } catch {
+            // Ignore malformed state and return a plain error below.
+          }
+        }
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error });
       }
 
       if (!code || !state) {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:'Missing code or state'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(undefined, { success: "false", error: "Missing code or state" });
       }
 
       // Decode state
-      let stateData: { userId: string; redirectUri: string };
+      let stateData: { userId: string; redirectUri: string; appCallbackUrl?: string };
       try {
         stateData = JSON.parse(atob(state));
       } catch {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:'Invalid state'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(undefined, { success: "false", error: "Invalid state" });
       }
 
       console.log(`Callback received for user ${stateData.userId}`);
@@ -134,10 +150,7 @@ serve(async (req: Request): Promise<Response> => {
 
       if (!tokenResponse.ok || !tokenData.access_token) {
         console.error("Token exchange failed:", tokenData);
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:'Token exchange failed'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(stateData.appCallbackUrl, { success: "false", error: "Token exchange failed" });
       }
 
       // Calculate token expiry
@@ -159,19 +172,13 @@ serve(async (req: Request): Promise<Response> => {
 
       if (upsertError) {
         console.error("Failed to store tokens:", upsertError);
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:false,error:'Failed to store tokens'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(stateData.appCallbackUrl, { success: "false", error: "Failed to store tokens" });
       }
 
       console.log(`Tokens stored successfully for user ${stateData.userId}`);
 
-      // Success - close popup and notify parent
-      return new Response(
-        `<html><body><script>window.opener.postMessage({type:'google-drive-auth',success:true},'*');window.close();</script></body></html>`,
-        { headers: { "Content-Type": "text/html" } }
-      );
+      // Success - redirect to the frontend callback route so browser scripts are executed by the app origin.
+      return redirectToClientCallback(stateData.appCallbackUrl, { success: "true" });
     }
 
     // Action: check connection status
