@@ -155,7 +155,7 @@ describe("fetchAdminDocuments", () => {
     (chain.order as ReturnType<typeof vi.fn>).mockReturnValue(
       Object.assign(Promise.resolve({ data: [], error: null }), chain),
     );
-    mockFrom.mockReturnValue(chain);
+    mockFrom.mockReturnValue(chain as any);
 
     await fetchAdminDocuments();
 
@@ -173,7 +173,7 @@ describe("fetchAdminDocuments", () => {
     (chain.order as ReturnType<typeof vi.fn>).mockReturnValue(
       Object.assign(Promise.resolve({ data: null, error: new Error("DB error") }), chain),
     );
-    mockFrom.mockReturnValue(chain);
+    mockFrom.mockReturnValue(chain as any);
 
     await expect(fetchAdminDocuments()).rejects.toThrow("DB error");
   });
@@ -194,7 +194,7 @@ describe("fetchAdminDocumentYears", () => {
         chain,
       ),
     );
-    mockFrom.mockReturnValue(chain);
+    mockFrom.mockReturnValue(chain as any);
 
     const years = await fetchAdminDocumentYears();
 
