@@ -300,7 +300,30 @@ ${text.slice(0, 4000)}`;
   }
 }
 
-/** Extract testimonial metadata from transcript using Claude. */
+/**
+ * Parse a testimonial filename following our internal convention:
+ *   "Témoignage [vidéo] - {Prestation} - {Prénom Nom} - {Client/entreprise}"
+ * Optionally followed by " - YYYY/MM/DD HH:MM TZ - Recording" (Google Meet exports).
+ *
+ * Returns empty strings for fields it cannot identify.
+ */
+export function parseTestimonialFilename(
+  filename: string,
+): { client_name: string; company: string; service_type: string } {
+  if (!filename) return { client_name: "", company: "", service_type: "" };
+  // Strip extension
+  let name = filename.replace(/\.[a-z0-9]{2,4}$/i, "");
+  // Strip trailing " - YYYY/MM/DD ... - Recording" / " - Chat" / " - Notes par Gemini"
+  name = name.replace(/\s*-\s*\d{4}\/\d{2}\/\d{2}.*$/i, "");
+  // Split on " - "
+  const parts = name.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean);
+  // Drop leading "Témoignage" / "Témoignage vidéo"
+  while (parts.length && /^t[eé]moignage(\s+vid[eé]o)?$/i.test(parts[0])) parts.shift();
+  const [service_type = "", client_name = "", company = ""] = parts;
+  return { service_type, client_name, company };
+}
+
+/** Extract testimonial metadata from transcript using Claude (fallback when filename parsing is incomplete). */
 export async function extractTestimonialMeta(
   text: string,
 ): Promise<{ client_name: string; company: string; service_type: string }> {
