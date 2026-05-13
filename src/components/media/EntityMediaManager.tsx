@@ -116,6 +116,8 @@ const EntityMediaManager = ({
 
           const result = sourceType === "event"
             ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId })
+            : sourceType === "mission"
+            ? await uploadMissionMedia.mutateAsync({ file, missionId: sourceId })
             : await addMedia.mutateAsync({
                 file_url: await uploadMediaFile(file, sourceType, sourceId),
                 file_name: file.name,
