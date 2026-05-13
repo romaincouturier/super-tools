@@ -127,6 +127,19 @@ const FormationDetailParticipants = ({
               <span>Vous</span>
             </div>
             <div className="flex gap-2">
+              {!isInterSession && participants.length === 0 && training.sponsor_email && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRequestParticipantsEmails}
+                  disabled={requestingEmails}
+                  title={`Demander au commanditaire (${training.sponsor_email}) la liste des emails des participants`}
+                >
+                  {requestingEmails ? <Spinner className="mr-2" /> : <MailQuestion className="h-4 w-4 mr-2" />}
+                  {emailsRequestedAt ? "Renvoyer la demande" : "Demander les emails"}
+                </Button>
+              )}
               <BulkAddParticipantsDialog
                 trainingId={training.id}
                 trainingStartDate={training.start_date}
