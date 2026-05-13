@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     if (!missionId || !/^[0-9a-f-]{36}$/i.test(missionId)) {
       return createErrorResponse("Mission invalide", 400);
     }
-    if (!pageId || !/^[0-9a-f-]{36}$/i.test(pageId)) {
+    if (pageId && !/^[0-9a-f-]{36}$/i.test(pageId)) {
       return createErrorResponse("Page invalide", 400);
     }
     if (!(file instanceof File)) {
@@ -70,7 +70,9 @@ Deno.serve(async (req) => {
     const sanitizedName = sanitizeFileName(file.name || "image");
     const contentType = resolveContentType(file);
     const ext = sanitizedName.includes(".") ? sanitizedName.split(".").pop() : "bin";
-    const path = `pages/${pageId}/${Date.now()}.${ext}`;
+    const path = pageId
+      ? `pages/${pageId}/${Date.now()}.${ext}`
+      : `mission/${missionId}/${Date.now()}_${sanitizedName}`;
 
     const { error: uploadError } = await admin.storage
       .from(BUCKET)
@@ -83,26 +85,34 @@ Deno.serve(async (req) => {
 
     const { data: urlData } = admin.storage.from(BUCKET).getPublicUrl(path);
     const publicUrl = urlData.publicUrl;
-    const fileType = contentType.startsWith("video/") ? "video" : "image";
+    const fileType = contentType.startsWith("video/")
+      ? "video"
+      : contentType.startsWith("audio/")
+      ? "audio"
+      : "image";
 
-    const { error: insertError } = await admin.from("media").insert({
-      file_url: publicUrl,
-      file_name: file.name || sanitizedName,
-      file_type: fileType,
-      mime_type: contentType,
-      file_size: file.size,
-      position: 0,
-      source_type: "mission",
-      source_id: missionId,
-      created_by: user.id,
-    });
+    const { data: mediaRow, error: insertError } = await admin
+      .from("media")
+      .insert({
+        file_url: publicUrl,
+        file_name: file.name || sanitizedName,
+        file_type: fileType,
+        mime_type: contentType,
+        file_size: file.size,
+        position: 0,
+        source_type: "mission",
+        source_id: missionId,
+        created_by: user.id,
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.warn("[upload-mission-media] db register warning", insertError);
       // Best-effort: do not fail the upload if media registry insert fails.
     }
 
-    return createJsonResponse({ url: publicUrl });
+    return createJsonResponse({ url: publicUrl, media: mediaRow ?? null });
   } catch (error) {
     console.error("[upload-mission-media] unexpected error", error);
     return new Response(

@@ -8,6 +8,7 @@ import {
   useRenameMedia,
   useUpdateMediaTranscript,
   useUploadEventMedia,
+  useUploadMissionMedia,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
@@ -52,6 +53,7 @@ const EntityMediaManager = ({
   const renameMedia = useRenameMedia();
   const updateTranscript = useUpdateMediaTranscript();
   const uploadEventMedia = useUploadEventMedia();
+  const uploadMissionMedia = useUploadMissionMedia();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -114,6 +116,8 @@ const EntityMediaManager = ({
 
           const result = sourceType === "event"
             ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId })
+            : sourceType === "mission"
+            ? await uploadMissionMedia.mutateAsync({ file, missionId: sourceId })
             : await addMedia.mutateAsync({
                 file_url: await uploadMediaFile(file, sourceType, sourceId),
                 file_name: file.name,
@@ -166,7 +170,7 @@ const EntityMediaManager = ({
     } finally {
       setUploading(false);
     }
-  }, [sourceType, sourceId, addMedia, uploadEventMedia, queryClient]);
+  }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient]);
 
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));

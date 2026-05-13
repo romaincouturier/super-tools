@@ -225,6 +225,29 @@ export const useUploadEventMedia = () => {
   });
 };
 
+export const useUploadMissionMedia = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ file, missionId }: { file: File; missionId: string }) => {
+      const formData = new FormData();
+      formData.append("missionId", missionId);
+      formData.append("file", file, file.name || "media");
+
+      const { data, error } = await supabase.functions.invoke("upload-mission-media", {
+        body: formData,
+      });
+
+      if (error) throw error;
+      const media = (data as { media?: unknown } | null)?.media;
+      if (!media) throw new Error("Média introuvable après upload");
+      return media as MediaItem;
+    },
+    onSuccess: (_, variables) => {
+      invalidateMediaCaches(queryClient, "mission", variables.missionId);
+    },
+  });
+};
+
 // ── Delete media ─────────────────────────────────────────────────────
 export const useDeleteMedia = () => {
   const queryClient = useQueryClient();
