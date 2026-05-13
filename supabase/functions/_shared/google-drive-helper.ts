@@ -158,19 +158,31 @@ export async function uploadToAssemblyAI(
   return data.upload_url as string;
 }
 
-/** Submit a transcription job to AssemblyAI. Returns the job id. */
-export async function submitAssemblyAIJob(uploadUrl: string, apiKey: string): Promise<string> {
+/** Submit a transcription job to AssemblyAI. Returns the job id.
+ * Optionally configures a webhook so AssemblyAI notifies us as soon as the job completes.
+ */
+export async function submitAssemblyAIJob(
+  uploadUrl: string,
+  apiKey: string,
+  webhook?: { url: string; authHeaderName: string; authHeaderValue: string },
+): Promise<string> {
+  const payload: Record<string, unknown> = {
+    audio_url: uploadUrl,
+    language_detection: true,
+    language_confidence_threshold: 0.5,
+    punctuate: true,
+    format_text: true,
+    speaker_labels: true,
+  };
+  if (webhook?.url && webhook.authHeaderValue) {
+    payload.webhook_url = webhook.url;
+    payload.webhook_auth_header_name = webhook.authHeaderName;
+    payload.webhook_auth_header_value = webhook.authHeaderValue;
+  }
   const res = await fetch("https://api.assemblyai.com/v2/transcript", {
     method: "POST",
     headers: { Authorization: apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      audio_url: uploadUrl,
-      language_detection: true,
-      language_confidence_threshold: 0.5,
-      punctuate: true,
-      format_text: true,
-      speaker_labels: true,
-    }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) throw new Error(`AssemblyAI submit error ${res.status}: ${await res.text()}`);
   const data = await res.json();

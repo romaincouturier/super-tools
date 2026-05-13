@@ -27,6 +27,8 @@ import {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY") ?? "";
+const ASSEMBLYAI_WEBHOOK_SECRET = Deno.env.get("ASSEMBLYAI_WEBHOOK_SECRET") ?? "";
+const ASSEMBLYAI_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/assemblyai-webhook`;
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
@@ -154,7 +156,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         const bytes = await downloadDriveFileBytes(file.id, accessToken);
         const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
-        const jobId = await submitAssemblyAIJob(uploadUrl, ASSEMBLYAI_API_KEY);
+        const jobId = await submitAssemblyAIJob(
+          uploadUrl,
+          ASSEMBLYAI_API_KEY,
+          ASSEMBLYAI_WEBHOOK_SECRET
+            ? {
+                url: ASSEMBLYAI_WEBHOOK_URL,
+                authHeaderName: "x-webhook-secret",
+                authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
+              }
+            : undefined,
+        );
 
         await (admin as any).from("transcripts").update({ assemblyai_id: jobId }).eq("id", inserted.id);
         results.submitted++;
