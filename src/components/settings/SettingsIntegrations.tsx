@@ -167,11 +167,18 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
                 type="button"
                 variant="outline"
                 size="icon"
+                asChild
                 disabled={!settings.google_drive_folder_testimonials}
-                onClick={() => window.open(`https://drive.google.com/drive/folders/${settings.google_drive_folder_testimonials}`, "_blank", "noopener,noreferrer")}
                 title="Ouvrir dans Google Drive"
               >
-                <ExternalLink className="h-4 w-4" />
+                <a
+                  href={settings.google_drive_folder_testimonials ? `https://drive.google.com/drive/folders/${settings.google_drive_folder_testimonials}` : undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-disabled={!settings.google_drive_folder_testimonials}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
