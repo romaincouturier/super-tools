@@ -1,4 +1,4 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
