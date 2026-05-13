@@ -85,24 +85,28 @@ Deno.serve(async (req) => {
     const publicUrl = urlData.publicUrl;
     const fileType = contentType.startsWith("video/") ? "video" : "image";
 
-    const { error: insertError } = await admin.from("media").insert({
-      file_url: publicUrl,
-      file_name: file.name || sanitizedName,
-      file_type: fileType,
-      mime_type: contentType,
-      file_size: file.size,
-      position: 0,
-      source_type: "mission",
-      source_id: missionId,
-      created_by: user.id,
-    });
+    const { data: mediaRow, error: insertError } = await admin
+      .from("media")
+      .insert({
+        file_url: publicUrl,
+        file_name: file.name || sanitizedName,
+        file_type: fileType,
+        mime_type: contentType,
+        file_size: file.size,
+        position: 0,
+        source_type: "mission",
+        source_id: missionId,
+        created_by: user.id,
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.warn("[upload-mission-media] db register warning", insertError);
       // Best-effort: do not fail the upload if media registry insert fails.
     }
 
-    return createJsonResponse({ url: publicUrl });
+    return createJsonResponse({ url: publicUrl, media: mediaRow ?? null });
   } catch (error) {
     console.error("[upload-mission-media] unexpected error", error);
     return new Response(
