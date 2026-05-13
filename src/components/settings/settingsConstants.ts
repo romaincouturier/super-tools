@@ -1256,6 +1256,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   convention_affiche_frais: { default: "Non", description: "Afficher les frais sur la convention (Oui/Non)" },
   wp_statistics_api_token: { default: "", description: "Token API WP-Statistics pour récupérer les statistiques du site WordPress" },
   pennylane_api_token: { default: "", description: "Token API Pennylane (Bearer token v2) pour le module Finances : factures clients, fournisseurs, trésorerie" },
+  fireflies_webhook_secret: { default: "", description: "Signing secret Fireflies pour valider les webhooks entrants (X-Webhook-Secret)" },
 };
 
 export const SETTINGS_DEFAULTS = Object.fromEntries(
