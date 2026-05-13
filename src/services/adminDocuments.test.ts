@@ -26,7 +26,7 @@ const { mockFrom, mockSingle, mockInvoke, mockStorageFrom, mockStorageBucket } =
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
+    from: ((...args: unknown[]) => (mockFrom as any)(...args)) as any,
     functions: { invoke: mockInvoke },
     storage: { from: mockStorageFrom },
   },
