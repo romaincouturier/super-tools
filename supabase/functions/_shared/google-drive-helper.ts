@@ -300,7 +300,38 @@ ${text.slice(0, 4000)}`;
   }
 }
 
-/** Extract testimonial metadata from transcript using Claude. */
+/**
+ * Parse a testimonial filename following our internal convention:
+ *   "Témoignage [vidéo] - {Prestation} - {Prénom Nom} - {Client/entreprise}"
+ * Optionally followed by " - YYYY/MM/DD HH:MM TZ - Recording" (Google Meet exports).
+ *
+ * Returns empty strings for fields it cannot identify.
+ */
+export function parseTestimonialFilename(
+  filename: string,
+): { client_name: string; company: string; service_type: string } {
+  const empty = { client_name: "", company: "", service_type: "" };
+  if (!filename) return empty;
+  // Strip extension
+  let name = filename.replace(/\.[a-z0-9]{2,4}$/i, "");
+  // Strip trailing date chunk: " - YYYY/MM/DD …" or " - YYYY-MM-DD …"
+  name = name.replace(/\s*-\s*\d{4}[\/-]\d{2}[\/-]\d{2}.*$/i, "");
+  // Split on " - " (also tolerates "-" without spaces, but dashes inside words stay safe because we require "Témoignage" prefix)
+  const parts = name.split(/\s*-\s*/).map((s) => s.trim()).filter(Boolean);
+  // Only parse names that actually start with "Témoignage" / "Témoignage vidéo"
+  if (!parts.length || !/^t[eé]moignage(\s+vid[eé]o)?$/i.test(parts[0])) return empty;
+  parts.shift();
+  const [service_type = "", client_name = "", company = ""] = parts;
+  // Reject obvious garbage (purely numeric tokens, very short tokens) — leave empty for manual fix.
+  const isJunk = (v: string) => !v || /^\d+$/.test(v) || v.length < 2;
+  return {
+    service_type: isJunk(service_type) ? "" : service_type,
+    client_name: isJunk(client_name) ? "" : client_name,
+    company: isJunk(company) ? "" : company,
+  };
+}
+
+/** Extract testimonial metadata from transcript using Claude (fallback when filename parsing is incomplete). */
 export async function extractTestimonialMeta(
   text: string,
 ): Promise<{ client_name: string; company: string; service_type: string }> {

@@ -19,6 +19,7 @@ import {
   submitAssemblyAIJob,
   pollAssemblyAIJob,
   extractTestimonialMeta,
+  parseTestimonialFilename,
   notifySlack,
 } from "../_shared/google-drive-helper.ts";
 
@@ -66,17 +67,61 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const results = { checked: 0, completed: 0, submitted: 0, errors: 0 };
+    const results = { checked: 0, completed: 0, submitted: 0, errors: 0, backfilled: 0 };
+
+    // ── Pass 0: backfill drive_file_name + parsed fields for legacy rows ──
+    {
+      const { data: legacy } = await (admin as any)
+        .from("testimonials")
+        .select("id, drive_file_id")
+        .is("drive_file_name", null);
+
+      const legacyRows = (legacy ?? []) as Array<{ id: string; drive_file_id: string }>;
+      if (legacyRows.length > 0) {
+        const driveToken = await getValidDriveAccessToken(admin);
+        if (driveToken) {
+          for (const row of legacyRows) {
+            try {
+              const r = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${row.drive_file_id}?fields=id,name&supportsAllDrives=true`,
+                { headers: { Authorization: `Bearer ${driveToken}` } },
+              );
+              if (!r.ok) continue;
+              const f = await r.json() as { name?: string };
+              if (!f.name) continue;
+              const parsed = parseTestimonialFilename(f.name);
+              await (admin as any).from("testimonials").update({
+                drive_file_name: f.name,
+                client_name: parsed.client_name || null,
+                company: parsed.company || null,
+                service_type: parsed.service_type || null,
+              }).eq("id", row.id);
+              results.backfilled++;
+            } catch (err) {
+              console.warn(`[poll-drive-testimonials] backfill failed for ${row.drive_file_id}:`, err);
+            }
+          }
+        }
+      }
+    }
 
     // ── Pass 1: check pending AssemblyAI jobs ────────────────────
     // Testimonials store assemblyai_id in a metadata column
     const { data: processing } = await (admin as any)
       .from("testimonials")
-      .select("id, drive_file_id, metadata")
+      .select("id, drive_file_id, drive_file_name, client_name, company, service_type, metadata")
       .eq("status", "pending_review")
       .not("metadata->assemblyai_id", "is", null);
 
-    for (const row of (processing ?? []) as Array<{ id: string; drive_file_id: string; metadata: Record<string, string> }>) {
+    for (const row of (processing ?? []) as Array<{
+      id: string;
+      drive_file_id: string;
+      drive_file_name: string | null;
+      client_name: string | null;
+      company: string | null;
+      service_type: string | null;
+      metadata: Record<string, string>;
+    }>) {
       const jobId = row.metadata?.assemblyai_id;
       if (!jobId) continue;
       results.checked++;
@@ -89,7 +134,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         continue;
       }
 
-      const meta = await extractTestimonialMeta(result.text);
+      // Prefer values already extracted from filename; fall back to AI only for missing pieces.
+      const fromName = parseTestimonialFilename(row.drive_file_name ?? "");
+      const haveAll = (row.client_name || fromName.client_name)
+        && (row.company || fromName.company)
+        && (row.service_type || fromName.service_type);
+      const aiMeta = haveAll
+        ? { client_name: "", company: "", service_type: "" }
+        : await extractTestimonialMeta(result.text);
+      const meta = {
+        client_name: row.client_name || fromName.client_name || aiMeta.client_name,
+        company: row.company || fromName.company || aiMeta.company,
+        service_type: row.service_type || fromName.service_type || aiMeta.service_type,
+      };
+
       await (admin as any).from("testimonials").update({
         raw_transcript: result.text,
         client_name: meta.client_name,
@@ -148,9 +206,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const processSerially = async () => {
       for (const file of toProcess) {
         try {
+          const fromName = parseTestimonialFilename(file.name);
           const { data: inserted, error: insertErr } = await (admin as any)
             .from("testimonials")
-            .insert({ drive_file_id: file.id, status: "pending_review", metadata: { assemblyai_id: null } })
+            .insert({
+              drive_file_id: file.id,
+              drive_file_name: file.name,
+              status: "pending_review",
+              client_name: fromName.client_name || null,
+              company: fromName.company || null,
+              service_type: fromName.service_type || null,
+              metadata: { assemblyai_id: null },
+            })
             .select("id")
             .single();
 
