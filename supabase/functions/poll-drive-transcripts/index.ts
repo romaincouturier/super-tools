@@ -166,25 +166,43 @@ Deno.serve(async (req: Request): Promise<Response> => {
       mimeTypePrefix: "video/",
     });
 
-    // Filter to files not already in DB
-    const existingIds = files.length > 0
-      ? ((await (admin as any).from("transcripts").select("external_id").in("external_id", files.map((f) => f.id))).data ?? [])
-          .map((r: { external_id: string }) => r.external_id)
+    // Filter to files not already queued, while retrying stuck rows with no AssemblyAI job.
+    const existingRows = files.length > 0
+      ? ((await (admin as any)
+          .from("transcripts")
+          .select("id, external_id, status, assemblyai_id")
+          .in("external_id", files.map((f) => f.id))).data ?? []) as Array<{
+            id: string;
+            external_id: string;
+            status: string;
+            assemblyai_id: string | null;
+          }>
       : [];
+    const existingByExternalId = new Map(existingRows.map((row) => [row.external_id, row]));
 
-    const toProcess = files.filter((f) => !existingIds.includes(f.id)).slice(0, 5);
+    const toProcess = files.filter((file) => {
+      const existing = existingByExternalId.get(file.id);
+      return !existing || existing.status === "error" || (existing.status === "processing" && !existing.assemblyai_id);
+    }).slice(0, 5);
 
     const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void } })
       .EdgeRuntime?.waitUntil;
 
     for (const file of toProcess) {
       try {
-        // Insert as pending first
-        const { data: inserted } = await (admin as any)
-          .from("transcripts")
-          .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
-          .select("id")
-          .single();
+        const existing = existingByExternalId.get(file.id);
+        const { data: inserted } = existing
+          ? await (admin as any)
+              .from("transcripts")
+              .update({ title: file.name, status: "processing", error_message: null })
+              .eq("id", existing.id)
+              .select("id")
+              .single()
+          : await (admin as any)
+              .from("transcripts")
+              .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
+              .select("id")
+              .single();
 
         if (!inserted) continue;
 
