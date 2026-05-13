@@ -53,6 +53,7 @@ const EntityMediaManager = ({
   const renameMedia = useRenameMedia();
   const updateTranscript = useUpdateMediaTranscript();
   const uploadEventMedia = useUploadEventMedia();
+  const uploadMissionMedia = useUploadMissionMedia();
 
   const [uploading, setUploading] = useState(false);
   const [downloading, setDownloading] = useState(false);
