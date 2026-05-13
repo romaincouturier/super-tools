@@ -220,13 +220,19 @@ export default function SupertiltActionDialog({
         </DialogHeader>
 
         {hasMission ? (
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "details" | "pages")} className="flex-1 flex flex-col min-h-0">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
             <TabsList className="self-start">
               <TabsTrigger value="details" className="gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" /> Détails
               </TabsTrigger>
               <TabsTrigger value="pages" className="gap-1.5">
                 <FileText className="h-3.5 w-3.5" /> Pages
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5" /> Documents
+              </TabsTrigger>
+              <TabsTrigger value="gallery" className="gap-1.5">
+                <ImageIcon className="h-3.5 w-3.5" /> Galerie
               </TabsTrigger>
             </TabsList>
             <TabsContent value="details" className="mt-4">
@@ -241,6 +247,27 @@ export default function SupertiltActionDialog({
                 <div className="h-full overflow-hidden">
                   <MissionPages mission={linkedMission} />
                 </div>
+              )}
+            </TabsContent>
+            <TabsContent value="documents" className="flex-1 min-h-0 mt-4 overflow-auto">
+              {missionId && (
+                <EntityDocumentsManager
+                  entityType="mission"
+                  entityId={missionId}
+                  variant="bare"
+                  title="Documents contractuels"
+                />
+              )}
+            </TabsContent>
+            <TabsContent value="gallery" className="flex-1 min-h-0 mt-4 overflow-auto">
+              {missionId && (
+                <EntityMediaManager
+                  sourceType="mission"
+                  sourceId={missionId}
+                  sourceLabel={linkedMission?.title || action.title}
+                  variant="bare"
+                  enablePaste
+                />
               )}
             </TabsContent>
           </Tabs>
