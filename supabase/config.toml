@@ -497,3 +497,6 @@ verify_jwt = false
 
 [functions.generate-transcript-content]
 verify_jwt = true
+
+[functions.generate-transcript-title]
+verify_jwt = false
