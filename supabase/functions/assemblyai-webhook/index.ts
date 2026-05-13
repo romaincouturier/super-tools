@@ -169,6 +169,18 @@ async function finalizeTranscript(
     body: JSON.stringify({ transcript_id: row.id }),
   }).catch((e) => console.warn("[assemblyai-webhook] title gen failed", e));
 
+  // Auto-trigger article + LinkedIn post generation (fire and forget — long running)
+  for (const kind of ["blog_article", "linkedin_post"] as const) {
+    fetch(`${SUPABASE_URL}/functions/v1/generate-transcript-content`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ transcript_id: row.id, kind }),
+    }).catch((e) => console.warn(`[assemblyai-webhook] auto-gen ${kind} failed`, e));
+  }
+
   return jsonResponse({ ok: true, finalized: "ready" });
 }
 
