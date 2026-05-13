@@ -130,6 +130,7 @@ const Parametres = () => {
             <VoiceSettings />
           </TabsContent>
           {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
+          {isAdmin && <TabsContent value="transcripts"><TranscriptPromptsSettings /></TabsContent>}
         </Tabs>
       </main>
     </ModuleLayout>
