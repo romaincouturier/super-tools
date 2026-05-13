@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useRef, useState, useMemo } from "react";
 import { LmsLesson } from "@/hooks/useLms";
 import {
   useLessonBlocks,
@@ -33,20 +33,32 @@ import BuilderInsertMenu from "./BuilderInsertMenu";
 import type { TweakValues } from "./BuilderTweaksPanel";
 import { Clock, BookOpen, Pencil } from "lucide-react";
 
-// Arc Tilt SVG watermarks
+// Arc Tilt SVGs — matching design exactly (gradient + arc path)
 function TiltArcTopRight() {
   return (
     <svg
-      className="absolute top-0 right-0 pointer-events-none select-none"
-      width="220"
-      height="220"
-      viewBox="0 0 220 220"
-      fill="none"
       aria-hidden="true"
-      style={{ opacity: 0.055 }}
+      viewBox="0 0 520 520"
+      className="pointer-events-none select-none"
+      style={{
+        position: "absolute",
+        top: -80,
+        right: -120,
+        width: 520,
+        height: 520,
+        color: "var(--st-yellow)",
+        opacity: 0.55,
+        zIndex: 0,
+      }}
     >
-      <circle cx="220" cy="0" r="160" stroke="#101820" strokeWidth="28" fill="none" />
-      <circle cx="220" cy="0" r="110" stroke="#FFD100" strokeWidth="8" fill="none" />
+      <defs>
+        <linearGradient id="arcg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FFD100" stopOpacity="0.08" />
+          <stop offset="1" stopColor="#FFD100" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <circle cx="260" cy="260" r="240" fill="none" stroke="url(#arcg)" strokeWidth="80" />
+      <path d="M 60 260 A 200 200 0 0 1 460 260" fill="none" stroke="#FFD100" strokeOpacity="0.06" strokeWidth="36" strokeLinecap="round" />
     </svg>
   );
 }
@@ -54,16 +66,21 @@ function TiltArcTopRight() {
 function TiltArcBottomLeft() {
   return (
     <svg
-      className="absolute bottom-0 left-0 pointer-events-none select-none"
-      width="180"
-      height="180"
-      viewBox="0 0 180 180"
-      fill="none"
       aria-hidden="true"
-      style={{ opacity: 0.04 }}
+      viewBox="0 0 380 380"
+      className="pointer-events-none select-none"
+      style={{
+        position: "absolute",
+        bottom: -160,
+        left: -100,
+        width: 380,
+        height: 380,
+        color: "var(--st-yellow)",
+        opacity: 0.35,
+        zIndex: 0,
+      }}
     >
-      <circle cx="0" cy="180" r="130" stroke="#101820" strokeWidth="22" fill="none" />
-      <circle cx="0" cy="180" r="85" stroke="#FFD100" strokeWidth="7" fill="none" />
+      <circle cx="190" cy="190" r="170" fill="none" stroke="#FFD100" strokeOpacity="0.045" strokeWidth="44" />
     </svg>
   );
 }
@@ -153,14 +170,8 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
-  // Auto-resize H1 textarea on mount and whenever titleValue changes from outside
-  const h1Ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    const el = h1Ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = el.scrollHeight + "px";
-  }, [titleValue]);
+  // Keep ref for H1 input (was textarea, now input — kept for future use)
+  const h1Ref = useRef<HTMLInputElement>(null);
 
   const handleAdd = useCallback(
     (type: LessonBlockType, parentBlockId: string | null = null) => {
@@ -242,11 +253,17 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
       {tweaks.showArc && <TiltArcBottomLeft />}
 
       <div
-        className="mx-auto"
-        style={{ maxWidth: contentWidth, position: "relative", padding: "4rem 2rem" }}
+        className="mx-auto flex flex-col"
+        style={{
+          maxWidth: contentWidth,
+          position: "relative",
+          padding: "4rem 2rem",
+          gap: density === "compact" ? "1rem" : density === "spacious" ? "2rem" : "1.5rem",
+          zIndex: 1,
+        }}
       >
         {/* Metadata chips */}
-        <div className="flex flex-wrap items-center gap-2 mb-8">
+        <div className="flex flex-wrap items-center gap-3">
           {moduleName && (
             <Chip icon={<BookOpen size={11} />}>
               {moduleName}
@@ -260,20 +277,22 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
           )}
         </div>
 
-        {/* H1 — editable textarea that auto-resizes, state lifted to LessonBuilderPage */}
-        <textarea
-          ref={h1Ref}
+        {/* H1 — input matching design lesson-h1 */}
+        <input
+          ref={h1Ref as React.RefObject<HTMLInputElement>}
           value={titleValue}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Titre de la leçon…"
-          rows={1}
-          className="w-full resize-none bg-transparent border-none outline-none mb-8 leading-tight overflow-hidden"
+          className="w-full border-none outline-none"
           style={{
             fontSize: h1Size,
             fontWeight: 700,
-            fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
+            lineHeight: 1.2,
             color: "var(--st-ink)",
-            lineHeight: 1.15,
+            letterSpacing: "-0.02em",
+            padding: ".25rem 0",
+            fontFamily: "inherit",
+            background: "transparent",
           }}
           aria-label="Titre de la leçon"
         />

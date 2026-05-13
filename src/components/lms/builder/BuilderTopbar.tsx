@@ -50,8 +50,34 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         <input
           value={titleValue}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="w-full max-w-md text-center bg-transparent border-none outline-none truncate"
-          style={{ color: "var(--st-ink)", fontFamily: "inherit", fontSize: "1.25rem", fontWeight: 600 }}
+          className="w-full max-w-md text-center outline-none truncate"
+          style={{
+            color: "var(--st-ink)",
+            fontFamily: "inherit",
+            fontSize: "1.25rem",
+            fontWeight: 600,
+            background: "transparent",
+            border: "1px solid transparent",
+            borderRadius: 8,
+            padding: ".25rem .75rem",
+            transition: "background 120ms, border-color 120ms",
+          }}
+          onMouseEnter={(e) => {
+            if (document.activeElement !== e.currentTarget)
+              (e.currentTarget as HTMLElement).style.background = "var(--st-ink-06)";
+          }}
+          onMouseLeave={(e) => {
+            if (document.activeElement !== e.currentTarget)
+              (e.currentTarget as HTMLElement).style.background = "transparent";
+          }}
+          onFocus={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--st-white)";
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--st-ink-08)";
+          }}
+          onBlur={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+          }}
           aria-label="Titre de la leçon"
         />
       </div>

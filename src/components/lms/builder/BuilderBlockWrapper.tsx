@@ -63,15 +63,15 @@ export default function BuilderBlockWrapper({
             <div className="relative group/grip">
               <button
                 disabled
-                className="w-7 h-7 flex items-center justify-center rounded-lg cursor-not-allowed"
-                style={{ background: "transparent", color: "rgba(16,24,32,0.25)" }}
+                className="w-7 h-7 flex items-center justify-center cursor-not-allowed"
+                style={{ background: "transparent", color: "rgba(16,24,32,0.25)", borderRadius: 999 }}
                 aria-label="Déplacer le bloc"
               >
                 <GripVertical size={14} />
               </button>
               <span
-                className="absolute right-0 top-8 whitespace-nowrap text-xs px-2 py-1 rounded-lg opacity-0 group-hover/grip:opacity-100 pointer-events-none transition-opacity z-20"
-                style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit" }}
+                className="absolute right-0 top-8 whitespace-nowrap text-xs px-2 py-1 opacity-0 group-hover/grip:opacity-100 pointer-events-none transition-opacity z-20"
+                style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit", borderRadius: 8 }}
               >
                 Déplacement bientôt dispo
               </span>
@@ -80,8 +80,8 @@ export default function BuilderBlockWrapper({
             {/* Duplicate */}
             <button
               onClick={onDuplicate}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
-              style={{ color: "rgba(16,24,32,0.4)" }}
+              className="w-7 h-7 flex items-center justify-center transition-colors"
+              style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
                 (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
@@ -98,8 +98,8 @@ export default function BuilderBlockWrapper({
             {/* Delete */}
             <button
               onClick={onDelete}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
-              style={{ color: "rgba(16,24,32,0.4)" }}
+              className="w-7 h-7 flex items-center justify-center transition-colors"
+              style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)";
                 (e.currentTarget as HTMLElement).style.color = "#dc2626";

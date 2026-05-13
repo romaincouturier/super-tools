@@ -278,11 +278,16 @@ All colors MUST be HSL.
 /* ── SuperTilt Builder design tokens ── */
 :root {
   --st-yellow: #FFD100;
-  --st-yellow-soft: rgba(255, 209, 0, 0.18);
+  --st-yellow-soft: rgba(255, 209, 0, 0.22);
   --st-yellow-border: rgba(255, 209, 0, 0.6);
   --st-ink: #101820;
   --st-ink-muted: rgba(16, 24, 32, 0.55);
   --st-ink-soft: rgba(16, 24, 32, 0.06);
+  --st-ink-06: rgba(16, 24, 32, 0.06);
+  --st-ink-08: rgba(16, 24, 32, 0.08);
+  --st-ink-12: rgba(16, 24, 32, 0.12);
+  --st-ink-50: rgba(16, 24, 32, 0.50);
+  --st-ink-60: rgba(16, 24, 32, 0.60);
   --st-surface: #F2F4F4;
   --st-white: #FFFFFF;
   --st-radius-block: 20px;

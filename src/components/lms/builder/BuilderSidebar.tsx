@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronRight, Circle, User } from "lucide-react";
+import { ChevronRight, CheckCircle2, FileText, Plus } from "lucide-react";
 import { useCourseModules, useModuleLessons, LmsModule, LmsLesson } from "@/hooks/useLms";
 
 interface Props {
@@ -9,92 +9,103 @@ interface Props {
   courseTitle: string;
 }
 
+// Triangle logo matching the design SVG
+function BrandLogo() {
+  return (
+    <div
+      className="flex items-center justify-center shrink-0"
+      style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--st-ink)", color: "var(--st-yellow)" }}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M5 16 L12 6 L19 16" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx="12" cy="6" r="1.6" fill="currentColor"/>
+      </svg>
+    </div>
+  );
+}
+
 export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }: Props) {
   const { data: modules = [] } = useCourseModules(courseId);
 
   return (
     <aside
-      className="flex flex-col h-full overflow-hidden"
-      style={{ background: "var(--st-surface)", fontFamily: "inherit" }}
+      className="flex flex-col h-full overflow-y-auto"
+      style={{ background: "var(--st-surface)", fontFamily: "inherit", padding: "1rem" }}
     >
-      {/* Brand section */}
+      {/* Brand */}
       <div
-        className="px-5 py-4 border-b flex items-center gap-3 shrink-0"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}
+        className="flex items-center gap-2.5 pb-3 mb-3"
+        style={{ borderBottom: "1px solid var(--st-ink-06)" }}
       >
-        {/* ST logo mark */}
-        <div
-          className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0 font-bold text-sm select-none"
-          style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit" }}
-        >
-          ST
-        </div>
+        <BrandLogo />
         <div>
-          <p className="text-sm font-bold leading-none" style={{ color: "var(--st-ink)" }}>
-            SuperTilt
-          </p>
-          <p className="text-xs leading-none mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
-            Builder
-          </p>
+          <div style={{ fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.01em", color: "var(--st-ink)", lineHeight: 1.2 }}>
+            Super<span style={{ color: "var(--st-ink-50)", fontWeight: 500 }}>Tilt</span>
+          </div>
+          <div style={{ fontSize: ".6875rem", color: "var(--st-ink-50)", marginTop: -2 }}>Builder</div>
         </div>
-      </div>
-
-      {/* Course info */}
-      <div
-        className="px-5 py-3 border-b shrink-0"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}
-      >
-        <p
-          className="text-xs font-medium uppercase tracking-wider mb-0.5"
-          style={{ color: "var(--st-ink-muted)" }}
-        >
-          Formation
-        </p>
-        <p
-          className="text-sm font-semibold leading-tight line-clamp-2"
-          style={{ color: "var(--st-ink)" }}
-        >
-          {courseTitle}
-        </p>
       </div>
 
       {/* Section header */}
-      <div className="px-5 pt-4 pb-1 shrink-0">
-        <p
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: "var(--st-ink-muted)" }}
-        >
-          Structure du cours
-        </p>
+      <div
+        className="px-2 py-2"
+        style={{ fontWeight: 700, fontSize: ".6875rem", letterSpacing: ".05em", color: "var(--st-ink-50)", textTransform: "uppercase" }}
+      >
+        Structure du cours
       </div>
 
-      {/* Modules list */}
-      <nav className="flex-1 overflow-y-auto py-1">
-        {modules.map((mod, index) => (
+      {/* Module list */}
+      <nav className="flex-1">
+        {modules.map((mod) => (
           <ModuleItem
             key={mod.id}
             mod={mod}
             courseId={courseId}
-            index={index}
             activeLessonId={activeLessonId}
           />
         ))}
+
+        {/* Add module button */}
+        <button
+          className="w-full flex items-center gap-2 text-left"
+          style={{
+            padding: ".5rem .75rem",
+            fontSize: ".8125rem",
+            color: "var(--st-ink-60)",
+            borderRadius: 6,
+            fontWeight: 500,
+            marginTop: ".25rem",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink-60)";
+          }}
+        >
+          <Plus size={14} />
+          <span>Ajouter un module</span>
+        </button>
       </nav>
 
       {/* User footer */}
-      <div
-        className="px-5 py-3 border-t flex items-center gap-2.5 shrink-0"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}
-      >
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "rgba(16,24,32,0.1)" }}
-        >
-          <User size={14} style={{ color: "var(--st-ink-muted)" }} />
+      <div style={{ marginTop: "auto", paddingTop: "1rem", borderTop: "1px solid var(--st-ink-06)" }}>
+        <div className="flex items-center gap-2.5 px-3 py-2" style={{ borderRadius: 8 }}>
+          <div
+            className="flex items-center justify-center shrink-0 font-bold"
+            style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--st-ink)", color: "var(--st-yellow)", fontSize: ".75rem" }}
+          >
+            ST
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: ".8125rem", fontWeight: 600, color: "var(--st-ink)" }}>
+              {courseTitle ? courseTitle.split(" ").slice(0, 2).join(" ") : "Auteur"}
+            </div>
+            <div style={{ fontSize: ".6875rem", color: "var(--st-ink-60)" }}>Formateur</div>
+          </div>
         </div>
-        <p className="text-xs font-medium truncate" style={{ color: "var(--st-ink-muted)" }}>
-          Auteur
-        </p>
       </div>
     </aside>
   );
@@ -103,12 +114,10 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
 function ModuleItem({
   mod,
   courseId,
-  index,
   activeLessonId,
 }: {
   mod: LmsModule;
   courseId: string;
-  index: number;
   activeLessonId: string;
 }) {
   const { data: lessons = [] } = useModuleLessons(mod.id);
@@ -116,46 +125,45 @@ function ModuleItem({
   const [open, setOpen] = useState(hasActive);
 
   return (
-    <div>
+    <div style={{ marginBottom: ".25rem" }}>
       {/* Module header */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-black/5"
-        style={{ fontFamily: "inherit" }}
+      <div
+        className="flex items-center gap-2 cursor-pointer"
+        onClick={() => setOpen((o) => !o)}
+        style={{ padding: ".5rem .75rem", fontWeight: 600, fontSize: ".875rem", color: "var(--st-ink)", borderRadius: 8, justifyContent: "space-between" }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
       >
-        <span
-          className="w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold shrink-0"
-          style={{ background: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}
-        >
-          {index + 1}
-        </span>
-        <span
-          className="flex-1 text-xs font-semibold truncate"
-          style={{ color: "var(--st-ink)" }}
-        >
-          {mod.title}
-        </span>
-        {open ? (
-          <ChevronDown size={13} style={{ color: "var(--st-ink-muted)" }} />
-        ) : (
-          <ChevronRight size={13} style={{ color: "var(--st-ink-muted)" }} />
-        )}
-      </button>
-
-      {/* Lessons */}
-      {open && (
-        <div className="pb-1">
-          {lessons.map((lesson, lIdx) => (
-            <LessonItem
-              key={lesson.id}
-              lesson={lesson}
-              courseId={courseId}
-              index={lIdx}
-              isActive={lesson.id === activeLessonId}
-            />
-          ))}
+        <div className="flex items-center gap-2" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+          <ChevronRight
+            size={14}
+            style={{
+              color: "var(--st-ink-50)",
+              transform: open ? "rotate(90deg)" : "none",
+              transition: "transform 160ms",
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {mod.title}
+          </span>
         </div>
-      )}
+        <span style={{ fontWeight: 500, fontSize: ".75rem", color: "var(--st-ink-50)", flexShrink: 0 }}>
+          {lessons.length}
+        </span>
+      </div>
+
+      {/* Lessons with slide animation */}
+      <div style={{ overflow: "hidden", maxHeight: open ? "1000px" : 0, transition: "max-height 240ms ease" }}>
+        {lessons.map((lesson) => (
+          <LessonItem
+            key={lesson.id}
+            lesson={lesson}
+            courseId={courseId}
+            isActive={lesson.id === activeLessonId}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -163,39 +171,51 @@ function ModuleItem({
 function LessonItem({
   lesson,
   courseId,
-  index,
   isActive,
 }: {
   lesson: LmsLesson;
   courseId: string;
-  index: number;
   isActive: boolean;
 }) {
   const navigate = useNavigate();
-  const [hovered, setHovered] = useState(false);
 
   return (
-    <button
+    <div
+      className={"flex items-center gap-2 cursor-pointer"}
       onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="w-full flex items-center gap-2.5 pl-11 pr-4 py-2 text-left transition-all relative"
       style={{
-        fontFamily: "inherit",
-        background: isActive ? "var(--st-yellow-soft)" : hovered ? "rgba(16,24,32,0.04)" : "transparent",
+        padding: isActive ? ".5rem .75rem .5rem 1.75rem" : ".5rem .75rem .5rem 2rem",
+        fontSize: ".875rem",
+        fontWeight: isActive ? 600 : 400,
+        color: isActive ? "var(--st-ink)" : "var(--st-ink-70, rgba(16,24,32,0.7))",
+        borderRadius: 6,
         borderLeft: isActive ? "3px solid var(--st-yellow)" : "3px solid transparent",
+        background: isActive ? "var(--st-yellow-soft)" : "transparent",
+        transition: "color 120ms ease, background 120ms ease",
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) {
+          (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+          (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.03)";
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) {
+          (e.currentTarget as HTMLElement).style.color = "var(--st-ink-70, rgba(16,24,32,0.7))";
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+        }
       }}
     >
-      <Circle size={13} style={{ color: isActive ? "var(--st-ink)" : "var(--st-ink-muted)" }} className="shrink-0" />
+      {/* Icon: file-text by default; check-circle if we could detect published */}
       <span
-        className="text-xs leading-snug truncate flex-1"
-        style={{
-          color: isActive ? "var(--st-ink)" : "var(--st-ink-muted)",
-          fontWeight: isActive ? 600 : 400,
-        }}
+        className="flex items-center justify-center shrink-0"
+        style={{ width: 16, height: 16, color: isActive ? "var(--st-ink)" : "rgba(16,24,32,0.4)" }}
       >
-        {index + 1}. {lesson.title}
+        <FileText size={16} />
       </span>
-    </button>
+      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {lesson.title}
+      </span>
+    </div>
   );
 }

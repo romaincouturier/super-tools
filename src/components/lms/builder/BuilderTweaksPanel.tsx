@@ -84,9 +84,9 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
           <Slider
             label="Largeur du contenu"
             value={values.contentWidth}
-            min={600}
-            max={1000}
-            step={20}
+            min={560}
+            max={960}
+            step={16}
             display={`${values.contentWidth}px`}
             onChange={(v) => set("contentWidth", v)}
           />
@@ -95,7 +95,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
             label="Taille du titre H1"
             value={values.h1Size}
             min={28}
-            max={60}
+            max={56}
             step={2}
             display={`${values.h1Size}px`}
             onChange={(v) => set("h1Size", v)}
@@ -104,9 +104,9 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
           <Slider
             label="Arrondi des blocs"
             value={values.blockRadius}
-            min={0}
+            min={8}
             max={28}
-            step={4}
+            step={2}
             display={`${values.blockRadius}px`}
             onChange={(v) => set("blockRadius", v)}
           />
