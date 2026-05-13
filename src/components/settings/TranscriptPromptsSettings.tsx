@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
-type Kind = "blog_article" | "linkedin_post";
+type Kind = "blog_article" | "linkedin_post" | "title";
 
 interface PromptRow {
   id: string;
@@ -21,6 +21,7 @@ interface PromptRow {
 }
 
 const LABELS: Record<Kind, string> = {
+  title: "Titre auto (à la réception du transcript)",
   blog_article: "Article de blog",
   linkedin_post: "Post LinkedIn",
 };
