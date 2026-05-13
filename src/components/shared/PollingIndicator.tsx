@@ -66,14 +66,21 @@ export function PollingIndicator({ source, label = "Polling", functionName }: Po
       const { data, error } = await supabase.functions.invoke(functionName, { body: {} });
       if (error) throw error;
       const summary = data
-        ? `Soumis : ${data.submitted ?? 0} · Complétés : ${data.completed ?? data.imported ?? 0} · Erreurs : ${data.errors ?? 0}`
+        ? data.error || data.warning || `Soumis : ${data.submitted ?? 0} · Complétés : ${data.completed ?? data.imported ?? 0} · Erreurs : ${data.errors ?? 0}`
         : "Polling exécuté";
       toast({ title: "Polling déclenché", description: summary });
       await qc.invalidateQueries({ queryKey: ["polling-cursor", source] });
       await qc.invalidateQueries({ queryKey: ["transcripts"] });
       await qc.invalidateQueries({ queryKey: ["testimonials"] });
     } catch (err) {
-      toastError(toast, err instanceof Error ? err.message : "Échec du polling");
+      let message = err instanceof Error ? err.message : "Échec du polling";
+      const response = (err as { context?: Response })?.context;
+      if (response) {
+        const payload = await response.clone().json().catch(() => null);
+        message = payload?.error || payload?.warning || message;
+      }
+      await qc.invalidateQueries({ queryKey: ["polling-cursor", source] });
+      toastError(toast, message);
     } finally {
       setIsRunning(false);
     }

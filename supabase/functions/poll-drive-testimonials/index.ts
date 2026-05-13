@@ -10,6 +10,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import {
+  assertDriveFolderAccessible,
+  getModifiedAfterWithLookback,
   getValidDriveAccessToken,
   listDriveFolder,
   downloadDriveFileBytes,
@@ -113,14 +115,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    await assertDriveFolderAccessible(folderId, accessToken);
+
     const { data: cursorRow } = await (admin as any)
       .from("polling_cursors")
       .select("last_synced_at")
       .eq("source", "drive_testimonials")
       .single();
 
-    const modifiedAfter = (cursorRow as { last_synced_at?: string } | null)?.last_synced_at
-      ?? new Date(0).toISOString();
+    const modifiedAfter = getModifiedAfterWithLookback(
+      (cursorRow as { last_synced_at?: string } | null)?.last_synced_at,
+    );
 
     const { files } = await listDriveFolder(folderId, accessToken, {
       modifiedAfter,
