@@ -315,6 +315,9 @@ verify_jwt = false
 [functions.generate-quote-lines]
 verify_jwt = false
 
+[functions.fireflies-webhook]
+verify_jwt = false
+
 [functions.generate-quote-pdf]
 verify_jwt = false
 

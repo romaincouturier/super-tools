@@ -78,20 +78,41 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Fireflies</CardTitle>
-          <CardDescription>Clé API Fireflies pour importer automatiquement les transcripts de réunions.</CardDescription>
+          <CardDescription>Intégration webhook Fireflies pour recevoir automatiquement les transcripts de réunions.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-          <Label htmlFor="fireflies-api-key">Clé API Fireflies</Label>
-          <Input
-            id="fireflies-api-key"
-            type="password"
-            value={settings.fireflies_api_key || ""}
-            onChange={(e) => updateSetting("fireflies_api_key", e.target.value)}
-            placeholder="Votre clé API Fireflies"
-          />
-          <p className="text-xs text-muted-foreground">
-            Dans Fireflies : Paramètres → Intégrations → API → générez une clé. Utilisée par le cron <code>poll-fireflies-transcripts</code> pour importer les nouveaux transcripts de réunions.
-          </p>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>URL du webhook</Label>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs bg-muted px-3 py-2 rounded border break-all select-all">
+                {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fireflies-webhook`}
+              </code>
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                onClick={() => copy(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fireflies-webhook`, { title: "Copié", description: "URL copiée dans le presse-papiers." })}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Dans Fireflies : Paramètres → Webhooks → ajoutez cette URL et copiez le <em>Signing Secret</em> généré dans le champ ci-dessous.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fireflies-webhook-secret">Signing Secret Fireflies</Label>
+            <Input
+              id="fireflies-webhook-secret"
+              type="password"
+              value={settings.fireflies_webhook_secret || ""}
+              onChange={(e) => updateSetting("fireflies_webhook_secret", e.target.value)}
+              placeholder="Secret généré par Fireflies"
+            />
+            <p className="text-xs text-muted-foreground">
+              Laissez vide pour désactiver la vérification du secret (non recommandé).
+            </p>
+          </div>
         </CardContent>
       </Card>
 
