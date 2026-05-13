@@ -4,7 +4,7 @@ import { rpc } from "@/lib/supabase-rpc";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
-import { Briefcase, Calendar, Euro, Clock, Receipt, FileText, ExternalLink, Download, Package, Image as ImageIcon, CheckCircle2, MapPin, Navigation } from "lucide-react";
+import { Briefcase, Calendar, Euro, Clock, Receipt, FileText, ExternalLink, Download, Package, Image as ImageIcon, CheckCircle2, MapPin, Navigation, Play } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
+import { isRemoteLocation } from "@/lib/missionLocation";
 
 // ---------- Types ----------
 
@@ -65,6 +66,7 @@ interface Deliverable {
   file_name: string;
   file_url: string;
   file_size: number | null;
+  file_type?: string;
   source: "document" | "media";
 }
 
@@ -176,6 +178,11 @@ function formatCurrency(amount: number, lang: Lang): string {
 
 function isImageFile(fileName: string): boolean {
   return /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(fileName);
+}
+
+function isVideoFile(fileName: string, fileType?: string): boolean {
+  if (fileType === "video") return true;
+  return /\.(mp4|webm|mov|avi|mkv|m4v)$/i.test(fileName);
 }
 
 function formatFileSize(bytes: number | null): string {
@@ -291,6 +298,7 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {deliverables.map((doc) => {
             const isImage = isImageFile(doc.file_name);
+            const isVideo = !isImage && isVideoFile(doc.file_name, doc.file_type);
             return (
               <div
                 key={doc.id}
@@ -304,6 +312,20 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
                       className="w-full h-full object-cover"
                       loading="lazy"
                     />
+                  </div>
+                ) : isVideo ? (
+                  <div className="aspect-video bg-muted relative overflow-hidden">
+                    <video
+                      src={`${doc.file_url}#t=0.1`}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                      onError={(e) => { (e.currentTarget as HTMLVideoElement).style.display = "none"; }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                      <Play className="h-8 w-8 text-white drop-shadow" />
+                    </div>
                   </div>
                 ) : (
                   <div className="aspect-video bg-muted/50 flex items-center justify-center">
@@ -409,7 +431,7 @@ const MissionSummary = () => {
       .map((d) => ({ id: d.id, file_name: d.file_name, file_url: d.file_url, file_size: d.file_size, source: "document" as const }));
     const fromMedia: Deliverable[] = mediaItems
       .filter((m) => m.is_deliverable)
-      .map((m) => ({ id: m.id, file_name: m.file_name, file_url: m.file_url, file_size: m.file_size, source: "media" as const }));
+      .map((m) => ({ id: m.id, file_name: m.file_name, file_url: m.file_url, file_size: m.file_size, file_type: m.file_type, source: "media" as const }));
     return [...fromDocs, ...fromMedia];
   }, [documents, mediaItems]);
 
@@ -515,28 +537,32 @@ const MissionSummary = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <p className="text-lg">{mission.location}</p>
-                <Button size="sm" asChild>
-                  <a
-                    href={getGoogleMapsDirectionsUrl(mission.location)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Navigation className="h-4 w-4 mr-2" />
-                    {L.directions}
-                  </a>
-                </Button>
-                <Button size="sm" variant="outline" asChild>
-                  <a
-                    href={getGoogleMapsSearchUrl(mission.location)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    {L.viewOnMap}
-                  </a>
-                </Button>
+                {!isRemoteLocation(mission.location) && (
+                  <>
+                    <Button size="sm" asChild>
+                      <a
+                        href={getGoogleMapsDirectionsUrl(mission.location)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Navigation className="h-4 w-4 mr-2" />
+                        {L.directions}
+                      </a>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <a
+                        href={getGoogleMapsSearchUrl(mission.location)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {L.viewOnMap}
+                      </a>
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
