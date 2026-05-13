@@ -170,9 +170,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const processSerially = async () => {
       for (const file of toProcess) {
         try {
+          const fromName = parseTestimonialFilename(file.name);
           const { data: inserted, error: insertErr } = await (admin as any)
             .from("testimonials")
-            .insert({ drive_file_id: file.id, status: "pending_review", metadata: { assemblyai_id: null } })
+            .insert({
+              drive_file_id: file.id,
+              drive_file_name: file.name,
+              status: "pending_review",
+              client_name: fromName.client_name || null,
+              company: fromName.company || null,
+              service_type: fromName.service_type || null,
+              metadata: { assemblyai_id: null },
+            })
             .select("id")
             .single();
 
