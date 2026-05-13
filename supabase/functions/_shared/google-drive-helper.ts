@@ -20,6 +20,12 @@ export interface DriveListResult {
   nextPageToken?: string;
 }
 
+export function getModifiedAfterWithLookback(lastSyncedAt?: string, lookbackHours = 24): string {
+  const base = lastSyncedAt ? new Date(lastSyncedAt).getTime() : 0;
+  if (!Number.isFinite(base) || base <= 0) return new Date(0).toISOString();
+  return new Date(base - lookbackHours * 60 * 60 * 1000).toISOString();
+}
+
 /** Verify that the connected Google account can access a Drive folder. */
 export async function assertDriveFolderAccessible(
   folderId: string,
@@ -108,7 +114,7 @@ export async function listDriveFolder(
     q: queries.join(" and "),
     fields: "nextPageToken,files(id,name,mimeType,modifiedTime,size)",
     orderBy: "modifiedTime asc",
-    pageSize: "20",
+    pageSize: "100",
     supportsAllDrives: "true",
     includeItemsFromAllDrives: "true",
   });
