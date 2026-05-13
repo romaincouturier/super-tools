@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -14,7 +14,21 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
   const [needsReconnect, setNeedsReconnect] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
+  const popupMonitorRef = useRef<number | null>(null);
+  const connectTimeoutRef = useRef<number | null>(null);
   const { toast } = useToast();
+
+  const resetConnectingState = () => {
+    if (popupMonitorRef.current) {
+      window.clearInterval(popupMonitorRef.current);
+      popupMonitorRef.current = null;
+    }
+    if (connectTimeoutRef.current) {
+      window.clearTimeout(connectTimeoutRef.current);
+      connectTimeoutRef.current = null;
+    }
+    setIsConnecting(false);
+  };
 
   const checkStatus = async () => {
     try {
@@ -57,7 +71,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
       }
 
       if (event.data?.type === "google-drive-auth") {
-        setIsConnecting(false);
+        resetConnectingState();
         if (event.data.success) {
           setIsConnected(true);
           setNeedsReconnect(false);
@@ -82,7 +96,45 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
   }, [onStatusChange, toast]);
 
   const handleConnect = async () => {
+    if (isConnecting) return;
     setIsConnecting(true);
+
+    const width = 600;
+    const height = 700;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    const popup = window.open(
+      "about:blank",
+      "google-drive-auth",
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+
+    if (!popup) {
+      setIsConnecting(false);
+      toast({
+        title: "Popup bloquée",
+        description: "Autorisez les popups pour connecter Google Drive.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    popup.document.write("Connexion à Google Drive en cours...");
+
+    popupMonitorRef.current = window.setInterval(() => {
+      if (popup.closed) {
+        resetConnectingState();
+      }
+    }, 500);
+
+    connectTimeoutRef.current = window.setTimeout(() => {
+      resetConnectingState();
+      toast({
+        title: "Connexion interrompue",
+        description: "La connexion Google Drive a pris trop de temps. Réessayez.",
+        variant: "destructive",
+      });
+    }, 120000);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -92,7 +144,8 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
           description: "Veuillez vous connecter d'abord.",
           variant: "destructive",
         });
-        setIsConnecting(false);
+        popup.close();
+        resetConnectingState();
         return;
       }
 
@@ -115,28 +168,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
       const data = await response.json();
 
       if (data.authUrl) {
-        // Open OAuth popup
-        const width = 600;
-        const height = 700;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-
-        const popup = window.open(
-          data.authUrl,
-          "google-drive-auth",
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-
-        if (!popup) {
-          throw new Error("La fenêtre Google a été bloquée par le navigateur");
-        }
-
-        const popupMonitor = window.setInterval(() => {
-          if (popup.closed) {
-            window.clearInterval(popupMonitor);
-            setIsConnecting(false);
-          }
-        }, 500);
+        popup.location.href = data.authUrl;
       } else {
         throw new Error(data.error || "Failed to get auth URL");
       }
@@ -147,7 +179,8 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
         description: error instanceof Error ? error.message : "Impossible de démarrer la connexion",
         variant: "destructive",
       });
-      setIsConnecting(false);
+      popup.close();
+      resetConnectingState();
     }
   };
 
@@ -168,6 +201,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
 
       setIsConnected(false);
       setNeedsReconnect(false);
+      resetConnectingState();
       onStatusChange?.(false);
       toast({
         title: "Google Drive déconnecté",
