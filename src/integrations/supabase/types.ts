@@ -6557,6 +6557,7 @@ export type Database = {
           company: string | null
           created_at: string
           drive_file_id: string
+          drive_file_name: string | null
           id: string
           metadata: Json
           published_at: string | null
@@ -6571,6 +6572,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           drive_file_id: string
+          drive_file_name?: string | null
           id?: string
           metadata?: Json
           published_at?: string | null
@@ -6585,6 +6587,7 @@ export type Database = {
           company?: string | null
           created_at?: string
           drive_file_id?: string
+          drive_file_name?: string | null
           id?: string
           metadata?: Json
           published_at?: string | null
