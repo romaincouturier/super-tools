@@ -167,7 +167,7 @@ export default function Transcripts() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <PollingIndicator source="drive_transcripts" label="Google Drive — Transcripts" />
+        <PollingIndicator source="drive_transcripts" label="Google Drive — Transcripts" functionName="poll-drive-transcripts" />
         <Input
           placeholder="Rechercher par titre…"
           value={search}
