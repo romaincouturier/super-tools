@@ -89,6 +89,7 @@ const Parametres = () => {
             <TabsTrigger value="devis" className="flex items-center gap-2"><FileText className="h-4 w-4" />{tabLabel("devis", "Devis")}</TabsTrigger>
             <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />{tabLabel("voice", "Voix IA")}</TabsTrigger>
             {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />{tabLabel("agent", "Agent IA")}</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="transcripts" className="flex items-center gap-2"><Radio className="h-4 w-4" />Prompts Transcripts</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">
