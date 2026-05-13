@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw } from "lucide-react";
+import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
