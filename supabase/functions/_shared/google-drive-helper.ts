@@ -20,6 +20,32 @@ export interface DriveListResult {
   nextPageToken?: string;
 }
 
+/** Verify that the connected Google account can access a Drive folder. */
+export async function assertDriveFolderAccessible(
+  folderId: string,
+  accessToken: string,
+): Promise<void> {
+  const params = new URLSearchParams({
+    fields: "id,name,mimeType,trashed",
+    supportsAllDrives: "true",
+  });
+
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${folderId}?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) {
+    const details = await res.text();
+    throw new Error(`Dossier Google Drive inaccessible (${res.status}). Reconnectez Google Drive avec les nouveaux droits ou partagez le dossier avec le compte connecté. ${details}`);
+  }
+
+  const folder = await res.json();
+  if (folder.trashed) throw new Error("Le dossier Google Drive configuré est dans la corbeille.");
+  if (folder.mimeType !== "application/vnd.google-apps.folder") {
+    throw new Error("L'identifiant Google Drive configuré ne correspond pas à un dossier.");
+  }
+}
+
 /** Returns a valid access token (auto-refreshes if expired). Null if no token stored. */
 export async function getValidDriveAccessToken(
   admin: ReturnType<typeof createClient>,
@@ -83,6 +109,8 @@ export async function listDriveFolder(
     fields: "nextPageToken,files(id,name,mimeType,modifiedTime,size)",
     orderBy: "modifiedTime asc",
     pageSize: "20",
+    supportsAllDrives: "true",
+    includeItemsFromAllDrives: "true",
   });
   if (options.pageToken) params.set("pageToken", options.pageToken);
 
