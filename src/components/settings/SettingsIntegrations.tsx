@@ -77,6 +77,60 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Fireflies</CardTitle>
+          <CardDescription>Clé API Fireflies pour importer automatiquement les transcripts de réunions.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="fireflies-api-key">Clé API Fireflies</Label>
+          <Input
+            id="fireflies-api-key"
+            type="password"
+            value={settings.fireflies_api_key || ""}
+            onChange={(e) => updateSetting("fireflies_api_key", e.target.value)}
+            placeholder="Votre clé API Fireflies"
+          />
+          <p className="text-xs text-muted-foreground">
+            Dans Fireflies : Paramètres → Intégrations → API → générez une clé. Utilisée par le cron <code>poll-fireflies-transcripts</code> pour importer les nouveaux transcripts de réunions.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Google Drive — Dossiers de polling</CardTitle>
+          <CardDescription>IDs des dossiers Google Drive surveillés automatiquement pour les transcripts vidéo et les témoignages.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="drive-folder-transcripts">ID du dossier Transcripts</Label>
+            <Input
+              id="drive-folder-transcripts"
+              value={settings.google_drive_folder_transcripts || ""}
+              onChange={(e) => updateSetting("google_drive_folder_transcripts", e.target.value)}
+              placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Ouvrez le dossier dans Google Drive → copiez l'ID depuis l'URL <code>drive.google.com/drive/folders/<strong>ID</strong></code>.
+            </p>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <Label htmlFor="drive-folder-testimonials">ID du dossier Témoignages</Label>
+            <Input
+              id="drive-folder-testimonials"
+              value={settings.google_drive_folder_testimonials || ""}
+              onChange={(e) => updateSetting("google_drive_folder_testimonials", e.target.value)}
+              placeholder="Ex: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Dossier contenant les vidéos de témoignages clients. Chaque nouveau fichier <code>.mp4</code> / <code>.mov</code> sera transcrit et indexé automatiquement.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">WooCommerce</CardTitle>
           <CardDescription>Identifiants API WooCommerce pour la génération automatique de coupons e-learning.</CardDescription>
         </CardHeader>
