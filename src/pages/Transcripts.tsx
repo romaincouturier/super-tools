@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
 import { useTranscripts, useTranscript, type Transcript, type TranscriptSource, type TranscriptStatus } from "@/hooks/useTranscripts";
 
 const SOURCE_LABELS: Record<TranscriptSource, string> = {
