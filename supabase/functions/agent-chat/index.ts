@@ -143,6 +143,17 @@ Règles :
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
 
+Modules disponibles dans SuperTools :
+- **CRM** : opportunités (crm_cards), commentaires (crm_comments), emails (crm_card_emails)
+- **Formations** : sessions, participants, devis, missions
+- **Transcripts** : enregistrements audio/vidéo transcrits automatiquement (source: google_drive ou fireflies). Table: transcripts (id, source, title, summary, raw_text, tags, status, duration_seconds, created_at). Statuts: pending → processing → ready | error
+- **Témoignages** : vidéos clients déposées sur Google Drive, transcrites et analysées. Table: testimonials (id, client_name, company, service_type, raw_transcript, status, published_at). Workflow: pending_review → published | rejected
+- **Dropshipping** : gestion des ventes de jeux et royautés auteurs. Tables:
+  • game_authors (id, name, email, company, royalty_rate) — taux de royauté entre 0 et 1
+  • games (id, author_id, title, woocommerce_product_id, status)
+  • game_sales (id, game_id, woocommerce_order_id, customer_name, quantity, unit_price, total_amount, royalty_amount, sale_date, status) — statuts: pending | paid
+- **Support** : tickets et pièces jointes
+
 Schéma de la base de données :
 ${dbSchema}`;
 }
