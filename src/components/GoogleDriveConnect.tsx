@@ -11,6 +11,7 @@ interface GoogleDriveConnectProps {
 
 const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
   const [isConnected, setIsConnected] = useState(false);
+  const [needsReconnect, setNeedsReconnect] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
@@ -34,6 +35,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
 
       const data = await response.json();
       setIsConnected(data.connected);
+      setNeedsReconnect(Boolean(data.needsReconnect));
       onStatusChange?.(data.connected);
     } catch (error) {
       console.error("Failed to check Google Drive status:", error);
@@ -58,6 +60,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
         setIsConnecting(false);
         if (event.data.success) {
           setIsConnected(true);
+          setNeedsReconnect(false);
           onStatusChange?.(true);
           toast({
             title: "Google Drive connecté",
@@ -151,6 +154,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
       );
 
       setIsConnected(false);
+      setNeedsReconnect(false);
       onStatusChange?.(false);
       toast({
         title: "Google Drive déconnecté",
@@ -175,13 +179,25 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
     );
   }
 
-  if (isConnected) {
+  if (isConnected || needsReconnect) {
     return (
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-green-600 text-sm">
-          <CheckCircle className="w-4 h-4" />
-          Google Drive connecté
+        <div className={`flex items-center gap-2 text-sm ${needsReconnect ? "text-destructive" : "text-green-600"}`}>
+          {needsReconnect ? <CloudOff className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+          {needsReconnect ? "Google Drive à reconnecter" : "Google Drive connecté"}
         </div>
+        {needsReconnect && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleConnect}
+            disabled={isConnecting}
+            className="gap-2"
+          >
+            {isConnecting ? <Spinner /> : <Cloud className="w-4 h-4" />}
+            Reconnecter
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
