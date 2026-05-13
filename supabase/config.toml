@@ -486,6 +486,9 @@ verify_jwt = false
 [functions.poll-drive-transcripts]
 verify_jwt = false
 
+[functions.submit-drive-transcript]
+verify_jwt = false
+
 [functions.poll-drive-testimonials]
 verify_jwt = false
 
