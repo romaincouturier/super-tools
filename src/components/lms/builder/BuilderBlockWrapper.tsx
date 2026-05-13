@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Trash2, GripVertical } from "lucide-react";
+import { Trash2, GripVertical, Copy } from "lucide-react";
 import { InsertButton } from "./BuilderInsertMenu";
 import BuilderInsertMenu from "./BuilderInsertMenu";
 import type { LessonBlockType } from "@/types/lms-blocks";
@@ -8,9 +8,9 @@ interface Props {
   blockRadius: number;
   density: "compact" | "normal" | "spacious";
   onDelete: () => void;
+  onDuplicate: () => void;
   onInsertAfter: (type: LessonBlockType) => void;
   children: React.ReactNode;
-  isLast?: boolean;
 }
 
 const DENSITY_PY: Record<string, string> = {
@@ -23,9 +23,9 @@ export default function BuilderBlockWrapper({
   blockRadius,
   density,
   onDelete,
+  onDuplicate,
   onInsertAfter,
   children,
-  isLast = false,
 }: Props) {
   const [hovered, setHovered] = useState(false);
   const [insertOpen, setInsertOpen] = useState(false);
@@ -64,25 +64,36 @@ export default function BuilderBlockWrapper({
               <button
                 disabled
                 className="w-7 h-7 flex items-center justify-center rounded-lg cursor-not-allowed"
-                style={{
-                  background: "transparent",
-                  color: "rgba(16,24,32,0.25)",
-                }}
+                style={{ background: "transparent", color: "rgba(16,24,32,0.25)" }}
                 aria-label="Déplacer le bloc"
               >
                 <GripVertical size={14} />
               </button>
               <span
                 className="absolute right-0 top-8 whitespace-nowrap text-xs px-2 py-1 rounded-lg opacity-0 group-hover/grip:opacity-100 pointer-events-none transition-opacity z-20"
-                style={{
-                  background: "var(--st-ink)",
-                  color: "#fff",
-                  fontFamily: "inherit",
-                }}
+                style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit" }}
               >
                 Déplacement bientôt dispo
               </span>
             </div>
+
+            {/* Duplicate */}
+            <button
+              onClick={onDuplicate}
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
+              style={{ color: "rgba(16,24,32,0.4)" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+              }}
+              aria-label="Dupliquer le bloc"
+            >
+              <Copy size={14} />
+            </button>
 
             {/* Delete */}
             <button

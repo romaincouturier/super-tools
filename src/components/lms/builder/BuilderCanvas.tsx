@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { LmsLesson } from "@/hooks/useLms";
 import {
   useLessonBlocks,
@@ -153,6 +153,15 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
+  // Auto-resize H1 textarea on mount and whenever titleValue changes from outside
+  const h1Ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = h1Ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, [titleValue]);
+
   const handleAdd = useCallback(
     (type: LessonBlockType, parentBlockId: string | null = null) => {
       createBlock.mutate(
@@ -253,6 +262,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
 
         {/* H1 — editable textarea that auto-resizes, state lifted to LessonBuilderPage */}
         <textarea
+          ref={h1Ref}
           value={titleValue}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Titre de la leçon…"
@@ -265,11 +275,6 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
             color: "var(--st-ink)",
             lineHeight: 1.15,
           }}
-          onInput={(e) => {
-            const el = e.currentTarget;
-            el.style.height = "auto";
-            el.style.height = el.scrollHeight + "px";
-          }}
           aria-label="Titre de la leçon"
         />
 
@@ -281,37 +286,38 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
         ) : tree.length === 0 ? (
           <EmptyState onInsert={(type) => handleAdd(type, null)} />
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <RootDropzone hasChildren={tree.length > 0} density={density}>
-              <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
-                {tree.map((node, idx) => (
-                  <BuilderBlockWrapper
-                    key={node.block.id}
-                    blockRadius={blockRadius}
-                    density={density}
-                    onDelete={() => handleDelete(node.block.id)}
-                    onInsertAfter={(type) => handleAdd(type, null)}
-                    isLast={idx === tree.length - 1}
-                  >
-                    <BlockTreeNodeView
-                      node={node}
-                      parentId={null}
-                      lessonId={lesson.id}
-                      courseId={courseId}
-                      onUpdateContent={handleUpdateContent}
-                      onToggleHidden={handleToggleHidden}
-                      onDelete={handleDelete}
-                      onDuplicate={handleDuplicate}
-                      onAddChild={(parentId, type) => handleAdd(type, parentId)}
-                      slim
-                    />
-                  </BuilderBlockWrapper>
-                ))}
-              </SortableContext>
-            </RootDropzone>
-          </DndContext>
-          {/* Add block at end */}
-          <AddAtEndButton onInsert={(type) => handleAdd(type, null)} />
+          <>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <RootDropzone hasChildren={tree.length > 0} density={density}>
+                <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
+                  {tree.map((node) => (
+                    <BuilderBlockWrapper
+                      key={node.block.id}
+                      blockRadius={blockRadius}
+                      density={density}
+                      onDelete={() => handleDelete(node.block.id)}
+                      onDuplicate={() => handleDuplicate(node.block.id)}
+                      onInsertAfter={(type) => handleAdd(type, null)}
+                    >
+                      <BlockTreeNodeView
+                        node={node}
+                        parentId={null}
+                        lessonId={lesson.id}
+                        courseId={courseId}
+                        onUpdateContent={handleUpdateContent}
+                        onToggleHidden={handleToggleHidden}
+                        onDelete={handleDelete}
+                        onDuplicate={handleDuplicate}
+                        onAddChild={(parentId, type) => handleAdd(type, parentId)}
+                        slim
+                      />
+                    </BuilderBlockWrapper>
+                  ))}
+                </SortableContext>
+              </RootDropzone>
+            </DndContext>
+            <AddAtEndButton onInsert={(type) => handleAdd(type, null)} />
+          </>
         )}
       </div>
     </div>

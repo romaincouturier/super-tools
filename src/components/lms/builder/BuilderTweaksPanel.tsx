@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Settings, X } from "lucide-react";
 
 interface TweakValues {
@@ -16,14 +16,33 @@ interface Props {
 
 export default function BuilderTweaksPanel({ values, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const set = <K extends keyof TweakValues>(key: K, value: TweakValues[K]) =>
     onChange({ ...values, [key]: value });
+
+  // Close panel on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
 
   return (
     <>
       {/* Floating gear button */}
       <button
+        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-6 right-6 z-40 w-10 h-10 flex items-center justify-center rounded-full transition-all duration-150 shadow-md hover:scale-105"
         style={{
@@ -39,6 +58,7 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
       {/* Panel */}
       {open && (
         <div
+          ref={panelRef}
           className="fixed bottom-20 right-6 z-40 w-72 p-5 flex flex-col gap-5"
           style={{
             background: "var(--st-white)",
@@ -61,7 +81,6 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
             </button>
           </div>
 
-          {/* Content width */}
           <Slider
             label="Largeur du contenu"
             value={values.contentWidth}
@@ -72,7 +91,6 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
             onChange={(v) => set("contentWidth", v)}
           />
 
-          {/* H1 size */}
           <Slider
             label="Taille du titre H1"
             value={values.h1Size}
@@ -83,7 +101,6 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
             onChange={(v) => set("h1Size", v)}
           />
 
-          {/* Block radius */}
           <Slider
             label="Arrondi des blocs"
             value={values.blockRadius}
@@ -117,26 +134,28 @@ export default function BuilderTweaksPanel({ values, onChange }: Props) {
             </div>
           </div>
 
-          {/* Arc Tilt */}
+          {/* Arc Tilt toggle */}
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium" style={{ color: "var(--st-ink-muted)" }}>
               Arc Tilt décoratif
             </p>
             <button
               onClick={() => set("showArc", !values.showArc)}
-              className="w-10 h-5 rounded-full relative transition-colors"
+              className="w-10 h-5 rounded-full relative"
               style={{
                 background: values.showArc ? "var(--st-yellow)" : "rgba(16,24,32,0.15)",
+                transition: "background 150ms",
               }}
               aria-checked={values.showArc}
               role="switch"
             >
               <span
-                className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
+                className="absolute top-0.5 w-4 h-4 rounded-full"
                 style={{
                   background: "var(--st-white)",
                   left: values.showArc ? "calc(100% - 18px)" : "2px",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                  transition: "left 150ms ease",
                 }}
               />
             </button>

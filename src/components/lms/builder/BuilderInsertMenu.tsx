@@ -46,7 +46,7 @@ export default function BuilderInsertMenu({ onInsert, onClose, anchorRef }: Prop
     inputRef.current?.focus();
   }, []);
 
-  // Close on outside click
+  // Close on outside click or Escape key
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (
@@ -57,8 +57,15 @@ export default function BuilderInsertMenu({ onInsert, onClose, anchorRef }: Prop
         onClose();
       }
     };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [onClose, anchorRef]);
 
   const allContent = CONTENT_BLOCKS.map((b) => ({
