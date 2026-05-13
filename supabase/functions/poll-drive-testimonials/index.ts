@@ -153,7 +153,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         const bytes = await downloadDriveFileBytes(file.id, accessToken);
         const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
-        const jobId = await submitAssemblyAIJob(uploadUrl, ASSEMBLYAI_API_KEY);
+        const jobId = await submitAssemblyAIJob(
+          uploadUrl,
+          ASSEMBLYAI_API_KEY,
+          ASSEMBLYAI_WEBHOOK_SECRET
+            ? {
+                url: ASSEMBLYAI_WEBHOOK_URL,
+                authHeaderName: "x-webhook-secret",
+                authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
+              }
+            : undefined,
+        );
 
         await (admin as any).from("testimonials").update({ metadata: { assemblyai_id: jobId } }).eq("id", inserted.id);
         results.submitted++;
