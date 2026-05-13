@@ -130,6 +130,13 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
         if (!popup) {
           throw new Error("La fenêtre Google a été bloquée par le navigateur");
         }
+
+        const popupMonitor = window.setInterval(() => {
+          if (popup.closed) {
+            window.clearInterval(popupMonitor);
+            setIsConnecting(false);
+          }
+        }, 500);
       } else {
         throw new Error(data.error || "Failed to get auth URL");
       }
