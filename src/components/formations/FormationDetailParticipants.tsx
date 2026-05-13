@@ -58,6 +58,8 @@ const FormationDetailParticipants = ({
   fetchParticipants,
 }: Props) => {
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
+  const [requestingEmails, setRequestingEmails] = useState(false);
+  const [emailsRequestedAt, setEmailsRequestedAt] = useState<string | null>(null);
   const { copied: copiedParticipantEmails, copy } = useCopyToClipboard();
 
   useEffect(() => {
@@ -66,6 +68,22 @@ const FormationDetailParticipants = ({
       .then(({ data }: { data: any }) => { if (!cancelled) setHasSupportRecord(!!data); });
     return () => { cancelled = true; };
   }, [training.id]);
+
+  const handleRequestParticipantsEmails = async () => {
+    if (!training.sponsor_email) return;
+    setRequestingEmails(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-participants-emails-request", {
+        body: { trainingId: training.id },
+      });
+      if (error) throw error;
+      setEmailsRequestedAt(new Date().toISOString());
+    } catch (e) {
+      console.error("Error requesting participants emails:", e);
+    } finally {
+      setRequestingEmails(false);
+    }
+  };
 
   const effectiveEndDate = training.end_date || training.start_date;
   const endDate = effectiveEndDate ? parseISO(effectiveEndDate) : null;
