@@ -7886,6 +7886,80 @@ export type Database = {
           },
         ]
       }
+      transcript_ai_prompts: {
+        Row: {
+          id: string
+          kind: string
+          model: string
+          system_prompt: string
+          updated_at: string
+          user_prompt_template: string
+        }
+        Insert: {
+          id?: string
+          kind: string
+          model?: string
+          system_prompt?: string
+          updated_at?: string
+          user_prompt_template?: string
+        }
+        Update: {
+          id?: string
+          kind?: string
+          model?: string
+          system_prompt?: string
+          updated_at?: string
+          user_prompt_template?: string
+        }
+        Relationships: []
+      }
+      transcript_generations: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          model: string | null
+          tags: string[]
+          title_suggestion: string | null
+          transcript_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          model?: string | null
+          tags?: string[]
+          title_suggestion?: string | null
+          transcript_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          model?: string | null
+          tags?: string[]
+          title_suggestion?: string | null
+          transcript_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_generations_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcripts: {
         Row: {
           assemblyai_id: string | null
