@@ -67,7 +67,43 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const results = { checked: 0, completed: 0, submitted: 0, errors: 0 };
+    const results = { checked: 0, completed: 0, submitted: 0, errors: 0, backfilled: 0 };
+
+    // ── Pass 0: backfill drive_file_name + parsed fields for legacy rows ──
+    {
+      const { data: legacy } = await (admin as any)
+        .from("testimonials")
+        .select("id, drive_file_id")
+        .is("drive_file_name", null);
+
+      const legacyRows = (legacy ?? []) as Array<{ id: string; drive_file_id: string }>;
+      if (legacyRows.length > 0) {
+        const driveToken = await getValidDriveAccessToken(admin);
+        if (driveToken) {
+          for (const row of legacyRows) {
+            try {
+              const r = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${row.drive_file_id}?fields=id,name&supportsAllDrives=true`,
+                { headers: { Authorization: `Bearer ${driveToken}` } },
+              );
+              if (!r.ok) continue;
+              const f = await r.json() as { name?: string };
+              if (!f.name) continue;
+              const parsed = parseTestimonialFilename(f.name);
+              await (admin as any).from("testimonials").update({
+                drive_file_name: f.name,
+                client_name: parsed.client_name || null,
+                company: parsed.company || null,
+                service_type: parsed.service_type || null,
+              }).eq("id", row.id);
+              results.backfilled++;
+            } catch (err) {
+              console.warn(`[poll-drive-testimonials] backfill failed for ${row.drive_file_id}:`, err);
+            }
+          }
+        }
+      }
+    }
 
     // ── Pass 1: check pending AssemblyAI jobs ────────────────────
     // Testimonials store assemblyai_id in a metadata column
