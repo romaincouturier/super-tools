@@ -1,0 +1,1 @@
+UPDATE public.testimonials SET client_name = NULL, company = NULL, service_type = NULL WHERE (service_type ~ '^\d+$') OR (company ~ '^\d') OR (client_name ~ '^\d+$');
