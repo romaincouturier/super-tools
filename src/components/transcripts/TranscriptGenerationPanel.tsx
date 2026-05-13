@@ -103,7 +103,7 @@ function VariantEditor({
   const [selectedColumn, setSelectedColumn] = useState<string>("");
   const newsletters = useNewslettersDraft();
   const columns = useContentColumns();
-  const [, copyToClipboard] = useCopyToClipboard();
+  const { copy: copyToClipboard } = useCopyToClipboard();
 
   const defaultColumn = useMemo(
     () => columns.data?.find((c) => /id[ée]e/i.test(c.name))?.id ?? columns.data?.[0]?.id ?? "",

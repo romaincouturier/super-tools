@@ -16,8 +16,7 @@ import {
   getModifiedAfterWithLookback,
   getValidDriveAccessToken,
   listDriveFolder,
-  downloadDriveFileBytes,
-  uploadToAssemblyAI,
+  uploadDriveFileToAssemblyAI,
   submitAssemblyAIJob,
   pollAssemblyAIJob,
   analyzeTranscript,
@@ -29,6 +28,38 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY") ?? "";
 const ASSEMBLYAI_WEBHOOK_SECRET = Deno.env.get("ASSEMBLYAI_WEBHOOK_SECRET") ?? "";
 const ASSEMBLYAI_WEBHOOK_URL = `${SUPABASE_URL}/functions/v1/assemblyai-webhook`;
+
+async function submitDriveTranscriptFile(
+  admin: any,
+  file: { id: string; name: string; size?: string },
+  transcriptId: string,
+  accessToken: string,
+): Promise<void> {
+  try {
+    const sizeBytes = Number(file.size ?? 0);
+    const uploadUrl = sizeBytes > 100 * 1024 * 1024
+      ? `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&access_token=${encodeURIComponent(accessToken)}`
+      : await uploadDriveFileToAssemblyAI(file.id, accessToken, ASSEMBLYAI_API_KEY);
+    const jobId = await submitAssemblyAIJob(
+      uploadUrl,
+      ASSEMBLYAI_API_KEY,
+      ASSEMBLYAI_WEBHOOK_SECRET
+        ? {
+            url: ASSEMBLYAI_WEBHOOK_URL,
+            authHeaderName: "x-webhook-secret",
+            authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
+          }
+        : undefined,
+    );
+
+    await (admin as any).from("transcripts").update({ assemblyai_id: jobId }).eq("id", transcriptId);
+  } catch (err) {
+    console.error(`Failed to submit Drive transcript file ${file.name}:`, err);
+    await (admin as any).from("transcripts")
+      .update({ status: "error", error_message: err instanceof Error ? err.message : String(err) })
+      .eq("id", transcriptId);
+  }
+}
 
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
@@ -135,40 +166,49 @@ Deno.serve(async (req: Request): Promise<Response> => {
       mimeTypePrefix: "video/",
     });
 
-    // Filter to files not already in DB
-    const existingIds = files.length > 0
-      ? ((await (admin as any).from("transcripts").select("external_id").in("external_id", files.map((f) => f.id))).data ?? [])
-          .map((r: { external_id: string }) => r.external_id)
+    // Filter to files not already queued, while retrying stuck rows with no AssemblyAI job.
+    const existingRows = files.length > 0
+      ? ((await (admin as any)
+          .from("transcripts")
+          .select("id, external_id, status, assemblyai_id")
+          .in("external_id", files.map((f) => f.id))).data ?? []) as Array<{
+            id: string;
+            external_id: string;
+            status: string;
+            assemblyai_id: string | null;
+          }>
       : [];
+    const existingByExternalId = new Map(existingRows.map((row) => [row.external_id, row]));
 
-    const toProcess = files.filter((f) => !existingIds.includes(f.id)).slice(0, 5);
+    const toProcess = files.filter((file) => {
+      const existing = existingByExternalId.get(file.id);
+      return !existing || existing.status === "error" || (existing.status === "processing" && !existing.assemblyai_id);
+    }).slice(0, 5);
+
+    const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void } })
+      .EdgeRuntime?.waitUntil;
 
     for (const file of toProcess) {
       try {
-        // Insert as pending first
-        const { data: inserted } = await (admin as any)
-          .from("transcripts")
-          .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
-          .select("id")
-          .single();
+        const existing = existingByExternalId.get(file.id);
+        const { data: inserted } = existing
+          ? await (admin as any)
+              .from("transcripts")
+              .update({ title: file.name, status: "processing", error_message: null })
+              .eq("id", existing.id)
+              .select("id")
+              .single()
+          : await (admin as any)
+              .from("transcripts")
+              .insert({ source: "google_drive", external_id: file.id, title: file.name, status: "processing" })
+              .select("id")
+              .single();
 
         if (!inserted) continue;
 
-        const bytes = await downloadDriveFileBytes(file.id, accessToken);
-        const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
-        const jobId = await submitAssemblyAIJob(
-          uploadUrl,
-          ASSEMBLYAI_API_KEY,
-          ASSEMBLYAI_WEBHOOK_SECRET
-            ? {
-                url: ASSEMBLYAI_WEBHOOK_URL,
-                authHeaderName: "x-webhook-secret",
-                authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
-              }
-            : undefined,
-        );
-
-        await (admin as any).from("transcripts").update({ assemblyai_id: jobId }).eq("id", inserted.id);
+        const task = submitDriveTranscriptFile(admin, file, inserted.id, accessToken);
+        if (waitUntil) waitUntil(task);
+        else await task;
         results.submitted++;
       } catch (err) {
         console.error(`Failed to process file ${file.name}:`, err);

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import { LAYOUT_BLOCKS, CONTENT_BLOCKS } from "@/components/lms/blocks/registry";
+import type { BlockTypeMeta } from "@/components/lms/blocks/registry";
 import type { LessonBlockType } from "@/types/lms-blocks";
 
 // Description and shortcut hints per block type (matching design catalog)
@@ -138,7 +139,7 @@ export default function BuilderInsertMenu({ onInsert, onClose, anchorRef }: Prop
   );
 }
 
-type ItemWithActive = ReturnType<typeof CONTENT_BLOCKS.map>[number] & { active: boolean };
+type ItemWithActive = BlockTypeMeta & { active: boolean };
 
 function Section({
   title,

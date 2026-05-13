@@ -11,6 +11,7 @@ export interface DriveFile {
   id: string;
   name: string;
   mimeType: string;
+  createdTime?: string;
   modifiedTime: string;
   size?: string;
 }
@@ -108,11 +109,13 @@ export async function listDriveFolder(
 ): Promise<DriveListResult> {
   const queries = [`'${folderId}' in parents`, "trashed = false"];
   if (options.mimeTypePrefix) queries.push(`mimeType contains '${options.mimeTypePrefix}'`);
-  if (options.modifiedAfter) queries.push(`modifiedTime > '${options.modifiedAfter}'`);
+  if (options.modifiedAfter) {
+    queries.push(`(modifiedTime > '${options.modifiedAfter}' or createdTime > '${options.modifiedAfter}')`);
+  }
 
   const params = new URLSearchParams({
     q: queries.join(" and "),
-    fields: "nextPageToken,files(id,name,mimeType,modifiedTime,size)",
+    fields: "nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,size)",
     orderBy: "modifiedTime asc",
     pageSize: "100",
     supportsAllDrives: "true",
@@ -155,6 +158,33 @@ export async function uploadToAssemblyAI(
   });
   if (!res.ok) throw new Error(`AssemblyAI upload error ${res.status}: ${await res.text()}`);
   const data = await res.json();
+  return data.upload_url as string;
+}
+
+/** Stream a private Drive file directly to AssemblyAI without loading it fully in memory. */
+export async function uploadDriveFileToAssemblyAI(
+  fileId: string,
+  accessToken: string,
+  apiKey: string,
+): Promise<string> {
+  const driveRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!driveRes.ok || !driveRes.body) {
+    throw new Error(`Drive download error ${driveRes.status}: ${await driveRes.text().catch(() => "")}`);
+  }
+
+  const uploadRes = await fetch("https://api.assemblyai.com/v2/upload", {
+    method: "POST",
+    headers: {
+      Authorization: apiKey,
+      "Content-Type": "application/octet-stream",
+    },
+    body: driveRes.body,
+  } as RequestInit);
+  if (!uploadRes.ok) throw new Error(`AssemblyAI upload error ${uploadRes.status}: ${await uploadRes.text()}`);
+  const data = await uploadRes.json();
   return data.upload_url as string;
 }
 
