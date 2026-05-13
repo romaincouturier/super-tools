@@ -159,6 +159,16 @@ async function finalizeTranscript(
     body: JSON.stringify({ source_type: "transcript", source_id: row.id }),
   }).catch(() => {});
 
+  // Trigger AI title generation (best-effort, fire and forget)
+  fetch(`${SUPABASE_URL}/functions/v1/generate-transcript-title`, {
+    method: "POST",
+    headers: {
+      "x-internal-secret": SUPABASE_SERVICE_ROLE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ transcript_id: row.id }),
+  }).catch((e) => console.warn("[assemblyai-webhook] title gen failed", e));
+
   return jsonResponse({ ok: true, finalized: "ready" });
 }
 
