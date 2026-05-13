@@ -4,7 +4,7 @@ import { ArrowLeft, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PageHeaderProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
   subtitle?: string;
   backTo?: string;
@@ -25,9 +25,11 @@ const PageHeader = ({ icon: Icon, title, subtitle, backTo, onBackClick, actions 
           </Button>
         )}
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="h-6 w-6 text-primary" />
-          </div>
+          {Icon && (
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Icon className="h-6 w-6 text-primary" />
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-bold">{title}</h1>
             {subtitle && (
