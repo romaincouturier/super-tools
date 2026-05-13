@@ -91,6 +91,7 @@ const AdminArchives = lazy(() => import("./pages/AdminArchives"));
 const Transcripts = lazy(() => import("./pages/Transcripts"));
 const Temoignages = lazy(() => import("./pages/Temoignages"));
 const Dropshipping = lazy(() => import("./pages/Dropshipping"));
+const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
@@ -238,6 +239,7 @@ const App = () => (
               <Route path="/transcripts" element={<Transcripts />} />
               <Route path="/temoignages" element={<Temoignages />} />
               <Route path="/dropshipping" element={<Dropshipping />} />
+              <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

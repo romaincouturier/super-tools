@@ -50,8 +50,8 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
     // Listen for OAuth popup messages
     const handleMessage = (event: MessageEvent) => {
       // Validate origin to prevent malicious postMessage attacks
-      const expectedOrigin = import.meta.env.VITE_SUPABASE_URL;
-      if (expectedOrigin && event.origin !== expectedOrigin) {
+      const expectedOrigin = window.location.origin;
+      if (event.origin !== expectedOrigin) {
         console.warn("Ignored postMessage from untrusted origin:", event.origin);
         return;
       }
@@ -62,6 +62,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
           setIsConnected(true);
           setNeedsReconnect(false);
           onStatusChange?.(true);
+          checkStatus();
           toast({
             title: "Google Drive connecté",
             description: "Vos certificats seront uploadés automatiquement.",
@@ -97,6 +98,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
 
       // Get the callback URL - use the edge function URL
       const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-drive-auth?action=callback`;
+      const appCallbackUrl = `${window.location.origin}/google-drive/callback`;
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-drive-auth?action=initiate`,
@@ -106,7 +108,7 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ redirectUri }),
+          body: JSON.stringify({ redirectUri, appCallbackUrl }),
         }
       );
 
@@ -119,11 +121,22 @@ const GoogleDriveConnect = ({ onStatusChange }: GoogleDriveConnectProps) => {
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
 
-        window.open(
+        const popup = window.open(
           data.authUrl,
           "google-drive-auth",
           `width=${width},height=${height},left=${left},top=${top}`
         );
+
+        if (!popup) {
+          throw new Error("La fenêtre Google a été bloquée par le navigateur");
+        }
+
+        const popupMonitor = window.setInterval(() => {
+          if (popup.closed) {
+            window.clearInterval(popupMonitor);
+            setIsConnecting(false);
+          }
+        }, 500);
       } else {
         throw new Error(data.error || "Failed to get auth URL");
       }
