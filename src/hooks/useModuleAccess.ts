@@ -30,7 +30,10 @@ export type AppModule =
   | "catalogue"
   | "web_analytics"
   | "finances"
-  | "archives";
+  | "archives"
+  | "transcripts"
+  | "temoignages"
+  | "dropshipping";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -62,6 +65,9 @@ export const ALL_MODULES: AppModule[] = [
   "web_analytics",
   "finances",
   "archives",
+  "transcripts",
+  "temoignages",
+  "dropshipping",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -94,6 +100,9 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   web_analytics: "Stats site web",
   finances: "Finances",
   archives: "Archives",
+  transcripts: "Transcripts",
+  temoignages: "Témoignages",
+  dropshipping: "Dropshipping",
 };
 
 export function useModuleAccess() {

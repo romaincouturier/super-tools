@@ -44,6 +44,9 @@ const SIDEBAR_MODULE_ORDER = [
   "veille",
   "web-analytics",
   "archives",
+  "transcripts",
+  "temoignages",
+  "dropshipping",
 ];
 
 function toAppModule(moduleIconKey: string): string {

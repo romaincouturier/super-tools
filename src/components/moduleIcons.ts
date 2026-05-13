@@ -25,6 +25,9 @@ import {
   Globe,
   Wallet,
   Archive,
+  Mic,
+  Star,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -61,4 +64,7 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   "web-analytics": { icon: Globe, label: "Stats site web", path: "/web-analytics" },
   finances: { icon: Wallet, label: "Finances", path: "/finances" },
   archives: { icon: Archive, label: "Archives", path: "/archives" },
+  transcripts: { icon: Mic, label: "Transcripts", path: "/transcripts" },
+  temoignages: { icon: Star, label: "Témoignages", path: "/temoignages" },
+  dropshipping: { icon: ShoppingCart, label: "Dropshipping", path: "/dropshipping" },
 };
