@@ -2397,6 +2397,142 @@ export type Database = {
         }
         Relationships: []
       }
+      game_authors: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          royalty_rate: number
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          royalty_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          royalty_rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      game_sales: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          game_id: string | null
+          id: string
+          quantity: number
+          raw_order: Json | null
+          royalty_amount: number
+          sale_date: string
+          status: string
+          total_amount: number
+          unit_price: number
+          woocommerce_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          game_id?: string | null
+          id?: string
+          quantity?: number
+          raw_order?: Json | null
+          royalty_amount?: number
+          sale_date: string
+          status?: string
+          total_amount?: number
+          unit_price?: number
+          woocommerce_order_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          game_id?: string | null
+          id?: string
+          quantity?: number
+          raw_order?: Json | null
+          royalty_amount?: number
+          sale_date?: string
+          status?: string
+          total_amount?: number
+          unit_price?: number
+          woocommerce_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sales_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          author_id: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          woocommerce_product_id: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          woocommerce_product_id?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          woocommerce_product_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "games_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "game_authors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -5119,6 +5255,39 @@ export type Database = {
           },
         ]
       }
+      polling_cursors: {
+        Row: {
+          created_at: string
+          cursor: string | null
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cursor?: string | null
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cursor?: string | null
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       post_evaluation_emails: {
         Row: {
           catalog_id: string | null
@@ -6378,6 +6547,48 @@ export type Database = {
           ticket_number?: string
           title?: string
           type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      testimonials: {
+        Row: {
+          client_name: string | null
+          company: string | null
+          created_at: string
+          drive_file_id: string
+          id: string
+          published_at: string | null
+          raw_transcript: string | null
+          reviewer_notes: string | null
+          service_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string | null
+          company?: string | null
+          created_at?: string
+          drive_file_id: string
+          id?: string
+          published_at?: string | null
+          raw_transcript?: string | null
+          reviewer_notes?: string | null
+          service_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string | null
+          company?: string | null
+          created_at?: string
+          drive_file_id?: string
+          id?: string
+          published_at?: string | null
+          raw_transcript?: string | null
+          reviewer_notes?: string | null
+          service_type?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -7674,6 +7885,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transcripts: {
+        Row: {
+          assemblyai_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          error_message: string | null
+          external_id: string
+          id: string
+          metadata: Json | null
+          raw_text: string | null
+          source: string
+          status: string
+          summary: string | null
+          tags: string[] | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          assemblyai_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          external_id: string
+          id?: string
+          metadata?: Json | null
+          raw_text?: string | null
+          source: string
+          status?: string
+          summary?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assemblyai_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          error_message?: string | null
+          external_id?: string
+          id?: string
+          metadata?: Json | null
+          raw_text?: string | null
+          source?: string
+          status?: string
+          summary?: string | null
+          tags?: string[] | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       usage_records: {
         Row: {
