@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { formatFileSize } from "@/lib/file-utils";
 import VideoBlockViewer from "@/components/lms/blocks/viewers/VideoBlockViewer";
-import { InlineEdit } from "./InlineEdit";
 import type { VideoBlockContent } from "@/types/lms-blocks";
 
 const SUPERTILT_PRESET: Partial<VideoBlockContent> = {
