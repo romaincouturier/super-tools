@@ -20,6 +20,7 @@ import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSou
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { notifyCrmSlack } from "@/services/crmSlack";
 
 const CRM_ACTION_PRESETS = [
   "Relancer le client",
