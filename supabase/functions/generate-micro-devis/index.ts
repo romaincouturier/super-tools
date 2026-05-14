@@ -558,19 +558,7 @@ serve(async (req: Request): Promise<Response> => {
       pdfAvecSubrogation = await generatePdfWithPdfMonkey(body, true);
     }
 
-    // Send email with PDFs
-    console.log("Sending email with PDF(s)...");
     const supabase = getSupabaseClient();
-    const emailResult = await sendEmailWithResend(
-      supabase,
-      body.emailCommanditaire,
-      body.adresseCommanditaire,
-      body.formationDemandee,
-      body.programmeUrl,
-      pdfSansSubrogation?.pdfUrl || null,
-      pdfAvecSubrogation?.pdfUrl || null,
-      typeSubrogation
-    );
 
     // Auto-resolve crmCardId by matching email if not explicitly provided
     let resolvedCrmCardId = body.crmCardId || null;
@@ -593,7 +581,8 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // Persist PDFs to Supabase Storage for permanent access
+    // Persist PDFs to Supabase Storage for permanent access (must run BEFORE
+    // signature token creation, since tokens reference the public storage URL).
     let storageSansPath: string | null = null;
     let storageAvecPath: string | null = null;
     if (pdfSansSubrogation?.pdfUrl) {
@@ -602,6 +591,134 @@ serve(async (req: Request): Promise<Response> => {
     if (pdfAvecSubrogation?.pdfUrl) {
       storageAvecPath = await persistPdfToStorage(supabase, pdfAvecSubrogation.pdfUrl, resolvedCrmCardId, "avec_subrogation");
     }
+
+    // Compute total amount (HT) for opportunity estimation sync.
+    // Micro-devis pricing = prix × nb_participants (+ 150€ frais de dossier).
+    const microDevisTotal =
+      (body.prix || 0) * (body.nbParticipants || 1) +
+      (body.fraisDossier ? 150 : 0);
+
+    // Insert activity_logs FIRST so we have an id to link to devis_signatures
+    let activityLogId: string | null = null;
+    try {
+      const { data: activityLogData } = await supabase.from("activity_logs").insert({
+        action_type: "micro_devis_sent",
+        recipient_email: body.emailCommanditaire,
+        details: {
+          crm_card_id: resolvedCrmCardId || null,
+          total_amount: microDevisTotal,
+          formation_name: body.formationDemandee,
+          client_name: body.nomClient,
+          type_subrogation: typeSubrogation,
+          nb_participants: body.nbParticipants,
+          pdf_sans_subrogation_url: pdfSansSubrogation?.pdfUrl || null,
+          pdf_avec_subrogation_url: pdfAvecSubrogation?.pdfUrl || null,
+          pdf_sans_storage_path: storageSansPath,
+          pdf_avec_storage_path: storageAvecPath,
+          // Store all form data for duplication
+          form_data: {
+            nomClient: body.nomClient,
+            adresseClient: body.adresseClient,
+            codePostalClient: body.codePostalClient,
+            villeClient: body.villeClient,
+            pays: body.pays,
+            emailCommanditaire: body.emailCommanditaire,
+            adresseCommanditaire: body.adresseCommanditaire,
+            isAdministration: body.isAdministration,
+            noteDevis: body.noteDevis,
+            formationDemandee: body.formationDemandee,
+            formationLibre: body.formationLibre || "",
+            dateFormation: body.dateFormation,
+            dateFormationLibre: body.dateFormationLibre || "",
+            lieu: body.lieu,
+            lieuAutre: body.lieuAutre || "",
+            includeCadeau: body.includeCadeau,
+            fraisDossier: body.fraisDossier,
+            participants: body.participants,
+            typeSubrogation: typeSubrogation,
+            typeDevis: body.typeDevis || "formation",
+            formatFormation: body.formatFormation || "inter",
+          },
+        },
+      }).select("id").single();
+      activityLogId = activityLogData?.id || null;
+    } catch (logError) {
+      console.warn("Failed to log activity:", logError);
+    }
+
+    // Generate signature tokens for the available PDFs (only if we have an
+    // activity log to attach them to and the PDFs were persisted in storage).
+    const supabaseUrlEnv = Deno.env.get("SUPABASE_URL")!;
+    const { getAppUrls } = await import("../_shared/app-urls.ts");
+    const appUrls = await getAppUrls();
+    const appUrl = appUrls.app_url || appUrls.website_url || "";
+
+    const signatureTokens: { sans?: string; avec?: string } = {};
+    if (activityLogId && storageSansPath) {
+      try {
+        const tokenSans = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+        const pdfPublicUrl = `${supabaseUrlEnv}/storage/v1/object/public/devis-pdfs/${storageSansPath}`;
+        const { error: insErr } = await supabase.from("devis_signatures").insert({
+          token: tokenSans,
+          activity_log_id: activityLogId,
+          recipient_email: body.emailCommanditaire,
+          recipient_name: body.adresseCommanditaire || null,
+          client_name: body.nomClient,
+          formation_name: body.formationDemandee,
+          devis_type: "sans_subrogation",
+          pdf_url: pdfPublicUrl,
+          status: "pending",
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        if (insErr) {
+          console.warn("Failed to create devis_signatures (sans):", insErr);
+        } else {
+          signatureTokens.sans = tokenSans;
+        }
+      } catch (sigErr) {
+        console.warn("Error generating signature token (sans):", sigErr);
+      }
+    }
+    if (activityLogId && storageAvecPath) {
+      try {
+        const tokenAvec = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+        const pdfPublicUrl = `${supabaseUrlEnv}/storage/v1/object/public/devis-pdfs/${storageAvecPath}`;
+        const { error: insErr } = await supabase.from("devis_signatures").insert({
+          token: tokenAvec,
+          activity_log_id: activityLogId,
+          recipient_email: body.emailCommanditaire,
+          recipient_name: body.adresseCommanditaire || null,
+          client_name: body.nomClient,
+          formation_name: body.formationDemandee,
+          devis_type: "avec_subrogation",
+          pdf_url: pdfPublicUrl,
+          status: "pending",
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        if (insErr) {
+          console.warn("Failed to create devis_signatures (avec):", insErr);
+        } else {
+          signatureTokens.avec = tokenAvec;
+        }
+      } catch (sigErr) {
+        console.warn("Error generating signature token (avec):", sigErr);
+      }
+    }
+
+    // Send email with PDFs and (when available) signature links
+    console.log("Sending email with PDF(s)...");
+    const emailResult = await sendEmailWithResend(
+      supabase,
+      body.emailCommanditaire,
+      body.adresseCommanditaire,
+      body.formationDemandee,
+      body.programmeUrl,
+      pdfSansSubrogation?.pdfUrl || null,
+      pdfAvecSubrogation?.pdfUrl || null,
+      typeSubrogation,
+      signatureTokens,
+      appUrl
+    );
 
     // Sync company data (SIREN snapshot) to the opportunity card.
     // MicroDevis front-end already persists this when SIREN is clicked,
@@ -711,58 +828,6 @@ serve(async (req: Request): Promise<Response> => {
       } catch (crmError) {
         console.warn("Failed to track email in CRM:", crmError);
       }
-    }
-
-    // Compute total amount (HT) for opportunity estimation sync.
-    // Micro-devis pricing = prix × nb_participants (+ 150€ frais de dossier).
-    const microDevisTotal =
-      (body.prix || 0) * (body.nbParticipants || 1) +
-      (body.fraisDossier ? 150 : 0);
-
-    // Log activity with all form data for duplication feature
-    try {
-      await supabase.from("activity_logs").insert({
-        action_type: "micro_devis_sent",
-        recipient_email: body.emailCommanditaire,
-        details: {
-          crm_card_id: resolvedCrmCardId || null,
-          total_amount: microDevisTotal,
-          formation_name: body.formationDemandee,
-          client_name: body.nomClient,
-          type_subrogation: typeSubrogation,
-          nb_participants: body.nbParticipants,
-          pdf_sans_subrogation_url: pdfSansSubrogation?.pdfUrl || null,
-          pdf_avec_subrogation_url: pdfAvecSubrogation?.pdfUrl || null,
-          pdf_sans_storage_path: storageSansPath,
-          pdf_avec_storage_path: storageAvecPath,
-          // Store all form data for duplication
-          form_data: {
-            nomClient: body.nomClient,
-            adresseClient: body.adresseClient,
-            codePostalClient: body.codePostalClient,
-            villeClient: body.villeClient,
-            pays: body.pays,
-            emailCommanditaire: body.emailCommanditaire,
-            adresseCommanditaire: body.adresseCommanditaire,
-            isAdministration: body.isAdministration,
-            noteDevis: body.noteDevis,
-            formationDemandee: body.formationDemandee,
-            formationLibre: body.formationLibre || "",
-            dateFormation: body.dateFormation,
-            dateFormationLibre: body.dateFormationLibre || "",
-            lieu: body.lieu,
-            lieuAutre: body.lieuAutre || "",
-            includeCadeau: body.includeCadeau,
-            fraisDossier: body.fraisDossier,
-            participants: body.participants,
-            typeSubrogation: typeSubrogation,
-            typeDevis: body.typeDevis || "formation",
-            formatFormation: body.formatFormation || "inter",
-          },
-        },
-      });
-    } catch (logError) {
-      console.warn("Failed to log activity:", logError);
     }
 
     // Recompute opportunity estimated_value = MIN of all sent quotes.
