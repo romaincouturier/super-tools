@@ -5331,6 +5331,7 @@ export type Database = {
           game_id: string | null
           game_type: string | null
           id: string
+          invoice_received_at: string | null
           kanban_status: string
           line_total: number | null
           notes: string | null
@@ -5353,6 +5354,7 @@ export type Database = {
           game_id?: string | null
           game_type?: string | null
           id?: string
+          invoice_received_at?: string | null
           kanban_status?: string
           line_total?: number | null
           notes?: string | null
@@ -5375,6 +5377,7 @@ export type Database = {
           game_id?: string | null
           game_type?: string | null
           id?: string
+          invoice_received_at?: string | null
           kanban_status?: string
           line_total?: number | null
           notes?: string | null
