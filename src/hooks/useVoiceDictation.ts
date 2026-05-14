@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 interface UseVoiceDictationOptions {
   onTranscript: (text: string) => void;
@@ -57,11 +56,9 @@ export function useVoiceDictation({
         // Upload blob to storage to get a public URL for AssemblyAI
         setIsTranscribing(true);
         try {
-          const ext = blob.type.includes("webm") ? "webm" : "mp4";
-          const fileName = `dictation/${uuidv4()}.${ext}`;
           // Strip codec parameter (e.g. "audio/webm;codecs=opus") — Supabase
           // bucket allowed_mime_types matches the base mime exactly.
-          const baseMime = (blob.type || `audio/${ext}`).split(";")[0].trim();
+          const baseMime = (blob.type || "audio/mp4").split(";")[0].trim();
           // The Storage API validates the Blob/File MIME type itself, not only
           // the explicit contentType option. MediaRecorder often returns
           // "audio/webm;codecs=opus", while the bucket allow-list contains the
