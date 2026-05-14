@@ -34,7 +34,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
   } catch (_) { /* no body */ }
 
-  // Debug: introspect available transcripts and current user
+  // List recent transcripts from Fireflies (capped to preserve daily quota ~50/day)
   const debugRes = await fetch("https://api.fireflies.ai/graphql", {
     method: "POST",
     headers: {
@@ -42,23 +42,35 @@ Deno.serve(async (req: Request): Promise<Response> => {
       Authorization: `Bearer ${FIREFLIES_API_KEY}`,
     },
     body: JSON.stringify({
-      query: `query {
+      query: `query($limit: Int) {
         user { user_id name email num_transcripts }
-        transcripts(limit: 50) { id title date }
+        transcripts(limit: $limit) { id title date }
       }`,
+      variables: { limit },
     }),
   });
+
+  if (debugRes.status === 429) {
+    const retryAfter = debugRes.headers.get("retry-after") ?? "unknown";
+    console.warn("[fireflies-backfill] rate-limited, retry-after:", retryAfter);
+    return new Response(JSON.stringify({
+      ok: false,
+      rate_limited: true,
+      retry_after: retryAfter,
+      hint: "Fireflies daily quota exhausted. Will retry at next cron tick.",
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   const debugJson = await debugRes.json();
   console.log("[fireflies-backfill] debug:", JSON.stringify(debugJson));
 
-  // List recent transcripts from Fireflies
   const transcripts: Array<{ id: string; title: string; date: number }> = debugJson?.data?.transcripts ?? [];
   if (!transcripts.length) {
     return new Response(JSON.stringify({
       ok: true,
       total_listed: 0,
       debug: debugJson,
-      hint: "Fireflies returned 0 transcripts. Check that the API key belongs to a user/workspace with transcripts.",
+      hint: "Fireflies returned 0 transcripts.",
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
