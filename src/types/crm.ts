@@ -107,6 +107,18 @@ export interface CrmCard {
   tags?: CrmTag[];
 }
 
+export interface SourceMetadata {
+  received_at?: string | null;
+  page_url?: string | null;
+  page_title?: string | null;
+  user_agent?: string | null;
+  referrer?: string | null;
+  remote_ip?: string | null;
+  form_name?: string | null;
+  form_id?: string | null;
+  channel?: string | null;
+}
+
 export interface CrmCardTag {
   card_id: string;
   tag_id: string;
