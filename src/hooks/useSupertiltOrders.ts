@@ -382,7 +382,7 @@ export function useEmailTemplates() {
     queryKey: ["email-templates"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("email_templates")
+        .from("supertilt_email_templates")
         .select("*")
         .order("template_key");
       if (error) throw error;
@@ -396,9 +396,9 @@ export function useUpsertEmailTemplate() {
   return useMutation({
     mutationFn: async (payload: Partial<EmailTemplate> & { template_key: string }) => {
       const { data, error } = payload.id
-        ? await (supabase as any).from("email_templates").update(payload).eq("id", payload.id).select().single()
+        ? await (supabase as any).from("supertilt_email_templates").update(payload).eq("id", payload.id).select().single()
         : await (supabase as any)
-            .from("email_templates")
+            .from("supertilt_email_templates")
             .upsert(payload, { onConflict: "template_key" })
             .select()
             .single();

@@ -46,23 +46,8 @@ CREATE TRIGGER partner_payments_updated_at
   BEFORE UPDATE ON public.partner_payments
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- ── V2 : template email réapprovisionnement ───────────────────────
-INSERT INTO public.email_templates (template_key, name, subject, body) VALUES
-(
-  'restock',
-  'Email réapprovisionnement',
-  'Réapprovisionnement nécessaire — {{nom_jeu}}',
-  '<p>Bonjour,</p>
-<p>Le stock du jeu <strong>{{nom_jeu}}</strong> est passé sous le seuil minimum.</p>
-<p><strong>Stock actuel :</strong> {{stock_actuel}}<br>
-<strong>Seuil minimum :</strong> {{seuil_minimum}}</p>
-<p><strong>Éléments à commander :</strong></p>
-<pre>{{elements_a_commander}}</pre>
-<p><strong>Fournisseurs / URLs :</strong></p>
-<pre>{{fournisseurs}}</pre>
-<p>Cordialement,<br>L''équipe SuperTilt</p>'
-)
-ON CONFLICT (template_key) DO NOTHING;
+-- ── V2 : template restock ─────────────────────────────────────────
+-- Inséré dans supertilt_email_templates via 20260514130000_supertilt_email_templates_fix.sql
 
 -- ── V3 : dépenses par jeu ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.game_expenses (

@@ -103,83 +103,10 @@ CREATE TRIGGER order_items_updated_at
   BEFORE UPDATE ON public.order_items
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- ── 5. email_templates ───────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.email_templates (
-  id           UUID    DEFAULT gen_random_uuid() PRIMARY KEY,
-  template_key TEXT    NOT NULL UNIQUE,
-  name         TEXT    NOT NULL,
-  subject      TEXT    NOT NULL DEFAULT '',
-  body         TEXT    NOT NULL DEFAULT '',
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE public.email_templates ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated can manage email_templates"
-  ON public.email_templates FOR ALL TO authenticated USING (true);
-
-CREATE TRIGGER email_templates_updated_at
-  BEFORE UPDATE ON public.email_templates
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-
--- Default templates
-INSERT INTO public.email_templates (template_key, name, subject, body) VALUES
-(
-  'dropshipping',
-  'Email dropshipping auteur',
-  'Nouvelle commande — {{nom_jeu}} (×{{quantite}})',
-  '<p>Bonjour,</p>
-<p>Une nouvelle commande vient d''être passée pour votre jeu <strong>{{nom_jeu}}</strong>.</p>
-<p><strong>Détails de la commande :</strong></p>
-<ul>
-  <li>Commande n° : {{numero_commande}}</li>
-  <li>Date : {{date_commande}}</li>
-  <li>Client : {{nom_client}}</li>
-  <li>Quantité : {{quantite}}</li>
-  <li>Montant TTC : {{montant_ttc}}</li>
-</ul>
-<p><strong>Adresse de livraison :</strong><br>{{adresse_livraison}}</p>
-{{#message_personnalise_jeu}}<p>{{message_personnalise_jeu}}</p>{{/message_personnalise_jeu}}
-<p>Merci de procéder à l''expédition dans les meilleurs délais.</p>
-<p>Cordialement,<br>L''équipe SuperTilt</p>'
-),
-(
-  'location',
-  'Email location client',
-  'Contrat de location — {{nom_jeu}}',
-  '<p>Bonjour {{nom_client}},</p>
-<p>Merci pour votre commande de location du jeu <strong>{{nom_jeu}}</strong>.</p>
-<p>Veuillez trouver ci-joint le contrat de location à signer et nous retourner.</p>
-<p><strong>Commande n° :</strong> {{numero_commande}}<br>
-<strong>Date :</strong> {{date_commande}}</p>
-<p>Cordialement,<br>L''équipe SuperTilt</p>'
-),
-(
-  'partner',
-  'Notification partenaire',
-  'Nouvelle vente — {{nom_jeu}}',
-  '<p>Bonjour,</p>
-<p>Une nouvelle vente a été enregistrée pour le jeu <strong>{{nom_jeu}}</strong>.</p>
-<p><strong>Commande :</strong> {{numero_commande}}<br>
-<strong>Date :</strong> {{date_commande}}<br>
-<strong>Quantité :</strong> {{quantite}}<br>
-<strong>Montant TTC :</strong> {{montant_ttc}}<br>
-<strong>Commission estimée :</strong> {{commission}}</p>
-<p>Cordialement,<br>L''équipe SuperTilt</p>'
-),
-(
-  'internal_notif',
-  'Notification interne SuperTilt',
-  '[SuperTilt] Nouvelle commande — {{nom_jeu}}',
-  '<p>Nouvelle commande reçue.</p>
-<p><strong>Jeu :</strong> {{nom_jeu}}<br>
-<strong>Commande :</strong> {{numero_commande}}<br>
-<strong>Client :</strong> {{nom_client}} ({{email_client}})<br>
-<strong>Quantité :</strong> {{quantite}}<br>
-<strong>Montant TTC :</strong> {{montant_ttc}}</p>'
-)
-ON CONFLICT (template_key) DO NOTHING;
+-- ── 5. email_templates — NOTE ────────────────────────────────────
+-- La table email_templates existait déjà (module formations).
+-- Les templates SuperTilt sont dans supertilt_email_templates,
+-- créée par la migration 20260514130000_supertilt_email_templates_fix.sql
 
 -- ── 6. order_email_log ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.order_email_log (

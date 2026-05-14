@@ -59,7 +59,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Load template
     const { data: tpl } = await (admin as any)
-      .from("email_templates")
+      .from("supertilt_email_templates")
       .select("subject, body")
       .eq("template_key", "restock")
       .single();
