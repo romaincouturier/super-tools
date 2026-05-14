@@ -64,19 +64,6 @@ export default function ClientInfoSection({
 }: ClientInfoSectionProps) {
   const googleSirenSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`;
 
-  const handleGoogleSirenSearch = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    event.preventDefault();
-
-    const newWindow = window.open("about:blank", "_blank");
-    if (newWindow) {
-      newWindow.opener = null;
-      newWindow.location.href = googleSirenSearchUrl;
-      return;
-    }
-
-    window.location.href = googleSirenSearchUrl;
-  };
-
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2">Informations client</h3>
@@ -118,7 +105,6 @@ export default function ClientInfoSection({
               href={googleSirenSearchUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={handleGoogleSirenSearch}
             >
               <Search className="w-4 h-4" />
               <span className="ml-2">Chercher Siren</span>
