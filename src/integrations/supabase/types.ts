@@ -2509,11 +2509,15 @@ export type Database = {
       }
       game_sales: {
         Row: {
+          amount_ht: number | null
+          bank_fees: number | null
           created_at: string
+          currency: string
           customer_email: string | null
           customer_name: string | null
           game_id: string | null
           id: string
+          net_amount: number | null
           quantity: number
           raw_order: Json | null
           royalty_amount: number
@@ -2521,14 +2525,19 @@ export type Database = {
           status: string
           total_amount: number
           unit_price: number
+          vat_amount: number | null
           woocommerce_order_id: string
         }
         Insert: {
+          amount_ht?: number | null
+          bank_fees?: number | null
           created_at?: string
+          currency?: string
           customer_email?: string | null
           customer_name?: string | null
           game_id?: string | null
           id?: string
+          net_amount?: number | null
           quantity?: number
           raw_order?: Json | null
           royalty_amount?: number
@@ -2536,14 +2545,19 @@ export type Database = {
           status?: string
           total_amount?: number
           unit_price?: number
+          vat_amount?: number | null
           woocommerce_order_id: string
         }
         Update: {
+          amount_ht?: number | null
+          bank_fees?: number | null
           created_at?: string
+          currency?: string
           customer_email?: string | null
           customer_name?: string | null
           game_id?: string | null
           id?: string
+          net_amount?: number | null
           quantity?: number
           raw_order?: Json | null
           royalty_amount?: number
@@ -2551,6 +2565,7 @@ export type Database = {
           status?: string
           total_amount?: number
           unit_price?: number
+          vat_amount?: number | null
           woocommerce_order_id?: string
         }
         Relationships: [
@@ -2579,6 +2594,7 @@ export type Database = {
           id: string
           include_stripe_fees: boolean
           is_partner: boolean
+          location_contract_url: string | null
           min_stock: number | null
           partner_email: string | null
           partner_name: string | null
@@ -2609,6 +2625,7 @@ export type Database = {
           id?: string
           include_stripe_fees?: boolean
           is_partner?: boolean
+          location_contract_url?: string | null
           min_stock?: number | null
           partner_email?: string | null
           partner_name?: string | null
@@ -2639,6 +2656,7 @@ export type Database = {
           id?: string
           include_stripe_fees?: boolean
           is_partner?: boolean
+          location_contract_url?: string | null
           min_stock?: number | null
           partner_email?: string | null
           partner_name?: string | null
@@ -5338,6 +5356,7 @@ export type Database = {
           product_name: string | null
           quantity: number
           raw_line_item: Json | null
+          shipped_confirmed_at: string | null
           unit_price: number | null
           updated_at: string
           validation_status: string
@@ -5361,6 +5380,7 @@ export type Database = {
           product_name?: string | null
           quantity?: number
           raw_line_item?: Json | null
+          shipped_confirmed_at?: string | null
           unit_price?: number | null
           updated_at?: string
           validation_status?: string
@@ -5384,6 +5404,7 @@ export type Database = {
           product_name?: string | null
           quantity?: number
           raw_line_item?: Json | null
+          shipped_confirmed_at?: string | null
           unit_price?: number | null
           updated_at?: string
           validation_status?: string
