@@ -282,6 +282,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
       getSigniticSignature(),
     ]);
     const fullHtml = wrapEmailHtml(html, signature);
+
+    // Test mode: redirect to a single recipient, no cc/bcc, no logging/status mutation
+    if (test_recipient) {
+      const tresult = await sendEmail({
+        to: [test_recipient],
+        subject: `[TEST] ${subject}`,
+        html: fullHtml,
+        from: defaultSender,
+        _emailType: `supertilt-${templateKey}-test`,
+      });
+      return new Response(
+        JSON.stringify({ ok: tresult.success, to: test_recipient, template: templateKey, test: true, error: tresult.error }),
+        { status: tresult.success ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const result = await sendEmail({
       to: toEmails,
       cc: ccEmails.length ? ccEmails : undefined,
