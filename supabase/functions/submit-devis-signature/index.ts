@@ -3,6 +3,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
+import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
