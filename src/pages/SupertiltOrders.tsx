@@ -523,6 +523,23 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
             <CheckCircle className="h-3 w-3 mr-1" />Traité
           </Button>
         )}
+        {item.game_type === "dropshipping" && item.kanban_status !== "blocked" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-green-700" : "text-muted-foreground"}`}
+            onClick={async () => {
+              try {
+                await markShipped({ id: item.id, confirmed: !item.shipped_confirmed_at });
+                toast({ title: item.shipped_confirmed_at ? "Confirmation annulée" : "Envoi confirmé par l'auteur" });
+              } catch { toastError(toast, "Erreur"); }
+            }}
+            disabled={markingShipped}
+          >
+            <Truck className="h-3 w-3 mr-1" />
+            {item.shipped_confirmed_at ? `Envoyé ${DATE(item.shipped_confirmed_at)}` : "Confirmé envoyé"}
+          </Button>
+        )}
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowNote(true)}>
           <FileText className="h-3 w-3 mr-1" />Note
         </Button>
