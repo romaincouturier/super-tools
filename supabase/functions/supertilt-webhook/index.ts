@@ -89,12 +89,56 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Capture headers (utile pour debug / replay)
+  const headersObj: Record<string, string> = {};
+  req.headers.forEach((v, k) => { headersObj[k] = v; });
+
+  // Topic WooCommerce (ex: order.created, order.updated)
+  const eventType = req.headers.get("x-wc-webhook-topic")
+    ?? req.headers.get("x-wc-webhook-event")
+    ?? null;
+
+  let logId: string | null = null;
+  const rawBody = await req.text();
+
+  // ── LOG IMMÉDIAT du payload reçu (avant tout traitement) ────
+  // On stocke le payload brut comme objet si JSON parseable, sinon comme string
+  let payloadForLog: unknown = rawBody;
+  try { payloadForLog = JSON.parse(rawBody); } catch { /* keep as string */ }
+
   try {
-    const rawBody = await req.text();
+    const { data: logRow } = await (admin as any)
+      .from("webhook_logs")
+      .insert({
+        source: "woocommerce",
+        event_type: eventType,
+        payload: payloadForLog,
+        headers: headersObj,
+        wc_order_id: typeof (payloadForLog as any)?.id === "number" ? (payloadForLog as any).id : null,
+        status: "received",
+      })
+      .select("id")
+      .single();
+    logId = (logRow as { id: string } | null)?.id ?? null;
+  } catch (e) {
+    console.error("webhook_logs insert error:", e);
+  }
+
+  const updateLog = async (patch: Record<string, unknown>) => {
+    if (!logId) return;
+    try {
+      await (admin as any).from("webhook_logs").update(patch).eq("id", logId);
+    } catch (e) {
+      console.error("webhook_logs update error:", e);
+    }
+  };
+
+  try {
     let order: WCOrder;
     try {
       order = JSON.parse(rawBody);
     } catch {
+      await updateLog({ status: "error", response_status: 400, error_message: "Invalid JSON body", processed_at: new Date().toISOString() });
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
