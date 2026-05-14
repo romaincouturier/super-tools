@@ -626,6 +626,7 @@ serve(async (req) => {
         raw_input: rawInput,
         acquisition_source: acquisitionSource,
         emoji: pickRandomEmoji(),
+        source_metadata: sourceMetadata,
       })
       .select()
       .single();
