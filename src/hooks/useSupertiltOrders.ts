@@ -137,7 +137,12 @@ export interface EmailLog {
   status: "sent" | "failed";
   error: string | null;
   sent_at: string;
-  order_items?: { product_name: string; games?: { title: string } };
+  order_items?: {
+    product_name: string;
+    invoice_received_at: string | null;
+    shipped_confirmed_at: string | null;
+    games?: { title: string; game_type: GameType | null };
+  };
 }
 
 export interface SupertiltSetting {
