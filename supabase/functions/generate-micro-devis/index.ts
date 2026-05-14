@@ -46,10 +46,12 @@ interface EmailAttachmentPayload {
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
-const DOSSIER_FEE_AMOUNT = 350;
+const DOSSIER_FEE_WITH_SUBROGATION = 350;
+const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
 
 function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
-  return subrogation || data.fraisDossier || data.isOpco ? DOSSIER_FEE_AMOUNT : 0;
+  if (!(subrogation || data.fraisDossier || data.isOpco)) return 0;
+  return subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
 }
 
 async function generatePdfWithPdfMonkey(
@@ -75,7 +77,7 @@ async function generatePdfWithPdfMonkey(
     ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
     : "";
 
-  // OPCO mode: merge admin fee (forfait global 350€) into the unit price
+  // OPCO mode: merge admin fee (forfait global) into the unit price
   // so only one line appears on the PDF. Total TTC stays identical.
   const adminFeeAmount = getDossierFeeAmount(data, subrogation);
   const qty = Math.max(1, data.nbParticipants);
@@ -108,7 +110,7 @@ async function generatePdfWithPdfMonkey(
         unit_price: mergedUnitPrice,
       },
     ],
-    admin_fee: showAdminFeeLine ? DOSSIER_FEE_AMOUNT : 0,
+    admin_fee: showAdminFeeLine ? adminFeeAmount : 0,
     is_opco: !!data.isOpco,
   };
 
