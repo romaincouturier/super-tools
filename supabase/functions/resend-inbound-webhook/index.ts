@@ -5,6 +5,7 @@ import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
@@ -320,13 +321,15 @@ async function createCrmOpportunityFromEmail(
     .eq("id", insertedEmailId);
 
   // Slack notification (fire-and-forget)
-  notifySlackFromWebhook(supabase, "opportunity_created", {
+  postCrmOpportunityToSlack(supabase, {
     title: extraction.title,
+    message: rawInput,
     company: extraction.company || undefined,
     first_name: extraction.first_name || undefined,
     last_name: extraction.last_name || undefined,
     service_type: extraction.service_type || undefined,
     email: parsedFrom.email,
+    source_label: `Email entrant — ${parsedFrom.email}`,
   });
 }
 

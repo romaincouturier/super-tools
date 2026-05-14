@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 
 /**
  * Edge Function: crm-elementor-webhook
@@ -657,13 +658,15 @@ serve(async (req) => {
     }
 
     // ─── Slack ───
-    notifySlack(supabase, {
+    postCrmOpportunityToSlack(supabase, {
       title: extraction.title,
+      message: rawInput,
       company: extraction.company,
       first_name: extraction.first_name,
       last_name: extraction.last_name,
       email: extraction.email,
-      form_name: submission.form_name,
+      service_type: extraction.service_type,
+      source_label: `Formulaire site web — ${submission.form_name || "Elementor"}`,
     });
 
     return new Response(

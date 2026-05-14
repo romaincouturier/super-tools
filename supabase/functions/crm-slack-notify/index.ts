@@ -19,8 +19,14 @@ interface SlackNotifyRequest {
     service_type?: string;
     estimated_value?: number;
     email?: string;
+    message?: string;
   };
   actor_email?: string;
+}
+
+function truncate(s: string, max = 600): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1).trimEnd() + "…";
 }
 
 function formatCurrency(value: number): string {
@@ -39,14 +45,7 @@ function buildSlackMessage(req: SlackNotifyRequest): { text: string; blocks: unk
 
   if (type === "opportunity_created") {
     const text = `Nouvelle opportunité : ${card.title}`;
-    const fields: { type: string; text: string }[] = [];
-
-    if (contactName) fields.push({ type: "mrkdwn", text: `*Contact :* ${contactName}` });
-    if (card.company) fields.push({ type: "mrkdwn", text: `*Entreprise :* ${card.company}` });
-    if (serviceLabel) fields.push({ type: "mrkdwn", text: `*Type :* ${serviceLabel}` });
-    if (card.estimated_value && card.estimated_value > 0) {
-      fields.push({ type: "mrkdwn", text: `*Valeur :* ${formatCurrency(card.estimated_value)}` });
-    }
+    const contactLine = [contactName, card.company].filter(Boolean).join(" — ");
 
     const blocks: unknown[] = [
       {
@@ -59,7 +58,26 @@ function buildSlackMessage(req: SlackNotifyRequest): { text: string; blocks: unk
       },
     ];
 
-    if (fields.length > 0) {
+    if (card.message && card.message.trim()) {
+      blocks.push({
+        type: "section",
+        text: { type: "mrkdwn", text: truncate(card.message.trim()) },
+      });
+    }
+
+    if (contactLine) {
+      blocks.push({
+        type: "context",
+        elements: [{ type: "mrkdwn", text: contactLine }],
+      });
+    }
+
+    if (serviceLabel || (card.estimated_value && card.estimated_value > 0)) {
+      const fields: { type: string; text: string }[] = [];
+      if (serviceLabel) fields.push({ type: "mrkdwn", text: `*Type :* ${serviceLabel}` });
+      if (card.estimated_value && card.estimated_value > 0) {
+        fields.push({ type: "mrkdwn", text: `*Valeur :* ${formatCurrency(card.estimated_value)}` });
+      }
       blocks.push({ type: "section", fields });
     }
 

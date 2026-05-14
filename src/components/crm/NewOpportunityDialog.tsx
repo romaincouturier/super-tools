@@ -20,6 +20,7 @@ import { OpportunityExtraction, BriefQuestion, AcquisitionSource, acquisitionSou
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import NextActionScheduler from "@/components/shared/NextActionScheduler";
+import { notifyCrmSlack } from "@/services/crmSlack";
 
 const CRM_ACTION_PRESETS = [
   "Relancer le client",
@@ -326,6 +327,18 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
           ),
         );
       }
+
+      // Slack notification (fire-and-forget)
+      notifyCrmSlack("opportunity_created", {
+        title: editedExtraction.title,
+        company: editedExtraction.company || undefined,
+        first_name: editedExtraction.first_name || undefined,
+        last_name: editedExtraction.last_name || undefined,
+        email: editedExtraction.email || undefined,
+        service_type: editedExtraction.service_type || undefined,
+        estimated_value: parseFloat(estimatedValue) || undefined,
+        message: rawInput || undefined,
+      }, userEmail);
 
       resetState();
       onOpenChange(false);
