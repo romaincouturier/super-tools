@@ -201,6 +201,7 @@ const MicroDevis = () => {
         if (d.prenomCommanditaire) setPrenomCommanditaire(d.prenomCommanditaire);
         if (d.nomCommanditaire) setNomCommanditaire(d.nomCommanditaire);
         if (d.isAdministration) setIsAdministration(d.isAdministration);
+        if (d.isOpco === "oui" || d.isOpco === "non") setIsOpco(d.isOpco);
         if (d.noteDevis) setNoteDevis(d.noteDevis);
         if (d.participants) setParticipants(d.participants);
         if (d.includeCadeau !== undefined) setIncludeCadeau(d.includeCadeau);
@@ -242,9 +243,9 @@ const MicroDevis = () => {
       selectedFormulaId: formulasHook.selectedFormulaId,
       adresseClient, codePostalClient, villeClient, pays, paysAutre,
       civiliteCommanditaire, prenomCommanditaire, nomCommanditaire,
-      isAdministration, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation,
+      isAdministration, isOpco, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation,
     }));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, isAdministration, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation]);
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, isAdministration, isOpco, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation]);
 
   // Auto-set lieu
   useEffect(() => {
@@ -356,7 +357,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isAdministration: isAdministration === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isAdministration: isAdministration === "oui", isOpco: isOpco === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
@@ -376,7 +377,7 @@ const MicroDevis = () => {
       }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
       setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
-      setTypeDevis(""); setIsAdministration(""); setNoteDevis(""); setParticipants("");
+      setTypeDevis(""); setIsAdministration(""); setIsOpco("non"); setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
     } catch (error: unknown) {
