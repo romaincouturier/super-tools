@@ -487,6 +487,27 @@ serve(async (req) => {
       }
     }
 
+    // Fallbacks from HTTP headers when Elementor doesn't pass them in the body
+    const headerUA = req.headers.get("user-agent") || undefined;
+    const headerIP = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || undefined;
+    const headerReferer = req.headers.get("referer") || req.headers.get("referrer") || undefined;
+    if (!submission.user_agent && headerUA) submission.user_agent = headerUA;
+    if (!submission.remote_ip && headerIP) submission.remote_ip = headerIP;
+    if (!submission.referrer && headerReferer) submission.referrer = headerReferer;
+
+    const receivedAt = new Date().toISOString();
+    const sourceMetadata = {
+      received_at: receivedAt,
+      page_url: submission.page_url ?? null,
+      page_title: submission.page_title ?? null,
+      user_agent: submission.user_agent ?? null,
+      referrer: submission.referrer ?? null,
+      remote_ip: submission.remote_ip ?? null,
+      form_name: submission.form_name ?? null,
+      form_id: submission.form_id ?? null,
+      channel: "elementor_webhook",
+    };
+
     console.log("Elementor submission:", { form: submission.form_name, fields: submission.fields.length });
 
     if (submission.fields.length === 0) {
