@@ -784,6 +784,18 @@ function GameDialog({
                 <Switch checked={form.include_stripe_fees ?? false} onCheckedChange={(v) => set("include_stripe_fees", v)} />
                 <Label>Déduire les frais Stripe avant calcul</Label>
               </div>
+              {form.game_type === "location" && (
+                <div className="col-span-2 space-y-1">
+                  <Label>URL du contrat de location (lien à signer)</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://supertilt.fr/contrat-de-location-du-jeu-..."
+                    value={(form as any).location_contract_url ?? ""}
+                    onChange={(e) => set("location_contract_url" as any, e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Sera inséré dans le mail de location à la place de <code>{"{{contrat_url}}"}</code>.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
