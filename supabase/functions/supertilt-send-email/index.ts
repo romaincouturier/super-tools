@@ -58,7 +58,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           custom_message, is_partner, partner_name, partner_email,
           commission_type, commission_rate, commission_fixed,
           secondary_author_email,
-          game_authors!author_id (name, email, secondary_email)
+          game_authors!author_id (name, email, secondary_email, phone, royalty_rate)
         )
       `)
       .eq("id", order_item_id)
