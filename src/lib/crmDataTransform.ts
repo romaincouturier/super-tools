@@ -79,6 +79,7 @@ export function mapCards(
       loss_reason: ((card as unknown as { loss_reason?: string }).loss_reason ?? null) as CrmCard["loss_reason"],
       loss_reason_detail: (card as unknown as { loss_reason_detail?: string }).loss_reason_detail ?? null,
       assigned_to: (card as unknown as { assigned_to?: string }).assigned_to ?? null,
+      source_metadata: (card as unknown as { source_metadata?: any }).source_metadata ?? null,
       tags: cardTagsList,
     };
   });
