@@ -127,7 +127,7 @@ function useProvenanceData() {
   return useQuery({
     queryKey: ["crm", "provenance"],
     queryFn: async () => {
-      const [cardsRes, actsRes] = await Promise.all([
+      const [cardsRes, actsRes, tagsRes, cardTagsRes] = await Promise.all([
         supabase
           .from("crm_cards")
           .select("id, title, sales_status, service_type, estimated_value, created_at, won_at, source_metadata"),
@@ -135,12 +135,18 @@ function useProvenanceData() {
           .from("crm_activity_log")
           .select("card_id, action_type, created_at")
           .eq("action_type", "email_sent"),
+        supabase.from("crm_tags").select("*"),
+        supabase.from("crm_card_tags").select("card_id, tag_id"),
       ]);
       if (cardsRes.error) throw cardsRes.error;
       if (actsRes.error) throw actsRes.error;
+      if (tagsRes.error) throw tagsRes.error;
+      if (cardTagsRes.error) throw cardTagsRes.error;
       return {
         cards: (cardsRes.data || []) as unknown as ProvenanceCard[],
         activities: (actsRes.data || []) as ActivityRow[],
+        tags: (tagsRes.data || []) as unknown as CrmTag[],
+        cardTags: (cardTagsRes.data || []) as { card_id: string; tag_id: string }[],
       };
     },
   });
@@ -152,6 +158,11 @@ const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4
 
 export default function ProvenanceTab() {
   const { data, isLoading } = useProvenanceData();
+
+  // Heatmap filters
+  const [heatmapStart, setHeatmapStart] = useState<string>("");
+  const [heatmapEnd, setHeatmapEnd] = useState<string>("");
+  const [heatmapTagIds, setHeatmapTagIds] = useState<string[]>([]);
 
   const stats = useMemo(() => {
     if (!data) return null;
