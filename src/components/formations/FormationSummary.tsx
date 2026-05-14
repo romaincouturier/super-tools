@@ -31,21 +31,38 @@ export default function FormationSummary({
   const prixUnitaire = activeFormula?.prix ?? config.prix;
   const nbParticipants = countParticipants();
   const prixFormation = prixUnitaire * nbParticipants;
-  const withSubrogation = typeSubrogation === "avec" || typeSubrogation === "les2";
-  const frais = fraisDossier === "oui" ? (withSubrogation ? 350 : 150) : 0;
-  const totalHT = prixFormation + frais;
-  const tva = 0;
-  const totalTTC = totalHT + tva;
+  const showBoth = typeSubrogation === "les2";
+  const showAvec = typeSubrogation === "avec" || showBoth;
+  const showSans = typeSubrogation === "sans" || showBoth;
+  const feesEnabled = fraisDossier === "oui";
 
-  return (
-    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${formationDemandee}-${participants}-${fraisDossier}`}>
-      <h4 className="font-medium text-sm mb-2">Résumé du devis</h4>
+  const renderColumn = (variant: "sans" | "avec") => {
+    const withSub = variant === "avec";
+    const frais = feesEnabled || withSub ? (withSub ? 350 : 150) : 0;
+    const totalHT = prixFormation + frais;
+    const totalTTC = totalHT;
+    return (
       <div className="text-sm space-y-1">
+        {showBoth && (
+          <p className="font-semibold mb-1">
+            {withSub ? "Avec subrogation" : "Sans subrogation"}
+          </p>
+        )}
         <p>Formation : {prixUnitaire}€ × {nbParticipants} = <strong>{prixFormation}€</strong></p>
         {frais > 0 && <p>Frais de dossier : {frais}€</p>}
         <p>Total HT : <strong>{totalHT}€</strong></p>
         <p>TVA (0%) : Exonéré</p>
         <p className="text-base">Total TTC : <strong>{totalTTC.toFixed(2)}€</strong></p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${formationDemandee}-${participants}-${fraisDossier}-${typeSubrogation}`}>
+      <h4 className="font-medium text-sm mb-2">Résumé du devis</h4>
+      <div className={showBoth ? "grid grid-cols-1 md:grid-cols-2 gap-4" : ""}>
+        {showSans && renderColumn("sans")}
+        {showAvec && renderColumn("avec")}
       </div>
     </div>
   );
