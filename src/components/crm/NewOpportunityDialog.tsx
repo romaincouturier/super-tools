@@ -78,7 +78,12 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource | null>(null);
   const [clientHistory, setClientHistory] = useState<ClientHistoryItem[]>([]);
   const [clientHistoryOpen, setClientHistoryOpen] = useState(true);
-  const [nextActionDate, setNextActionDate] = useState("");
+  const [nextActionDate, setNextActionDate] = useState(() => {
+    // Default to today (Europe/Paris) so a new opportunity always has a next-action date
+    const now = new Date();
+    const paris = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+    return `${paris.getFullYear()}-${String(paris.getMonth() + 1).padStart(2, "0")}-${String(paris.getDate()).padStart(2, "0")}`;
+  });
   const [nextActionText, setNextActionText] = useState("");
   const [nextActionFormOpen, setNextActionFormOpen] = useState(false);
   const [nextActionSuggested, setNextActionSuggested] = useState(false);
