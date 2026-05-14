@@ -1139,6 +1139,40 @@ export async function fetchPendingSupportTickets(supabase: SupabaseClient, today
   });
 }
 
+/**
+ * Fetch SuperTilt order_items pending validation (kanban_status='to_validate').
+ * Used to alert admins about WooCommerce orders awaiting catalog matching.
+ */
+export interface SupertiltToValidateItem {
+  id: string;
+  productName: string | null;
+  wcOrderId: number;
+  orderNumber: string | null;
+  customerEmail: string | null;
+  createdAt: string;
+}
+
+export async function fetchSupertiltToValidate(supabase: SupabaseClient): Promise<SupertiltToValidateItem[]> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("id, product_name, wc_order_id, created_at, woocommerce_orders(order_number, customer_email)")
+    .eq("kanban_status", "to_validate")
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (error) {
+    console.error("fetchSupertiltToValidate error:", error.message);
+    return [];
+  }
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    productName: r.product_name,
+    wcOrderId: r.wc_order_id,
+    orderNumber: r.woocommerce_orders?.order_number ?? null,
+    customerEmail: r.woocommerce_orders?.customer_email ?? null,
+    createdAt: r.created_at,
+  }));
+}
+
 // ─── Convenience: fetch everything at once ───────────────────────────
 
 export interface DailyData {
@@ -1163,6 +1197,7 @@ export interface DailyData {
   supportTickets: SupportTicketItem[];
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
+  supertiltToValidate: SupertiltToValidateItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
