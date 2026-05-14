@@ -155,6 +155,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const internalEmail = String(getSetting("internal_email") ?? "").replace(/^"|"$/g, "");
     const defaultSender = String(getSetting("default_sender") ?? "noreply@supertilt.fr").replace(/^"|"$/g, "");
+    const appBaseUrl = String(getSetting("app_base_url") ?? "https://super-tools.lovable.app").replace(/^"|"$/g, "").replace(/\/$/, "");
+
+    // ── Resolve / create partner tracking link if applicable ────
+    let lienSuiviPartenaire = "";
+    if (game.is_partner && game.id) {
+      const { data: existingTok } = await (admin as any)
+        .from("partner_access_tokens")
+        .select("token")
+        .eq("game_id", game.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      let tok = (existingTok as any)?.token as string | undefined;
+      if (!tok) {
+        const { data: created } = await (admin as any)
+          .from("partner_access_tokens")
+          .insert({ game_id: game.id, label: "auto-generated" })
+          .select("token")
+          .single();
+        tok = (created as any)?.token;
+      }
+      if (tok) lienSuiviPartenaire = `${appBaseUrl}/partenaire/${tok}`;
+    }
+    vars.lien_suivi_partenaire = lienSuiviPartenaire;
+    vars.contrat_url = (game as any).location_contract_url ?? "";
+    vars.partenaire_nom = game.partner_name ?? "";
 
     // ── Determine template key and recipients ────────────────────
     let templateKey = "internal_notif";
