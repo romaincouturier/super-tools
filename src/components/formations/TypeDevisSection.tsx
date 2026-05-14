@@ -26,7 +26,7 @@ export default function TypeDevisSection({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2">Type de devis</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-3">
           <Label>S'agit-il d'un devis pour</Label>
           <RadioGroup value={typeDevis} onValueChange={(v) => setTypeDevis(v as "formation" | "jeu")}>

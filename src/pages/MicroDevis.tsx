@@ -49,6 +49,7 @@ const MicroDevis = () => {
   const [nomCommanditaire, setNomCommanditaire] = useState("");
   const [typeDevis, setTypeDevis] = useState<"formation" | "jeu" | "">("");
   const [isAdministration, setIsAdministration] = useState<"oui" | "non" | "">("");
+  const [isOpco, setIsOpco] = useState<"oui" | "non">("non");
   const [noteDevis, setNoteDevis] = useState("");
   const [formatFormation, setFormatFormation] = useState<"intra" | "inter" | "">("");
   const [participants, setParticipants] = useState("");
@@ -430,6 +431,7 @@ const MicroDevis = () => {
               <TypeDevisSection
                 typeDevis={typeDevis} setTypeDevis={setTypeDevis}
                 isAdministration={isAdministration} setIsAdministration={setIsAdministration}
+                isOpco={isOpco} setIsOpco={setIsOpco}
                 noteDevis={noteDevis} setNoteDevis={setNoteDevis}
               />
 
