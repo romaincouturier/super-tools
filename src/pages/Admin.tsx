@@ -172,7 +172,7 @@ export default function Admin() {
 
   return (
     <ModuleLayout>
-      <div className="space-y-6">
+      <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6">
         <PageHeader title={t("admin.title")} icon={Shield} backTo="/" />
 
         {/* Feature Flags */}
