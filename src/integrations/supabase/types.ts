@@ -1321,6 +1321,7 @@ export type Database = {
           sales_status: string
           service_type: string | null
           siren: string | null
+          source_metadata: Json
           status_operational: string
           title: string
           updated_at: string
@@ -1366,6 +1367,7 @@ export type Database = {
           sales_status?: string
           service_type?: string | null
           siren?: string | null
+          source_metadata?: Json
           status_operational?: string
           title: string
           updated_at?: string
@@ -1411,6 +1413,7 @@ export type Database = {
           sales_status?: string
           service_type?: string | null
           siren?: string | null
+          source_metadata?: Json
           status_operational?: string
           title?: string
           updated_at?: string
