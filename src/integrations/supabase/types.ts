@@ -8684,6 +8684,48 @@ export type Database = {
           },
         ]
       }
+      webhook_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string | null
+          headers: Json | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          response_status: number | null
+          source: string
+          status: string
+          wc_order_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          headers?: Json | null
+          id?: string
+          payload: Json
+          processed_at?: string | null
+          response_status?: number | null
+          source?: string
+          status?: string
+          wc_order_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string | null
+          headers?: Json | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          response_status?: number | null
+          source?: string
+          status?: string
+          wc_order_id?: number | null
+        }
+        Relationships: []
+      }
       woocommerce_coupons: {
         Row: {
           amount: number | null

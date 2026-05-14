@@ -89,12 +89,56 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Capture headers (utile pour debug / replay)
+  const headersObj: Record<string, string> = {};
+  req.headers.forEach((v, k) => { headersObj[k] = v; });
+
+  // Topic WooCommerce (ex: order.created, order.updated)
+  const eventType = req.headers.get("x-wc-webhook-topic")
+    ?? req.headers.get("x-wc-webhook-event")
+    ?? null;
+
+  let logId: string | null = null;
+  const rawBody = await req.text();
+
+  // ── LOG IMMÉDIAT du payload reçu (avant tout traitement) ────
+  // On stocke le payload brut comme objet si JSON parseable, sinon comme string
+  let payloadForLog: unknown = rawBody;
+  try { payloadForLog = JSON.parse(rawBody); } catch { /* keep as string */ }
+
   try {
-    const rawBody = await req.text();
+    const { data: logRow } = await (admin as any)
+      .from("webhook_logs")
+      .insert({
+        source: "woocommerce",
+        event_type: eventType,
+        payload: payloadForLog,
+        headers: headersObj,
+        wc_order_id: typeof (payloadForLog as any)?.id === "number" ? (payloadForLog as any).id : null,
+        status: "received",
+      })
+      .select("id")
+      .single();
+    logId = (logRow as { id: string } | null)?.id ?? null;
+  } catch (e) {
+    console.error("webhook_logs insert error:", e);
+  }
+
+  const updateLog = async (patch: Record<string, unknown>) => {
+    if (!logId) return;
+    try {
+      await (admin as any).from("webhook_logs").update(patch).eq("id", logId);
+    } catch (e) {
+      console.error("webhook_logs update error:", e);
+    }
+  };
+
+  try {
     let order: WCOrder;
     try {
       order = JSON.parse(rawBody);
     } catch {
+      await updateLog({ status: "error", response_status: 400, error_message: "Invalid JSON body", processed_at: new Date().toISOString() });
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -120,6 +164,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const sig = req.headers.get("x-wc-webhook-signature") ?? "";
     const valid = await verifySignature(String(webhookSecret), rawBody, sig);
     if (!valid) {
+      await updateLog({ status: "error", response_status: 401, error_message: "Invalid webhook signature", processed_at: new Date().toISOString() });
       return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -128,6 +173,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── Filter by status ─────────────────────────────────────────
     if (!allowedStatuses.includes(order.status)) {
+      await updateLog({ status: "skipped", response_status: 200, wc_order_id: order.id, error_message: `Status '${order.status}' not in allowed list`, processed_at: new Date().toISOString() });
       return new Response(
         JSON.stringify({ skipped: true, reason: `Status '${order.status}' not in allowed list` }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -254,14 +300,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, wc_order_id: order.id, ...results }), {
+    await updateLog({ status: "processed", response_status: 200, wc_order_id: order.id, processed_at: new Date().toISOString() });
+    return new Response(JSON.stringify({ ok: true, wc_order_id: order.id, log_id: logId, ...results }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("supertilt-webhook error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    await updateLog({ status: "error", response_status: 500, error_message: message, processed_at: new Date().toISOString() });
+    return new Response(JSON.stringify({ error: message, log_id: logId }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
