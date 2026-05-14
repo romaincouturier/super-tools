@@ -316,8 +316,52 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .eq("id", order_item_id);
     }
 
+    // ── Notify partner (if game is co-created) ───────────────────
+    // Sent in addition to the main email, when is_partner=true and we
+    // didn't already use the 'partner' template as the main one.
+    let partnerNotified = false;
+    if (
+      result.success &&
+      game.is_partner &&
+      game.partner_email &&
+      templateKey !== "partner"
+    ) {
+      try {
+        const { data: ptpl } = await (admin as any)
+          .from("email_templates")
+          .select("subject, html_content")
+          .eq("template_type", "supertilt_partner")
+          .maybeSingle();
+        if (ptpl) {
+          const psubject = processTemplate((ptpl as any).subject, vars, false);
+          const phtml = processTemplate((ptpl as any).html_content, vars, false);
+          const presult = await sendEmail({
+            to: [game.partner_email],
+            subject: psubject,
+            html: phtml,
+            from: defaultSender,
+            _emailType: "supertilt-partner",
+          });
+          await (admin as any).from("order_email_log").insert({
+            order_item_id,
+            wc_order_id: order?.wc_order_id,
+            template_key: "partner",
+            sent_to: [game.partner_email],
+            cc: [],
+            subject: psubject,
+            body: phtml,
+            status: presult.success ? "sent" : "failed",
+            error: presult.error ?? null,
+          });
+          partnerNotified = presult.success;
+        }
+      } catch (e) {
+        console.error("partner notify error:", e);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ ok: result.success, to: toEmails, template: templateKey, error: result.error }),
+      JSON.stringify({ ok: result.success, to: toEmails, template: templateKey, partner_notified: partnerNotified, error: result.error }),
       { status: result.success ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: unknown) {
