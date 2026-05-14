@@ -62,7 +62,7 @@ export default function ClientInfoSection({
   nomCommanditaire,
   setNomCommanditaire,
 }: ClientInfoSectionProps) {
-  const googleSirenSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`;
+  const googleSirenSearchUrl = `https://www.google.com/search?igu=1&q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`;
 
   return (
     <div className="space-y-4">
