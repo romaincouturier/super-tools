@@ -5,6 +5,7 @@ import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
