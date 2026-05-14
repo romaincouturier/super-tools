@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { PageViewTracker } from "@/components/PageViewTracker";
@@ -245,7 +245,7 @@ const App = () => (
 
               <Route path="/transcripts" element={<Transcripts />} />
               <Route path="/temoignages" element={<Temoignages />} />
-              <Route path="/dropshipping" element={<Dropshipping />} />
+              <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
               <Route path="/commandes-jeux" element={<SupertiltOrders />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
