@@ -276,9 +276,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Send email ───────────────────────────────────────────────
+    const bccEmails = await getBccList();
     const result = await sendEmail({
       to: toEmails,
       cc: ccEmails.length ? ccEmails : undefined,
+      bcc: bccEmails.length ? bccEmails : undefined,
       subject,
       html,
       from: defaultSender,
@@ -291,7 +293,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       wc_order_id: order?.wc_order_id,
       template_key: templateKey,
       sent_to: toEmails,
-      cc: ccEmails,
+      cc: [...ccEmails, ...bccEmails],
       subject,
       body: html,
       status: result.success ? "sent" : "failed",
