@@ -1226,6 +1226,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supportTickets,
     pendingEmailDrafts,
     logisticsReminders,
+    supertiltToValidate,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1248,6 +1249,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchPendingSupportTickets(supabase, today),
     fetchPendingEmailDrafts(supabase),
     fetchLogisticsReminders(supabase, today),
+    fetchSupertiltToValidate(supabase),
   ]);
 
   return {
@@ -1256,7 +1258,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
-    logisticsReminders,
+    logisticsReminders, supertiltToValidate,
   };
 }
 
