@@ -189,11 +189,31 @@ function ValidateItemDialog({
   games: GameFull[];
   onClose: () => void;
 }) {
+  const [mode, setMode] = useState<"link" | "create" | "refuse">("link");
   const [gameId, setGameId] = useState(item.game_id ?? "");
-  const { mutateAsync: validate, isPending } = useValidateOrderItem();
+
+  // Create-new state
+  const [newTitle, setNewTitle] = useState(item.product_name ?? "");
+  const [newGameType, setNewGameType] = useState<GameType>("dropshipping");
+  const [authorMode, setAuthorMode] = useState<"existing" | "new">("existing");
+  const [authorId, setAuthorId] = useState<string>("");
+  const [newAuthorName, setNewAuthorName] = useState("");
+  const [newAuthorEmail, setNewAuthorEmail] = useState("");
+  const [newAuthorRoyalty, setNewAuthorRoyalty] = useState<string>("0.10");
+
+  // Refuse state
+  const [refuseReason, setRefuseReason] = useState("");
+
+  const { data: authors = [] } = useAuthorsFullList();
+  const { mutateAsync: validate, isPending: isValidating } = useValidateOrderItem();
+  const { mutateAsync: upsertAuthor, isPending: isAuthorPending } = useUpsertAuthorFull();
+  const { mutateAsync: upsertGame, isPending: isGamePending } = useUpsertGameFull();
+  const { mutateAsync: updateStatus, isPending: isUpdatePending } = useUpdateOrderItemStatus();
   const { toast } = useToast();
 
-  const save = async () => {
+  const isPending = isValidating || isAuthorPending || isGamePending || isUpdatePending;
+
+  const handleLink = async () => {
     if (!gameId) return;
     try {
       await validate({ id: item.id, game_id: gameId });
@@ -204,33 +224,180 @@ function ValidateItemDialog({
     }
   };
 
+  const handleCreate = async () => {
+    if (!newTitle.trim()) {
+      toastError(toast, "Le titre du jeu est requis");
+      return;
+    }
+    try {
+      let finalAuthorId: string | null = null;
+      if (authorMode === "existing") {
+        finalAuthorId = authorId || null;
+      } else if (newAuthorName.trim()) {
+        const author = await upsertAuthor({
+          name: newAuthorName.trim(),
+          email: newAuthorEmail.trim() || null,
+          royalty_rate: parseFloat(newAuthorRoyalty) || 0,
+        } as Partial<GameAuthorFull> & { name: string });
+        finalAuthorId = author.id;
+      }
+
+      const game = await upsertGame({
+        title: newTitle.trim(),
+        woocommerce_product_id: item.wc_product_id,
+        game_type: newGameType,
+        status: "active",
+        author_id: finalAuthorId,
+      } as Partial<GameFull> & { title: string });
+
+      await validate({ id: item.id, game_id: game.id });
+      toast({ title: "Jeu créé et ligne validée" });
+      onClose();
+    } catch (e) {
+      toastError(toast, e instanceof Error ? e.message : "Erreur lors de la création");
+    }
+  };
+
+  const handleRefuse = async () => {
+    try {
+      await updateStatus({
+        id: item.id,
+        kanban_status: "blocked",
+        block_reason: refuseReason.trim() || "Refusée par l'opérateur",
+      });
+      toast({ title: "Ligne refusée" });
+      onClose();
+    } catch {
+      toastError(toast, "Erreur lors du refus");
+    }
+  };
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Valider la ligne de commande</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Produit WooCommerce : <strong>{item.product_name}</strong> (ID #{item.wc_product_id})
-          </p>
-          <div className="space-y-1">
-            <Label>Rattacher à un jeu du catalogue</Label>
-            <Select value={gameId} onValueChange={setGameId}>
-              <SelectTrigger><SelectValue placeholder="Sélectionner un jeu" /></SelectTrigger>
-              <SelectContent>
-                {games.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    {g.title} — {GAME_TYPE_LABELS[g.game_type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>Traiter la ligne de commande</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-md bg-muted p-3 text-sm">
+            <div>Produit WooCommerce : <strong>{item.product_name}</strong></div>
+            <div className="text-muted-foreground">ID produit #{item.wc_product_id}</div>
           </div>
+
+          <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="link">Rattacher</TabsTrigger>
+              <TabsTrigger value="create">Créer le jeu</TabsTrigger>
+              <TabsTrigger value="refuse">Refuser</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="link" className="space-y-2 pt-3">
+              <Label>Rattacher à un jeu du catalogue</Label>
+              {games.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucun jeu dans le catalogue. Utilisez l'onglet « Créer le jeu ».
+                </p>
+              ) : (
+                <Select value={gameId} onValueChange={setGameId}>
+                  <SelectTrigger><SelectValue placeholder="Sélectionner un jeu" /></SelectTrigger>
+                  <SelectContent>
+                    {games.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.title} — {GAME_TYPE_LABELS[g.game_type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </TabsContent>
+
+            <TabsContent value="create" className="space-y-3 pt-3">
+              <div className="space-y-1">
+                <Label>Titre du jeu</Label>
+                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Type</Label>
+                <Select value={newGameType} onValueChange={(v) => setNewGameType(v as GameType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(GAME_TYPE_LABELS) as GameType[]).map((t) => (
+                      <SelectItem key={t} value={t}>{GAME_TYPE_LABELS[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Auteur</Label>
+                <Select value={authorMode} onValueChange={(v) => setAuthorMode(v as "existing" | "new")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="existing">Auteur existant</SelectItem>
+                    <SelectItem value="new">Nouvel auteur</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {authorMode === "existing" ? (
+                <Select value={authorId} onValueChange={setAuthorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={authors.length ? "Sélectionner un auteur" : "Aucun auteur disponible"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {authors.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="space-y-2 rounded-md border p-3">
+                  <div className="space-y-1">
+                    <Label>Nom de l'auteur</Label>
+                    <Input value={newAuthorName} onChange={(e) => setNewAuthorName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Email</Label>
+                    <Input type="email" value={newAuthorEmail} onChange={(e) => setNewAuthorEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Taux de royalties (ex: 0.10)</Label>
+                    <Input value={newAuthorRoyalty} onChange={(e) => setNewAuthorRoyalty(e.target.value)} />
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="refuse" className="space-y-2 pt-3">
+              <Label>Motif du refus (optionnel)</Label>
+              <Textarea
+                value={refuseReason}
+                onChange={(e) => setRefuseReason(e.target.value)}
+                placeholder="Ex : produit hors périmètre, doublon, test…"
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                La ligne sera déplacée vers « Bloquées » et aucun email ne sera envoyé.
+              </p>
+            </TabsContent>
+          </Tabs>
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={save} disabled={isPending || !gameId}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Valider"}
-          </Button>
+          {mode === "link" && (
+            <Button onClick={handleLink} disabled={isPending || !gameId}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Valider"}
+            </Button>
+          )}
+          {mode === "create" && (
+            <Button onClick={handleCreate} disabled={isPending || !newTitle.trim()}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer et valider"}
+            </Button>
+          )}
+          {mode === "refuse" && (
+            <Button variant="destructive" onClick={handleRefuse} disabled={isPending}>
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refuser la ligne"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
