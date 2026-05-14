@@ -1,0 +1,1 @@
+ALTER TABLE public.devis_signatures ADD COLUMN IF NOT EXISTS signed_pdf_url text;
