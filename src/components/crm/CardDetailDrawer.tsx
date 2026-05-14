@@ -53,6 +53,7 @@ import CardDetailSchedule from "./card-detail/CardDetailSchedule";
 import CardDetailContact from "./card-detail/CardDetailContact";
 import CardDetailQualification from "./card-detail/CardDetailQualification";
 import CardDetailCommercial from "./card-detail/CardDetailCommercial";
+import CardDetailSource from "./card-detail/CardDetailSource";
 import CardDetailCommunication from "./card-detail/CardDetailCommunication";
 import CardDetailTabs from "./card-detail/CardDetailTabs";
 import CardDetailDialogs from "./card-detail/CardDetailDialogs";
@@ -822,6 +823,8 @@ const CardDetailDrawer = ({
           <CardDetailCommercial state={state} handlers={handlers} />
           <CardDetailCommunication state={state} handlers={handlers} details={details ?? undefined} emailFileInputRef={emailFileInputRef} selectedTemplateRef={selectedTemplateRef} />
           <CardDetailTabs state={state} handlers={handlers} details={details ?? undefined} detailsLoading={detailsLoading} />
+
+          <CardDetailSource metadata={card?.source_metadata ?? null} />
 
           {/* Delete section */}
           <div className="mt-8 pt-4 border-t border-destructive/20">
