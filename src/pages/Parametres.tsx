@@ -1,4 +1,5 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart } from "lucide-react";
+import { SettingsTab as SupertiltSettingsTab } from "@/pages/SupertiltOrders";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
