@@ -19,8 +19,14 @@ interface SlackNotifyRequest {
     service_type?: string;
     estimated_value?: number;
     email?: string;
+    message?: string;
   };
   actor_email?: string;
+}
+
+function truncate(s: string, max = 600): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1).trimEnd() + "…";
 }
 
 function formatCurrency(value: number): string {
