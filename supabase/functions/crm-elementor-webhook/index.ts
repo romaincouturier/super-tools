@@ -452,6 +452,17 @@ serve(async (req) => {
       .limit(1);
     const maxPos = existingCards?.[0]?.position ?? -1;
 
+    // Today in Europe/Paris (YYYY-MM-DD) — same default as the manual "new opportunity" flow
+    const todayParis = (() => {
+      const fmt = new Intl.DateTimeFormat("fr-CA", {
+        timeZone: "Europe/Paris",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+      return fmt.format(new Date()); // YYYY-MM-DD
+    })();
+
     // ─── Create card ───
     const { data: newCard, error: cardError } = await supabase
       .from("crm_cards")
@@ -460,7 +471,9 @@ serve(async (req) => {
         title: extraction.title,
         position: maxPos + 1,
         sales_status: "OPEN",
-        status_operational: "TODAY",
+        status_operational: "WAITING",
+        waiting_next_action_date: todayParis,
+        waiting_next_action_text: "Recontacter le prospect (formulaire site web)",
         estimated_value: 0,
         first_name: capitalizeName(extraction.first_name),
         last_name: capitalizeName(extraction.last_name),
