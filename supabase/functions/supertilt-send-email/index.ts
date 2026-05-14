@@ -136,7 +136,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       prenom_auteur: prenomAuteur,
       nom_auteur: authorName,
       taux_commission: tauxCommission,
-      prix_vendu: fmtEUR(lineTTC),
+      prix_vendu: fmtEUR(lineHT),
       prix_ht: fmtEUR(lineHT),
       prix_unitaire_ht: fmtEUR(unitPrice),
       montant_ttc: fmtEUR(lineTTC),
