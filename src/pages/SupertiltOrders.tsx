@@ -35,6 +35,8 @@ import {
   useEmailTemplates,
   useUpsertEmailTemplate,
   useEmailLog,
+  useMarkInvoiceReceived,
+  useMarkShippedConfirmed,
   useSupertiltSettings,
   useUpsertSupertiltSetting,
   useOrderKpis,
@@ -441,6 +443,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const [showNote, setShowNote] = useState(false);
   const { mutateAsync: updateStatus, isPending: updatingStatus } = useUpdateOrderItemStatus();
   const { mutateAsync: sendEmail, isPending: sendingEmail } = useSendOrderEmail();
+  const { mutateAsync: markShipped, isPending: markingShipped } = useMarkShippedConfirmed();
   const { toast } = useToast();
 
   const order = item.woocommerce_orders as any;
@@ -518,6 +521,23 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         {item.kanban_status !== "processed" && item.kanban_status !== "blocked" && (
           <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={handleMarkProcessed} disabled={updatingStatus}>
             <CheckCircle className="h-3 w-3 mr-1" />Traité
+          </Button>
+        )}
+        {item.game_type === "dropshipping" && item.kanban_status !== "blocked" && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 text-xs px-2 ${item.shipped_confirmed_at ? "text-green-700" : "text-muted-foreground"}`}
+            onClick={async () => {
+              try {
+                await markShipped({ id: item.id, confirmed: !item.shipped_confirmed_at });
+                toast({ title: item.shipped_confirmed_at ? "Confirmation annulée" : "Envoi confirmé par l'auteur" });
+              } catch { toastError(toast, "Erreur"); }
+            }}
+            disabled={markingShipped}
+          >
+            <Truck className="h-3 w-3 mr-1" />
+            {item.shipped_confirmed_at ? `Envoyé ${DATE(item.shipped_confirmed_at)}` : "Confirmé envoyé"}
           </Button>
         )}
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowNote(true)}>
@@ -764,6 +784,18 @@ function GameDialog({
                 <Switch checked={form.include_stripe_fees ?? false} onCheckedChange={(v) => set("include_stripe_fees", v)} />
                 <Label>Déduire les frais Stripe avant calcul</Label>
               </div>
+              {form.game_type === "location" && (
+                <div className="col-span-2 space-y-1">
+                  <Label>URL du contrat de location (lien à signer)</Label>
+                  <Input
+                    type="url"
+                    placeholder="https://supertilt.fr/contrat-de-location-du-jeu-..."
+                    value={(form as any).location_contract_url ?? ""}
+                    onChange={(e) => set("location_contract_url" as any, e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Sera inséré dans le mail de location à la place de <code>{"{{contrat_url}}"}</code>.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -974,8 +1006,17 @@ function Sales() {
 
 function EmailLogTab() {
   const { data: logs, isLoading } = useEmailLog();
+  const { mutateAsync: markInvoice } = useMarkInvoiceReceived();
+  const { toast } = useToast();
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+
+  const handleToggleInvoice = async (orderItemId: string, currentlyReceived: boolean) => {
+    try {
+      await markInvoice({ id: orderItemId, received: !currentlyReceived });
+      toast({ title: !currentlyReceived ? "Facture marquée comme reçue" : "Marquage annulé" });
+    } catch { toastError(toast, "Erreur"); }
+  };
 
   return (
     <div className="rounded-md border">
@@ -988,26 +1029,47 @@ function EmailLogTab() {
             <TableHead>Template</TableHead>
             <TableHead>Destinataire(s)</TableHead>
             <TableHead>Statut</TableHead>
+            <TableHead>Facture reçue</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {!(logs ?? []).length && (
-            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucun email envoyé</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucun email envoyé</TableCell></TableRow>
           )}
-          {(logs ?? []).map((l) => (
-            <TableRow key={l.id}>
-              <TableCell className="text-sm">{DATE(l.sent_at)}</TableCell>
-              <TableCell className="text-sm font-mono">{l.wc_order_id ?? "—"}</TableCell>
-              <TableCell className="text-sm">{(l.order_items as any)?.games?.title ?? (l.order_items as any)?.product_name ?? "—"}</TableCell>
-              <TableCell><Badge variant="outline" className="text-xs">{l.template_key ?? "—"}</Badge></TableCell>
-              <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{l.sent_to?.join(", ") ?? "—"}</TableCell>
-              <TableCell>
-                <Badge variant={l.status === "sent" ? "default" : "destructive"} className="text-xs">
-                  {l.status === "sent" ? "Envoyé" : "Échec"}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
+          {(logs ?? []).map((l) => {
+            const item = l.order_items as any;
+            const isDropshipping = item?.games?.game_type === "dropshipping";
+            const invoiceReceived = !!item?.invoice_received_at;
+            return (
+              <TableRow key={l.id}>
+                <TableCell className="text-sm">{DATE(l.sent_at)}</TableCell>
+                <TableCell className="text-sm font-mono">{l.wc_order_id ?? "—"}</TableCell>
+                <TableCell className="text-sm">{item?.games?.title ?? item?.product_name ?? "—"}</TableCell>
+                <TableCell><Badge variant="outline" className="text-xs">{l.template_key ?? "—"}</Badge></TableCell>
+                <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{l.sent_to?.join(", ") ?? "—"}</TableCell>
+                <TableCell>
+                  <Badge variant={l.status === "sent" ? "default" : "destructive"} className="text-xs">
+                    {l.status === "sent" ? "Envoyé" : "Échec"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {isDropshipping && l.order_item_id ? (
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={invoiceReceived}
+                        onChange={() => handleToggleInvoice(l.order_item_id!, invoiceReceived)}
+                        className="h-4 w-4"
+                      />
+                      {invoiceReceived ? DATE(item.invoice_received_at) : "À recevoir"}
+                    </label>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

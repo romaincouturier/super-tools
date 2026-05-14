@@ -387,6 +387,20 @@ serve(async (req) => {
       });
     }
 
+    // 17. SuperTilt — order_items à valider (kanban_status = to_validate)
+    for (const v of data.supertiltToValidate) {
+      const ageDays = Math.max(0, Math.floor((new Date(today).getTime() - new Date(v.createdAt).getTime()) / 86400000));
+      const ageLabel = ageDays === 0 ? "aujourd'hui" : ageDays === 1 ? "depuis hier" : `depuis ${ageDays} j`;
+      actions.push({
+        category: "supertilt_a_valider",
+        title: `🎲 ${v.productName ?? `Produit #${v.wcOrderId}`} — Cmd ${v.orderNumber ?? v.wcOrderId}`,
+        description: `Ligne SuperTilt à rattacher au catalogue (${ageLabel})${v.customerEmail ? ` — ${v.customerEmail}` : ""}`,
+        link: `${appUrl}/commandes-jeux`,
+        entityType: "supertilt_order_item", entityId: v.id,
+        scope: "global",
+      });
+    }
+
     const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
 
     for (const recipient of recipients) {

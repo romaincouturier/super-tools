@@ -31,6 +31,7 @@ export const CATEGORY_ORDER = [
   "cfp_surveiller",
   "emails_a_valider",
   "support_tickets",
+  "supertilt_a_valider",
   "supertilt",
 ] as const;
 
@@ -56,6 +57,7 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   cfp_surveiller: { label: "CFP \u00e0 surveiller", emoji: "\ud83d\udd01", color: "text-blue-600" },
   emails_a_valider: { label: "Emails à valider", emoji: "\ud83d\udce7", color: "text-violet-600" },
   support_tickets: { label: "Tickets support", emoji: "\ud83c\udfab", color: "text-rose-600" },
+  supertilt_a_valider: { label: "SuperTilt — commandes à valider", emoji: "\ud83c\udfb2", color: "text-yellow-700" },
   supertilt: { label: "SuperTilt", emoji: "\u26a1", color: "text-yellow-600" },
 };
 
