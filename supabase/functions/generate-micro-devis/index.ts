@@ -460,12 +460,12 @@ async function sendEmailWithResend(
     };
 
     const subject = processTemplate(subjectTemplate, variables);
-    // Check if the RAW template (before variable substitution) is HTML
-    // Variables like devis_description contain HTML, which would fool isHtmlContent
-    // on the processed result. We must check the original template instead.
+    // If the template is plain text, convert to HTML BEFORE substituting variables.
+    // Otherwise HTML-valued variables (signature_block, devis_description) get
+    // their <div>/<ul> split line-by-line and wrapped in <p>, which breaks rendering.
     const templateIsHtml = isHtmlContent(contentTemplate);
-    const contentProcessed = processTemplate(contentTemplate, variables);
-    const contentHtml = templateIsHtml ? contentProcessed : textToHtml(contentProcessed);
+    const htmlTemplate = templateIsHtml ? contentTemplate : textToHtml(contentTemplate);
+    const contentHtml = processTemplate(htmlTemplate, variables);
 
   // Fallback signature if Signitic fails
   const websiteUrl = urls.website_url;
