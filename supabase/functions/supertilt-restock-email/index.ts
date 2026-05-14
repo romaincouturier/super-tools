@@ -100,8 +100,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    const bccEmails = await getBccList();
     const result = await sendEmail({
       to: contactEmail,
+      bcc: bccEmails.length ? bccEmails : undefined,
       subject,
       html,
       from: defaultSender,
