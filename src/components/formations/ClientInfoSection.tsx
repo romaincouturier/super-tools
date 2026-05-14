@@ -95,15 +95,18 @@ export default function ClientInfoSection({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              const q = encodeURIComponent(`SIREN ${nomClient.trim()}`);
-              window.open(`https://www.google.com/search?q=${q}`, "_blank", "noopener,noreferrer");
-            }}
+            asChild
             disabled={nomClient.trim().length < 2}
             className="whitespace-nowrap"
           >
-            <Search className="w-4 h-4" />
-            <span className="ml-2">Chercher Siren</span>
+            <a
+              href={`https://www.google.com/search?q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Search className="w-4 h-4" />
+              <span className="ml-2">Chercher Siren</span>
+            </a>
           </Button>
         </div>
       </div>
