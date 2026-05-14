@@ -509,3 +509,15 @@ verify_jwt = true
 
 [functions.generate-transcript-title]
 verify_jwt = false
+
+[functions.supertilt-webhook]
+verify_jwt = false
+
+[functions.supertilt-send-email]
+verify_jwt = true
+
+[functions.supertilt-restock-email]
+verify_jwt = true
+
+[functions.supertilt-partner-portal]
+verify_jwt = false
