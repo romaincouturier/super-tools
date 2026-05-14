@@ -221,9 +221,8 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
         setSelectedTagIds(result.suggested_tag_ids);
         setTagsAutoSuggested(true);
       }
-      // Pre-fill suggested next action
+      // Pre-fill suggested next action text only — date stays today (default)
       if (result.suggested_next_action) {
-        setNextActionDate(result.suggested_next_action.date);
         setNextActionText(result.suggested_next_action.text);
         setNextActionSuggested(true);
         setNextActionFormOpen(false);
