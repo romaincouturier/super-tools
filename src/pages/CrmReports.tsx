@@ -32,6 +32,8 @@ import { format, startOfYear, startOfQuarter, startOfMonth, endOfMonth, endOfQua
 import { fr } from "date-fns/locale";
 import type { CrmCard, CrmTag } from "@/types/crm";
 import PivotCellDetail from "@/components/crm/reports/PivotCellDetail";
+import ProvenanceTab from "@/components/crm/reports/ProvenanceTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 // ── Persistence ────────────────────────────────────────────
 
@@ -145,101 +147,114 @@ const CrmReports = () => {
           backTo="/crm"
         />
 
-        {/* KPIs — value-first layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <KpiCard
-            title="Pipeline ouvert"
-            icon={<Target className="h-4 w-4 text-muted-foreground" />}
-            mainValue={`${fmt(reports.openValue)} €`}
-            secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
-            active={activeChart === "open"}
-            onClick={() => toggleChart("open")}
-          />
-          <KpiCard
-            title="Pipeline pondéré"
-            icon={<Euro className="h-4 w-4 text-amber-600" />}
-            mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
-            secondary="confiance × valeur"
-            mainColor="text-amber-600"
-            active={activeChart === "weighted"}
-            onClick={() => toggleChart("weighted")}
-          />
-          <KpiCard
-            title="Gagné"
-            icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-            mainValue={`${fmt(reports.wonValue)} €`}
-            secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
-            mainColor="text-green-600"
-            active={activeChart === "won"}
-            onClick={() => toggleChart("won")}
-          />
-          <KpiCard
-            title="Perdu"
-            icon={<TrendingDown className="h-4 w-4 text-red-600" />}
-            mainValue={`${fmt(reports.lostValue)} €`}
-            secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
-            mainColor="text-red-600"
-            active={activeChart === "lost"}
-            onClick={() => toggleChart("lost")}
-          />
-          <KpiCard
-            title="Taux de conversion"
-            icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
-            mainValue={`${winRate}%`}
-            secondary={`sur ${reports.wonCount + reports.lostCount} clôturée${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
-            active={activeChart === "conversion"}
-            onClick={() => toggleChart("conversion")}
-          />
-        </div>
+        <Tabs defaultValue="pipeline" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="pipeline">Pipeline & tags</TabsTrigger>
+            <TabsTrigger value="provenance">Provenance</TabsTrigger>
+          </TabsList>
 
-        {/* Weekly chart for selected KPI */}
-        {activeChart && kpiChartConfig[activeChart] && (
-          <WeeklyChart
-            data={reports.weeklyData}
-            config={kpiChartConfig[activeChart]}
-          />
-        )}
-
-        {/* Pivot 1: Historical — all cards filtered by period */}
-        {hasPivot && (
-          <PivotTable
-            storageKey="pivot1"
-            title="Tableau croisé par tags"
-            cardsWithTags={reports.cardsWithTags}
-            categories={reports.categories}
-            allTags={reports.tags}
-            periodSelector={
-              <PeriodSelector
-                preset={preset}
-                onPresetChange={handlePresetChange}
-                customStart={customStart}
-                customEnd={customEnd}
-                onCustomStartChange={setCustomStart}
-                onCustomEndChange={setCustomEnd}
+          <TabsContent value="pipeline" className="space-y-6">
+            {/* KPIs — value-first layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <KpiCard
+                title="Pipeline ouvert"
+                icon={<Target className="h-4 w-4 text-muted-foreground" />}
+                mainValue={`${fmt(reports.openValue)} €`}
+                secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
+                active={activeChart === "open"}
+                onClick={() => toggleChart("open")}
               />
-            }
-          />
-        )}
+              <KpiCard
+                title="Pipeline pondéré"
+                icon={<Euro className="h-4 w-4 text-amber-600" />}
+                mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
+                secondary="confiance × valeur"
+                mainColor="text-amber-600"
+                active={activeChart === "weighted"}
+                onClick={() => toggleChart("weighted")}
+              />
+              <KpiCard
+                title="Gagné"
+                icon={<TrendingUp className="h-4 w-4 text-green-600" />}
+                mainValue={`${fmt(reports.wonValue)} €`}
+                secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
+                mainColor="text-green-600"
+                active={activeChart === "won"}
+                onClick={() => toggleChart("won")}
+              />
+              <KpiCard
+                title="Perdu"
+                icon={<TrendingDown className="h-4 w-4 text-red-600" />}
+                mainValue={`${fmt(reports.lostValue)} €`}
+                secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
+                mainColor="text-red-600"
+                active={activeChart === "lost"}
+                onClick={() => toggleChart("lost")}
+              />
+              <KpiCard
+                title="Taux de conversion"
+                icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
+                mainValue={`${winRate}%`}
+                secondary={`sur ${reports.wonCount + reports.lostCount} clôturée${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
+                active={activeChart === "conversion"}
+                onClick={() => toggleChart("conversion")}
+              />
+            </div>
 
-        {/* Pivot 2: Pipeline — OPEN cards only, no period */}
-        {hasPivot && (
-          <PivotTable
-            storageKey="pivot2"
-            title="Pipeline en cours"
-            cardsWithTags={reports.pipelineCardsWithTags}
-            categories={reports.categories}
-            allTags={reports.tags}
-          />
-        )}
+            {/* Weekly chart for selected KPI */}
+            {activeChart && kpiChartConfig[activeChart] && (
+              <WeeklyChart
+                data={reports.weeklyData}
+                config={kpiChartConfig[activeChart]}
+              />
+            )}
 
-        {!hasPivot && (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Le tableau croisé nécessite au moins 2 catégories de tags pour fonctionner.
-              Ajoutez des catégories dans les param\u00E8tres CRM.
-            </CardContent>
-          </Card>
-        )}
+            {/* Pivot 1: Historical — all cards filtered by period */}
+            {hasPivot && (
+              <PivotTable
+                storageKey="pivot1"
+                title="Tableau croisé par tags"
+                cardsWithTags={reports.cardsWithTags}
+                categories={reports.categories}
+                allTags={reports.tags}
+                periodSelector={
+                  <PeriodSelector
+                    preset={preset}
+                    onPresetChange={handlePresetChange}
+                    customStart={customStart}
+                    customEnd={customEnd}
+                    onCustomStartChange={setCustomStart}
+                    onCustomEndChange={setCustomEnd}
+                  />
+                }
+              />
+            )}
+
+            {/* Pivot 2: Pipeline — OPEN cards only, no period */}
+            {hasPivot && (
+              <PivotTable
+                storageKey="pivot2"
+                title="Pipeline en cours"
+                cardsWithTags={reports.pipelineCardsWithTags}
+                categories={reports.categories}
+                allTags={reports.tags}
+              />
+            )}
+
+            {!hasPivot && (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground text-sm">
+                  Le tableau croisé nécessite au moins 2 catégories de tags pour fonctionner.
+                  Ajoutez des catégories dans les paramètres CRM.
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="provenance">
+            <ProvenanceTab />
+          </TabsContent>
+        </Tabs>
       </main>
     </ModuleLayout>
   );
