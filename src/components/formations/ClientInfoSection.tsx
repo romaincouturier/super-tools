@@ -62,7 +62,7 @@ export default function ClientInfoSection({
   nomCommanditaire,
   setNomCommanditaire,
 }: ClientInfoSectionProps) {
-  const googleSirenSearchUrl = `https://www.google.com/search?igu=1&q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`;
+  const googleSirenSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(`SIREN ${nomClient.trim()}`)}`;
 
   return (
     <div className="space-y-4">
@@ -97,18 +97,12 @@ export default function ClientInfoSection({
             type="button"
             variant="outline"
             size="sm"
-            asChild
             disabled={nomClient.trim().length < 2}
             className="whitespace-nowrap"
+            onClick={() => window.open(googleSirenSearchUrl, "_blank", "noopener,noreferrer")}
           >
-            <a
-              href={googleSirenSearchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Search className="w-4 h-4" />
-              <span className="ml-2">Chercher Siren</span>
-            </a>
+            <Search className="w-4 h-4" />
+            <span className="ml-2">Chercher Siren</span>
           </Button>
         </div>
       </div>
