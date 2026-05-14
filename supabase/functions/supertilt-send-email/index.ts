@@ -37,7 +37,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const { order_item_id } = await req.json() as { order_item_id: string };
+    const { order_item_id, test_recipient } = await req.json() as { order_item_id: string; test_recipient?: string };
     if (!order_item_id) {
       return new Response(JSON.stringify({ error: "order_item_id required" }), {
         status: 400,
