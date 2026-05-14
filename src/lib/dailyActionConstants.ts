@@ -31,6 +31,7 @@ export const CATEGORY_ORDER = [
   "cfp_surveiller",
   "emails_a_valider",
   "support_tickets",
+  "supertilt_a_valider",
   "supertilt",
 ] as const;
 
