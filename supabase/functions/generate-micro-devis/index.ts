@@ -287,13 +287,19 @@ function processTemplate(
   return result;
 }
 
-// Convert plain text to HTML
+// Convert plain text to HTML.
+// Lines that contain ONLY a template placeholder (e.g. "{{signature_block}}",
+// "{{#programme_link}}", "{{/programme_link}}") are emitted as-is so that
+// HTML-valued variables (signature box, bullet list, conditional blocks)
+// don't get wrapped in <p> tags and broken across lines.
 function textToHtml(text: string): string {
+  const placeholderOnly = /^\s*\{\{[#\/]?\w+\}\}\s*$/;
   return text
     .split("\n")
     .map(line => {
       const trimmed = line.trim();
       if (trimmed === "") return "";
+      if (placeholderOnly.test(trimmed)) return trimmed;
       // Convert markdown-style list items to HTML
       if (trimmed.startsWith("- ")) return `<p style="margin:0 0 4px 0;">${trimmed.substring(2)}</p>`;
       if (trimmed.startsWith("* ")) return `<p style="margin:0 0 4px 0;padding-left:16px;">${trimmed.substring(2)}</p>`;
