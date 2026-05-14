@@ -53,7 +53,7 @@ export function useVoiceDictation({
           return;
         }
 
-        // Upload blob to storage to get a public URL for AssemblyAI
+        // Send audio directly to the transcription function to avoid browser-side Storage RLS.
         setIsTranscribing(true);
         try {
           // Strip codec parameter (e.g. "audio/webm;codecs=opus") — Supabase
