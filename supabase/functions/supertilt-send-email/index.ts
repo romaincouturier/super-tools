@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { processTemplate } from "../_shared/templates.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -275,9 +276,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Send email ───────────────────────────────────────────────
+    const bccEmails = await getBccList();
     const result = await sendEmail({
       to: toEmails,
       cc: ccEmails.length ? ccEmails : undefined,
+      bcc: bccEmails.length ? bccEmails : undefined,
       subject,
       html,
       from: defaultSender,
@@ -290,7 +293,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       wc_order_id: order?.wc_order_id,
       template_key: templateKey,
       sent_to: toEmails,
-      cc: ccEmails,
+      cc: [...ccEmails, ...bccEmails],
       subject,
       body: html,
       status: result.success ? "sent" : "failed",
@@ -337,6 +340,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           const phtml = processTemplate((ptpl as any).html_content, vars, false);
           const presult = await sendEmail({
             to: [game.partner_email],
+            bcc: bccEmails.length ? bccEmails : undefined,
             subject: psubject,
             html: phtml,
             from: defaultSender,
@@ -347,7 +351,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             wc_order_id: order?.wc_order_id,
             template_key: "partner",
             sent_to: [game.partner_email],
-            cc: [],
+            cc: bccEmails,
             subject: psubject,
             body: phtml,
             status: presult.success ? "sent" : "failed",
