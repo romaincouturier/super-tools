@@ -406,12 +406,42 @@ async function sendEmailWithResend(
     // Remove duplicate "formation" from formation name for subject
     const formationName = formationDemandee.replace(/^formation\s+/i, "");
 
+    // Build signature block (only for available tokens)
+    const signatureLinks: string[] = [];
+    if ((typeSubrogation === "sans" || typeSubrogation === "les2") && signatureTokens.sans) {
+      const url = `${appUrl}/signature-devis/${signatureTokens.sans}`;
+      const label = typeSubrogation === "les2"
+        ? "→ Signer le devis sans subrogation"
+        : "→ Signer le devis en ligne";
+      signatureLinks.push(
+        `<p style="margin:4px 0;"><a href="${url}" style="color:#1a73e8;text-decoration:underline;">${label}</a></p>`
+      );
+    }
+    if ((typeSubrogation === "avec" || typeSubrogation === "les2") && signatureTokens.avec) {
+      const url = `${appUrl}/signature-devis/${signatureTokens.avec}`;
+      const label = typeSubrogation === "les2"
+        ? "→ Signer le devis avec subrogation"
+        : "→ Signer le devis en ligne";
+      signatureLinks.push(
+        `<p style="margin:4px 0;"><a href="${url}" style="color:#1a73e8;text-decoration:underline;">${label}</a></p>`
+      );
+    }
+    const signatureBlock = signatureLinks.length > 0
+      ? `<div style="margin:20px 0;padding:16px 20px;background:#f0f7ff;border-radius:8px;border-left:4px solid #1a73e8;">
+  <p style="margin:0 0 6px 0;font-weight:600;color:#1a1a2e;">Signature électronique</p>
+  <p style="margin:0 0 12px 0;font-size:14px;color:#444;">Pour simplifier les démarches, vous pouvez signer directement en ligne :</p>
+  ${signatureLinks.join("\n  ")}
+  <p style="margin:10px 0 0 0;font-size:12px;color:#888;">Signature électronique valide conformément au règlement eIDAS (UE n° 910/2014). Ce lien est valable 30 jours.</p>
+</div>`
+      : "";
+
     // Process templates with variables
     const variables = {
       recipient_name: adresseCommanditaire,
       formation_name: formationName,
       devis_description: devisDescription,
       programme_link: programmeUrl,
+      signature_block: signatureBlock,
     };
 
     const subject = processTemplate(subjectTemplate, variables);
