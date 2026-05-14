@@ -245,7 +245,7 @@ const App = () => (
 
               <Route path="/transcripts" element={<Transcripts />} />
               <Route path="/temoignages" element={<Temoignages />} />
-              <Route path="/dropshipping" element={<Dropshipping />} />
+              <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
               <Route path="/commandes-jeux" element={<SupertiltOrders />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
