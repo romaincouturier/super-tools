@@ -576,9 +576,9 @@ serve(async (req) => {
       .limit(1);
     const maxPos = existingCards?.[0]?.position ?? -1;
 
-    // ─── Next action: AI suggestion or default to today ───
+    // ─── Next action: always today (text from AI suggestion or default) ───
     const today = todayParisISO();
-    const nextActionDate = extraction.suggested_next_action?.date || today;
+    const nextActionDate = today;
     const nextActionText = extraction.suggested_next_action?.text || "Recontacter le prospect (formulaire site web)";
 
     // ─── Create card ───
