@@ -677,10 +677,10 @@ function GameDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Auteur</Label>
-                <Select value={form.author_id ?? ""} onValueChange={(v) => set("author_id", v || null)}>
+                <Select value={form.author_id ?? "__none__"} onValueChange={(v) => set("author_id", v === "__none__" ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Aucun</SelectItem>
+                    <SelectItem value="__none__">Aucun</SelectItem>
                     {authors.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
