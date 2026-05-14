@@ -168,6 +168,14 @@ export default function ProvenanceTab() {
     if (!data) return null;
     const cards = data.cards;
 
+    // card_id -> Set(tag_id)
+    const cardTagSet = new Map<string, Set<string>>();
+    for (const ct of data.cardTags) {
+      const s = cardTagSet.get(ct.card_id) || new Set<string>();
+      s.add(ct.tag_id);
+      cardTagSet.set(ct.card_id, s);
+    }
+
     // Build per-card derived
     const enriched = cards.map((c) => {
       const meta = (c.source_metadata || {}) as Record<string, string | undefined>;
@@ -206,16 +214,29 @@ export default function ProvenanceTab() {
       if (idx !== undefined) monthBuckets[idx].count += 1;
     }
 
-    // Heatmap jour × heure
+    // Heatmap jour × heure — filtré par période et tags
+    const startTs = heatmapStart ? new Date(heatmapStart + "T00:00:00").getTime() : -Infinity;
+    const endTs = heatmapEnd ? new Date(heatmapEnd + "T23:59:59").getTime() : Infinity;
+    const heatmapFiltered = withReceived.filter((c) => {
+      const t = c.received!.getTime();
+      if (t < startTs || t > endTs) return false;
+      if (heatmapTagIds.length > 0) {
+        const tags = cardTagSet.get(c.id);
+        if (!tags) return false;
+        if (!heatmapTagIds.every((id) => tags.has(id))) return false;
+      }
+      return true;
+    });
     const heatmap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
     let heatmapMax = 0;
-    for (const c of withReceived) {
+    for (const c of heatmapFiltered) {
       const d = toParisDate(c.received!.toISOString());
       const dow = (d.getDay() + 6) % 7; // 0 = Lundi
       const h = d.getHours();
       heatmap[dow][h] += 1;
       if (heatmap[dow][h] > heatmapMax) heatmapMax = heatmap[dow][h];
     }
+    const heatmapTotal = heatmapFiltered.length;
 
     // Top user agents normalisés (Browser × OS)
     const uaMap = new Map<string, number>();
