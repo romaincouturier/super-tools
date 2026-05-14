@@ -456,6 +456,9 @@ verify_jwt = false
 [functions.upload-admin-document]
 verify_jwt = false
 
+[functions.analyze-admin-document]
+verify_jwt = false
+
 [functions.upload-crm-attachment]
 verify_jwt = false
 
