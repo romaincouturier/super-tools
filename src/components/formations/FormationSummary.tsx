@@ -5,6 +5,7 @@ interface FormationSummaryProps {
   formationDemandee: string;
   participants: string;
   fraisDossier: "oui" | "non" | "";
+  typeSubrogation?: "sans" | "avec" | "les2";
   getSelectedFormationConfig: () => FormationConfig | undefined;
   formationFormulas: FormationFormula[];
   selectedFormulaId: string;
@@ -15,6 +16,7 @@ export default function FormationSummary({
   formationDemandee,
   participants,
   fraisDossier,
+  typeSubrogation,
   getSelectedFormationConfig,
   formationFormulas,
   selectedFormulaId,
@@ -29,7 +31,8 @@ export default function FormationSummary({
   const prixUnitaire = activeFormula?.prix ?? config.prix;
   const nbParticipants = countParticipants();
   const prixFormation = prixUnitaire * nbParticipants;
-  const frais = fraisDossier === "oui" ? 350 : 0;
+  const withSubrogation = typeSubrogation === "avec" || typeSubrogation === "les2";
+  const frais = fraisDossier === "oui" ? (withSubrogation ? 350 : 150) : 0;
   const totalHT = prixFormation + frais;
   const tva = 0;
   const totalTTC = totalHT + tva;

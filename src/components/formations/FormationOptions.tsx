@@ -36,7 +36,7 @@ export default function FormationOptions({
       </div>
 
       <div className="space-y-3">
-        <Label>Afficher les frais de dossier dans le devis * <span className="text-muted-foreground font-normal text-sm">(Oui pour appliquer 350 euros de frais)</span></Label>
+        <Label>Afficher les frais de dossier dans le devis * <span className="text-muted-foreground font-normal text-sm">(Oui pour appliquer 350€ avec subrogation, 150€ sans)</span></Label>
         <RadioGroup value={fraisDossier} onValueChange={(v) => setFraisDossier(v as "oui" | "non")} className="flex gap-4">
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="oui" id="frais-oui" />
