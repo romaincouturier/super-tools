@@ -108,10 +108,11 @@ serve(async (req: Request): Promise<Response> => {
 
     // Download the PDF and compute its hash for integrity verification
     let pdfHashAtSignature: string | null = null;
+    let pdfBuffer: ArrayBuffer | null = null;
     try {
       const pdfResponse = await fetch(devisSignature.pdf_url);
       if (pdfResponse.ok) {
-        const pdfBuffer = await pdfResponse.arrayBuffer();
+        pdfBuffer = await pdfResponse.arrayBuffer();
         pdfHashAtSignature = await hashArrayBuffer(pdfBuffer);
       }
     } catch (pdfErr) {
