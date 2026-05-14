@@ -410,11 +410,49 @@ export function useEmailLog() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("order_email_log")
-        .select("*, order_items(product_name, games(title))")
+        .select("*, order_items(product_name, invoice_received_at, shipped_confirmed_at, games(title, game_type))")
         .order("sent_at", { ascending: false })
         .limit(200);
       if (error) throw error;
       return data as EmailLog[];
+    },
+  });
+}
+
+// ── Mark order item invoice received / shipment confirmed ────────────
+
+export function useMarkInvoiceReceived() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, received }: { id: string; received: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("order_items")
+        .update({ invoice_received_at: received ? new Date().toISOString() : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email-log"] });
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
+    },
+  });
+}
+
+export function useMarkShippedConfirmed() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, confirmed }: { id: string; confirmed: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("order_items")
+        .update({ shipped_confirmed_at: confirmed ? new Date().toISOString() : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["email-log"] });
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
     },
   });
 }
