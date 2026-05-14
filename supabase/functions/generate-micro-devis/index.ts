@@ -49,7 +49,7 @@ const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 const DOSSIER_FEE_AMOUNT = 350;
 
 function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
-  return subrogation || data.fraisDossier ? DOSSIER_FEE_AMOUNT : 0;
+  return subrogation || data.fraisDossier || data.isOpco ? DOSSIER_FEE_AMOUNT : 0;
 }
 
 async function generatePdfWithPdfMonkey(
