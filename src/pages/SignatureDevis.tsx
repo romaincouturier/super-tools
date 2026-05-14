@@ -31,6 +31,7 @@ interface DevisSignatureData {
   email_opened_at: string | null;
   created_at: string;
   expires_at: string | null;
+  total_amount_ht?: number | null;
 }
 
 const SignatureDevis = () => {
