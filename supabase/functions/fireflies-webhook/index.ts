@@ -105,13 +105,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── Parse body ───────────────────────────────────────────────
     const body: FirefliesWebhookBody = await req.json();
-    const t = body.transcript;
+    console.log("[fireflies-webhook] payload:", JSON.stringify(body));
 
-    if (!t?.id) {
-      return new Response(JSON.stringify({ ok: true, skipped: "no transcript in payload" }), {
+    // Resolve transcript: either embedded in payload, or fetched via GraphQL with meetingId
+    let t: FirefliesTranscript | null = body.transcript ?? null;
+    const transcriptId = t?.id ?? body.meetingId;
+
+    if (!transcriptId) {
+      return new Response(JSON.stringify({ ok: true, skipped: "no transcript id in payload" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!t) {
+      console.log("[fireflies-webhook] fetching transcript via GraphQL:", transcriptId);
+      t = await fetchFirefliesTranscript(transcriptId);
+      if (!t) {
+        return new Response(
+          JSON.stringify({ error: "Failed to fetch transcript from Fireflies API", transcriptId }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // ── Idempotency: skip if already imported ────────────────────
