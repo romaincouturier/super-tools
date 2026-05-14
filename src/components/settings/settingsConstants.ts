@@ -1238,6 +1238,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   woocommerce_store_url: { default: "", description: "URL de la boutique WooCommerce (ex: https://www.supertilt.fr)" },
   woocommerce_consumer_key: { default: "", description: "Clé API WooCommerce (Consumer Key, commence par ck_)" },
   woocommerce_consumer_secret: { default: "", description: "Secret API WooCommerce (Consumer Secret, commence par cs_)" },
+  wc_webhook_secret: { default: "", description: "Secret du webhook WooCommerce pour valider les notifications de commandes (HMAC SHA256)" },
   woocommerce_cart_base_url: { default: "", description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
   app_url: { default: "https://super-tools.lovable.app", description: "URL principale de l'application SuperTools (utilisée dans tous les emails)" },
   google_maps_api_key: { default: "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8", description: "Clé API Google Maps pour les cartes intégrées" },
