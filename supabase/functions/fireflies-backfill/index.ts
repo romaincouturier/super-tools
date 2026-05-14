@@ -26,10 +26,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  let limit = 20;
+  let limit = 30;
   try {
     const body = await req.json();
-    if (typeof body?.limit === "number" && body.limit > 0 && body.limit <= 100) {
+    if (typeof body?.limit === "number" && body.limit > 0 && body.limit <= 50) {
       limit = body.limit;
     }
   } catch (_) { /* no body */ }
