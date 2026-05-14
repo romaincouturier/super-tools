@@ -1,8 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown, X } from "lucide-react";
+import type { CrmTag } from "@/types/crm";
 import {
   ResponsiveContainer,
   BarChart,
@@ -119,7 +127,7 @@ function useProvenanceData() {
   return useQuery({
     queryKey: ["crm", "provenance"],
     queryFn: async () => {
-      const [cardsRes, actsRes] = await Promise.all([
+      const [cardsRes, actsRes, tagsRes, cardTagsRes] = await Promise.all([
         supabase
           .from("crm_cards")
           .select("id, title, sales_status, service_type, estimated_value, created_at, won_at, source_metadata"),
@@ -127,12 +135,18 @@ function useProvenanceData() {
           .from("crm_activity_log")
           .select("card_id, action_type, created_at")
           .eq("action_type", "email_sent"),
+        supabase.from("crm_tags").select("*"),
+        supabase.from("crm_card_tags").select("card_id, tag_id"),
       ]);
       if (cardsRes.error) throw cardsRes.error;
       if (actsRes.error) throw actsRes.error;
+      if (tagsRes.error) throw tagsRes.error;
+      if (cardTagsRes.error) throw cardTagsRes.error;
       return {
         cards: (cardsRes.data || []) as unknown as ProvenanceCard[],
         activities: (actsRes.data || []) as ActivityRow[],
+        tags: (tagsRes.data || []) as unknown as CrmTag[],
+        cardTags: (cardTagsRes.data || []) as { card_id: string; tag_id: string }[],
       };
     },
   });
@@ -145,9 +159,22 @@ const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4
 export default function ProvenanceTab() {
   const { data, isLoading } = useProvenanceData();
 
+  // Heatmap filters
+  const [heatmapStart, setHeatmapStart] = useState<string>("");
+  const [heatmapEnd, setHeatmapEnd] = useState<string>("");
+  const [heatmapTagIds, setHeatmapTagIds] = useState<string[]>([]);
+
   const stats = useMemo(() => {
     if (!data) return null;
     const cards = data.cards;
+
+    // card_id -> Set(tag_id)
+    const cardTagSet = new Map<string, Set<string>>();
+    for (const ct of data.cardTags) {
+      const s = cardTagSet.get(ct.card_id) || new Set<string>();
+      s.add(ct.tag_id);
+      cardTagSet.set(ct.card_id, s);
+    }
 
     // Build per-card derived
     const enriched = cards.map((c) => {
@@ -187,16 +214,29 @@ export default function ProvenanceTab() {
       if (idx !== undefined) monthBuckets[idx].count += 1;
     }
 
-    // Heatmap jour × heure
+    // Heatmap jour × heure — filtré par période et tags
+    const startTs = heatmapStart ? new Date(heatmapStart + "T00:00:00").getTime() : -Infinity;
+    const endTs = heatmapEnd ? new Date(heatmapEnd + "T23:59:59").getTime() : Infinity;
+    const heatmapFiltered = withReceived.filter((c) => {
+      const t = c.received!.getTime();
+      if (t < startTs || t > endTs) return false;
+      if (heatmapTagIds.length > 0) {
+        const tags = cardTagSet.get(c.id);
+        if (!tags) return false;
+        if (!heatmapTagIds.every((id) => tags.has(id))) return false;
+      }
+      return true;
+    });
     const heatmap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
     let heatmapMax = 0;
-    for (const c of withReceived) {
+    for (const c of heatmapFiltered) {
       const d = toParisDate(c.received!.toISOString());
       const dow = (d.getDay() + 6) % 7; // 0 = Lundi
       const h = d.getHours();
       heatmap[dow][h] += 1;
       if (heatmap[dow][h] > heatmapMax) heatmapMax = heatmap[dow][h];
     }
+    const heatmapTotal = heatmapFiltered.length;
 
     // Top user agents normalisés (Browser × OS)
     const uaMap = new Map<string, number>();
@@ -303,6 +343,7 @@ export default function ProvenanceTab() {
       monthBuckets,
       heatmap,
       heatmapMax,
+      heatmapTotal,
       uaTop,
       mobile,
       desktop,
@@ -317,7 +358,7 @@ export default function ProvenanceTab() {
       wonHourBuckets,
       seasonality,
     };
-  }, [data]);
+  }, [data, heatmapStart, heatmapEnd, heatmapTagIds]);
 
   if (isLoading) {
     return (
@@ -372,40 +413,92 @@ export default function ProvenanceTab() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Heatmap — Jour × Heure (Europe/Paris)</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="text-xs border-separate border-spacing-px">
-            <thead>
-              <tr>
-                <th className="w-10"></th>
-                {Array.from({ length: 24 }).map((_, h) => (
-                  <th key={h} className="w-7 text-center font-normal text-muted-foreground">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {dayLabels.map((dayLabel, dow) => (
-                <tr key={dow}>
-                  <td className="pr-2 text-right font-medium text-muted-foreground">{dayLabel}</td>
-                  {stats.heatmap[dow].map((v, h) => {
-                    const intensity = stats.heatmapMax ? v / stats.heatmapMax : 0;
-                    const bg = v === 0 ? "hsl(var(--muted))" : `rgba(59, 130, 246, ${0.15 + intensity * 0.85})`;
-                    return (
-                      <td
-                        key={h}
-                        title={`${dayLabel} ${h}h — ${v} demande(s)`}
-                        className="w-7 h-7 text-center text-[10px]"
-                        style={{ backgroundColor: bg, color: intensity > 0.5 ? "white" : "inherit" }}
-                      >
-                        {v || ""}
-                      </td>
-                    );
-                  })}
+        <CardContent className="space-y-4">
+          {/* Filtres heatmap */}
+          <div className="flex flex-wrap items-end gap-3 pb-2 border-b">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="hm-start" className="text-xs text-muted-foreground">Du</Label>
+              <Input
+                id="hm-start"
+                type="date"
+                value={heatmapStart}
+                onChange={(e) => setHeatmapStart(e.target.value)}
+                className="h-8 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="hm-end" className="text-xs text-muted-foreground">Au</Label>
+              <Input
+                id="hm-end"
+                type="date"
+                value={heatmapEnd}
+                onChange={(e) => setHeatmapEnd(e.target.value)}
+                className="h-8 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Tags</Label>
+              <TagFilterPopover
+                tags={data?.tags ?? []}
+                selectedIds={heatmapTagIds}
+                onChange={setHeatmapTagIds}
+              />
+            </div>
+            {(heatmapStart || heatmapEnd || heatmapTagIds.length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8"
+                onClick={() => {
+                  setHeatmapStart("");
+                  setHeatmapEnd("");
+                  setHeatmapTagIds([]);
+                }}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Réinitialiser
+              </Button>
+            )}
+            <div className="ml-auto text-xs text-muted-foreground">
+              {stats.heatmapTotal} demande(s) dans la sélection
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="text-xs border-separate border-spacing-px">
+              <thead>
+                <tr>
+                  <th className="w-10"></th>
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <th key={h} className="w-7 text-center font-normal text-muted-foreground">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {dayLabels.map((dayLabel, dow) => (
+                  <tr key={dow}>
+                    <td className="pr-2 text-right font-medium text-muted-foreground">{dayLabel}</td>
+                    {stats.heatmap[dow].map((v, h) => {
+                      const intensity = stats.heatmapMax ? v / stats.heatmapMax : 0;
+                      const bg = v === 0 ? "hsl(var(--muted))" : `rgba(59, 130, 246, ${0.15 + intensity * 0.85})`;
+                      return (
+                        <td
+                          key={h}
+                          title={`${dayLabel} ${h}h — ${v} demande(s)`}
+                          className="w-7 h-7 text-center text-[10px]"
+                          style={{ backgroundColor: bg, color: intensity > 0.5 ? "white" : "inherit" }}
+                        >
+                          {v || ""}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
@@ -599,5 +692,83 @@ function DeviceBar({ label, pct, count, color }: { label: string; pct: number; c
         <div className="h-full rounded" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
     </div>
+  );
+}
+
+function TagFilterPopover({
+  tags,
+  selectedIds,
+  onChange,
+}: {
+  tags: CrmTag[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const grouped = useMemo(() => {
+    const m = new Map<string, CrmTag[]>();
+    for (const t of tags) {
+      const cat = t.category || "Sans catégorie";
+      const arr = m.get(cat) || [];
+      arr.push(t);
+      m.set(cat, arr);
+    }
+    for (const arr of m.values()) arr.sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [tags]);
+
+  const toggle = (id: string) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 min-w-[180px] justify-between">
+          <span className="truncate">
+            {selectedIds.length === 0 ? "Tous les tags" : `${selectedIds.length} tag(s)`}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <div className="max-h-80 overflow-y-auto p-2 space-y-3">
+          {grouped.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center">Aucun tag disponible.</p>
+          )}
+          {grouped.map(([cat, list]) => (
+            <div key={cat}>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 mb-1">{cat}</div>
+              <div className="space-y-1">
+                {list.map((t) => (
+                  <label
+                    key={t.id}
+                    className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-sm"
+                  >
+                    <Checkbox
+                      checked={selectedIds.includes(t.id)}
+                      onCheckedChange={() => toggle(t.id)}
+                    />
+                    <Badge
+                      variant="outline"
+                      className="text-xs"
+                      style={{ borderColor: t.color, color: t.color }}
+                    >
+                      {t.name}
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        {selectedIds.length > 0 && (
+          <div className="border-t p-2">
+            <Button variant="ghost" size="sm" className="w-full h-7" onClick={() => onChange([])}>
+              Effacer la sélection
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
