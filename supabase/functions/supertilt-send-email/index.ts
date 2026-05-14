@@ -116,7 +116,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       : "";
     const billing = order?.billing_address ?? {};
     const shipping = order?.shipping_address ?? {};
-    const telephone = (shipping as any)?.phone || (billing as any)?.phone || "";
+    const rawOrder: any = (order as any)?.raw_order ?? {};
+    const telephone =
+      (shipping as any)?.phone ||
+      (billing as any)?.phone ||
+      rawOrder?.shipping?.phone ||
+      rawOrder?.billing?.phone ||
+      (order as any)?.customer_phone ||
+      "";
     const customerNote: string =
       (item as any).notes ??
       (order as any)?.raw_order?.customer_note ??
