@@ -343,11 +343,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
         if (ptpl) {
           const psubject = processTemplate((ptpl as any).subject, vars, false);
           const phtml = processTemplate((ptpl as any).html_content, vars, false);
+          const pfullHtml = wrapEmailHtml(phtml, signature);
           const presult = await sendEmail({
             to: [game.partner_email],
             bcc: bccEmails.length ? bccEmails : undefined,
             subject: psubject,
-            html: phtml,
+            html: pfullHtml,
             from: defaultSender,
             _emailType: "supertilt-partner",
           });
@@ -358,7 +359,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             sent_to: [game.partner_email],
             cc: bccEmails,
             subject: psubject,
-            body: phtml,
+            body: pfullHtml,
             status: presult.success ? "sent" : "failed",
             error: presult.error ?? null,
           });
