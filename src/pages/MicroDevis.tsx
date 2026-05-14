@@ -333,9 +333,8 @@ const MicroDevis = () => {
     const ct = includeCadeau ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique" : "";
     const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
     const adresseCommanditaire = `${civiliteCommanditaire} ${nomCommanditaire}`.trim();
-    const hasFee = typeSubrogation === "avec" || typeSubrogation === "les2" || fraisDossier === "oui" || isOpco === "oui";
     const withSubrogation = typeSubrogation === "avec" || typeSubrogation === "les2";
-    const dossierFee = hasFee ? (withSubrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION) : 0;
+    const dossierFee = withSubrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
     return {
       requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
       pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", affiche_frais: dossierFee > 0 && isOpco !== "oui" ? "Oui" : "Non", subrogation: "Oui / Non (2 versions)", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: isOpco === "oui" ? ep + dossierFee / np : ep }], admin_fee: dossierFee > 0 && isOpco !== "oui" ? dossierFee : 0, is_opco: isOpco === "oui" },
