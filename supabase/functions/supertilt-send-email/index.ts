@@ -277,13 +277,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Send email ───────────────────────────────────────────────
-    const bccEmails = await getBccList();
+    const [bccEmails, signature] = await Promise.all([
+      getBccList(),
+      getSigniticSignature(),
+    ]);
+    const fullHtml = wrapEmailHtml(html, signature);
     const result = await sendEmail({
       to: toEmails,
       cc: ccEmails.length ? ccEmails : undefined,
       bcc: bccEmails.length ? bccEmails : undefined,
       subject,
-      html,
+      html: fullHtml,
       from: defaultSender,
       _emailType: `supertilt-${templateKey}`,
     });
