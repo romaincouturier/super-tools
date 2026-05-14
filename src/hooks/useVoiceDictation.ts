@@ -67,19 +67,16 @@ export function useVoiceDictation({
           // "audio/webm;codecs=opus", while the bucket allow-list contains the
           // normalized "audio/webm" value.
           const uploadBlob = blob.type === baseMime ? blob : new Blob([blob], { type: baseMime });
-          const { error: uploadError } = await supabase.storage
-            .from("media")
-            .upload(fileName, uploadBlob, { contentType: baseMime });
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = supabase.storage.from("media").getPublicUrl(fileName);
-
-          const { data, error } = await supabase.functions.invoke("transcribe-audio-long", {
-            body: { audio_url: urlData.publicUrl },
+          const audioBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+            reader.onerror = () => reject(reader.error ?? new Error("Lecture audio impossible"));
+            reader.readAsDataURL(uploadBlob);
           });
 
-          // Clean up temp file (best-effort)
-          supabase.storage.from("media").remove([fileName]).catch(() => {});
+          const { data, error } = await supabase.functions.invoke("transcribe-audio-long", {
+            body: { audio_base64: audioBase64, content_type: baseMime },
+          });
 
           if (error) throw error;
 
