@@ -300,7 +300,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       sent_to: toEmails,
       cc: [...ccEmails, ...bccEmails],
       subject,
-      body: html,
+      body: fullHtml,
       status: result.success ? "sent" : "failed",
       error: result.error ?? null,
     });
