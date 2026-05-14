@@ -2,8 +2,10 @@ import { useState } from "react";
 import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
   CheckCircle, Clock, Truck, RefreshCw, Ban, Loader2, Plus,
-  Pencil, Trash2, Send, Eye, FileText, ChevronDown, Search,
+  Pencil, Trash2, Send, Eye, FileText, Search, Download,
+  Euro, Users, BarChart3,
 } from "lucide-react";
+import { BilanTab, PartenairesTab, DepensesTab, StockTab } from "@/components/supertilt/SupertiltOrdersV2";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +38,7 @@ import {
   useSupertiltSettings,
   useUpsertSupertiltSetting,
   useOrderKpis,
+  useCsvExport,
   type GameFull,
   type GameAuthorFull,
   type OrderItem,
@@ -701,6 +704,7 @@ function Catalog() {
 function Sales() {
   const { data: items, isLoading } = useAllOrderItems();
   const [search, setSearch] = useState("");
+  const exportCsv = useCsvExport();
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
@@ -716,11 +720,38 @@ function Sales() {
     );
   });
 
+  const handleExport = () => exportCsv(
+    filtered.map((i) => {
+      const order = i.woocommerce_orders as any;
+      return {
+        Date: order?.date_created ? DATE(order.date_created) : "",
+        "Commande #": order?.order_number ?? i.wc_order_id,
+        Jeu: (i.games as any)?.title ?? i.product_name ?? "",
+        Client: [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || order?.customer_email || "",
+        "Email client": order?.customer_email ?? "",
+        Quantité: i.quantity,
+        "Total TTC (€)": (i.line_total ?? 0).toFixed(2),
+        "Commission (€)": (i.commission_amount ?? 0).toFixed(2),
+        Type: i.game_type ?? "",
+        "Email envoyé le": i.email_sent_at ? DATE(i.email_sent_at) : "",
+        "Email envoyé à": i.email_sent_to ?? "",
+      };
+    }),
+    "ventes-supertilt.csv",
+  );
+
   return (
     <div className="space-y-3">
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        {filtered.length > 0 && (
+          <Button size="sm" variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-1" />CSV
+          </Button>
+        )}
       </div>
       <div className="rounded-md border">
         <Table>
@@ -1038,7 +1069,7 @@ export default function SupertiltOrders() {
         </div>
       )}
       <Tabs defaultValue="kanban">
-        <TabsList className="mb-6 flex-wrap h-auto">
+        <TabsList className="mb-6 flex-wrap h-auto gap-0.5">
           <TabsTrigger value="dashboard"><LayoutGrid className="h-4 w-4 mr-1.5" />Dashboard</TabsTrigger>
           <TabsTrigger value="kanban" className="relative">
             <LayoutGrid className="h-4 w-4 mr-1.5" />Kanban
@@ -1048,13 +1079,21 @@ export default function SupertiltOrders() {
           </TabsTrigger>
           <TabsTrigger value="catalog"><Package className="h-4 w-4 mr-1.5" />Catalogue</TabsTrigger>
           <TabsTrigger value="sales"><ShoppingCart className="h-4 w-4 mr-1.5" />Ventes</TabsTrigger>
-          <TabsTrigger value="emails"><Mail className="h-4 w-4 mr-1.5" />Emails envoyés</TabsTrigger>
+          <TabsTrigger value="bilan"><Euro className="h-4 w-4 mr-1.5" />Bilan</TabsTrigger>
+          <TabsTrigger value="partenaires"><Users className="h-4 w-4 mr-1.5" />Partenaires</TabsTrigger>
+          <TabsTrigger value="depenses"><BarChart3 className="h-4 w-4 mr-1.5" />Dépenses</TabsTrigger>
+          <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1.5" />Stock</TabsTrigger>
+          <TabsTrigger value="emails"><Mail className="h-4 w-4 mr-1.5" />Emails</TabsTrigger>
           <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1.5" />Paramètres</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><Dashboard /></TabsContent>
         <TabsContent value="kanban"><Kanban /></TabsContent>
         <TabsContent value="catalog"><Catalog /></TabsContent>
         <TabsContent value="sales"><Sales /></TabsContent>
+        <TabsContent value="bilan"><BilanTab /></TabsContent>
+        <TabsContent value="partenaires"><PartenairesTab /></TabsContent>
+        <TabsContent value="depenses"><DepensesTab /></TabsContent>
+        <TabsContent value="stock"><StockTab /></TabsContent>
         <TabsContent value="emails"><EmailLogTab /></TabsContent>
         <TabsContent value="settings"><SettingsTab /></TabsContent>
       </Tabs>

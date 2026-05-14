@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCallback } from "react";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -59,6 +60,13 @@ export interface GameFull {
   commission_fixed: number | null;
   commission_formula: string | null;
   include_stripe_fees: boolean;
+  // V3 stock
+  min_stock: number | null;
+  current_stock: number | null;
+  restock_threshold: number | null;
+  restock_items: string | null;
+  restock_supplier_urls: string | null;
+  restock_contact_email: string | null;
   created_at: string;
   updated_at: string;
   game_authors?: GameAuthorFull;
@@ -100,6 +108,7 @@ export interface OrderItem {
   email_sent_at: string | null;
   email_sent_to: string | null;
   notes: string | null;
+  commission_amount: number | null;
   raw_line_item: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
@@ -466,4 +475,368 @@ export function useOrderKpis() {
       return { total, toValidate, blocked, processed, byStatus, count: items.length };
     },
   });
+}
+
+// ════════════════════════════════════════════════════════════════
+// V2 — TYPES
+// ════════════════════════════════════════════════════════════════
+
+export interface PartnerAccessToken {
+  id: string;
+  game_id: string;
+  token: string;
+  label: string | null;
+  expires_at: string | null;
+  created_at: string;
+  games?: { title: string; partner_name: string | null };
+}
+
+export interface PartnerPayment {
+  id: string;
+  game_id: string;
+  amount: number;
+  payment_date: string;
+  comment: string | null;
+  status: "declared" | "verified" | "rejected";
+  declared_by: "admin" | "partner";
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+  games?: { title: string };
+}
+
+// V3
+export interface GameExpense {
+  id: string;
+  game_id: string;
+  expense_date: string;
+  expense_type: string;
+  description: string | null;
+  supplier: string | null;
+  supplier_url: string | null;
+  purchased_by: string | null;
+  amount_ht: number | null;
+  vat_rate: number;
+  amount_ttc: number | null;
+  quantity: number;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+  games?: { title: string };
+}
+
+export const EXPENSE_TYPES = [
+  "impression", "cartes", "cubes", "emballage", "enveloppes",
+  "frais de livraison", "matériel complémentaire", "autre",
+];
+
+// ════════════════════════════════════════════════════════════════
+// V2 — PARTNER TOKENS
+// ════════════════════════════════════════════════════════════════
+
+export function usePartnerTokens(gameId?: string) {
+  return useQuery({
+    queryKey: ["partner-tokens", gameId],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("partner_access_tokens")
+        .select("*, games(title, partner_name)")
+        .order("created_at", { ascending: false });
+      if (gameId) q = q.eq("game_id", gameId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data as PartnerAccessToken[];
+    },
+  });
+}
+
+export function useCreatePartnerToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { game_id: string; label?: string; expires_at?: string | null }) => {
+      const { data, error } = await (supabase as any)
+        .from("partner_access_tokens")
+        .insert(payload)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as PartnerAccessToken;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-tokens"] }),
+  });
+}
+
+export function useDeletePartnerToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("partner_access_tokens").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-tokens"] }),
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// V2 — PARTNER PAYMENTS (admin side)
+// ════════════════════════════════════════════════════════════════
+
+export function usePartnerPayments(gameId?: string) {
+  return useQuery({
+    queryKey: ["partner-payments", gameId],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("partner_payments")
+        .select("*, games(title)")
+        .order("payment_date", { ascending: false });
+      if (gameId) q = q.eq("game_id", gameId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data as PartnerPayment[];
+    },
+  });
+}
+
+export function useUpsertPartnerPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: Partial<PartnerPayment> & { game_id: string; amount: number; payment_date: string }) => {
+      const { data, error } = payload.id
+        ? await (supabase as any).from("partner_payments").update(payload).eq("id", payload.id).select().single()
+        : await (supabase as any).from("partner_payments").insert(payload).select().single();
+      if (error) throw error;
+      return data as PartnerPayment;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-payments"] }),
+  });
+}
+
+export function useUpdatePaymentStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, admin_notes }: { id: string; status: "verified" | "rejected"; admin_notes?: string }) => {
+      const { data, error } = await (supabase as any)
+        .from("partner_payments")
+        .update({ status, admin_notes: admin_notes ?? null })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as PartnerPayment;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-payments"] }),
+  });
+}
+
+export function useDeletePartnerPayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("partner_payments").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-payments"] }),
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// V2 — FINANCIAL SUMMARY
+// ════════════════════════════════════════════════════════════════
+
+export function useFinancialSummary(gameId?: string, from?: string, to?: string) {
+  return useQuery({
+    queryKey: ["financial-summary", gameId, from, to],
+    queryFn: async () => {
+      // Sales
+      let salesQ = (supabase as any)
+        .from("order_items")
+        .select("game_id, line_total, commission_amount, quantity, games(id, title, game_type, commission_type, commission_rate, commission_fixed, include_stripe_fees)")
+        .not("kanban_status", "eq", "to_validate");
+      if (gameId) salesQ = salesQ.eq("game_id", gameId);
+      if (from) salesQ = salesQ.gte("created_at", from);
+      if (to) salesQ = salesQ.lte("created_at", to + "T23:59:59Z");
+      const { data: salesData, error: salesErr } = await salesQ;
+      if (salesErr) throw salesErr;
+
+      // Expenses
+      let expQ = (supabase as any)
+        .from("game_expenses")
+        .select("game_id, amount_ttc, amount_ht");
+      if (gameId) expQ = expQ.eq("game_id", gameId);
+      if (from) expQ = expQ.gte("expense_date", from.slice(0, 10));
+      if (to) expQ = expQ.lte("expense_date", to.slice(0, 10));
+      const { data: expData } = await expQ;
+
+      // Payments
+      let payQ = (supabase as any)
+        .from("partner_payments")
+        .select("game_id, amount, status");
+      if (gameId) payQ = payQ.eq("game_id", gameId);
+      const { data: payData } = await payQ;
+
+      const sales = (salesData ?? []) as Array<Record<string, unknown>>;
+      const expenses = (expData ?? []) as Array<{ game_id: string; amount_ttc: number | null; amount_ht: number | null }>;
+      const payments = (payData ?? []) as Array<{ game_id: string; amount: number; status: string }>;
+
+      // Aggregate by game
+      const byGame = new Map<string, {
+        title: string;
+        game_type: string;
+        sales_count: number;
+        total_ttc: number;
+        total_commission: number;
+        total_expenses: number;
+        total_paid: number;
+      }>();
+
+      for (const s of sales) {
+        const g = s.games as Record<string, unknown> | null;
+        const gid = (s.game_id as string) ?? "unknown";
+        const existing = byGame.get(gid) ?? {
+          title: (g?.title as string) ?? "Inconnu",
+          game_type: (g?.game_type as string) ?? "unknown",
+          sales_count: 0,
+          total_ttc: 0,
+          total_commission: 0,
+          total_expenses: 0,
+          total_paid: 0,
+        };
+        existing.sales_count++;
+        existing.total_ttc += (s.line_total as number) ?? 0;
+        existing.total_commission += (s.commission_amount as number) ?? 0;
+        byGame.set(gid, existing);
+      }
+
+      for (const e of expenses) {
+        const gid = e.game_id ?? "unknown";
+        const existing = byGame.get(gid);
+        if (existing) existing.total_expenses += e.amount_ttc ?? 0;
+      }
+
+      for (const p of payments) {
+        if (p.status !== "verified") continue;
+        const gid = p.game_id ?? "unknown";
+        const existing = byGame.get(gid);
+        if (existing) existing.total_paid += p.amount ?? 0;
+      }
+
+      return [...byGame.entries()].map(([id, data]) => ({
+        game_id: id,
+        ...data,
+        margin: data.total_ttc - data.total_commission - data.total_expenses,
+        commission_remaining: data.total_commission - data.total_paid,
+      }));
+    },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// V3 — EXPENSES
+// ════════════════════════════════════════════════════════════════
+
+export function useGameExpenses(gameId?: string) {
+  return useQuery({
+    queryKey: ["game-expenses", gameId],
+    queryFn: async () => {
+      let q = (supabase as any)
+        .from("game_expenses")
+        .select("*, games(title)")
+        .order("expense_date", { ascending: false });
+      if (gameId) q = q.eq("game_id", gameId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data as GameExpense[];
+    },
+  });
+}
+
+export function useUpsertGameExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: Partial<GameExpense> & { game_id: string; expense_date: string; expense_type: string }) => {
+      const { data, error } = payload.id
+        ? await (supabase as any).from("game_expenses").update(payload).eq("id", payload.id).select().single()
+        : await (supabase as any).from("game_expenses").insert(payload).select().single();
+      if (error) throw error;
+      return data as GameExpense;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["game-expenses"] }),
+  });
+}
+
+export function useDeleteGameExpense() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("game_expenses").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["game-expenses"] }),
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// V3 — RESTOCK
+// ════════════════════════════════════════════════════════════════
+
+export function useGamesWithStockAlerts() {
+  return useQuery({
+    queryKey: ["games-stock-alerts"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("games")
+        .select("id, title, game_type, current_stock, min_stock, restock_threshold, restock_items, restock_supplier_urls, restock_contact_email, game_authors(name, email)")
+        .eq("status", "active")
+        .not("current_stock", "is", null);
+      if (error) throw error;
+      const games = (data ?? []) as Array<GameFull>;
+      return games.filter((g) =>
+        g.current_stock != null &&
+        g.min_stock != null &&
+        g.current_stock <= g.min_stock
+      );
+    },
+  });
+}
+
+export function useSendRestockEmail() {
+  return useMutation({
+    mutationFn: async ({ game_id, preview = false }: { game_id: string; preview?: boolean }) => {
+      const { data, error } = await (supabase as any).functions.invoke("supertilt-restock-email", {
+        body: { game_id, preview },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { ok?: boolean; subject?: string; html?: string; to?: string };
+    },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// CSV EXPORT
+// ════════════════════════════════════════════════════════════════
+
+export function useCsvExport() {
+  return useCallback((rows: Record<string, unknown>[], filename: string) => {
+    if (!rows.length) return;
+    const headers = Object.keys(rows[0]);
+    const csvLines = [
+      headers.join(";"),
+      ...rows.map((row) =>
+        headers.map((h) => {
+          const v = row[h];
+          if (v == null) return "";
+          const s = String(v).replace(/"/g, '""');
+          return s.includes(";") || s.includes('"') || s.includes("\n") ? `"${s}"` : s;
+        }).join(";")
+      ),
+    ];
+    const blob = new Blob(["﻿" + csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 }
