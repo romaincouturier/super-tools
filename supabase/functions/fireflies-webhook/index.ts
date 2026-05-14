@@ -11,18 +11,58 @@ import { analyzeTranscript, notifySlack } from "../_shared/google-drive-helper.t
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const FIREFLIES_API_KEY = Deno.env.get("FIREFLIES_API_KEY") ?? "";
+
+interface FirefliesTranscript {
+  id: string;
+  title: string;
+  date: number; // epoch ms
+  duration: number; // seconds
+  summary?: { overview?: string };
+  sentences?: Array<{ speaker_name: string; text: string }>;
+}
 
 interface FirefliesWebhookBody {
   meetingId?: string;
   eventType?: string;
-  transcript?: {
-    id: string;
-    title: string;
-    date: number; // epoch ms
-    duration: number; // seconds
-    summary?: { overview?: string };
-    sentences?: Array<{ speaker_name: string; text: string }>;
-  };
+  transcript?: FirefliesTranscript;
+}
+
+async function fetchFirefliesTranscript(transcriptId: string): Promise<FirefliesTranscript | null> {
+  if (!FIREFLIES_API_KEY) {
+    console.error("[fireflies-webhook] FIREFLIES_API_KEY not configured");
+    return null;
+  }
+  const query = `
+    query Transcript($id: String!) {
+      transcript(id: $id) {
+        id
+        title
+        date
+        duration
+        summary { overview }
+        sentences { speaker_name text }
+      }
+    }
+  `;
+  const res = await fetch("https://api.fireflies.ai/graphql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${FIREFLIES_API_KEY}`,
+    },
+    body: JSON.stringify({ query, variables: { id: transcriptId } }),
+  });
+  if (!res.ok) {
+    console.error("[fireflies-webhook] GraphQL fetch failed:", res.status, await res.text());
+    return null;
+  }
+  const json = await res.json();
+  if (json.errors) {
+    console.error("[fireflies-webhook] GraphQL errors:", JSON.stringify(json.errors));
+    return null;
+  }
+  return json.data?.transcript ?? null;
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
