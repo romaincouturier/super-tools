@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 interface UseVoiceDictationOptions {
   onTranscript: (text: string) => void;
@@ -54,27 +53,27 @@ export function useVoiceDictation({
           return;
         }
 
-        // Upload blob to storage to get a public URL for AssemblyAI
+        // Send audio directly to the transcription function to avoid browser-side Storage RLS.
         setIsTranscribing(true);
         try {
-          const ext = blob.type.includes("webm") ? "webm" : "mp4";
-          const fileName = `dictation/${uuidv4()}.${ext}`;
           // Strip codec parameter (e.g. "audio/webm;codecs=opus") — Supabase
           // bucket allowed_mime_types matches the base mime exactly.
-          const baseMime = (blob.type || `audio/${ext}`).split(";")[0].trim();
-          const { error: uploadError } = await supabase.storage
-            .from("media")
-            .upload(fileName, blob, { contentType: baseMime });
-          if (uploadError) throw uploadError;
-
-          const { data: urlData } = supabase.storage.from("media").getPublicUrl(fileName);
-
-          const { data, error } = await supabase.functions.invoke("transcribe-audio-long", {
-            body: { audio_url: urlData.publicUrl },
+          const baseMime = (blob.type || "audio/mp4").split(";")[0].trim();
+          // The Storage API validates the Blob/File MIME type itself, not only
+          // the explicit contentType option. MediaRecorder often returns
+          // "audio/webm;codecs=opus", while the bucket allow-list contains the
+          // normalized "audio/webm" value.
+          const uploadBlob = blob.type === baseMime ? blob : new Blob([blob], { type: baseMime });
+          const audioBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+            reader.onerror = () => reject(reader.error ?? new Error("Lecture audio impossible"));
+            reader.readAsDataURL(uploadBlob);
           });
 
-          // Clean up temp file (best-effort)
-          supabase.storage.from("media").remove([fileName]).catch(() => {});
+          const { data, error } = await supabase.functions.invoke("transcribe-audio-long", {
+            body: { audio_base64: audioBase64, content_type: baseMime },
+          });
 
           if (error) throw error;
 

@@ -8,8 +8,8 @@ import {
 
 /**
  * Transcribes long audio files (> 5 min) using AssemblyAI.
- * Accepts a JSON body with { audio_url: string } (public URL to the audio file).
- * AssemblyAI fetches the file directly — no base64 needed.
+ * Accepts a JSON body with either { audio_url: string } or
+ * { audio_base64: string, content_type?: string }.
  */
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -24,9 +24,32 @@ serve(async (req) => {
       return createErrorResponse("ASSEMBLYAI_API_KEY not configured", 500);
     }
 
-    const { audio_url } = await req.json();
-    if (!audio_url) {
-      return createErrorResponse("audio_url is required", 400);
+    const { audio_url, audio_base64, content_type } = await req.json();
+    let audioUrl = audio_url;
+
+    if (!audioUrl && audio_base64) {
+      const binary = Uint8Array.from(atob(audio_base64), (char) => char.charCodeAt(0));
+      const uploadResponse = await fetch("https://api.assemblyai.com/v2/upload", {
+        method: "POST",
+        headers: {
+          Authorization: ASSEMBLYAI_API_KEY,
+          "Content-Type": content_type || "application/octet-stream",
+        },
+        body: binary,
+      });
+
+      if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text();
+        console.error("AssemblyAI upload error:", uploadResponse.status, errText);
+        throw new Error(`AssemblyAI upload error: ${uploadResponse.status}`);
+      }
+
+      const uploadData = await uploadResponse.json();
+      audioUrl = uploadData.upload_url;
+    }
+
+    if (!audioUrl) {
+      return createErrorResponse("audio_url or audio_base64 is required", 400);
     }
 
     // Step 1: Submit transcription job
@@ -37,7 +60,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        audio_url,
+        audio_url: audioUrl,
         // Auto-detect spoken language instead of forcing French.
         language_detection: true,
         language_confidence_threshold: 0.5,
