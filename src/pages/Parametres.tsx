@@ -91,6 +91,7 @@ const Parametres = () => {
             <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />{tabLabel("voice", "Voix IA")}</TabsTrigger>
             {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />{tabLabel("agent", "Agent IA")}</TabsTrigger>}
             {isAdmin && <TabsTrigger value="transcripts" className="flex items-center gap-2"><Radio className="h-4 w-4" />Prompts Transcripts</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="dropshipping" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Dropshipping</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">
@@ -132,6 +133,7 @@ const Parametres = () => {
           </TabsContent>
           {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
           {isAdmin && <TabsContent value="transcripts"><TranscriptPromptsSettings /></TabsContent>}
+          {isAdmin && <TabsContent value="dropshipping"><SupertiltSettingsTab /></TabsContent>}
         </Tabs>
       </main>
     </ModuleLayout>
