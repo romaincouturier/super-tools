@@ -677,6 +677,8 @@ serve(async (req: Request): Promise<Response> => {
     const appUrl = appUrls.app_url || appUrls.website_url || "";
 
     const signatureTokens: { sans?: string; avec?: string } = {};
+    const totalSans = (body.prix || 0) * (body.nbParticipants || 1) + getDossierFeeAmount(body, false);
+    const totalAvec = (body.prix || 0) * (body.nbParticipants || 1) + getDossierFeeAmount(body, true);
     if (activityLogId && storageSansPath) {
       try {
         const tokenSans = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
@@ -691,8 +693,9 @@ serve(async (req: Request): Promise<Response> => {
           devis_type: "sans_subrogation",
           pdf_url: pdfPublicUrl,
           status: "pending",
+          total_amount_ht: totalSans,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
+        } as any);
         if (insErr) {
           console.warn("Failed to create devis_signatures (sans):", insErr);
         } else {
@@ -716,8 +719,9 @@ serve(async (req: Request): Promise<Response> => {
           devis_type: "avec_subrogation",
           pdf_url: pdfPublicUrl,
           status: "pending",
+          total_amount_ht: totalAvec,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
+        } as any);
         if (insErr) {
           console.warn("Failed to create devis_signatures (avec):", insErr);
         } else {
