@@ -824,6 +824,8 @@ const CardDetailDrawer = ({
           <CardDetailCommunication state={state} handlers={handlers} details={details ?? undefined} emailFileInputRef={emailFileInputRef} selectedTemplateRef={selectedTemplateRef} />
           <CardDetailTabs state={state} handlers={handlers} details={details ?? undefined} detailsLoading={detailsLoading} />
 
+          <CardDetailSource metadata={card?.source_metadata ?? null} />
+
           {/* Delete section */}
           <div className="mt-8 pt-4 border-t border-destructive/20">
             <div className="p-4 bg-destructive/5 rounded-lg space-y-3">
