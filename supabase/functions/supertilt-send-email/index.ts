@@ -205,23 +205,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load and process template ────────────────────────────────
     const { data: tpl } = await (admin as any)
       .from("email_templates")
-      .select("subject, body")
-      .eq("template_key", templateKey)
-      .single();
+      .select("subject, html_content")
+      .eq("template_type", `supertilt_${templateKey}`)
+      .maybeSingle();
 
     if (!tpl) {
       await (admin as any).from("order_items")
-        .update({ kanban_status: "blocked", block_reason: `Template email '${templateKey}' introuvable` })
+        .update({ kanban_status: "blocked", block_reason: `Template email 'supertilt_${templateKey}' introuvable` })
         .eq("id", order_item_id);
 
       return new Response(
-        JSON.stringify({ error: `Email template '${templateKey}' not found` }),
+        JSON.stringify({ error: `Email template 'supertilt_${templateKey}' not found` }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const subject = processTemplate((tpl as any).subject, vars, false);
-    const html = processTemplate((tpl as any).body, vars, false);
+    const html = processTemplate((tpl as any).html_content, vars, false);
 
     // ── Send email ───────────────────────────────────────────────
     const result = await sendEmail({
