@@ -158,7 +158,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
       "processing",
     ];
     const autoSend = getSetting("auto_send_emails") === true;
-    const webhookSecret = (getSetting("wc_webhook_secret") as string) ?? "";
+    let webhookSecret = (getSetting("wc_webhook_secret") as string) ?? "";
+    // Defensive: strip accidental surrounding quotes from double-JSON-encoded values
+    if (typeof webhookSecret === "string" && webhookSecret.startsWith('"') && webhookSecret.endsWith('"')) {
+      webhookSecret = webhookSecret.slice(1, -1);
+    }
 
     // ── Verify signature ─────────────────────────────────────────
     const sig = req.headers.get("x-wc-webhook-signature") ?? "";
