@@ -343,6 +343,7 @@ export default function ProvenanceTab() {
       monthBuckets,
       heatmap,
       heatmapMax,
+      heatmapTotal,
       uaTop,
       mobile,
       desktop,
@@ -357,7 +358,7 @@ export default function ProvenanceTab() {
       wonHourBuckets,
       seasonality,
     };
-  }, [data]);
+  }, [data, heatmapStart, heatmapEnd, heatmapTagIds]);
 
   if (isLoading) {
     return (
