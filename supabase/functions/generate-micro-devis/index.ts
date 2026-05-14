@@ -309,6 +309,8 @@ Vous trouverez en pièces jointes :
 
 {{devis_description}}
 
+{{signature_block}}
+
 {{#programme_link}}
 Le programme de la formation est disponible en consultation et téléchargement <a href="{{programme_link}}" style="color:#1a73e8;text-decoration:underline;">ici</a>.
 {{/programme_link}}
