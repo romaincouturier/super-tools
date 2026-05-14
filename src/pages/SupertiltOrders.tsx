@@ -952,8 +952,9 @@ export function SettingsTab() {
           <div className="space-y-1">
             <Label>URL du webhook à configurer dans WooCommerce</Label>
             <code className="text-xs bg-muted p-2 rounded block break-all select-all">
-              {window.location.origin.replace("localhost:8080", "votre-projet.supabase.co")}/functions/v1/supertilt-webhook
+              {import.meta.env.VITE_SUPABASE_URL}/functions/v1/supertilt-webhook
             </code>
+            <p className="text-xs text-muted-foreground">⚠️ Bien utiliser cette URL Supabase (et non l'URL de l'application) sinon WooCommerce reçoit la page HTML au lieu d'appeler la fonction.</p>
           </div>
         </CardContent>
       </Card>
