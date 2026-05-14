@@ -16,6 +16,7 @@ export interface CrmSlackNotificationCard {
   service_type?: string;
   estimated_value?: number;
   email?: string;
+  message?: string;
 }
 
 /** Fire-and-forget Slack notification with built-in deduplication. */
