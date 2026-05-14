@@ -62,9 +62,14 @@ export function useVoiceDictation({
           // Strip codec parameter (e.g. "audio/webm;codecs=opus") — Supabase
           // bucket allowed_mime_types matches the base mime exactly.
           const baseMime = (blob.type || `audio/${ext}`).split(";")[0].trim();
+          // The Storage API validates the Blob/File MIME type itself, not only
+          // the explicit contentType option. MediaRecorder often returns
+          // "audio/webm;codecs=opus", while the bucket allow-list contains the
+          // normalized "audio/webm" value.
+          const uploadBlob = blob.type === baseMime ? blob : new Blob([blob], { type: baseMime });
           const { error: uploadError } = await supabase.storage
             .from("media")
-            .upload(fileName, blob, { contentType: baseMime });
+            .upload(fileName, uploadBlob, { contentType: baseMime });
           if (uploadError) throw uploadError;
 
           const { data: urlData } = supabase.storage.from("media").getPublicUrl(fileName);
