@@ -34,27 +34,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
   } catch (_) { /* no body */ }
 
-  // List recent transcripts from Fireflies
-  const listRes = await fetch("https://api.fireflies.ai/graphql", {
+  // Debug: introspect available transcripts and current user
+  const debugRes = await fetch("https://api.fireflies.ai/graphql", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${FIREFLIES_API_KEY}`,
     },
     body: JSON.stringify({
-      query: `query($limit: Int) { transcripts(limit: $limit) { id title date duration } }`,
-      variables: { limit },
+      query: `query {
+        user { user_id name email num_transcripts }
+        transcripts(limit: 50) { id title date }
+      }`,
     }),
   });
-  if (!listRes.ok) {
-    const txt = await listRes.text();
-    return new Response(JSON.stringify({ error: "GraphQL list failed", status: listRes.status, body: txt }), {
-      status: 502,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  const debugJson = await debugRes.json();
+  console.log("[fireflies-backfill] debug:", JSON.stringify(debugJson));
+
+  // List recent transcripts from Fireflies
+  const transcripts: Array<{ id: string; title: string; date: number }> = debugJson?.data?.transcripts ?? [];
+  if (!transcripts.length) {
+    return new Response(JSON.stringify({
+      ok: true,
+      total_listed: 0,
+      debug: debugJson,
+      hint: "Fireflies returned 0 transcripts. Check that the API key belongs to a user/workspace with transcripts.",
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
-  const listJson = await listRes.json();
-  const transcripts: Array<{ id: string; title: string; date: number }> = listJson?.data?.transcripts ?? [];
 
   // Find which are missing in DB
   const ids = transcripts.map((t) => t.id);
