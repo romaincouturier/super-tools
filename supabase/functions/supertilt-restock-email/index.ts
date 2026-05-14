@@ -101,12 +101,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const bccEmails = await getBccList();
+    const [bccEmails, signature] = await Promise.all([
+      getBccList(),
+      getSigniticSignature(),
+    ]);
+    const fullHtml = wrapEmailHtml(html, signature);
     const result = await sendEmail({
       to: contactEmail,
       bcc: bccEmails.length ? bccEmails : undefined,
       subject,
-      html,
+      html: fullHtml,
       from: defaultSender,
       _emailType: "supertilt-restock",
     });
@@ -117,7 +121,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       template_key: "restock",
       sent_to: [contactEmail],
       subject,
-      body: html,
+      body: fullHtml,
       status: result.success ? "sent" : "failed",
       error: result.error ?? null,
     });
