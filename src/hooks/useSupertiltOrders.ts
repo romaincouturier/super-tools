@@ -122,10 +122,11 @@ export interface OrderItem {
 
 export interface EmailTemplate {
   id: string;
-  template_key: string;
-  name: string;
+  template_type: string;
+  template_name: string;
   subject: string;
-  body: string;
+  html_content: string;
+  is_default: boolean;
   updated_at: string;
 }
 
@@ -382,9 +383,10 @@ export function useEmailTemplates() {
     queryKey: ["email-templates"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("supertilt_email_templates")
+        .from("email_templates")
         .select("*")
-        .order("template_key");
+        .like("template_type", "supertilt_%")
+        .order("template_type");
       if (error) throw error;
       return data as EmailTemplate[];
     },
@@ -394,12 +396,12 @@ export function useEmailTemplates() {
 export function useUpsertEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Partial<EmailTemplate> & { template_key: string }) => {
+    mutationFn: async (payload: Partial<EmailTemplate> & { template_type: string }) => {
       const { data, error } = payload.id
-        ? await (supabase as any).from("supertilt_email_templates").update(payload).eq("id", payload.id).select().single()
+        ? await (supabase as any).from("email_templates").update(payload).eq("id", payload.id).select().single()
         : await (supabase as any)
-            .from("supertilt_email_templates")
-            .upsert(payload, { onConflict: "template_key" })
+            .from("email_templates")
+            .insert(payload)
             .select()
             .single();
       if (error) throw error;

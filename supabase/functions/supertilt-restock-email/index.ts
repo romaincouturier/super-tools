@@ -59,13 +59,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Load template
     const { data: tpl } = await (admin as any)
-      .from("supertilt_email_templates")
-      .select("subject, body")
-      .eq("template_key", "restock")
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", "supertilt_restock")
+      .limit(1)
       .single();
 
     if (!tpl) {
-      return new Response(JSON.stringify({ error: "Template 'restock' introuvable" }), {
+      return new Response(JSON.stringify({ error: "Template 'supertilt_restock' introuvable" }), {
         status: 422,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -80,7 +81,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     };
 
     const subject = processTemplate((tpl as any).subject, vars, false);
-    const html = processTemplate((tpl as any).body, vars, false);
+    const html = processTemplate((tpl as any).html_content, vars, false);
 
     if (preview) {
       return new Response(JSON.stringify({ subject, html }), {

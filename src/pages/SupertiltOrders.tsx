@@ -1173,9 +1173,9 @@ function TemplateEditor({ tpl, onClose }: { tpl: Partial<EmailTemplate>; onClose
   const { toast } = useToast();
 
   const save = async () => {
-    if (!form.template_key || !form.subject) return;
+    if (!form.template_type || !form.subject) return;
     try {
-      await upsert(form as EmailTemplate & { template_key: string });
+      await upsert(form as EmailTemplate & { template_type: string });
       toast({ title: "Template sauvegardé" });
       onClose();
     } catch { toastError(toast, "Erreur lors de la sauvegarde"); }
@@ -1188,12 +1188,12 @@ function TemplateEditor({ tpl, onClose }: { tpl: Partial<EmailTemplate>; onClose
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Clé (unique)</Label>
-              <Input value={form.template_key ?? ""} onChange={(e) => setForm((f) => ({ ...f, template_key: e.target.value }))} placeholder="ex: dropshipping" disabled={!!form.id} />
+              <Label>Type (unique)</Label>
+              <Input value={form.template_type ?? ""} onChange={(e) => setForm((f) => ({ ...f, template_type: e.target.value }))} placeholder="ex: supertilt_dropshipping" disabled={!!form.id} />
             </div>
             <div className="space-y-1">
               <Label>Nom affiché</Label>
-              <Input value={form.name ?? ""} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              <Input value={form.template_name ?? ""} onChange={(e) => setForm((f) => ({ ...f, template_name: e.target.value }))} />
             </div>
           </div>
           <div className="space-y-1">
@@ -1202,7 +1202,7 @@ function TemplateEditor({ tpl, onClose }: { tpl: Partial<EmailTemplate>; onClose
           </div>
           <div className="space-y-1">
             <Label>Corps (HTML)</Label>
-            <Textarea value={form.body ?? ""} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))} rows={12} placeholder="Corps HTML de l'email…" className="font-mono text-xs" />
+            <Textarea value={form.html_content ?? ""} onChange={(e) => setForm((f) => ({ ...f, html_content: e.target.value }))} rows={12} placeholder="Corps HTML de l'email…" className="font-mono text-xs" />
           </div>
           <p className="text-xs text-muted-foreground">
             Variables disponibles : {'{{nom_jeu}}'} {'{{quantite}}'} {'{{nom_client}}'} {'{{email_client}}'} {'{{adresse_livraison}}'} {'{{numero_commande}}'} {'{{montant_ttc}}'} {'{{commission}}'} {'{{date_commande}}'} {'{{message_personnalise_jeu}}'}
@@ -1210,7 +1210,7 @@ function TemplateEditor({ tpl, onClose }: { tpl: Partial<EmailTemplate>; onClose
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
-          <Button onClick={save} disabled={isPending || !form.template_key || !form.subject}>
+          <Button onClick={save} disabled={isPending || !form.template_type || !form.subject}>
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
@@ -1342,8 +1342,8 @@ export function SettingsTab() {
             {(templates ?? []).map((t) => (
               <div key={t.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div>
-                  <p className="text-sm font-medium">{t.name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{t.template_key}</p>
+                  <p className="text-sm font-medium">{t.template_name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{t.template_type}</p>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setEditingTpl(t)}>
                   <Pencil className="h-3.5 w-3.5" />
