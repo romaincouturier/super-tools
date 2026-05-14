@@ -93,17 +93,22 @@ export default function ClientInfoSection({
         <Label htmlFor="nomClient">Nom du client *</Label>
         <div className="flex gap-2">
           <Input id="nomClient" placeholder="Nom de l'entreprise ou du client" value={nomClient} onChange={(e) => setNomClient(e.target.value)} required className="flex-1" />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={nomClient.trim().length < 2}
-            className="whitespace-nowrap"
-            onClick={() => window.open(googleSirenSearchUrl, "_blank", "noopener,noreferrer")}
-          >
-            <Search className="w-4 h-4" />
-            <span className="ml-2">Chercher Siren</span>
-          </Button>
+          {nomClient.trim().length >= 2 ? (
+            <a
+              href={googleSirenSearchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+            >
+              <Search className="w-4 h-4" />
+              Chercher Siren
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium text-muted-foreground opacity-50 cursor-not-allowed">
+              <Search className="w-4 h-4" />
+              Chercher Siren
+            </span>
+          )}
         </div>
       </div>
 
