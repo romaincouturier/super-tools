@@ -90,6 +90,7 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
         formationDemandee={props.formationDemandee}
         participants={props.participants}
         fraisDossier={props.fraisDossier}
+        typeSubrogation={props.typeSubrogation}
         getSelectedFormationConfig={props.getSelectedFormationConfig}
         formationFormulas={props.formationFormulas}
         selectedFormulaId={props.selectedFormulaId}
