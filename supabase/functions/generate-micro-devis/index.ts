@@ -719,8 +719,9 @@ serve(async (req: Request): Promise<Response> => {
           devis_type: "avec_subrogation",
           pdf_url: pdfPublicUrl,
           status: "pending",
+          total_amount_ht: totalAvec,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        });
+        } as any);
         if (insErr) {
           console.warn("Failed to create devis_signatures (avec):", insErr);
         } else {
