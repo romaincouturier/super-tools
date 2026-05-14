@@ -443,6 +443,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const [showNote, setShowNote] = useState(false);
   const { mutateAsync: updateStatus, isPending: updatingStatus } = useUpdateOrderItemStatus();
   const { mutateAsync: sendEmail, isPending: sendingEmail } = useSendOrderEmail();
+  const { mutateAsync: markShipped, isPending: markingShipped } = useMarkShippedConfirmed();
   const { toast } = useToast();
 
   const order = item.woocommerce_orders as any;
