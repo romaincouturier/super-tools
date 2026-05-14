@@ -53,6 +53,7 @@ import CardDetailSchedule from "./card-detail/CardDetailSchedule";
 import CardDetailContact from "./card-detail/CardDetailContact";
 import CardDetailQualification from "./card-detail/CardDetailQualification";
 import CardDetailCommercial from "./card-detail/CardDetailCommercial";
+import CardDetailSource from "./card-detail/CardDetailSource";
 import CardDetailCommunication from "./card-detail/CardDetailCommunication";
 import CardDetailTabs from "./card-detail/CardDetailTabs";
 import CardDetailDialogs from "./card-detail/CardDetailDialogs";
