@@ -657,13 +657,15 @@ serve(async (req) => {
     }
 
     // ─── Slack ───
-    notifySlack(supabase, {
+    postCrmOpportunityToSlack(supabase, {
       title: extraction.title,
+      message: rawInput,
       company: extraction.company,
       first_name: extraction.first_name,
       last_name: extraction.last_name,
       email: extraction.email,
-      form_name: submission.form_name,
+      service_type: extraction.service_type,
+      source_label: `Formulaire site web — ${submission.form_name || "Elementor"}`,
     });
 
     return new Response(
