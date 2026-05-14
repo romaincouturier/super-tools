@@ -221,7 +221,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const subject = processTemplate((tpl as any).subject, vars, false);
-    const html = processTemplate((tpl as any).html_content, vars, false);
+    let html = processTemplate((tpl as any).html_content, vars, false);
+
+    // ── Friendly reminder for pending invoices ───────────────────
+    // Only for dropshipping (the author invoices SuperTilt)
+    if (gameType === "dropshipping" && game?.author_id) {
+      const { data: pendingRows } = await (admin as any)
+        .from("order_items")
+        .select("id, games!game_id(author_id)")
+        .not("email_sent_at", "is", null)
+        .is("invoice_received_at", null)
+        .neq("id", order_item_id);
+
+      const pendingForAuthor = (pendingRows ?? []).filter(
+        (r: any) => r?.games?.author_id === game.author_id,
+      ).length;
+      // +1 = the current order being sent
+      const totalPending = pendingForAuthor + 1;
+
+      if (totalPending >= 5) {
+        const reminderHtml = `
+<hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
+<p>👉 Petite chose au passage : il y a maintenant <strong>${totalPending} jeux</strong> en attente de facture de ta part. Quand tu auras un moment, ce serait top de me les envoyer pour éviter les trous de trésorerie de mon côté 😉</p>
+<p>Pas d'urgence absolue, mais plus c'est régulier, plus c'est simple pour tout le monde. Merci d'avance !</p>`;
+        html = html + reminderHtml;
+      }
+    }
 
     // ── Send email ───────────────────────────────────────────────
     const result = await sendEmail({
