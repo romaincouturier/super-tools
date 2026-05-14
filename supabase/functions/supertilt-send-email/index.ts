@@ -12,8 +12,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/resend.ts";
-import { processTemplate } from "../_shared/templates.ts";
+import { processTemplate, wrapEmailHtml } from "../_shared/templates.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { getSigniticSignature } from "../_shared/signitic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -36,7 +37,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const { order_item_id } = await req.json() as { order_item_id: string };
+    const { order_item_id, test_recipient } = await req.json() as { order_item_id: string; test_recipient?: string };
     if (!order_item_id) {
       return new Response(JSON.stringify({ error: "order_item_id required" }), {
         status: 400,
@@ -135,7 +136,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       prenom_auteur: prenomAuteur,
       nom_auteur: authorName,
       taux_commission: tauxCommission,
-      prix_vendu: fmtEUR(lineTTC),
+      prix_vendu: fmtEUR(lineHT),
       prix_ht: fmtEUR(lineHT),
       prix_unitaire_ht: fmtEUR(unitPrice),
       montant_ttc: fmtEUR(lineTTC),
@@ -276,13 +277,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Send email ───────────────────────────────────────────────
-    const bccEmails = await getBccList();
+    const [bccEmails, signature] = await Promise.all([
+      getBccList(),
+      getSigniticSignature(),
+    ]);
+    const fullHtml = wrapEmailHtml(html, signature);
+
+    // Test mode: redirect to a single recipient, no cc/bcc, no logging/status mutation
+    if (test_recipient) {
+      const tresult = await sendEmail({
+        to: [test_recipient],
+        subject: `[TEST] ${subject}`,
+        html: fullHtml,
+        from: defaultSender,
+        _emailType: `supertilt-${templateKey}-test`,
+      });
+      return new Response(
+        JSON.stringify({ ok: tresult.success, to: test_recipient, template: templateKey, test: true, error: tresult.error }),
+        { status: tresult.success ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const result = await sendEmail({
       to: toEmails,
       cc: ccEmails.length ? ccEmails : undefined,
       bcc: bccEmails.length ? bccEmails : undefined,
       subject,
-      html,
+      html: fullHtml,
       from: defaultSender,
       _emailType: `supertilt-${templateKey}`,
     });
@@ -295,7 +316,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       sent_to: toEmails,
       cc: [...ccEmails, ...bccEmails],
       subject,
-      body: html,
+      body: fullHtml,
       status: result.success ? "sent" : "failed",
       error: result.error ?? null,
     });
@@ -338,11 +359,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
         if (ptpl) {
           const psubject = processTemplate((ptpl as any).subject, vars, false);
           const phtml = processTemplate((ptpl as any).html_content, vars, false);
+          const pfullHtml = wrapEmailHtml(phtml, signature);
           const presult = await sendEmail({
             to: [game.partner_email],
             bcc: bccEmails.length ? bccEmails : undefined,
             subject: psubject,
-            html: phtml,
+            html: pfullHtml,
             from: defaultSender,
             _emailType: "supertilt-partner",
           });
@@ -353,7 +375,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             sent_to: [game.partner_email],
             cc: bccEmails,
             subject: psubject,
-            body: phtml,
+            body: pfullHtml,
             status: presult.success ? "sent" : "failed",
             error: presult.error ?? null,
           });
