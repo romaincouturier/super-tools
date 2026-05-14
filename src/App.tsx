@@ -93,6 +93,8 @@ const AdminArchives = lazy(() => import("./pages/AdminArchives"));
 const Transcripts = lazy(() => import("./pages/Transcripts"));
 const Temoignages = lazy(() => import("./pages/Temoignages"));
 const Dropshipping = lazy(() => import("./pages/Dropshipping"));
+const SupertiltOrders = lazy(() => import("./pages/SupertiltOrders"));
+const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 
 // In-memory query client only — no IndexedDB persistence.
@@ -219,6 +221,8 @@ const App = () => (
               <Route path="/arena/results" element={<ArenaResults />} />
               {/* Super Admin */}
               <Route path="/admin" element={<Admin />} />
+              {/* Partner portal — public, no auth */}
+              <Route path="/partenaire/:token" element={<PartnerPortal />} />
               {/* Reclamations */}
               <Route path="/reclamation/:token" element={<ReclamationPublic />} />
               <Route path="/reclamations" element={<Reclamations />} />
@@ -242,6 +246,7 @@ const App = () => (
               <Route path="/transcripts" element={<Transcripts />} />
               <Route path="/temoignages" element={<Temoignages />} />
               <Route path="/dropshipping" element={<Dropshipping />} />
+              <Route path="/commandes-jeux" element={<SupertiltOrders />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
