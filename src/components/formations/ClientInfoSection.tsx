@@ -91,8 +91,18 @@ export default function ClientInfoSection({
         <Label htmlFor="nomClient">Nom du client *</Label>
         <div className="flex gap-2">
           <Input id="nomClient" placeholder="Nom de l'entreprise ou du client" value={nomClient} onChange={(e) => setNomClient(e.target.value)} required className="flex-1" />
-          <Button type="button" variant="outline" size="sm" onClick={onSearchSirenByName} disabled={searchingSirenByName || nomClient.trim().length < 2} className="whitespace-nowrap">
-            {searchingSirenByName ? <Spinner /> : <Search className="w-4 h-4" />}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const q = encodeURIComponent(`SIREN ${nomClient.trim()}`);
+              window.open(`https://www.google.com/search?q=${q}`, "_blank", "noopener,noreferrer");
+            }}
+            disabled={nomClient.trim().length < 2}
+            className="whitespace-nowrap"
+          >
+            <Search className="w-4 h-4" />
             <span className="ml-2">Chercher Siren</span>
           </Button>
         </div>
