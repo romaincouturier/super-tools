@@ -101,6 +101,8 @@ export interface CrmCard {
   loss_reason_detail: string | null;
   // Assignment
   assigned_to: string | null;
+  // Source metadata (webhook origin: page_url, user_agent, etc.)
+  source_metadata?: SourceMetadata | null;
   // Joined data
   tags?: CrmTag[];
 }
