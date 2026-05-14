@@ -2416,6 +2416,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           royalty_rate: number
+          secondary_email: string | null
           updated_at: string
         }
         Insert: {
@@ -2427,6 +2428,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           royalty_rate?: number
+          secondary_email?: string | null
           updated_at?: string
         }
         Update: {
@@ -2438,9 +2440,72 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           royalty_rate?: number
+          secondary_email?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      game_expenses: {
+        Row: {
+          amount_ht: number | null
+          amount_ttc: number | null
+          comment: string | null
+          created_at: string
+          description: string | null
+          expense_date: string
+          expense_type: string
+          game_id: string
+          id: string
+          purchased_by: string | null
+          quantity: number
+          supplier: string | null
+          supplier_url: string | null
+          updated_at: string
+          vat_rate: number
+        }
+        Insert: {
+          amount_ht?: number | null
+          amount_ttc?: number | null
+          comment?: string | null
+          created_at?: string
+          description?: string | null
+          expense_date: string
+          expense_type?: string
+          game_id: string
+          id?: string
+          purchased_by?: string | null
+          quantity?: number
+          supplier?: string | null
+          supplier_url?: string | null
+          updated_at?: string
+          vat_rate?: number
+        }
+        Update: {
+          amount_ht?: number | null
+          amount_ttc?: number | null
+          comment?: string | null
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          expense_type?: string
+          game_id?: string
+          id?: string
+          purchased_by?: string | null
+          quantity?: number
+          supplier?: string | null
+          supplier_url?: string | null
+          updated_at?: string
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_expenses_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       game_sales: {
         Row: {
@@ -2501,36 +2566,93 @@ export type Database = {
       games: {
         Row: {
           author_id: string | null
+          commission_fixed: number | null
+          commission_formula: string | null
+          commission_rate: number | null
+          commission_type: string | null
           cover_url: string | null
           created_at: string
+          current_stock: number | null
+          custom_message: string | null
           description: string | null
+          game_type: string
           id: string
+          include_stripe_fees: boolean
+          is_partner: boolean
+          min_stock: number | null
+          partner_email: string | null
+          partner_name: string | null
+          processing_instructions: string | null
+          restock_contact_email: string | null
+          restock_items: string | null
+          restock_supplier_urls: string | null
+          restock_threshold: number | null
+          secondary_author_email: string | null
           status: string
           title: string
           updated_at: string
           woocommerce_product_id: number | null
+          woocommerce_product_url: string | null
         }
         Insert: {
           author_id?: string | null
+          commission_fixed?: number | null
+          commission_formula?: string | null
+          commission_rate?: number | null
+          commission_type?: string | null
           cover_url?: string | null
           created_at?: string
+          current_stock?: number | null
+          custom_message?: string | null
           description?: string | null
+          game_type?: string
           id?: string
+          include_stripe_fees?: boolean
+          is_partner?: boolean
+          min_stock?: number | null
+          partner_email?: string | null
+          partner_name?: string | null
+          processing_instructions?: string | null
+          restock_contact_email?: string | null
+          restock_items?: string | null
+          restock_supplier_urls?: string | null
+          restock_threshold?: number | null
+          secondary_author_email?: string | null
           status?: string
           title: string
           updated_at?: string
           woocommerce_product_id?: number | null
+          woocommerce_product_url?: string | null
         }
         Update: {
           author_id?: string | null
+          commission_fixed?: number | null
+          commission_formula?: string | null
+          commission_rate?: number | null
+          commission_type?: string | null
           cover_url?: string | null
           created_at?: string
+          current_stock?: number | null
+          custom_message?: string | null
           description?: string | null
+          game_type?: string
           id?: string
+          include_stripe_fees?: boolean
+          is_partner?: boolean
+          min_stock?: number | null
+          partner_email?: string | null
+          partner_name?: string | null
+          processing_instructions?: string | null
+          restock_contact_email?: string | null
+          restock_items?: string | null
+          restock_supplier_urls?: string | null
+          restock_threshold?: number | null
+          secondary_author_email?: string | null
           status?: string
           title?: string
           updated_at?: string
           woocommerce_product_id?: number | null
+          woocommerce_product_url?: string | null
         }
         Relationships: [
           {
@@ -5149,6 +5271,140 @@ export type Database = {
           },
         ]
       }
+      order_email_log: {
+        Row: {
+          body: string | null
+          cc: string[] | null
+          error: string | null
+          id: string
+          order_item_id: string | null
+          sent_at: string
+          sent_to: string[] | null
+          status: string
+          subject: string | null
+          template_key: string | null
+          wc_order_id: number | null
+        }
+        Insert: {
+          body?: string | null
+          cc?: string[] | null
+          error?: string | null
+          id?: string
+          order_item_id?: string | null
+          sent_at?: string
+          sent_to?: string[] | null
+          status?: string
+          subject?: string | null
+          template_key?: string | null
+          wc_order_id?: number | null
+        }
+        Update: {
+          body?: string | null
+          cc?: string[] | null
+          error?: string | null
+          id?: string
+          order_item_id?: string | null
+          sent_at?: string
+          sent_to?: string[] | null
+          status?: string
+          subject?: string | null
+          template_key?: string | null
+          wc_order_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_email_log_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          block_reason: string | null
+          commission_amount: number | null
+          created_at: string
+          email_sent_at: string | null
+          email_sent_to: string | null
+          game_id: string | null
+          game_type: string | null
+          id: string
+          kanban_status: string
+          line_total: number | null
+          notes: string | null
+          product_name: string | null
+          quantity: number
+          raw_line_item: Json | null
+          unit_price: number | null
+          updated_at: string
+          validation_status: string
+          wc_order_id: number
+          wc_product_id: number
+          woocommerce_order_id: string | null
+        }
+        Insert: {
+          block_reason?: string | null
+          commission_amount?: number | null
+          created_at?: string
+          email_sent_at?: string | null
+          email_sent_to?: string | null
+          game_id?: string | null
+          game_type?: string | null
+          id?: string
+          kanban_status?: string
+          line_total?: number | null
+          notes?: string | null
+          product_name?: string | null
+          quantity?: number
+          raw_line_item?: Json | null
+          unit_price?: number | null
+          updated_at?: string
+          validation_status?: string
+          wc_order_id: number
+          wc_product_id: number
+          woocommerce_order_id?: string | null
+        }
+        Update: {
+          block_reason?: string | null
+          commission_amount?: number | null
+          created_at?: string
+          email_sent_at?: string | null
+          email_sent_to?: string | null
+          game_id?: string | null
+          game_type?: string | null
+          id?: string
+          kanban_status?: string
+          line_total?: number | null
+          notes?: string | null
+          product_name?: string | null
+          quantity?: number
+          raw_line_item?: Json | null
+          unit_price?: number | null
+          updated_at?: string
+          validation_status?: string
+          wc_order_id?: number
+          wc_product_id?: number
+          woocommerce_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_woocommerce_order_id_fkey"
+            columns: ["woocommerce_order_id"]
+            isOneToOne: false
+            referencedRelation: "woocommerce_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_members: {
         Row: {
           created_at: string | null
@@ -5260,6 +5516,88 @@ export type Database = {
             columns: ["participant_id"]
             isOneToOne: false
             referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_access_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          game_id: string
+          id: string
+          label: string | null
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          game_id: string
+          id?: string
+          label?: string | null
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          game_id?: string
+          id?: string
+          label?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_access_tokens_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_payments: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          comment: string | null
+          created_at: string
+          declared_by: string
+          game_id: string
+          id: string
+          payment_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          comment?: string | null
+          created_at?: string
+          declared_by?: string
+          game_id: string
+          id?: string
+          payment_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          comment?: string | null
+          created_at?: string
+          declared_by?: string
+          game_id?: string
+          id?: string
+          payment_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_payments_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
             referencedColumns: ["id"]
           },
         ]
@@ -6450,6 +6788,24 @@ export type Database = {
           position?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      supertilt_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json | null
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json | null
         }
         Relationships: []
       }
@@ -8396,6 +8752,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      woocommerce_orders: {
+        Row: {
+          billing_address: Json | null
+          created_at: string
+          customer_email: string | null
+          customer_first_name: string | null
+          customer_last_name: string | null
+          date_created: string
+          id: string
+          line_items: Json | null
+          order_number: string | null
+          payment_method: string | null
+          payment_method_title: string | null
+          processed_at: string | null
+          raw_order: Json
+          shipping_address: Json | null
+          shipping_total: number | null
+          total_ht: number | null
+          total_tax: number | null
+          total_ttc: number | null
+          wc_order_id: number
+          wc_status: string
+        }
+        Insert: {
+          billing_address?: Json | null
+          created_at?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          date_created: string
+          id?: string
+          line_items?: Json | null
+          order_number?: string | null
+          payment_method?: string | null
+          payment_method_title?: string | null
+          processed_at?: string | null
+          raw_order?: Json
+          shipping_address?: Json | null
+          shipping_total?: number | null
+          total_ht?: number | null
+          total_tax?: number | null
+          total_ttc?: number | null
+          wc_order_id: number
+          wc_status: string
+        }
+        Update: {
+          billing_address?: Json | null
+          created_at?: string
+          customer_email?: string | null
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          date_created?: string
+          id?: string
+          line_items?: Json | null
+          order_number?: string | null
+          payment_method?: string | null
+          payment_method_title?: string | null
+          processed_at?: string | null
+          raw_order?: Json
+          shipping_address?: Json | null
+          shipping_total?: number | null
+          total_ht?: number | null
+          total_tax?: number | null
+          total_ttc?: number | null
+          wc_order_id?: number
+          wc_status?: string
+        }
+        Relationships: []
       }
     }
     Views: {
