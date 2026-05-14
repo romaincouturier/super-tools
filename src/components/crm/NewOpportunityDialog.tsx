@@ -328,6 +328,18 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
         );
       }
 
+      // Slack notification (fire-and-forget)
+      notifyCrmSlack("opportunity_created", {
+        title: editedExtraction.title,
+        company: editedExtraction.company || undefined,
+        first_name: editedExtraction.first_name || undefined,
+        last_name: editedExtraction.last_name || undefined,
+        email: editedExtraction.email || undefined,
+        service_type: editedExtraction.service_type || undefined,
+        estimated_value: parseFloat(estimatedValue) || undefined,
+        message: rawInput || undefined,
+      }, userEmail);
+
       resetState();
       onOpenChange(false);
     } catch {
