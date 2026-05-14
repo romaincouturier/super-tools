@@ -164,6 +164,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const sig = req.headers.get("x-wc-webhook-signature") ?? "";
     const valid = await verifySignature(String(webhookSecret), rawBody, sig);
     if (!valid) {
+      await updateLog({ status: "error", response_status: 401, error_message: "Invalid webhook signature", processed_at: new Date().toISOString() });
       return new Response(JSON.stringify({ error: "Invalid webhook signature" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -172,6 +173,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── Filter by status ─────────────────────────────────────────
     if (!allowedStatuses.includes(order.status)) {
+      await updateLog({ status: "skipped", response_status: 200, wc_order_id: order.id, error_message: `Status '${order.status}' not in allowed list`, processed_at: new Date().toISOString() });
       return new Response(
         JSON.stringify({ skipped: true, reason: `Status '${order.status}' not in allowed list` }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -298,14 +300,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, wc_order_id: order.id, ...results }), {
+    await updateLog({ status: "processed", response_status: 200, wc_order_id: order.id, processed_at: new Date().toISOString() });
+    return new Response(JSON.stringify({ ok: true, wc_order_id: order.id, log_id: logId, ...results }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("supertilt-webhook error:", message);
-    return new Response(JSON.stringify({ error: message }), {
+    await updateLog({ status: "error", response_status: 500, error_message: message, processed_at: new Date().toISOString() });
+    return new Response(JSON.stringify({ error: message, log_id: logId }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
