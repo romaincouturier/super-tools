@@ -34,11 +34,9 @@ export default function FormationSummary({
   const showBoth = typeSubrogation === "les2";
   const showAvec = typeSubrogation === "avec" || showBoth;
   const showSans = typeSubrogation === "sans" || showBoth;
-  const feesEnabled = fraisDossier === "oui";
-
   const renderColumn = (variant: "sans" | "avec") => {
     const withSub = variant === "avec";
-    const frais = feesEnabled || withSub ? (withSub ? 350 : 150) : 0;
+    const frais = withSub ? 350 : 150;
     const totalHT = prixFormation + frais;
     const totalTTC = totalHT;
     return (

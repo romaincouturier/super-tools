@@ -50,7 +50,6 @@ const DOSSIER_FEE_WITH_SUBROGATION = 350;
 const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
 
 function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
-  if (!(subrogation || data.fraisDossier || data.isOpco)) return 0;
   return subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
 }
 
