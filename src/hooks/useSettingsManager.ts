@@ -12,9 +12,16 @@ export function useSettingsManager() {
 
   const initialLoadDoneRef = useRef(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settingsRef = useRef<Record<string, string>>(SETTINGS_DEFAULTS);
+  const loadedHashRef = useRef<string>("");
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
   const navigate = useNavigate();
+
+  // Keep a ref always in sync with state so unmount flush can read latest values
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   const updateSetting = useCallback((key: string, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -47,8 +54,18 @@ export function useSettingsManager() {
       }
     );
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    // Flush pending save on unmount so navigating away doesn't lose changes
+    return () => {
+      subscription.unsubscribe();
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+        const currentHash = JSON.stringify(settingsRef.current);
+        if (currentHash !== loadedHashRef.current && loadedHashRef.current !== "") {
+          performSave(settingsRef.current);
+        }
+      }
+    };
+  }, [navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -61,19 +78,21 @@ export function useSettingsManager() {
       return;
     }
 
-    const loaded: Record<string, string> = {};
+    const loaded: Record<string, string> = { ...SETTINGS_DEFAULTS };
     data?.forEach((s) => {
       loaded[s.setting_key] = s.setting_value || SETTINGS_REGISTRY[s.setting_key]?.default || "";
     });
-    setSettings(prev => ({ ...prev, ...loaded }));
+    setSettings(loaded);
+    settingsRef.current = loaded;
+    loadedHashRef.current = JSON.stringify(loaded);
   };
 
-  const autoSaveSettings = useCallback(async () => {
+  const performSave = async (currentSettings: Record<string, string>) => {
     setAutoSaveStatus("saving");
     try {
       const settingsToSave = Object.entries(SETTINGS_REGISTRY).map(([key, { description }]) => ({
         setting_key: key,
-        setting_value: settings[key] || "",
+        setting_value: currentSettings[key] ?? "",
         description,
       }));
 
@@ -83,22 +102,30 @@ export function useSettingsManager() {
         )
       );
 
+      loadedHashRef.current = JSON.stringify(currentSettings);
       setAutoSaveStatus("saved");
       setTimeout(() => setAutoSaveStatus("idle"), 2000);
     } catch (error: unknown) {
       console.error("Auto-save settings error:", error);
       setAutoSaveStatus("idle");
     }
-  }, [settings]);
+  };
+
+  const autoSaveSettings = useCallback(async () => {
+    await performSave(settingsRef.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!initialLoadDoneRef.current || loading) return;
+
+    // Skip save if nothing changed since last save
+    const currentHash = JSON.stringify(settings);
+    if (currentHash === loadedHashRef.current) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    setAutoSaveStatus("idle");
     autoSaveTimerRef.current = setTimeout(() => {
       autoSaveSettings();
     }, 1500);
@@ -108,7 +135,7 @@ export function useSettingsManager() {
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [autoSaveSettings, loading]);
+  }, [settings, loading, autoSaveSettings]);
 
   return {
     user,
