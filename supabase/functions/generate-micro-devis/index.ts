@@ -17,6 +17,7 @@ interface RequestBody {
   emailCommanditaire: string;
   adresseCommanditaire: string;
   isAdministration: boolean;
+  isOpco?: boolean;
   noteDevis: string;
   formationDemandee: string;
   dateFormation: string;
@@ -70,6 +71,15 @@ async function generatePdfWithPdfMonkey(
     ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
     : "";
 
+  // OPCO mode: merge admin fee (forfait global 150€) into the unit price
+  // so only one line appears on the PDF. Total TTC stays identical.
+  const adminFeeAmount = data.fraisDossier ? 150 : 0;
+  const qty = Math.max(1, data.nbParticipants);
+  const mergedUnitPrice = data.isOpco
+    ? data.prix + adminFeeAmount / qty
+    : data.prix;
+  const showAdminFeeLine = data.fraisDossier && !data.isOpco;
+
   // Build the payload in the expected structure
   const payload = {
     client: {
@@ -80,7 +90,7 @@ async function generatePdfWithPdfMonkey(
       country: data.pays,
     },
     note: data.noteDevis || "",
-    affiche_frais: data.fraisDossier ? "Oui" : "Non",
+    affiche_frais: showAdminFeeLine ? "Oui" : "Non",
     subrogation: subrogation ? "Oui" : "Non",
     cadeau: cadeauText,
     items: [
@@ -90,12 +100,13 @@ async function generatePdfWithPdfMonkey(
         date: data.dateFormation,
         place: data.lieu,
         duration: `${data.dureeHeures}h`,
-        quantity: data.nbParticipants,
-        unit_price: data.prix,
+        quantity: qty,
+        unit_price: mergedUnitPrice,
       },
     ],
-    admin_fee: data.fraisDossier ? 150 : 0,
+    admin_fee: showAdminFeeLine ? 150 : 0,
     is_administration: data.isAdministration,
+    is_opco: !!data.isOpco,
   };
 
   console.log(`PDF Monkey payload:`, JSON.stringify(payload));

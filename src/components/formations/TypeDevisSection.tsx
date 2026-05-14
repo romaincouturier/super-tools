@@ -7,6 +7,8 @@ interface TypeDevisSectionProps {
   setTypeDevis: (v: "formation" | "jeu" | "") => void;
   isAdministration: "oui" | "non" | "";
   setIsAdministration: (v: "oui" | "non" | "") => void;
+  isOpco: "oui" | "non";
+  setIsOpco: (v: "oui" | "non") => void;
   noteDevis: string;
   setNoteDevis: (v: string) => void;
 }
@@ -16,13 +18,15 @@ export default function TypeDevisSection({
   setTypeDevis,
   isAdministration,
   setIsAdministration,
+  isOpco,
+  setIsOpco,
   noteDevis,
   setNoteDevis,
 }: TypeDevisSectionProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2">Type de devis</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-3">
           <Label>S'agit-il d'un devis pour</Label>
           <RadioGroup value={typeDevis} onValueChange={(v) => setTypeDevis(v as "formation" | "jeu")}>
@@ -46,6 +50,22 @@ export default function TypeDevisSection({
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="non" id="admin-non" />
               <Label htmlFor="admin-non" className="font-normal cursor-pointer">Non</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        <div className="space-y-3">
+          <Label>
+            Devis pour un OPCO ?
+            <span className="text-muted-foreground font-normal text-sm ml-1">(les frais de dossier seront fondus dans le prix unitaire, une seule ligne sur le PDF)</span>
+          </Label>
+          <RadioGroup value={isOpco} onValueChange={(v) => setIsOpco(v as "oui" | "non")} className="flex gap-4">
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="oui" id="opco-oui" />
+              <Label htmlFor="opco-oui" className="font-normal cursor-pointer">Oui</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="non" id="opco-non" />
+              <Label htmlFor="opco-non" className="font-normal cursor-pointer">Non</Label>
             </div>
           </RadioGroup>
         </div>
