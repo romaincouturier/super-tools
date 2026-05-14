@@ -694,3 +694,81 @@ function DeviceBar({ label, pct, count, color }: { label: string; pct: number; c
     </div>
   );
 }
+
+function TagFilterPopover({
+  tags,
+  selectedIds,
+  onChange,
+}: {
+  tags: CrmTag[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const grouped = useMemo(() => {
+    const m = new Map<string, CrmTag[]>();
+    for (const t of tags) {
+      const cat = t.category || "Sans catégorie";
+      const arr = m.get(cat) || [];
+      arr.push(t);
+      m.set(cat, arr);
+    }
+    for (const arr of m.values()) arr.sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [tags]);
+
+  const toggle = (id: string) => {
+    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 min-w-[180px] justify-between">
+          <span className="truncate">
+            {selectedIds.length === 0 ? "Tous les tags" : `${selectedIds.length} tag(s)`}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <div className="max-h-80 overflow-y-auto p-2 space-y-3">
+          {grouped.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center">Aucun tag disponible.</p>
+          )}
+          {grouped.map(([cat, list]) => (
+            <div key={cat}>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 mb-1">{cat}</div>
+              <div className="space-y-1">
+                {list.map((t) => (
+                  <label
+                    key={t.id}
+                    className="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted cursor-pointer text-sm"
+                  >
+                    <Checkbox
+                      checked={selectedIds.includes(t.id)}
+                      onCheckedChange={() => toggle(t.id)}
+                    />
+                    <Badge
+                      variant="outline"
+                      className="text-xs"
+                      style={{ borderColor: t.color, color: t.color }}
+                    >
+                      {t.name}
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        {selectedIds.length > 0 && (
+          <div className="border-t p-2">
+            <Button variant="ghost" size="sm" className="w-full h-7" onClick={() => onChange([])}>
+              Effacer la sélection
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
