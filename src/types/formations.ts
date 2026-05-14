@@ -22,7 +22,7 @@ export interface DevisFormData {
   pays: string;
   emailCommanditaire: string;
   adresseCommanditaire: string;
-  isAdministration: boolean;
+  isOpco?: boolean;
   noteDevis: string;
   formationDemandee: string;
   formationLibre: string;

@@ -16,7 +16,6 @@ interface RequestBody {
   pays: string;
   emailCommanditaire: string;
   adresseCommanditaire: string;
-  isAdministration: boolean;
   isOpco?: boolean;
   noteDevis: string;
   formationDemandee: string;
@@ -105,7 +104,6 @@ async function generatePdfWithPdfMonkey(
       },
     ],
     admin_fee: showAdminFeeLine ? 150 : 0,
-    is_administration: data.isAdministration,
     is_opco: !!data.isOpco,
   };
 
@@ -635,7 +633,7 @@ serve(async (req: Request): Promise<Response> => {
             pays: body.pays,
             emailCommanditaire: body.emailCommanditaire,
             adresseCommanditaire: body.adresseCommanditaire,
-            isAdministration: body.isAdministration,
+            isOpco: !!body.isOpco,
             noteDevis: body.noteDevis,
             formationDemandee: body.formationDemandee,
             formationLibre: body.formationLibre || "",
