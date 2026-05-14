@@ -85,9 +85,30 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Filter state: all (default board), en_cours, gagne, perdu, a_venir
-  type FilterMode = "all" | "en_cours" | "gagne" | "perdu" | "a_venir";
+  // Filter state: all (default board), en_cours, gagne, perdu, a_venir, a_tagguer
+  type FilterMode = "all" | "en_cours" | "gagne" | "perdu" | "a_venir" | "a_tagguer";
   const [filterMode, setFilterMode] = useState<FilterMode>("en_cours");
+
+  // All distinct tag categories present in the workspace
+  const allTagCategories = useMemo(() => {
+    const cats = new Set<string>();
+    for (const t of boardData?.tags || []) {
+      if (t.category) cats.add(t.category);
+    }
+    return cats;
+  }, [boardData?.tags]);
+
+  const isFullyTagged = useCallback((card: CrmCard): boolean => {
+    if (allTagCategories.size === 0) return true;
+    const cardCats = new Set<string>();
+    for (const t of card.tags || []) {
+      if (t.category) cardCats.add(t.category);
+    }
+    for (const c of allTagCategories) {
+      if (!cardCats.has(c)) return false;
+    }
+    return true;
+  }, [allTagCategories]);
 
   // Search across all card fields (including hidden/scheduled cards)
   const allCards = boardData?.cards || [];
@@ -173,6 +194,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         break;
       case "a_venir":
         filtered = boardData.cards.filter(isScheduledInFuture);
+        break;
+      case "a_tagguer":
+        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c) && !isFullyTagged(c));
         break;
       case "en_cours":
         filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
@@ -539,6 +563,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
           { key: "gagne", label: "Gagné" },
           { key: "perdu", label: "Perdu" },
           { key: "a_venir", label: "À venir" },
+          { key: "a_tagguer", label: "À tagguer" },
         ] as const).map(({ key, label }) => (
           <Button
             key={key}
