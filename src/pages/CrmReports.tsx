@@ -32,6 +32,8 @@ import { format, startOfYear, startOfQuarter, startOfMonth, endOfMonth, endOfQua
 import { fr } from "date-fns/locale";
 import type { CrmCard, CrmTag } from "@/types/crm";
 import PivotCellDetail from "@/components/crm/reports/PivotCellDetail";
+import ProvenanceTab from "@/components/crm/reports/ProvenanceTab";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 // ── Persistence ────────────────────────────────────────────
 
