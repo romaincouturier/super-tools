@@ -1,10 +1,16 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logCrmActivity } from "@/services/crmActivity";
-import { useCrmMutation } from "./useCrmMutation";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
+import { CRM_QUERY_KEY } from "./useCrmMutation";
 
-export const useAddAttachment = () =>
-  useCrmMutation(
-    async ({
+export const useAddAttachment = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
       cardId,
       file,
       actorEmail,
@@ -25,13 +31,34 @@ export const useAddAttachment = () =>
       if (!data?.attachment) throw new Error("Upload échoué : aucune donnée retournée");
 
       await logCrmActivity(cardId, "attachment_added", actorEmail, null, file.name);
+      return cardId;
     },
-    { successMessage: "Fichier ajouté" }
-  );
+    onSuccess: async (cardId) => {
+      // Force refetch of the card details (attachments list)
+      await queryClient.invalidateQueries({
+        queryKey: [CRM_QUERY_KEY, "card-details", cardId],
+        refetchType: "active",
+      });
+      await queryClient.refetchQueries({
+        queryKey: [CRM_QUERY_KEY, "card-details", cardId],
+        type: "active",
+      });
+      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
+      toast({ title: "Fichier ajouté" });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      toastError(toast, message);
+    },
+  });
+};
 
-export const useDeleteAttachment = () =>
-  useCrmMutation(
-    async ({
+export const useDeleteAttachment = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
       id,
       cardId,
       fileName,
@@ -51,6 +78,23 @@ export const useDeleteAttachment = () =>
         .eq("id", id);
       if (error) throw error;
       await logCrmActivity(cardId, "attachment_removed", actorEmail, fileName, null);
+      return cardId;
     },
-    { successMessage: "Fichier supprimé" }
-  );
+    onSuccess: async (cardId) => {
+      await queryClient.invalidateQueries({
+        queryKey: [CRM_QUERY_KEY, "card-details", cardId],
+        refetchType: "active",
+      });
+      await queryClient.refetchQueries({
+        queryKey: [CRM_QUERY_KEY, "card-details", cardId],
+        type: "active",
+      });
+      queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
+      toast({ title: "Fichier supprimé" });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      toastError(toast, message);
+    },
+  });
+};
