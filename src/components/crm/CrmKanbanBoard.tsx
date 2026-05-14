@@ -563,6 +563,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
           { key: "gagne", label: "Gagné" },
           { key: "perdu", label: "Perdu" },
           { key: "a_venir", label: "À venir" },
+          { key: "a_tagguer", label: "À tagguer" },
         ] as const).map(({ key, label }) => (
           <Button
             key={key}
