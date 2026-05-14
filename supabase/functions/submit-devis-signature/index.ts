@@ -3,6 +3,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
+import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
@@ -107,10 +108,11 @@ serve(async (req: Request): Promise<Response> => {
 
     // Download the PDF and compute its hash for integrity verification
     let pdfHashAtSignature: string | null = null;
+    let pdfBuffer: ArrayBuffer | null = null;
     try {
       const pdfResponse = await fetch(devisSignature.pdf_url);
       if (pdfResponse.ok) {
-        const pdfBuffer = await pdfResponse.arrayBuffer();
+        pdfBuffer = await pdfResponse.arrayBuffer();
         pdfHashAtSignature = await hashArrayBuffer(pdfBuffer);
       }
     } catch (pdfErr) {
@@ -229,6 +231,55 @@ serve(async (req: Request): Promise<Response> => {
       proofFileContent,
     );
 
+    // Generate signed PDF (original + signature page) and upload to storage
+    let signedPdfUrl: string | null = null;
+    try {
+      if (pdfBuffer) {
+        const signedPdfBytes = await generateSignedPdf({
+          pdfBuffer,
+          signatureDataUrl: signatureData,
+          signerName,
+          signerFunction,
+          signedAt,
+          documentType: "Devis",
+          documentTitle: devisSignature.formation_name,
+          clientName: devisSignature.client_name,
+          signatureHash,
+          ipAddress,
+          journeyEvents: serverJourneyEvents,
+          pdfHashAtSignature,
+        });
+
+        const signedFileName = `signed/${devisSignature.id}.pdf`;
+        const { error: signedUploadError } = await supabase.storage
+          .from("devis-pdfs")
+          .upload(signedFileName, signedPdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+
+        if (signedUploadError) {
+          console.warn("Failed to upload signed devis PDF:", signedUploadError);
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from("devis-pdfs")
+            .getPublicUrl(signedFileName);
+          signedPdfUrl = publicUrl;
+
+          await supabase
+            .from("devis_signatures")
+            .update({ signed_pdf_url: signedPdfUrl } as any)
+            .eq("id", devisSignature.id);
+
+          console.log("Signed devis PDF uploaded:", signedPdfUrl);
+        }
+      } else {
+        console.warn("No PDF buffer available, skipping signed devis PDF generation");
+      }
+    } catch (signedPdfErr) {
+      console.warn("Failed to generate signed devis PDF:", signedPdfErr);
+    }
+
     // Log the signature event
     await logEmailActivity(supabase, "devis_signature_submitted", devisSignature.recipient_email, {
       formation_name: devisSignature.formation_name,
@@ -241,6 +292,7 @@ serve(async (req: Request): Promise<Response> => {
       pdf_hash_at_signature: pdfHashAtSignature,
       proof_file_url: proofFileUrl,
       proof_hash: proofHash,
+      signed_pdf_url: signedPdfUrl,
       journey_events_count: serverJourneyEvents.length,
     });
 
@@ -264,16 +316,8 @@ serve(async (req: Request): Promise<Response> => {
   <li><strong>Type de devis :</strong> ${devisTypeLabel}</li>
   <li><strong>Signé le :</strong> ${formatDateTime(signedAt)}</li>
 </ul>
-<p>Vous pouvez consulter le devis en cliquant sur le lien ci-dessous :</p>
-${emailButton("📄 Télécharger le devis", devisSignature.pdf_url)}
-<p style="margin-top: 16px; font-size: 12px; color: #666;">
-  <strong>Informations de traçabilité :</strong><br>
-  Empreinte de signature : <code>${signatureHash.substring(0, 16)}...</code><br>
-  ${pdfHashAtSignature ? `Empreinte du document : <code>${pdfHashAtSignature.substring(0, 16)}...</code><br>` : ""}
-  ${proofHash ? `Empreinte du dossier de preuve : <code>${proofHash.substring(0, 16)}...</code><br>` : ""}
-  Niveau de signature : SES (Signature Électronique Simple) - eIDAS (UE n° 910/2014)<br>
-  Cet email fait office de confirmation de votre engagement électronique.
-</p>
+<p>Vous pouvez consulter le devis signé en cliquant sur le lien ci-dessous :</p>
+${emailButton("📄 Télécharger le devis signé", signedPdfUrl || devisSignature.pdf_url)}
 ${emailSig}`;
 
       await sendEmail({
