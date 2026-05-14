@@ -195,6 +195,9 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       case "a_venir":
         filtered = boardData.cards.filter(isScheduledInFuture);
         break;
+      case "a_tagguer":
+        filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c) && !isFullyTagged(c));
+        break;
       case "en_cours":
         filtered = boardData.cards.filter((c) => !isWonCard(c) && !isLostCard(c) && !isScheduledInFuture(c));
         break;
