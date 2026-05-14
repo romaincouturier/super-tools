@@ -413,40 +413,92 @@ export default function ProvenanceTab() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Heatmap — Jour × Heure (Europe/Paris)</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="text-xs border-separate border-spacing-px">
-            <thead>
-              <tr>
-                <th className="w-10"></th>
-                {Array.from({ length: 24 }).map((_, h) => (
-                  <th key={h} className="w-7 text-center font-normal text-muted-foreground">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {dayLabels.map((dayLabel, dow) => (
-                <tr key={dow}>
-                  <td className="pr-2 text-right font-medium text-muted-foreground">{dayLabel}</td>
-                  {stats.heatmap[dow].map((v, h) => {
-                    const intensity = stats.heatmapMax ? v / stats.heatmapMax : 0;
-                    const bg = v === 0 ? "hsl(var(--muted))" : `rgba(59, 130, 246, ${0.15 + intensity * 0.85})`;
-                    return (
-                      <td
-                        key={h}
-                        title={`${dayLabel} ${h}h — ${v} demande(s)`}
-                        className="w-7 h-7 text-center text-[10px]"
-                        style={{ backgroundColor: bg, color: intensity > 0.5 ? "white" : "inherit" }}
-                      >
-                        {v || ""}
-                      </td>
-                    );
-                  })}
+        <CardContent className="space-y-4">
+          {/* Filtres heatmap */}
+          <div className="flex flex-wrap items-end gap-3 pb-2 border-b">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="hm-start" className="text-xs text-muted-foreground">Du</Label>
+              <Input
+                id="hm-start"
+                type="date"
+                value={heatmapStart}
+                onChange={(e) => setHeatmapStart(e.target.value)}
+                className="h-8 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="hm-end" className="text-xs text-muted-foreground">Au</Label>
+              <Input
+                id="hm-end"
+                type="date"
+                value={heatmapEnd}
+                onChange={(e) => setHeatmapEnd(e.target.value)}
+                className="h-8 w-[150px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Tags</Label>
+              <TagFilterPopover
+                tags={data?.tags ?? []}
+                selectedIds={heatmapTagIds}
+                onChange={setHeatmapTagIds}
+              />
+            </div>
+            {(heatmapStart || heatmapEnd || heatmapTagIds.length > 0) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8"
+                onClick={() => {
+                  setHeatmapStart("");
+                  setHeatmapEnd("");
+                  setHeatmapTagIds([]);
+                }}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Réinitialiser
+              </Button>
+            )}
+            <div className="ml-auto text-xs text-muted-foreground">
+              {stats.heatmapTotal} demande(s) dans la sélection
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="text-xs border-separate border-spacing-px">
+              <thead>
+                <tr>
+                  <th className="w-10"></th>
+                  {Array.from({ length: 24 }).map((_, h) => (
+                    <th key={h} className="w-7 text-center font-normal text-muted-foreground">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {dayLabels.map((dayLabel, dow) => (
+                  <tr key={dow}>
+                    <td className="pr-2 text-right font-medium text-muted-foreground">{dayLabel}</td>
+                    {stats.heatmap[dow].map((v, h) => {
+                      const intensity = stats.heatmapMax ? v / stats.heatmapMax : 0;
+                      const bg = v === 0 ? "hsl(var(--muted))" : `rgba(59, 130, 246, ${0.15 + intensity * 0.85})`;
+                      return (
+                        <td
+                          key={h}
+                          title={`${dayLabel} ${h}h — ${v} demande(s)`}
+                          className="w-7 h-7 text-center text-[10px]"
+                          style={{ backgroundColor: bg, color: intensity > 0.5 ? "white" : "inherit" }}
+                        >
+                          {v || ""}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
 
