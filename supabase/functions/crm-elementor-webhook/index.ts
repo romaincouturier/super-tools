@@ -6,30 +6,40 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
  * Edge Function: crm-elementor-webhook
  *
  * Public webhook for Elementor Pro Forms (WordPress).
- * Receives a form submission and creates a CRM opportunity card.
- *
- * Elementor "Webhook" action sends POST as either:
- *   - application/x-www-form-urlencoded (default)
- *   - multipart/form-data
- *   - application/json (if "Send as JSON" is enabled)
- *
- * Standard fields:
- *   - form_name, form_id
- *   - fields[<custom_id>][value], fields[<custom_id>][title], fields[<custom_id>][raw_value]
- *
- * "Advanced Data" toggle adds: form_url, user_agent, remote_ip, referrer, credit, page_url, page_title
- *
- * SECURITY: Validation by shared token. Configure ELEMENTOR_WEBHOOK_TOKEN
- * in project secrets, then add `?token=...` to the webhook URL in Elementor.
+ * Mirrors the manual "Nouvelle opportunité" flow:
+ *  1. AI extraction (rich prompt: tags + suggested_next_action, same as crm-extract-opportunity)
+ *  2. Value estimation from CRM history (averaged WON deals)
+ *  3. Acquisition source detection (existing email -> "nouvelle_mission", else "site_web")
+ *  4. Card insert in "Entrant" column (or first non-archived) with description_html + emoji
+ *  5. Suggested tags assignment via crm_card_tags
+ *  6. Slack notification
  */
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const ELEMENTOR_WEBHOOK_TOKEN = Deno.env.get("ELEMENTOR_WEBHOOK_TOKEN");
 
+const RANDOM_EMOJIS = [
+  "🚀", "💡", "🎯", "⭐", "🔥", "💎", "🏆", "📈", "🤝", "💼",
+  "🎪", "🌟", "⚡", "🎲", "🎸", "🌈", "🦁", "🐙", "🎨", "🍀",
+  "🧩", "🔮", "🎁", "🛸", "🌊", "🏔️", "🎵", "🦊", "🐝", "🌻",
+];
+const pickRandomEmoji = () => RANDOM_EMOJIS[Math.floor(Math.random() * RANDOM_EMOJIS.length)];
+
 interface BriefQuestion {
   id: string;
   question: string;
   answered: boolean;
+}
+
+interface SuggestedNextAction {
+  text: string;
+  date: string; // YYYY-MM-DD
+}
+
+interface AvailableTag {
+  id: string;
+  name: string;
+  category?: string | null;
 }
 
 interface ExtractionResult {
@@ -42,6 +52,8 @@ interface ExtractionResult {
   service_type: "formation" | "mission" | null;
   title: string;
   brief_questions: BriefQuestion[];
+  suggested_tag_ids: string[];
+  suggested_next_action: SuggestedNextAction | null;
 }
 
 interface NormalizedField {
@@ -86,14 +98,32 @@ function extractCompanyFromEmail(email: string | null | undefined): string | nul
   return null;
 }
 
-/**
- * Parse Elementor form data from URL-encoded / multipart payloads.
- * Keys look like:
- *   form_fields[name]=John
- *   form_fields[email]=john@x.com
- *   fields[name][value]=John
- *   fields[name][title]=Nom
- */
+function todayParisISO(): string {
+  return new Intl.DateTimeFormat("fr-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/** Build HTML paragraphs from raw text — mirrors NewOpportunityDialog. */
+function buildDescriptionHtml(rawInput: string): string {
+  return rawInput
+    .replace(/\r\n/g, "\n")
+    .replace(/[\u2028\u2029]/g, "\n")
+    .replace(/\n[ \t]*\n/g, "\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n\n")
+    .map((paragraph) => {
+      const lines = paragraph.split("\n").map((line) =>
+        line.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+      );
+      return `<p>${lines.join("<br>") || "<br>"}</p>`;
+    })
+    .join("");
+}
+
 function normalizeFromForm(form: FormData | URLSearchParams): NormalizedSubmission {
   const fieldMap = new Map<string, { title?: string; value?: string }>();
   const out: NormalizedSubmission = { fields: [] };
@@ -101,14 +131,12 @@ function normalizeFromForm(form: FormData | URLSearchParams): NormalizedSubmissi
   for (const [key, raw] of (form as any).entries()) {
     const value = typeof raw === "string" ? raw : String(raw);
 
-    // Top-level meta
     if (key === "form_name" || key === "form_id" || key === "page_url" || key === "page_title" ||
         key === "remote_ip" || key === "user_agent" || key === "referrer") {
       (out as any)[key] = value;
       continue;
     }
 
-    // form_fields[<id>] = value  (simple format)
     let m = key.match(/^form_fields\[([^\]]+)\]$/);
     if (m) {
       const id = m[1];
@@ -118,7 +146,6 @@ function normalizeFromForm(form: FormData | URLSearchParams): NormalizedSubmissi
       continue;
     }
 
-    // fields[<id>][value|title|raw_value] = ...  (verbose format)
     m = key.match(/^fields\[([^\]]+)\]\[([^\]]+)\]$/);
     if (m) {
       const [, id, prop] = m;
@@ -136,15 +163,8 @@ function normalizeFromForm(form: FormData | URLSearchParams): NormalizedSubmissi
   return out;
 }
 
-/**
- * Parse Elementor JSON payload ("Send as JSON" option).
- * Common shapes:
- *   { form: { name, id }, fields: { <id>: { value, title } } }
- *   { form_name, form_id, form_fields: { <id>: "value" } }
- */
 function normalizeFromJson(payload: any): NormalizedSubmission {
   const out: NormalizedSubmission = { fields: [] };
-
   out.form_name = payload?.form?.name ?? payload?.form_name;
   out.form_id = payload?.form?.id ?? payload?.form_id;
   out.page_url = payload?.page_url ?? payload?.form_url;
@@ -165,9 +185,6 @@ function normalizeFromJson(payload: any): NormalizedSubmission {
   return out;
 }
 
-/**
- * Heuristic detection of well-known fields by id/title.
- */
 function detectField(submission: NormalizedSubmission, patterns: RegExp[]): string | null {
   for (const f of submission.fields) {
     const haystack = `${f.id} ${f.title}`.toLowerCase();
@@ -190,23 +207,67 @@ function buildRawInput(s: NormalizedSubmission): string {
   return lines.join("\n");
 }
 
-// ─── AI extraction (mirrors resend-inbound-webhook) ─────────────────────
+// ─── AI extraction (mirrors crm-extract-opportunity) ────────────────────
 
-async function extractOpportunity(rawInput: string, fallbackEmail: string | null): Promise<ExtractionResult> {
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+function buildSystemPrompt(today: string, availableTags: AvailableTag[]): string {
+  const tagList = availableTags.length > 0
+    ? availableTags.map((t) => `- "${t.name}"${t.category ? ` (${t.category})` : ""}`).join("\n")
+    : "(aucun tag disponible)";
 
-  const systemPrompt = `Tu es un assistant qui analyse des soumissions de formulaire de contact pour un organisme de formation professionnelle.
+  return `Tu es un assistant qui analyse des demandes commerciales pour un organisme de formation professionnelle.
 
-À partir des données fournies, extrais les informations suivantes au format JSON:
+Date du jour : ${today} (utilise-la pour calculer la date de la prochaine action).
+
+À partir du texte fourni, extrais les informations suivantes au format JSON:
 - first_name, last_name, phone, company, email, linkedin_url
 - service_type: "formation" ou "mission" (ou null si peu clair)
-- title: "(ENTREPRISE) Description courte de la prestation"
+- title: intitulé court de la prestation, SANS le nom du client ni de l'entreprise (ex: "Formation management", "Mission audit RH")
 - brief_questions: tableau de 3-5 questions pertinentes pour qualifier l'opportunité
+- suggested_tag_names: tableau de noms de tags pertinents (vide si aucun) choisis STRICTEMENT parmi la liste ci-dessous
+- suggested_next_action: objet { text: "Action courte à mener", date: "YYYY-MM-DD" } recommandant la prochaine action commerciale, ou null
+
+Tags disponibles (ne propose RIEN d'autre que des noms de cette liste, copie le nom exactement) :
+${tagList}
 
 Règles:
 - Si une info est absente, utilise null
 - Le nom de l'entreprise peut être déduit du domaine email
-- Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
+- suggested_tag_names: ne JAMAIS inventer de tag ; si rien ne matche, renvoie []
+- suggested_next_action.date: format strict YYYY-MM-DD, postérieure ou égale à aujourd'hui ; déduis-la du ton (urgent → 1-2 jours, standard → 3-7 jours, "je vous tiens au courant" → 10-15 jours)
+
+Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
+}
+
+function normalizeNextAction(raw: unknown, today: string): SuggestedNextAction | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as { text?: unknown; date?: unknown };
+  const text = typeof r.text === "string" ? r.text.trim() : "";
+  const date = typeof r.date === "string" ? r.date.trim() : "";
+  if (!text || !date) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return { text, date: date < today ? today : date };
+}
+
+function resolveSuggestedTagIds(rawNames: unknown, available: AvailableTag[]): string[] {
+  if (!Array.isArray(rawNames)) return [];
+  const byName = new Map(available.map((t) => [t.name.toLowerCase(), t.id]));
+  const ids: string[] = [];
+  for (const n of rawNames) {
+    if (typeof n !== "string") continue;
+    const id = byName.get(n.toLowerCase().trim());
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+async function extractOpportunity(
+  rawInput: string,
+  fallbackEmail: string | null,
+  availableTags: AvailableTag[],
+): Promise<ExtractionResult> {
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const today = todayParisISO();
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -214,7 +275,7 @@ Règles:
     body: JSON.stringify({
       model: "google/gemini-2.5-flash",
       messages: [
-        { role: "system", content: systemPrompt },
+        { role: "system", content: buildSystemPrompt(today, availableTags) },
         { role: "user", content: rawInput },
       ],
     }),
@@ -244,8 +305,11 @@ Règles:
   if (!extracted.company && extracted.email) extracted.company = extractCompanyFromEmail(extracted.email);
 
   if (!extracted.title) {
-    const companyPart = extracted.company ? `(${String(extracted.company).toUpperCase()})` : "(SITE WEB)";
-    extracted.title = `${companyPart} Nouvelle opportunité`;
+    extracted.title = extracted.service_type === "formation"
+      ? "Formation"
+      : extracted.service_type === "mission"
+        ? "Mission"
+        : "Nouvelle opportunité";
   }
 
   const briefQuestions: BriefQuestion[] = (extracted.brief_questions || []).map((q: any) => ({
@@ -272,12 +336,70 @@ Règles:
     service_type: extracted.service_type === "formation" || extracted.service_type === "mission" ? extracted.service_type : null,
     title: extracted.title,
     brief_questions: briefQuestions,
+    suggested_tag_ids: resolveSuggestedTagIds(extracted.suggested_tag_names, availableTags),
+    suggested_next_action: normalizeNextAction(extracted.suggested_next_action, today),
   };
+}
+
+// ─── Value estimation from CRM history (mirrors NewOpportunityDialog) ───
+
+async function estimateValueFromHistory(
+  supabase: any,
+  extraction: ExtractionResult,
+): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from("crm_cards")
+      .select("estimated_value, service_type, company")
+      .eq("sales_status", "WON")
+      .gt("estimated_value", 0);
+
+    if (!data || data.length === 0) return 0;
+
+    let matches = data.filter((c: any) =>
+      extraction.company &&
+      c.company?.toLowerCase() === extraction.company.toLowerCase() &&
+      extraction.service_type &&
+      c.service_type === extraction.service_type,
+    );
+
+    if (matches.length === 0 && extraction.company) {
+      matches = data.filter((c: any) => c.company?.toLowerCase() === extraction.company?.toLowerCase());
+    }
+
+    if (matches.length === 0 && extraction.service_type) {
+      matches = data.filter((c: any) => c.service_type === extraction.service_type);
+    }
+
+    if (matches.length === 0) matches = data;
+
+    const avg = matches.reduce((sum: number, c: any) => sum + (c.estimated_value || 0), 0) / matches.length;
+    return Math.max(0, Math.round(avg / 100) * 100);
+  } catch {
+    return 0;
+  }
+}
+
+// ─── Acquisition source detection (mirrors NewOpportunityDialog) ────────
+
+async function detectAcquisitionSource(
+  supabase: any,
+  email: string | null,
+): Promise<"site_web" | "nouvelle_mission"> {
+  if (email) {
+    const { data: existingCards } = await supabase
+      .from("crm_cards")
+      .select("id")
+      .eq("email", email)
+      .limit(1);
+    if (existingCards && existingCards.length > 0) return "nouvelle_mission";
+  }
+  return "site_web";
 }
 
 // ─── Slack notification (best-effort) ───────────────────────────────────
 
-async function notifySlack(supabase: any, card: { title: string; company?: string | null; first_name?: string | null; last_name?: string | null; service_type?: string | null; email?: string | null; form_name?: string }) {
+async function notifySlack(supabase: any, card: { title: string; company?: string | null; first_name?: string | null; last_name?: string | null; email?: string | null; form_name?: string }) {
   try {
     const { data: settings } = await supabase
       .from("app_settings")
@@ -323,7 +445,6 @@ serve(async (req) => {
     });
   }
 
-  // ─── Token validation ───
   if (!ELEMENTOR_WEBHOOK_TOKEN) {
     console.error("ELEMENTOR_WEBHOOK_TOKEN not configured");
     return new Response(JSON.stringify({ error: "Webhook not configured" }), {
@@ -333,10 +454,7 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const queryToken = url.searchParams.get("token");
-  const headerToken = req.headers.get("x-webhook-token");
-  const providedToken = queryToken || headerToken;
-
+  const providedToken = url.searchParams.get("token") || req.headers.get("x-webhook-token");
   if (providedToken !== ELEMENTOR_WEBHOOK_TOKEN) {
     console.error("Invalid webhook token");
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -350,21 +468,17 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    // ─── Parse payload (json | form-urlencoded | multipart) ───
+    // ─── Parse payload ───
     const contentType = (req.headers.get("content-type") || "").toLowerCase();
     let submission: NormalizedSubmission;
 
     if (contentType.includes("application/json")) {
-      const json = await req.json();
-      submission = normalizeFromJson(json);
+      submission = normalizeFromJson(await req.json());
     } else if (contentType.includes("application/x-www-form-urlencoded")) {
-      const text = await req.text();
-      submission = normalizeFromForm(new URLSearchParams(text));
+      submission = normalizeFromForm(new URLSearchParams(await req.text()));
     } else if (contentType.includes("multipart/form-data")) {
-      const fd = await req.formData();
-      submission = normalizeFromForm(fd);
+      submission = normalizeFromForm(await req.formData());
     } else {
-      // Best-effort fallback: try JSON, then urlencoded
       const text = await req.text();
       try {
         submission = normalizeFromJson(JSON.parse(text));
@@ -373,11 +487,7 @@ serve(async (req) => {
       }
     }
 
-    console.log("Elementor submission received:", {
-      form: submission.form_name,
-      page: submission.page_url,
-      fields_count: submission.fields.length,
-    });
+    console.log("Elementor submission:", { form: submission.form_name, fields: submission.fields.length });
 
     if (submission.fields.length === 0) {
       return new Response(JSON.stringify({ error: "No form fields found in payload" }), {
@@ -386,7 +496,7 @@ serve(async (req) => {
       });
     }
 
-    // ─── Field detection (used as fallback if AI misses) ───
+    // ─── Field detection (fallback) ───
     const detectedEmail = normalizeEmail(detectField(submission, [/email|courriel|mail/]));
     const detectedPhone = detectField(submission, [/phone|tel|tél|mobile|portable/]);
     const detectedFirstName = detectField(submission, [/first[_\s-]?name|prenom|prénom/]);
@@ -395,14 +505,22 @@ serve(async (req) => {
 
     const rawInput = buildRawInput(submission);
 
+    // ─── Fetch available tags ───
+    const { data: tagsData } = await supabase
+      .from("crm_tags")
+      .select("id, name, category")
+      .limit(100);
+    const availableTags: AvailableTag[] = (tagsData || []).map((t: any) => ({
+      id: t.id, name: t.name, category: t.category ?? null,
+    }));
+
     // ─── AI extraction ───
     let extraction: ExtractionResult;
     try {
-      extraction = await extractOpportunity(rawInput, detectedEmail);
+      extraction = await extractOpportunity(rawInput, detectedEmail, availableTags);
     } catch (e) {
       console.error("AI extraction failed, using detected fields fallback:", e);
       const company = detectedCompany || extractCompanyFromEmail(detectedEmail);
-      const companyPart = company ? `(${company.toUpperCase()})` : "(SITE WEB)";
       extraction = {
         first_name: detectedFirstName,
         last_name: detectedLastName,
@@ -411,12 +529,14 @@ serve(async (req) => {
         email: detectedEmail,
         linkedin_url: null,
         service_type: null,
-        title: `${companyPart} Nouvelle opportunité`,
+        title: "Nouvelle opportunité",
         brief_questions: [
           { id: crypto.randomUUID(), question: "Quel est le contexte de cette demande ?", answered: false },
           { id: crypto.randomUUID(), question: "Quel est le budget envisagé ?", answered: false },
           { id: crypto.randomUUID(), question: "Quelle est l'échéance souhaitée ?", answered: false },
         ],
+        suggested_tag_ids: [],
+        suggested_next_action: null,
       };
     }
 
@@ -427,17 +547,21 @@ serve(async (req) => {
     extraction.last_name = extraction.last_name || detectedLastName;
     extraction.company = extraction.company || detectedCompany || extractCompanyFromEmail(extraction.email);
 
-    // ─── Find target column (first non-archived) ───
-    const { data: firstColumn, error: colErr } = await supabase
-      .from("crm_columns")
-      .select("id")
-      .eq("is_archived", false)
-      .order("position", { ascending: true })
-      .limit(1)
-      .single();
+    // ─── Value estimation + acquisition source ───
+    const [estimatedValue, acquisitionSource] = await Promise.all([
+      estimateValueFromHistory(supabase, extraction),
+      detectAcquisitionSource(supabase, extraction.email),
+    ]);
 
-    if (colErr || !firstColumn) {
-      console.error("No CRM column available:", colErr);
+    // ─── Pick column: "Entrant" first, else first non-archived ───
+    const { data: columns } = await supabase
+      .from("crm_columns")
+      .select("id, name")
+      .eq("is_archived", false)
+      .order("position", { ascending: true });
+
+    const targetColumn = columns?.find((c: any) => c.name === "Entrant") || columns?.[0];
+    if (!targetColumn) {
       return new Response(JSON.stringify({ error: "No CRM column available" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -447,34 +571,29 @@ serve(async (req) => {
     const { data: existingCards } = await supabase
       .from("crm_cards")
       .select("position")
-      .eq("column_id", firstColumn.id)
+      .eq("column_id", targetColumn.id)
       .order("position", { ascending: false })
       .limit(1);
     const maxPos = existingCards?.[0]?.position ?? -1;
 
-    // Today in Europe/Paris (YYYY-MM-DD) — same default as the manual "new opportunity" flow
-    const todayParis = (() => {
-      const fmt = new Intl.DateTimeFormat("fr-CA", {
-        timeZone: "Europe/Paris",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-      return fmt.format(new Date()); // YYYY-MM-DD
-    })();
+    // ─── Next action: AI suggestion or default to today ───
+    const today = todayParisISO();
+    const nextActionDate = extraction.suggested_next_action?.date || today;
+    const nextActionText = extraction.suggested_next_action?.text || "Recontacter le prospect (formulaire site web)";
 
     // ─── Create card ───
     const { data: newCard, error: cardError } = await supabase
       .from("crm_cards")
       .insert({
-        column_id: firstColumn.id,
+        column_id: targetColumn.id,
         title: extraction.title,
+        description_html: buildDescriptionHtml(rawInput),
         position: maxPos + 1,
         sales_status: "OPEN",
         status_operational: "WAITING",
-        waiting_next_action_date: todayParis,
-        waiting_next_action_text: "Recontacter le prospect (formulaire site web)",
-        estimated_value: 0,
+        waiting_next_action_date: nextActionDate,
+        waiting_next_action_text: nextActionText,
+        estimated_value: estimatedValue,
         first_name: capitalizeName(extraction.first_name),
         last_name: capitalizeName(extraction.last_name),
         phone: extraction.phone || null,
@@ -484,7 +603,8 @@ serve(async (req) => {
         service_type: extraction.service_type || null,
         brief_questions: extraction.brief_questions as unknown,
         raw_input: rawInput,
-        acquisition_source: "site_web",
+        acquisition_source: acquisitionSource,
+        emoji: pickRandomEmoji(),
       })
       .select()
       .single();
@@ -497,8 +617,9 @@ serve(async (req) => {
       });
     }
 
-    console.log("CRM card created from Elementor webhook:", newCard.id);
+    console.log("CRM card created:", newCard.id);
 
+    // ─── Activity log ───
     await supabase.from("crm_activity_log").insert({
       card_id: newCard.id,
       action_type: "card_created",
@@ -506,19 +627,32 @@ serve(async (req) => {
       new_value: extraction.title,
     });
 
-    // Slack notify (fire-and-forget)
+    // ─── Persist suggested tags ───
+    if (extraction.suggested_tag_ids.length > 0) {
+      const tagRows = extraction.suggested_tag_ids.map((tag_id) => ({ card_id: newCard.id, tag_id }));
+      const { error: tagErr } = await supabase.from("crm_card_tags").insert(tagRows);
+      if (tagErr) console.error("Tag assignment error (non-fatal):", tagErr);
+    }
+
+    // ─── Slack ───
     notifySlack(supabase, {
       title: extraction.title,
       company: extraction.company,
       first_name: extraction.first_name,
       last_name: extraction.last_name,
-      service_type: extraction.service_type,
       email: extraction.email,
       form_name: submission.form_name,
     });
 
     return new Response(
-      JSON.stringify({ success: true, card_id: newCard.id, title: extraction.title }),
+      JSON.stringify({
+        success: true,
+        card_id: newCard.id,
+        title: extraction.title,
+        column: targetColumn.name,
+        estimated_value: estimatedValue,
+        tags_assigned: extraction.suggested_tag_ids.length,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
