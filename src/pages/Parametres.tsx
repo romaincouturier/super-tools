@@ -1,4 +1,5 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart } from "lucide-react";
+import { SettingsTab as SupertiltSettingsTab } from "@/pages/SupertiltOrders";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -90,6 +91,7 @@ const Parametres = () => {
             <TabsTrigger value="voice" className="flex items-center gap-2"><Mic className="h-4 w-4" />{tabLabel("voice", "Voix IA")}</TabsTrigger>
             {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />{tabLabel("agent", "Agent IA")}</TabsTrigger>}
             {isAdmin && <TabsTrigger value="transcripts" className="flex items-center gap-2"><Radio className="h-4 w-4" />Prompts Transcripts</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="dropshipping" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Dropshipping</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="general">
@@ -131,6 +133,7 @@ const Parametres = () => {
           </TabsContent>
           {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
           {isAdmin && <TabsContent value="transcripts"><TranscriptPromptsSettings /></TabsContent>}
+          {isAdmin && <TabsContent value="dropshipping"><SupertiltSettingsTab /></TabsContent>}
         </Tabs>
       </main>
     </ModuleLayout>

@@ -903,7 +903,7 @@ function TemplateEditor({ tpl, onClose }: { tpl: Partial<EmailTemplate>; onClose
 
 // ── Settings ───────────────────────────────────────────────────────
 
-function SettingsTab() {
+export function SettingsTab() {
   const { data: settings, isLoading } = useSupertiltSettings();
   const { data: templates } = useEmailTemplates();
   const { mutateAsync: saveSetting } = useUpsertSupertiltSetting();
@@ -1084,7 +1084,6 @@ export default function SupertiltOrders() {
           <TabsTrigger value="depenses"><BarChart3 className="h-4 w-4 mr-1.5" />Dépenses</TabsTrigger>
           <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1.5" />Stock</TabsTrigger>
           <TabsTrigger value="emails"><Mail className="h-4 w-4 mr-1.5" />Emails</TabsTrigger>
-          <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1.5" />Paramètres</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><Dashboard /></TabsContent>
         <TabsContent value="kanban"><Kanban /></TabsContent>
@@ -1095,7 +1094,6 @@ export default function SupertiltOrders() {
         <TabsContent value="depenses"><DepensesTab /></TabsContent>
         <TabsContent value="stock"><StockTab /></TabsContent>
         <TabsContent value="emails"><EmailLogTab /></TabsContent>
-        <TabsContent value="settings"><SettingsTab /></TabsContent>
       </Tabs>
     </ModuleLayout>
   );
