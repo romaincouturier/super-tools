@@ -7,6 +7,8 @@ interface TypeDevisSectionProps {
   setTypeDevis: (v: "formation" | "jeu" | "") => void;
   isAdministration: "oui" | "non" | "";
   setIsAdministration: (v: "oui" | "non" | "") => void;
+  isOpco: "oui" | "non";
+  setIsOpco: (v: "oui" | "non") => void;
   noteDevis: string;
   setNoteDevis: (v: string) => void;
 }
@@ -16,6 +18,8 @@ export default function TypeDevisSection({
   setTypeDevis,
   isAdministration,
   setIsAdministration,
+  isOpco,
+  setIsOpco,
   noteDevis,
   setNoteDevis,
 }: TypeDevisSectionProps) {
