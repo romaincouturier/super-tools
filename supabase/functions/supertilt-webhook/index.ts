@@ -158,6 +158,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       "processing",
     ];
     const autoSend = getSetting("auto_send_emails") === true;
+    const vatRate: number = Number(getSetting("vat_rate") ?? 0.20);
+    const stripeFeeRate: number = Number(getSetting("stripe_fee_rate") ?? 0.014);
+    const stripeFeeFixed: number = Number(getSetting("stripe_fee_fixed") ?? 0.25);
+    const defaultCurrency: string = (getSetting("default_currency") as string) ?? "EUR";
     let webhookSecret = (getSetting("wc_webhook_secret") as string) ?? "";
     // Defensive: strip accidental surrounding quotes from double-JSON-encoded values
     if (typeof webhookSecret === "string" && webhookSecret.startsWith('"') && webhookSecret.endsWith('"')) {
