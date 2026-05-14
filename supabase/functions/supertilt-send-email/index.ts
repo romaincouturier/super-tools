@@ -21,8 +21,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function formatAddress(addr: Record<string, string> | null): string {
   if (!addr) return "";
+  // NB: do NOT include first_name/last_name here — the recipient name is
+  // already rendered separately as {{nom_client}} above the address block.
   return [
-    [addr.first_name, addr.last_name].filter(Boolean).join(" "),
+    addr.company,
     addr.address_1,
     addr.address_2,
     [addr.postcode, addr.city].filter(Boolean).join(" "),
@@ -114,7 +116,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       : "";
     const billing = order?.billing_address ?? {};
     const shipping = order?.shipping_address ?? {};
-    const telephone = (shipping as any)?.phone || (billing as any)?.phone || "";
+    const rawOrder: any = (order as any)?.raw_order ?? {};
+    const telephone =
+      (shipping as any)?.phone ||
+      (billing as any)?.phone ||
+      rawOrder?.shipping?.phone ||
+      rawOrder?.billing?.phone ||
+      (order as any)?.customer_phone ||
+      "";
     const customerNote: string =
       (item as any).notes ??
       (order as any)?.raw_order?.customer_note ??
