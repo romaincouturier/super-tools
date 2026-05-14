@@ -1710,6 +1710,7 @@ export type Database = {
           signed_at: string | null
           status: string
           token: string
+          total_amount_ht: number | null
           updated_at: string
           user_agent: string | null
         }
@@ -1735,6 +1736,7 @@ export type Database = {
           signed_at?: string | null
           status?: string
           token: string
+          total_amount_ht?: number | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1760,6 +1762,7 @@ export type Database = {
           signed_at?: string | null
           status?: string
           token?: string
+          total_amount_ht?: number | null
           updated_at?: string
           user_agent?: string | null
         }

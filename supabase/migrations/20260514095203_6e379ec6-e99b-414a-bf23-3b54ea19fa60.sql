@@ -1,0 +1,1 @@
+ALTER TABLE public.devis_signatures ADD COLUMN IF NOT EXISTS total_amount_ht numeric;
