@@ -266,6 +266,22 @@ const SignatureDevis = () => {
                 {devisData && getDevisTypeLabel(devisData.devis_type)}
               </span>
             </div>
+            {devisData?.total_amount_ht != null && (
+              <div className="flex items-center gap-3">
+                <Euro className="h-4 w-4 text-muted-foreground" />
+                <span>
+                  Montant&nbsp;:{" "}
+                  <strong>
+                    {new Intl.NumberFormat("fr-FR", {
+                      style: "currency",
+                      currency: "EUR",
+                      minimumFractionDigits: 2,
+                    }).format(Number(devisData.total_amount_ht))}
+                  </strong>{" "}
+                  HT
+                </span>
+              </div>
+            )}
             {devisData?.pdf_url && (
               <div className="pt-2">
                 <Button variant="outline" asChild className="w-full sm:w-auto" onClick={handlePdfConsulted}>
