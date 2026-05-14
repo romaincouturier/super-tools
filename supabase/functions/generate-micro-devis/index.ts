@@ -46,6 +46,11 @@ interface EmailAttachmentPayload {
 }
 
 const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
+const DOSSIER_FEE_AMOUNT = 350;
+
+function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
+  return subrogation || data.fraisDossier || data.isOpco ? DOSSIER_FEE_AMOUNT : 0;
+}
 
 async function generatePdfWithPdfMonkey(
   data: RequestBody,
@@ -70,14 +75,14 @@ async function generatePdfWithPdfMonkey(
     ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
     : "";
 
-  // OPCO mode: merge admin fee (forfait global 150€) into the unit price
+  // OPCO mode: merge admin fee (forfait global 350€) into the unit price
   // so only one line appears on the PDF. Total TTC stays identical.
-  const adminFeeAmount = data.fraisDossier ? 150 : 0;
+  const adminFeeAmount = getDossierFeeAmount(data, subrogation);
   const qty = Math.max(1, data.nbParticipants);
   const mergedUnitPrice = data.isOpco
     ? data.prix + adminFeeAmount / qty
     : data.prix;
-  const showAdminFeeLine = data.fraisDossier && !data.isOpco;
+  const showAdminFeeLine = adminFeeAmount > 0 && !data.isOpco;
 
   // Build the payload in the expected structure
   const payload = {
@@ -103,7 +108,7 @@ async function generatePdfWithPdfMonkey(
         unit_price: mergedUnitPrice,
       },
     ],
-    admin_fee: showAdminFeeLine ? 150 : 0,
+    admin_fee: showAdminFeeLine ? DOSSIER_FEE_AMOUNT : 0,
     is_opco: !!data.isOpco,
   };
 
@@ -311,7 +316,9 @@ function textToHtml(text: string): string {
 
 // Check if a string looks like HTML content
 function isHtmlContent(text: string): boolean {
-  return /<[a-z][\s\S]*>/i.test(text);
+  // A plain-text template may legitimately contain inline HTML like <a href="...">.
+  // Treat it as already-formatted HTML only when it contains block/layout tags.
+  return /<\/?(p|div|table|tbody|thead|tr|td|th|ul|ol|li|br|section|article|h[1-6])\b/i.test(text);
 }
 
 // Default template content
@@ -429,7 +436,7 @@ async function sendEmailWithResend(
         ? "→ Signer le devis sans subrogation"
         : "→ Signer le devis en ligne";
       signatureLinks.push(
-        `<p style="margin:4px 0;"><a href="${url}" style="color:#1a73e8;text-decoration:underline;">${label}</a></p>`
+        `<p style="margin:8px 0;"><a href="${url}" style="display:inline-block;padding:12px 18px;background:#e6bc00;color:#1a1a1a;text-decoration:none;border-radius:6px;font-weight:700;">${label}</a></p>`
       );
     }
     if ((typeSubrogation === "avec" || typeSubrogation === "les2") && signatureTokens.avec) {
@@ -438,15 +445,15 @@ async function sendEmailWithResend(
         ? "→ Signer le devis avec subrogation"
         : "→ Signer le devis en ligne";
       signatureLinks.push(
-        `<p style="margin:4px 0;"><a href="${url}" style="color:#1a73e8;text-decoration:underline;">${label}</a></p>`
+        `<p style="margin:8px 0;"><a href="${url}" style="display:inline-block;padding:12px 18px;background:#e6bc00;color:#1a1a1a;text-decoration:none;border-radius:6px;font-weight:700;">${label}</a></p>`
       );
     }
     const signatureBlock = signatureLinks.length > 0
-      ? `<div style="margin:20px 0;padding:16px 20px;background:#f0f7ff;border-radius:8px;border-left:4px solid #1a73e8;">
-  <p style="margin:0 0 6px 0;font-weight:600;color:#1a1a2e;">Signature électronique</p>
-  <p style="margin:0 0 12px 0;font-size:14px;color:#444;">Pour simplifier les démarches, vous pouvez signer directement en ligne :</p>
+      ? `<div style="margin:22px 0;padding:18px 20px;background:#fff8cf;border-radius:8px;border-left:4px solid #e6bc00;">
+  <p style="margin:0 0 8px 0;font-weight:700;color:#1a1a1a;">Signature électronique du devis</p>
+  <p style="margin:0 0 14px 0;font-size:14px;line-height:1.5;color:#333;">Pour simplifier les démarches, vous pouvez signer directement le devis en ligne :</p>
   ${signatureLinks.join("\n  ")}
-  <p style="margin:10px 0 0 0;font-size:12px;color:#888;">Signature électronique valide conformément au règlement eIDAS (UE n° 910/2014). Ce lien est valable 30 jours.</p>
+  <p style="margin:12px 0 0 0;font-size:12px;line-height:1.4;color:#666;">Signature électronique valide conformément au règlement eIDAS (UE n° 910/2014). Ce lien est valable 30 jours.</p>
 </div>`
       : "";
 
@@ -477,7 +484,7 @@ async function sendEmailWithResend(
   `;
 
   const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; max-width: 640px; padding: 20px; font-size:14px; line-height:1.6; color:#222;">
       ${contentHtml}
       ${emailSignature || fallbackSignature}
     </div>
@@ -608,10 +615,10 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Compute total amount (HT) for opportunity estimation sync.
-    // Micro-devis pricing = prix × nb_participants (+ 150€ frais de dossier).
+    // Micro-devis pricing = prix × nb_participants (+ 350€ frais de dossier).
     const microDevisTotal =
       (body.prix || 0) * (body.nbParticipants || 1) +
-      (body.fraisDossier ? 150 : 0);
+      getDossierFeeAmount(body, typeSubrogation === "avec" || typeSubrogation === "les2");
 
     // Insert activity_logs FIRST so we have an id to link to devis_signatures
     let activityLogId: string | null = null;

@@ -29,7 +29,7 @@ export default function FormationSummary({
   const prixUnitaire = activeFormula?.prix ?? config.prix;
   const nbParticipants = countParticipants();
   const prixFormation = prixUnitaire * nbParticipants;
-  const frais = fraisDossier === "oui" ? 150 : 0;
+  const frais = fraisDossier === "oui" ? 350 : 0;
   const totalHT = prixFormation + frais;
   const tva = 0;
   const totalTTC = totalHT + tva;
