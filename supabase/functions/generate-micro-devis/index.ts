@@ -327,7 +327,9 @@ async function sendEmailWithResend(
   programmeUrl: string | null,
   pdfUrlSansSubrogation: string | null,
   pdfUrlAvecSubrogation: string | null,
-  typeSubrogation: "sans" | "avec" | "les2"
+  typeSubrogation: "sans" | "avec" | "les2",
+  signatureTokens: { sans?: string; avec?: string },
+  appUrl: string
 ): Promise<{ subject: string; htmlContent: string; attachmentNames: string[]; attachments: EmailAttachmentPayload[] }> {
   console.log(`Sending email to ${emailCommanditaire}...`);
 
