@@ -15,9 +15,10 @@ import type { SelfAssessmentBlockContent, SelfAssessmentScale } from "@/types/lm
 interface Props {
   content: SelfAssessmentBlockContent;
   onChange: (content: SelfAssessmentBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function SelfAssessmentBlockEditor({ content, onChange }: Props) {
+export default function SelfAssessmentBlockEditor({ content, onChange, slim }: Props) {
   const labels = content.labels || [];
 
   const setLabel = (i: number, value: string) => {
@@ -25,6 +26,10 @@ export default function SelfAssessmentBlockEditor({ content, onChange }: Props) 
     next[i] = value;
     onChange({ ...content, labels: next });
   };
+
+  if (slim) {
+    return <SelfAssessmentBlockViewer content={content} />;
+  }
 
   return (
     <div className="space-y-3">
@@ -42,9 +47,7 @@ export default function SelfAssessmentBlockEditor({ content, onChange }: Props) 
           value={content.scale}
           onValueChange={(v) => onChange({ ...content, scale: v as SelfAssessmentScale })}
         >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
+          <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="labels">Libellés personnalisés</SelectItem>
             <SelectItem value="stars">Étoiles (1 à 5)</SelectItem>

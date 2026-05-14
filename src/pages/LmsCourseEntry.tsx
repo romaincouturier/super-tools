@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { Loader2, BookOpen, Settings } from "lucide-react";
+import { Loader2, BookOpen } from "lucide-react";
 import { useCourseLessons, useCourse } from "@/hooks/useLms";
 
 export default function LmsCourseEntry() {
@@ -47,11 +47,11 @@ export default function LmsCourseEntry() {
           {course?.title ?? "Ce cours"}
         </h2>
         <p style={{ margin: "0.5rem 0 0", fontSize: "0.9375rem", color: "var(--st-ink-60)" }}>
-          Aucune leçon trouvée. Créez votre première leçon dans les paramètres du cours.
+          Aucune leçon trouvée. Retournez à la liste des cours pour en créer une.
         </p>
       </div>
       <Link
-        to={`/lms/${courseId}/settings`}
+        to="/lms"
         style={{
           display: "inline-flex", alignItems: "center", gap: "0.5rem",
           padding: "0.625rem 1.5rem", borderRadius: 999,
@@ -60,8 +60,7 @@ export default function LmsCourseEntry() {
           textDecoration: "none",
         }}
       >
-        <Settings size={16} />
-        Paramètres du cours
+        Retour aux cours
       </Link>
     </div>
   );

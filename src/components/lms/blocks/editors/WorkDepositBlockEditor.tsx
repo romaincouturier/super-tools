@@ -9,6 +9,7 @@ import type { WorkDepositBlockContent } from "@/types/lms-blocks";
 interface Props {
   content: WorkDepositBlockContent;
   onChange: (content: WorkDepositBlockContent) => void;
+  slim?: boolean;
 }
 
 const ALL_FORMATS: string[] = ["jpg", "png", "pdf", "video"];
@@ -19,7 +20,7 @@ const FORMAT_LABELS: Record<string, string> = {
   video: "Vidéo",
 };
 
-export default function WorkDepositBlockEditor({ content, onChange }: Props) {
+export default function WorkDepositBlockEditor({ content, onChange, slim }: Props) {
   const formats = content.accepted_formats || ALL_FORMATS;
   const maxSize = content.max_size_mb ?? 50;
   const sharingAllowed = content.sharing_allowed !== false;
@@ -30,6 +31,31 @@ export default function WorkDepositBlockEditor({ content, onChange }: Props) {
     const next = formats.includes(fmt) ? formats.filter((f) => f !== fmt) : [...formats, fmt];
     onChange({ ...content, accepted_formats: next.length === 0 ? ALL_FORMATS : next });
   };
+
+  if (slim) {
+    return (
+      <div className="space-y-3">
+        <div
+          className="flex items-center gap-3 rounded-xl px-4 py-3"
+          style={{ background: "var(--st-surface)", border: "1px solid var(--st-ink-08)" }}
+        >
+          <Upload size={20} style={{ color: "var(--st-ink-50)", flexShrink: 0 }} />
+          <Input
+            value={content.title || ""}
+            onChange={(e) => onChange({ ...content, title: e.target.value || "Déposer mon travail" })}
+            placeholder="Déposer mon travail"
+            className="flex-1 border-none bg-transparent px-0 font-medium focus-visible:ring-0"
+            style={{ color: "var(--st-ink)" }}
+          />
+        </div>
+        <RichTextEditor
+          content={content.instructions_html || ""}
+          onChange={(html) => onChange({ ...content, instructions_html: html })}
+          placeholder="Consigne de l'exercice…"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

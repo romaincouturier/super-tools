@@ -9,9 +9,10 @@ import type { ExerciseBlockContent } from "@/types/lms-blocks";
 interface Props {
   content: ExerciseBlockContent;
   onChange: (content: ExerciseBlockContent) => void;
+  slim?: boolean;
 }
 
-export default function ExerciseBlockEditor({ content, onChange }: Props) {
+export default function ExerciseBlockEditor({ content, onChange, slim }: Props) {
   const checklistItems = content.checklist_items || [];
   const hasChecklist = checklistItems.length > 0 || content.checklist_title;
 
@@ -43,6 +44,49 @@ export default function ExerciseBlockEditor({ content, onChange }: Props) {
       checklist_title: null,
     });
 
+  if (slim) {
+    return (
+      <div className="space-y-3">
+        <RichTextEditor
+          content={content.prompt_html || ""}
+          onChange={(prompt_html) => onChange({ ...content, prompt_html })}
+          placeholder="Énoncé de l'exercice…"
+        />
+        {hasChecklist && (
+          <div className="space-y-1 pl-2">
+            {checklistItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-2">
+                <span style={{ color: "var(--st-ink-50)" }}>☐</span>
+                <Input
+                  value={item.label}
+                  onChange={(e) => setChecklistLabel(item.id, e.target.value)}
+                  placeholder="Étape ou critère"
+                  className="flex-1 text-sm h-7 border-none bg-transparent px-0 focus-visible:ring-0"
+                />
+              </div>
+            ))}
+            <button
+              className="text-xs mt-1"
+              style={{ color: "var(--st-ink-50)" }}
+              onClick={addChecklistItem}
+            >
+              + Ajouter un critère
+            </button>
+          </div>
+        )}
+        {!hasChecklist && (
+          <button
+            className="text-xs"
+            style={{ color: "var(--st-ink-50)" }}
+            onClick={enableChecklist}
+          >
+            + Ajouter une liste de critères
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div>
@@ -54,7 +98,6 @@ export default function ExerciseBlockEditor({ content, onChange }: Props) {
         />
       </div>
 
-      {/* Inline checklist section */}
       <div className="rounded-lg border p-3 space-y-2">
         <div className="flex items-center justify-between">
           <Label className="text-sm">Liste à cocher dans la consigne</Label>
@@ -64,7 +107,6 @@ export default function ExerciseBlockEditor({ content, onChange }: Props) {
             </Button>
           )}
         </div>
-
         {hasChecklist && (
           <div className="space-y-2">
             <Input
@@ -83,11 +125,8 @@ export default function ExerciseBlockEditor({ content, onChange }: Props) {
                   className="flex-1 text-sm"
                 />
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => removeChecklistItem(item.id)}
-                  aria-label="Supprimer"
+                  variant="ghost" size="icon" className="h-8 w-8 shrink-0"
+                  onClick={() => removeChecklistItem(item.id)} aria-label="Supprimer"
                 >
                   <X className="h-3.5 w-3.5" />
                 </Button>

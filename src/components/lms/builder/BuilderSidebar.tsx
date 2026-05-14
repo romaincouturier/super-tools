@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, CheckCircle2, FileText, Plus } from "lucide-react";
-import { useCourseModules, useModuleLessons, LmsModule, LmsLesson } from "@/hooks/useLms";
+import { ChevronRight, FileText, Plus } from "lucide-react";
+import {
+  useCourseModules,
+  useModuleLessons,
+  useCreateModule,
+  useCreateLesson,
+  LmsModule,
+  LmsLesson,
+} from "@/hooks/useLms";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   courseId: string;
@@ -11,6 +19,21 @@ interface Props {
 
 export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }: Props) {
   const { data: modules = [] } = useCourseModules(courseId);
+  const createModule = useCreateModule();
+  const { toast } = useToast();
+
+  const handleAddModule = async () => {
+    try {
+      await createModule.mutateAsync({
+        course_id: courseId,
+        title: "Nouveau module",
+        position: modules.length,
+      });
+      toast({ title: "Module ajouté" });
+    } catch {
+      toast({ title: "Erreur lors de la création du module", variant: "destructive" });
+    }
+  };
 
   return (
     <aside
@@ -38,6 +61,8 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
 
         {/* Add module button */}
         <button
+          disabled={createModule.isPending}
+          onClick={handleAddModule}
           className="w-full flex items-center gap-2 text-left"
           style={{
             padding: ".5rem .75rem",
@@ -46,6 +71,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
             borderRadius: 6,
             fontWeight: 500,
             marginTop: ".25rem",
+            opacity: createModule.isPending ? 0.5 : 1,
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
@@ -57,7 +83,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
           }}
         >
           <Plus size={14} />
-          <span>Ajouter un module</span>
+          <span>{createModule.isPending ? "Création…" : "Ajouter un module"}</span>
         </button>
       </nav>
 
@@ -94,6 +120,24 @@ function ModuleItem({
   const { data: lessons = [] } = useModuleLessons(mod.id);
   const hasActive = lessons.some((l) => l.id === activeLessonId);
   const [open, setOpen] = useState(hasActive);
+  const createLesson = useCreateLesson();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleAddLesson = async () => {
+    try {
+      const lesson = await createLesson.mutateAsync({
+        module_id: mod.id,
+        title: "Nouvelle leçon",
+        lesson_type: "text",
+        position: lessons.length,
+      });
+      toast({ title: "Leçon ajoutée" });
+      navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`);
+    } catch {
+      toast({ title: "Erreur lors de la création de la leçon", variant: "destructive" });
+    }
+  };
 
   return (
     <div style={{ marginBottom: ".25rem" }}>
@@ -134,6 +178,32 @@ function ModuleItem({
             isActive={lesson.id === activeLessonId}
           />
         ))}
+
+        {/* Add lesson button */}
+        <button
+          disabled={createLesson.isPending}
+          onClick={handleAddLesson}
+          className="w-full flex items-center gap-2 text-left"
+          style={{
+            padding: ".375rem .75rem .375rem 2rem",
+            fontSize: ".8125rem",
+            color: "var(--st-ink-50)",
+            borderRadius: 6,
+            fontWeight: 400,
+            opacity: createLesson.isPending ? 0.5 : 1,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink-50)";
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+          }}
+        >
+          <Plus size={12} />
+          <span>{createLesson.isPending ? "Création…" : "Ajouter une leçon"}</span>
+        </button>
       </div>
     </div>
   );
@@ -177,7 +247,6 @@ function LessonItem({
         }
       }}
     >
-      {/* Icon: file-text by default; check-circle if we could detect published */}
       <span
         className="flex items-center justify-center shrink-0"
         style={{ width: 16, height: 16, color: isActive ? "var(--st-ink)" : "rgba(16,24,32,0.4)" }}
