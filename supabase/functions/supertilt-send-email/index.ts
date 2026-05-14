@@ -58,7 +58,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           custom_message, is_partner, partner_name, partner_email,
           commission_type, commission_rate, commission_fixed,
           secondary_author_email,
-          game_authors!author_id (name, email, secondary_email)
+          game_authors!author_id (name, email, secondary_email, phone, royalty_rate)
         )
       `)
       .eq("id", order_item_id)
@@ -96,19 +96,49 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── Build template variables ─────────────────────────────────
-    const vars = {
+    const fmtEUR = (n: number) =>
+      new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n);
+    const lineTotalNum: number = Number((item as any).line_total ?? 0);
+    const qty: number = Number((item as any).quantity ?? 1);
+    const unitPrice: number = Number((item as any).unit_price ?? (qty ? lineTotalNum / qty : 0));
+    // WooCommerce line_total is stored HT in this project
+    const lineHT = lineTotalNum;
+    const lineTTC = lineTotalNum * 1.2;
+    const authorName: string = author?.name ?? "";
+    const prenomAuteur = authorName.split(/\s+/)[0] ?? "";
+    const royalty: number = Number(author?.royalty_rate ?? 0);
+    const tauxCommission = royalty > 0
+      ? `${Math.round(royalty * 100)}%`
+      : "";
+    const billing = order?.billing_address ?? {};
+    const shipping = order?.shipping_address ?? {};
+    const telephone = (shipping as any)?.phone || (billing as any)?.phone || "";
+    const customerNote: string =
+      (item as any).notes ??
+      (order as any)?.raw_order?.customer_note ??
+      "";
+
+    const vars: Record<string, string> = {
       nom_jeu: game.title ?? "",
-      quantite: String((item as any).quantity ?? 1),
+      quantite: String(qty),
       nom_client: [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || "Client",
+      prenom_client: order?.customer_first_name ?? "",
+      nom_famille_client: order?.customer_last_name ?? "",
       email_client: order?.customer_email ?? "",
+      telephone,
       adresse_livraison: formatAddress(order?.shipping_address ?? order?.billing_address),
       numero_commande: order?.order_number ?? String(order?.wc_order_id ?? ""),
       url_produit: game.woocommerce_product_url ?? "",
       message_personnalise_jeu: game.custom_message ?? "",
-      montant_ttc: new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(
-        (item as any).line_total ?? 0,
-      ),
-      montant_ht: "",
+      note_client: customerNote ?? "",
+      prenom_auteur: prenomAuteur,
+      nom_auteur: authorName,
+      taux_commission: tauxCommission,
+      prix_vendu: fmtEUR(lineTTC),
+      prix_ht: fmtEUR(lineHT),
+      prix_unitaire_ht: fmtEUR(unitPrice),
+      montant_ttc: fmtEUR(lineTTC),
+      montant_ht: fmtEUR(lineHT),
       commission,
       date_commande: order?.date_created
         ? new Date(order.date_created).toLocaleDateString("fr-FR")
@@ -175,23 +205,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load and process template ────────────────────────────────
     const { data: tpl } = await (admin as any)
       .from("email_templates")
-      .select("subject, body")
-      .eq("template_key", templateKey)
-      .single();
+      .select("subject, html_content")
+      .eq("template_type", `supertilt_${templateKey}`)
+      .maybeSingle();
 
     if (!tpl) {
       await (admin as any).from("order_items")
-        .update({ kanban_status: "blocked", block_reason: `Template email '${templateKey}' introuvable` })
+        .update({ kanban_status: "blocked", block_reason: `Template email 'supertilt_${templateKey}' introuvable` })
         .eq("id", order_item_id);
 
       return new Response(
-        JSON.stringify({ error: `Email template '${templateKey}' not found` }),
+        JSON.stringify({ error: `Email template 'supertilt_${templateKey}' not found` }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const subject = processTemplate((tpl as any).subject, vars, false);
-    const html = processTemplate((tpl as any).body, vars, false);
+    const html = processTemplate((tpl as any).html_content, vars, false);
 
     // ── Send email ───────────────────────────────────────────────
     const result = await sendEmail({
