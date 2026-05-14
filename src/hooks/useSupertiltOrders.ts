@@ -172,9 +172,11 @@ export function useUpsertGameFull() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<GameFull> & { title: string }) => {
-      const { data, error } = payload.id
-        ? await (supabase as any).from("games").update(payload).eq("id", payload.id).select().single()
-        : await (supabase as any).from("games").insert(payload).select().single();
+      // Strip joined relations and read-only fields before upsert
+      const { game_authors: _ga, created_at: _ca, updated_at: _ua, ...clean } = payload as any;
+      const { data, error } = clean.id
+        ? await (supabase as any).from("games").update(clean).eq("id", clean.id).select().single()
+        : await (supabase as any).from("games").insert(clean).select().single();
       if (error) throw error;
       return data as GameFull;
     },
