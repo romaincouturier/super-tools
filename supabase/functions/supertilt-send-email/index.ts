@@ -340,6 +340,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           const phtml = processTemplate((ptpl as any).html_content, vars, false);
           const presult = await sendEmail({
             to: [game.partner_email],
+            bcc: bccEmails.length ? bccEmails : undefined,
             subject: psubject,
             html: phtml,
             from: defaultSender,
@@ -350,7 +351,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             wc_order_id: order?.wc_order_id,
             template_key: "partner",
             sent_to: [game.partner_email],
-            cc: [],
+            cc: bccEmails,
             subject: psubject,
             body: phtml,
             status: presult.success ? "sent" : "failed",
