@@ -321,13 +321,15 @@ async function createCrmOpportunityFromEmail(
     .eq("id", insertedEmailId);
 
   // Slack notification (fire-and-forget)
-  notifySlackFromWebhook(supabase, "opportunity_created", {
+  postCrmOpportunityToSlack(supabase, {
     title: extraction.title,
+    message: rawInput,
     company: extraction.company || undefined,
     first_name: extraction.first_name || undefined,
     last_name: extraction.last_name || undefined,
     service_type: extraction.service_type || undefined,
     email: parsedFrom.email,
+    source_label: `Email entrant — ${parsedFrom.email}`,
   });
 }
 
