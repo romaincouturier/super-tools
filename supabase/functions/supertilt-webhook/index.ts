@@ -158,6 +158,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       "processing",
     ];
     const autoSend = getSetting("auto_send_emails") === true;
+    const vatRate: number = Number(getSetting("vat_rate") ?? 0.20);
+    const stripeFeeRate: number = Number(getSetting("stripe_fee_rate") ?? 0.014);
+    const stripeFeeFixed: number = Number(getSetting("stripe_fee_fixed") ?? 0.25);
+    const defaultCurrency: string = (getSetting("default_currency") as string) ?? "EUR";
     let webhookSecret = (getSetting("wc_webhook_secret") as string) ?? "";
     // Defensive: strip accidental surrounding quotes from double-JSON-encoded values
     if (typeof webhookSecret === "string" && webhookSecret.startsWith('"') && webhookSecret.endsWith('"')) {
@@ -221,7 +225,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load games catalog ───────────────────────────────────────
     const { data: games } = await (admin as any)
       .from("games")
-      .select("id, woocommerce_product_id, game_type, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email")
+      .select("id, woocommerce_product_id, game_type, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees")
       .not("woocommerce_product_id", "is", null);
 
     const gamesByProductId = new Map(
@@ -283,6 +287,53 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (itemErr) {
         // If no unique constraint, fall back to insert
         await (admin as any).from("order_items").insert(itemPayload);
+      }
+
+      // ── Historize sale into game_sales (with Stripe fee calc) ──
+      if (game && gameId) {
+        const lineHT = parseFloat(item.total ?? "0");
+        const qty = item.quantity ?? 1;
+        const unit = qty > 0 ? lineHT / qty : lineHT;
+        const lineTTC = +(lineHT * (1 + vatRate)).toFixed(2);
+        const vatAmount = +(lineTTC - lineHT).toFixed(2);
+        const includeFees = (game as any).include_stripe_fees === true;
+        const bankFees = includeFees
+          ? +(lineTTC * stripeFeeRate + stripeFeeFixed).toFixed(2)
+          : 0;
+        const netAmount = +(lineTTC - bankFees).toFixed(2);
+
+        // Royalty (HT-based)
+        let royalty = 0;
+        if (game.commission_type === "percentage" && game.commission_rate) {
+          royalty = +(lineHT * Number(game.commission_rate)).toFixed(2);
+        } else if (game.commission_type === "fixed" && game.commission_fixed) {
+          royalty = +(Number(game.commission_fixed) * qty).toFixed(2);
+        }
+
+        const saleKey = `${order.id}-${item.product_id}`;
+        await (admin as any)
+          .from("game_sales")
+          .upsert(
+            {
+              game_id: gameId,
+              woocommerce_order_id: saleKey,
+              customer_name: [order.billing?.first_name, order.billing?.last_name].filter(Boolean).join(" ") || null,
+              customer_email: order.billing?.email ?? null,
+              quantity: qty,
+              unit_price: unit,
+              total_amount: lineTTC,
+              amount_ht: lineHT,
+              vat_amount: vatAmount,
+              bank_fees: bankFees,
+              net_amount: netAmount,
+              currency: defaultCurrency,
+              royalty_amount: royalty,
+              sale_date: order.date_created,
+              status: "paid",
+              raw_order: order,
+            },
+            { onConflict: "woocommerce_order_id" },
+          );
       }
 
       // Trigger email if auto-send is on and we have a game
