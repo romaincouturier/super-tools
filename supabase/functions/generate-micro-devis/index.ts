@@ -615,10 +615,10 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Compute total amount (HT) for opportunity estimation sync.
-    // Micro-devis pricing = prix × nb_participants (+ 150€ frais de dossier).
+    // Micro-devis pricing = prix × nb_participants (+ 350€ frais de dossier).
     const microDevisTotal =
       (body.prix || 0) * (body.nbParticipants || 1) +
-      (body.fraisDossier ? 150 : 0);
+      getDossierFeeAmount(body, typeSubrogation === "avec" || typeSubrogation === "les2");
 
     // Insert activity_logs FIRST so we have an id to link to devis_signatures
     let activityLogId: string | null = null;
