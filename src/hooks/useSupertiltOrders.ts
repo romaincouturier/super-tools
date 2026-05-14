@@ -107,6 +107,8 @@ export interface OrderItem {
   validation_status: string;
   email_sent_at: string | null;
   email_sent_to: string | null;
+  invoice_received_at: string | null;
+  shipped_confirmed_at: string | null;
   notes: string | null;
   commission_amount: number | null;
   raw_line_item: Record<string, unknown> | null;
