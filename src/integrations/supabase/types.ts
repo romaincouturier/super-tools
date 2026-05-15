@@ -5629,6 +5629,104 @@ export type Database = {
           },
         ]
       }
+      pictodico_challenges: {
+        Row: {
+          challenge_date: string
+          created_at: string
+          event_id: string | null
+          id: string
+          school_year: string
+          theme: string
+          title: string
+          updated_at: string
+          words: Json
+        }
+        Insert: {
+          challenge_date: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          school_year: string
+          theme: string
+          title: string
+          updated_at?: string
+          words?: Json
+        }
+        Update: {
+          challenge_date?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          school_year?: string
+          theme?: string
+          title?: string
+          updated_at?: string
+          words?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pictodico_challenges_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pictodico_rate_limit: {
+        Row: {
+          id: string
+          ip_address: string
+          requested_at: string
+        }
+        Insert: {
+          id?: string
+          ip_address: string
+          requested_at?: string
+        }
+        Update: {
+          id?: string
+          ip_address?: string
+          requested_at?: string
+        }
+        Relationships: []
+      }
+      pictodico_words: {
+        Row: {
+          created_at: string
+          error_description: string | null
+          id: string
+          language: string
+          received_at: string
+          request_type: string | null
+          source: string
+          source_url: string | null
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          error_description?: string | null
+          id?: string
+          language?: string
+          received_at?: string
+          request_type?: string | null
+          source: string
+          source_url?: string | null
+          word: string
+        }
+        Update: {
+          created_at?: string
+          error_description?: string | null
+          id?: string
+          language?: string
+          received_at?: string
+          request_type?: string | null
+          source?: string
+          source_url?: string | null
+          word?: string
+        }
+        Relationships: []
+      }
       polling_cursors: {
         Row: {
           created_at: string
@@ -9261,6 +9359,7 @@ export type Database = {
         | "transcripts"
         | "temoignages"
         | "dropshipping"
+        | "pictodico"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -9427,6 +9526,7 @@ export const Constants = {
         "transcripts",
         "temoignages",
         "dropshipping",
+        "pictodico",
       ],
       notification_type: [
         "review_requested",
