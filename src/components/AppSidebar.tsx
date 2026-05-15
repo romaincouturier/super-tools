@@ -209,7 +209,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           marginTop: 24,
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 2,
           flex: 1,
           width: "100%",
           alignItems: showLabels ? "stretch" : "center",
