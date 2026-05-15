@@ -863,6 +863,16 @@ function GameDialog({
                 <Switch checked={form.include_stripe_fees ?? false} onCheckedChange={(v) => set("include_stripe_fees", v)} />
                 <Label>Déduire les frais Stripe avant calcul</Label>
               </div>
+              <div className="col-span-2 space-y-1">
+                <Label>Prix de revient unitaire HT (€)</Label>
+                <Input
+                  type="number" min="0" step="0.01"
+                  value={(form as any).cost_price ?? ""}
+                  onChange={(e) => set("cost_price" as any, e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder="Coût d'achat / fabrication par exemplaire"
+                />
+                <p className="text-xs text-muted-foreground">Utilisé pour calculer la marge réelle dans le bilan (CA SuperTilt − prix de revient × qté − dépenses).</p>
+              </div>
               {form.game_type === "location" && (
                 <div className="col-span-2 space-y-1">
                   <Label>URL du contrat de location (lien à signer)</Label>
