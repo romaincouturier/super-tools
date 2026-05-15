@@ -42,6 +42,12 @@ import {
   type PartnerPayment,
   type GameExpense,
 } from "@/hooks/useSupertiltOrders";
+import {
+  useGameAuthors,
+  useUpsertGameAuthor,
+  useDeleteGameAuthor,
+  type GameAuthor,
+} from "@/hooks/useDropshipping";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
