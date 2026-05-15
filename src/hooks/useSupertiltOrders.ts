@@ -60,6 +60,7 @@ export interface GameFull {
   commission_fixed: number | null;
   commission_formula: string | null;
   include_stripe_fees: boolean;
+  cost_price: number | null;
   // V3 stock
   min_stock: number | null;
   current_stock: number | null;
@@ -723,7 +724,7 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       // Sales
       let salesQ = (supabase as any)
         .from("order_items")
-        .select("game_id, line_total, commission_amount, quantity, games(id, title, game_type, commission_type, commission_rate, commission_fixed, include_stripe_fees)")
+        .select("game_id, line_total, commission_amount, quantity, games(id, title, game_type, commission_type, commission_rate, commission_fixed, include_stripe_fees, cost_price)")
         .not("kanban_status", "eq", "to_validate");
       if (gameId) salesQ = salesQ.eq("game_id", gameId);
       if (from) salesQ = salesQ.gte("created_at", from);
@@ -755,9 +756,12 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       const byGame = new Map<string, {
         title: string;
         game_type: string;
+        cost_price: number;
         sales_count: number;
+        total_qty: number;
         total_ttc: number;
-        total_commission: number;
+        total_commission: number; // ce que SuperTilt gagne (part SuperTilt sur partner/dropshipping)
+        partner_payout: number;   // ce qui est dû/versé au partenaire
         total_expenses: number;
         total_paid: number;
       }>();
@@ -765,18 +769,30 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       for (const s of sales) {
         const g = s.games as Record<string, unknown> | null;
         const gid = (s.game_id as string) ?? "unknown";
+        const gameType = (g?.game_type as string) ?? "unknown";
+        const isPartnerLike = gameType === "partner" || gameType === "dropshipping";
+        const lineTotal = (s.line_total as number) ?? 0;
+        const partnerCut = (s.commission_amount as number) ?? 0;
+        const qty = (s.quantity as number) ?? 0;
+        const supertiltCommission = isPartnerLike ? Math.max(0, lineTotal - partnerCut) : 0;
+
         const existing = byGame.get(gid) ?? {
           title: (g?.title as string) ?? "Inconnu",
-          game_type: (g?.game_type as string) ?? "unknown",
+          game_type: gameType,
+          cost_price: (g?.cost_price as number) ?? 0,
           sales_count: 0,
+          total_qty: 0,
           total_ttc: 0,
           total_commission: 0,
+          partner_payout: 0,
           total_expenses: 0,
           total_paid: 0,
         };
         existing.sales_count++;
-        existing.total_ttc += (s.line_total as number) ?? 0;
-        existing.total_commission += (s.commission_amount as number) ?? 0;
+        existing.total_qty += qty;
+        existing.total_ttc += lineTotal;
+        existing.total_commission += supertiltCommission;
+        existing.partner_payout += isPartnerLike ? partnerCut : 0;
         byGame.set(gid, existing);
       }
 
@@ -793,12 +809,19 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
         if (existing) existing.total_paid += p.amount ?? 0;
       }
 
-      return [...byGame.entries()].map(([id, data]) => ({
-        game_id: id,
-        ...data,
-        margin: data.total_ttc - data.total_commission - data.total_expenses,
-        commission_remaining: data.total_commission - data.total_paid,
-      }));
+      return [...byGame.entries()].map(([id, data]) => {
+        const isPartnerLike = data.game_type === "partner" || data.game_type === "dropshipping";
+        const cogs = (data.cost_price ?? 0) * data.total_qty;
+        // Revenu SuperTilt : pour partner/dropshipping = part SuperTilt ; sinon = CA TTC
+        const supertiltRevenue = isPartnerLike ? data.total_commission : data.total_ttc;
+        return {
+          game_id: id,
+          ...data,
+          cogs,
+          margin: supertiltRevenue - cogs - data.total_expenses,
+          commission_remaining: data.partner_payout - data.total_paid,
+        };
+      });
     },
   });
 }

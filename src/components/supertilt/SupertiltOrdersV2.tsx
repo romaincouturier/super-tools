@@ -79,10 +79,11 @@ export function BilanTab() {
     (acc, r) => ({
       total_ttc: acc.total_ttc + r.total_ttc,
       total_commission: acc.total_commission + r.total_commission,
+      cogs: acc.cogs + r.cogs,
       total_expenses: acc.total_expenses + r.total_expenses,
       margin: acc.margin + r.margin,
     }),
-    { total_ttc: 0, total_commission: 0, total_expenses: 0, margin: 0 },
+    { total_ttc: 0, total_commission: 0, cogs: 0, total_expenses: 0, margin: 0 },
   );
 
   const handleExport = () => {
@@ -91,11 +92,14 @@ export function BilanTab() {
         Jeu: r.title,
         Type: r.game_type,
         Ventes: r.sales_count,
+        Quantité: r.total_qty,
         "CA TTC (€)": r.total_ttc.toFixed(2),
-        "Commission (€)": r.total_commission.toFixed(2),
+        "Commission SuperTilt (€)": r.total_commission.toFixed(2),
+        "Part partenaire (€)": r.partner_payout.toFixed(2),
+        "Coût de revient (€)": r.cogs.toFixed(2),
         "Dépenses (€)": r.total_expenses.toFixed(2),
         "Marge estimée (€)": r.margin.toFixed(2),
-        "Commissions reversées (€)": r.total_paid.toFixed(2),
+        "Reversé partenaire (€)": r.total_paid.toFixed(2),
         "Restant à reverser (€)": r.commission_remaining.toFixed(2),
       })),
       "bilan-financier.csv",
@@ -151,7 +155,8 @@ export function BilanTab() {
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Ventes</TableHead>
               <TableHead className="text-right">CA TTC</TableHead>
-              <TableHead className="text-right">Commission</TableHead>
+              <TableHead className="text-right">Commission ST</TableHead>
+              <TableHead className="text-right">Coût revient</TableHead>
               <TableHead className="text-right">Dépenses</TableHead>
               <TableHead className="text-right">Marge est.</TableHead>
               <TableHead className="text-right">Reversé</TableHead>
@@ -160,7 +165,7 @@ export function BilanTab() {
           </TableHeader>
           <TableBody>
             {!rows.length && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Aucune donnée</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Aucune donnée</TableCell></TableRow>
             )}
             {rows.map((r) => (
               <TableRow key={r.game_id}>
@@ -169,6 +174,7 @@ export function BilanTab() {
                 <TableCell className="text-right text-sm">{r.sales_count}</TableCell>
                 <TableCell className="text-right text-sm">{EUR(r.total_ttc)}</TableCell>
                 <TableCell className="text-right text-sm text-purple-700">{EUR(r.total_commission)}</TableCell>
+                <TableCell className="text-right text-sm text-orange-700">{EUR(r.cogs)}</TableCell>
                 <TableCell className="text-right text-sm text-red-700">{EUR(r.total_expenses)}</TableCell>
                 <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-green-700" : "text-red-700"}`}>{EUR(r.margin)}</TableCell>
                 <TableCell className="text-right text-sm text-green-700">{EUR(r.total_paid)}</TableCell>
