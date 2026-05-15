@@ -270,13 +270,17 @@ const DailyTodoPanel = () => {
 
                 {!isCollapsed && (
                   <div className="ml-5 mt-1 space-y-1">
-                    {catActions.map((action) => (
+                    {catActions.map((action) => {
+                      const isUrgent = action.category === "supertilt_dropshipping_relance";
+                      return (
                       <div
                         key={action.id}
                         className={`flex items-start gap-2 py-1.5 px-2 rounded-md transition-colors ${
                           action.is_completed
                             ? "opacity-60"
-                            : "hover:bg-muted/50"
+                            : isUrgent
+                              ? "bg-red-50 border border-red-200 hover:bg-red-100"
+                              : "hover:bg-muted/50"
                         } ${action.link ? "cursor-pointer" : ""}`}
                         onClick={
                           action.link
@@ -294,12 +298,12 @@ const DailyTodoPanel = () => {
                         />
                         <div className="min-w-0 flex-1">
                           <p
-                            className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}
+                            className={`text-sm leading-tight ${action.is_completed ? "line-through text-muted-foreground" : ""} ${isUrgent && !action.is_completed ? "text-red-800 font-medium" : action.link && !action.is_completed ? "text-primary hover:underline" : ""}`}
                           >
                             {action.title}
                           </p>
                           {action.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                            <p className={`text-xs mt-0.5 truncate ${isUrgent ? "text-red-700" : "text-muted-foreground"}`}>
                               {action.description}
                             </p>
                           )}
@@ -313,7 +317,8 @@ const DailyTodoPanel = () => {
                           <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
