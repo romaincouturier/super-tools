@@ -605,8 +605,8 @@ const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
         aria-current={active ? "page" : undefined}
         className={cn(
           showLabels
-            ? "flex items-center gap-3 w-full h-11 px-3 rounded-[10px] text-sm font-medium text-left transition-colors"
-            : "w-11 h-11 rounded-[10px] flex items-center justify-center transition-colors relative",
+            ? "flex items-center gap-3 w-full h-9 px-3 rounded-[10px] text-sm font-medium text-left transition-colors"
+            : "w-10 h-10 rounded-[10px] flex items-center justify-center transition-colors relative",
         )}
         style={{ background: bg, color: fg, border: "none", cursor: "pointer" }}
         onMouseEnter={(e) => {
