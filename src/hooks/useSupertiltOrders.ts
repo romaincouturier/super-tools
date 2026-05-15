@@ -723,7 +723,7 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       // Sales
       let salesQ = (supabase as any)
         .from("order_items")
-        .select("game_id, line_total, commission_amount, quantity, games(id, title, game_type, commission_type, commission_rate, commission_fixed, include_stripe_fees)")
+        .select("game_id, line_total, commission_amount, quantity, games(id, title, game_type, commission_type, commission_rate, commission_fixed, include_stripe_fees, cost_price)")
         .not("kanban_status", "eq", "to_validate");
       if (gameId) salesQ = salesQ.eq("game_id", gameId);
       if (from) salesQ = salesQ.gte("created_at", from);
