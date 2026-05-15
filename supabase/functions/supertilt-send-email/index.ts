@@ -200,7 +200,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const gameType: string = game.game_type ?? "dropshipping";
 
-    if (gameType === "dropshipping") {
+    if (templateKeyOverride === "shipment_followup") {
+      // Manual shipment follow-up: customer is the recipient, author in CC
+      templateKey = "shipment_followup";
+      if (order?.customer_email) toEmails.push(order.customer_email);
+      if (author?.email) ccEmails.push(author.email);
+      if (author?.secondary_email) ccEmails.push(author.secondary_email);
+      if (game.secondary_author_email) ccEmails.push(game.secondary_author_email);
+    } else if (gameType === "dropshipping") {
       templateKey = "dropshipping";
       if (author?.email) toEmails.push(author.email);
       if (game.secondary_author_email) ccEmails.push(game.secondary_author_email);
