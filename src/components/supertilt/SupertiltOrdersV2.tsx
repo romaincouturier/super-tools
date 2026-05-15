@@ -1009,14 +1009,6 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor>; onClos
             </div>
           ))}
           <div className="space-y-1">
-            <Label>Taux de royalty (%)</Label>
-            <Input
-              type="number" min="0" max="100" step="0.5"
-              value={Math.round(((form.royalty_rate ?? 0.1) * 100) * 10) / 10}
-              onChange={(e) => setForm((f) => ({ ...f, royalty_rate: parseFloat(e.target.value) / 100 }))}
-            />
-          </div>
-          <div className="space-y-1">
             <Label>Notes</Label>
             <Textarea
               value={form.notes ?? ""}
