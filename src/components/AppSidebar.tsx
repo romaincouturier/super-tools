@@ -475,7 +475,7 @@ function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavi
           display: "flex",
           alignItems: "center",
           gap: 12,
-          height: 44,
+          height: 36,
           paddingLeft: 12,
           background: "none",
           border: "none",
@@ -498,7 +498,7 @@ function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavi
         aria-label={isOpen ? "Réduire" : "Développer"}
         style={{
           width: 32,
-          height: 44,
+          height: 36,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
