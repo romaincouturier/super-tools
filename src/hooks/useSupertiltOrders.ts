@@ -339,9 +339,10 @@ export function useValidateOrderItem() {
 export function useSendOrderEmail() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (order_item_id: string) => {
+    mutationFn: async (params: string | { order_item_id: string; template_key?: string }) => {
+      const body = typeof params === "string" ? { order_item_id: params } : params;
       const { data, error } = await (supabase as any).functions.invoke("supertilt-send-email", {
-        body: { order_item_id },
+        body,
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -351,6 +352,7 @@ export function useSendOrderEmail() {
       qc.invalidateQueries({ queryKey: ["order-items"] });
       qc.invalidateQueries({ queryKey: ["order-items-all"] });
       qc.invalidateQueries({ queryKey: ["email-log"] });
+      qc.invalidateQueries({ queryKey: ["order-item-email-log"] });
     },
   });
 }
