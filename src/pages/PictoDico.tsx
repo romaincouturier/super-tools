@@ -805,7 +805,7 @@ function ConfigTab() {
   });
 
   const webhookSecret = secretData?.setting_value ?? "";
-  const webhookUrl = `https://app.supertools.fr/webhooks/pictodico?key=${webhookSecret || "VOTRE_SECRET"}`;
+  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pictodico-webhook?key=${webhookSecret || "VOTRE_SECRET"}`;
 
   const wpSnippet = `define( 'SUPERTOOLS_PICTODICO_KEY', '${webhookSecret || "VOTRE_SECRET"}' );`;
 
