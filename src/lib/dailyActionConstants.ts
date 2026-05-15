@@ -61,6 +61,9 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   emails_a_valider: { label: "Emails à valider", emoji: "\ud83d\udce7", color: "text-violet-600" },
   support_tickets: { label: "Tickets support", emoji: "\ud83c\udfab", color: "text-rose-600" },
   supertilt_a_valider: { label: "SuperTilt — commandes à valider", emoji: "\ud83c\udfb2", color: "text-yellow-700" },
+  supertilt_recues: { label: "SuperTilt — commandes reçues", emoji: "\ud83d\udce6", color: "text-blue-600" },
+  supertilt_dropshipping: { label: "SuperTilt — Dropshipping en attente", emoji: "\ud83d\ude9a", color: "text-orange-600" },
+  supertilt_dropshipping_relance: { label: "SuperTilt — Dropshipping relancé", emoji: "\ud83d\udd34", color: "text-red-700" },
   supertilt: { label: "SuperTilt", emoji: "\u26a1", color: "text-yellow-600" },
 };
 
