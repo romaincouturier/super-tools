@@ -354,6 +354,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
             ...(nextStatus ? { kanban_status: nextStatus } : {}),
           })
           .eq("id", order_item_id);
+      } else {
+        // Shipment follow-up sent → switch any existing daily_action card to "red"
+        try {
+          const todayParis = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+          const orderRef = (order as any)?.order_number ?? (order as any)?.wc_order_id;
+          const productLabel = (orderItem as any)?.product_name ?? `Produit #${orderRef}`;
+          const newTitle = `🔴 ${productLabel} — Commande ${orderRef}`;
+          await (admin as any).from("daily_actions")
+            .update({
+              category: "supertilt_dropshipping_relance",
+              title: newTitle,
+            })
+            .eq("entity_type", "supertilt_order_item")
+            .eq("entity_id", order_item_id)
+            .eq("action_date", todayParis)
+            .eq("category", "supertilt_dropshipping");
+        } catch (e) {
+          console.error("[shipment_followup] daily_actions update failed:", e);
+        }
       }
     } else {
       await (admin as any).from("order_items")
