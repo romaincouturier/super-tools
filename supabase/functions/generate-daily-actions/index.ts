@@ -387,14 +387,37 @@ serve(async (req) => {
       });
     }
 
-    // 17. SuperTilt — order_items à valider (kanban_status = to_validate)
-    for (const v of data.supertiltToValidate) {
+    // 17. SuperTilt — order_items à valider / reçues / dropshipping
+    for (const v of data.supertiltAlerts) {
       const ageDays = Math.max(0, Math.floor((new Date(today).getTime() - new Date(v.createdAt).getTime()) / 86400000));
       const ageLabel = ageDays === 0 ? "aujourd'hui" : ageDays === 1 ? "depuis hier" : `depuis ${ageDays} j`;
+      const orderRef = `Commande ${v.orderNumber ?? v.wcOrderId}`;
+      const productLabel = v.productName ?? `Produit #${v.wcOrderId}`;
+
+      let category: string;
+      let title: string;
+      let description: string;
+      if (v.kanbanStatus === "to_validate") {
+        category = "supertilt_a_valider";
+        title = `🎲 ${productLabel} — ${orderRef}`;
+        description = `Ligne SuperTilt à rattacher au catalogue (${ageLabel})${v.customerEmail ? ` — ${v.customerEmail}` : ""}`;
+      } else if (v.kanbanStatus === "received") {
+        category = "supertilt_recues";
+        title = `📦 ${productLabel} — ${orderRef}`;
+        description = `Commande reçue à traiter (${ageLabel})${v.customerEmail ? ` — ${v.customerEmail}` : ""}`;
+      } else {
+        // dropshipping — red card if a shipment follow-up has already been sent
+        category = v.relanceSent ? "supertilt_dropshipping_relance" : "supertilt_dropshipping";
+        const prefix = v.relanceSent ? "🔴" : "🚚";
+        const stateLabel = v.relanceSent ? "Relance envoyée — toujours pas confirmé" : "Dropshipping en attente d'expédition";
+        title = `${prefix} ${productLabel} — ${orderRef}`;
+        description = `${stateLabel} (${ageLabel})${v.customerEmail ? ` — ${v.customerEmail}` : ""}`;
+      }
+
       actions.push({
-        category: "supertilt_a_valider",
-        title: `🎲 ${v.productName ?? `Produit #${v.wcOrderId}`} — Cmd ${v.orderNumber ?? v.wcOrderId}`,
-        description: `Ligne SuperTilt à rattacher au catalogue (${ageLabel})${v.customerEmail ? ` — ${v.customerEmail}` : ""}`,
+        category,
+        title,
+        description,
         link: `${appUrl}/commandes-jeux`,
         entityType: "supertilt_order_item", entityId: v.id,
         scope: "global",
