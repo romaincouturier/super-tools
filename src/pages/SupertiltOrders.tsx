@@ -1313,6 +1313,7 @@ export default function SupertiltOrders() {
           <TabsTrigger value="partenaires"><Users className="h-4 w-4 mr-1.5" />Partenaires</TabsTrigger>
           <TabsTrigger value="depenses"><BarChart3 className="h-4 w-4 mr-1.5" />Dépenses</TabsTrigger>
           <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1.5" />Stock</TabsTrigger>
+          <TabsTrigger value="auteurs"><Users className="h-4 w-4 mr-1.5" />Auteurs</TabsTrigger>
           <TabsTrigger value="emails"><Mail className="h-4 w-4 mr-1.5" />Emails</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><Dashboard /></TabsContent>
@@ -1323,6 +1324,7 @@ export default function SupertiltOrders() {
         <TabsContent value="partenaires"><PartenairesTab /></TabsContent>
         <TabsContent value="depenses"><DepensesTab /></TabsContent>
         <TabsContent value="stock"><StockTab /></TabsContent>
+        <TabsContent value="auteurs"><AuteursTab /></TabsContent>
         <TabsContent value="emails"><EmailLogTab /></TabsContent>
       </Tabs>
     </ModuleLayout>
