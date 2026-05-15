@@ -1303,7 +1303,7 @@ export default function SupertiltOrders() {
           {toValidateCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
               <AlertTriangle className="h-4 w-4" />
-              <strong>{toValidateCount}</strong> commande(s) à valider
+              <strong>{toValidateCount}</strong> jeu(x) à valider dans Reçues / Dropshipping
             </div>
           )}
           {blockedCount > 0 && (
