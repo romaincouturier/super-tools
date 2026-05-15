@@ -1009,14 +1009,6 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor>; onClos
             </div>
           ))}
           <div className="space-y-1">
-            <Label>Taux de royalty (%)</Label>
-            <Input
-              type="number" min="0" max="100" step="0.5"
-              value={Math.round(((form.royalty_rate ?? 0.1) * 100) * 10) / 10}
-              onChange={(e) => setForm((f) => ({ ...f, royalty_rate: parseFloat(e.target.value) / 100 }))}
-            />
-          </div>
-          <div className="space-y-1">
             <Label>Notes</Label>
             <Textarea
               value={form.notes ?? ""}
@@ -1065,14 +1057,13 @@ export function AuteursTab() {
               <TableHead>Email</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Entreprise</TableHead>
-              <TableHead className="text-right">Royalty</TableHead>
               <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {!authors?.length && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   Aucun auteur — ajoutez le premier !
                 </TableCell>
               </TableRow>
@@ -1083,7 +1074,6 @@ export function AuteursTab() {
                 <TableCell className="text-muted-foreground text-sm">{a.email ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{a.phone ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{a.company ?? "—"}</TableCell>
-                <TableCell className="text-right">{Math.round((a.royalty_rate ?? 0) * 100)}%</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="icon" onClick={() => setEditing(a)}>
