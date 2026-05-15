@@ -430,10 +430,13 @@ export function useOrderItemEmailLog(wcOrderId: number | null | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("order_email_log")
-        .select("*, order_items(product_name)")
-        .eq("wc_order_id", wcOrderId)
+        .select("*")
+        .eq("wc_order_id", wcOrderId as number)
         .order("sent_at", { ascending: false });
-      if (error) throw error;
+      if (error) {
+        console.error("[useOrderItemEmailLog] error", error);
+        throw error;
+      }
       return data as EmailLog[];
     },
   });
