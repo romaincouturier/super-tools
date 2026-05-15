@@ -178,10 +178,16 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
           )}
 
           <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <Send className="h-4 w-4" />
-              Historique des emails ({emailLogs?.length ?? 0})
-            </h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Historique des emails ({emailLogs?.length ?? 0})
+              </h4>
+              <Button size="sm" variant="outline" onClick={handleShipmentFollowup} disabled={sendingFollowup}>
+                {sendingFollowup ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
+                Relance d'expédition
+              </Button>
+            </div>
             {loadingLogs ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : !emailLogs?.length ? (
