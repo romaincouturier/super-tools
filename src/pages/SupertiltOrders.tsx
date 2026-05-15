@@ -593,11 +593,6 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowNote(true)}>
           <FileText className="h-3 w-3 mr-1" />Note
         </Button>
-        {item.kanban_status !== "blocked" && (
-          <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-red-700" onClick={handleMarkBlocked}>
-            <Ban className="h-3 w-3 mr-1" />Bloquer
-          </Button>
-        )}
       </div>
 
       {showDetail && <ItemDetailDialog item={item} onClose={() => setShowDetail(false)} />}
