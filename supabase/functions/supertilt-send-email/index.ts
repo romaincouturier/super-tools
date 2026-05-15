@@ -359,7 +359,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         try {
           const todayParis = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
           const orderRef = (order as any)?.order_number ?? (order as any)?.wc_order_id;
-          const productLabel = (orderItem as any)?.product_name ?? `Produit #${orderRef}`;
+          const productLabel = (item as any)?.product_name ?? `Produit #${orderRef}`;
           const newTitle = `🔴 ${productLabel} — Commande ${orderRef}`;
           await (admin as any).from("daily_actions")
             .update({
