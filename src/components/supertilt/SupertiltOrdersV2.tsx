@@ -42,6 +42,12 @@ import {
   type PartnerPayment,
   type GameExpense,
 } from "@/hooks/useSupertiltOrders";
+import {
+  useGameAuthors,
+  useUpsertGameAuthor,
+  useDeleteGameAuthor,
+  type GameAuthor,
+} from "@/hooks/useDropshipping";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -958,6 +964,142 @@ export function StockTab() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUTEURS — Gestion des auteurs de jeux
+// ════════════════════════════════════════════════════════════════
+
+function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor>; onClose: () => void }) {
+  const [form, setForm] = useState<Partial<GameAuthor>>(author);
+  const { mutateAsync: upsert, isPending } = useUpsertGameAuthor();
+  const { toast } = useToast();
+
+  const save = async () => {
+    if (!form.name) return;
+    try {
+      await upsert(form as GameAuthor & { name: string });
+      toast({ title: "Auteur sauvegardé" });
+      onClose();
+    } catch {
+      toastError(toast, "Une erreur est survenue");
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{form.id ? "Modifier l'auteur" : "Nouvel auteur"}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          {[
+            { label: "Nom *", key: "name", placeholder: "Prénom Nom" },
+            { label: "Email", key: "email", placeholder: "email@exemple.fr" },
+            { label: "Téléphone", key: "phone", placeholder: "+33 6 …" },
+            { label: "Entreprise", key: "company", placeholder: "Nom de l'entreprise" },
+          ].map(({ label, key, placeholder }) => (
+            <div key={key} className="space-y-1">
+              <Label>{label}</Label>
+              <Input
+                value={(form as any)[key] ?? ""}
+                onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                placeholder={placeholder}
+              />
+            </div>
+          ))}
+          <div className="space-y-1">
+            <Label>Taux de royalty (%)</Label>
+            <Input
+              type="number" min="0" max="100" step="0.5"
+              value={Math.round(((form.royalty_rate ?? 0.1) * 100) * 10) / 10}
+              onChange={(e) => setForm((f) => ({ ...f, royalty_rate: parseFloat(e.target.value) / 100 }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Notes</Label>
+            <Textarea
+              value={form.notes ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              rows={2}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={save} disabled={isPending || !form.name}>
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AuteursTab() {
+  const { data: authors, isLoading } = useGameAuthors();
+  const { mutateAsync: del } = useDeleteGameAuthor();
+  const [editing, setEditing] = useState<Partial<GameAuthor> | undefined>(undefined);
+  const { toast } = useToast();
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Supprimer cet auteur ?")) return;
+    try { await del(id); toast({ title: "Auteur supprimé" }); }
+    catch { toastError(toast, "Une erreur est survenue"); }
+  };
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setEditing({})}>
+          <Plus className="h-4 w-4 mr-1" />Ajouter un auteur
+        </Button>
+      </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Téléphone</TableHead>
+              <TableHead>Entreprise</TableHead>
+              <TableHead className="text-right">Royalty</TableHead>
+              <TableHead className="w-20" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {!authors?.length && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  Aucun auteur — ajoutez le premier !
+                </TableCell>
+              </TableRow>
+            )}
+            {(authors ?? []).map((a) => (
+              <TableRow key={a.id}>
+                <TableCell className="font-medium">{a.name}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.email ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.phone ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground text-sm">{a.company ?? "—"}</TableCell>
+                <TableCell className="text-right">{Math.round((a.royalty_rate ?? 0) * 100)}%</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => setEditing(a)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(a.id)}>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {editing !== undefined && <AuthorDialog author={editing} onClose={() => setEditing(undefined)} />}
     </div>
   );
 }
