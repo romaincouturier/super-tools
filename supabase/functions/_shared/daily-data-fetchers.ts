@@ -1140,36 +1140,60 @@ export async function fetchPendingSupportTickets(supabase: SupabaseClient, today
 }
 
 /**
- * Fetch SuperTilt order_items pending validation (kanban_status='to_validate').
- * Used to alert admins about WooCommerce orders awaiting catalog matching.
+ * Fetch SuperTilt order_items for daily alerts.
+ * Includes statuses: to_validate, received, dropshipping.
+ * For dropshipping items, also tracks whether a shipment follow-up email was sent.
  */
-export interface SupertiltToValidateItem {
+export interface SupertiltAlertItem {
   id: string;
   productName: string | null;
   wcOrderId: number;
   orderNumber: string | null;
   customerEmail: string | null;
   createdAt: string;
+  kanbanStatus: "to_validate" | "received" | "dropshipping";
+  relanceSent: boolean;
 }
 
-export async function fetchSupertiltToValidate(supabase: SupabaseClient): Promise<SupertiltToValidateItem[]> {
+export async function fetchSupertiltAlerts(supabase: SupabaseClient): Promise<SupertiltAlertItem[]> {
   const { data, error } = await supabase
     .from("order_items")
-    .select("id, product_name, wc_order_id, created_at, woocommerce_orders(order_number, customer_email)")
-    .eq("kanban_status", "to_validate")
+    .select("id, product_name, wc_order_id, created_at, kanban_status, woocommerce_orders(order_number, customer_email)")
+    .in("kanban_status", ["to_validate", "received", "dropshipping"])
     .order("created_at", { ascending: true })
-    .limit(200);
+    .limit(500);
   if (error) {
-    console.error("fetchSupertiltToValidate error:", error.message);
+    console.error("fetchSupertiltAlerts error:", error.message);
     return [];
   }
-  return (data ?? []).map((r: any) => ({
+  const items = data ?? [];
+
+  // Lookup which dropshipping items have a shipment follow-up logged
+  const dropshippingIds = items
+    .filter((r: any) => r.kanban_status === "dropshipping")
+    .map((r: any) => r.id);
+
+  const relanceSet = new Set<string>();
+  if (dropshippingIds.length > 0) {
+    const { data: logs } = await supabase
+      .from("order_email_log")
+      .select("order_item_id")
+      .eq("template_key", "shipment_followup")
+      .in("order_item_id", dropshippingIds);
+    for (const l of (logs ?? []) as any[]) {
+      if (l.order_item_id) relanceSet.add(l.order_item_id);
+    }
+  }
+
+  return items.map((r: any) => ({
     id: r.id,
     productName: r.product_name,
     wcOrderId: r.wc_order_id,
     orderNumber: r.woocommerce_orders?.order_number ?? null,
     customerEmail: r.woocommerce_orders?.customer_email ?? null,
     createdAt: r.created_at,
+    kanbanStatus: r.kanban_status,
+    relanceSent: relanceSet.has(r.id),
   }));
 }
 
