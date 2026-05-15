@@ -1221,7 +1221,7 @@ export interface DailyData {
   supportTickets: SupportTicketItem[];
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
-  supertiltToValidate: SupertiltToValidateItem[];
+  supertiltAlerts: SupertiltAlertItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1250,7 +1250,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supportTickets,
     pendingEmailDrafts,
     logisticsReminders,
-    supertiltToValidate,
+    supertiltAlerts,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1273,7 +1273,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchPendingSupportTickets(supabase, today),
     fetchPendingEmailDrafts(supabase),
     fetchLogisticsReminders(supabase, today),
-    fetchSupertiltToValidate(supabase),
+    fetchSupertiltAlerts(supabase),
   ]);
 
   return {
@@ -1282,7 +1282,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
-    logisticsReminders, supertiltToValidate,
+    logisticsReminders, supertiltAlerts,
   };
 }
 
