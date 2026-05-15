@@ -593,6 +593,10 @@ function Kanban() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 items-start">
         {KANBAN_COLUMNS.map(({ key, label }) => {
           const colItems = filtered.filter((i) => i.kanban_status === key);
+          const showToValidate = key === "received" || key === "dropshipping";
+          const toValidateCount = showToValidate
+            ? colItems.filter((i) => !i.game_id).length
+            : 0;
           return (
             <div key={key} className="bg-muted/40 rounded-lg p-3 space-y-2 min-h-[100px]">
               <div className="flex items-center justify-between mb-2">
@@ -600,7 +604,19 @@ function Kanban() {
                   {KANBAN_ICONS[key]}
                   <span className="text-sm font-semibold">{label}</span>
                 </div>
-                <Badge variant="secondary" className="text-xs">{colItems.length}</Badge>
+                <div className="flex items-center gap-1">
+                  {showToValidate && toValidateCount > 0 && (
+                    <Badge
+                      variant="outline"
+                      className="text-xs border-yellow-400 bg-yellow-50 text-yellow-800"
+                      title="Jeux à valider (non rattachés)"
+                    >
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {toValidateCount} à valider
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="text-xs">{colItems.length}</Badge>
+                </div>
               </div>
               {colItems.length === 0 && (
                 <p className="text-xs text-muted-foreground text-center py-4">Vide</p>
