@@ -94,6 +94,7 @@ const Transcripts = lazy(() => import("./pages/Transcripts"));
 const Temoignages = lazy(() => import("./pages/Temoignages"));
 const Dropshipping = lazy(() => import("./pages/Dropshipping"));
 const PictoDico = lazy(() => import("./pages/PictoDico"));
+const TimeTracker = lazy(() => import("./pages/TimeTracker"));
 const SupertiltOrders = lazy(() => import("./pages/SupertiltOrders"));
 const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
@@ -251,6 +252,8 @@ const App = () => (
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               {/* Picto-Dico module */}
               <Route path="/pictodico" element={<PictoDico />} />
+              {/* Time tracker */}
+              <Route path="/time-tracker" element={<TimeTracker />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

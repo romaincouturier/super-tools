@@ -7,6 +7,7 @@ import { MODULE_ICONS } from "@/components/moduleIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess, type AppModule } from "@/hooks/useModuleAccess";
 import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
+import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
@@ -82,6 +83,7 @@ const NAV_CONFIG: NavConfig[] = [
   { type: "item", key: "archives" },
   { type: "item", key: "dropshipping" },
   { type: "item", key: "pictodico" },
+  { type: "item", key: "time-tracker" },
 ];
 
 function toAppModule(key: string): AppModule {
@@ -101,6 +103,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const { user, logout } = useAuth();
   const { hasAccess, isAdmin } = useModuleAccess();
   const { hasAny: hasSettingsAlert } = useSettingsAlerts();
+  const timeTrackerAlert = useTimeTrackerAlert();
 
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -238,12 +241,14 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const info = MODULE_ICONS[entry.key];
             if (!info) return null;
             if (!hasAccess(toAppModule(entry.key))) return null;
+            const alert = entry.key === "time-tracker" ? timeTrackerAlert : undefined;
             return (
               <RailItem
                 key={entry.key}
                 icon={info.icon}
                 label={info.label}
                 active={isActive(info.path)}
+                alert={alert}
                 showLabels={showLabels}
                 onClick={() => go(info.path)}
               />
