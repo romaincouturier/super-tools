@@ -807,7 +807,7 @@ function ConfigTab() {
   const webhookSecret = secretData?.setting_value ?? "";
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pictodico-webhook?key=${webhookSecret || "VOTRE_SECRET"}`;
 
-  const wpSnippet = `define( 'SUPERTOOLS_PICTODICO_KEY', '${webhookSecret || "VOTRE_SECRET"}' );`;
+  const wpSnippet = `define( 'SUPERTOOLS_WEBHOOK_URL', '${webhookUrl}' );`;
 
   async function saveSecret() {
     if (!newSecret.trim()) return;
