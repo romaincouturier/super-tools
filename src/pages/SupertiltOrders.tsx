@@ -35,6 +35,7 @@ import {
   useEmailTemplates,
   useUpsertEmailTemplate,
   useEmailLog,
+  useOrderItemEmailLog,
   useMarkInvoiceReceived,
   useMarkShippedConfirmed,
   useSupertiltSettings,
@@ -137,6 +138,7 @@ function Dashboard() {
 // ── Order Item Card ───────────────────────────────────────────────
 
 function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => void }) {
+  const { data: emailLogs, isLoading: loadingLogs } = useOrderItemEmailLog(item.wc_order_id);
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -162,6 +164,48 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
           {item.notes && (
             <div><span className="text-muted-foreground">Notes</span><p>{item.notes}</p></div>
           )}
+
+          <div>
+            <h4 className="font-semibold mb-2 flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              Historique des emails ({emailLogs?.length ?? 0})
+            </h4>
+            {loadingLogs ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : !emailLogs?.length ? (
+              <p className="text-muted-foreground text-xs">Aucun email envoyé pour cette commande.</p>
+            ) : (
+              <div className="space-y-2">
+                {emailLogs.map((log: any) => (
+                  <details key={log.id} className="border rounded p-2 bg-muted/30">
+                    <summary className="cursor-pointer flex flex-wrap items-center gap-2 text-xs">
+                      <span className={`px-1.5 py-0.5 rounded font-medium ${log.status === "sent" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                        {log.status}
+                      </span>
+                      <span className="font-medium">{log.template_key ?? "—"}</span>
+                      <span className="text-muted-foreground">→ {(log.sent_to ?? []).join(", ") || "—"}</span>
+                      <span className="text-muted-foreground ml-auto">{new Date(log.sent_at).toLocaleString("fr-FR")}</span>
+                    </summary>
+                    <div className="mt-2 space-y-1 text-xs">
+                      {log.order_items?.product_name && (
+                        <p className="text-muted-foreground">Ligne : {log.order_items.product_name}</p>
+                      )}
+                      {log.cc?.length > 0 && <p className="text-muted-foreground">CC : {log.cc.join(", ")}</p>}
+                      {log.subject && <p><strong>Sujet :</strong> {log.subject}</p>}
+                      {log.error && <p className="text-red-700"><strong>Erreur :</strong> {log.error}</p>}
+                      {log.body && (
+                        <div
+                          className="mt-2 p-2 bg-background border rounded prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: log.body }}
+                        />
+                      )}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+
           <details>
             <summary className="cursor-pointer text-muted-foreground font-medium">Trame WooCommerce brute</summary>
             <pre className="mt-2 text-xs bg-muted p-3 rounded overflow-auto max-h-64">

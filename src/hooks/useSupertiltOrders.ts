@@ -423,6 +423,22 @@ export function useEmailLog() {
   });
 }
 
+export function useOrderItemEmailLog(wcOrderId: number | null | undefined) {
+  return useQuery({
+    queryKey: ["order-item-email-log", wcOrderId],
+    enabled: !!wcOrderId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("order_email_log")
+        .select("*, order_items(product_name)")
+        .eq("wc_order_id", wcOrderId)
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      return data as EmailLog[];
+    },
+  });
+}
+
 // ── Mark order item invoice received / shipment confirmed ────────────
 
 export function useMarkInvoiceReceived() {
