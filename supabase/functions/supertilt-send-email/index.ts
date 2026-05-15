@@ -314,10 +314,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // No BCC for shipment follow-up (the customer is the recipient — no internal CC needed)
+    const finalBcc = templateKeyOverride === "shipment_followup" ? [] : bccEmails;
+
     const result = await sendEmail({
       to: toEmails,
       cc: ccEmails.length ? ccEmails : undefined,
-      bcc: bccEmails.length ? bccEmails : undefined,
+      bcc: finalBcc.length ? finalBcc : undefined,
       subject,
       html: fullHtml,
       from: defaultSender,
