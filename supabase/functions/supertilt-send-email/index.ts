@@ -338,18 +338,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
 
     if (result.success) {
-      // Update item status
-      const nextStatus = gameType === "dropshipping" || gameType === "supertilt" || gameType === "partner"
-        ? "processed"
-        : undefined; // location stays in location_pending until contract returned
+      // For shipment follow-up: just log, don't change kanban status or overwrite email_sent_at
+      if (templateKeyOverride !== "shipment_followup") {
+        const nextStatus = gameType === "dropshipping" || gameType === "supertilt" || gameType === "partner"
+          ? "processed"
+          : undefined; // location stays in location_pending until contract returned
 
-      await (admin as any).from("order_items")
-        .update({
-          email_sent_at: new Date().toISOString(),
-          email_sent_to: toEmails.join(", "),
-          ...(nextStatus ? { kanban_status: nextStatus } : {}),
-        })
-        .eq("id", order_item_id);
+        await (admin as any).from("order_items")
+          .update({
+            email_sent_at: new Date().toISOString(),
+            email_sent_to: toEmails.join(", "),
+            ...(nextStatus ? { kanban_status: nextStatus } : {}),
+          })
+          .eq("id", order_item_id);
+      }
     } else {
       await (admin as any).from("order_items")
         .update({ kanban_status: "blocked", block_reason: `Erreur envoi email: ${result.error}` })
