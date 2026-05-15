@@ -29,6 +29,7 @@ import {
   Star,
   ShoppingCart,
   BookImage,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,4 +70,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   temoignages: { icon: Star, label: "Témoignages", path: "/temoignages" },
   dropshipping: { icon: ShoppingCart, label: "Dropshipping", path: "/dropshipping" },
   pictodico: { icon: BookImage, label: "Picto-Dico", path: "/pictodico" },
+  "time-tracker": { icon: Clock, label: "Suivi du temps", path: "/time-tracker" },
 };
