@@ -154,7 +154,8 @@ export function BilanTab() {
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Ventes</TableHead>
               <TableHead className="text-right">CA TTC</TableHead>
-              <TableHead className="text-right">Commission</TableHead>
+              <TableHead className="text-right">Commission ST</TableHead>
+              <TableHead className="text-right">Coût revient</TableHead>
               <TableHead className="text-right">Dépenses</TableHead>
               <TableHead className="text-right">Marge est.</TableHead>
               <TableHead className="text-right">Reversé</TableHead>
@@ -163,7 +164,7 @@ export function BilanTab() {
           </TableHeader>
           <TableBody>
             {!rows.length && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Aucune donnée</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">Aucune donnée</TableCell></TableRow>
             )}
             {rows.map((r) => (
               <TableRow key={r.game_id}>
@@ -172,6 +173,7 @@ export function BilanTab() {
                 <TableCell className="text-right text-sm">{r.sales_count}</TableCell>
                 <TableCell className="text-right text-sm">{EUR(r.total_ttc)}</TableCell>
                 <TableCell className="text-right text-sm text-purple-700">{EUR(r.total_commission)}</TableCell>
+                <TableCell className="text-right text-sm text-orange-700">{EUR(r.cogs)}</TableCell>
                 <TableCell className="text-right text-sm text-red-700">{EUR(r.total_expenses)}</TableCell>
                 <TableCell className={`text-right text-sm font-medium ${r.margin >= 0 ? "text-green-700" : "text-red-700"}`}>{EUR(r.margin)}</TableCell>
                 <TableCell className="text-right text-sm text-green-700">{EUR(r.total_paid)}</TableCell>
