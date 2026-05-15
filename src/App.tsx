@@ -93,6 +93,7 @@ const AdminArchives = lazy(() => import("./pages/AdminArchives"));
 const Transcripts = lazy(() => import("./pages/Transcripts"));
 const Temoignages = lazy(() => import("./pages/Temoignages"));
 const Dropshipping = lazy(() => import("./pages/Dropshipping"));
+const PictoDico = lazy(() => import("./pages/PictoDico"));
 const SupertiltOrders = lazy(() => import("./pages/SupertiltOrders"));
 const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
@@ -248,6 +249,8 @@ const App = () => (
               <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
               <Route path="/commandes-jeux" element={<SupertiltOrders />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
+              {/* Picto-Dico module */}
+              <Route path="/pictodico" element={<PictoDico />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

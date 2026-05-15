@@ -33,7 +33,8 @@ export type AppModule =
   | "archives"
   | "transcripts"
   | "temoignages"
-  | "dropshipping";
+  | "dropshipping"
+  | "pictodico";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -68,6 +69,7 @@ export const ALL_MODULES: AppModule[] = [
   "transcripts",
   "temoignages",
   "dropshipping",
+  "pictodico",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -103,6 +105,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   transcripts: "Transcripts",
   temoignages: "Témoignages",
   dropshipping: "Dropshipping",
+  pictodico: "Picto-Dico",
 };
 
 export function useModuleAccess() {

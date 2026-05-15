@@ -81,6 +81,7 @@ const NAV_CONFIG: NavConfig[] = [
   { type: "item", key: "web-analytics" },
   { type: "item", key: "archives" },
   { type: "item", key: "dropshipping" },
+  { type: "item", key: "pictodico" },
 ];
 
 function toAppModule(key: string): AppModule {
