@@ -32,6 +32,9 @@ export const CATEGORY_ORDER = [
   "emails_a_valider",
   "support_tickets",
   "supertilt_a_valider",
+  "supertilt_recues",
+  "supertilt_dropshipping_relance",
+  "supertilt_dropshipping",
   "supertilt",
 ] as const;
 
