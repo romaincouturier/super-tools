@@ -499,7 +499,7 @@ export function useOrderKpis() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("order_items")
-        .select("kanban_status, line_total, game_type, created_at");
+        .select("kanban_status, line_total, game_type, created_at, game_id");
       if (error) throw error;
 
       const items = data as Array<{
@@ -507,10 +507,15 @@ export function useOrderKpis() {
         line_total: number | null;
         game_type: string | null;
         created_at: string;
+        game_id: string | null;
       }>;
 
       const total = items.reduce((s, i) => s + (i.line_total ?? 0), 0);
-      const toValidate = items.filter((i) => i.kanban_status === "to_validate").length;
+      const toValidate = items.filter(
+        (i) =>
+          !i.game_id &&
+          (i.kanban_status === "received" || i.kanban_status === "dropshipping"),
+      ).length;
       const blocked = items.filter((i) => i.kanban_status === "blocked").length;
       const processed = items.filter((i) => i.kanban_status === "processed").length;
 
