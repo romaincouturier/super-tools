@@ -27,6 +27,27 @@ serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
+  // --- Log full incoming request (before any processing) ---
+  const incomingUrl = req.url;
+  const incomingMethod = req.method;
+  const incomingHeaders: Record<string, string> = {};
+  req.headers.forEach((v, k) => {
+    incomingHeaders[k] = k.toLowerCase() === "authorization" ? "[REDACTED]" : v;
+  });
+  let rawBody = "";
+  try {
+    rawBody = await req.clone().text();
+  } catch (e) {
+    rawBody = `[unable to read body: ${(e as Error).message}]`;
+  }
+  console.log("[pictodico-webhook] INCOMING REQUEST", JSON.stringify({
+    method: incomingMethod,
+    url: incomingUrl,
+    headers: incomingHeaders,
+    body: rawBody,
+    receivedAt: new Date().toISOString(),
+  }));
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
