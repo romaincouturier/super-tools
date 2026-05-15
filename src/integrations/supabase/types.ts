@@ -2585,6 +2585,7 @@ export type Database = {
           commission_formula: string | null
           commission_rate: number | null
           commission_type: string | null
+          cost_price: number | null
           cover_url: string | null
           created_at: string
           current_stock: number | null
@@ -2616,6 +2617,7 @@ export type Database = {
           commission_formula?: string | null
           commission_rate?: number | null
           commission_type?: string | null
+          cost_price?: number | null
           cover_url?: string | null
           created_at?: string
           current_stock?: number | null
@@ -2647,6 +2649,7 @@ export type Database = {
           commission_formula?: string | null
           commission_rate?: number | null
           commission_type?: string | null
+          cost_price?: number | null
           cover_url?: string | null
           created_at?: string
           current_stock?: number | null

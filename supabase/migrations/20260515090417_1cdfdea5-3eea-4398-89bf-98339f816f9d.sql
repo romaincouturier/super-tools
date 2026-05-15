@@ -1,0 +1,2 @@
+ALTER TABLE public.games ADD COLUMN IF NOT EXISTS cost_price NUMERIC(10,2);
+COMMENT ON COLUMN public.games.cost_price IS 'Prix de revient unitaire HT (€) — utilisé pour le calcul de marge dans le bilan';
