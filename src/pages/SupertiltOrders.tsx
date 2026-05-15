@@ -5,7 +5,7 @@ import {
   Pencil, Trash2, Send, Eye, FileText, Search, Download,
   Euro, Users, BarChart3,
 } from "lucide-react";
-import { BilanTab, PartenairesTab, DepensesTab, StockTab } from "@/components/supertilt/SupertiltOrdersV2";
+import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
