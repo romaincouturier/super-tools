@@ -209,7 +209,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           marginTop: 24,
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 2,
           flex: 1,
           width: "100%",
           alignItems: showLabels ? "stretch" : "center",
@@ -475,7 +475,7 @@ function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavi
           display: "flex",
           alignItems: "center",
           gap: 12,
-          height: 44,
+          height: 36,
           paddingLeft: 12,
           background: "none",
           border: "none",
@@ -498,7 +498,7 @@ function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavi
         aria-label={isOpen ? "Réduire" : "Développer"}
         style={{
           width: 32,
-          height: 44,
+          height: 36,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -605,8 +605,8 @@ const RailButton = forwardRef<HTMLButtonElement, RailItemProps>(
         aria-current={active ? "page" : undefined}
         className={cn(
           showLabels
-            ? "flex items-center gap-3 w-full h-11 px-3 rounded-[10px] text-sm font-medium text-left transition-colors"
-            : "w-11 h-11 rounded-[10px] flex items-center justify-center transition-colors relative",
+            ? "flex items-center gap-3 w-full h-9 px-3 rounded-[10px] text-sm font-medium text-left transition-colors"
+            : "w-10 h-10 rounded-[10px] flex items-center justify-center transition-colors relative",
         )}
         style={{ background: bg, color: fg, border: "none", cursor: "pointer" }}
         onMouseEnter={(e) => {
