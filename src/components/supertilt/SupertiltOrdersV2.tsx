@@ -79,10 +79,11 @@ export function BilanTab() {
     (acc, r) => ({
       total_ttc: acc.total_ttc + r.total_ttc,
       total_commission: acc.total_commission + r.total_commission,
+      cogs: acc.cogs + r.cogs,
       total_expenses: acc.total_expenses + r.total_expenses,
       margin: acc.margin + r.margin,
     }),
-    { total_ttc: 0, total_commission: 0, total_expenses: 0, margin: 0 },
+    { total_ttc: 0, total_commission: 0, cogs: 0, total_expenses: 0, margin: 0 },
   );
 
   const handleExport = () => {
