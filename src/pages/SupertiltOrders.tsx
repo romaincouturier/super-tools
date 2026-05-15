@@ -139,6 +139,18 @@ function Dashboard() {
 
 function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => void }) {
   const { data: emailLogs, isLoading: loadingLogs } = useOrderItemEmailLog(item.wc_order_id);
+  const { mutateAsync: sendEmail, isPending: sendingFollowup } = useSendOrderEmail();
+  const { toast } = useToast();
+
+  const handleShipmentFollowup = async () => {
+    try {
+      await sendEmail({ order_item_id: item.id, template_key: "shipment_followup" });
+      toast({ title: "Email de relance envoyé", description: "Le client a été contacté avec l'auteur en copie." });
+    } catch (e: any) {
+      toastError(toast, e, "Échec de l'envoi de la relance");
+    }
+  };
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
