@@ -651,10 +651,10 @@ export function DepensesTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={filterGame} onValueChange={setFilterGame}>
+        <Select value={filterGame || "__all__"} onValueChange={(v) => setFilterGame(v === "__all__" ? "" : v)}>
           <SelectTrigger className="w-48"><SelectValue placeholder="Tous les jeux" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Tous les jeux</SelectItem>
+            <SelectItem value="__all__">Tous les jeux</SelectItem>
             {(games ?? []).map((g) => <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>)}
           </SelectContent>
         </Select>
