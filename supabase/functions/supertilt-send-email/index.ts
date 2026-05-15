@@ -39,7 +39,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    const { order_item_id, test_recipient } = await req.json() as { order_item_id: string; test_recipient?: string };
+    const { order_item_id, test_recipient, template_key: templateKeyOverride } = await req.json() as { order_item_id: string; test_recipient?: string; template_key?: string };
     if (!order_item_id) {
       return new Response(JSON.stringify({ error: "order_item_id required" }), {
         status: 400,
@@ -200,7 +200,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const gameType: string = game.game_type ?? "dropshipping";
 
-    if (gameType === "dropshipping") {
+    if (templateKeyOverride === "shipment_followup") {
+      // Manual shipment follow-up: customer is the recipient, author in CC
+      templateKey = "shipment_followup";
+      if (order?.customer_email) toEmails.push(order.customer_email);
+      if (author?.email) ccEmails.push(author.email);
+      if (author?.secondary_email) ccEmails.push(author.secondary_email);
+      if (game.secondary_author_email) ccEmails.push(game.secondary_author_email);
+    } else if (gameType === "dropshipping") {
       templateKey = "dropshipping";
       if (author?.email) toEmails.push(author.email);
       if (game.secondary_author_email) ccEmails.push(game.secondary_author_email);
@@ -331,18 +338,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
 
     if (result.success) {
-      // Update item status
-      const nextStatus = gameType === "dropshipping" || gameType === "supertilt" || gameType === "partner"
-        ? "processed"
-        : undefined; // location stays in location_pending until contract returned
+      // For shipment follow-up: just log, don't change kanban status or overwrite email_sent_at
+      if (templateKeyOverride !== "shipment_followup") {
+        const nextStatus = gameType === "dropshipping" || gameType === "supertilt" || gameType === "partner"
+          ? "processed"
+          : undefined; // location stays in location_pending until contract returned
 
-      await (admin as any).from("order_items")
-        .update({
-          email_sent_at: new Date().toISOString(),
-          email_sent_to: toEmails.join(", "),
-          ...(nextStatus ? { kanban_status: nextStatus } : {}),
-        })
-        .eq("id", order_item_id);
+        await (admin as any).from("order_items")
+          .update({
+            email_sent_at: new Date().toISOString(),
+            email_sent_to: toEmails.join(", "),
+            ...(nextStatus ? { kanban_status: nextStatus } : {}),
+          })
+          .eq("id", order_item_id);
+      }
     } else {
       await (admin as any).from("order_items")
         .update({ kanban_status: "blocked", block_reason: `Erreur envoi email: ${result.error}` })

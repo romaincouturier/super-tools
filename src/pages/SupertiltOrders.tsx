@@ -139,6 +139,18 @@ function Dashboard() {
 
 function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => void }) {
   const { data: emailLogs, isLoading: loadingLogs } = useOrderItemEmailLog(item.wc_order_id);
+  const { mutateAsync: sendEmail, isPending: sendingFollowup } = useSendOrderEmail();
+  const { toast } = useToast();
+
+  const handleShipmentFollowup = async () => {
+    try {
+      await sendEmail({ order_item_id: item.id, template_key: "shipment_followup" });
+      toast({ title: "Email de relance envoyé", description: "Le client a été contacté avec l'auteur en copie." });
+    } catch (e: any) {
+      toastError(toast, e, { title: "Échec de l'envoi de la relance" });
+    }
+  };
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -166,10 +178,16 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
           )}
 
           <div>
-            <h4 className="font-semibold mb-2 flex items-center gap-2">
-              <Send className="h-4 w-4" />
-              Historique des emails ({emailLogs?.length ?? 0})
-            </h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Send className="h-4 w-4" />
+                Historique des emails ({emailLogs?.length ?? 0})
+              </h4>
+              <Button size="sm" variant="outline" onClick={handleShipmentFollowup} disabled={sendingFollowup}>
+                {sendingFollowup ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Mail className="h-3 w-3 mr-1" />}
+                Relance d'expédition
+              </Button>
+            </div>
             {loadingLogs ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : !emailLogs?.length ? (
