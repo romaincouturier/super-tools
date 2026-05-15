@@ -493,6 +493,12 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         {order?.date_created && <p>{DATE(order.date_created)}</p>}
         <p>Qté : {item.quantity}{item.line_total ? ` — ${EUR(item.line_total)}` : ""}</p>
         {(item.games as any)?.title && <p>Jeu : {(item.games as any).title}</p>}
+        {item.email_sent_at && (
+          <p className="flex items-center gap-1 text-green-700">
+            <Send className="h-3 w-3" />
+            Email envoyé le {DATE(item.email_sent_at)}
+          </p>
+        )}
       </div>
 
       {item.block_reason && (
