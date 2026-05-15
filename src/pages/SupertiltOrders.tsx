@@ -147,7 +147,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
       await sendEmail({ order_item_id: item.id, template_key: "shipment_followup" });
       toast({ title: "Email de relance envoyé", description: "Le client a été contacté avec l'auteur en copie." });
     } catch (e: any) {
-      toastError(toast, e, "Échec de l'envoi de la relance");
+      toastError(toast, e, { title: "Échec de l'envoi de la relance" });
     }
   };
 
