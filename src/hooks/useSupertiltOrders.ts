@@ -60,6 +60,7 @@ export interface GameFull {
   commission_fixed: number | null;
   commission_formula: string | null;
   include_stripe_fees: boolean;
+  cost_price: number | null;
   // V3 stock
   min_stock: number | null;
   current_stock: number | null;
