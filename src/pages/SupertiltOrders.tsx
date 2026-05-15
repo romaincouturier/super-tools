@@ -35,6 +35,7 @@ import {
   useEmailTemplates,
   useUpsertEmailTemplate,
   useEmailLog,
+  useOrderItemEmailLog,
   useMarkInvoiceReceived,
   useMarkShippedConfirmed,
   useSupertiltSettings,
