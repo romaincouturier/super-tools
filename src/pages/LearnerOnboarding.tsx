@@ -7,12 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Eye, EyeOff, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { useToast } from "@/hooks/use-toast";
 import SupertiltLogo from "@/components/SupertiltLogo";
 
-type Mode = "loading" | "error" | "create" | "login";
+type Mode = "loading" | "error" | "create" | "login" | "success";
 
-// Password strength requirements
 function checkPasswordStrength(pwd: string): { score: number; hints: string[] } {
   const hints: string[] = [];
   if (pwd.length < 8) hints.push("Au moins 8 caractères");
@@ -26,7 +24,6 @@ function checkPasswordStrength(pwd: string): { score: number; hints: string[] } 
 export default function LearnerOnboarding() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const token = searchParams.get("token");
 
   const [mode, setMode] = useState<Mode>("loading");
@@ -35,6 +32,8 @@ export default function LearnerOnboarding() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // "used" token: show a contextual banner so the user knows why they're in login mode
+  const [usedTokenBanner, setUsedTokenBanner] = useState(false);
 
   const strength = checkPasswordStrength(password);
   const isStrongEnough = strength.score >= 4;
@@ -59,18 +58,33 @@ export default function LearnerOnboarding() {
           setErrorMsg("Ce lien n'est pas valide.");
         } else if (result.status === "expired") {
           setMode("error");
-          setErrorMsg("Ce lien a expiré. Connectez-vous directement depuis l'espace apprenant ou contactez votre formateur.");
+          setErrorMsg("Ce lien a expiré. Connectez-vous directement depuis votre espace apprenant ou contactez votre formateur.");
         } else {
-          // "used" or "ok" — show the right form immediately based on account existence
           setEmail(result.email ?? "");
-          setMode(result.has_account ? "login" : "create");
+          if (result.status === "used") {
+            // Token already consumed: show login form with an explanatory banner
+            setUsedTokenBanner(true);
+            setMode("login");
+          } else {
+            setMode(result.has_account ? "login" : "create");
+          }
         }
       });
   }, [token]);
 
   const consumeToken = async () => {
     if (!token) return;
-    await supabase.rpc("consume_learner_token", { p_token: token });
+    try {
+      await supabase.rpc("consume_learner_token", { p_token: token });
+    } catch {
+      // Non-blocking: user is already authenticated, token consumption failure is acceptable
+    }
+  };
+
+  const redirectToPortal = () => {
+    setMode("success");
+    // Brief success state so the user sees confirmation before the page changes
+    setTimeout(() => navigate("/espace-apprenant"), 800);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -94,7 +108,7 @@ export default function LearnerOnboarding() {
         error.message.toLowerCase().includes("already exists") ||
         error.message.toLowerCase().includes("user already")
       ) {
-        // Fallback: account was created between page load and submit → switch to login
+        // Edge case: account created between page load and submit
         setMode("login");
         setPassword("");
       } else {
@@ -105,7 +119,7 @@ export default function LearnerOnboarding() {
     }
 
     await consumeToken();
-    navigate("/espace-apprenant");
+    redirectToPortal();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -121,7 +135,7 @@ export default function LearnerOnboarding() {
     }
 
     await consumeToken();
-    navigate("/espace-apprenant");
+    redirectToPortal();
   };
 
   const strengthColor = ["bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-green-400", "bg-emerald-500"][strength.score] ?? "bg-gray-200";
@@ -130,6 +144,17 @@ export default function LearnerOnboarding() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Spinner size="lg" className="text-primary" />
+      </div>
+    );
+  }
+
+  if (mode === "success") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto" />
+          <p className="text-lg font-medium">Connexion réussie — redirection…</p>
+        </div>
       </div>
     );
   }
@@ -143,7 +168,7 @@ export default function LearnerOnboarding() {
             <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
             <p className="text-muted-foreground">{errorMsg}</p>
             <Button asChild variant="outline">
-              <Link to="/apprenant">Retour à l'espace apprenant</Link>
+              <Link to="/espace-apprenant">Accéder à mon espace apprenant</Link>
             </Button>
           </CardContent>
         </Card>
@@ -164,12 +189,19 @@ export default function LearnerOnboarding() {
           </CardTitle>
           <CardDescription>
             {mode === "create"
-              ? "Choisissez un mot de passe fort pour accéder à votre formation"
+              ? "Choisissez un mot de passe pour accéder à votre formation"
               : "Connectez-vous avec votre email et votre mot de passe"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Banner for already-used token */}
+          {usedTokenBanner && (
+            <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
+              Ce lien d'accès a déjà été utilisé. Connectez-vous avec votre mot de passe.
+            </div>
+          )}
+
           <form onSubmit={mode === "create" ? handleCreate : handleLogin} className="space-y-4">
             {/* Email (read-only, pre-filled from token) */}
             <div className="space-y-2">
@@ -180,14 +212,13 @@ export default function LearnerOnboarding() {
                 value={email}
                 readOnly
                 className="bg-muted/50 cursor-not-allowed"
+                autoComplete="email"
               />
             </div>
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">
-                {mode === "create" ? "Mot de passe" : "Mot de passe"}
-              </Label>
+              <Label htmlFor="password">Mot de passe</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -202,9 +233,9 @@ export default function LearnerOnboarding() {
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -275,7 +306,7 @@ export default function LearnerOnboarding() {
                   Vous n'avez pas encore de compte ?{" "}
                   <button
                     type="button"
-                    onClick={() => { setMode("create"); setPassword(""); setErrorMsg(null); }}
+                    onClick={() => { setMode("create"); setPassword(""); setErrorMsg(null); setUsedTokenBanner(false); }}
                     className="text-primary hover:underline font-medium"
                   >
                     Créer un compte
