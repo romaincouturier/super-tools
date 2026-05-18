@@ -56,6 +56,21 @@ interface TrainingRow {
 
 type TrainingRawRow = TrainingRow & { is_cancelled?: boolean | null };
 
+function toTrainingRow(row: TrainingRawRow): TrainingRow | null {
+  if (row.is_cancelled === true) return null;
+  return {
+    id: row.id,
+    source_financement_bpf: row.source_financement_bpf ?? null,
+    sold_price_ht: row.sold_price_ht ?? null,
+    start_date: row.start_date ?? null,
+    trainer_name: row.trainer_name ?? "",
+    catalog_id: row.catalog_id ?? null,
+    commanditaire_of_name: row.commanditaire_of_name ?? null,
+    session_type: row.session_type ?? null,
+    format_formation: row.format_formation ?? null,
+  };
+}
+
 interface ParticipantRow {
   id: string;
   training_id: string;
@@ -67,6 +82,16 @@ interface ParticipantRow {
 type ParticipantRawRow = Omit<ParticipantRow, "source_financement_bpf"> & {
   source_financement_bpf?: SourceFinancement | null;
 };
+
+function toParticipantRow(row: ParticipantRawRow): ParticipantRow {
+  return {
+    id: row.id,
+    training_id: row.training_id,
+    type_stagiaire_bpf: row.type_stagiaire_bpf ?? null,
+    sold_price_ht: row.sold_price_ht ?? null,
+    source_financement_bpf: row.source_financement_bpf ?? null,
+  };
+}
 
 interface ScheduleRow {
   training_id: string;
@@ -274,8 +299,8 @@ export default function BPFReport() {
       if (tErr) throw tErr;
 
       const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as TrainingRawRow[])
-        .filter((t) => t.is_cancelled !== true)
-        .map(({ is_cancelled, ...training }) => training);
+        .map(toTrainingRow)
+        .filter((training): training is TrainingRow => training !== null);
 
       // 2. Fetch participants with type_stagiaire_bpf
       const trainingIds = trainings.map((t) => t.id);
@@ -290,10 +315,7 @@ export default function BPFReport() {
           .in("training_id", trainingIds);
 
         if (pErr) throw pErr;
-        participants = ((pData ?? []) as unknown as ParticipantRawRow[]).map((p) => ({
-          ...p,
-          source_financement_bpf: p.source_financement_bpf ?? null,
-        }));
+        participants = ((pData ?? []) as unknown as ParticipantRawRow[]).map(toParticipantRow);
 
         // Build participantsWithTraining en enrichissant depuis le tableau trainings déjà chargé
         participantsWithTraining = participants.map((p) => {
