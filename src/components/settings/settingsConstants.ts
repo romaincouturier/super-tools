@@ -1248,6 +1248,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   stripe_secret_key: { default: "", description: "Clé secrète Stripe (sk_live_... ou sk_test_...) pour la facturation" },
   stripe_webhook_secret: { default: "", description: "Secret du webhook Stripe (whsec_...) pour valider les événements" },
   convention_default_price_ht: { default: "1250", description: "Prix HT par défaut pour les conventions si aucun prix n'est défini" },
+  elearning_access_mode: { default: "woocommerce", description: "Mode d'accès e-learning : \"woocommerce\" (email avec lien d'achat) ou \"magic_link\" (lien magique vers espace apprenant avec création de compte)" },
   elearning_default_duration: { default: "7", description: "Durée par défaut en jours pour les formations e-learning" },
   elearning_horaires_text: { default: "Formation accessible en ligne à votre rythme", description: "Texte horaires affiché sur les conventions e-learning" },
   elearning_lieu_text: { default: "En ligne (plateforme e-learning)", description: "Texte lieu affiché sur les conventions e-learning" },

@@ -29,6 +29,11 @@ const Auth = () => {
   useEffect(() => {
     const checkAndRedirect = async (userId: string) => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.role === "learner") {
+          navigate("/espace-apprenant");
+          return;
+        }
         const { data: metadata } = await supabase
           .from("user_security_metadata")
           .select("must_change_password")

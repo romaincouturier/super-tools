@@ -1,18 +1,29 @@
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   createParticipant,
   logParticipantActivity,
   sendParticipantWelcomeEmail,
   generateWoocommerceCoupon,
   sendElearningAccess,
+  sendLearnerMagicLink,
   scheduleParticipantEmail,
   scheduleTrainerSummary,
   catchUpAttendanceSignaturesForParticipant,
 } from "@/services/participants";
 import { getEmailMode, isTrainingOngoing } from "@/lib/emailScheduling";
 import type { FormationFormula } from "@/types/training";
+
+async function getElearningAccessMode(): Promise<"woocommerce" | "magic_link"> {
+  const { data } = await supabase
+    .from("app_settings")
+    .select("setting_value")
+    .eq("setting_key", "elearning_access_mode")
+    .maybeSingle();
+  return (data?.setting_value === "magic_link") ? "magic_link" : "woocommerce";
+}
 
 export interface AddParticipantParams {
   firstName: string;
@@ -129,33 +140,43 @@ export function useAddParticipant({
         }
       }
 
-      // 3. For e-learning: generate coupon if needed, then send access email
+      // 3. For e-learning: send access email (WooCommerce flow or magic link depending on toggle)
       if (formatFormation === "e_learning" && params.paymentMode !== "online" && insertedParticipant) {
-        let couponCode: string | undefined;
+        const accessMode = await getElearningAccessMode();
 
-        if (params.generateCoupon) {
+        if (accessMode === "magic_link") {
           try {
-            const result = await generateWoocommerceCoupon(insertedParticipant.id, trainingId);
-            if (result.error) {
-              toast({
-                title: "Coupon non généré",
-                description:
-                  "Le participant a été ajouté mais le coupon WooCommerce n'a pas pu être créé. Vérifiez la configuration WooCommerce.",
-                variant: "default",
-                duration: 8000,
-              });
-            } else if (result.couponCode) {
-              couponCode = result.couponCode;
-            }
-          } catch (couponErr) {
-            console.error("Failed to generate WooCommerce coupon:", couponErr);
+            await sendLearnerMagicLink(params.email, trainingId, insertedParticipant.id);
+          } catch (emailError) {
+            console.error("Failed to send learner magic link:", emailError);
           }
-        }
+        } else {
+          let couponCode: string | undefined;
 
-        try {
-          await sendElearningAccess(insertedParticipant.id, trainingId, couponCode);
-        } catch (emailError) {
-          console.error("Failed to send e-learning access email:", emailError);
+          if (params.generateCoupon) {
+            try {
+              const result = await generateWoocommerceCoupon(insertedParticipant.id, trainingId);
+              if (result.error) {
+                toast({
+                  title: "Coupon non généré",
+                  description:
+                    "Le participant a été ajouté mais le coupon WooCommerce n'a pas pu être créé. Vérifiez la configuration WooCommerce.",
+                  variant: "default",
+                  duration: 8000,
+                });
+              } else if (result.couponCode) {
+                couponCode = result.couponCode;
+              }
+            } catch (couponErr) {
+              console.error("Failed to generate WooCommerce coupon:", couponErr);
+            }
+          }
+
+          try {
+            await sendElearningAccess(insertedParticipant.id, trainingId, couponCode);
+          } catch (emailError) {
+            console.error("Failed to send e-learning access email:", emailError);
+          }
         }
       }
 
@@ -190,6 +211,10 @@ export function useAddParticipant({
         params.company,
       );
 
+      const elearningMode = formatFormation === "e_learning" && params.paymentMode !== "online"
+        ? await getElearningAccessMode()
+        : "woocommerce";
+
       return {
         email: params.email,
         formulaName: params.formulaName,
@@ -203,6 +228,7 @@ export function useAddParticipant({
         formatFormation,
         paymentMode: params.paymentMode,
         generateCoupon: params.generateCoupon,
+        elearningMode,
       };
     },
     onSuccess: (result) => {
@@ -210,8 +236,12 @@ export function useAddParticipant({
       if (result.formatFormation === "e_learning" && result.paymentMode !== "online") {
         const parts = [];
         if (result.formulaName) parts.push(`Formule ${result.formulaName}`);
-        if (result.generateCoupon) parts.push("coupon WooCommerce généré");
-        parts.push("email d'accès envoyé");
+        if (result.elearningMode === "magic_link") {
+          parts.push("lien magique d'accès envoyé");
+        } else {
+          if (result.generateCoupon) parts.push("coupon WooCommerce généré");
+          parts.push("email d'accès envoyé");
+        }
         statusMessage = parts.join(", ") + ".";
       } else if (result.ongoing) {
         const parts: string[] = [];

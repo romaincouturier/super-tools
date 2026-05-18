@@ -142,6 +142,40 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
               <div className="space-y-2"><Label htmlFor="elearning-horaires-text">Texte horaires e-learning</Label><Input id="elearning-horaires-text" value={settings.elearning_horaires_text} onChange={(e) => updateSetting("elearning_horaires_text", e.target.value)} placeholder="Formation accessible en ligne à votre rythme" /></div>
               <div className="space-y-2"><Label htmlFor="elearning-lieu-text">Texte lieu e-learning</Label><Input id="elearning-lieu-text" value={settings.elearning_lieu_text} onChange={(e) => updateSetting("elearning_lieu_text", e.target.value)} placeholder="En ligne (plateforme e-learning)" /></div>
             </div>
+            <div className="max-w-2xl space-y-3 p-4 rounded-lg border bg-muted/30">
+              <Label className="font-medium">Mode d'accès e-learning</Label>
+              <p className="text-xs text-muted-foreground">Choisissez comment le participant reçoit son accès à la formation en ligne.</p>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="elearning_access_mode"
+                    value="woocommerce"
+                    checked={(settings.elearning_access_mode ?? "woocommerce") === "woocommerce"}
+                    onChange={() => updateSetting("elearning_access_mode", "woocommerce")}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">WooCommerce</p>
+                    <p className="text-xs text-muted-foreground">Email avec un lien d'achat WooCommerce et un coupon 100% de réduction. Procédure d'achat habituelle.</p>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="elearning_access_mode"
+                    value="magic_link"
+                    checked={(settings.elearning_access_mode ?? "woocommerce") === "magic_link"}
+                    onChange={() => updateSetting("elearning_access_mode", "magic_link")}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Lien magique SuperTools</p>
+                    <p className="text-xs text-muted-foreground">Email avec un lien d'accès direct vers l'espace apprenant SuperTools. Le participant crée son compte (ou se connecte) et accède à sa formation. Les nouvelles formations s'ajoutent automatiquement au tableau de bord.</p>
+                  </div>
+                </label>
+              </div>
+            </div>
           </div>
 
           <Separator />
