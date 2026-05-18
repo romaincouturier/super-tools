@@ -117,7 +117,8 @@ export default function LearnerPortal() {
       window.history.replaceState({}, "", "/espace-apprenant");
       loadData(parsed.email);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
+      setError(msg);
       setLoading(false);
     }
   };
@@ -128,7 +129,8 @@ export default function LearnerPortal() {
       if (error) throw error;
       setData(result as unknown as LearnerData);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur inconnue");
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
+      setError(msg);
     } finally {
       setLoading(false);
     }
