@@ -269,6 +269,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     type FormulaRow = {
       id: string;
       name: string;
+      formation_config_id: string | null;
       woocommerce_product_id: number;
       formation_configs: { formation_name: string; format_formation: string | null } | null;
     };
