@@ -338,7 +338,7 @@ function ValidateItemDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-full">
         <DialogHeader><DialogTitle>Traiter la ligne de commande</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="rounded-md bg-muted p-3 text-sm">
