@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type {
   Quote,
   QuoteSettings,
+  SignedDevis,
   CreateQuoteInput,
   UpdateQuoteInput,
   UpdateQuoteSettingsInput,
@@ -53,6 +54,18 @@ export async function fetchQuotesByCard(cardId: string): Promise<Quote[]> {
     .eq("crm_card_id", cardId)
     .order("created_at", { ascending: false });
   return (throwIfError(result) || []) as Quote[];
+}
+
+export async function fetchSignedDevisByCard(cardId: string): Promise<SignedDevis[]> {
+  const result = await db()
+    .from("devis_signatures")
+    .select("id, formation_name, client_name, recipient_name, devis_type, signed_at, signed_pdf_url, total_amount_ht, created_at")
+    .eq("crm_card_id", cardId)
+    .eq("status", "signed")
+    .not("signed_pdf_url", "is", null)
+    .order("signed_at", { ascending: false });
+
+  return (throwIfError(result) || []) as SignedDevis[];
 }
 
 export async function fetchQuote(id: string): Promise<Quote> {
