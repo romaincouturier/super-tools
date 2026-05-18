@@ -43,14 +43,14 @@ export default function QuoteHistorySection({ cardId }: Props) {
 
   useEffect(() => {
     setLoadingSignedDevis(true);
-    supabase
+    (supabase as any)
       .from("devis_signatures")
       .select("id, formation_name, client_name, recipient_name, devis_type, signed_at, signed_pdf_url, total_amount_ht, created_at")
       .eq("crm_card_id", cardId)
       .eq("status", "signed")
       .not("signed_pdf_url", "is", null)
       .order("signed_at", { ascending: false })
-      .then(({ data }) => {
+      .then(({ data }: { data: SignedDevis[] | null }) => {
         setSignedDevis((data as SignedDevis[]) ?? []);
         setLoadingSignedDevis(false);
       });
