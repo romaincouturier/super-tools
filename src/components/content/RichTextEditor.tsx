@@ -1,6 +1,8 @@
+import { useRef, useEffect, useMemo } from "react";
 import { EditorContent } from "@tiptap/react";
 import TextAlign from "@tiptap/extension-text-align";
 import Mention from "@tiptap/extension-mention";
+import ImageExtension from "@tiptap/extension-image";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import {
@@ -21,6 +23,7 @@ import {
   Heading2,
   Heading3,
   Table as TableIcon,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -37,6 +40,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   minHeight?: string;
+  onImagePaste?: (file: File) => Promise<string>;
 }
 
 const RichTextEditor = ({
@@ -45,7 +49,38 @@ const RichTextEditor = ({
   placeholder: _placeholder = "Écrivez ici...",
   className,
   minHeight = "200px",
+  onImagePaste,
 }: RichTextEditorProps) => {
+  const onImagePasteRef = useRef(onImagePaste);
+  useEffect(() => { onImagePasteRef.current = onImagePaste; });
+
+  const editorProps = useMemo(() => ({
+    attributes: {
+      class: `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
+      style: `min-height: ${minHeight}`,
+    },
+    handlePaste: (view: any, event: ClipboardEvent) => {
+      if (!onImagePasteRef.current) return false;
+      const items = Array.from(event.clipboardData?.items ?? []);
+      const imageFiles = items
+        .filter((item) => item.type.startsWith("image/"))
+        .map((item) => item.getAsFile())
+        .filter((f): f is File => f !== null);
+      if (!imageFiles.length) return false;
+      event.preventDefault();
+      imageFiles.forEach(async (file) => {
+        try {
+          const url = await onImagePasteRef.current!(file);
+          const { schema, tr } = view.state;
+          if (!schema.nodes.image) return;
+          view.dispatch(tr.replaceSelectionWith(schema.nodes.image.create({ src: url })));
+        } catch { /* ignore upload errors silently */ }
+      });
+      return true;
+    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [minHeight]);
+
   const { editor, setLink } = useTiptapEditor({
     content,
     onChange,
@@ -60,13 +95,9 @@ const RichTextEditor = ({
         suggestion: mentionSuggestion,
       }),
       ...tableExtensions("normal"),
+      ImageExtension.configure({ HTMLAttributes: { class: "rounded-lg max-w-full" } }),
     ],
-    editorProps: {
-      attributes: {
-        class: `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
-        style: `min-height: ${minHeight}`,
-      },
-    },
+    editorProps,
   });
 
   if (!editor) {
@@ -213,6 +244,17 @@ const RichTextEditor = ({
         >
           <TableIcon className="h-4 w-4" />
         </Button>
+        {editor.isActive("table") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().deleteTable().run()}
+            title="Supprimer le tableau"
+            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
 
         <div className="w-px h-6 bg-border mx-1" />
 

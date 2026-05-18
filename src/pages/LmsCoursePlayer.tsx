@@ -248,7 +248,6 @@ export default function LmsCoursePlayer() {
           {selectedLesson ? (
             <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
               <div className="flex items-start gap-3">
-                {lessonTypeIcon(selectedLesson.lesson_type)}
                 <h2 className="text-2xl sm:text-3xl font-bold flex-1 leading-tight text-foreground">{selectedLesson.title}</h2>
                 {selectedLesson.estimated_minutes > 0 && (
                   <Badge variant="outline">
@@ -405,7 +404,6 @@ export default function LmsCoursePlayer() {
                 {!completedIds.has(selectedLesson.id) && selectedLesson.lesson_type !== "quiz" && (
                   <Button
                     size="lg"
-                    className="w-full"
                     onClick={handleMarkComplete}
                     disabled={markComplete.isPending}
                   >

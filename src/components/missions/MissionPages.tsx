@@ -849,6 +849,9 @@ const PageEditor = ({
         <TB active={false} onClick={() => editor.chain().focus().setHorizontalRule().run()} t="Séparateur"><Minus className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={insertToggleBlock} t="Dépliable"><ChevronDownSquare className="h-3.5 w-3.5" /></TB>
         <TB active={editor.isActive("table")} onClick={insertTable} t="Tableau (3×3, en-tête)"><TableIcon className="h-3.5 w-3.5" /></TB>
+        {editor.isActive("table") && (
+          <TB active={false} onClick={() => editor.chain().focus().deleteTable().run()} t="Supprimer le tableau"><Trash2 className="h-3.5 w-3.5 text-destructive" /></TB>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -1000,7 +1003,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
 
   const [selectedPage, setSelectedPage] = useState<MissionPage | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sortMode, setSortMode] = useState<PageSortMode>("date_desc");
+  const [sortMode, setSortMode] = useState<PageSortMode>("manual");
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;

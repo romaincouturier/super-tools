@@ -242,6 +242,7 @@ function BlockEditorBody({
         <TextBlockEditor
           content={content as TextBlockContent}
           onChange={(c) => onChange(c)}
+          lessonId={lessonId}
         />
       );
     case "table":
