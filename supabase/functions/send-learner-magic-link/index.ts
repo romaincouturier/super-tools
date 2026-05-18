@@ -36,10 +36,8 @@ Deno.serve(async (req) => {
     }
 
     // Determine if learner already has a Supabase account (adapts email copy)
-    const { data: authUsers } = await supabase.auth.admin.listUsers();
-    const hasAccount = (authUsers?.users ?? []).some(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
+    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email.toLowerCase());
+    const hasAccount = !!existingUser?.user;
 
     // Fetch training name if trainingId provided (personalises email subject)
     let trainingName: string | null = null;

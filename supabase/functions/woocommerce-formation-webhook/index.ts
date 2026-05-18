@@ -66,17 +66,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const webhookSecret = getSetting("wc_webhook_secret");
   const accessMode = getSetting("elearning_access_mode") || "woocommerce";
 
-  // ── Signature verification ───────────────────────────────────────────────
-  if (webhookSecret) {
-    const signature = req.headers.get("x-wc-webhook-signature") ?? "";
-    const valid = await verifyWoocommerceSignature(rawBody, signature, webhookSecret);
-    if (!valid) {
-      console.warn("Invalid WooCommerce webhook signature");
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+  // ── Signature verification (fail closed — reject if secret not configured) ─
+  if (!webhookSecret) {
+    console.error("wc_webhook_secret not configured — rejecting request");
+    return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const signature = req.headers.get("x-wc-webhook-signature") ?? "";
+  const valid = await verifyWoocommerceSignature(rawBody, signature, webhookSecret);
+  if (!valid) {
+    console.warn("Invalid WooCommerce webhook signature");
+    return new Response(JSON.stringify({ error: "Invalid signature" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   let order: Record<string, unknown>;

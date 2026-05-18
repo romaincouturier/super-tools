@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION public.preview_learner_token(p_token text)
 RETURNS json
 LANGUAGE plpgsql
 STABLE SECURITY DEFINER
-SET search_path TO 'public', 'auth'
+SET search_path TO 'public'
 AS $$
 DECLARE
   v_link   learner_magic_links;
