@@ -91,15 +91,26 @@ Deno.serve(async (req) => {
     const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
     const firstName = participants[0].first_name || "";
 
-    // Fetch email template (elearning_access_vous or _tu)
-    const templateType = isTu ? "elearning_access_tu" : "elearning_access_vous";
-    const { data: template } = await supabase
+    // Prefer dedicated magic-link template; fall back to the woocommerce one if not present
+    const primaryType = isTu ? "elearning_magic_link_tu" : "elearning_magic_link_vous";
+    const fallbackType = isTu ? "elearning_access_tu" : "elearning_access_vous";
+    let { data: template } = await supabase
       .from("email_templates")
       .select("subject, html_content")
-      .eq("template_type", templateType)
+      .eq("template_type", primaryType)
       .order("is_default", { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (!template) {
+      const { data: fb } = await supabase
+        .from("email_templates")
+        .select("subject, html_content")
+        .eq("template_type", fallbackType)
+        .order("is_default", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      template = fb;
+    }
 
     const startDateFr = startDateRaw ? formatDateFr(startDateRaw) : "";
     const endDateFr = endDateRaw ? formatDateFr(endDateRaw) : "";
