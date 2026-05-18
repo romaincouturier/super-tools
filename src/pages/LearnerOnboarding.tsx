@@ -80,31 +80,37 @@ export default function LearnerOnboarding() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isStrongEnough) return;
+    if (!isStrongEnough || !token) return;
     setSubmitting(true);
     setErrorMsg(null);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { role: "learner" },
-        emailRedirectTo: undefined,
-      },
-    });
+    // Create the account via service-role edge function (public signups are disabled)
+    const { data: created, error: createErr } = await supabase.functions.invoke(
+      "create-learner-account",
+      { body: { token, password } },
+    );
 
-    if (error) {
-      if (
-        error.message.toLowerCase().includes("already registered") ||
-        error.message.toLowerCase().includes("already exists") ||
-        error.message.toLowerCase().includes("user already")
-      ) {
+    if (createErr || (created && (created as { error?: string }).error)) {
+      const errMsg =
+        (created as { error?: string } | null)?.error ||
+        createErr?.message ||
+        "";
+      if (errMsg === "already_exists" || errMsg.toLowerCase().includes("already")) {
         // Edge case: account created between page load and submit
         setMode("login");
         setPassword("");
-      } else {
-        setErrorMsg(error.message);
+        setSubmitting(false);
+        return;
       }
+      setErrorMsg(errMsg || "Impossible de créer le compte. Réessayez.");
+      setSubmitting(false);
+      return;
+    }
+
+    // Sign in with the freshly created credentials
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInErr) {
+      setErrorMsg(signInErr.message);
       setSubmitting(false);
       return;
     }
