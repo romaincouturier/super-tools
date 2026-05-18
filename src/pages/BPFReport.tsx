@@ -267,7 +267,7 @@ export default function BPFReport() {
 
       if (tErr) throw tErr;
 
-      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as TrainingRow[]).filter(
+      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as (TrainingRow & { is_cancelled?: boolean })[]).filter(
         (t) => t.is_cancelled !== true
       );
 
@@ -284,7 +284,7 @@ export default function BPFReport() {
           .in("training_id", trainingIds);
 
         if (pErr) throw pErr;
-        participants = (pData ?? []) as ParticipantRow[];
+        participants = (pData ?? []) as unknown as ParticipantRow[];
 
         // Build participantsWithTraining en enrichissant depuis le tableau trainings déjà chargé
         participantsWithTraining = participants.map((p) => {
