@@ -194,25 +194,26 @@ const CalloutNode = Node.create({
 function DetailsNodeView({ node, updateAttributes }: NodeViewProps) {
   const open = node.attrs.open !== false;
   return (
-    <NodeViewWrapper as="div" className="my-2 border rounded-lg relative group/details">
-      <button
-        type="button"
-        contentEditable={false}
-        onClick={() => updateAttributes({ open: !open })}
-        title={open ? "Replier" : "Déplier"}
-        aria-label={open ? "Replier le bloc" : "Déplier le bloc"}
-        aria-expanded={open}
-        className="absolute top-1.5 right-1.5 z-10 h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
-      >
-        {open ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
-      </button>
-      <NodeViewContent
-        className={cn("p-3 pr-9", !open && "[&>*+*]:hidden")}
-      />
+    <NodeViewWrapper as="div" className="my-2 border rounded-lg">
+      <div className="flex items-start">
+        <button
+          type="button"
+          contentEditable={false}
+          onClick={() => updateAttributes({ open: !open })}
+          title={open ? "Replier" : "Déplier"}
+          aria-label={open ? "Replier le bloc" : "Déplier le bloc"}
+          aria-expanded={open}
+          className="shrink-0 flex items-center justify-center w-8 pt-3 self-start text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronDown
+            className="h-4 w-4 transition-transform duration-200"
+            style={{ transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}
+          />
+        </button>
+        <NodeViewContent
+          className={cn("flex-1 py-3 pr-3 min-w-0", !open && "[&>*+*]:hidden")}
+        />
+      </div>
     </NodeViewWrapper>
   );
 }
@@ -251,7 +252,7 @@ const SummaryNode = Node.create({
     return [{ tag: "summary" }];
   },
   renderHTML({ HTMLAttributes }) {
-    return ["summary", mergeAttributes(HTMLAttributes, { class: "cursor-pointer font-semibold text-lg select-none" }), 0];
+    return ["summary", mergeAttributes(HTMLAttributes, { class: "font-semibold text-lg" }), 0];
   },
 });
 
@@ -848,6 +849,9 @@ const PageEditor = ({
         <TB active={false} onClick={() => editor.chain().focus().setHorizontalRule().run()} t="Séparateur"><Minus className="h-3.5 w-3.5" /></TB>
         <TB active={false} onClick={insertToggleBlock} t="Dépliable"><ChevronDownSquare className="h-3.5 w-3.5" /></TB>
         <TB active={editor.isActive("table")} onClick={insertTable} t="Tableau (3×3, en-tête)"><TableIcon className="h-3.5 w-3.5" /></TB>
+        {editor.isActive("table") && (
+          <TB active={false} onClick={() => editor.chain().focus().deleteTable().run()} t="Supprimer le tableau"><Trash2 className="h-3.5 w-3.5 text-destructive" /></TB>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -999,7 +1003,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
 
   const [selectedPage, setSelectedPage] = useState<MissionPage | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sortMode, setSortMode] = useState<PageSortMode>("date_desc");
+  const [sortMode, setSortMode] = useState<PageSortMode>("manual");
 
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
