@@ -44,6 +44,7 @@ export interface Participant {
   repositioned_to_training_id?: string | null;
   repositioned_at?: string | null;
   type_stagiaire_bpf?: string | null;
+  source_financement_bpf?: string | null;
 }
 
 export interface UseEditParticipantOptions {
@@ -78,6 +79,7 @@ interface FormValues {
   formula: string;
   coachingSessionsTotal: string;
   typeStagiaireBpf: string;
+  sourceFinancementBpf: string;
 }
 
 export function useEditParticipant({
@@ -99,6 +101,7 @@ export function useEditParticipant({
   const [notes, setNotes] = useState(participant.notes || "");
   const [formula, setFormula] = useState(participant.formula || "");
   const [typeStagiaireBpf, setTypeStagiaireBpf] = useState(participant.type_stagiaire_bpf || "");
+  const [sourceFinancementBpf, setSourceFinancementBpf] = useState(participant.source_financement_bpf || "");
   const [coachingSessionsTotal, setCoachingSessionsTotal] = useState(
     participant.coaching_sessions_total != null
       ? String(participant.coaching_sessions_total)
@@ -136,6 +139,7 @@ export function useEditParticipant({
     setNotes(participant.notes || "");
     setFormula(participant.formula || "");
     setTypeStagiaireBpf(participant.type_stagiaire_bpf || "");
+    setSourceFinancementBpf(participant.source_financement_bpf || "");
     setCoachingSessionsTotal(
       participant.coaching_sessions_total != null
         ? String(participant.coaching_sessions_total)
@@ -152,6 +156,7 @@ export function useEditParticipant({
         email: v.email.trim().toLowerCase(),
         company: v.company.trim() || null,
         type_stagiaire_bpf: v.typeStagiaireBpf || null,
+        source_financement_bpf: v.sourceFinancementBpf || null,
       };
 
       if (isInterEntreprise) {
@@ -220,7 +225,8 @@ export function useEditParticipant({
     formula,
     coachingSessionsTotal,
     typeStagiaireBpf,
-  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal, typeStagiaireBpf]);
+    sourceFinancementBpf,
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(
@@ -355,6 +361,8 @@ export function useEditParticipant({
     // BPF
     typeStagiaireBpf,
     setTypeStagiaireBpf,
+    sourceFinancementBpf,
+    setSourceFinancementBpf,
 
     // Convention
     signedConventionUrl: conventionHook.signedConventionUrl,

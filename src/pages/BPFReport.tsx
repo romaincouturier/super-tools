@@ -50,6 +50,8 @@ interface TrainingRow {
   trainer_name: string;
   catalog_id: string | null;
   commanditaire_of_name: string | null;
+  session_type: string | null;
+  format_formation: string | null;
 }
 
 interface ParticipantRow {
@@ -321,20 +323,25 @@ export default function BPFReport() {
       // ── Compute Produits (Section C) ────────────────────────────────────────
       const newProduits = emptyProduits();
 
-      // Intra trainings: revenue at training level
       for (const t of trainings) {
-        if (t.sold_price_ht != null) {
-          const line = mapSourceToBpfLine(t.source_financement_bpf);
-          newProduits[line] += t.sold_price_ht;
-        }
-      }
+        const isIntra = t.session_type === 'intra' || t.format_formation === 'intra';
+        const isInter = !isIntra; // includes e-learning, inter-entreprises, etc.
 
-      // Per-participant pricing (inter sessions)
-      for (const p of participants) {
-        if (p.sold_price_ht != null) {
-          const training = trainings.find((t) => t.id === p.training_id);
-          const line = mapSourceToBpfLine(training?.source_financement_bpf ?? null);
-          newProduits[line] += p.sold_price_ht;
+        if (isIntra) {
+          // Intra: revenue at training level, source at training level
+          if (t.sold_price_ht != null) {
+            const line = mapSourceToBpfLine(t.source_financement_bpf);
+            newProduits[line] += t.sold_price_ht;
+          }
+        } else {
+          // Inter: revenue and source at participant level
+          const trainingParticipants = participants.filter((p) => p.training_id === t.id);
+          for (const p of trainingParticipants) {
+            if (p.sold_price_ht != null) {
+              const line = mapSourceToBpfLine(p.source_financement_bpf ?? t.source_financement_bpf ?? null);
+              newProduits[line] += p.sold_price_ht;
+            }
+          }
         }
       }
 

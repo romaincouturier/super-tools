@@ -7894,6 +7894,7 @@ export type Database = {
           sponsor_last_name: string | null
           training_id: string
           type_stagiaire_bpf: string | null
+          source_financement_bpf: string | null
         }
         Insert: {
           added_at?: string
@@ -7931,6 +7932,7 @@ export type Database = {
           sponsor_last_name?: string | null
           training_id: string
           type_stagiaire_bpf?: string | null
+          source_financement_bpf?: string | null
         }
         Update: {
           added_at?: string
@@ -7968,6 +7970,7 @@ export type Database = {
           sponsor_last_name?: string | null
           training_id?: string
           type_stagiaire_bpf?: string | null
+          source_financement_bpf?: string | null
         }
         Relationships: [
           {

@@ -153,6 +153,8 @@ const EditParticipantDialog = ({
             coachingDeadline={participant.coaching_deadline}
             typeStagiaireBpf={hook.typeStagiaireBpf}
             setTypeStagiaireBpf={hook.setTypeStagiaireBpf}
+            sourceFinancementBpf={hook.sourceFinancementBpf}
+            setSourceFinancementBpf={hook.setSourceFinancementBpf}
           />
 
           {isInterEntreprise && (
