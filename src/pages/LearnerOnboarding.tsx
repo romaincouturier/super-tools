@@ -66,7 +66,10 @@ export default function LearnerOnboarding() {
             setUsedTokenBanner(true);
             setMode("login");
           } else {
-            setMode(result.has_account ? "login" : "create");
+            // A valid fresh magic link should always let the learner choose a password
+            // and be signed in automatically, even if a previous interrupted attempt
+            // already created an unconfirmed auth account for this email.
+            setMode("create");
           }
         }
       });
@@ -96,13 +99,11 @@ export default function LearnerOnboarding() {
         createErr?.message ||
         "";
       if (errMsg === "already_exists" || errMsg.toLowerCase().includes("already")) {
-        // Edge case: account created between page load and submit
+        setErrorMsg("Ce compte existe déjà. Connectez-vous avec votre mot de passe.");
         setMode("login");
-        setPassword("");
-        setSubmitting(false);
-        return;
+      } else {
+        setErrorMsg(errMsg || "Impossible de créer le compte. Réessayez.");
       }
-      setErrorMsg(errMsg || "Impossible de créer le compte. Réessayez.");
       setSubmitting(false);
       return;
     }
@@ -114,6 +115,8 @@ export default function LearnerOnboarding() {
       setSubmitting(false);
       return;
     }
+
+    await supabase.rpc("consume_learner_token", { p_token: token });
 
     redirectToPortal();
   };
