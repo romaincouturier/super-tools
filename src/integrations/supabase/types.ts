@@ -7089,6 +7089,42 @@ export type Database = {
         }
         Relationships: []
       }
+      time_entries: {
+        Row: {
+          created_at: string
+          description: string
+          duration_minutes: number
+          entry_date: string
+          github_pr_number: number | null
+          github_pr_url: string | null
+          id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          duration_minutes: number
+          entry_date: string
+          github_pr_number?: number | null
+          github_pr_url?: string | null
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration_minutes?: number
+          entry_date?: string
+          github_pr_number?: number | null
+          github_pr_url?: string | null
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trainer_attendance_signatures: {
         Row: {
           created_at: string | null
@@ -9360,6 +9396,7 @@ export type Database = {
         | "temoignages"
         | "dropshipping"
         | "pictodico"
+        | "time_tracker"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -9527,6 +9564,7 @@ export const Constants = {
         "temoignages",
         "dropshipping",
         "pictodico",
+        "time_tracker",
       ],
       notification_type: [
         "review_requested",
