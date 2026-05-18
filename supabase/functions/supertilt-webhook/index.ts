@@ -433,7 +433,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
               company_city: billingAddr?.city ?? null,
               company_zip: billingAddr?.postcode ?? null,
               type_stagiaire_bpf: typeStagiaire,
-              source_financement_bpf: sourceFinancement,
               sold_price_ht: linePriceHt || null,
               payment_mode: "online",
               needs_survey_token: needsSurveyToken,
