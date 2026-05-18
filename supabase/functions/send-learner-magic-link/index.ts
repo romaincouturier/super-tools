@@ -1,10 +1,26 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-import { sendEmail } from "../_shared/resend.ts";
+import {
+  corsHeaders,
+  handleCorsPreflightIfNeeded,
+  getSigniticSignature,
+  replaceVariables,
+  formatDateFr,
+  wrapEmailHtml,
+  sendEmail,
+} from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
+import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
-function formatDateFr(iso: string): string {
-  return new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(iso));
+// Same helper used in send-elearning-access
+function formatContentToHtml(content: string): string {
+  const blocks = content.split(/\n\n+/);
+  return blocks.map(block => {
+    const trimmed = block.trim();
+    if (!trimmed) return "";
+    if (/^<(p|div|table|ol|ul|h[1-6])\b/i.test(trimmed)) return trimmed;
+    const lines = trimmed.split(/\n/).map(l => l.trim()).join("<br>");
+    return `<p>${lines}</p>`;
+  }).filter(Boolean).join("\n");
 }
 
 Deno.serve(async (req) => {
@@ -12,7 +28,7 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { email, trainingId, participantId } = await req.json();
+    const { email, trainingId } = await req.json();
     if (!email) {
       return new Response(JSON.stringify({ error: "Email requis" }), {
         status: 400,
@@ -20,10 +36,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = getSupabaseClient();
 
     // Check participant exists (silent fail for security)
     const { data: participants } = await supabase
@@ -39,23 +52,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Determine if learner already has a Supabase account (adapts email copy)
-    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(email.toLowerCase());
-    const hasAccount = !!existingUser?.user;
-
     // Fetch training details
     let trainingName: string | null = null;
-    let startDate: string | null = null;
-    let endDate: string | null = null;
+    let startDateRaw: string | null = null;
+    let endDateRaw: string | null = null;
+    let isTu = false;
     if (trainingId) {
       const { data: training } = await supabase
         .from("trainings")
-        .select("training_name, start_date, end_date")
+        .select("training_name, start_date, end_date, sponsor_formal_address")
         .eq("id", trainingId)
         .maybeSingle();
       trainingName = training?.training_name ?? null;
-      startDate = training?.start_date ?? null;
-      endDate = training?.end_date ?? null;
+      startDateRaw = training?.start_date ?? null;
+      endDateRaw = training?.end_date ?? null;
+      isTu = !training?.sponsor_formal_address;
     }
 
     // 30-day expiry
@@ -77,57 +88,59 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     const urls = await getAppUrls();
-    const appUrl = urls.app_url;
+    const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
+    const firstName = participants[0].first_name || "";
 
-    const onboardingUrl = `${appUrl}/apprenant/connexion?token=${link.token}`;
-    const firstName = participants[0].first_name || "Apprenant";
+    // Fetch email template (elearning_access_vous or _tu)
+    const templateType = isTu ? "elearning_access_tu" : "elearning_access_vous";
+    const { data: template } = await supabase
+      .from("email_templates")
+      .select("subject, html_content")
+      .eq("template_type", templateType)
+      .order("is_default", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    // Build date label
-    let dateLine = "";
-    if (startDate && endDate && startDate !== endDate) {
-      dateLine = ` qui se déroule du <strong>${formatDateFr(startDate)}</strong> au <strong>${formatDateFr(endDate)}</strong>`;
-    } else if (startDate) {
-      dateLine = ` le <strong>${formatDateFr(startDate)}</strong>`;
+    const startDateFr = startDateRaw ? formatDateFr(startDateRaw) : "";
+    const endDateFr = endDateRaw ? formatDateFr(endDateRaw) : "";
+
+    let subject: string;
+    let bodyContent: string;
+
+    if (template) {
+      // Use the same template as WooCommerce — access_link = magic link URL
+      subject = replaceVariables(template.subject, {
+        training_name: trainingName ?? "votre formation",
+        first_name: firstName,
+      });
+      bodyContent = replaceVariables(template.html_content, {
+        first_name: firstName,
+        training_name: trainingName ?? "votre formation",
+        start_date: startDateFr,
+        end_date: endDateFr,
+        access_link: accessLink,
+      });
+    } else {
+      // Fallback if template not found in DB
+      subject = trainingName
+        ? `Votre accès à la formation ${trainingName}`
+        : "Votre accès à votre formation en ligne";
+      const dateLabel = startDateFr && endDateFr && startDateFr !== endDateFr
+        ? ` du <strong>${startDateFr}</strong> au <strong>${endDateFr}</strong>`
+        : startDateFr ? ` le <strong>${startDateFr}</strong>` : "";
+      const formationLabel = trainingName ? `"<strong>${trainingName}</strong>"` : "votre formation";
+      bodyContent = `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVotre entreprise vient de vous inscrire à la formation e-learning ${formationLabel}${dateLabel}.\n\nVous pouvez accéder à votre espace apprenant en cliquant sur le bouton ci-dessous :\n\n<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">🎓 Accéder à ma formation</a></p>${dateLabel ? `\n\nLa formation est accessible${dateLabel}.` : ""}`;
     }
 
-    const formationLabel = trainingName
-      ? `"<strong>${trainingName}</strong>"`
-      : "votre formation en ligne";
+    const signature = await getSigniticSignature();
+    const html = wrapEmailHtml(formatContentToHtml(bodyContent), signature);
 
-    const subject = trainingName
-      ? `Votre accès à la formation ${trainingName}`
-      : "Votre accès à votre formation en ligne";
-
-    const intro = hasAccount
-      ? `Votre accès à la formation ${formationLabel}${dateLine} a été activé. Cliquez sur le bouton ci-dessous pour accéder à votre espace apprenant :`
-      : `Votre entreprise vient de vous inscrire à la formation ${formationLabel}${dateLine}. Cliquez sur le bouton ci-dessous pour créer votre compte et accéder à votre espace apprenant :`;
-
+    const bccList = await getBccList();
     await sendEmail({
       to: email,
+      bcc: bccList,
       subject,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; padding: 20px;">
-          <h1 style="color: #101820; font-size: 24px;">Bonjour ${firstName},</h1>
-          <p style="color: #555; font-size: 16px; line-height: 1.6;">
-            ${intro}
-          </p>
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${onboardingUrl}" style="background-color: #ffd100; color: #101820; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block;">
-              Accéder à ma formation
-            </a>
-          </div>
-          <p style="color: #555; font-size: 15px; line-height: 1.6;">
-            Je vous souhaite une bonne formation et à très bientôt sur SuperTilt.fr
-          </p>
-          <p style="color: #555; font-size: 15px;">
-            Si vous avez le moindre souci, contactez-moi.
-          </p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-          <p style="color: #bbb; font-size: 12px; text-align: center;">
-            Ce lien est valable 30 jours. Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.
-          </p>
-        </div>
-      `,
+      html,
       _emailType: "learner_magic_link",
     });
 
