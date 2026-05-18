@@ -244,7 +244,13 @@ export default function LearnerOnboarding() {
                   {[0, 1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className={`h-1.5 flex-1 rounded-full transition-colors ${i < strength.score ? strengthColor : "bg-muted"}`}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
+                        isStrongEnough
+                          ? "bg-emerald-500"
+                          : i < strength.score
+                            ? strengthColor
+                            : "bg-muted"
+                      }`}
                     />
                   ))}
                 </div>
