@@ -72,15 +72,6 @@ export default function LearnerOnboarding() {
       });
   }, [token]);
 
-  const consumeToken = async () => {
-    if (!token) return;
-    try {
-      await supabase.rpc("consume_learner_token", { p_token: token });
-    } catch {
-      // Non-blocking: user is already authenticated, token consumption failure is acceptable
-    }
-  };
-
   const redirectToPortal = () => {
     setMode("success");
     // Brief success state so the user sees confirmation before the page changes
@@ -118,7 +109,6 @@ export default function LearnerOnboarding() {
       return;
     }
 
-    await consumeToken();
     redirectToPortal();
   };
 
@@ -134,7 +124,6 @@ export default function LearnerOnboarding() {
       return;
     }
 
-    await consumeToken();
     redirectToPortal();
   };
 
