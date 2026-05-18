@@ -54,6 +54,8 @@ interface TrainingRow {
   format_formation: string | null;
 }
 
+type TrainingRawRow = TrainingRow & { is_cancelled?: boolean | null };
+
 interface ParticipantRow {
   id: string;
   training_id: string;
@@ -61,6 +63,10 @@ interface ParticipantRow {
   sold_price_ht: number | null;
   source_financement_bpf: SourceFinancement | null;
 }
+
+type ParticipantRawRow = Omit<ParticipantRow, "source_financement_bpf"> & {
+  source_financement_bpf?: SourceFinancement | null;
+};
 
 interface ScheduleRow {
   training_id: string;
@@ -267,9 +273,9 @@ export default function BPFReport() {
 
       if (tErr) throw tErr;
 
-      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as (TrainingRow & { is_cancelled?: boolean })[]).filter(
-        (t) => t.is_cancelled !== true
-      );
+      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as TrainingRawRow[])
+        .filter((t) => t.is_cancelled !== true)
+        .map(({ is_cancelled, ...training }) => training);
 
       // 2. Fetch participants with type_stagiaire_bpf
       const trainingIds = trainings.map((t) => t.id);
@@ -284,7 +290,10 @@ export default function BPFReport() {
           .in("training_id", trainingIds);
 
         if (pErr) throw pErr;
-        participants = (pData ?? []) as unknown as ParticipantRow[];
+        participants = ((pData ?? []) as unknown as ParticipantRawRow[]).map((p) => ({
+          ...p,
+          source_financement_bpf: p.source_financement_bpf ?? null,
+        }));
 
         // Build participantsWithTraining en enrichissant depuis le tableau trainings déjà chargé
         participantsWithTraining = participants.map((p) => {

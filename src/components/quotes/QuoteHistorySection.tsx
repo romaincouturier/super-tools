@@ -35,6 +35,10 @@ interface Props {
   cardId: string;
 }
 
+const devisSignaturesClient = (supabase as unknown as {
+  from: (table: "devis_signatures") => any;
+}).from("devis_signatures");
+
 export default function QuoteHistorySection({ cardId }: Props) {
   const { data: quotes, isLoading } = useQuotesByCard(cardId);
   const navigate = useNavigate();
@@ -43,8 +47,7 @@ export default function QuoteHistorySection({ cardId }: Props) {
 
   useEffect(() => {
     setLoadingSignedDevis(true);
-    (supabase as any)
-      .from("devis_signatures")
+    devisSignaturesClient
       .select("id, formation_name, client_name, recipient_name, devis_type, signed_at, signed_pdf_url, total_amount_ht, created_at")
       .eq("crm_card_id", cardId)
       .eq("status", "signed")
