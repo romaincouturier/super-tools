@@ -54,9 +54,9 @@ function moduleLabelFromPageUrl(pageUrl: string | null | undefined): string | nu
 
 /**
  * Resolves the displayable screenshot URL for a ticket by looking up the first
- * image attachment in the private `support-attachments` bucket and generating a
- * short-lived signed URL. The bucket stays private — no public URLs are ever
- * exposed. Falls back to whatever was stored historically in `screenshot_url`.
+ * image attachment in the public `support-attachments` bucket and resolving the
+ * direct public URL. Falls back to whatever was stored historically in
+ * `screenshot_url`.
  */
 async function resolveTicketScreenshots<T extends { id: string; screenshot_url: string | null }>(
   tickets: T[]
@@ -77,28 +77,19 @@ async function resolveTicketScreenshots<T extends { id: string; screenshot_url: 
     if (isImage) firstImageByTicket.set(a.ticket_id, a.file_path);
   }
 
-  // Extract file path from a stored screenshot_url that may be a public/sign URL
-  // pointing to the private support-attachments bucket. Fallback for legacy rows.
+  // Extract file path from a stored screenshot_url (legacy rows may store full URLs).
   const extractPath = (url: string | null): string | null => {
     if (!url) return null;
     const m = url.match(/\/storage\/v1\/object\/(?:public|sign)\/support-attachments\/([^?]+)/);
     return m ? decodeURIComponent(m[1]) : null;
   };
 
-  await Promise.all(
-    tickets.map(async (t) => {
-      const path = firstImageByTicket.get(t.id) ?? extractPath(t.screenshot_url);
-      if (!path) return;
-      const { data, error } = await supabase.storage
-        .from("support-attachments")
-        .createSignedUrl(path, 3600);
-      if (error) {
-        console.warn("[support] createSignedUrl failed", { path, error: error.message });
-        return;
-      }
-      if (data?.signedUrl) t.screenshot_url = data.signedUrl;
-    })
-  );
+  for (const t of tickets) {
+    const path = firstImageByTicket.get(t.id) ?? extractPath(t.screenshot_url);
+    if (!path) continue;
+    const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+    if (data?.publicUrl) t.screenshot_url = data.publicUrl;
+  }
 
   return tickets;
 }
