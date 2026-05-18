@@ -57,6 +57,7 @@ export interface Training {
   cancelled_at?: string | null;
   venue_id?: string | null;
   venue_booking_sent_at?: string | null;
+  source_financement_bpf?: string | null;
 }
 
 export interface Schedule {
@@ -83,6 +84,7 @@ export interface Participant {
   sold_price_ht?: number | null;
   formula?: string | null;
   formula_id?: string | null;
+  type_stagiaire_bpf?: string | null;
 }
 
 export function useFormationDetail() {

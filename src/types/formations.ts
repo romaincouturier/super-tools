@@ -6,6 +6,8 @@ export interface FormationConfig {
   programme_url: string | null;
   is_default: boolean;
   display_order: number;
+  code_specialite_nsf?: string | null;
+  label_specialite_nsf?: string | null;
 }
 
 export interface FormationDate {

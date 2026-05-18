@@ -103,6 +103,30 @@ export default function FormationConfigEditor({
                 required
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Code NSF</Label>
+                <Input
+                  placeholder="ex: 412"
+                  value={newFormation.code_specialite_nsf || ""}
+                  onChange={(e) => setNewFormation({
+                    ...newFormation,
+                    code_specialite_nsf: e.target.value || null
+                  })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Libellé spécialité</Label>
+                <Input
+                  placeholder="ex: Développement des capacités mentales..."
+                  value={newFormation.label_specialite_nsf || ""}
+                  onChange={(e) => setNewFormation({
+                    ...newFormation,
+                    label_specialite_nsf: e.target.value || null
+                  })}
+                />
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={onAdd} disabled={!newFormation.formation_name || !newFormation.programme_url}>
                 <Save className="w-3 h-3 mr-1" />
@@ -236,6 +260,30 @@ export default function FormationConfigEditor({
                       })}
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Code NSF</Label>
+                      <Input
+                        placeholder="ex: 412"
+                        value={editingFormation.code_specialite_nsf || ""}
+                        onChange={(e) => setEditingFormation({
+                          ...editingFormation,
+                          code_specialite_nsf: e.target.value || null
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Libellé spécialité</Label>
+                      <Input
+                        placeholder="ex: Développement des capacités mentales..."
+                        value={editingFormation.label_specialite_nsf || ""}
+                        onChange={(e) => setEditingFormation({
+                          ...editingFormation,
+                          label_specialite_nsf: e.target.value || null
+                        })}
+                      />
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={onSave}>
                       <Save className="w-3 h-3 mr-1" />
@@ -252,6 +300,7 @@ export default function FormationConfigEditor({
                   <div className="text-sm text-muted-foreground">
                     {config.prix}€ • {config.duree_heures}h
                     {config.programme_url && " • Programme ✓"}
+                    {config.code_specialite_nsf && ` • NSF ${config.code_specialite_nsf}`}
                   </div>
                   <Button
                     size="sm"

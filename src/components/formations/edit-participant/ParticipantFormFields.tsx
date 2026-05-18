@@ -42,6 +42,8 @@ interface ParticipantFormFieldsProps {
   selectedFormula?: FormationFormula;
   coachingSessionsCompleted: number;
   coachingDeadline?: string | null;
+  typeStagiaireBpf?: string;
+  setTypeStagiaireBpf?: (v: string) => void;
 }
 
 const ParticipantFormFields = ({
@@ -76,6 +78,8 @@ const ParticipantFormFields = ({
   selectedFormula,
   coachingSessionsCompleted,
   coachingDeadline,
+  typeStagiaireBpf,
+  setTypeStagiaireBpf,
 }: ParticipantFormFieldsProps) => {
   return (
     <>
@@ -148,6 +152,24 @@ const ParticipantFormFields = ({
         </div>
       )}
 
+
+      {setTypeStagiaireBpf && (
+        <div className="space-y-2">
+          <Label>Type de stagiaire (BPF)</Label>
+          <Select value={typeStagiaireBpf || ""} onValueChange={setTypeStagiaireBpf}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sélectionner le type de stagiaire" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="salarie_prive">Salarié d'employeur privé</SelectItem>
+              <SelectItem value="apprenti">Apprenti</SelectItem>
+              <SelectItem value="demandeur_emploi">Demandeur d'emploi</SelectItem>
+              <SelectItem value="particulier">Particulier à ses propres frais</SelectItem>
+              <SelectItem value="autre">Autre stagiaire</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {isInterEntreprise && (
         <>

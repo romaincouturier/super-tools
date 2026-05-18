@@ -371,6 +371,46 @@ export function FinanceurCard({ form }: { form: FormationFormHook }) {
   );
 }
 
+// --- Source Financement BPF Selector ---
+
+export function SourceFinancementSelector({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>Source de financement (BPF)</Label>
+      <Select value={value || ""} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionner la source de financement" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="entreprise">Entreprise (formation salariés)</SelectItem>
+          <SelectItem value="opco_plan_competences">OPCO – Plan de développement des compétences</SelectItem>
+          <SelectItem value="opco_cpf">OPCO – CPF</SelectItem>
+          <SelectItem value="opco_apprentissage">OPCO – Contrat d'apprentissage</SelectItem>
+          <SelectItem value="opco_professionnalisation">OPCO – Contrat de professionnalisation</SelectItem>
+          <SelectItem value="opco_alternance">OPCO – Alternance (Pro-A)</SelectItem>
+          <SelectItem value="opco_transition_pro">OPCO – Transition professionnelle</SelectItem>
+          <SelectItem value="opco_demandeur_emploi">OPCO – Demandeurs d'emploi</SelectItem>
+          <SelectItem value="opco_tns">OPCO – Travailleurs non-salariés</SelectItem>
+          <SelectItem value="pouvoirs_publics_agents">Pouvoirs publics – Agents</SelectItem>
+          <SelectItem value="etat">Pouvoirs publics – État</SelectItem>
+          <SelectItem value="conseils_regionaux">Pouvoirs publics – Conseils régionaux</SelectItem>
+          <SelectItem value="france_travail">Pouvoirs publics – France Travail</SelectItem>
+          <SelectItem value="autres_publics">Autres ressources publiques</SelectItem>
+          <SelectItem value="particulier">Particulier à ses propres frais</SelectItem>
+          <SelectItem value="sous_traitance">Autre organisme de formation (sous-traitance)</SelectItem>
+          <SelectItem value="autre">Autre</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 // --- Catalog Summary Card ---
 
 export function CatalogSummaryCard({
