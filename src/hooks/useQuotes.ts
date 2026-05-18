@@ -13,6 +13,8 @@ import {
   lookupSiren,
 } from "@/services/quotes";
 import type {
+  Quote,
+  QuoteSettings,
   CreateQuoteInput,
   UpdateQuoteInput,
   UpdateQuoteSettingsInput,
@@ -21,7 +23,7 @@ import type {
 // ── Settings ──────────────────────────────────────────────────────
 
 export function useQuoteSettings() {
-  return useQuery({
+  return useQuery<QuoteSettings>({
     queryKey: ["quote-settings"],
     queryFn: fetchQuoteSettings,
   });
@@ -41,7 +43,7 @@ export function useUpdateQuoteSettings() {
 // ── Quotes ────────────────────────────────────────────────────────
 
 export function useQuotesByCard(cardId: string | undefined) {
-  return useQuery({
+  return useQuery<Quote[]>({
     queryKey: ["quotes", "card", cardId],
     queryFn: () => fetchQuotesByCard(cardId!),
     enabled: !!cardId,
@@ -49,7 +51,7 @@ export function useQuotesByCard(cardId: string | undefined) {
 }
 
 export function useQuote(quoteId: string | undefined) {
-  return useQuery({
+  return useQuery<Quote>({
     queryKey: ["quotes", quoteId],
     queryFn: () => fetchQuote(quoteId!),
     enabled: !!quoteId,

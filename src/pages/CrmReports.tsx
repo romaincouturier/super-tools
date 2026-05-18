@@ -84,6 +84,37 @@ function isPivotStorageKey(value: string): value is PivotStorageKey {
   return value === "pivot1" || value === "pivot2";
 }
 
+function getPivotPrefs(prefs: StoredPrefs, key: PivotStorageKey, categories: string[]) {
+  const fallbackRow = categories[0];
+  const fallbackCol = categories.length > 1 ? categories[1] : categories[0];
+
+  if (key === "pivot2") {
+    return {
+      row: getStoredCategory(prefs.pivot2Row, categories, fallbackRow),
+      col: getStoredCategory(prefs.pivot2Col, categories, fallbackCol),
+      statuses: prefs.pivot2Statuses && prefs.pivot2Statuses.length > 0 ? prefs.pivot2Statuses : ALL_STATUSES,
+    };
+  }
+
+  return {
+    row: getStoredCategory(prefs.pivot1Row, categories, fallbackRow),
+    col: getStoredCategory(prefs.pivot1Col, categories, fallbackCol),
+    statuses: prefs.pivot1Statuses && prefs.pivot1Statuses.length > 0 ? prefs.pivot1Statuses : ALL_STATUSES,
+  };
+}
+
+function savePivotRow(key: PivotStorageKey, value: string) {
+  key === "pivot2" ? savePrefs({ pivot2Row: value }) : savePrefs({ pivot1Row: value });
+}
+
+function savePivotCol(key: PivotStorageKey, value: string) {
+  key === "pivot2" ? savePrefs({ pivot2Col: value }) : savePrefs({ pivot1Col: value });
+}
+
+function savePivotStatuses(key: PivotStorageKey, value: SalesStatus[]) {
+  key === "pivot2" ? savePrefs({ pivot2Statuses: value }) : savePrefs({ pivot1Statuses: value });
+}
+
 // ── Period helpers ──────────────────────────────────────────
 
 type PeriodPreset = "year" | "quarter" | "month" | "custom";
@@ -449,7 +480,7 @@ function PivotTable({
   allTags,
   periodSelector,
 }: {
-  storageKey: string;
+  storageKey: PivotStorageKey;
   title: string;
   cardsWithTags: CardWithTags[];
   categories: string[];
@@ -458,38 +489,29 @@ function PivotTable({
 }) {
   const prefs = useMemo(() => loadPrefs(), []);
   const safeStorageKey: PivotStorageKey = isPivotStorageKey(storageKey) ? storageKey : "pivot1";
-  const rowKey = `${safeStorageKey}Row` as const;
-  const colKey = `${safeStorageKey}Col` as const;
-  const statusKey = `${safeStorageKey}Statuses` as const;
+  const defaultPrefs = getPivotPrefs(prefs, safeStorageKey, categories);
 
-  const rawRow = prefs[rowKey];
-  const rawCol = prefs[colKey];
-  const defaultRow = getStoredCategory(rawRow, categories, categories[0]);
-  const defaultCol = getStoredCategory(rawCol, categories, categories.length > 1 ? categories[1] : categories[0]);
-  const storedStatuses = prefs[statusKey] as SalesStatus[] | undefined;
-  const defaultStatuses = storedStatuses && storedStatuses.length > 0 ? storedStatuses : ALL_STATUSES;
-
-  const [rowCat, setRowCat] = useState<string>(defaultRow);
-  const [colCat, setColCat] = useState<string>(defaultCol);
-  const [selectedStatuses, setSelectedStatuses] = useState<SalesStatus[]>(defaultStatuses);
+  const [rowCat, setRowCat] = useState<string>(defaultPrefs.row);
+  const [colCat, setColCat] = useState<string>(defaultPrefs.col);
+  const [selectedStatuses, setSelectedStatuses] = useState<SalesStatus[]>(defaultPrefs.statuses);
 
   const handleRowChange = useCallback((v: string) => {
     setRowCat(v);
-    savePrefs({ [rowKey]: v });
-  }, [rowKey]);
+    savePivotRow(safeStorageKey, v);
+  }, [safeStorageKey]);
 
   const handleColChange = useCallback((v: string) => {
     setColCat(v);
-    savePrefs({ [colKey]: v });
-  }, [colKey]);
+    savePivotCol(safeStorageKey, v);
+  }, [safeStorageKey]);
 
   const handleStatusToggle = useCallback((status: SalesStatus) => {
     setSelectedStatuses((prev) => {
       const next = prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status];
-      savePrefs({ [statusKey]: next });
+      savePivotStatuses(safeStorageKey, next);
       return next;
     });
-  }, [statusKey]);
+  }, [safeStorageKey]);
 
   // Filter cards by selected statuses
   const safeCards = useMemo(

@@ -10,8 +10,9 @@ import type {
   UpdateQuoteSettingsInput,
 } from "@/types/quotes";
 
-// The generated Database type doesn't cover all tables; bypass table-name checking.
-const db = () => supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> };
+// The generated Database type doesn't cover all tables; keep this client untyped
+// to avoid very deep Supabase generic instantiation in quote consumers.
+const db = () => supabase as any;
 
 function throwIfError<T>(result: { data: T; error: { message: string } | null }): T {
   if (result.error) throw result.error;
