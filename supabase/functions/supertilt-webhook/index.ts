@@ -233,11 +233,118 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .map((g) => [g.woocommerce_product_id, g]),
     );
 
+    // ── Load formation formulas (e-learning products) ────────────
+    const { data: formulas } = await (admin as any)
+      .from("formation_formulas")
+      .select("id, name, formation_config_id, woocommerce_product_id, formation_configs(formation_name)")
+      .not("woocommerce_product_id", "is", null);
+
+    const formulasByProductId = new Map(
+      ((formulas ?? []) as Array<{ id: string; name: string; woocommerce_product_id: number; formation_configs: { formation_name: string } | null }>)
+        .map((f) => [f.woocommerce_product_id, f]),
+    );
+
+    // ── Load e-learning access mode from app_settings ────────────
+    const { data: appSettingsRows } = await (admin as any)
+      .from("app_settings")
+      .select("setting_key, setting_value")
+      .in("setting_key", ["elearning_access_mode"]);
+    const getAppSetting = (k: string) =>
+      (appSettingsRows as Array<{ setting_key: string; setting_value: string }>)
+        ?.find((s) => s.setting_key === k)?.setting_value ?? "";
+    const elearningAccessMode = getAppSetting("elearning_access_mode") || "magic_link";
+
     // ── Process each line item ───────────────────────────────────
-    const results = { items_processed: 0, items_to_validate: 0, emails_queued: 0 };
+    const results = { items_processed: 0, items_to_validate: 0, emails_queued: 0, formations_processed: 0 };
 
     for (const item of order.line_items ?? []) {
-      const game = gamesByProductId.get(item.product_id);
+      const formula = formulasByProductId.get(item.product_id);
+      const game = formula ? undefined : gamesByProductId.get(item.product_id);
+
+      // ── Formation e-learning ─────────────────────────────────
+      if (formula) {
+        const customerEmail = (order.billing?.email ?? "").trim().toLowerCase();
+        if (customerEmail) {
+          const formationName = (formula.formation_configs as { formation_name: string } | null)?.formation_name ?? "";
+          const today = new Date().toISOString().split("T")[0];
+          const { data: training } = await (admin as any)
+            .from("trainings")
+            .select("id, training_name, start_date, end_date, format_formation")
+            .ilike("training_name", `%${formationName}%`)
+            .ilike("format_formation", "%inter%")
+            .eq("is_cancelled", false)
+            .gte("start_date", today)
+            .order("start_date", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (!training) {
+            await (admin as any).from("woocommerce_pending_formations").insert({
+              woocommerce_order_id: order.id,
+              woocommerce_product_id: item.product_id,
+              customer_email: customerEmail,
+              customer_first_name: order.billing?.first_name ?? null,
+              customer_last_name: order.billing?.last_name ?? null,
+              formation_name: formationName,
+              reason: "no_matching_session",
+              raw_payload: { product_id: item.product_id, formula_id: formula.id, formula_name: formula.name },
+              status: "pending",
+            });
+          } else {
+            const { data: existing } = await (admin as any)
+              .from("training_participants")
+              .select("id")
+              .eq("training_id", training.id)
+              .eq("email", customerEmail)
+              .maybeSingle();
+
+            let participantId: string;
+            if (existing) {
+              participantId = existing.id;
+            } else {
+              const needsSurveyToken = crypto.randomUUID();
+              const { data: participant } = await (admin as any)
+                .from("training_participants")
+                .insert({
+                  training_id: training.id,
+                  first_name: order.billing?.first_name ?? null,
+                  last_name: order.billing?.last_name ?? null,
+                  email: customerEmail,
+                  needs_survey_token: needsSurveyToken,
+                  needs_survey_status: "non_envoye",
+                  coaching_sessions_total: 0,
+                  coaching_sessions_completed: 0,
+                  payment_mode: "online",
+                  formula: formula.name || null,
+                  formula_id: formula.id || null,
+                })
+                .select("id")
+                .single();
+
+              participantId = (participant as { id: string }).id;
+              await (admin as any).from("questionnaire_besoins").insert({
+                training_id: training.id,
+                participant_id: participantId,
+                token: needsSurveyToken,
+                etat: "non_envoye",
+              });
+            }
+
+            if (elearningAccessMode === "magic_link") {
+              await (admin as any).functions.invoke("send-learner-magic-link", {
+                body: { email: customerEmail, trainingId: training.id },
+              });
+            } else {
+              await (admin as any).functions.invoke("send-elearning-access", {
+                body: { participantId, trainingId: training.id },
+              });
+            }
+          }
+          results.formations_processed++;
+        }
+        // Formation items don't go through kanban — skip to next item
+        continue;
+      }
 
       let kanbanStatus: string;
       let gameId: string | null = null;
@@ -246,7 +353,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       if (!game) {
         kanbanStatus = "to_validate";
-        blockReason = `Produit WooCommerce #${item.product_id} non trouvé dans le catalogue`;
+        blockReason = `Produit WooCommerce #${item.product_id} non reconnu (ni jeu, ni formation e-learning)`;
         results.items_to_validate++;
       } else {
         gameId = game.id;

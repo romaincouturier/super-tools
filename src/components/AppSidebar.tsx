@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess, type AppModule } from "@/hooks/useModuleAccess";
 import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
 import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
+import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
@@ -104,6 +105,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const { hasAccess, isAdmin } = useModuleAccess();
   const { hasAny: hasSettingsAlert } = useSettingsAlerts();
   const timeTrackerAlert = useTimeTrackerAlert();
+  const routingInboxAlert = useRoutingInboxAlert();
 
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -241,7 +243,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const info = MODULE_ICONS[entry.key];
             if (!info) return null;
             if (!hasAccess(toAppModule(entry.key))) return null;
-            const alert = entry.key === "time-tracker" ? timeTrackerAlert : undefined;
+            const alert = entry.key === "time-tracker" ? timeTrackerAlert
+              : entry.key === "dropshipping" ? routingInboxAlert
+              : undefined;
             return (
               <RailItem
                 key={entry.key}
