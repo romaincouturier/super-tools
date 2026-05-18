@@ -99,6 +99,7 @@ const Dropshipping = lazy(() => import("./pages/Dropshipping"));
 const PictoDico = lazy(() => import("./pages/PictoDico"));
 const TimeTracker = lazy(() => import("./pages/TimeTracker"));
 const SupertiltOrders = lazy(() => import("./pages/SupertiltOrders"));
+const WoocommerceInbox = lazy(() => import("./pages/WoocommerceInbox"));
 const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 
@@ -255,6 +256,7 @@ const App = () => (
               <Route path="/temoignages" element={<Temoignages />} />
               <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
               <Route path="/commandes-jeux" element={<SupertiltOrders />} />
+              <Route path="/commandes/inbox" element={<WoocommerceInbox />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               {/* Picto-Dico module */}
               <Route path="/pictodico" element={<PictoDico />} />

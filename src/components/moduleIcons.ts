@@ -69,6 +69,7 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   transcripts: { icon: Mic, label: "Transcripts", path: "/transcripts" },
   temoignages: { icon: Star, label: "Témoignages", path: "/temoignages" },
   dropshipping: { icon: ShoppingCart, label: "Dropshipping", path: "/dropshipping" },
+  wc_inbox: { icon: Inbox, label: "Inbox ventes", path: "/commandes/inbox" },
   pictodico: { icon: BookImage, label: "Picto-Dico", path: "/pictodico" },
   "time-tracker": { icon: Clock, label: "Suivi du temps", path: "/time-tracker" },
 };

@@ -82,13 +82,19 @@ const NAV_CONFIG: NavConfig[] = [
   { type: "item", key: "veille" },
   { type: "item", key: "web-analytics" },
   { type: "item", key: "archives" },
-  { type: "item", key: "dropshipping" },
+  {
+    type: "group",
+    key: "dropshipping",
+    children: [
+      { key: "wc_inbox" },
+    ],
+  },
   { type: "item", key: "pictodico" },
   { type: "item", key: "time-tracker" },
 ];
 
 function toAppModule(key: string): AppModule {
-  return key.replace("-", "_") as AppModule;
+  return key.replace(/-/g, "_") as AppModule;
 }
 
 // ── AppSidebar ─────────────────────────────────────────────────
@@ -243,9 +249,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const info = MODULE_ICONS[entry.key];
             if (!info) return null;
             if (!hasAccess(toAppModule(entry.key))) return null;
-            const alert = entry.key === "time-tracker" ? timeTrackerAlert
-              : entry.key === "dropshipping" ? routingInboxAlert
-              : undefined;
+            const alert = entry.key === "time-tracker" ? timeTrackerAlert : undefined;
             return (
               <RailItem
                 key={entry.key}
@@ -271,6 +275,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               return info && isActive(info.path);
             });
             const isOpen = openGroups.has(entry.key);
+            const groupAlert = entry.key === "dropshipping" ? routingInboxAlert : undefined;
 
             if (!showLabels) {
               return (
@@ -279,6 +284,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
                   icon={parentInfo.icon}
                   label={parentInfo.label}
                   active={isActive(parentInfo.path) || anyChildActive}
+                  alert={groupAlert}
                   showLabels={false}
                   onClick={() => go(parentInfo.path)}
                 />
@@ -294,6 +300,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
                   active={isActive(parentInfo.path) && !anyChildActive}
                   anyChildActive={anyChildActive}
                   isOpen={isOpen}
+                  alert={groupAlert}
                   onNavigate={() => { go(parentInfo.path); setOpenGroups((prev) => new Set([...prev, entry.key])); }}
                   onToggle={() => toggleGroup(entry.key)}
                 />
@@ -334,6 +341,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
                             icon={childInfo.icon}
                             label={childInfo.label}
                             active={isActive(childInfo.path)}
+                            alert={child.key === "wc_inbox" ? routingInboxAlert : undefined}
                             onClick={() => go(childInfo.path)}
                           />
                         </div>
@@ -451,11 +459,12 @@ interface GroupHeaderProps {
   active: boolean;
   anyChildActive: boolean;
   isOpen: boolean;
+  alert?: boolean;
   onNavigate: () => void;
   onToggle: () => void;
 }
 
-function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavigate, onToggle }: GroupHeaderProps) {
+function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, alert, onNavigate, onToggle }: GroupHeaderProps) {
   const fg = active ? ANTHRACITE : anyChildActive ? CREAM : "rgba(247,245,240,0.6)";
   const bg = active ? YELLOW : "transparent";
 
@@ -497,7 +506,8 @@ function GroupHeader({ icon: Icon, label, active, anyChildActive, isOpen, onNavi
         }}
       >
         <Icon size={18} style={{ flexShrink: 0 }} />
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{label}</span>
+        {alert && <AlertDot active className="relative top-0 right-0 shrink-0 mr-1" />}
       </button>
 
       {/* Toggle chevron */}
@@ -539,10 +549,11 @@ interface SubItemProps {
   icon: LucideIcon;
   label: string;
   active: boolean;
+  alert?: boolean;
   onClick: () => void;
 }
 
-function SubItem({ icon: Icon, label, active, onClick }: SubItemProps) {
+function SubItem({ icon: Icon, label, active, alert, onClick }: SubItemProps) {
   const fg = active ? ANTHRACITE : "rgba(247,245,240,0.6)";
   const bg = active ? YELLOW : "transparent";
 
@@ -582,7 +593,8 @@ function SubItem({ icon: Icon, label, active, onClick }: SubItemProps) {
       }}
     >
       <Icon size={15} style={{ flexShrink: 0 }} />
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{label}</span>
+      {alert && <AlertDot active className="relative top-0 right-0 shrink-0" />}
     </button>
   );
 }

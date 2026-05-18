@@ -399,6 +399,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq("email", customerEmail)
           .maybeSingle();
 
+        // Déduit type_stagiaire_bpf : si billing.company renseigné → Entreprise, sinon Particulier
+        const billingCompany = (order.billing?.company ?? "").trim();
+        const typeStagiaire = billingCompany ? "Entreprise" : "Particulier";
+
+        // Adresse de facturation
+        const billingAddr = order.billing as {
+          address_1?: string; address_2?: string;
+          city?: string; postcode?: string; country?: string;
+        } | undefined;
+
+        // Prix HT de la ligne (le total WooCommerce est HT si pas de TVA configurée)
+        const linePriceHt = parseFloat(item.total ?? "0");
+
         let participantId: string;
         if (existing) {
           participantId = existing.id;
@@ -411,13 +424,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
               first_name: order.billing?.first_name ?? null,
               last_name: order.billing?.last_name ?? null,
               email: customerEmail,
+              company: billingCompany || null,
+              company_address: [billingAddr?.address_1, billingAddr?.address_2].filter(Boolean).join(", ") || null,
+              company_city: billingAddr?.city ?? null,
+              company_zip: billingAddr?.postcode ?? null,
+              type_stagiaire_bpf: typeStagiaire,
+              sold_price_ht: linePriceHt || null,
+              payment_mode: "online",
               needs_survey_token: needsSurveyToken,
               needs_survey_status: "non_envoye",
               coaching_sessions_total: 0,
               coaching_sessions_completed: 0,
-              payment_mode: "online",
               formula: formula.name || null,
               formula_id: formula.id || null,
+              notes: `Vente WooCommerce #${order.id} — ${item.name}`,
             })
             .select("id")
             .single();
