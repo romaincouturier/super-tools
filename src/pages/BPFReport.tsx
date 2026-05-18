@@ -54,20 +54,18 @@ interface TrainingRow {
   format_formation: string | null;
 }
 
-type TrainingRawRow = TrainingRow & { is_cancelled?: boolean | null };
-
-function toTrainingRow(row: TrainingRawRow): TrainingRow | null {
+function toTrainingRow(row: Record<string, unknown>): TrainingRow | null {
   if (row.is_cancelled === true) return null;
   return {
-    id: row.id,
-    source_financement_bpf: row.source_financement_bpf ?? null,
-    sold_price_ht: row.sold_price_ht ?? null,
-    start_date: row.start_date ?? null,
-    trainer_name: row.trainer_name ?? "",
-    catalog_id: row.catalog_id ?? null,
-    commanditaire_of_name: row.commanditaire_of_name ?? null,
-    session_type: row.session_type ?? null,
-    format_formation: row.format_formation ?? null,
+    id: String(row.id ?? ""),
+    source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,
+    sold_price_ht: typeof row.sold_price_ht === "number" ? row.sold_price_ht : null,
+    start_date: typeof row.start_date === "string" ? row.start_date : null,
+    trainer_name: typeof row.trainer_name === "string" ? row.trainer_name : "",
+    catalog_id: typeof row.catalog_id === "string" ? row.catalog_id : null,
+    commanditaire_of_name: typeof row.commanditaire_of_name === "string" ? row.commanditaire_of_name : null,
+    session_type: typeof row.session_type === "string" ? row.session_type : null,
+    format_formation: typeof row.format_formation === "string" ? row.format_formation : null,
   };
 }
 
@@ -79,17 +77,13 @@ interface ParticipantRow {
   source_financement_bpf: SourceFinancement | null;
 }
 
-type ParticipantRawRow = Omit<ParticipantRow, "source_financement_bpf"> & {
-  source_financement_bpf?: SourceFinancement | null;
-};
-
-function toParticipantRow(row: ParticipantRawRow): ParticipantRow {
+function toParticipantRow(row: Record<string, unknown>): ParticipantRow {
   return {
-    id: row.id,
-    training_id: row.training_id,
-    type_stagiaire_bpf: row.type_stagiaire_bpf ?? null,
-    sold_price_ht: row.sold_price_ht ?? null,
-    source_financement_bpf: row.source_financement_bpf ?? null,
+    id: String(row.id ?? ""),
+    training_id: String(row.training_id ?? ""),
+    type_stagiaire_bpf: (row.type_stagiaire_bpf as TypeStagiaire | null) ?? null,
+    sold_price_ht: typeof row.sold_price_ht === "number" ? row.sold_price_ht : null,
+    source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,
   };
 }
 
@@ -298,7 +292,7 @@ export default function BPFReport() {
 
       if (tErr) throw tErr;
 
-      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as TrainingRawRow[])
+      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as Record<string, unknown>[])
         .map(toTrainingRow)
         .filter((training): training is TrainingRow => training !== null);
 
@@ -315,7 +309,7 @@ export default function BPFReport() {
           .in("training_id", trainingIds);
 
         if (pErr) throw pErr;
-        participants = ((pData ?? []) as unknown as ParticipantRawRow[]).map(toParticipantRow);
+        participants = ((pData ?? []) as unknown as Record<string, unknown>[]).map(toParticipantRow);
 
         // Build participantsWithTraining en enrichissant depuis le tableau trainings déjà chargé
         participantsWithTraining = participants.map((p) => {
