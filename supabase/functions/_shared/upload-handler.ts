@@ -128,6 +128,24 @@ export async function handleFileUpload<TParams>(
       return createErrorResponse(uploadError.message || "Erreur de stockage", 500);
     }
 
+    // Verify the object was actually written. Protects against silent storage
+    // failures that would otherwise leave an orphan DB row pointing nowhere.
+    const lastSlash = filePath.lastIndexOf("/");
+    const dir = lastSlash >= 0 ? filePath.slice(0, lastSlash) : "";
+    const base = lastSlash >= 0 ? filePath.slice(lastSlash + 1) : filePath;
+    const { data: listed, error: listError } = await admin.storage
+      .from(config.bucket)
+      .list(dir, { limit: 1, search: base });
+    if (listError || !listed?.some((o) => o.name === base)) {
+      console.error(`[${fnName}] storage verify failed`, { filePath, listError });
+      // Best-effort cleanup in case the object did partially land somewhere.
+      await admin.storage.from(config.bucket).remove([filePath]).catch(() => {});
+      return createErrorResponse(
+        "L'upload a échoué côté stockage (objet absent après écriture). Réessayez.",
+        500,
+      );
+    }
+
     const { data: urlData } = admin.storage.from(config.bucket).getPublicUrl(filePath);
     const fileUrl = urlData.publicUrl;
 
