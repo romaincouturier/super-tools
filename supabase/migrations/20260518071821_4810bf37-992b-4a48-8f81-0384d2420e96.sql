@@ -1,0 +1,2 @@
+DELETE FROM public.support_ticket_attachments WHERE id = 'daa54106-c38a-4afd-ab24-870ab58e7d7f';
+UPDATE public.support_tickets SET screenshot_url = NULL WHERE id = '688b912c-04b1-44ec-863c-a355a48dc2b0';
