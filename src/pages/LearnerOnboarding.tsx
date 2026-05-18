@@ -96,13 +96,11 @@ export default function LearnerOnboarding() {
         createErr?.message ||
         "";
       if (errMsg === "already_exists" || errMsg.toLowerCase().includes("already")) {
-        // Edge case: account created between page load and submit
+        setErrorMsg("Ce compte existe déjà. Connectez-vous avec votre mot de passe.");
         setMode("login");
-        setPassword("");
-        setSubmitting(false);
-        return;
+      } else {
+        setErrorMsg(errMsg || "Impossible de créer le compte. Réessayez.");
       }
-      setErrorMsg(errMsg || "Impossible de créer le compte. Réessayez.");
       setSubmitting(false);
       return;
     }
