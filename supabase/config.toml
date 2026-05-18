@@ -516,3 +516,27 @@ verify_jwt = false
 
 [functions.manage-learner-account]
 verify_jwt = true
+
+[functions.analyze-admin-document]
+verify_jwt = false
+
+[functions.pictodico-generate-challenges]
+verify_jwt = false
+
+[functions.pictodico-webhook]
+verify_jwt = false
+
+[functions.supertilt-partner-portal]
+verify_jwt = false
+
+[functions.supertilt-restock-email]
+verify_jwt = false
+
+[functions.supertilt-send-email]
+verify_jwt = false
+
+[functions.supertilt-webhook]
+verify_jwt = false
+
+[functions.time-tracker-github-import]
+verify_jwt = false

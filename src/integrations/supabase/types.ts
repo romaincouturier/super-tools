@@ -9569,6 +9569,7 @@ export type Database = {
         | "dropshipping"
         | "pictodico"
         | "time_tracker"
+        | "wc_inbox"
       notification_type:
         | "review_requested"
         | "comment_added"
@@ -9737,6 +9738,7 @@ export const Constants = {
         "dropshipping",
         "pictodico",
         "time_tracker",
+        "wc_inbox",
       ],
       notification_type: [
         "review_requested",
