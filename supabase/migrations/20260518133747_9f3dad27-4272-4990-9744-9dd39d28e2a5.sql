@@ -1,0 +1,1 @@
+DELETE FROM public.learner_magic_links WHERE lower(email) = 'couturier.romain@gmail.com';
