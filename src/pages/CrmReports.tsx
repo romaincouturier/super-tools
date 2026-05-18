@@ -451,8 +451,10 @@ function PivotTable({
   const colKey = `${storageKey}Col` as keyof StoredPrefs;
   const statusKey = `${storageKey}Statuses` as keyof StoredPrefs;
 
-  const defaultRow = typeof prefs[rowKey] === "string" && categories.includes(prefs[rowKey] as string) ? (prefs[rowKey] as string) : categories[0];
-  const defaultCol = typeof prefs[colKey] === "string" && categories.includes(prefs[colKey] as string) ? (prefs[colKey] as string) : (categories.length > 1 ? categories[1] : categories[0]);
+  const rawRow = prefs[rowKey];
+  const rawCol = prefs[colKey];
+  const defaultRow: string = typeof rawRow === "string" && categories.includes(rawRow) ? rawRow : categories[0];
+  const defaultCol: string = typeof rawCol === "string" && categories.includes(rawCol) ? rawCol : (categories.length > 1 ? categories[1] : categories[0]);
   const storedStatuses = prefs[statusKey] as SalesStatus[] | undefined;
   const defaultStatuses = storedStatuses && storedStatuses.length > 0 ? storedStatuses : ALL_STATUSES;
 
