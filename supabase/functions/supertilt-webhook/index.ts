@@ -399,10 +399,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq("email", customerEmail)
           .maybeSingle();
 
-        // Déduit type_stagiaire_bpf et source_financement_bpf depuis billing
+        // Déduit type_stagiaire_bpf depuis billing
         const billingCompany = (order.billing?.company ?? "").trim();
         const typeStagiaire = billingCompany ? "Entreprise" : "Particulier";
-        const sourceFinancement = billingCompany ? "plan_formation" : "faf_auto";
 
         // Adresse de facturation
         const billingAddr = order.billing as {
