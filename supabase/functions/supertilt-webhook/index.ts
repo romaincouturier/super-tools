@@ -269,6 +269,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     type FormulaRow = {
       id: string;
       name: string;
+      formation_config_id: string | null;
       woocommerce_product_id: number;
       formation_configs: { formation_name: string; format_formation: string | null } | null;
     };
@@ -301,56 +302,54 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const formationName = formula.formation_configs?.formation_name ?? "";
         const catalogFormat = (formula.formation_configs?.format_formation ?? "").toLowerCase();
         const isElearningCatalog = catalogFormat.includes("e_learning") || catalogFormat.includes("elearning") || catalogFormat.includes("classe_virtuelle");
+        const catalogId = formula.formation_config_id;
 
         let training: { id: string; training_name: string; start_date: string | null; end_date: string | null; format_formation: string | null } | null = null;
         let routingReason = "";
 
-        // 1️⃣ Cherche des dates dans le titre du produit WooCommerce
-        const parsedDates = parseFrenchDates(item.name ?? "");
-        if (parsedDates) {
-          // Cherche une session inter aux mêmes dates
-          const { data: byDate } = await (admin as any)
-            .from("trainings")
-            .select("id, training_name, start_date, end_date, format_formation")
-            .ilike("training_name", `%${formationName}%`)
-            .ilike("format_formation", "%inter%")
-            .eq("is_cancelled", false)
-            .eq("start_date", parsedDates.start)
-            .maybeSingle();
-          if (byDate) {
-            training = byDate;
-            routingReason = `session inter du ${parsedDates.start} trouvée via dates dans le titre`;
-          }
-        }
-
-        // 2️⃣ Sinon : si formation e-learning au catalogue
-        //    → session permanente (start_date IS NULL) en priorité, sinon prochaine session non commencée
-        if (!training && isElearningCatalog) {
+        // Routing strict via catalog_id (lié au product_id de la formule).
+        // Toutes les sessions du catalogue sont éligibles, aucun matching par nom.
+        if (catalogId) {
           const today = new Date().toISOString().split("T")[0];
-          const elearningFilter = "format_formation.eq.e_learning,format_formation.ilike.%elearning%,format_formation.ilike.%classe_virtuelle%";
 
-          // Priorité 1 : session permanente (pas de start_date)
-          const { data: permanent } = await (admin as any)
-            .from("trainings")
-            .select("id, training_name, start_date, end_date, format_formation")
-            .ilike("training_name", `%${formationName}%`)
-            .or(elearningFilter)
-            .eq("is_cancelled", false)
-            .is("start_date", null)
-            .limit(1)
-            .maybeSingle();
-          if (permanent) {
-            training = permanent;
-            routingReason = "session e-learning permanente (accès continu)";
+          // 1️⃣ Pour une formation inter : cherche une session aux dates parsées dans le titre du produit
+          const parsedDates = parseFrenchDates(item.name ?? "");
+          if (parsedDates) {
+            const { data: byDate } = await (admin as any)
+              .from("trainings")
+              .select("id, training_name, start_date, end_date, format_formation")
+              .eq("catalog_id", catalogId)
+              .eq("is_cancelled", false)
+              .eq("start_date", parsedDates.start)
+              .maybeSingle();
+            if (byDate) {
+              training = byDate;
+              routingReason = `session du ${parsedDates.start} trouvée via dates dans le titre (catalog_id ${catalogId})`;
+            }
           }
 
-          // Priorité 2 : prochaine session datée non encore commencée
+          // 2️⃣ E-learning : session permanente (start_date NULL) en priorité
+          if (!training && isElearningCatalog) {
+            const { data: permanent } = await (admin as any)
+              .from("trainings")
+              .select("id, training_name, start_date, end_date, format_formation")
+              .eq("catalog_id", catalogId)
+              .eq("is_cancelled", false)
+              .is("start_date", null)
+              .limit(1)
+              .maybeSingle();
+            if (permanent) {
+              training = permanent;
+              routingReason = `session e-learning permanente du catalogue ${catalogId} (accès continu)`;
+            }
+          }
+
+          // 3️⃣ Sinon : prochaine session datée non encore commencée du même catalogue
           if (!training) {
             const { data: upcoming } = await (admin as any)
               .from("trainings")
               .select("id, training_name, start_date, end_date, format_formation")
-              .ilike("training_name", `%${formationName}%`)
-              .or(elearningFilter)
+              .eq("catalog_id", catalogId)
               .eq("is_cancelled", false)
               .gt("start_date", today)
               .order("start_date", { ascending: true })
@@ -358,10 +357,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
               .maybeSingle();
             if (upcoming) {
               training = upcoming;
-              routingReason = "prochaine session e-learning non commencée";
+              routingReason = `prochaine session datée du catalogue ${catalogId}`;
             }
           }
         }
+
 
         // 3️⃣ Inbox si aucune session trouvée
         if (!training) {
