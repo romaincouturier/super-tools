@@ -421,7 +421,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           participantId = existing.id;
         } else {
           const needsSurveyToken = crypto.randomUUID();
-          const { data: participant } = await (admin as any)
+          const { data: participant, error: insertErr } = await (admin as any)
             .from("training_participants")
             .insert({
               training_id: training.id,
@@ -446,6 +446,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
             .select("id")
             .single();
 
+          if (insertErr || !participant) {
+            console.error("training_participants insert failed:", insertErr);
+            throw new Error(`Participant insert failed: ${insertErr?.message ?? "no row returned"}`);
+          }
           participantId = (participant as { id: string }).id;
           await (admin as any).from("questionnaire_besoins").insert({
             training_id: training.id,
