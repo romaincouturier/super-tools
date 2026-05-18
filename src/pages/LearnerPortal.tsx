@@ -78,9 +78,9 @@ export default function LearnerPortal() {
         return;
       }
 
-      // 2. Legacy one-time token (magic link sent by email)
+      // 2. Magic link token → redirect to onboarding/login flow (password creation if no account)
       if (token) {
-        validateToken(token);
+        navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
       }
 
