@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useQuotesByCard } from "@/hooks/useQuotes";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchQuotesByCard } from "@/services/quotes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, ExternalLink, Mail, CheckCircle2, Download } from "lucide-react";
@@ -8,7 +8,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import type { QuoteStatus } from "@/types/quotes";
+import type { Quote, QuoteStatus } from "@/types/quotes";
 
 const statusLabels: Record<QuoteStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -48,20 +48,28 @@ async function fetchSignedDevis(cardId: string): Promise<SignedDevis[]> {
 }
 
 export default function QuoteHistorySection({ cardId }: Props) {
-  const { data: quotes, isLoading } = useQuotesByCard(cardId);
   const navigate = useNavigate();
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [loadingQuotes, setLoadingQuotes] = useState(true);
   const [signedDevis, setSignedDevis] = useState<SignedDevis[]>([]);
   const [loadingSignedDevis, setLoadingSignedDevis] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoadingQuotes(true);
     setLoadingSignedDevis(true);
-    fetchSignedDevis(cardId)
-      .then((data) => {
-        if (!cancelled) setSignedDevis(data);
+    Promise.all([fetchQuotesByCard(cardId), fetchSignedDevis(cardId)])
+      .then(([quoteRows, signedRows]) => {
+        if (!cancelled) {
+          setQuotes(quoteRows);
+          setSignedDevis(signedRows);
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoadingSignedDevis(false);
+        if (!cancelled) {
+          setLoadingQuotes(false);
+          setLoadingSignedDevis(false);
+        }
       });
 
     return () => {
@@ -69,8 +77,8 @@ export default function QuoteHistorySection({ cardId }: Props) {
     };
   }, [cardId]);
 
-  const isLoaded = !isLoading && !loadingSignedDevis;
-  const hasQuotes = quotes && quotes.length > 0;
+  const isLoaded = !loadingQuotes && !loadingSignedDevis;
+  const hasQuotes = quotes.length > 0;
   const hasSignedDevis = signedDevis.length > 0;
 
   if (!isLoaded) {
