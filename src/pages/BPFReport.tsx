@@ -33,6 +33,8 @@ import {
   type SourceFinancement,
 } from "@/lib/bpfCalculations";
 
+const bpfDb = supabase as any;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TypeStagiaire =
@@ -282,7 +284,7 @@ export default function BPFReport() {
       }
 
       // 2. Fetch trainings for the year (select * pour être résilient aux migrations en attente)
-      const { data: trainingsRaw, error: tErr } = await supabase
+      const { data: trainingsRaw, error: tErr } = await bpfDb
         .from("trainings")
         .select("*")
         .not("start_date", "is", null)
@@ -303,7 +305,7 @@ export default function BPFReport() {
       let participantsWithTraining: ParticipantWithTraining[] = [];
 
       if (trainingIds.length > 0) {
-        const { data: pData, error: pErr } = await supabase
+        const { data: pData, error: pErr } = await bpfDb
           .from("training_participants")
           .select("*")
           .in("training_id", trainingIds);
