@@ -34,6 +34,7 @@ export type AppModule =
   | "transcripts"
   | "temoignages"
   | "dropshipping"
+  | "wc_inbox"
   | "pictodico"
   | "time_tracker";
 
@@ -70,6 +71,7 @@ export const ALL_MODULES: AppModule[] = [
   "transcripts",
   "temoignages",
   "dropshipping",
+  "wc_inbox",
   "pictodico",
   "time_tracker",
 ];
@@ -107,6 +109,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   transcripts: "Transcripts",
   temoignages: "Témoignages",
   dropshipping: "Dropshipping",
+  wc_inbox: "Inbox WooCommerce",
   pictodico: "Picto-Dico",
   time_tracker: "Suivi du temps",
 };
