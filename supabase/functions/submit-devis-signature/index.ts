@@ -38,6 +38,112 @@ interface RequestBody {
   journeyEvents?: JourneyEvent[];
 }
 
+// Split a full name into first/last. Last word becomes lastName, rest is firstName.
+function splitName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return { firstName: "", lastName: parts[0] };
+  const lastName = parts[parts.length - 1];
+  const firstName = parts.slice(0, -1).join(" ");
+  return { firstName, lastName };
+}
+
+async function autoAddParticipantFromDevis(
+  supabase: ReturnType<typeof import("../_shared/supabase-client.ts").getSupabaseClient>,
+  devisSignature: Record<string, unknown>,
+  signerName: string,
+  signedAt: string,
+): Promise<void> {
+  const trainingId = devisSignature.training_id as string;
+
+  // Verify training exists and is inter-entreprises
+  const { data: training, error: trainingErr } = await supabase
+    .from("trainings")
+    .select("id, training_name, format_formation")
+    .eq("id", trainingId)
+    .single();
+
+  if (trainingErr || !training) {
+    console.warn("Training not found for auto-add:", trainingId);
+    return;
+  }
+
+  const fmt = (training.format_formation ?? "").toLowerCase();
+  if (!fmt.includes("inter")) {
+    console.warn("Training is not inter-entreprises, skipping auto-add:", fmt);
+    return;
+  }
+
+  const email = (devisSignature.recipient_email as string).trim().toLowerCase();
+
+  // Avoid duplicate: check if participant already exists
+  const { data: existing } = await supabase
+    .from("training_participants")
+    .select("id")
+    .eq("training_id", trainingId)
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existing) {
+    console.log("Participant already exists in training, skipping:", email);
+    return;
+  }
+
+  const { firstName, lastName } = splitName(
+    (devisSignature.recipient_name as string | null) || signerName,
+  );
+
+  const needsSurveyToken = crypto.randomUUID();
+
+  const { data: participant, error: participantErr } = await supabase
+    .from("training_participants")
+    .insert({
+      training_id: trainingId,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      email,
+      company: (devisSignature.client_name as string | null) || null,
+      needs_survey_token: needsSurveyToken,
+      needs_survey_status: "non_envoye",
+      coaching_sessions_total: 0,
+      coaching_sessions_completed: 0,
+      payment_mode: "invoice",
+      sold_price_ht: (devisSignature.total_amount_ht as number | null) ?? null,
+      sponsor_first_name: firstName || null,
+      sponsor_last_name: lastName || null,
+      sponsor_email: email,
+      financeur_same_as_sponsor: true,
+    })
+    .select("id")
+    .single();
+
+  if (participantErr) {
+    throw new Error(`Failed to insert participant: ${participantErr.message}`);
+  }
+
+  // Create the questionnaire_besoins record
+  await supabase.from("questionnaire_besoins").insert({
+    training_id: trainingId,
+    participant_id: participant.id,
+    token: needsSurveyToken,
+    etat: "non_envoye",
+  });
+
+  // Log activity
+  await supabase.from("activity_logs").insert({
+    action_type: "participant_added_from_signed_devis",
+    recipient_email: email,
+    details: {
+      training_id: trainingId,
+      training_name: training.training_name,
+      participant_id: participant.id,
+      devis_signature_id: devisSignature.id,
+      signed_at: signedAt,
+      source: "auto_from_devis_signature",
+    },
+  });
+
+  console.log(`Auto-added participant ${email} to training ${trainingId}`);
+}
 
 serve(async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -330,6 +436,15 @@ ${emailSig}`;
       console.log("Devis confirmation email sent to", devisSignature.recipient_email);
     } catch (emailErr) {
       console.warn("Failed to send confirmation email:", emailErr);
+    }
+
+    // Auto-add participant to inter-company training if linked
+    if ((devisSignature as any).training_id) {
+      try {
+        await autoAddParticipantFromDevis(supabase, devisSignature, signerName, signedAt);
+      } catch (participantErr) {
+        console.warn("Failed to auto-add participant to training:", participantErr);
+      }
     }
 
     console.log(`Devis signature submitted for token ${token} from IP ${ipAddress}`);

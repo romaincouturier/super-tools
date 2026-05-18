@@ -504,6 +504,9 @@ verify_jwt = false
 [functions.poll-woocommerce-orders]
 verify_jwt = false
 
+[functions.woocommerce-formation-webhook]
+verify_jwt = false
+
 [functions.generate-transcript-content]
 verify_jwt = true
 

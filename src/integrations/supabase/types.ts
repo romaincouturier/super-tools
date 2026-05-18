@@ -1693,6 +1693,7 @@ export type Database = {
           audit_metadata: Json | null
           client_name: string
           created_at: string
+          crm_card_id: string | null
           devis_type: string
           email_opened_at: string | null
           email_sent_at: string | null
@@ -1712,6 +1713,7 @@ export type Database = {
           status: string
           token: string
           total_amount_ht: number | null
+          training_id: string | null
           updated_at: string
           user_agent: string | null
         }
@@ -1720,6 +1722,7 @@ export type Database = {
           audit_metadata?: Json | null
           client_name: string
           created_at?: string
+          crm_card_id?: string | null
           devis_type: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -1739,6 +1742,7 @@ export type Database = {
           status?: string
           token: string
           total_amount_ht?: number | null
+          training_id?: string | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1747,6 +1751,7 @@ export type Database = {
           audit_metadata?: Json | null
           client_name?: string
           created_at?: string
+          crm_card_id?: string | null
           devis_type?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -1766,6 +1771,7 @@ export type Database = {
           status?: string
           token?: string
           total_amount_ht?: number | null
+          training_id?: string | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1775,6 +1781,20 @@ export type Database = {
             columns: ["activity_log_id"]
             isOneToOne: false
             referencedRelation: "activity_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_signatures_crm_card_id_fkey"
+            columns: ["crm_card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_signatures_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
             referencedColumns: ["id"]
           },
         ]
@@ -2947,6 +2967,7 @@ export type Database = {
           expires_at: string
           id: string
           token: string
+          training_id: string | null
           used_at: string | null
         }
         Insert: {
@@ -2955,6 +2976,7 @@ export type Database = {
           expires_at?: string
           id?: string
           token?: string
+          training_id?: string | null
           used_at?: string | null
         }
         Update: {
@@ -2963,9 +2985,18 @@ export type Database = {
           expires_at?: string
           id?: string
           token?: string
+          training_id?: string | null
           used_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "learner_magic_links_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lms_assignment_submissions: {
         Row: {
@@ -8955,6 +8986,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      woocommerce_pending_formations: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_first_name: string | null
+          customer_last_name: string | null
+          formation_name: string | null
+          id: string
+          notes: string | null
+          processed_at: string | null
+          raw_payload: Json | null
+          reason: string
+          status: string
+          woocommerce_order_id: number
+          woocommerce_product_id: number
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          formation_name?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          reason?: string
+          status?: string
+          woocommerce_order_id: number
+          woocommerce_product_id: number
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          formation_name?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          reason?: string
+          status?: string
+          woocommerce_order_id?: number
+          woocommerce_product_id?: number
+        }
+        Relationships: []
       }
       woocommerce_orders: {
         Row: {

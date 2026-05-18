@@ -38,6 +38,8 @@ interface RequestBody {
   // CRM card link
   crmCardId?: string;
   senderEmail?: string;
+  // Inter-company training link (for auto-adding the participant after signature)
+  trainingId?: string;
 }
 
 interface EmailAttachmentPayload {
@@ -695,6 +697,8 @@ serve(async (req: Request): Promise<Response> => {
           status: "pending",
           total_amount_ht: totalSans,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          crm_card_id: resolvedCrmCardId || null,
+          training_id: body.trainingId || null,
         } as any);
         if (insErr) {
           console.warn("Failed to create devis_signatures (sans):", insErr);
@@ -721,6 +725,8 @@ serve(async (req: Request): Promise<Response> => {
           status: "pending",
           total_amount_ht: totalAvec,
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          crm_card_id: resolvedCrmCardId || null,
+          training_id: body.trainingId || null,
         } as any);
         if (insErr) {
           console.warn("Failed to create devis_signatures (avec):", insErr);

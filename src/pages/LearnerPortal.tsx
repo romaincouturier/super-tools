@@ -68,15 +68,33 @@ export default function LearnerPortal() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const savedEmail = sessionStorage.getItem("learner_email");
 
-    if (token) {
-      validateToken(token);
-    } else if (savedEmail) {
-      loadData(savedEmail);
-    } else {
+    const init = async () => {
+      // 1. Supabase session (learner who created an account via onboarding)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.user_metadata?.role === "learner" && session.user.email) {
+        window.history.replaceState({}, "", "/espace-apprenant");
+        loadData(session.user.email);
+        return;
+      }
+
+      // 2. Legacy one-time token (magic link sent by email)
+      if (token) {
+        validateToken(token);
+        return;
+      }
+
+      // 3. sessionStorage fallback (existing session from previous magic link)
+      const savedEmail = sessionStorage.getItem("learner_email");
+      if (savedEmail) {
+        loadData(savedEmail);
+        return;
+      }
+
       navigate("/apprenant");
-    }
+    };
+
+    init();
   }, [searchParams, navigate]);
 
   const validateToken = async (token: string) => {
@@ -116,8 +134,12 @@ export default function LearnerPortal() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     sessionStorage.removeItem("learner_email");
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.user_metadata?.role === "learner") {
+      await supabase.auth.signOut();
+    }
     navigate("/apprenant");
   };
 

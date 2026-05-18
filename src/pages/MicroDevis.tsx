@@ -10,6 +10,8 @@ import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
@@ -61,6 +63,8 @@ const MicroDevis = () => {
   const [includeCadeau, setIncludeCadeau] = useState(false);
   const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
+  const [selectedTrainingId, setSelectedTrainingId] = useState<string>("");
+  const [interTrainings, setInterTrainings] = useState<{ id: string; training_name: string; start_date: string | null }[]>([]);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
 
@@ -75,6 +79,24 @@ const MicroDevis = () => {
   const datesHook = useFormationDates(user, initialDefaultsApplied, dateFormation);
   const formulasHook = useFormationFormulas(formationDemandee, configsHook.formationConfigs);
   const historyHook = useDevisHistory();
+
+  // Load inter-company trainings when format is "inter"
+  useEffect(() => {
+    if (formatFormation !== "inter") {
+      setInterTrainings([]);
+      setSelectedTrainingId("");
+      return;
+    }
+    supabase
+      .from("trainings")
+      .select("id, training_name, start_date")
+      .ilike("format_formation", "%inter%")
+      .eq("is_cancelled", false)
+      .order("start_date", { ascending: true })
+      .then(({ data }) => {
+        setInterTrainings(data ?? []);
+      });
+  }, [formatFormation]);
 
   // Restore saved formula selection after formulas load
   useEffect(() => {
@@ -359,7 +381,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isOpco: isOpco === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isOpco: isOpco === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }), ...(selectedTrainingId && { trainingId: selectedTrainingId }) },
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
@@ -467,6 +489,29 @@ const MicroDevis = () => {
                   typeSubrogation={typeSubrogation} setTypeSubrogation={setTypeSubrogation}
                   getSelectedFormationConfig={getSelectedFormationConfig}
                 />
+              )}
+
+              {typeDevis === "formation" && formatFormation === "inter" && (
+                <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <Label className="font-medium">Lier à une session inter-entreprises (optionnel)</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Si vous sélectionnez une session, le participant sera automatiquement ajouté à la formation dès signature du devis.
+                  </p>
+                  <Select value={selectedTrainingId} onValueChange={setSelectedTrainingId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une formation inter-entreprises…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Aucune (ne pas lier)</SelectItem>
+                      {interTrainings.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.training_name}
+                          {t.start_date ? ` — ${new Date(t.start_date).toLocaleDateString("fr-FR")}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
 
               {typeDevis === "jeu" && (

@@ -233,6 +233,19 @@ export async function sendElearningAccess(
 }
 
 /**
+ * Send the learner magic link email (account creation / login).
+ */
+export async function sendLearnerMagicLink(
+  email: string,
+  trainingId?: string,
+  participantId?: string,
+) {
+  await supabase.functions.invoke("send-learner-magic-link", {
+    body: { email, trainingId, participantId },
+  });
+}
+
+/**
  * Schedule a needs survey email for a participant.
  * Returns true if the email was actually scheduled, false if the date was already past.
  */
