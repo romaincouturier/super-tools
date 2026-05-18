@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchQuotesByCard } from "@/services/quotes";
+import { fetchQuotesByCard, fetchSignedDevisByCard } from "@/services/quotes";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, ExternalLink, Mail, CheckCircle2, Download } from "lucide-react";
@@ -8,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import type { Quote, QuoteStatus } from "@/types/quotes";
+import type { Quote, QuoteStatus, SignedDevis } from "@/types/quotes";
 
 const statusLabels: Record<QuoteStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   draft: { label: "Brouillon", variant: "secondary" },
@@ -19,32 +18,8 @@ const statusLabels: Record<QuoteStatus, { label: string; variant: "default" | "s
   canceled: { label: "Annulé", variant: "destructive" },
 };
 
-interface SignedDevis {
-  id: string;
-  formation_name: string;
-  client_name: string;
-  recipient_name: string | null;
-  devis_type: string;
-  signed_at: string;
-  signed_pdf_url: string | null;
-  total_amount_ht: number | null;
-  created_at: string;
-}
-
 interface Props {
   cardId: string;
-}
-
-async function fetchSignedDevis(cardId: string): Promise<SignedDevis[]> {
-  const query = (supabase as any).from("devis_signatures") as any;
-  const { data } = await query
-    .select("id, formation_name, client_name, recipient_name, devis_type, signed_at, signed_pdf_url, total_amount_ht, created_at")
-    .eq("crm_card_id", cardId)
-    .eq("status", "signed")
-    .not("signed_pdf_url", "is", null)
-    .order("signed_at", { ascending: false });
-
-  return (data ?? []) as SignedDevis[];
 }
 
 export default function QuoteHistorySection({ cardId }: Props) {
@@ -58,7 +33,7 @@ export default function QuoteHistorySection({ cardId }: Props) {
     let cancelled = false;
     setLoadingQuotes(true);
     setLoadingSignedDevis(true);
-    Promise.all([fetchQuotesByCard(cardId), fetchSignedDevis(cardId)])
+    Promise.all([fetchQuotesByCard(cardId), fetchSignedDevisByCard(cardId)])
       .then(([quoteRows, signedRows]) => {
         if (!cancelled) {
           setQuotes(quoteRows);

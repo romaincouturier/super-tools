@@ -111,6 +111,18 @@ export interface Quote {
   updated_at: string;
 }
 
+export interface SignedDevis {
+  id: string;
+  formation_name: string;
+  client_name: string;
+  recipient_name: string | null;
+  devis_type: string;
+  signed_at: string;
+  signed_pdf_url: string | null;
+  total_amount_ht: number | null;
+  created_at: string;
+}
+
 export type QuoteStatus = 'draft' | 'generated' | 'sent' | 'signed' | 'expired' | 'canceled';
 
 export interface CreateQuoteInput {
