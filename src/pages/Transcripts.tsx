@@ -238,6 +238,7 @@ export default function Transcripts() {
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <PollingIndicator source="drive_transcripts" label="Google Drive — Transcripts" functionName="poll-drive-transcripts" />
+        <PollingIndicator source="fireflies" label="Fireflies — Transcripts" functionName="fireflies-backfill" />
         <Input
           placeholder="Rechercher par titre…"
           value={search}
