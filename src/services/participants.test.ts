@@ -63,6 +63,8 @@ import {
   deleteParticipantFile,
   uploadSignedConvention,
   deleteSignedConvention,
+  sendLearnerMagicLink,
+  catchUpAttendanceSignaturesForParticipant,
   type CreateParticipantInput,
   type ParticipantFile,
 } from "./participants";
@@ -399,7 +401,128 @@ describe("deleteParticipantFile", () => {
   });
 });
 
-// ── uploadSignedConvention tests ────────────────────────────────────────────
+// ── sendLearnerMagicLink tests ──────────────────────────────────────────────
+
+describe("sendLearnerMagicLink", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("invokes the send-learner-magic-link edge function with email", async () => {
+    mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
+
+    await sendLearnerMagicLink("alice@example.com");
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "send-learner-magic-link",
+      expect.objectContaining({ body: expect.objectContaining({ email: "alice@example.com" }) }),
+    );
+  });
+
+  it("passes optional trainingId and participantId when provided", async () => {
+    mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
+
+    await sendLearnerMagicLink("alice@example.com", "training-abc", "participant-xyz");
+
+    const [, options] = mockInvoke.mock.calls[0] as [string, { body: Record<string, unknown> }];
+    expect(options.body.trainingId).toBe("training-abc");
+    expect(options.body.participantId).toBe("participant-xyz");
+  });
+
+  it("omits trainingId and participantId when not provided", async () => {
+    mockInvoke.mockResolvedValue({ data: { success: true }, error: null });
+
+    await sendLearnerMagicLink("alice@example.com");
+
+    const [, options] = mockInvoke.mock.calls[0] as [string, { body: Record<string, unknown> }];
+    expect(options.body.trainingId).toBeUndefined();
+    expect(options.body.participantId).toBeUndefined();
+  });
+});
+
+// ── catchUpAttendanceSignaturesForParticipant tests ─────────────────────────
+
+describe("catchUpAttendanceSignaturesForParticipant", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockInvoke.mockResolvedValue({ data: {}, error: null });
+  });
+
+  const makeSentRows = (rows: { schedule_date: string; period: string }[]) =>
+    vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          not: vi.fn().mockResolvedValue({ data: rows, error: null }),
+        }),
+      }),
+    });
+
+  it("returns { sentSlots: 0, errors: 0 } when no slots have been sent yet", async () => {
+    mockFrom.mockImplementationOnce(makeSentRows([]));
+
+    const result = await catchUpAttendanceSignaturesForParticipant("training-1", "participant-1");
+
+    expect(result).toEqual({ sentSlots: 0, errors: 0 });
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it("invokes send-attendance-signature-request once per unique slot", async () => {
+    // Two rows for the same slot (duplicate) + one different slot
+    mockFrom.mockImplementationOnce(makeSentRows([
+      { schedule_date: "2024-03-01", period: "morning" },
+      { schedule_date: "2024-03-01", period: "morning" }, // duplicate
+      { schedule_date: "2024-03-02", period: "afternoon" },
+    ]));
+
+    const result = await catchUpAttendanceSignaturesForParticipant("training-1", "participant-1");
+
+    expect(result.sentSlots).toBe(2);
+    expect(result.errors).toBe(0);
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes participantIds filter so only the new participant is emailed", async () => {
+    mockFrom.mockImplementationOnce(makeSentRows([
+      { schedule_date: "2024-03-01", period: "morning" },
+    ]));
+
+    await catchUpAttendanceSignaturesForParticipant("training-1", "participant-new");
+
+    const [fnName, options] = mockInvoke.mock.calls[0] as [string, { body: Record<string, unknown> }];
+    expect(fnName).toBe("send-attendance-signature-request");
+    expect(options.body.participantIds).toEqual(["participant-new"]);
+    expect(options.body.trainingId).toBe("training-1");
+    expect(options.body.scheduleDate).toBe("2024-03-01");
+    expect(options.body.period).toBe("morning");
+  });
+
+  it("counts errors when an invoke call throws", async () => {
+    mockFrom.mockImplementationOnce(makeSentRows([
+      { schedule_date: "2024-03-01", period: "morning" },
+      { schedule_date: "2024-03-02", period: "afternoon" },
+    ]));
+    mockInvoke
+      .mockResolvedValueOnce({ data: {}, error: null })
+      .mockRejectedValueOnce(new Error("Network error"));
+
+    const result = await catchUpAttendanceSignaturesForParticipant("training-1", "participant-1");
+
+    expect(result.sentSlots).toBe(1);
+    expect(result.errors).toBe(1);
+  });
+
+  it("returns { sentSlots: 0, errors: 1 } when the DB query fails", async () => {
+    mockFrom.mockImplementationOnce(() => ({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          not: vi.fn().mockResolvedValue({ data: null, error: { message: "DB error" } }),
+        }),
+      }),
+    }));
+
+    const result = await catchUpAttendanceSignaturesForParticipant("training-1", "participant-1");
+
+    expect(result).toEqual({ sentSlots: 0, errors: 1 });
+  });
+});
 
 describe("uploadSignedConvention", () => {
   beforeEach(() => {
