@@ -87,19 +87,26 @@ function isPivotStorageKey(value: string): value is PivotStorageKey {
 function getPivotPrefs(prefs: StoredPrefs, key: PivotStorageKey, categories: string[]) {
   const fallbackRow = categories[0];
   const fallbackCol = categories.length > 1 ? categories[1] : categories[0];
+  const defaultStatuses: SalesStatus[] = ALL_STATUSES;
 
   if (key === "pivot2") {
+    const statuses: SalesStatus[] = Array.isArray(prefs.pivot2Statuses) && prefs.pivot2Statuses.length > 0
+      ? prefs.pivot2Statuses
+      : defaultStatuses;
     return {
       row: getStoredCategory(prefs.pivot2Row, categories, fallbackRow),
       col: getStoredCategory(prefs.pivot2Col, categories, fallbackCol),
-      statuses: prefs.pivot2Statuses && prefs.pivot2Statuses.length > 0 ? prefs.pivot2Statuses : ALL_STATUSES,
+      statuses,
     };
   }
 
+  const statuses: SalesStatus[] = Array.isArray(prefs.pivot1Statuses) && prefs.pivot1Statuses.length > 0
+    ? prefs.pivot1Statuses
+    : defaultStatuses;
   return {
     row: getStoredCategory(prefs.pivot1Row, categories, fallbackRow),
     col: getStoredCategory(prefs.pivot1Col, categories, fallbackCol),
-    statuses: prefs.pivot1Statuses && prefs.pivot1Statuses.length > 0 ? prefs.pivot1Statuses : ALL_STATUSES,
+    statuses,
   };
 }
 
