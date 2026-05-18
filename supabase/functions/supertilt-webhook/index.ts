@@ -92,7 +92,7 @@ const FRENCH_MONTHS: Record<string, string> = {
   septembre: "09", octobre: "10", novembre: "11", "décembre": "12", decembre: "12",
 };
 
-const PERMANENT_ELEARNING_PRODUCT_IDS = new Set([48899, 38648, 38656, 57605, 57631]);
+
 
 function parseFrenchDates(text: string): { start: string } | null {
   const t = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -340,8 +340,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
             }
           }
 
-          // 2️⃣ E-learning : session permanente (start_date NULL) en priorité
-          if (!training && isElearningCatalog && PERMANENT_ELEARNING_PRODUCT_IDS.has(item.product_id)) {
+          // 2️⃣ E-learning : session permanente (start_date NULL) du même catalogue
+          if (!training && isElearningCatalog) {
             const { data: permanent } = await (admin as any)
               .from("trainings")
               .select("id, training_name, start_date, end_date, format_formation")
@@ -352,7 +352,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               .maybeSingle();
             if (permanent) {
               training = permanent;
-              routingReason = `session e-learning permanente du catalogue ${catalogId} pour le product_id ${item.product_id}`;
+              routingReason = `session e-learning permanente du catalogue ${catalogId}`;
             }
           }
 
