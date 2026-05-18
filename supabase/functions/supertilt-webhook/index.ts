@@ -399,10 +399,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq("email", customerEmail)
           .maybeSingle();
 
-        // Déduit type_stagiaire_bpf et source_financement_bpf depuis billing
+        // Déduit type_stagiaire_bpf depuis billing
         const billingCompany = (order.billing?.company ?? "").trim();
         const typeStagiaire = billingCompany ? "Entreprise" : "Particulier";
-        const sourceFinancement = billingCompany ? "plan_formation" : "faf_auto";
 
         // Adresse de facturation
         const billingAddr = order.billing as {
@@ -422,7 +421,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           participantId = existing.id;
         } else {
           const needsSurveyToken = crypto.randomUUID();
-          const { data: participant } = await (admin as any)
+          const { data: participant, error: insertErr } = await (admin as any)
             .from("training_participants")
             .insert({
               training_id: training.id,
@@ -434,7 +433,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
               company_city: billingAddr?.city ?? null,
               company_zip: billingAddr?.postcode ?? null,
               type_stagiaire_bpf: typeStagiaire,
-              source_financement_bpf: sourceFinancement,
               sold_price_ht: linePriceHt || null,
               payment_mode: "online",
               needs_survey_token: needsSurveyToken,
@@ -448,6 +446,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
             .select("id")
             .single();
 
+          if (insertErr || !participant) {
+            console.error("training_participants insert failed:", insertErr);
+            throw new Error(`Participant insert failed: ${insertErr?.message ?? "no row returned"}`);
+          }
           participantId = (participant as { id: string }).id;
           await (admin as any).from("questionnaire_besoins").insert({
             training_id: training.id,

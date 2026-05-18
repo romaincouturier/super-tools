@@ -1,0 +1,1 @@
+DELETE FROM public.order_items WHERE wc_order_id = 115873;
