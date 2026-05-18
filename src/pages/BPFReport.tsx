@@ -26,28 +26,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import {
+  mapSourceToBpfLine,
+  calcScheduleHours,
+  totalBpfProduits,
+  type SourceFinancement,
+} from "@/lib/bpfCalculations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type SourceFinancement =
-  | "entreprise"
-  | "opco_plan_competences"
-  | "opco_cpf"
-  | "opco_apprentissage"
-  | "opco_professionnalisation"
-  | "opco_alternance"
-  | "opco_transition_pro"
-  | "opco_demandeur_emploi"
-  | "opco_tns"
-  | "pouvoirs_publics_agents"
-  | "instances_europeennes"
-  | "etat"
-  | "conseils_regionaux"
-  | "france_travail"
-  | "autres_publics"
-  | "particulier"
-  | "sous_traitance"
-  | "autre";
 
 type TypeStagiaire =
   | "salarie_prive"
@@ -175,39 +161,6 @@ interface BpfReportData {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function mapSourceToBpfLine(source: SourceFinancement | null): keyof Omit<BpfProduits, "unclassified"> | "unclassified" {
-  switch (source) {
-    case "entreprise": return "ligne1";
-    case "opco_apprentissage": return "ligne2a";
-    case "opco_professionnalisation": return "ligne2b";
-    case "opco_alternance": return "ligne2c";
-    case "opco_transition_pro": return "ligne2d";
-    case "opco_cpf": return "ligne2e";
-    case "opco_demandeur_emploi": return "ligne2f";
-    case "opco_tns": return "ligne2g";
-    case "opco_plan_competences": return "ligne2h";
-    case "pouvoirs_publics_agents": return "ligne3";
-    case "instances_europeennes": return "ligne4";
-    case "etat": return "ligne5";
-    case "conseils_regionaux": return "ligne6";
-    case "france_travail": return "ligne7";
-    case "autres_publics": return "ligne8";
-    case "particulier": return "ligne9";
-    case "sous_traitance": return "ligne10";
-    case "autre": return "ligne11";
-    default: return "unclassified";
-  }
-}
-
-function calcScheduleHours(schedules: ScheduleRow[]): number {
-  return schedules.reduce((total, s) => {
-    const [sh, sm] = s.start_time.split(":").map(Number);
-    const [eh, em] = s.end_time.split(":").map(Number);
-    const durationHours = (eh * 60 + em - (sh * 60 + sm)) / 60;
-    return total + (durationHours <= 4 ? 3.5 : 7);
-  }, 0);
-}
 
 function EUR(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -648,7 +601,7 @@ export default function BPFReport() {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const totalProduits = BPF_LINES.reduce((s, l) => s + (produits[l.key] ?? 0), 0);
+  const totalProduits = totalBpfProduits(produits);
   const totalStagiaires = stagiaires.reduce((s, r) => s + r.nb_stagiaires, 0);
   const totalHeuresStagiaires = stagiaires.reduce((s, r) => s + r.nb_heures, 0);
 

@@ -55,3 +55,15 @@ CREATE TABLE IF NOT EXISTS bpf_reports (
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(annee)
 );
+
+-- RLS for bpf_reports (single-tenant: only authenticated users can access their org's data)
+ALTER TABLE bpf_reports ENABLE ROW LEVEL SECURITY;
+
+-- SuperTilt est mono-tenant : tous les utilisateurs authentifiés appartiennent
+-- à la même organisation, USING (true) est intentionnel ici.
+CREATE POLICY "Authenticated users can manage bpf_reports"
+  ON bpf_reports
+  FOR ALL
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
