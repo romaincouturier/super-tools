@@ -50,6 +50,8 @@ interface TrainingRow {
   trainer_name: string;
   catalog_id: string | null;
   commanditaire_of_name: string | null;
+  session_type: string | null;
+  format_formation: string | null;
 }
 
 interface ParticipantRow {
@@ -240,19 +242,7 @@ export default function BPFReport() {
   const fetchAutoData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Fetch trainings for the year
-      const { data: trainingsData, error: tErr } = await supabase
-        .from("trainings")
-        .select("id, sold_price_ht, catalog_id, trainer_name, start_date")
-        .eq("is_cancelled", false)
-        .not("start_date", "is", null)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .gte("start_date", `${annee}-01-01`)
-        .lte("start_date", `${annee}-12-31`);
-
-      if (tErr) throw tErr;
-
-      // Fetch CA global from balance_sheets for the selected year
+      // 1. Fetch CA global from balance_sheets for the selected year
       const { data: bsData } = await supabase
         .from("balance_sheets")
         .select("data")
@@ -266,19 +256,20 @@ export default function BPFReport() {
         setBalanceSheetCa(null);
       }
 
-      // Fetch trainings with all BPF fields
-      const { data: trainingsExtData, error: tExtErr } = await (supabase
+      // 2. Fetch trainings for the year (select * pour être résilient aux migrations en attente)
+      const { data: trainingsRaw, error: tErr } = await supabase
         .from("trainings")
-        .select("id, sold_price_ht, catalog_id, trainer_name, start_date, source_financement_bpf, is_cancelled, commanditaire_of_name")
+        .select("*")
         .not("start_date", "is", null)
         .gte("start_date", `${annee}-01-01`)
-        .lte("start_date", `${annee}-12-31`) as unknown as Promise<{ data: TrainingRow[] | null; error: unknown }>);
+        .lte("start_date", `${annee}-12-31`);
 
-      if (tExtErr) throw tExtErr;
 
-      const trainings: TrainingRow[] = (trainingsExtData ?? []).filter(
+      if (tErr) throw tErr;
+
+      const trainings: TrainingRow[] = ((trainingsRaw ?? []) as TrainingRow[]).filter(
         (t) => t.is_cancelled !== true
-      ) as TrainingRow[];
+      );
 
       // 2. Fetch participants with type_stagiaire_bpf
       const trainingIds = trainings.map((t) => t.id);
@@ -287,22 +278,27 @@ export default function BPFReport() {
       let participantsWithTraining: ParticipantWithTraining[] = [];
 
       if (trainingIds.length > 0) {
-        const { data: pData, error: pErr } = await (supabase
+        const { data: pData, error: pErr } = await supabase
           .from("training_participants")
-          .select("id, training_id, type_stagiaire_bpf, sold_price_ht")
-          .in("training_id", trainingIds) as unknown as Promise<{ data: ParticipantRow[] | null; error: unknown }>);
+          .select("*")
+          .in("training_id", trainingIds);
 
         if (pErr) throw pErr;
-        participants = pData ?? [];
+        participants = (pData ?? []) as ParticipantRow[];
 
-        // Also fetch participants with their training's source_financement_bpf
-        const { data: pwtData, error: pwtErr } = await (supabase
-          .from("training_participants")
-          .select("id, training_id, type_stagiaire_bpf, training:training_id(start_date, source_financement_bpf)")
-          .in("training_id", trainingIds) as unknown as Promise<{ data: ParticipantWithTraining[] | null; error: unknown }>);
-
-        if (pwtErr) throw pwtErr;
-        participantsWithTraining = pwtData ?? [];
+        // Build participantsWithTraining en enrichissant depuis le tableau trainings déjà chargé
+        participantsWithTraining = participants.map((p) => {
+          const t = trainings.find((tr) => tr.id === p.training_id);
+          return {
+            id: p.id,
+            training_id: p.training_id,
+            type_stagiaire_bpf: p.type_stagiaire_bpf ?? null,
+            training: {
+              start_date: t?.start_date ?? null,
+              source_financement_bpf: t?.source_financement_bpf ?? null,
+            },
+          };
+        });
       }
 
       // 3. Fetch training_schedules for the year
@@ -327,20 +323,25 @@ export default function BPFReport() {
       // ── Compute Produits (Section C) ────────────────────────────────────────
       const newProduits = emptyProduits();
 
-      // Intra trainings: revenue at training level
       for (const t of trainings) {
-        if (t.sold_price_ht != null) {
-          const line = mapSourceToBpfLine(t.source_financement_bpf);
-          newProduits[line] += t.sold_price_ht;
-        }
-      }
+        const isIntra = t.session_type === 'intra' || t.format_formation === 'intra';
+        const isInter = !isIntra; // includes e-learning, inter-entreprises, etc.
 
-      // Per-participant pricing (inter sessions)
-      for (const p of participants) {
-        if (p.sold_price_ht != null) {
-          const training = trainings.find((t) => t.id === p.training_id);
-          const line = mapSourceToBpfLine(training?.source_financement_bpf ?? null);
-          newProduits[line] += p.sold_price_ht;
+        if (isIntra) {
+          // Intra: revenue at training level, source at training level
+          if (t.sold_price_ht != null) {
+            const line = mapSourceToBpfLine(t.source_financement_bpf);
+            newProduits[line] += t.sold_price_ht;
+          }
+        } else {
+          // Inter: revenue and source at participant level
+          const trainingParticipants = participants.filter((p) => p.training_id === t.id);
+          for (const p of trainingParticipants) {
+            if (p.sold_price_ht != null) {
+              const line = mapSourceToBpfLine(p.source_financement_bpf ?? t.source_financement_bpf ?? null);
+              newProduits[line] += p.sold_price_ht;
+            }
+          }
         }
       }
 

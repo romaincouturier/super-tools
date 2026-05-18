@@ -460,11 +460,13 @@ const FormationEdit = () => {
                     </p>
                   </div>
 
-                  {/* Source de financement BPF */}
-                  <SourceFinancementSelector
-                    value={sourceFinancementBpf}
-                    onChange={setSourceFinancementBpf}
-                  />
+                  {/* Source de financement BPF — intra only (inter sessions use per-participant source) */}
+                  {!form.isInter && (
+                    <SourceFinancementSelector
+                      value={sourceFinancementBpf}
+                      onChange={setSourceFinancementBpf}
+                    />
+                  )}
 
                   {/* Trainer selector */}
                   <div className="space-y-2">

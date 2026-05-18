@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Tag, UserCheck } from "lucide-react";
 import type { FormationFormula } from "@/types/training";
+import { SourceFinancementSelector } from "@/components/formations/FormationFormFields";
 
 interface ParticipantFormFieldsProps {
   firstName: string;
@@ -44,6 +45,8 @@ interface ParticipantFormFieldsProps {
   coachingDeadline?: string | null;
   typeStagiaireBpf?: string;
   setTypeStagiaireBpf?: (v: string) => void;
+  sourceFinancementBpf?: string;
+  setSourceFinancementBpf?: (v: string) => void;
 }
 
 const ParticipantFormFields = ({
@@ -80,6 +83,8 @@ const ParticipantFormFields = ({
   coachingDeadline,
   typeStagiaireBpf,
   setTypeStagiaireBpf,
+  sourceFinancementBpf,
+  setSourceFinancementBpf,
 }: ParticipantFormFieldsProps) => {
   return (
     <>
@@ -168,6 +173,16 @@ const ParticipantFormFields = ({
               <SelectItem value="autre">Autre stagiaire</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {isInterEntreprise && setSourceFinancementBpf && (
+        <div className="space-y-2">
+          <Label>Source de financement (BPF)</Label>
+          <SourceFinancementSelector
+            value={sourceFinancementBpf ?? null}
+            onChange={setSourceFinancementBpf}
+          />
         </div>
       )}
 

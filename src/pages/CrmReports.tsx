@@ -34,10 +34,21 @@ import type { CrmCard, CrmTag } from "@/types/crm";
 import PivotCellDetail from "@/components/crm/reports/PivotCellDetail";
 import ProvenanceTab from "@/components/crm/reports/ProvenanceTab";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import type { SalesStatus } from "@/types/crm";
 
 // ── Persistence ────────────────────────────────────────────
 
 const STORAGE_KEY = "crm-reports-prefs";
+
+const ALL_STATUSES: SalesStatus[] = ["OPEN", "WON", "LOST", "CANCELED"];
+const STATUS_LABELS: Record<SalesStatus, string> = {
+  OPEN: "À venir",
+  WON: "Gagné",
+  LOST: "Perdu",
+  CANCELED: "Annulé",
+};
 
 interface StoredPrefs {
   preset?: string;
@@ -45,6 +56,8 @@ interface StoredPrefs {
   pivot1Col?: string;
   pivot2Row?: string;
   pivot2Col?: string;
+  pivot1Statuses?: SalesStatus[];
+  pivot2Statuses?: SalesStatus[];
 }
 
 function loadPrefs(): StoredPrefs {
@@ -436,12 +449,16 @@ function PivotTable({
   const prefs = useMemo(() => loadPrefs(), []);
   const rowKey = `${storageKey}Row` as keyof StoredPrefs;
   const colKey = `${storageKey}Col` as keyof StoredPrefs;
+  const statusKey = `${storageKey}Statuses` as keyof StoredPrefs;
 
   const defaultRow = prefs[rowKey] && categories.includes(prefs[rowKey]!) ? prefs[rowKey]! : categories[0];
   const defaultCol = prefs[colKey] && categories.includes(prefs[colKey]!) ? prefs[colKey]! : (categories.length > 1 ? categories[1] : categories[0]);
+  const storedStatuses = prefs[statusKey] as SalesStatus[] | undefined;
+  const defaultStatuses = storedStatuses && storedStatuses.length > 0 ? storedStatuses : ALL_STATUSES;
 
   const [rowCat, setRowCat] = useState(defaultRow);
   const [colCat, setColCat] = useState(defaultCol);
+  const [selectedStatuses, setSelectedStatuses] = useState<SalesStatus[]>(defaultStatuses);
 
   const handleRowChange = useCallback((v: string) => {
     setRowCat(v);
@@ -453,8 +470,19 @@ function PivotTable({
     savePrefs({ [colKey]: v });
   }, [colKey]);
 
-  // Unique tag values per category
-  const safeCards = cardsWithTags ?? [];
+  const handleStatusToggle = useCallback((status: SalesStatus) => {
+    setSelectedStatuses((prev) => {
+      const next = prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status];
+      savePrefs({ [statusKey]: next });
+      return next;
+    });
+  }, [statusKey]);
+
+  // Filter cards by selected statuses
+  const safeCards = useMemo(
+    () => (cardsWithTags ?? []).filter((c) => selectedStatuses.includes(c.sales_status)),
+    [cardsWithTags, selectedStatuses]
+  );
 
   const rowTags = useMemo(() => {
     const fromCards = new Set<string>();
@@ -568,7 +596,7 @@ function PivotTable({
       cardsByCol: colCards,
       cardsTotal: totalCards,
     };
-  }, [cardsWithTags, rowCat, colCat, rowTags, colTags]);
+  }, [safeCards, rowCat, colCat, rowTags, colTags]);
 
   if (rowTags.length === 0 || colTags.length === 0) {
     return (
@@ -617,6 +645,20 @@ function PivotTable({
                 ))}
               </SelectContent>
             </Select>
+            <span className="text-muted-foreground ml-1">État</span>
+            {ALL_STATUSES.map((s) => (
+              <div key={s} className="flex items-center gap-1">
+                <Checkbox
+                  id={`${storageKey}-status-${s}`}
+                  checked={selectedStatuses.includes(s)}
+                  onCheckedChange={() => handleStatusToggle(s)}
+                  className="h-3.5 w-3.5"
+                />
+                <Label htmlFor={`${storageKey}-status-${s}`} className="text-xs cursor-pointer font-normal">
+                  {STATUS_LABELS[s]}
+                </Label>
+              </div>
+            ))}
           </div>
         </div>
       </CardHeader>
