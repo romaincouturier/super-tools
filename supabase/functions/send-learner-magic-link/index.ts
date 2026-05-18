@@ -69,9 +69,9 @@ Deno.serve(async (req) => {
       isTu = !training?.sponsor_formal_address;
     }
 
-    // 30-day expiry
+    // 1-year expiry
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
     const insertPayload: Record<string, unknown> = {
       email: email.toLowerCase(),
