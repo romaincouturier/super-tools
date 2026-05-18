@@ -151,6 +151,8 @@ const EditParticipantDialog = ({
               participant.coaching_sessions_completed || 0
             }
             coachingDeadline={participant.coaching_deadline}
+            typeStagiaireBpf={hook.typeStagiaireBpf}
+            setTypeStagiaireBpf={hook.setTypeStagiaireBpf}
           />
 
           {isInterEntreprise && (
