@@ -324,22 +324,34 @@ export default function BPFReport() {
       const newProduits = emptyProduits();
 
       for (const t of trainings) {
-        const isIntra = t.session_type === 'intra' || t.format_formation === 'intra';
-        const isInter = !isIntra; // includes e-learning, inter-entreprises, etc.
+        // Mirror useFormationDetail's isInterSession logic exactly
+        const isInter = t.session_type === 'inter'
+          || t.format_formation === 'inter-entreprises'
+          || t.format_formation === 'e_learning';
 
-        if (isIntra) {
-          // Intra: revenue at training level, source at training level
+        if (!isInter) {
+          // Intra (or unclassified format): training-level price + training-level source
           if (t.sold_price_ht != null) {
             const line = mapSourceToBpfLine(t.source_financement_bpf);
             newProduits[line] += t.sold_price_ht;
           }
         } else {
-          // Inter: revenue and source at participant level
+          // Inter: participant-level price + participant-level source, fallback to training-level
           const trainingParticipants = participants.filter((p) => p.training_id === t.id);
-          for (const p of trainingParticipants) {
-            if (p.sold_price_ht != null) {
-              const line = mapSourceToBpfLine(p.source_financement_bpf ?? t.source_financement_bpf ?? null);
-              newProduits[line] += p.sold_price_ht;
+          const hasParticipantPrices = trainingParticipants.some((p) => p.sold_price_ht != null);
+
+          if (hasParticipantPrices) {
+            for (const p of trainingParticipants) {
+              if (p.sold_price_ht != null) {
+                const line = mapSourceToBpfLine(p.source_financement_bpf ?? t.source_financement_bpf ?? null);
+                newProduits[line] += p.sold_price_ht;
+              }
+            }
+          } else {
+            // No participant-level prices yet: fall back to training-level price
+            if (t.sold_price_ht != null) {
+              const line = mapSourceToBpfLine(t.source_financement_bpf ?? null);
+              newProduits[line] += t.sold_price_ht;
             }
           }
         }
