@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
 import Mention from "@tiptap/extension-mention";
@@ -9,6 +9,8 @@ import { Toggle } from "@/components/ui/toggle";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { uploadWatchFile } from "@/hooks/useWatch";
+import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
+import { transformEmojiImageTags } from "@/lib/tiptapPasteUtils";
 import { mentionSuggestion } from "@/lib/tiptapMentionSuggestion";
 
 interface WatchRichEditorProps {
@@ -31,15 +33,7 @@ interface WatchRichEditorProps {
  */
 const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps) => {
   const [imageUploading, setImageUploading] = useState(false);
-
-  const uploadPastedImage = useCallback(async (file: File): Promise<string | null> => {
-    try {
-      return await uploadWatchFile(file);
-    } catch (err) {
-      console.error("Image paste upload error:", err);
-      return null;
-    }
-  }, []);
+  const handlePaste = useTiptapImagePaste(uploadWatchFile, setImageUploading);
 
   const { editor, setLink } = useTiptapEditor({
     content,
@@ -62,37 +56,8 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
         class:
           "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[160px] p-3 leading-relaxed [&_ul>li]:list-disc [&_ol>li]:list-decimal marker:text-foreground",
       },
-      // Convert <img alt="🎉"> wrappers (Gmail style) back to their emoji text.
-      transformPastedHTML(html: string) {
-        return html.replace(/<img[^>]*alt="([^"]*)"[^>]*>/gi, (match, alt) => {
-          if (alt && alt.length <= 8 && /[^\x00-\x7F]/.test(alt)) return alt;
-          return match;
-        });
-      },
-      handlePaste: (view, event) => {
-        const items = event.clipboardData?.items;
-        if (!items) return false;
-
-        for (const item of Array.from(items) as DataTransferItem[]) {
-          if (item.type.startsWith("image/")) {
-            event.preventDefault();
-            const file = item.getAsFile();
-            if (!file) continue;
-
-            setImageUploading(true);
-            uploadPastedImage(file).then((url) => {
-              setImageUploading(false);
-              if (url) {
-                const node = view.state.schema.nodes.image.create({ src: url });
-                const tr = view.state.tr.replaceSelectionWith(node);
-                view.dispatch(tr);
-              }
-            });
-            return true;
-          }
-        }
-        return false;
-      },
+      transformPastedHTML: transformEmojiImageTags,
+      handlePaste,
     },
   });
 

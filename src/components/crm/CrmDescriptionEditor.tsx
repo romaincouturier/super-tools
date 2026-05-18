@@ -2,6 +2,8 @@ import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
+import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
+import { transformEmojiImageTags } from "@/lib/tiptapPasteUtils";
 import { Bold, Italic, Underline as UnderlineIcon, Link as LinkIcon, List, ListOrdered, Undo, Redo, ImageIcon, Mic, Mail, Table as TableIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -49,6 +51,8 @@ const CrmDescriptionEditor = ({
     [cardId]
   );
 
+  const handlePaste = useTiptapImagePaste(cardId ? uploadImage : undefined, setImageUploading);
+
   const { editor, setLink } = useTiptapEditor({
     content,
     onChange,
@@ -67,40 +71,8 @@ const CrmDescriptionEditor = ({
         class:
           "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[180px] p-3 text-[11px] leading-relaxed [&_ul>li]:list-disc [&_ol>li]:list-decimal marker:text-foreground",
       },
-      // Convert emoji <img> tags (from email clients) back to their text characters
-      transformPastedHTML(html: string) {
-        return html.replace(/<img[^>]*alt="([^"]*)"[^>]*>/gi, (match, alt) => {
-          // If alt text is short and contains non-ASCII chars, it's likely an emoji
-          if (alt && alt.length <= 8 && /[^\x00-\x7F]/.test(alt)) {
-            return alt;
-          }
-          return match;
-        });
-      },
-      handlePaste: (view, event) => {
-        const items = event.clipboardData?.items;
-        if (!items || !cardId) return false;
-
-        for (const item of Array.from(items) as DataTransferItem[]) {
-          if (item.type.startsWith("image/")) {
-            event.preventDefault();
-            const file = item.getAsFile();
-            if (!file) continue;
-
-            setImageUploading(true);
-            uploadImage(file).then((url) => {
-              setImageUploading(false);
-              if (url) {
-                const node = view.state.schema.nodes.image.create({ src: url });
-                const tr = view.state.tr.replaceSelectionWith(node);
-                view.dispatch(tr);
-              }
-            });
-            return true;
-          }
-        }
-        return false;
-      },
+      transformPastedHTML: transformEmojiImageTags,
+      handlePaste,
     },
     onFocus: ({ editor }: { editor: Editor }) => {
       if (timestampInsertedRef.current) return;

@@ -1,9 +1,10 @@
-import { useRef, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { EditorContent } from "@tiptap/react";
 import TextAlign from "@tiptap/extension-text-align";
 import Mention from "@tiptap/extension-mention";
 import ImageExtension from "@tiptap/extension-image";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
+import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
 import {
   Bold,
@@ -51,35 +52,15 @@ const RichTextEditor = ({
   minHeight = "200px",
   onImagePaste,
 }: RichTextEditorProps) => {
-  const onImagePasteRef = useRef(onImagePaste);
-  useEffect(() => { onImagePasteRef.current = onImagePaste; });
+  const handlePaste = useTiptapImagePaste(onImagePaste);
 
   const editorProps = useMemo(() => ({
     attributes: {
       class: `prose prose-sm dark:prose-invert max-w-none focus:outline-none p-3`,
       style: `min-height: ${minHeight}`,
     },
-    handlePaste: (view: any, event: ClipboardEvent) => {
-      if (!onImagePasteRef.current) return false;
-      const items = Array.from(event.clipboardData?.items ?? []);
-      const imageFiles = items
-        .filter((item) => item.type.startsWith("image/"))
-        .map((item) => item.getAsFile())
-        .filter((f): f is File => f !== null);
-      if (!imageFiles.length) return false;
-      event.preventDefault();
-      imageFiles.forEach(async (file) => {
-        try {
-          const url = await onImagePasteRef.current!(file);
-          const { schema, tr } = view.state;
-          if (!schema.nodes.image) return;
-          view.dispatch(tr.replaceSelectionWith(schema.nodes.image.create({ src: url })));
-        } catch { /* ignore upload errors silently */ }
-      });
-      return true;
-    },
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [minHeight]);
+    handlePaste,
+  }), [minHeight, handlePaste]);
 
   const { editor, setLink } = useTiptapEditor({
     content,
