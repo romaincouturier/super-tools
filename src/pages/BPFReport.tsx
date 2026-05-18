@@ -63,6 +63,7 @@ interface TrainingRow {
   start_date: string | null;
   trainer_name: string;
   catalog_id: string | null;
+  commanditaire_of_name: string | null;
 }
 
 interface ParticipantRow {
@@ -135,6 +136,12 @@ interface NsfStats {
   label: string;
   nb_stagiaires: number;
   total_heures: number;
+}
+
+interface SectionGStats {
+  commanditaire: string;
+  nb_stagiaires: number;
+  nb_heures: number;
 }
 
 interface BpfReportData {
@@ -260,8 +267,10 @@ export default function BPFReport() {
   const [trainers, setTrainers] = useState<TrainerStats[]>([]);
   const [stagiaires, setStagiaires] = useState<StagiaireStats[]>([]);
   const [nsfStats, setNsfStats] = useState<NsfStats[]>([]);
+  const [sectionG, setSectionG] = useState<SectionGStats[]>([]);
   const [unclassifiedParticipants, setUnclassifiedParticipants] = useState(0);
   const [trainingsWithoutCatalog, setTrainingsWithoutCatalog] = useState(0);
+  const [balanceSheetCa, setBalanceSheetCa] = useState<number | null>(null);
 
   // Manual form
   const [useAutoCalc, setUseAutoCalc] = useState(true);
@@ -290,10 +299,24 @@ export default function BPFReport() {
 
       if (tErr) throw tErr;
 
-      // We need source_financement_bpf — fetch with cast since types.ts isn't updated yet
+      // Fetch CA global from balance_sheets for the selected year
+      const { data: bsData } = await supabase
+        .from("balance_sheets")
+        .select("data")
+        .eq("annee", annee)
+        .maybeSingle();
+      if (bsData?.data) {
+        const caFromBs = (bsData.data as { compte_resultat?: { chiffre_affaires?: number } })
+          .compte_resultat?.chiffre_affaires ?? null;
+        setBalanceSheetCa(caFromBs && caFromBs > 0 ? caFromBs : null);
+      } else {
+        setBalanceSheetCa(null);
+      }
+
+      // Fetch trainings with all BPF fields
       const { data: trainingsExtData, error: tExtErr } = await (supabase
         .from("trainings")
-        .select("id, sold_price_ht, catalog_id, trainer_name, start_date, source_financement_bpf, is_cancelled")
+        .select("id, sold_price_ht, catalog_id, trainer_name, start_date, source_financement_bpf, is_cancelled, commanditaire_of_name")
         .not("start_date", "is", null)
         .gte("start_date", `${annee}-01-01`)
         .lte("start_date", `${annee}-12-31`) as unknown as Promise<{ data: TrainingRow[] | null; error: unknown }>);
@@ -467,6 +490,23 @@ export default function BPFReport() {
             .sort((a, b) => b.nb_stagiaires - a.nb_stagiaires)
         );
       }
+
+      // ── Section G : sous-traitance reçue ────────────────────────────────────
+      const soustraitanceTrainings = trainings.filter(
+        (t) => t.source_financement_bpf === "sous_traitance"
+      );
+      const gMap: Record<string, { nb_stagiaires: number; nb_heures: number }> = {};
+      for (const t of soustraitanceTrainings) {
+        const key = t.commanditaire_of_name ?? "Organisme non renseigné";
+        if (!gMap[key]) gMap[key] = { nb_stagiaires: 0, nb_heures: 0 };
+        const trainingParticipants = participants.filter((p) => p.training_id === t.id);
+        const hours = calcScheduleHours(schedulesByTraining[t.id] ?? []);
+        gMap[key].nb_stagiaires += trainingParticipants.length;
+        gMap[key].nb_heures += hours * trainingParticipants.length;
+      }
+      setSectionG(
+        Object.entries(gMap).map(([commanditaire, stats]) => ({ commanditaire, ...stats }))
+      );
     } catch (err) {
       console.error("BPF fetch error:", err);
       toastError(toast, "Impossible de charger les données BPF.", { title: "Erreur de chargement" });
@@ -495,6 +535,7 @@ export default function BPFReport() {
       setChargesTotal(data.charges_total?.toString() ?? "");
       setChargesSalaires(data.charges_salaires_formateurs?.toString() ?? "");
       setChargesAchats(data.charges_achats_prestations?.toString() ?? "");
+      // Prefer saved value; balance_sheets fallback is applied after fetch in the effect
       setCaGlobal(data.chiffre_affaires_global?.toString() ?? "");
       setNotes(data.notes ?? "");
 
@@ -534,6 +575,13 @@ export default function BPFReport() {
     void fetchAutoData();
     void fetchManualReport();
   }, [fetchAutoData, fetchManualReport]);
+
+  // Pre-fill caGlobal from balance_sheets when no saved value and a bilan exists
+  useEffect(() => {
+    if (balanceSheetCa !== null && caGlobal === "") {
+      setCaGlobal(balanceSheetCa.toString());
+    }
+  }, [balanceSheetCa, caGlobal]);
 
   // ── Save manual report ──────────────────────────────────────────────────────
 
@@ -777,6 +825,51 @@ export default function BPFReport() {
                   </CardContent>
                 </Card>
 
+                {/* Section G — Sous-traitance reçue */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Section G — Formations confiées par un autre organisme</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {sectionG.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">
+                        Aucune formation en sous-traitance reçue pour {annee}. Pour comptabiliser une formation ici, assignez{" "}
+                        <code className="text-xs bg-muted px-1 rounded">source_financement_bpf = sous_traitance</code> sur la session.
+                      </p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Organisme commanditaire</TableHead>
+                            <TableHead className="text-right">Nb stagiaires</TableHead>
+                            <TableHead className="text-right">Nb heures</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sectionG.map((g) => (
+                            <TableRow key={g.commanditaire}>
+                              <TableCell>{g.commanditaire}</TableCell>
+                              <TableCell className="text-right">{g.nb_stagiaires}</TableCell>
+                              <TableCell className="text-right">{g.nb_heures.toFixed(1)} h</TableCell>
+                            </TableRow>
+                          ))}
+                          {sectionG.length > 1 && (
+                            <TableRow className="font-semibold border-t-2">
+                              <TableCell>TOTAL</TableCell>
+                              <TableCell className="text-right">
+                                {sectionG.reduce((s, g) => s + g.nb_stagiaires, 0)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {sectionG.reduce((s, g) => s + g.nb_heures, 0).toFixed(1)} h
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+
                 {/* Section F3 — Objectif des prestations */}
                 <Card>
                   <CardHeader>
@@ -944,7 +1037,7 @@ export default function BPFReport() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex flex-col gap-1 max-w-xs">
-                  <Label htmlFor="caGlobal">CA global de l&apos;entreprise (€ HT, bilan comptable)</Label>
+                  <Label htmlFor="caGlobal">CA global de l&apos;entreprise (€ HT)</Label>
                   <Input
                     id="caGlobal"
                     type="number"
@@ -952,6 +1045,19 @@ export default function BPFReport() {
                     value={caGlobal}
                     onChange={(e) => setCaGlobal(e.target.value)}
                   />
+                  {balanceSheetCa !== null && (
+                    <p className="text-xs text-muted-foreground">
+                      Importé depuis le bilan comptable {annee} :{" "}
+                      <strong>{EUR(balanceSheetCa)}</strong>
+                    </p>
+                  )}
+                  {balanceSheetCa === null && (
+                    <p className="text-xs text-muted-foreground">
+                      Importez votre bilan comptable {annee} dans{" "}
+                      <a href="/finances" className="underline">Finances</a>{" "}
+                      pour pré-remplir automatiquement ce champ.
+                    </p>
+                  )}
                 </div>
                 {partFormation !== null && (
                   <div className="bg-muted rounded p-3 text-sm">
