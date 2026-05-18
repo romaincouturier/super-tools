@@ -53,20 +53,17 @@ export default function LearnerOnboarding() {
           setErrorMsg("Lien invalide ou expiré.");
           return;
         }
-        const result = data as { status: string; email?: string };
+        const result = data as { status: string; email?: string; has_account?: boolean };
         if (result.status === "invalid") {
           setMode("error");
           setErrorMsg("Ce lien n'est pas valide.");
         } else if (result.status === "expired") {
           setMode("error");
           setErrorMsg("Ce lien a expiré. Connectez-vous directement depuis l'espace apprenant ou contactez votre formateur.");
-        } else if (result.status === "used") {
-          // Token already consumed → redirect to login
-          setEmail(result.email ?? "");
-          setMode("login");
         } else {
+          // "used" or "ok" — show the right form immediately based on account existence
           setEmail(result.email ?? "");
-          setMode("create");
+          setMode(result.has_account ? "login" : "create");
         }
       });
   }, [token]);
@@ -97,11 +94,7 @@ export default function LearnerOnboarding() {
         error.message.toLowerCase().includes("already exists") ||
         error.message.toLowerCase().includes("user already")
       ) {
-        // Account exists → switch to login mode
-        toast({
-          title: "Compte existant",
-          description: "Vous avez déjà un compte. Connectez-vous avec votre mot de passe.",
-        });
+        // Fallback: account was created between page load and submit → switch to login
         setMode("login");
         setPassword("");
       } else {
