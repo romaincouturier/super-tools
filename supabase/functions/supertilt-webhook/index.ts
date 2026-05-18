@@ -399,9 +399,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq("email", customerEmail)
           .maybeSingle();
 
-        // Déduit type_stagiaire_bpf : si billing.company renseigné → Entreprise, sinon Particulier
+        // Déduit type_stagiaire_bpf et source_financement_bpf depuis billing
         const billingCompany = (order.billing?.company ?? "").trim();
         const typeStagiaire = billingCompany ? "Entreprise" : "Particulier";
+        const sourceFinancement = billingCompany ? "plan_formation" : "faf_auto";
 
         // Adresse de facturation
         const billingAddr = order.billing as {
@@ -409,8 +410,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
           city?: string; postcode?: string; country?: string;
         } | undefined;
 
-        // Prix HT de la ligne (le total WooCommerce est HT si pas de TVA configurée)
+        // Prix HT de la ligne
         const linePriceHt = parseFloat(item.total ?? "0");
+
+        // Détermine si la session trouvée est e-learning (pour l'envoi du lien d'accès)
+        const trainingFormat = (training.format_formation ?? "").toLowerCase();
+        const isElearningSession = trainingFormat.includes("e_learning") || trainingFormat.includes("elearning") || trainingFormat.includes("classe_virtuelle");
 
         let participantId: string;
         if (existing) {
@@ -429,6 +434,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               company_city: billingAddr?.city ?? null,
               company_zip: billingAddr?.postcode ?? null,
               type_stagiaire_bpf: typeStagiaire,
+              source_financement_bpf: sourceFinancement,
               sold_price_ht: linePriceHt || null,
               payment_mode: "online",
               needs_survey_token: needsSurveyToken,
@@ -451,16 +457,34 @@ Deno.serve(async (req: Request): Promise<Response> => {
           });
         }
 
-        // Envoi accès selon mode
-        if (elearningAccessMode === "magic_link") {
-          await (admin as any).functions.invoke("send-learner-magic-link", {
-            body: { email: customerEmail, trainingId: training.id },
-          });
-        } else {
-          await (admin as any).functions.invoke("send-elearning-access", {
-            body: { participantId, trainingId: training.id },
-          });
+        // Envoi accès uniquement pour les sessions e-learning
+        if (isElearningSession) {
+          if (elearningAccessMode === "magic_link") {
+            await (admin as any).functions.invoke("send-learner-magic-link", {
+              body: { email: customerEmail, trainingId: training.id },
+            });
+          } else {
+            await (admin as any).functions.invoke("send-elearning-access", {
+              body: { participantId, trainingId: training.id },
+            });
+          }
         }
+
+        // Activity log
+        await (admin as any).from("activity_logs").insert({
+          action_type: "participant_added_from_woocommerce",
+          recipient_email: customerEmail,
+          details: {
+            training_id: training.id,
+            training_name: training.training_name,
+            participant_id: participantId,
+            woocommerce_order_id: order.id,
+            woocommerce_product_id: item.product_id,
+            routing_reason: routingReason,
+            is_elearning: isElearningSession,
+            source: "woocommerce_webhook",
+          },
+        });
 
         console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`);
         results.formations_processed++;
