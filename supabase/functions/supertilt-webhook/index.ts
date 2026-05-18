@@ -83,6 +83,33 @@ function formatAddress(a: WCAddress): string {
   ].filter(Boolean).join(", ");
 }
 
+// ── French date parser ────────────────────────────────────────────────────────
+// Extrait la première date trouvée dans un titre WooCommerce (ex: "Formation X - 15 mars 2025")
+const FRENCH_MONTHS: Record<string, string> = {
+  janvier: "01", "février": "02", fevrier: "02", mars: "03", avril: "04",
+  mai: "05", juin: "06", juillet: "07", "août": "08", aout: "08",
+  septembre: "09", octobre: "10", novembre: "11", "décembre": "12", decembre: "12",
+};
+
+function parseFrenchDates(text: string): { start: string } | null {
+  const t = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  // "15/03/2025" or "15-03-2025"
+  const numeric = t.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (numeric) {
+    const [, d, m, y] = numeric;
+    return { start: `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}` };
+  }
+  // "15 mars 2025" or "du 15 mars 2025" or "15 au 17 mars 2025"
+  const monthPattern = Object.keys(FRENCH_MONTHS).join("|");
+  const french = t.match(new RegExp(`(\\d{1,2})(?:\\s+au\\s+\\d{1,2})?\\s+(${monthPattern})\\s+(\\d{4})`));
+  if (french) {
+    const [, d, month, y] = french;
+    const m = FRENCH_MONTHS[month];
+    if (m) return { start: `${y}-${m}-${d.padStart(2, "0")}` };
+  }
+  return null;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
@@ -236,12 +263,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load formation formulas (e-learning products) ────────────
     const { data: formulas } = await (admin as any)
       .from("formation_formulas")
-      .select("id, name, formation_config_id, woocommerce_product_id, formation_configs(formation_name)")
+      .select("id, name, formation_config_id, woocommerce_product_id, formation_configs(formation_name, format_formation)")
       .not("woocommerce_product_id", "is", null);
 
+    type FormulaRow = {
+      id: string;
+      name: string;
+      woocommerce_product_id: number;
+      formation_configs: { formation_name: string; format_formation: string | null } | null;
+    };
     const formulasByProductId = new Map(
-      ((formulas ?? []) as Array<{ id: string; name: string; woocommerce_product_id: number; formation_configs: { formation_name: string } | null }>)
-        .map((f) => [f.woocommerce_product_id, f]),
+      ((formulas ?? []) as FormulaRow[]).map((f) => [f.woocommerce_product_id, f]),
     );
 
     // ── Load e-learning access mode from app_settings ────────────
@@ -261,88 +293,158 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const formula = formulasByProductId.get(item.product_id);
       const game = formula ? undefined : gamesByProductId.get(item.product_id);
 
-      // ── Formation e-learning ─────────────────────────────────
+      // ── Formation reconnue dans le catalogue ─────────────────
       if (formula) {
         const customerEmail = (order.billing?.email ?? "").trim().toLowerCase();
-        if (customerEmail) {
-          const formationName = (formula.formation_configs as { formation_name: string } | null)?.formation_name ?? "";
-          const today = new Date().toISOString().split("T")[0];
-          const { data: training } = await (admin as any)
+        if (!customerEmail) { results.items_to_validate++; continue; }
+
+        const formationName = formula.formation_configs?.formation_name ?? "";
+        const catalogFormat = (formula.formation_configs?.format_formation ?? "").toLowerCase();
+        const isElearningCatalog = catalogFormat.includes("e_learning") || catalogFormat.includes("elearning") || catalogFormat.includes("classe_virtuelle");
+
+        let training: { id: string; training_name: string; start_date: string | null; end_date: string | null; format_formation: string | null } | null = null;
+        let routingReason = "";
+
+        // 1️⃣ Cherche des dates dans le titre du produit WooCommerce
+        const parsedDates = parseFrenchDates(item.name ?? "");
+        if (parsedDates) {
+          // Cherche une session inter aux mêmes dates
+          const { data: byDate } = await (admin as any)
             .from("trainings")
             .select("id, training_name, start_date, end_date, format_formation")
             .ilike("training_name", `%${formationName}%`)
             .ilike("format_formation", "%inter%")
             .eq("is_cancelled", false)
-            .gte("start_date", today)
-            .order("start_date", { ascending: true })
+            .eq("start_date", parsedDates.start)
+            .maybeSingle();
+          if (byDate) {
+            training = byDate;
+            routingReason = `session inter du ${parsedDates.start} trouvée via dates dans le titre`;
+          }
+        }
+
+        // 2️⃣ Sinon : si formation e-learning au catalogue
+        //    → session permanente (start_date IS NULL) en priorité, sinon prochaine session non commencée
+        if (!training && isElearningCatalog) {
+          const today = new Date().toISOString().split("T")[0];
+          const elearningFilter = "format_formation.eq.e_learning,format_formation.ilike.%elearning%,format_formation.ilike.%classe_virtuelle%";
+
+          // Priorité 1 : session permanente (pas de start_date)
+          const { data: permanent } = await (admin as any)
+            .from("trainings")
+            .select("id, training_name, start_date, end_date, format_formation")
+            .ilike("training_name", `%${formationName}%`)
+            .or(elearningFilter)
+            .eq("is_cancelled", false)
+            .is("start_date", null)
             .limit(1)
             .maybeSingle();
+          if (permanent) {
+            training = permanent;
+            routingReason = "session e-learning permanente (accès continu)";
+          }
 
+          // Priorité 2 : prochaine session datée non encore commencée
           if (!training) {
-            await (admin as any).from("woocommerce_pending_formations").insert({
-              woocommerce_order_id: order.id,
-              woocommerce_product_id: item.product_id,
-              customer_email: customerEmail,
-              customer_first_name: order.billing?.first_name ?? null,
-              customer_last_name: order.billing?.last_name ?? null,
-              formation_name: formationName,
-              reason: "no_matching_session",
-              raw_payload: { product_id: item.product_id, formula_id: formula.id, formula_name: formula.name },
-              status: "pending",
-            });
-          } else {
-            const { data: existing } = await (admin as any)
-              .from("training_participants")
-              .select("id")
-              .eq("training_id", training.id)
-              .eq("email", customerEmail)
+            const { data: upcoming } = await (admin as any)
+              .from("trainings")
+              .select("id, training_name, start_date, end_date, format_formation")
+              .ilike("training_name", `%${formationName}%`)
+              .or(elearningFilter)
+              .eq("is_cancelled", false)
+              .gt("start_date", today)
+              .order("start_date", { ascending: true })
+              .limit(1)
               .maybeSingle();
-
-            let participantId: string;
-            if (existing) {
-              participantId = existing.id;
-            } else {
-              const needsSurveyToken = crypto.randomUUID();
-              const { data: participant } = await (admin as any)
-                .from("training_participants")
-                .insert({
-                  training_id: training.id,
-                  first_name: order.billing?.first_name ?? null,
-                  last_name: order.billing?.last_name ?? null,
-                  email: customerEmail,
-                  needs_survey_token: needsSurveyToken,
-                  needs_survey_status: "non_envoye",
-                  coaching_sessions_total: 0,
-                  coaching_sessions_completed: 0,
-                  payment_mode: "online",
-                  formula: formula.name || null,
-                  formula_id: formula.id || null,
-                })
-                .select("id")
-                .single();
-
-              participantId = (participant as { id: string }).id;
-              await (admin as any).from("questionnaire_besoins").insert({
-                training_id: training.id,
-                participant_id: participantId,
-                token: needsSurveyToken,
-                etat: "non_envoye",
-              });
-            }
-
-            if (elearningAccessMode === "magic_link") {
-              await (admin as any).functions.invoke("send-learner-magic-link", {
-                body: { email: customerEmail, trainingId: training.id },
-              });
-            } else {
-              await (admin as any).functions.invoke("send-elearning-access", {
-                body: { participantId, trainingId: training.id },
-              });
+            if (upcoming) {
+              training = upcoming;
+              routingReason = "prochaine session e-learning non commencée";
             }
           }
-          results.formations_processed++;
         }
-        // Formation items don't go through kanban — skip to next item
+
+        // 3️⃣ Inbox si aucune session trouvée
+        if (!training) {
+          const reason = parsedDates
+            ? `Dates trouvées (${parsedDates.start}) mais aucune session inter correspondante`
+            : isElearningCatalog
+            ? "Formation e-learning sans session programmée à venir"
+            : "Formation reconnue mais aucune session inter ou e-learning trouvée";
+
+          await (admin as any).from("order_items").upsert({
+            woocommerce_order_id: wooOrderId,
+            wc_order_id: order.id,
+            wc_product_id: item.product_id,
+            product_name: item.name,
+            game_id: null,
+            game_type: "formation",
+            quantity: item.quantity,
+            unit_price: item.price,
+            line_total: parseFloat(item.total ?? "0"),
+            kanban_status: "to_validate",
+            block_reason: `[Formation] ${formationName} — ${reason}`,
+            validation_status: "pending",
+            raw_line_item: item,
+          }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+
+          results.items_to_validate++;
+          continue;
+        }
+
+        // 4️⃣ Ajoute le participant à la session trouvée
+        const { data: existing } = await (admin as any)
+          .from("training_participants")
+          .select("id")
+          .eq("training_id", training.id)
+          .eq("email", customerEmail)
+          .maybeSingle();
+
+        let participantId: string;
+        if (existing) {
+          participantId = existing.id;
+        } else {
+          const needsSurveyToken = crypto.randomUUID();
+          const { data: participant } = await (admin as any)
+            .from("training_participants")
+            .insert({
+              training_id: training.id,
+              first_name: order.billing?.first_name ?? null,
+              last_name: order.billing?.last_name ?? null,
+              email: customerEmail,
+              needs_survey_token: needsSurveyToken,
+              needs_survey_status: "non_envoye",
+              coaching_sessions_total: 0,
+              coaching_sessions_completed: 0,
+              payment_mode: "online",
+              formula: formula.name || null,
+              formula_id: formula.id || null,
+            })
+            .select("id")
+            .single();
+
+          participantId = (participant as { id: string }).id;
+          await (admin as any).from("questionnaire_besoins").insert({
+            training_id: training.id,
+            participant_id: participantId,
+            token: needsSurveyToken,
+            etat: "non_envoye",
+          });
+        }
+
+        // Envoi accès selon mode
+        if (elearningAccessMode === "magic_link") {
+          await (admin as any).functions.invoke("send-learner-magic-link", {
+            body: { email: customerEmail, trainingId: training.id },
+          });
+        } else {
+          await (admin as any).functions.invoke("send-elearning-access", {
+            body: { participantId, trainingId: training.id },
+          });
+        }
+
+        console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`);
+        results.formations_processed++;
+        // Les formations ne passent pas par le kanban jeux
         continue;
       }
 
