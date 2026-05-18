@@ -29,6 +29,7 @@ import {
   SponsorCard,
   FinanceurCard,
   CatalogSummaryCard,
+  SourceFinancementSelector,
 } from "@/components/formations/FormationFormFields";
 
 const FormationEdit = () => {
@@ -44,6 +45,7 @@ const FormationEdit = () => {
   const [location, setLocation] = useState("");
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
+  const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -108,6 +110,7 @@ const FormationEdit = () => {
       form.setTrainingNotes((training as unknown as { notes?: string }).notes || "");
       form.setSpecificInstructions((training as unknown as { specific_instructions?: string }).specific_instructions || "");
       form.setCatalogId((training as unknown as { catalog_id?: string | null }).catalog_id || null);
+      setSourceFinancementBpf((training as unknown as { source_financement_bpf?: string | null }).source_financement_bpf || null);
 
       // For e-learning, load start/end dates directly
       const loadedIsElearning =
@@ -221,6 +224,8 @@ const FormationEdit = () => {
         payload.venue_id = venueId;
         payload.location = location;
       }
+
+      payload.source_financement_bpf = sourceFinancementBpf || null;
 
       const { error: trainingError } = await supabase
         .from("trainings")
@@ -454,6 +459,12 @@ const FormationEdit = () => {
                       Obligatoire pour la génération de la convention.
                     </p>
                   </div>
+
+                  {/* Source de financement BPF */}
+                  <SourceFinancementSelector
+                    value={sourceFinancementBpf}
+                    onChange={setSourceFinancementBpf}
+                  />
 
                   {/* Trainer selector */}
                   <div className="space-y-2">

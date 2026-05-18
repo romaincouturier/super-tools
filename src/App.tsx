@@ -23,6 +23,7 @@ const MicroDevis = lazy(() => import("./pages/MicroDevis"));
 const Historique = lazy(() => import("./pages/Historique"));
 const Parametres = lazy(() => import("./pages/Parametres"));
 const Formations = lazy(() => import("./pages/Formations"));
+const BPFReport = lazy(() => import("./pages/BPFReport"));
 const FormationCreate = lazy(() => import("./pages/FormationCreate"));
 const FormationEdit = lazy(() => import("./pages/FormationEdit"));
 const FormationDetail = lazy(() => import("./pages/FormationDetail"));
@@ -140,6 +141,7 @@ const App = () => (
               <Route path="/parametres" element={<Parametres />} />
               <Route path="/formations" element={<Formations />} />
               <Route path="/formations/new" element={<FormationCreate />} />
+              <Route path="/formations/bpf" element={<BPFReport />} />
               <Route path="/formations/:id" element={<FormationDetail />} />
               <Route path="/formations/:id/edit" element={<FormationEdit />} />
               {/* Needs summary across all trainings */}

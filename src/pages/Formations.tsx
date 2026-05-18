@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building, BarChart3, Star } from "lucide-react";
+import { Plus, Calendar, ArrowUpDown, ChevronLeft, ChevronRight, Search, X, MapPin, Building, BarChart3, Star, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import WeeklyChart from "@/components/dashboard/WeeklyChart";
@@ -374,10 +374,18 @@ const Formations = () => {
           icon={Calendar}
           title="Formations"
           actions={
-            <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Nouvelle session</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link to="/formations/bpf">
+                <Button variant="outline" size="sm" className="shrink-0 hidden md:flex">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Bilan BPF
+                </Button>
+              </Link>
+              <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Nouvelle session</span>
+              </Button>
+            </div>
           }
         />
 

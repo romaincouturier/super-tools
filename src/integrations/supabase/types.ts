@@ -498,6 +498,102 @@ export type Database = {
         }
         Relationships: []
       }
+      bpf_reports: {
+        Row: {
+          annee: number
+          bilan_comptable_pdf_url: string | null
+          charges_achats_prestations: number
+          charges_salaires_formateurs: number
+          charges_total: number
+          chiffre_affaires_global: number | null
+          created_at: string
+          id: string
+          notes: string | null
+          produits_ligne1: number
+          produits_ligne10: number
+          produits_ligne11: number
+          produits_ligne3: number
+          produits_ligne4: number
+          produits_ligne5: number
+          produits_ligne6: number
+          produits_ligne7: number
+          produits_ligne8: number
+          produits_ligne9: number
+          produits_opco_a: number
+          produits_opco_b: number
+          produits_opco_c: number
+          produits_opco_d: number
+          produits_opco_e: number
+          produits_opco_f: number
+          produits_opco_g: number
+          produits_opco_h: number
+          updated_at: string
+          use_auto_calculation: boolean
+        }
+        Insert: {
+          annee: number
+          bilan_comptable_pdf_url?: string | null
+          charges_achats_prestations?: number
+          charges_salaires_formateurs?: number
+          charges_total?: number
+          chiffre_affaires_global?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          produits_ligne1?: number
+          produits_ligne10?: number
+          produits_ligne11?: number
+          produits_ligne3?: number
+          produits_ligne4?: number
+          produits_ligne5?: number
+          produits_ligne6?: number
+          produits_ligne7?: number
+          produits_ligne8?: number
+          produits_ligne9?: number
+          produits_opco_a?: number
+          produits_opco_b?: number
+          produits_opco_c?: number
+          produits_opco_d?: number
+          produits_opco_e?: number
+          produits_opco_f?: number
+          produits_opco_g?: number
+          produits_opco_h?: number
+          updated_at?: string
+          use_auto_calculation?: boolean
+        }
+        Update: {
+          annee?: number
+          bilan_comptable_pdf_url?: string | null
+          charges_achats_prestations?: number
+          charges_salaires_formateurs?: number
+          charges_total?: number
+          chiffre_affaires_global?: number | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          produits_ligne1?: number
+          produits_ligne10?: number
+          produits_ligne11?: number
+          produits_ligne3?: number
+          produits_ligne4?: number
+          produits_ligne5?: number
+          produits_ligne6?: number
+          produits_ligne7?: number
+          produits_ligne8?: number
+          produits_ligne9?: number
+          produits_opco_a?: number
+          produits_opco_b?: number
+          produits_opco_c?: number
+          produits_opco_d?: number
+          produits_opco_e?: number
+          produits_opco_f?: number
+          produits_opco_g?: number
+          produits_opco_h?: number
+          updated_at?: string
+          use_auto_calculation?: boolean
+        }
+        Relationships: []
+      }
       billing_plans: {
         Row: {
           created_at: string
@@ -2252,10 +2348,12 @@ export type Database = {
           elearning_access_email_content: string | null
           elearning_duration: number | null
           format_formation: string | null
+          code_specialite_nsf: string | null
           formation_name: string
           id: string
           is_active: boolean
           is_default: boolean
+          label_specialite_nsf: string | null
           learndash_course_id: number | null
           objectives: string[] | null
           org_id: string | null
@@ -2270,6 +2368,7 @@ export type Database = {
         }
         Insert: {
           available_formulas?: string[] | null
+          code_specialite_nsf?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -2281,6 +2380,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          label_specialite_nsf?: string | null
           learndash_course_id?: number | null
           objectives?: string[] | null
           org_id?: string | null
@@ -2295,6 +2395,7 @@ export type Database = {
         }
         Update: {
           available_formulas?: string[] | null
+          code_specialite_nsf?: string | null
           created_at?: string
           description?: string | null
           display_order?: number
@@ -2306,6 +2407,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          label_specialite_nsf?: string | null
           learndash_course_id?: number | null
           objectives?: string[] | null
           org_id?: string | null
@@ -7791,6 +7893,7 @@ export type Database = {
           sponsor_first_name: string | null
           sponsor_last_name: string | null
           training_id: string
+          type_stagiaire_bpf: string | null
         }
         Insert: {
           added_at?: string
@@ -7827,6 +7930,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
           training_id: string
+          type_stagiaire_bpf?: string | null
         }
         Update: {
           added_at?: string
@@ -7863,6 +7967,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
           training_id?: string
+          type_stagiaire_bpf?: string | null
         }
         Relationships: [
           {
@@ -8231,6 +8336,7 @@ export type Database = {
           catalog_id: string | null
           client_address: string | null
           client_name: string
+          commanditaire_of_name: string | null
           convention_file_url: string | null
           created_at: string
           created_by: string
@@ -8277,6 +8383,7 @@ export type Database = {
           supports_lms_course_id: string | null
           supports_type: string
           supports_url: string | null
+          source_financement_bpf: string | null
           train_booked: boolean | null
           trainer_id: string | null
           trainer_name: string
@@ -8294,6 +8401,7 @@ export type Database = {
           catalog_id?: string | null
           client_address?: string | null
           client_name?: string
+          commanditaire_of_name?: string | null
           convention_file_url?: string | null
           created_at?: string
           created_by: string
@@ -8340,6 +8448,7 @@ export type Database = {
           supports_lms_course_id?: string | null
           supports_type?: string
           supports_url?: string | null
+          source_financement_bpf?: string | null
           train_booked?: boolean | null
           trainer_id?: string | null
           trainer_name?: string
@@ -8357,6 +8466,7 @@ export type Database = {
           catalog_id?: string | null
           client_address?: string | null
           client_name?: string
+          commanditaire_of_name?: string | null
           convention_file_url?: string | null
           created_at?: string
           created_by?: string
@@ -8403,6 +8513,7 @@ export type Database = {
           supports_lms_course_id?: string | null
           supports_type?: string
           supports_url?: string | null
+          source_financement_bpf?: string | null
           train_booked?: boolean | null
           trainer_id?: string | null
           trainer_name?: string
