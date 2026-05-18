@@ -60,6 +60,8 @@ interface StoredPrefs {
   pivot2Statuses?: SalesStatus[];
 }
 
+type PivotStorageKey = "pivot1" | "pivot2";
+
 function loadPrefs(): StoredPrefs {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -76,6 +78,10 @@ function savePrefs(partial: Partial<StoredPrefs>) {
 
 function getStoredCategory(value: unknown, categories: string[], fallback: string): string {
   return typeof value === "string" && categories.includes(value) ? value : fallback;
+}
+
+function isPivotStorageKey(value: string): value is PivotStorageKey {
+  return value === "pivot1" || value === "pivot2";
 }
 
 // ── Period helpers ──────────────────────────────────────────
@@ -451,9 +457,10 @@ function PivotTable({
   periodSelector?: React.ReactNode;
 }) {
   const prefs = useMemo(() => loadPrefs(), []);
-  const rowKey = `${storageKey}Row` as keyof StoredPrefs;
-  const colKey = `${storageKey}Col` as keyof StoredPrefs;
-  const statusKey = `${storageKey}Statuses` as keyof StoredPrefs;
+  const safeStorageKey: PivotStorageKey = isPivotStorageKey(storageKey) ? storageKey : "pivot1";
+  const rowKey = `${safeStorageKey}Row` as const;
+  const colKey = `${safeStorageKey}Col` as const;
+  const statusKey = `${safeStorageKey}Statuses` as const;
 
   const rawRow = prefs[rowKey];
   const rawCol = prefs[colKey];
