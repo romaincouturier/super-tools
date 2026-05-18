@@ -323,22 +323,43 @@ Deno.serve(async (req: Request): Promise<Response> => {
           }
         }
 
-        // 2️⃣ Sinon : si formation e-learning au catalogue → prochaine session non commencée
+        // 2️⃣ Sinon : si formation e-learning au catalogue
+        //    → session permanente (start_date IS NULL) en priorité, sinon prochaine session non commencée
         if (!training && isElearningCatalog) {
           const today = new Date().toISOString().split("T")[0];
-          const { data: elearning } = await (admin as any)
+          const elearningFilter = "format_formation.eq.e_learning,format_formation.ilike.%elearning%,format_formation.ilike.%classe_virtuelle%";
+
+          // Priorité 1 : session permanente (pas de start_date)
+          const { data: permanent } = await (admin as any)
             .from("trainings")
             .select("id, training_name, start_date, end_date, format_formation")
             .ilike("training_name", `%${formationName}%`)
-            .or("format_formation.eq.e_learning,format_formation.ilike.%elearning%,format_formation.ilike.%classe_virtuelle%")
+            .or(elearningFilter)
             .eq("is_cancelled", false)
-            .gt("start_date", today)
-            .order("start_date", { ascending: true })
+            .is("start_date", null)
             .limit(1)
             .maybeSingle();
-          if (elearning) {
-            training = elearning;
-            routingReason = "prochaine session e-learning non commencée";
+          if (permanent) {
+            training = permanent;
+            routingReason = "session e-learning permanente (accès continu)";
+          }
+
+          // Priorité 2 : prochaine session datée non encore commencée
+          if (!training) {
+            const { data: upcoming } = await (admin as any)
+              .from("trainings")
+              .select("id, training_name, start_date, end_date, format_formation")
+              .ilike("training_name", `%${formationName}%`)
+              .or(elearningFilter)
+              .eq("is_cancelled", false)
+              .gt("start_date", today)
+              .order("start_date", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (upcoming) {
+              training = upcoming;
+              routingReason = "prochaine session e-learning non commencée";
+            }
           }
         }
 
