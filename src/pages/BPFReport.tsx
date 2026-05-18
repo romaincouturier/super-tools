@@ -321,38 +321,36 @@ export default function BPFReport() {
       }
 
       // ── Compute Produits (Section C) ────────────────────────────────────────
+      // Toutes les formations contribuent (inter, intra, présentiel, e-learning,
+      // classe virtuelle…). Pour les sessions inter avec des prix/sources au
+      // niveau participant, on utilise ceux-ci ; sinon on prend toujours le
+      // sold_price_ht et source_financement_bpf de la session.
       const newProduits = emptyProduits();
 
       for (const t of trainings) {
-        // Mirror useFormationDetail's isInterSession logic exactly
         const isInter = t.session_type === 'inter'
           || t.format_formation === 'inter-entreprises'
           || t.format_formation === 'e_learning';
 
-        if (!isInter) {
-          // Intra (or unclassified format): training-level price + training-level source
+        const trainingParticipants = isInter
+          ? participants.filter((p) => p.training_id === t.id)
+          : [];
+        const hasParticipantPrices = trainingParticipants.some((p) => p.sold_price_ht != null);
+
+        if (isInter && hasParticipantPrices) {
+          // Inter avec données participant : ventilation par participant
+          for (const p of trainingParticipants) {
+            if (p.sold_price_ht != null) {
+              const line = mapSourceToBpfLine(p.source_financement_bpf ?? t.source_financement_bpf ?? null);
+              newProduits[line] += p.sold_price_ht;
+            }
+          }
+        } else {
+          // Tous les autres cas (intra, présentiel, classe virtuelle, e-learning sans
+          // prix participant, etc.) : prix et source au niveau de la session
           if (t.sold_price_ht != null) {
             const line = mapSourceToBpfLine(t.source_financement_bpf);
             newProduits[line] += t.sold_price_ht;
-          }
-        } else {
-          // Inter: participant-level price + participant-level source, fallback to training-level
-          const trainingParticipants = participants.filter((p) => p.training_id === t.id);
-          const hasParticipantPrices = trainingParticipants.some((p) => p.sold_price_ht != null);
-
-          if (hasParticipantPrices) {
-            for (const p of trainingParticipants) {
-              if (p.sold_price_ht != null) {
-                const line = mapSourceToBpfLine(p.source_financement_bpf ?? t.source_financement_bpf ?? null);
-                newProduits[line] += p.sold_price_ht;
-              }
-            }
-          } else {
-            // No participant-level prices yet: fall back to training-level price
-            if (t.sold_price_ht != null) {
-              const line = mapSourceToBpfLine(t.source_financement_bpf ?? null);
-              newProduits[line] += t.sold_price_ht;
-            }
           }
         }
       }
