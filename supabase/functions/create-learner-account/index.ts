@@ -5,6 +5,18 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+async function findUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
+  const normalizedEmail = email.toLowerCase();
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw error;
+    const user = data.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
+    if (user) return user;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
+
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
@@ -59,9 +71,19 @@ serve(async (req) => {
     if (createErr) {
       const msg = (createErr.message || "").toLowerCase();
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+        const existingUser = await findUserByEmail(admin, email);
+        if (!existingUser?.id) throw createErr;
+
+        const { error: updateErr } = await admin.auth.admin.updateUserById(existingUser.id, {
+          password,
+          email_confirm: true,
+          user_metadata: { ...(existingUser.user_metadata ?? {}), role: "learner" },
+        });
+        if (updateErr) throw updateErr;
+
         return new Response(
-          JSON.stringify({ error: "already_exists" }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({ success: true, email, user_id: existingUser.id, updated_existing: true }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       throw createErr;
