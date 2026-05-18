@@ -498,102 +498,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bpf_reports: {
-        Row: {
-          annee: number
-          bilan_comptable_pdf_url: string | null
-          charges_achats_prestations: number
-          charges_salaires_formateurs: number
-          charges_total: number
-          chiffre_affaires_global: number | null
-          created_at: string
-          id: string
-          notes: string | null
-          produits_ligne1: number
-          produits_ligne10: number
-          produits_ligne11: number
-          produits_ligne3: number
-          produits_ligne4: number
-          produits_ligne5: number
-          produits_ligne6: number
-          produits_ligne7: number
-          produits_ligne8: number
-          produits_ligne9: number
-          produits_opco_a: number
-          produits_opco_b: number
-          produits_opco_c: number
-          produits_opco_d: number
-          produits_opco_e: number
-          produits_opco_f: number
-          produits_opco_g: number
-          produits_opco_h: number
-          updated_at: string
-          use_auto_calculation: boolean
-        }
-        Insert: {
-          annee: number
-          bilan_comptable_pdf_url?: string | null
-          charges_achats_prestations?: number
-          charges_salaires_formateurs?: number
-          charges_total?: number
-          chiffre_affaires_global?: number | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          produits_ligne1?: number
-          produits_ligne10?: number
-          produits_ligne11?: number
-          produits_ligne3?: number
-          produits_ligne4?: number
-          produits_ligne5?: number
-          produits_ligne6?: number
-          produits_ligne7?: number
-          produits_ligne8?: number
-          produits_ligne9?: number
-          produits_opco_a?: number
-          produits_opco_b?: number
-          produits_opco_c?: number
-          produits_opco_d?: number
-          produits_opco_e?: number
-          produits_opco_f?: number
-          produits_opco_g?: number
-          produits_opco_h?: number
-          updated_at?: string
-          use_auto_calculation?: boolean
-        }
-        Update: {
-          annee?: number
-          bilan_comptable_pdf_url?: string | null
-          charges_achats_prestations?: number
-          charges_salaires_formateurs?: number
-          charges_total?: number
-          chiffre_affaires_global?: number | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          produits_ligne1?: number
-          produits_ligne10?: number
-          produits_ligne11?: number
-          produits_ligne3?: number
-          produits_ligne4?: number
-          produits_ligne5?: number
-          produits_ligne6?: number
-          produits_ligne7?: number
-          produits_ligne8?: number
-          produits_ligne9?: number
-          produits_opco_a?: number
-          produits_opco_b?: number
-          produits_opco_c?: number
-          produits_opco_d?: number
-          produits_opco_e?: number
-          produits_opco_f?: number
-          produits_opco_g?: number
-          produits_opco_h?: number
-          updated_at?: string
-          use_auto_calculation?: boolean
-        }
-        Relationships: []
-      }
       billing_plans: {
         Row: {
           created_at: string
@@ -648,6 +552,102 @@ export type Database = {
           slug?: string
           stripe_price_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bpf_reports: {
+        Row: {
+          annee: number
+          bilan_comptable_pdf_url: string | null
+          charges_achats_prestations: number | null
+          charges_salaires_formateurs: number | null
+          charges_total: number | null
+          chiffre_affaires_global: number | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          produits_ligne1: number | null
+          produits_ligne10: number | null
+          produits_ligne11: number | null
+          produits_ligne3: number | null
+          produits_ligne4: number | null
+          produits_ligne5: number | null
+          produits_ligne6: number | null
+          produits_ligne7: number | null
+          produits_ligne8: number | null
+          produits_ligne9: number | null
+          produits_opco_a: number | null
+          produits_opco_b: number | null
+          produits_opco_c: number | null
+          produits_opco_d: number | null
+          produits_opco_e: number | null
+          produits_opco_f: number | null
+          produits_opco_g: number | null
+          produits_opco_h: number | null
+          updated_at: string | null
+          use_auto_calculation: boolean | null
+        }
+        Insert: {
+          annee: number
+          bilan_comptable_pdf_url?: string | null
+          charges_achats_prestations?: number | null
+          charges_salaires_formateurs?: number | null
+          charges_total?: number | null
+          chiffre_affaires_global?: number | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          produits_ligne1?: number | null
+          produits_ligne10?: number | null
+          produits_ligne11?: number | null
+          produits_ligne3?: number | null
+          produits_ligne4?: number | null
+          produits_ligne5?: number | null
+          produits_ligne6?: number | null
+          produits_ligne7?: number | null
+          produits_ligne8?: number | null
+          produits_ligne9?: number | null
+          produits_opco_a?: number | null
+          produits_opco_b?: number | null
+          produits_opco_c?: number | null
+          produits_opco_d?: number | null
+          produits_opco_e?: number | null
+          produits_opco_f?: number | null
+          produits_opco_g?: number | null
+          produits_opco_h?: number | null
+          updated_at?: string | null
+          use_auto_calculation?: boolean | null
+        }
+        Update: {
+          annee?: number
+          bilan_comptable_pdf_url?: string | null
+          charges_achats_prestations?: number | null
+          charges_salaires_formateurs?: number | null
+          charges_total?: number | null
+          chiffre_affaires_global?: number | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          produits_ligne1?: number | null
+          produits_ligne10?: number | null
+          produits_ligne11?: number | null
+          produits_ligne3?: number | null
+          produits_ligne4?: number | null
+          produits_ligne5?: number | null
+          produits_ligne6?: number | null
+          produits_ligne7?: number | null
+          produits_ligne8?: number | null
+          produits_ligne9?: number | null
+          produits_opco_a?: number | null
+          produits_opco_b?: number | null
+          produits_opco_c?: number | null
+          produits_opco_d?: number | null
+          produits_opco_e?: number | null
+          produits_opco_f?: number | null
+          produits_opco_g?: number | null
+          produits_opco_h?: number | null
+          updated_at?: string | null
+          use_auto_calculation?: boolean | null
         }
         Relationships: []
       }
@@ -1789,7 +1789,6 @@ export type Database = {
           audit_metadata: Json | null
           client_name: string
           created_at: string
-          crm_card_id: string | null
           devis_type: string
           email_opened_at: string | null
           email_sent_at: string | null
@@ -1809,7 +1808,6 @@ export type Database = {
           status: string
           token: string
           total_amount_ht: number | null
-          training_id: string | null
           updated_at: string
           user_agent: string | null
         }
@@ -1818,7 +1816,6 @@ export type Database = {
           audit_metadata?: Json | null
           client_name: string
           created_at?: string
-          crm_card_id?: string | null
           devis_type: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -1838,7 +1835,6 @@ export type Database = {
           status?: string
           token: string
           total_amount_ht?: number | null
-          training_id?: string | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1847,7 +1843,6 @@ export type Database = {
           audit_metadata?: Json | null
           client_name?: string
           created_at?: string
-          crm_card_id?: string | null
           devis_type?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -1867,7 +1862,6 @@ export type Database = {
           status?: string
           token?: string
           total_amount_ht?: number | null
-          training_id?: string | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1877,20 +1871,6 @@ export type Database = {
             columns: ["activity_log_id"]
             isOneToOne: false
             referencedRelation: "activity_logs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "devis_signatures_crm_card_id_fkey"
-            columns: ["crm_card_id"]
-            isOneToOne: false
-            referencedRelation: "crm_cards"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "devis_signatures_training_id_fkey"
-            columns: ["training_id"]
-            isOneToOne: false
-            referencedRelation: "trainings"
             referencedColumns: ["id"]
           },
         ]
@@ -2341,6 +2321,7 @@ export type Database = {
       formation_configs: {
         Row: {
           available_formulas: string[] | null
+          code_specialite_nsf: string | null
           created_at: string
           description: string | null
           display_order: number
@@ -2348,7 +2329,6 @@ export type Database = {
           elearning_access_email_content: string | null
           elearning_duration: number | null
           format_formation: string | null
-          code_specialite_nsf: string | null
           formation_name: string
           id: string
           is_active: boolean
@@ -7894,7 +7874,6 @@ export type Database = {
           sponsor_last_name: string | null
           training_id: string
           type_stagiaire_bpf: string | null
-          source_financement_bpf: string | null
         }
         Insert: {
           added_at?: string
@@ -7932,7 +7911,6 @@ export type Database = {
           sponsor_last_name?: string | null
           training_id: string
           type_stagiaire_bpf?: string | null
-          source_financement_bpf?: string | null
         }
         Update: {
           added_at?: string
@@ -7970,7 +7948,6 @@ export type Database = {
           sponsor_last_name?: string | null
           training_id?: string
           type_stagiaire_bpf?: string | null
-          source_financement_bpf?: string | null
         }
         Relationships: [
           {
@@ -8375,6 +8352,7 @@ export type Database = {
           session_type: string | null
           signed_convention_urls: string[] | null
           sold_price_ht: number | null
+          source_financement_bpf: string | null
           specific_instructions: string | null
           sponsor_email: string | null
           sponsor_first_name: string | null
@@ -8386,7 +8364,6 @@ export type Database = {
           supports_lms_course_id: string | null
           supports_type: string
           supports_url: string | null
-          source_financement_bpf: string | null
           train_booked: boolean | null
           trainer_id: string | null
           trainer_name: string
@@ -8440,6 +8417,7 @@ export type Database = {
           session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
+          source_financement_bpf?: string | null
           specific_instructions?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
@@ -8451,7 +8429,6 @@ export type Database = {
           supports_lms_course_id?: string | null
           supports_type?: string
           supports_url?: string | null
-          source_financement_bpf?: string | null
           train_booked?: boolean | null
           trainer_id?: string | null
           trainer_name?: string
@@ -8505,6 +8482,7 @@ export type Database = {
           session_type?: string | null
           signed_convention_urls?: string[] | null
           sold_price_ht?: number | null
+          source_financement_bpf?: string | null
           specific_instructions?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
@@ -8516,7 +8494,6 @@ export type Database = {
           supports_lms_course_id?: string | null
           supports_type?: string
           supports_url?: string | null
-          source_financement_bpf?: string | null
           train_booked?: boolean | null
           trainer_id?: string | null
           trainer_name?: string
@@ -9101,54 +9078,6 @@ export type Database = {
           },
         ]
       }
-      woocommerce_pending_formations: {
-        Row: {
-          created_at: string
-          customer_email: string
-          customer_first_name: string | null
-          customer_last_name: string | null
-          formation_name: string | null
-          id: string
-          notes: string | null
-          processed_at: string | null
-          raw_payload: Json | null
-          reason: string
-          status: string
-          woocommerce_order_id: number
-          woocommerce_product_id: number
-        }
-        Insert: {
-          created_at?: string
-          customer_email: string
-          customer_first_name?: string | null
-          customer_last_name?: string | null
-          formation_name?: string | null
-          id?: string
-          notes?: string | null
-          processed_at?: string | null
-          raw_payload?: Json | null
-          reason?: string
-          status?: string
-          woocommerce_order_id: number
-          woocommerce_product_id: number
-        }
-        Update: {
-          created_at?: string
-          customer_email?: string
-          customer_first_name?: string | null
-          customer_last_name?: string | null
-          formation_name?: string | null
-          id?: string
-          notes?: string | null
-          processed_at?: string | null
-          raw_payload?: Json | null
-          reason?: string
-          status?: string
-          woocommerce_order_id?: number
-          woocommerce_product_id?: number
-        }
-        Relationships: []
-      }
       woocommerce_orders: {
         Row: {
           billing_address: Json | null
@@ -9218,6 +9147,54 @@ export type Database = {
         }
         Relationships: []
       }
+      woocommerce_pending_formations: {
+        Row: {
+          created_at: string
+          customer_email: string
+          customer_first_name: string | null
+          customer_last_name: string | null
+          formation_name: string | null
+          id: string
+          notes: string | null
+          processed_at: string | null
+          raw_payload: Json | null
+          reason: string
+          status: string
+          woocommerce_order_id: number
+          woocommerce_product_id: number
+        }
+        Insert: {
+          created_at?: string
+          customer_email: string
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          formation_name?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          reason?: string
+          status?: string
+          woocommerce_order_id: number
+          woocommerce_product_id: number
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string
+          customer_first_name?: string | null
+          customer_last_name?: string | null
+          formation_name?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          raw_payload?: Json | null
+          reason?: string
+          status?: string
+          woocommerce_order_id?: number
+          woocommerce_product_id?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -9243,6 +9220,7 @@ export type Database = {
         Returns: boolean
       }
       cleanup_agent_embedding_cache: { Args: never; Returns: number }
+      consume_learner_token: { Args: { p_token: string }; Returns: undefined }
       decay_watch_relevance: { Args: never; Returns: undefined }
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
@@ -9500,6 +9478,7 @@ export type Database = {
       }
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
+      preview_learner_token: { Args: { p_token: string }; Returns: Json }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
         Returns: number
