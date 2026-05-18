@@ -18,6 +18,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 interface WCAddress {
   first_name?: string;
   last_name?: string;
+  company?: string;
   address_1?: string;
   address_2?: string;
   city?: string;
@@ -90,6 +91,8 @@ const FRENCH_MONTHS: Record<string, string> = {
   mai: "05", juin: "06", juillet: "07", "août": "08", aout: "08",
   septembre: "09", octobre: "10", novembre: "11", "décembre": "12", decembre: "12",
 };
+
+const PERMANENT_ELEARNING_PRODUCT_IDS = new Set([48899, 38648, 38656, 57605, 57631]);
 
 function parseFrenchDates(text: string): { start: string } | null {
   const t = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
@@ -255,8 +258,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .select("id, woocommerce_product_id, game_type, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees")
       .not("woocommerce_product_id", "is", null);
 
+    type GameRow = {
+      id: string;
+      woocommerce_product_id: number;
+      game_type: string;
+      commission_type: string | null;
+      commission_rate: number | null;
+      commission_fixed: number | null;
+      include_stripe_fees: boolean | null;
+    };
     const gamesByProductId = new Map(
-      ((games ?? []) as Array<{ id: string; woocommerce_product_id: number; game_type: string }>)
+      ((games ?? []) as GameRow[])
         .map((g) => [g.woocommerce_product_id, g]),
     );
 
@@ -306,6 +318,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
         let training: { id: string; training_name: string; start_date: string | null; end_date: string | null; format_formation: string | null } | null = null;
         let routingReason = "";
+        const parsedDates = parseFrenchDates(item.name ?? "");
 
         // Routing strict via catalog_id (lié au product_id de la formule).
         // Toutes les sessions du catalogue sont éligibles, aucun matching par nom.
@@ -313,7 +326,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
           const today = new Date().toISOString().split("T")[0];
 
           // 1️⃣ Pour une formation inter : cherche une session aux dates parsées dans le titre du produit
-          const parsedDates = parseFrenchDates(item.name ?? "");
           if (parsedDates) {
             const { data: byDate } = await (admin as any)
               .from("trainings")
@@ -329,7 +341,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           }
 
           // 2️⃣ E-learning : session permanente (start_date NULL) en priorité
-          if (!training && isElearningCatalog) {
+          if (!training && isElearningCatalog && PERMANENT_ELEARNING_PRODUCT_IDS.has(item.product_id)) {
             const { data: permanent } = await (admin as any)
               .from("trainings")
               .select("id, training_name, start_date, end_date, format_formation")
@@ -340,7 +352,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               .maybeSingle();
             if (permanent) {
               training = permanent;
-              routingReason = `session e-learning permanente du catalogue ${catalogId} (accès continu)`;
+              routingReason = `session e-learning permanente du catalogue ${catalogId} pour le product_id ${item.product_id}`;
             }
           }
 
