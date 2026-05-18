@@ -74,6 +74,10 @@ function savePrefs(partial: Partial<StoredPrefs>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...partial }));
 }
 
+function getStoredCategory(value: unknown, categories: string[], fallback: string): string {
+  return typeof value === "string" && categories.includes(value) ? value : fallback;
+}
+
 // ── Period helpers ──────────────────────────────────────────
 
 type PeriodPreset = "year" | "quarter" | "month" | "custom";
@@ -453,13 +457,13 @@ function PivotTable({
 
   const rawRow = prefs[rowKey];
   const rawCol = prefs[colKey];
-  const defaultRow: string = typeof rawRow === "string" && categories.includes(rawRow) ? rawRow : categories[0];
-  const defaultCol: string = typeof rawCol === "string" && categories.includes(rawCol) ? rawCol : (categories.length > 1 ? categories[1] : categories[0]);
+  const defaultRow = getStoredCategory(rawRow, categories, categories[0]);
+  const defaultCol = getStoredCategory(rawCol, categories, categories.length > 1 ? categories[1] : categories[0]);
   const storedStatuses = prefs[statusKey] as SalesStatus[] | undefined;
   const defaultStatuses = storedStatuses && storedStatuses.length > 0 ? storedStatuses : ALL_STATUSES;
 
-  const [rowCat, setRowCat] = useState(defaultRow);
-  const [colCat, setColCat] = useState(defaultCol);
+  const [rowCat, setRowCat] = useState<string>(defaultRow);
+  const [colCat, setColCat] = useState<string>(defaultCol);
   const [selectedStatuses, setSelectedStatuses] = useState<SalesStatus[]>(defaultStatuses);
 
   const handleRowChange = useCallback((v: string) => {
