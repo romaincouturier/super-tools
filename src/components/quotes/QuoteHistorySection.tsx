@@ -35,9 +35,17 @@ interface Props {
   cardId: string;
 }
 
-const devisSignaturesClient = (supabase as unknown as {
-  from: (table: "devis_signatures") => any;
-}).from("devis_signatures");
+async function fetchSignedDevis(cardId: string): Promise<SignedDevis[]> {
+  const query = (supabase as any).from("devis_signatures") as any;
+  const { data } = await query
+    .select("id, formation_name, client_name, recipient_name, devis_type, signed_at, signed_pdf_url, total_amount_ht, created_at")
+    .eq("crm_card_id", cardId)
+    .eq("status", "signed")
+    .not("signed_pdf_url", "is", null)
+    .order("signed_at", { ascending: false });
+
+  return (data ?? []) as SignedDevis[];
+}
 
 export default function QuoteHistorySection({ cardId }: Props) {
   const { data: quotes, isLoading } = useQuotesByCard(cardId);
@@ -46,17 +54,19 @@ export default function QuoteHistorySection({ cardId }: Props) {
   const [loadingSignedDevis, setLoadingSignedDevis] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     setLoadingSignedDevis(true);
-    devisSignaturesClient
-      .select("id, formation_name, client_name, recipient_name, devis_type, signed_at, signed_pdf_url, total_amount_ht, created_at")
-      .eq("crm_card_id", cardId)
-      .eq("status", "signed")
-      .not("signed_pdf_url", "is", null)
-      .order("signed_at", { ascending: false })
-      .then(({ data }: { data: SignedDevis[] | null }) => {
-        setSignedDevis((data as SignedDevis[]) ?? []);
-        setLoadingSignedDevis(false);
+    fetchSignedDevis(cardId)
+      .then((data) => {
+        if (!cancelled) setSignedDevis(data);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSignedDevis(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [cardId]);
 
   const isLoaded = !isLoading && !loadingSignedDevis;
