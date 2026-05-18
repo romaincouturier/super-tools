@@ -55,6 +55,8 @@ export function useFormationConfigs(user: User | null, initialDefaultsApplied: b
           prix: editingFormation.prix,
           duree_heures: editingFormation.duree_heures,
           programme_url: editingFormation.programme_url,
+          code_specialite_nsf: editingFormation.code_specialite_nsf ?? null,
+          label_specialite_nsf: editingFormation.label_specialite_nsf ?? null,
         })
         .eq("id", editingFormation.id);
 
@@ -92,6 +94,8 @@ export function useFormationConfigs(user: User | null, initialDefaultsApplied: b
           duree_heures: newFormation.duree_heures || 0,
           programme_url: newFormation.programme_url || null,
           is_default: false,
+          code_specialite_nsf: newFormation.code_specialite_nsf ?? null,
+          label_specialite_nsf: newFormation.label_specialite_nsf ?? null,
         })
         .select()
         .single();
