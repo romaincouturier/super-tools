@@ -339,6 +339,7 @@ function BlockEditorBody({
     case "exercise":
       return (
         <ExerciseBlockEditor
+          lessonId={lessonId}
           content={content as ExerciseBlockContent}
           onChange={(c) => onChange(c)}
         />

@@ -14,7 +14,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url) return null;
+  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url && !content.image_url) return null;
 
   const checklistItems = (content.checklist_items || []).filter((i) => i.label.trim());
 
@@ -27,6 +27,15 @@ export default function ExerciseBlockViewer({ content }: Props) {
 
   return (
     <ActionBlockShell icon={Pencil} label="Exercice">
+      {content.image_url && (
+        <div className="rounded-lg overflow-hidden bg-muted mb-3">
+          <img
+            src={content.image_url}
+            alt="Image de consigne"
+            className="w-full h-auto max-h-[480px] object-contain"
+          />
+        </div>
+      )}
       {videoUrl && (
         <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted mb-3">
           {isYouTube ? (

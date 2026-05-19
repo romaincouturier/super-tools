@@ -1,12 +1,18 @@
+import { useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Video } from "lucide-react";
+import { Plus, X, Video, Image as ImageIcon, Upload } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { cryptoRandomId } from "@/types/lms-blocks";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
+import { uploadLmsImage } from "@/hooks/useLms";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface Props {
+  lessonId: string;
   content: ExerciseBlockContent;
   onChange: (content: ExerciseBlockContent) => void;
   slim?: boolean;
@@ -38,7 +44,77 @@ function VideoPreview({ url }: { url: string }) {
   );
 }
 
-export default function ExerciseBlockEditor({ content, onChange, slim }: Props) {
+function ImageUploader({
+  lessonId,
+  imageUrl,
+  onUpload,
+  onRemove,
+}: {
+  lessonId: string;
+  imageUrl: string | null | undefined;
+  onUpload: (url: string) => void;
+  onRemove: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLmsImage(file, lessonId);
+      onUpload(url);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur d'upload");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (imageUrl) {
+    return (
+      <div className="relative rounded-lg overflow-hidden border bg-muted">
+        <img src={imageUrl} alt="Image de consigne" className="w-full h-auto max-h-80 object-contain" />
+        <button
+          onClick={onRemove}
+          aria-label="Supprimer l'image"
+          className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+          style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+        >
+          <X size={13} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={() => fileRef.current?.click()}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm transition-all hover:bg-black/5"
+        style={{ borderColor: "rgba(16,24,32,0.18)", color: "var(--st-ink-muted)" }}
+      >
+        {uploading ? <Spinner className="h-4 w-4" /> : <ImageIcon size={16} />}
+        {uploading ? "Upload en cours…" : "Ajouter une image de consigne"}
+      </button>
+    </>
+  );
+}
+
+export default function ExerciseBlockEditor({ lessonId, content, onChange, slim }: Props) {
   const checklistItems = content.checklist_items || [];
   const hasChecklist = checklistItems.length > 0 || content.checklist_title;
 
@@ -74,6 +150,19 @@ export default function ExerciseBlockEditor({ content, onChange, slim }: Props) 
     return (
       <div className="space-y-3">
         {content.video_url && <VideoPreview url={content.video_url} />}
+        {content.image_url ? (
+          <div className="relative rounded-lg overflow-hidden border bg-muted">
+            <img src={content.image_url} alt="Image de consigne" className="w-full h-auto max-h-64 object-contain" />
+            <button
+              onClick={() => onChange({ ...content, image_url: null })}
+              aria-label="Supprimer l'image"
+              className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+              style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        ) : null}
         <RichTextEditor
           content={content.prompt_html || ""}
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
@@ -129,6 +218,20 @@ export default function ExerciseBlockEditor({ content, onChange, slim }: Props) 
           type="url"
         />
         {content.video_url && <VideoPreview url={content.video_url} />}
+      </div>
+
+      {/* Image de consigne */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm">Image de consigne (optionnel)</Label>
+        </div>
+        <ImageUploader
+          lessonId={lessonId}
+          imageUrl={content.image_url}
+          onUpload={(url) => onChange({ ...content, image_url: url })}
+          onRemove={() => onChange({ ...content, image_url: null })}
+        />
       </div>
 
       <div>
