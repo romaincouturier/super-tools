@@ -209,10 +209,6 @@ Format attendu :
     if (aiResults.length === 0) throw new Error("Failed to parse AI response as JSON array");
     console.warn(`Recovered ${aiResults.length} entries from truncated AI response`);
   }
-  const jsonMatch = [cleaned]; if (!jsonMatch) throw new Error("unreachable");
-
-  const aiResults: Array<{ pr_number: number; duration_minutes: number; description: string }> =
-    JSON.parse(jsonMatch[0]);
 
   // Merge AI results with PR data
   const resultMap = new Map(aiResults.map((r) => [r.pr_number, r]));
