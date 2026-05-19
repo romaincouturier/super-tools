@@ -3720,6 +3720,47 @@ export type Database = {
           },
         ]
       }
+      lms_messages: {
+        Row: {
+          content: string
+          course_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          learner_email: string
+          sender_email: string
+          sender_role: string
+        }
+        Insert: {
+          content: string
+          course_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email: string
+          sender_email: string
+          sender_role: string
+        }
+        Update: {
+          content?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email?: string
+          sender_email?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_modules: {
         Row: {
           course_id: string
@@ -3770,47 +3811,6 @@ export type Database = {
             columns: ["prerequisite_module_id"]
             isOneToOne: false
             referencedRelation: "lms_modules"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lms_messages: {
-        Row: {
-          content: string
-          course_id: string
-          created_at: string
-          id: string
-          is_read: boolean
-          learner_email: string
-          sender_email: string
-          sender_role: string
-        }
-        Insert: {
-          content: string
-          course_id: string
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          learner_email: string
-          sender_email: string
-          sender_role: string
-        }
-        Update: {
-          content?: string
-          course_id?: string
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          learner_email?: string
-          sender_email?: string
-          sender_role?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lms_messages_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "lms_courses"
             referencedColumns: ["id"]
           },
         ]
