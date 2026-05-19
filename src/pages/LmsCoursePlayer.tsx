@@ -429,18 +429,8 @@ export default function LmsCoursePlayer() {
               />
 
 
-              {/* Legacy per-lesson opt-in (renders only if no work_deposit block exists for this lesson) */}
-              {courseId && (
-                <LegacyWorkDepositOptIn
-                  lessonId={selectedLesson.id}
-                  enabled={!!selectedLesson.work_deposit_enabled}
-                  courseId={courseId}
-                  moduleId={selectedLesson.module_id}
-                  learnerEmail={learnerEmail}
-                  rawConfig={(selectedLesson.work_deposit_config || {}) as WorkDepositConfig}
-                  lessonTitle={selectedLesson.title}
-                />
-              )}
+              {/* Legacy lesson-level work_deposit_enabled flag is deprecated.
+                  Work deposit now requires an explicit `work_deposit` block in the lesson. */}
 
               {/* Comments */}
               {!isPreview && learnerEmail && (
