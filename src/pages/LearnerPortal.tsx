@@ -6,13 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, FileText, ClipboardCheck, Calendar, MapPin, Download, ExternalLink, BookOpen, CheckCircle2, Clock, AlertCircle, MessageSquare, Video } from "lucide-react";
+import { toastError } from "@/lib/toastError";
+import {
+  GraduationCap, FileText, ClipboardCheck, Calendar, MapPin, Download,
+  ExternalLink, BookOpen, CheckCircle2, Clock, AlertCircle, MessageSquare,
+  Video, Play, RotateCcw, Lock,
+} from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
+import LearnerLmsMessaging from "@/components/learner/LearnerLmsMessaging";
 import CoachingBooking from "@/components/learner/CoachingBooking";
+
+interface NextEvent {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  meeting_url: string | null;
+  meeting_type: string;
+}
 
 interface Training {
   training_id: string;
@@ -28,6 +42,14 @@ interface Training {
   evaluation_status: string | null;
   program_file_url?: string | null;
   supports_url?: string | null;
+  // E-Learning
+  lms_course_id?: string | null;
+  lms_course_title?: string | null;
+  lms_completion?: number | null;
+  last_lesson_id?: string | null;
+  next_event?: NextEvent | null;
+  is_coached?: boolean;
+  is_permanent?: boolean;
 }
 
 interface Questionnaire {
@@ -58,6 +80,12 @@ const statusBadge = (status: string | null) => {
   }
 };
 
+const eventTypeLabel: Record<string, string> = {
+  launch:  "Lancement",
+  live:    "Live",
+  closing: "Séance de clôture",
+};
+
 export default function LearnerPortal() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -65,12 +93,12 @@ export default function LearnerPortal() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [requestingCoach, setRequestingCoach] = useState<string | null>(null);
 
   useEffect(() => {
     const token = searchParams.get("token");
 
     const init = async () => {
-      // 1. Supabase session (learner who created an account via onboarding)
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.user_metadata?.role === "learner" && session.user.email) {
         window.history.replaceState({}, "", "/espace-apprenant");
@@ -78,13 +106,11 @@ export default function LearnerPortal() {
         return;
       }
 
-      // 2. Magic link token → redirect to onboarding/login flow (password creation if no account)
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
       }
 
-      // 3. sessionStorage fallback (existing session from previous magic link)
       const savedEmail = sessionStorage.getItem("learner_email");
       if (savedEmail) {
         loadData(savedEmail);
@@ -96,32 +122,6 @@ export default function LearnerPortal() {
 
     init();
   }, [searchParams, navigate]);
-
-  const validateToken = async (token: string) => {
-    try {
-      const { data: result, error } = await supabase.rpc("validate_learner_token", { p_token: token });
-      if (error) throw error;
-      const parsed = result as unknown as { status: string; email: string };
-      if (parsed.status === "invalid") {
-        setError("Ce lien n'est plus valide. Veuillez en demander un nouveau.");
-        setLoading(false);
-        return;
-      }
-      if (parsed.status === "expired") {
-        setError("Ce lien a expiré. Veuillez en demander un nouveau.");
-        setLoading(false);
-        return;
-      }
-      sessionStorage.setItem("learner_email", parsed.email);
-      // Remove token from URL
-      window.history.replaceState({}, "", "/espace-apprenant");
-      loadData(parsed.email);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
-      setError(msg);
-      setLoading(false);
-    }
-  };
 
   const loadData = async (email: string) => {
     try {
@@ -143,6 +143,38 @@ export default function LearnerPortal() {
       await supabase.auth.signOut();
     }
     navigate("/apprenant");
+  };
+
+  const handleRequestCoach = async (training: Training) => {
+    if (!data || !training.lms_course_id) return;
+    setRequestingCoach(training.training_id);
+    try {
+      // Fetch admin email from app_settings
+      const { data: settings } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "sender_email")
+        .single();
+      const adminEmail = (settings?.value as string) || "contact@supertilt.fr";
+
+      await supabase.functions.invoke("request-coached-formula", {
+        body: {
+          learnerEmail: data.email,
+          trainingName: training.training_name,
+          courseTitle: training.lms_course_title ?? "",
+          adminEmail,
+        },
+      });
+
+      toast({
+        title: "Demande envoyée",
+        description: "Votre formateur a été notifié et reviendra vers vous rapidement.",
+      });
+    } catch {
+      toastError(null, "Impossible d'envoyer la demande.");
+    } finally {
+      setRequestingCoach(null);
+    }
   };
 
   if (loading) {
@@ -175,7 +207,6 @@ export default function LearnerPortal() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-30 bg-card border-b">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <SupertiltLogo className="h-7" />
@@ -187,17 +218,13 @@ export default function LearnerPortal() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        {/* Welcome */}
         <div>
-          <h1 className="text-2xl font-bold">
-            Bonjour {firstName} 👋
-          </h1>
+          <h1 className="text-2xl font-bold">Bonjour {firstName} 👋</h1>
           <p className="text-muted-foreground mt-1">
             Retrouvez ici toutes vos formations, documents et questionnaires.
           </p>
         </div>
 
-        {/* Trainings */}
         {data.trainings.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -210,6 +237,11 @@ export default function LearnerPortal() {
             {data.trainings.map((training) => {
               const questionnaire = data.questionnaires?.find(q => q.training_id === training.training_id);
               const evaluation = data.evaluations?.find(e => e.training_id === training.training_id);
+              const hasElearning = !!training.lms_course_id;
+              const completion = training.lms_completion ?? 0;
+              const hasStarted = !!training.last_lesson_id || completion > 0;
+              const playerBase = `/formation-support/${training.training_id}/lms/${training.lms_course_id}`;
+              const playerUrl = `${playerBase}?email=${encodeURIComponent(data.email)}${training.last_lesson_id ? `&lesson=${training.last_lesson_id}` : ""}`;
 
               return (
                 <Card key={`${training.training_id}-${training.participant_id}`} className="overflow-hidden">
@@ -221,6 +253,9 @@ export default function LearnerPortal() {
                         </div>
                         <div>
                           <CardTitle className="text-lg">{training.training_name}</CardTitle>
+                          {hasElearning && training.lms_course_title && training.lms_course_title !== training.training_name && (
+                            <p className="text-sm text-muted-foreground mt-0.5">{training.lms_course_title}</p>
+                          )}
                           <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
                             {training.start_date && (
                               <span className="flex items-center gap-1">
@@ -238,12 +273,70 @@ export default function LearnerPortal() {
                           </div>
                         </div>
                       </div>
-                      {training.format && (
+                      {/* Hide e_learning badge — show other formats */}
+                      {training.format && !training.format.toLowerCase().includes("e_learning") && !hasElearning && (
                         <Badge variant="outline" className="shrink-0">{training.format}</Badge>
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0">
+
+                  <CardContent className="pt-0 space-y-4">
+                    {/* ── E-Learning section ── */}
+                    {hasElearning && (
+                      <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                        {/* Progress bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Progression</span>
+                            <span className="font-medium">{Math.round(completion)}%</span>
+                          </div>
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className="h-2 bg-primary rounded-full transition-all"
+                              style={{ width: `${completion}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Next event (only for non-permanent sessions) */}
+                        {!training.is_permanent && training.next_event && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="w-4 h-4 text-primary shrink-0" />
+                            <span>
+                              <span className="font-medium text-primary">
+                                {eventTypeLabel[training.next_event.meeting_type] ?? "Prochain évènement"}
+                              </span>
+                              {" — "}
+                              {format(new Date(training.next_event.scheduled_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                              {training.next_event.title && ` · ${training.next_event.title}`}
+                            </span>
+                            {training.next_event.meeting_url && (
+                              <a
+                                href={training.next_event.meeting_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-auto shrink-0"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Start / Resume button */}
+                        <Button asChild className="w-full sm:w-auto" size="sm">
+                          <Link to={playerUrl}>
+                            {hasStarted ? (
+                              <><RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reprendre ma formation</>
+                            ) : (
+                              <><Play className="w-3.5 h-3.5 mr-1.5" /> Commencer ma formation</>
+                            )}
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* ── Tabs ── */}
                     <Tabs defaultValue="documents">
                       <TabsList className="mb-3">
                         <TabsTrigger value="documents">
@@ -307,19 +400,53 @@ export default function LearnerPortal() {
                       </TabsContent>
 
                       <TabsContent value="messages">
-                        <LearnerMessaging
-                          trainingId={training.training_id}
-                          participantId={training.participant_id}
-                          learnerEmail={data.email}
-                        />
+                        {hasElearning ? (
+                          <LearnerLmsMessaging
+                            courseId={training.lms_course_id!}
+                            learnerEmail={data.email}
+                          />
+                        ) : (
+                          <LearnerMessaging
+                            trainingId={training.training_id}
+                            participantId={training.participant_id}
+                            learnerEmail={data.email}
+                          />
+                        )}
                       </TabsContent>
 
                       <TabsContent value="coaching">
-                        <CoachingBooking
-                          trainingId={training.training_id}
-                          participantId={training.participant_id}
-                          learnerEmail={data.email}
-                        />
+                        {training.is_coached ? (
+                          <CoachingBooking
+                            trainingId={training.training_id}
+                            participantId={training.participant_id}
+                            learnerEmail={data.email}
+                          />
+                        ) : (
+                          <div className="rounded-lg border border-dashed bg-muted/20 p-6 text-center space-y-4">
+                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto">
+                              <Lock className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">Coaching individuel non inclus</p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Votre formule actuelle ne comprend pas de sessions de coaching.
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={requestingCoach === training.training_id}
+                              onClick={() => handleRequestCoach(training)}
+                            >
+                              {requestingCoach === training.training_id ? (
+                                <Spinner className="mr-2" />
+                              ) : (
+                                <Video className="w-3.5 h-3.5 mr-1.5" />
+                              )}
+                              Demander une formule coachée
+                            </Button>
+                          </div>
+                        )}
                       </TabsContent>
                     </Tabs>
                   </CardContent>
