@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, ArrowLeft, CheckCircle2, Shield, User } from "lucide-react";
+import { Eye, EyeOff, Lock, CheckCircle2, Shield, User } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
@@ -104,15 +104,8 @@ const LearnerResetPassword = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-8 py-4">
+      <div className="flex items-center px-8 py-4">
         <SupertiltLogo className="h-8" />
-        <Link
-          to="/apprenant"
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Retour à la connexion
-        </Link>
       </div>
 
       {/* Main content */}
@@ -187,15 +180,6 @@ const LearnerResetPassword = () => {
                 {isLoading ? <Spinner /> : "Enregistrer mon nouveau mot de passe"}
               </Button>
             </form>
-
-            <div className="mt-4 text-center">
-              <Link
-                to="/apprenant"
-                className="text-sm underline text-foreground hover:text-primary transition-colors"
-              >
-                Je me souviens de mon mot de passe
-              </Link>
-            </div>
 
             {saved && (
               <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
