@@ -177,13 +177,10 @@ const ParticipantFormFields = ({
       )}
 
       {isInterEntreprise && setSourceFinancementBpf && (
-        <div className="space-y-2">
-          <Label>Source de financement (BPF)</Label>
-          <SourceFinancementSelector
-            value={sourceFinancementBpf ?? null}
-            onChange={setSourceFinancementBpf}
-          />
-        </div>
+        <SourceFinancementSelector
+          value={sourceFinancementBpf ?? null}
+          onChange={setSourceFinancementBpf}
+        />
       )}
 
       {isInterEntreprise && (
