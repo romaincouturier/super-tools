@@ -96,7 +96,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
 
         {/* Preview */}
         <a
-          href={`/lms/${courseId}/player?preview=admin&lesson=${lesson.id}`}
+          href={`/lms/${courseId}/home?preview=admin&lesson=${lesson.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
