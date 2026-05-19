@@ -21,6 +21,7 @@ import type {
   ContainerBlockContent,
   DividerBlockContent,
   SpacerBlockContent,
+  ShortcodeBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
