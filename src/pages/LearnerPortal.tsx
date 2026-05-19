@@ -42,6 +42,12 @@ import {
 import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
+import { useConfirm } from "@/hooks/useConfirm";
+import {
+  usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
+  usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
+  type PracticePost,
+} from "@/hooks/usePracticeFeed";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -791,6 +797,20 @@ function FormationItem({
   );
 }
 
+// ── Practice feed helpers ─────────────────────────────────────────────────────
+
+function authorDisplayName(email: string, firstName?: string | null, lastName?: string | null): string {
+  if (firstName && lastName) return `${firstName} ${lastName}`;
+  if (firstName) return firstName;
+  return email.split("@")[0];
+}
+
+function authorInitialsFromPost(email: string, firstName?: string | null, lastName?: string | null): string {
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  if (firstName) return firstName.slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase();
+}
+
 // ── Dashboard view ────────────────────────────────────────────────────────────
 
 function DashboardView({
@@ -830,6 +850,7 @@ function DashboardView({
   // Hooks for dashboard blocks
   const { data: workDeposits = [] } = useLearnerWorkDeposits(data.email);
   const { data: receivedComments = [] } = useLearnerReceivedComments(data.email, courseIds);
+  const { data: recentPosts = [] } = usePracticePosts(data.email, 3);
   const { data: viewedLessons = [] } = useCoursePageViews(
     mainTraining?.lms_course_id ?? null,
     data.email
@@ -1032,22 +1053,48 @@ function DashboardView({
           )}
         </DashCard>
 
-        {/* Osez partager */}
-        <div className="rounded-2xl p-5" style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(255,209,0,0.25)" }}>
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={16} style={{ color: "#101820" }} />
-            <p className="text-sm font-semibold" style={{ color: "#101820" }}>Osez partager vos réalisations</p>
-          </div>
-          <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(16,24,32,0.7)" }}>
-            Partagez vos travaux avec la communauté pour recevoir des retours et progresser plus vite.
-          </p>
-          <button
-            onClick={() => onNav("pratique")}
-            className="w-full text-sm font-semibold py-2.5 rounded-xl transition-all hover:-translate-y-px"
-            style={{ background: "#101820", color: "#fff", fontFamily: "inherit" }}>
-            Aller à l'espace de pratique →
-          </button>
-        </div>
+        {/* Espace de pratique */}
+        <DashCard title="Espace de pratique" icon={Palette} action={{ label: "Voir tous les posts", onClick: () => onNav("pratique") }}>
+          {recentPosts.length === 0 ? (
+            <div className="py-3 text-center">
+              <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
+              <button
+                onClick={() => onNav("pratique")}
+                className="mt-2 text-xs font-semibold underline"
+                style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              >
+                Soyez le premier à publier →
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentPosts.map((post) => {
+                const name = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
+                const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
+                return (
+                  <div key={post.id} className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
+                      style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+                      {post.author_photo_url
+                        ? <img src={post.author_photo_url} alt={name} className="w-full h-full object-cover" />
+                        : initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{name}</p>
+                      {post.content && <p className="text-xs line-clamp-2 mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{post.content}</p>}
+                      {!post.content && post.file_url && <p className="text-xs mt-0.5 italic" style={{ color: "var(--st-ink-muted)" }}>A partagé une photo</p>}
+                      <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                        <span>{post.reaction_count} j'aime</span>
+                        <span>·</span>
+                        <span>{post.comment_count} commentaires</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </DashCard>
 
         {/* Aide rapide */}
         <DashCard title="Aide rapide" icon={HelpCircle}>
@@ -1536,73 +1583,389 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
 
 // ── Pratique view ─────────────────────────────────────────────────────────────
 
-function PratiqueView({ email, courseIds }: { email: string; courseIds: string[] }) {
-  const { data: deposits = [], isLoading } = usePracticeDeposits(courseIds);
+// ── Post card ─────────────────────────────────────────────────────────────────
+
+function PracticePostCard({
+  post,
+  currentEmail,
+  onReact,
+  onDelete,
+}: {
+  post: PracticePost;
+  currentEmail: string;
+  onReact: (postId: string, iReacted: boolean) => void;
+  onDelete: (postId: string) => void;
+}) {
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail);
+  const createComment = useCreatePracticeComment(currentEmail);
+  const { toast } = useToast();
+
+  const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
+  const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
+  const isOwn = post.author_email === currentEmail;
+
+  const handleComment = async () => {
+    if (!commentText.trim()) return;
+    try {
+      await createComment.mutateAsync({ postId: post.id, content: commentText.trim() });
+      setCommentText("");
+    } catch {
+      toastError(toast, "Impossible d'envoyer le commentaire.");
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
-        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-          Travaux partagés par les autres apprenants
-        </p>
-      </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Spinner size="lg" />
+    <div className="rounded-2xl border space-y-0 overflow-hidden"
+      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+      {/* Header */}
+      <div className="flex items-start gap-3 p-4">
+        <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+          style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+          {post.author_photo_url
+            ? <img src={post.author_photo_url} alt={displayName} className="w-full h-full object-cover" />
+            : initials}
         </div>
-      ) : deposits.length === 0 ? (
-        <div className="rounded-2xl border p-10 text-center space-y-3"
-          style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-            <Palette size={22} style={{ color: "#101820" }} />
-          </div>
-          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail partagé</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{displayName}</p>
           <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            Les travaux partagés par les autres apprenants apparaîtront ici.
+            {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
           </p>
         </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {deposits.map((d: any) => {
-            const authorInitials = (d.learner_email || "?")
-              .split("@")[0]
-              .split(/[._-]/)
-              .map((w: string) => w[0] ?? "")
-              .join("")
-              .toUpperCase()
-              .slice(0, 2);
+        {isOwn && (
+          <button
+            onClick={() => onDelete(post.id)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
+            style={{ color: "var(--st-ink-muted)" }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      {post.content && (
+        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
+          {post.content}
+        </p>
+      )}
+
+      {/* Image */}
+      {post.file_url && post.file_mime?.startsWith("image/") && (
+        <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+      )}
+
+      {/* Reaction bar */}
+      {(post.reaction_count > 0 || post.comment_count > 0) && (
+        <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+          {post.reaction_count > 0 && (
+            <span>{post.reaction_count} J'aime</span>
+          )}
+          {post.comment_count > 0 && (
+            <button onClick={() => setShowComments(v => !v)} className="hover:underline ml-auto" style={{ fontFamily: "inherit" }}>
+              {post.comment_count} commentaire{post.comment_count > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+        <button
+          onClick={() => onReact(post.id, post.i_reacted)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
+          style={{ color: post.i_reacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
+        >
+          <ThumbsUp size={16} fill={post.i_reacted ? "currentColor" : "none"} />
+          J'aime
+        </button>
+        <button
+          onClick={() => setShowComments(v => !v)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
+          style={{ color: "var(--st-ink-muted)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
+        >
+          <MessageSquare size={16} />
+          Commenter
+        </button>
+      </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "var(--st-surface, #F2F4F4)" }}>
+          {comments.map((c) => {
+            const cName = authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
+            const cInitials = authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
             return (
-              <div key={d.id} className="rounded-2xl border overflow-hidden transition-shadow hover:shadow-sm"
-                style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-                {d.file_mime?.startsWith("image/") ? (
-                  <img src={d.file_url} alt={d.file_name} className="w-full h-36 object-cover" />
-                ) : (
-                  <div className="w-full h-36 flex items-center justify-center"
-                    style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                    <FileImage size={32} style={{ color: "var(--st-ink-muted)" }} />
-                  </div>
-                )}
-                <div className="p-4 space-y-2">
-                  <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                      {authorInitials}
-                    </div>
-                    <span className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
-                      {d.learner_email !== email ? d.learner_email?.split("@")[0] : "Vous"}
-                    </span>
-                    <span className="text-xs ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }}>
-                      {format(new Date(d.created_at), "d MMM", { locale: fr })}
-                    </span>
-                  </div>
+              <div key={c.id} className="flex items-start gap-2">
+                <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ background: c.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+                  {c.author_photo_url
+                    ? <img src={c.author_photo_url} alt={cName} className="w-full h-full object-cover" />
+                    : cInitials}
+                </div>
+                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
+                  <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
                 </div>
               </div>
             );
           })}
+          {/* Comment input */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 rounded-full border px-3 py-1.5"
+              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
+                placeholder="Ajouter un commentaire..."
+                className="flex-1 text-sm bg-transparent outline-none"
+                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+              />
+            </div>
+            <button
+              onClick={handleComment}
+              disabled={!commentText.trim() || createComment.isPending}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
+              style={{ background: "var(--st-yellow)", color: "#101820" }}
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Post creation box ─────────────────────────────────────────────────────────
+
+function PostCreationBox({
+  email,
+  firstName,
+  lastName,
+  photoUrl,
+  onCreate,
+}: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  onCreate: (content: string, file: File | null) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const initials = getInitials(firstName, lastName) || email.slice(0, 2).toUpperCase();
+
+  const handleFile = (f: File) => {
+    setFile(f);
+    const url = URL.createObjectURL(f);
+    setPreview(url);
+  };
+
+  const handlePost = async () => {
+    if (!content.trim() && !file) return;
+    setPosting(true);
+    try {
+      await onCreate(content, file);
+      setContent("");
+      setFile(null);
+      setPreview(null);
+      setOpen(false);
+    } catch {
+      toastError(toast, "Impossible de publier.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Trigger box */}
+      <div className="rounded-2xl border p-4"
+        style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+            {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
+          </div>
+          <button
+            onClick={() => setOpen(true)}
+            className="flex-1 text-left rounded-full border px-4 py-2.5 text-sm transition-colors hover:bg-black/5"
+            style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+          >
+            Partagez votre travail ou une réflexion...
+          </button>
+        </div>
+        <div className="flex items-center gap-1 pt-3 mt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+          <button
+            onClick={() => { setOpen(true); setTimeout(() => fileRef.current?.click(), 100); }}
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors hover:bg-black/5"
+            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+          >
+            <ImageIcon size={16} /> Photo
+          </button>
+        </div>
+      </div>
+
+      {/* Post creation dialog */}
+      <Dialog open={open} onOpenChange={(v) => { if (!v) { setOpen(false); setFile(null); setPreview(null); setContent(""); } }}>
+        <DialogContent className="w-full max-w-lg" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
+          <DialogHeader>
+            <DialogTitle>Créer un post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+                style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+                {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
+              </div>
+              <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>
+                {firstName && lastName ? `${firstName} ${lastName}` : email.split("@")[0]}
+              </p>
+            </div>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Partagez votre travail, une réflexion, une question..."
+              rows={5}
+              className="w-full resize-none rounded-xl border px-3 py-2.5 text-sm outline-none"
+              style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
+            />
+            {/* Image preview */}
+            {preview && (
+              <div className="relative">
+                <img src={preview} alt="Aperçu" className="w-full rounded-xl object-cover" style={{ maxHeight: 240 }} />
+                <button
+                  onClick={() => { setFile(null); setPreview(null); }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            {/* Upload area */}
+            {!preview && (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="w-full rounded-xl border-2 border-dashed py-6 flex flex-col items-center gap-2 transition-colors hover:bg-black/5"
+                style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              >
+                <ImageIcon size={24} />
+                <span className="text-sm">Ajouter une photo</span>
+              </button>
+            )}
+            <input
+              ref={fileRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+            />
+            <button
+              onClick={handlePost}
+              disabled={(!content.trim() && !file) || posting}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {posting ? "Publication..." : "Publier"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ── PratiqueView ──────────────────────────────────────────────────────────────
+
+function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
+  email: string;
+  courseIds: string[];
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+}) {
+  const { data: posts = [], isLoading } = usePracticePosts(email);
+  const createPost = useCreatePracticePost(email);
+  const toggleReaction = useTogglePracticeReaction(email);
+  const deletePost = useDeletePracticePost(email);
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  const handleCreate = async (content: string, file: File | null) => {
+    await createPost.mutateAsync({ content, file });
+  };
+
+  const handleReact = async (postId: string, iReacted: boolean) => {
+    try {
+      await toggleReaction.mutateAsync({ postId, iReacted });
+    } catch {
+      toastError(toast, "Impossible de réagir.");
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    const ok = await confirm({
+      title: "Supprimer ce post ?",
+      description: "Cette action est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deletePost.mutateAsync(postId);
+    } catch {
+      toastError(toast, "Impossible de supprimer.");
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <ConfirmDialog />
+      <div>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          Partagez vos travaux et réagissez à ceux des autres participants.
+        </p>
+      </div>
+
+      <PostCreationBox
+        email={email}
+        firstName={firstName}
+        lastName={lastName}
+        photoUrl={photoUrl}
+        onCreate={handleCreate}
+      />
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Spinner size="lg" />
+        </div>
+      ) : posts.length === 0 ? (
+        <div className="rounded-2xl border p-10 text-center space-y-3"
+          style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+          <Palette size={32} className="mx-auto" style={{ color: "var(--st-ink-muted)" }} />
+          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun post pour l'instant</p>
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Soyez le premier à partager votre travail !</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <PracticePostCard
+              key={post.id}
+              post={post}
+              currentEmail={email}
+              onReact={handleReact}
+              onDelete={handleDelete}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -2436,6 +2799,9 @@ export default function LearnerPortal() {
               <PratiqueView
                 email={data.email}
                 courseIds={courseIds}
+                firstName={firstName}
+                lastName={lastName}
+                photoUrl={photoUrl}
               />
             )}
             {activeSection === "aide" && (
