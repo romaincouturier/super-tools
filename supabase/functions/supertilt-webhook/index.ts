@@ -478,7 +478,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               sold_price_ht: linePriceHt || null,
               payment_mode: "online",
               needs_survey_token: needsSurveyToken,
-              needs_survey_status: "non_envoye",
+              needs_survey_status: needsSurveyStatus,
               coaching_sessions_total: 0,
               coaching_sessions_completed: 0,
               formula: formula.name || null,
@@ -497,8 +497,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
             training_id: training.id,
             participant_id: participantId,
             token: needsSurveyToken,
-            etat: "non_envoye",
+            etat: needsSurveyStatus,
           });
+        }
+
+        // Envoi de la convocation (welcome email) pour les sessions non e-learning
+        // selon le mode calculé : J-2 à J-7 OU formation déjà en cours.
+        if (shouldSendWelcomeNow) {
+          try {
+            await (admin as any).functions.invoke("send-welcome-email", {
+              body: { participantId, trainingId: training.id },
+            });
+          } catch (welcomeErr) {
+            console.error("send-welcome-email failed:", welcomeErr);
+          }
         }
 
         // Envoi accès uniquement pour les sessions e-learning
