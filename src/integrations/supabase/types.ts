@@ -7532,6 +7532,7 @@ export type Database = {
       }
       trainers: {
         Row: {
+          booking_url: string | null
           competences: string[] | null
           created_at: string
           cv_url: string | null
@@ -7548,6 +7549,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_url?: string | null
           competences?: string[] | null
           created_at?: string
           cv_url?: string | null
@@ -7564,6 +7566,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_url?: string | null
           competences?: string[] | null
           created_at?: string
           cv_url?: string | null
