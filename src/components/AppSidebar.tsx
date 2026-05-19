@@ -253,7 +253,11 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const info = MODULE_ICONS[entry.key];
             if (!info) return null;
             if (!hasAccess(toAppModule(entry.key))) return null;
-            const alert = entry.key === "time-tracker" ? timeTrackerAlert : undefined;
+            const alert =
+              entry.key === "time-tracker" ? timeTrackerAlert
+              : entry.key === "support" ? supportAlert
+              : entry.key === "crm" ? crmAlert
+              : undefined;
             return (
               <RailItem
                 key={entry.key}
