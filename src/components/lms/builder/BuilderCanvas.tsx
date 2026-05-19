@@ -375,6 +375,7 @@ function AddAtEndButton({ onInsert }: { onInsert: (type: LessonBlockType) => voi
           anchorRef={btnRef as React.RefObject<HTMLElement>}
           onInsert={onInsert}
           onClose={() => setMenuOpen(false)}
+          placement="top"
         />
       )}
     </div>
