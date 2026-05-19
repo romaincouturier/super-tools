@@ -367,6 +367,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { style: "solid" };
     case "spacer":
       return { height_px: 24 };
+    case "shortcode":
+      return { code: "besoins", course_id: null, title: null };
   }
 }
 
