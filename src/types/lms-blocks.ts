@@ -142,7 +142,7 @@ export interface ChecklistBlockContent {
   items: ChecklistItem[];
 }
 
-export type ButtonVariant = "primary" | "secondary" | "outline";
+export type ButtonVariant = "primary" | "secondary" | "outline" | "supertilt";
 
 export interface ButtonBlockContent {
   label: string;
