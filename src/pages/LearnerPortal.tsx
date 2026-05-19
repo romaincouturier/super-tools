@@ -152,10 +152,10 @@ export default function LearnerPortal() {
       // Fetch admin email from app_settings
       const { data: settings } = await supabase
         .from("app_settings")
-        .select("value")
-        .eq("key", "sender_email")
+        .select("setting_value")
+        .eq("setting_key", "sender_email")
         .single();
-      const adminEmail = (settings?.value as string) || "contact@supertilt.fr";
+      const adminEmail = (settings?.setting_value as string) || "contact@supertilt.fr";
 
       await supabase.functions.invoke("request-coached-formula", {
         body: {
