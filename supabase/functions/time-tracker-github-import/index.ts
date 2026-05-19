@@ -70,14 +70,19 @@ async function fetchAllMergedPRs(token: string, since: string, until: string, de
   let page = 1;
 
   while (true) {
+    if (remainingBudget(deadline) < 20_000) {
+      console.warn("Stopping GitHub fetch early: response budget nearly exhausted");
+      break;
+    }
+
     const url = `${GITHUB_API}/repos/${REPO}/pulls?state=closed&sort=updated&direction=desc&per_page=100&page=${page}`;
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       headers: {
         Authorization: `token ${token}`,
         Accept: "application/vnd.github.v3+json",
         "User-Agent": "SuperTools-TimeTracker",
       },
-    });
+    }, GITHUB_FETCH_TIMEOUT_MS);
 
     if (!resp.ok) {
       const err = await resp.text();
@@ -106,15 +111,19 @@ async function fetchAllMergedPRs(token: string, since: string, until: string, de
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE);
       const results = await Promise.all(batch.map(async (pr) => {
-        const detailResp = await fetch(`${GITHUB_API}/repos/${REPO}/pulls/${pr.number}`, {
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github.v3+json",
-            "User-Agent": "SuperTools-TimeTracker",
-          },
-        });
-        if (!detailResp.ok) return null;
-        const detail = await detailResp.json();
+        let detail: any = {};
+        try {
+          const detailResp = await fetchWithTimeout(`${GITHUB_API}/repos/${REPO}/pulls/${pr.number}`, {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "SuperTools-TimeTracker",
+            },
+          }, GITHUB_FETCH_TIMEOUT_MS);
+          if (detailResp.ok) detail = await detailResp.json();
+        } catch (err) {
+          console.warn(`GitHub PR detail timeout/failure for #${pr.number}:`, err instanceof Error ? err.message : err);
+        }
         return {
           number: pr.number,
           title: pr.title,
