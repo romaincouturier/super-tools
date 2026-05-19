@@ -28,6 +28,7 @@ import type {
   ContainerBlockContent,
   DividerBlockContent,
   SpacerBlockContent,
+  ShortcodeBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
