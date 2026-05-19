@@ -88,7 +88,7 @@ interface LearnerData {
   evaluations: Questionnaire[];
 }
 
-type NavSection = "dashboard" | "formations" | "travaux" | "pratique" | "aide";
+type NavSection = "dashboard" | "formations" | "travaux" | "pratique" | "aide" | "compte";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1327,6 +1327,298 @@ function PratiqueView({ email, courseIds }: { email: string; courseIds: string[]
   );
 }
 
+// ── Compte view ───────────────────────────────────────────────────────────────
+
+const NOTIF_PREFS: { key: keyof LearnerProfile & `email_notif_${string}`; label: string }[] = [
+  { key: "email_notif_work_reply", label: "Me prévenir quand SuperTilt répond à un de mes travaux" },
+  { key: "email_notif_work_comment", label: "Me prévenir quand quelqu'un commente un travail partagé" },
+  { key: "email_notif_live", label: "Me prévenir avant les lives de mes formations" },
+  { key: "email_notif_important", label: "Recevoir les informations importantes" },
+];
+
+function CompteView({
+  email,
+  profile,
+  onNav,
+}: {
+  email: string;
+  profile: LearnerProfile | null | undefined;
+  onNav: (s: NavSection) => void;
+}) {
+  const { toast } = useToast();
+  const upsert = useUpsertLearnerProfile();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+  const [lastName, setLastName] = useState(profile?.last_name ?? "");
+  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  const [notifs, setNotifs] = useState({
+    email_notif_work_reply: profile?.email_notif_work_reply ?? true,
+    email_notif_work_comment: profile?.email_notif_work_comment ?? true,
+    email_notif_live: profile?.email_notif_live ?? true,
+    email_notif_important: profile?.email_notif_important ?? true,
+  });
+  const [savingNotifs, setSavingNotifs] = useState(false);
+
+  const [lastSignIn, setLastSignIn] = useState<string | null>(null);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  useEffect(() => {
+    setFirstName(profile?.first_name ?? "");
+    setLastName(profile?.last_name ?? "");
+    setPhotoUrl(profile?.photo_url ?? "");
+    setNotifs({
+      email_notif_work_reply: profile?.email_notif_work_reply ?? true,
+      email_notif_work_comment: profile?.email_notif_work_comment ?? true,
+      email_notif_live: profile?.email_notif_live ?? true,
+      email_notif_important: profile?.email_notif_important ?? true,
+    });
+  }, [profile]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.last_sign_in_at) {
+        setLastSignIn(session.user.last_sign_in_at);
+      }
+    });
+  }, []);
+
+  const handlePhotoFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLearnerPhoto(file, email);
+      setPhotoUrl(url);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de l'upload de la photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await upsert.mutateAsync({
+        email,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        photo_url: photoUrl || null,
+      });
+      toast({ title: "Informations enregistrées" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
+    }
+  };
+
+  const handleSaveNotifs = async () => {
+    setSavingNotifs(true);
+    try {
+      await upsert.mutateAsync({ email, ...notifs });
+      toast({ title: "Préférences enregistrées" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
+    } finally {
+      setSavingNotifs(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/apprenant/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "E-mail envoyé", description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe." });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de l'envoi");
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || email[0].toUpperCase();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Mon compte</h2>
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          Gérez vos informations personnelles, vos accès aux formations et vos préférences.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+        {/* Left column */}
+        <div className="space-y-5">
+          {/* Informations personnelles */}
+          <div className="rounded-2xl border p-6 space-y-5"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <div>
+              <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Informations personnelles</h3>
+              <p className="text-sm mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                Ces informations sont utilisées dans votre espace de formation et dans les échanges avec SuperTilt.
+              </p>
+            </div>
+
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <div className="relative group cursor-pointer shrink-0" onClick={() => fileRef.current?.click()}>
+                <div
+                  className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-lg font-bold select-none"
+                  style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
+                >
+                  {photoUrl ? (
+                    <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : initials}
+                </div>
+                <div
+                  className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: "rgba(16,24,32,0.45)" }}
+                >
+                  {uploading ? <Spinner className="text-white h-4 w-4" /> : <Camera size={16} className="text-white" />}
+                </div>
+              </div>
+              <input
+                ref={fileRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoFile(f); e.target.value = ""; }}
+              />
+              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Cliquez sur la photo pour la modifier</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Prénom</label>
+                <input
+                  type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{ borderColor: "rgba(16,24,32,0.12)", background: "var(--st-white)", color: "var(--st-ink)", fontFamily: "inherit" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Nom</label>
+                <input
+                  type="text" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom"
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{ borderColor: "rgba(16,24,32,0.12)", background: "var(--st-white)", color: "var(--st-ink)", fontFamily: "inherit" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Adresse e-mail</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="email" value={email} readOnly
+                  className="flex-1 rounded-xl border px-3 py-2 text-sm cursor-not-allowed"
+                  style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+                />
+                <p className="text-xs shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+                  Pour modifier, contactez SuperTilt.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveProfile}
+              disabled={upsert.isPending || uploading}
+              className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {upsert.isPending ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </div>
+
+          {/* Sécurité */}
+          <div className="rounded-2xl border p-6 space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <div>
+              <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Sécurité</h3>
+              {lastSignIn && (
+                <p className="text-sm mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                  Dernière connexion : {format(new Date(lastSignIn), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handlePasswordReset}
+              disabled={sendingReset}
+              className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {sendingReset ? "Envoi en cours..." : "Modifier mon mot de passe"}
+            </button>
+          </div>
+
+          {/* Besoin d'aide */}
+          <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+            style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(255,209,0,0.25)" }}>
+            <div className="flex-1">
+              <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Besoin d'aide ?</p>
+              <p className="text-sm mt-0.5" style={{ color: "rgba(16,24,32,0.65)" }}>
+                Si vous avez un problème d'accès, de connexion ou une question sur votre formation, vous pouvez nous contacter.
+              </p>
+            </div>
+            <button
+              onClick={() => onNav("aide")}
+              className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              Contacter SuperTilt
+            </button>
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-5">
+          {/* Notifications */}
+          <div className="rounded-2xl border p-5 space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <div>
+              <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Notifications par e-mail</h3>
+              <p className="text-sm mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                Choisissez les informations que vous souhaitez recevoir.
+              </p>
+            </div>
+            <ul className="space-y-3">
+              {NOTIF_PREFS.map(({ key, label }) => (
+                <li key={key} className="flex items-start gap-3">
+                  <button
+                    role="checkbox"
+                    aria-checked={notifs[key]}
+                    onClick={() => setNotifs((p) => ({ ...p, [key]: !p[key] }))}
+                    className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 transition-colors border"
+                    style={{
+                      background: notifs[key] ? "var(--st-yellow)" : "transparent",
+                      borderColor: notifs[key] ? "var(--st-yellow)" : "rgba(16,24,32,0.2)",
+                    }}
+                  >
+                    {notifs[key] && (
+                      <CheckCircle2 size={12} style={{ color: "#101820" }} />
+                    )}
+                  </button>
+                  <span className="text-sm leading-snug" style={{ color: "var(--st-ink)" }}>{label}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleSaveNotifs}
+              disabled={savingNotifs}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {savingNotifs ? "Enregistrement..." : "Enregistrer mes préférences"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Aide view ────────────────────────────────────────────────────────────────
 
 const LEARNER_CATEGORIES = [
@@ -1730,6 +2022,7 @@ export default function LearnerPortal() {
     travaux: "Mes travaux",
     pratique: "Espace de pratique",
     aide: "Aide",
+    compte: "Mon compte",
   };
   const sectionSubtitle: Record<NavSection, string> = {
     dashboard: "Retrouvez vos formations, votre progression et vos prochains rendez-vous.",
@@ -1737,6 +2030,7 @@ export default function LearnerPortal() {
     travaux: "Tous vos travaux déposés dans vos cours.",
     pratique: "Découvrez les travaux partagés par la communauté.",
     aide: "Ressources et contact.",
+    compte: "Gérez vos informations personnelles et vos préférences.",
   };
 
   const courseIds = data.trainings
@@ -1758,7 +2052,7 @@ export default function LearnerPortal() {
           photoUrl={photoUrl}
           email={data.email}
           onLogout={handleLogout}
-          onEditProfile={() => setProfileModalOpen(true)}
+          onEditProfile={() => setActiveSection("compte")}
         />
       </div>
 
@@ -1776,7 +2070,7 @@ export default function LearnerPortal() {
               photoUrl={photoUrl}
               email={data.email}
               onLogout={handleLogout}
-              onEditProfile={() => { setSidebarOpen(false); setProfileModalOpen(true); }}
+              onEditProfile={() => { setSidebarOpen(false); setActiveSection("compte"); }}
               mobile
               onClose={() => setSidebarOpen(false)}
             />
@@ -1812,6 +2106,27 @@ export default function LearnerPortal() {
             </p>
           </div>
 
+          {/* Mon compte button */}
+          <button
+            onClick={() => setActiveSection("compte")}
+            className="hidden sm:flex items-center gap-2.5 rounded-xl px-3 py-1.5 transition-all hover:bg-black/5"
+            style={{ fontFamily: "inherit" }}
+          >
+            <div className="text-right">
+              <p className="text-xs font-semibold leading-none" style={{ color: "var(--st-ink)" }}>Mon compte</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>Espace apprenant</p>
+            </div>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+              style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820", overflow: "hidden" }}
+            >
+              {photoUrl
+                ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                : getInitials(firstName, lastName)
+              }
+            </div>
+          </button>
+
         </header>
 
         {/* Scrollable content */}
@@ -1843,6 +2158,9 @@ export default function LearnerPortal() {
             )}
             {activeSection === "aide" && (
               <AideView email={data.email} mainTraining={mainTraining} onNav={setActiveSection} />
+            )}
+            {activeSection === "compte" && (
+              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} />
             )}
           </div>
         </div>
