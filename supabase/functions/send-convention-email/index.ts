@@ -71,9 +71,11 @@ serve(async (req: Request): Promise<Response> => {
     if (enableOnlineSignature) {
       signatureToken = crypto.randomUUID();
 
-      // Build the public URL for the signature page
-      const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/+$/, "") || "";
-      signatureUrl = `${origin}/signature-convention/${signatureToken}`;
+      // Build the public URL for the signature page from configured app URL
+      const urls = await getAppUrls();
+      const appUrl = (urls.app_url || "https://super-tools.lovable.app").replace(/\/+$/, "");
+      signatureUrl = `${appUrl}/signature-convention/${signatureToken}`;
+
 
       // Set expiry to 30 days
       const expiresAt = new Date();
