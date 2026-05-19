@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye, ArrowRight } from "lucide-react";
+import { Menu, ArrowLeft, Eye } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
 
 interface Props {
@@ -111,19 +111,6 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           Aperçu
         </a>
 
-        {/* Publish */}
-        <button
-          onClick={() => toast({ title: "Publication bientôt disponible" })}
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-full transition-all hover:-translate-y-px active:translate-y-0"
-          style={{
-            background: "var(--st-ink)",
-            color: "#fff",
-            fontFamily: "inherit",
-          }}
-        >
-          Publier
-          <ArrowRight size={14} />
-        </button>
       </div>
     </header>
   );
