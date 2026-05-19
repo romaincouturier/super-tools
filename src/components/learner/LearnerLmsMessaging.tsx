@@ -12,6 +12,7 @@ interface Message {
   id: string;
   sender_email: string;
   sender_role: string;
+  learner_email: string;
   content: string;
   is_read: boolean;
   created_at: string;
