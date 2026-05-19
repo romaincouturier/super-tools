@@ -9,6 +9,7 @@ import { useModuleAccess, type AppModule } from "@/hooks/useModuleAccess";
 import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
 import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
+import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
@@ -112,6 +113,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const { hasAny: hasSettingsAlert } = useSettingsAlerts();
   const timeTrackerAlert = useTimeTrackerAlert();
   const routingInboxAlert = useRoutingInboxAlert();
+  const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
+  const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
+
 
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -249,7 +253,11 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const info = MODULE_ICONS[entry.key];
             if (!info) return null;
             if (!hasAccess(toAppModule(entry.key))) return null;
-            const alert = entry.key === "time-tracker" ? timeTrackerAlert : undefined;
+            const alert =
+              entry.key === "time-tracker" ? timeTrackerAlert
+              : entry.key === "support" ? supportAlert
+              : entry.key === "crm" ? crmAlert
+              : undefined;
             return (
               <RailItem
                 key={entry.key}
