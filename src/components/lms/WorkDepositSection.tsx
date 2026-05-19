@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,7 +36,6 @@ import {
   FORMAT_MIME_ACCEPT,
   type WorkDeposit,
   type WorkDepositConfig,
-  type DepositVisibility,
   type UpdateWorkDepositInput,
 } from "@/types/lms-work-deposit";
 import DepositFilePreview from "@/components/lms/DepositFilePreview";
@@ -79,7 +77,7 @@ export default function WorkDepositSection({
       <DepositForm
         config={config}
         submitting={createDeposit.isPending}
-        onSubmit={async ({ file, comment, share }) => {
+        onSubmit={async ({ file, comment }) => {
           const upload = await uploadDepositFile(file, lessonId, learnerEmail);
           await createDeposit.mutateAsync({
             lesson_id: lessonId,
@@ -91,7 +89,7 @@ export default function WorkDepositSection({
             file_size: upload.size,
             file_mime: upload.mime,
             comment: comment.trim() || null,
-            visibility: share && config.sharing_allowed ? "shared" : "private",
+            visibility: "shared",
           });
           toast({ title: "Votre travail a bien été déposé." });
         }}
@@ -201,13 +199,12 @@ function DepositForm({
 }: {
   config: Required<WorkDepositConfig>;
   submitting: boolean;
-  onSubmit: (input: { file: File; comment: string; share: boolean }) => Promise<void>;
+  onSubmit: (input: { file: File; comment: string }) => Promise<void>;
   onError: (err: unknown) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [comment, setComment] = useState("");
-  const [share, setShare] = useState(false);
   const accept = config.accepted_formats.map((f) => FORMAT_MIME_ACCEPT[f]).join(",");
   const maxSizeBytes = config.max_size_mb * 1024 * 1024;
 
@@ -229,10 +226,9 @@ function DepositForm({
       return;
     }
     try {
-      await onSubmit({ file, comment, share });
+      await onSubmit({ file, comment });
       setFile(null);
       setComment("");
-      setShare(false);
     } catch (err) {
       onError(err);
     }
@@ -243,8 +239,8 @@ function DepositForm({
       <div>
         <h3 className="font-semibold">{config.title}</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Ajoutez ici votre exercice pour garder une trace de votre progression. Vous pouvez le garder
-          privé ou le partager avec les autres apprenants de cette formation.
+          Ajoutez ici votre exercice pour garder une trace de votre progression et le partager avec
+          les autres apprenants de cette formation.
         </p>
       </div>
 
@@ -313,16 +309,6 @@ function DepositForm({
         />
       </div>
 
-      {config.sharing_allowed && (
-        <label className="flex items-start gap-3 rounded-md border bg-muted/30 p-3 cursor-pointer">
-          <Switch checked={share} onCheckedChange={setShare} className="mt-0.5" />
-          <span className="text-sm flex-1 break-words">
-            <span className="font-medium">Je souhaite partager ce travail</span> avec les autres apprenants
-            de cette formation. Vous pourrez changer d'avis plus tard.
-          </span>
-        </label>
-      )}
-
       <div className="flex justify-end pt-2">
         <Button onClick={handleSubmit} disabled={!file || submitting} className="w-full sm:w-auto">
           {submitting ? <Spinner className="mr-2" /> : null}
@@ -355,15 +341,6 @@ function DepositSummary({
   const [commentDraft, setCommentDraft] = useState(deposit.comment || "");
   const accept = config.accepted_formats.map((f) => FORMAT_MIME_ACCEPT[f]).join(",");
   const maxSizeBytes = config.max_size_mb * 1024 * 1024;
-
-  const handleVisibilityChange = async (next: DepositVisibility) => {
-    if (next === deposit.visibility) return;
-    try {
-      await onUpdate({ visibility: next });
-    } catch (err) {
-      onError(err);
-    }
-  };
 
   const handleSaveComment = async () => {
     try {
@@ -481,24 +458,6 @@ function DepositSummary({
           <RefreshCw className="h-3.5 w-3.5 mr-2" />
           Remplacer le fichier
         </Button>
-        {config.sharing_allowed && (
-          <Button
-            variant={deposit.visibility === "shared" ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => handleVisibilityChange(deposit.visibility === "shared" ? "private" : "shared")}
-            disabled={saving}
-          >
-            {deposit.visibility === "shared" ? (
-              <>
-                <Lock className="h-3.5 w-3.5 mr-2" /> Repasser en privé
-              </>
-            ) : (
-              <>
-                <Globe2 className="h-3.5 w-3.5 mr-2" /> Partager
-              </>
-            )}
-          </Button>
-        )}
       </div>
 
       <input
