@@ -259,6 +259,7 @@ export default function LmsCoursePlayer() {
               {/* Lesson content (block-based with legacy fallback) */}
               <LessonContent
                 lessonId={selectedLesson.id}
+                learnerEmail={learnerEmail}
                 renderQuiz={(quizId) => (
                   <QuizPlayer quizId={quizId} learnerEmail={learnerEmail} onComplete={handleMarkComplete} />
                 )}
