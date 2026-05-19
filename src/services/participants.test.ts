@@ -516,7 +516,7 @@ describe("catchUpAttendanceSignaturesForParticipant", () => {
           not: vi.fn().mockResolvedValue({ data: null, error: { message: "DB error" } }),
         }),
       }),
-    }));
+    }) as never);
 
     const result = await catchUpAttendanceSignaturesForParticipant("training-1", "participant-1");
 

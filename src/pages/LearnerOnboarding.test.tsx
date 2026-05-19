@@ -69,7 +69,7 @@ describe("LearnerOnboarding — token validation", () => {
   it("shows error when token is missing from URL", async () => {
     const { useSearchParams } = await import("react-router-dom");
     vi.mocked(useSearchParams).mockReturnValueOnce(
-      [new URLSearchParams("")] as ReturnType<typeof useSearchParams>,
+      [new URLSearchParams(""), vi.fn()] as unknown as ReturnType<typeof useSearchParams>,
     );
 
     render(<LearnerOnboarding />);
