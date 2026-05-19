@@ -108,9 +108,7 @@ async function fetchAllMergedPRs(token: string, since: string, until: string): P
   return prs;
 }
 
-async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
-  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
-
+async function generateEntriesForBatch(prs: GitHubPR[]): Promise<Array<{ pr_number: number; duration_minutes: number; description: string }>> {
   const prSummaries = prs.map((pr) => {
     const labelNames = pr.labels.map((l) => l.name).join(", ");
     const body = (pr.body || "").slice(0, 400);
@@ -146,24 +144,18 @@ Pour chaque PR, génère un objet JSON avec :
 - description: string (description professionnelle en français)
 
 Format attendu :
-[
-  {
-    "pr_number": 123,
-    "duration_minutes": 90,
-    "description": "Développement du module de gestion des formations avec création des vues Kanban et intégration Supabase."
-  }
-]`;
+[{"pr_number":123,"duration_minutes":90,"description":"..."}]`;
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
+      "x-api-key": ANTHROPIC_API_KEY!,
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
       model: CLAUDE_ADVANCED,
-      max_tokens: 16000,
+      max_tokens: 8000,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -176,24 +168,21 @@ Format attendu :
 
   const aiData = await response.json();
   const content = aiData.content?.[0]?.text || "";
-  console.log("AI stop_reason:", aiData.stop_reason, "content length:", content.length);
+  console.log(`AI batch (${prs.length} PRs) stop_reason:`, aiData.stop_reason, "len:", content.length);
 
-  // Robust JSON array extraction with repair for truncated responses
   let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const startIdx = cleaned.indexOf("[");
   if (startIdx === -1) {
     console.error("AI response preview:", content.slice(0, 500));
-    throw new Error("No JSON array in AI response");
+    return [];
   }
   cleaned = cleaned.slice(startIdx);
   const lastClose = cleaned.lastIndexOf("]");
   if (lastClose !== -1) cleaned = cleaned.slice(0, lastClose + 1);
 
-  let aiResults: Array<{ pr_number: number; duration_minutes: number; description: string }>;
   try {
-    aiResults = JSON.parse(cleaned);
+    return JSON.parse(cleaned);
   } catch {
-    // Repair: extract complete objects only
     const objects: string[] = [];
     let depth = 0, start = -1, inStr = false, esc = false;
     for (let i = 0; i < cleaned.length; i++) {
@@ -205,13 +194,24 @@ Format attendu :
       if (c === "{") { if (depth === 0) start = i; depth++; }
       else if (c === "}") { depth--; if (depth === 0 && start !== -1) { objects.push(cleaned.slice(start, i + 1)); start = -1; } }
     }
-    aiResults = objects.map((o) => { try { return JSON.parse(o); } catch { return null; } }).filter(Boolean) as any;
-    if (aiResults.length === 0) throw new Error("Failed to parse AI response as JSON array");
-    console.warn(`Recovered ${aiResults.length} entries from truncated AI response`);
+    const recovered = objects.map((o) => { try { return JSON.parse(o); } catch { return null; } }).filter(Boolean) as any[];
+    console.warn(`Recovered ${recovered.length}/${prs.length} entries from truncated AI response`);
+    return recovered;
   }
+}
 
-  // Merge AI results with PR data
+async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
+
+  // Chunk into batches of 12 PRs, run in parallel to stay under 150s
+  const CHUNK = 12;
+  const batches: GitHubPR[][] = [];
+  for (let i = 0; i < prs.length; i += CHUNK) batches.push(prs.slice(i, i + CHUNK));
+
+  const results = await Promise.all(batches.map((b) => generateEntriesForBatch(b)));
+  const aiResults = results.flat();
   const resultMap = new Map(aiResults.map((r) => [r.pr_number, r]));
+
 
   return prs.map((pr) => {
     const ai = resultMap.get(pr.number);
