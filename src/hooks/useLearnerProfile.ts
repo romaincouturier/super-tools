@@ -7,6 +7,10 @@ export interface LearnerProfile {
   last_name: string | null;
   fonction: string | null;
   photo_url: string | null;
+  email_notif_work_reply: boolean;
+  email_notif_work_comment: boolean;
+  email_notif_live: boolean;
+  email_notif_important: boolean;
   updated_at: string;
 }
 
@@ -36,6 +40,10 @@ export function useUpsertLearnerProfile() {
       last_name?: string | null;
       fonction?: string | null;
       photo_url?: string | null;
+      email_notif_work_reply?: boolean;
+      email_notif_work_comment?: boolean;
+      email_notif_live?: boolean;
+      email_notif_important?: boolean;
     }) => {
       const { error } = await supabase
         .from("learner_profiles")

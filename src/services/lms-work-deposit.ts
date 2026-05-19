@@ -110,12 +110,13 @@ export async function deleteDeposit(id: string, learnerEmail: string): Promise<v
 /** Uploads a deposit file to the lms-content bucket and returns the public URL. */
 export async function uploadDepositFile(
   file: File,
-  lessonId: string,
+  lessonId: string | null,
   learnerEmail: string,
 ): Promise<{ url: string; name: string; size: number; mime: string }> {
   const c = clientFor(learnerEmail);
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
-  const path = `deposits/${lessonId}/${learnerEmail}/${Date.now()}_${safeName}`;
+  const folder = lessonId ?? "portfolio";
+  const path = `deposits/${folder}/${learnerEmail}/${Date.now()}_${safeName}`;
   const mime = resolveContentType(file);
   const { error } = await c.storage
     .from("lms-content")

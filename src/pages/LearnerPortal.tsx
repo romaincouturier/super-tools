@@ -15,7 +15,8 @@ import {
   Lock, ChevronRight, ChevronDown, LayoutDashboard,
   Palette, HelpCircle, LogOut, Bell, ArrowRight,
   CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
-  FileImage, Award, RefreshCw, BookmarkCheck,
+  FileImage, Award, RefreshCw, BookmarkCheck, User2, Upload,
+  ThumbsUp, Send, ImageIcon, Trash2,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -24,6 +25,7 @@ import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
 import LearnerLmsMessaging from "@/components/learner/LearnerLmsMessaging";
 import { cn } from "@/lib/utils";
+import { resolveContentType } from "@/lib/file-utils";
 import {
   useLearnerProfile,
   useUpsertLearnerProfile,
@@ -32,10 +34,20 @@ import {
 } from "@/hooks/useLearnerProfile";
 import {
   useLearnerWorkDeposits,
+  useCreatePortfolioDeposit,
   usePracticeDeposits,
   useLearnerReceivedComments,
   useCoursePageViews,
 } from "@/hooks/useLearnerPortalData";
+import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
+import { useFaqItems } from "@/hooks/useFaq";
+import { useCreateSupportTicket } from "@/hooks/useSupport";
+import { useConfirm } from "@/hooks/useConfirm";
+import {
+  usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
+  usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
+  type PracticePost,
+} from "@/hooks/usePracticeFeed";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -86,7 +98,7 @@ interface LearnerData {
   evaluations: Questionnaire[];
 }
 
-type NavSection = "dashboard" | "formations" | "travaux" | "pratique" | "aide";
+type NavSection = "dashboard" | "formations" | "travaux" | "pratique" | "aide" | "compte";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -785,6 +797,20 @@ function FormationItem({
   );
 }
 
+// ── Practice feed helpers ─────────────────────────────────────────────────────
+
+function authorDisplayName(email: string, firstName?: string | null, lastName?: string | null): string {
+  if (firstName && lastName) return `${firstName} ${lastName}`;
+  if (firstName) return firstName;
+  return email.split("@")[0];
+}
+
+function authorInitialsFromPost(email: string, firstName?: string | null, lastName?: string | null): string {
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  if (firstName) return firstName.slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase();
+}
+
 // ── Dashboard view ────────────────────────────────────────────────────────────
 
 function DashboardView({
@@ -824,6 +850,7 @@ function DashboardView({
   // Hooks for dashboard blocks
   const { data: workDeposits = [] } = useLearnerWorkDeposits(data.email);
   const { data: receivedComments = [] } = useLearnerReceivedComments(data.email, courseIds);
+  const { data: recentPosts = [] } = usePracticePosts(data.email, 3);
   const { data: viewedLessons = [] } = useCoursePageViews(
     mainTraining?.lms_course_id ?? null,
     data.email
@@ -1026,22 +1053,48 @@ function DashboardView({
           )}
         </DashCard>
 
-        {/* Osez partager */}
-        <div className="rounded-2xl p-5" style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(255,209,0,0.25)" }}>
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={16} style={{ color: "#101820" }} />
-            <p className="text-sm font-semibold" style={{ color: "#101820" }}>Osez partager vos réalisations</p>
-          </div>
-          <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(16,24,32,0.7)" }}>
-            Partagez vos travaux avec la communauté pour recevoir des retours et progresser plus vite.
-          </p>
-          <button
-            onClick={() => onNav("pratique")}
-            className="w-full text-sm font-semibold py-2.5 rounded-xl transition-all hover:-translate-y-px"
-            style={{ background: "#101820", color: "#fff", fontFamily: "inherit" }}>
-            Aller à l'espace de pratique →
-          </button>
-        </div>
+        {/* Espace de pratique */}
+        <DashCard title="Espace de pratique" icon={Palette} action={{ label: "Voir tous les posts", onClick: () => onNav("pratique") }}>
+          {recentPosts.length === 0 ? (
+            <div className="py-3 text-center">
+              <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
+              <button
+                onClick={() => onNav("pratique")}
+                className="mt-2 text-xs font-semibold underline"
+                style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              >
+                Soyez le premier à publier →
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentPosts.map((post) => {
+                const name = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
+                const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
+                return (
+                  <div key={post.id} className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
+                      style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+                      {post.author_photo_url
+                        ? <img src={post.author_photo_url} alt={name} className="w-full h-full object-cover" />
+                        : initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{name}</p>
+                      {post.content && <p className="text-xs line-clamp-2 mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{post.content}</p>}
+                      {!post.content && post.file_url && <p className="text-xs mt-0.5 italic" style={{ color: "var(--st-ink-muted)" }}>A partagé une photo</p>}
+                      <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                        <span>{post.reaction_count} j'aime</span>
+                        <span>·</span>
+                        <span>{post.comment_count} commentaires</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </DashCard>
 
         {/* Aide rapide */}
         <DashCard title="Aide rapide" icon={HelpCircle}>
@@ -1049,7 +1102,6 @@ function DashboardView({
             {[
               { label: "Accéder à l'aide", icon: HelpCircle, onClick: () => onNav("aide") },
               { label: "Voir mes notifications", icon: Bell, onClick: () => {} },
-              { label: "Contacter SuperTilt", icon: MessageSquare, onClick: () => onNav("aide") },
             ].map(({ label, icon: Icon, onClick }) => (
               <li key={label}>
                 <button
@@ -1184,66 +1236,735 @@ function FormationsView({
 
 // ── Travaux view ──────────────────────────────────────────────────────────────
 
-function TravauxView({ email }: { email: string }) {
+function pedagogicalStatusBadge(status: string) {
+  let bg = "#f1f5f9";
+  let color = "#475569";
+  if (status === "feedback_received") { bg = "#dcfce7"; color = "#15803d"; }
+  else if (status === "needs_completion") { bg = "#fef3c7"; color = "#92400e"; }
+  else if (status === "validated") { bg = "#dbeafe"; color = "#1d4ed8"; }
+  const label = PEDAGOGICAL_STATUS_LABELS[status as keyof typeof PEDAGOGICAL_STATUS_LABELS] ?? status;
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+      style={{ background: bg, color }}>
+      {label}
+    </span>
+  );
+}
+
+function TravauxView({ email, trainings }: { email: string; trainings: Training[] }) {
   const { data: deposits = [], isLoading } = useLearnerWorkDeposits(email);
+  const createDeposit = useCreatePortfolioDeposit();
+  const { toast } = useToast();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [caption, setCaption] = useState("");
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const [filterCourseId, setFilterCourseId] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Only trainings with an LMS course
+  const lmsTrainings = trainings.filter((t) => !!t.lms_course_id);
+
+  // Stats
+  const totalDeposits = deposits.length;
+  const retours = deposits.filter(
+    (d: any) => d.pedagogical_status === "feedback_received" || d.pedagogical_status === "validated",
+  ).length;
+  const aCompleter = deposits.filter((d: any) => d.pedagogical_status === "needs_completion").length;
+
+  // Filtered feed
+  const filteredDeposits = filterCourseId
+    ? deposits.filter((d: any) => d.course_id === filterCourseId)
+    : deposits;
+
+  // Learner initials from email
+  const learnerInitials = email
+    .split("@")[0]
+    .split(/[._-]/)
+    .map((w: string) => w[0] ?? "")
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "?";
+
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && resolveContentType(file).startsWith("image/")) handleFileSelect(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast({ title: "Veuillez sélectionner une image", variant: "destructive" });
+      return;
+    }
+    try {
+      await createDeposit.mutateAsync({
+        file: selectedFile,
+        caption,
+        courseId: selectedCourseId || null,
+        learnerEmail: email,
+      });
+      toast({ title: "Travail publié !" });
+      setDialogOpen(false);
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setCaption("");
+      setSelectedCourseId("");
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors du dépôt");
+    }
+  };
 
   return (
     <div className="space-y-6">
+      {/* CTA banner */}
+      <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
+        style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1.5px solid var(--st-yellow, #FFD100)" }}>
+        <div className="flex-1 space-y-1">
+          <p className="font-bold text-base" style={{ color: "var(--st-ink)", fontFamily: "inherit" }}>
+            Et si votre travail aidait quelqu'un d'autre ?
+          </p>
+          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+            Par votre travail, vous aidez tous les autres participants. Voir les travaux des autres aide à oser et à se lancer. En partageant un travail même imparfait, nous progressons tous ensemble.
+          </p>
+        </div>
+        <button
+          onClick={() => setDialogOpen(true)}
+          className="shrink-0 px-4 py-2.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
+          style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)", fontFamily: "inherit" }}>
+          Déposer un nouveau travail
+        </button>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Stats sidebar */}
+        <div className="lg:w-48 shrink-0 space-y-3">
+          <div className="rounded-2xl border p-4 text-center"
+            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{totalDeposits}</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>déposés</p>
+          </div>
+          <div className="rounded-2xl border p-4 text-center"
+            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{retours}</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>retours</p>
+          </div>
+          <div className="rounded-2xl border p-4 text-center"
+            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{aCompleter}</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>à compléter</p>
+          </div>
+        </div>
+
+        {/* Main feed */}
+        <div className="flex-1 min-w-0 space-y-4">
+          {/* Formation filter */}
+          {lmsTrainings.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <select
+                  value={filterCourseId}
+                  onChange={(e) => setFilterCourseId(e.target.value)}
+                  className="appearance-none rounded-xl border pl-3 pr-8 py-2 text-sm font-medium focus:outline-none"
+                  style={{
+                    background: "var(--st-white)",
+                    borderColor: "rgba(16,24,32,0.12)",
+                    color: "var(--st-ink)",
+                    fontFamily: "inherit",
+                  }}>
+                  <option value="">Toutes les formations</option>
+                  {lmsTrainings.map((t) => (
+                    <option key={t.lms_course_id} value={t.lms_course_id!}>
+                      {t.lms_course_title ?? t.training_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: "var(--st-ink-muted)" }} />
+              </div>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spinner size="lg" />
+            </div>
+          ) : filteredDeposits.length === 0 ? (
+            <div className="rounded-2xl border p-10 text-center space-y-3"
+              style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
+                style={{ background: "var(--st-surface, #F2F4F4)" }}>
+                <FileText size={22} style={{ color: "var(--st-ink-muted)" }} />
+              </div>
+              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail déposé</p>
+              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                Cliquez sur "Déposer un nouveau travail" pour partager votre premier travail.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredDeposits.map((d: any) => {
+                const courseTitle = d.lms_courses?.title ?? null;
+                const lessonTitle = d.lms_lessons?.title ?? null;
+                const lessonLink = d.lesson_id && d.course_id
+                  ? `/lms/${d.course_id}/player`
+                  : null;
+                return (
+                  <div key={d.id} className="rounded-2xl border overflow-hidden"
+                    style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+                    {/* Post header */}
+                    <div className="flex items-center gap-3 px-5 pt-4 pb-2">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
+                        style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)" }}>
+                        {learnerInitials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Mon travail</p>
+                        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                          {format(new Date(d.created_at), "d MMM yyyy", { locale: fr })}
+                        </p>
+                      </div>
+                      {pedagogicalStatusBadge(d.pedagogical_status)}
+                    </div>
+
+                    {/* Image */}
+                    {d.file_url && d.file_mime?.startsWith("image/") && (
+                      <img src={d.file_url} alt={d.file_name ?? "travail"} className="w-full object-cover" style={{ maxHeight: 420 }} />
+                    )}
+                    {d.file_url && !d.file_mime?.startsWith("image/") && (
+                      <div className="mx-5 mb-3 rounded-xl flex items-center gap-3 p-3"
+                        style={{ background: "var(--st-surface, #F2F4F4)" }}>
+                        <FileImage size={20} style={{ color: "var(--st-ink-muted)" }} />
+                        <span className="text-sm truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</span>
+                      </div>
+                    )}
+
+                    {/* Caption */}
+                    {d.comment && (
+                      <p className="px-5 py-2 text-sm" style={{ color: "var(--st-ink)" }}>{d.comment}</p>
+                    )}
+
+                    {/* Metadata */}
+                    {(courseTitle || lessonTitle || lessonLink) && (
+                      <div className="px-5 pb-4 pt-1 flex flex-wrap items-center gap-2">
+                        {courseTitle && (
+                          <span className="text-xs px-2 py-0.5 rounded-lg"
+                            style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
+                            {courseTitle}
+                          </span>
+                        )}
+                        {lessonTitle && (
+                          <span className="text-xs px-2 py-0.5 rounded-lg"
+                            style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
+                            {lessonTitle}
+                          </span>
+                        )}
+                        {lessonLink && (
+                          <a href={lessonLink} target="_blank" rel="noopener noreferrer"
+                            className="text-xs font-medium ml-auto flex items-center gap-1 hover:opacity-70 transition-opacity"
+                            style={{ color: "var(--st-ink)" }}>
+                            Voir la leçon <ArrowRight size={12} />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {!courseTitle && !lessonTitle && !lessonLink && <div className="pb-4" />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Deposit dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: "inherit" }}>Déposer un travail</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            {/* Image upload area */}
+            <div
+              className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-yellow-400"
+              style={{
+                borderColor: previewUrl ? "var(--st-yellow, #FFD100)" : "rgba(16,24,32,0.15)",
+                background: "var(--st-surface, #F2F4F4)",
+                minHeight: 180,
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}>
+              {previewUrl ? (
+                <img src={previewUrl} alt="aperçu" className="w-full rounded-xl object-cover" style={{ maxHeight: 240 }} />
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
+                  <Upload size={28} style={{ color: "var(--st-ink-muted)" }} />
+                  <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>
+                    Cliquez ou glissez une image
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>PNG, JPG</p>
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileSelect(file);
+              }}
+            />
+
+            {/* Caption */}
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Ajoutez un commentaire sur ce travail…"
+              rows={3}
+              className="w-full rounded-xl border px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2"
+              style={{
+                borderColor: "rgba(16,24,32,0.12)",
+                fontFamily: "inherit",
+                color: "var(--st-ink)",
+                background: "var(--st-white)",
+              }}
+            />
+
+            {/* Formation selector */}
+            {lmsTrainings.length > 0 && (
+              <div className="relative">
+                <select
+                  value={selectedCourseId}
+                  onChange={(e) => setSelectedCourseId(e.target.value)}
+                  className="w-full appearance-none rounded-xl border pl-3 pr-8 py-2.5 text-sm focus:outline-none"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    fontFamily: "inherit",
+                    color: "var(--st-ink)",
+                    background: "var(--st-white)",
+                  }}>
+                  <option value="">Formation (optionnel)</option>
+                  {lmsTrainings.map((t) => (
+                    <option key={t.lms_course_id} value={t.lms_course_id!}>
+                      {t.lms_course_title ?? t.training_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: "var(--st-ink-muted)" }} />
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              onClick={handleSubmit}
+              disabled={createDeposit.isPending || !selectedFile}
+              className="w-full py-2.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)", fontFamily: "inherit" }}>
+              {createDeposit.isPending ? "Publication…" : "Publier"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ── Pratique view ─────────────────────────────────────────────────────────────
+
+// ── Post card ─────────────────────────────────────────────────────────────────
+
+function PracticePostCard({
+  post,
+  currentEmail,
+  onReact,
+  onDelete,
+}: {
+  post: PracticePost;
+  currentEmail: string;
+  onReact: (postId: string, iReacted: boolean) => void;
+  onDelete: (postId: string) => void;
+}) {
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail);
+  const createComment = useCreatePracticeComment(currentEmail);
+  const { toast } = useToast();
+
+  const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
+  const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
+  const isOwn = post.author_email === currentEmail;
+
+  const handleComment = async () => {
+    if (!commentText.trim()) return;
+    try {
+      await createComment.mutateAsync({ postId: post.id, content: commentText.trim() });
+      setCommentText("");
+    } catch {
+      toastError(toast, "Impossible d'envoyer le commentaire.");
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border space-y-0 overflow-hidden"
+      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+      {/* Header */}
+      <div className="flex items-start gap-3 p-4">
+        <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+          style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+          {post.author_photo_url
+            ? <img src={post.author_photo_url} alt={displayName} className="w-full h-full object-cover" />
+            : initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{displayName}</p>
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
+          </p>
+        </div>
+        {isOwn && (
+          <button
+            onClick={() => onDelete(post.id)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
+            style={{ color: "var(--st-ink-muted)" }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Content */}
+      {post.content && (
+        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
+          {post.content}
+        </p>
+      )}
+
+      {/* Image */}
+      {post.file_url && post.file_mime?.startsWith("image/") && (
+        <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+      )}
+
+      {/* Reaction bar */}
+      {(post.reaction_count > 0 || post.comment_count > 0) && (
+        <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+          {post.reaction_count > 0 && (
+            <span>{post.reaction_count} J'aime</span>
+          )}
+          {post.comment_count > 0 && (
+            <button onClick={() => setShowComments(v => !v)} className="hover:underline ml-auto" style={{ fontFamily: "inherit" }}>
+              {post.comment_count} commentaire{post.comment_count > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+        <button
+          onClick={() => onReact(post.id, post.i_reacted)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
+          style={{ color: post.i_reacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
+        >
+          <ThumbsUp size={16} fill={post.i_reacted ? "currentColor" : "none"} />
+          J'aime
+        </button>
+        <button
+          onClick={() => setShowComments(v => !v)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
+          style={{ color: "var(--st-ink-muted)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
+        >
+          <MessageSquare size={16} />
+          Commenter
+        </button>
+      </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "var(--st-surface, #F2F4F4)" }}>
+          {comments.map((c) => {
+            const cName = authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
+            const cInitials = authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
+            return (
+              <div key={c.id} className="flex items-start gap-2">
+                <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ background: c.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+                  {c.author_photo_url
+                    ? <img src={c.author_photo_url} alt={cName} className="w-full h-full object-cover" />
+                    : cInitials}
+                </div>
+                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
+                  <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                </div>
+              </div>
+            );
+          })}
+          {/* Comment input */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 rounded-full border px-3 py-1.5"
+              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
+                placeholder="Ajouter un commentaire..."
+                className="flex-1 text-sm bg-transparent outline-none"
+                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+              />
+            </div>
+            <button
+              onClick={handleComment}
+              disabled={!commentText.trim() || createComment.isPending}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
+              style={{ background: "var(--st-yellow)", color: "#101820" }}
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Post creation box ─────────────────────────────────────────────────────────
+
+function PostCreationBox({
+  email,
+  firstName,
+  lastName,
+  photoUrl,
+  onCreate,
+}: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  onCreate: (content: string, file: File | null) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [content, setContent] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const initials = getInitials(firstName, lastName) || email.slice(0, 2).toUpperCase();
+
+  const handleFile = (f: File) => {
+    setFile(f);
+    const url = URL.createObjectURL(f);
+    setPreview(url);
+  };
+
+  const handlePost = async () => {
+    if (!content.trim() && !file) return;
+    setPosting(true);
+    try {
+      await onCreate(content, file);
+      setContent("");
+      setFile(null);
+      setPreview(null);
+      setOpen(false);
+    } catch {
+      toastError(toast, "Impossible de publier.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Trigger box */}
+      <div className="rounded-2xl border p-4"
+        style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+            {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
+          </div>
+          <button
+            onClick={() => setOpen(true)}
+            className="flex-1 text-left rounded-full border px-4 py-2.5 text-sm transition-colors hover:bg-black/5"
+            style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+          >
+            Partagez votre travail ou une réflexion...
+          </button>
+        </div>
+        <div className="flex items-center gap-1 pt-3 mt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+          <button
+            onClick={() => { setOpen(true); setTimeout(() => fileRef.current?.click(), 100); }}
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors hover:bg-black/5"
+            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+          >
+            <ImageIcon size={16} /> Photo
+          </button>
+        </div>
+      </div>
+
+      {/* Post creation dialog */}
+      <Dialog open={open} onOpenChange={(v) => { if (!v) { setOpen(false); setFile(null); setPreview(null); setContent(""); } }}>
+        <DialogContent className="w-full max-w-lg" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
+          <DialogHeader>
+            <DialogTitle>Créer un post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+                style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
+                {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
+              </div>
+              <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>
+                {firstName && lastName ? `${firstName} ${lastName}` : email.split("@")[0]}
+              </p>
+            </div>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Partagez votre travail, une réflexion, une question..."
+              rows={5}
+              className="w-full resize-none rounded-xl border px-3 py-2.5 text-sm outline-none"
+              style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
+            />
+            {/* Image preview */}
+            {preview && (
+              <div className="relative">
+                <img src={preview} alt="Aperçu" className="w-full rounded-xl object-cover" style={{ maxHeight: 240 }} />
+                <button
+                  onClick={() => { setFile(null); setPreview(null); }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+            {/* Upload area */}
+            {!preview && (
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="w-full rounded-xl border-2 border-dashed py-6 flex flex-col items-center gap-2 transition-colors hover:bg-black/5"
+                style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              >
+                <ImageIcon size={24} />
+                <span className="text-sm">Ajouter une photo</span>
+              </button>
+            )}
+            <input
+              ref={fileRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+            />
+            <button
+              onClick={handlePost}
+              disabled={(!content.trim() && !file) || posting}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {posting ? "Publication..." : "Publier"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ── PratiqueView ──────────────────────────────────────────────────────────────
+
+function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
+  email: string;
+  courseIds: string[];
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+}) {
+  const { data: posts = [], isLoading } = usePracticePosts(email);
+  const createPost = useCreatePracticePost(email);
+  const toggleReaction = useTogglePracticeReaction(email);
+  const deletePost = useDeletePracticePost(email);
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  const handleCreate = async (content: string, file: File | null) => {
+    await createPost.mutateAsync({ content, file });
+  };
+
+  const handleReact = async (postId: string, iReacted: boolean) => {
+    try {
+      await toggleReaction.mutateAsync({ postId, iReacted });
+    } catch {
+      toastError(toast, "Impossible de réagir.");
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    const ok = await confirm({
+      title: "Supprimer ce post ?",
+      description: "Cette action est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deletePost.mutateAsync(postId);
+    } catch {
+      toastError(toast, "Impossible de supprimer.");
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <ConfirmDialog />
       <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Mes travaux</h2>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
         <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-          Tous vos travaux déposés
+          Partagez vos travaux et réagissez à ceux des autres participants.
         </p>
       </div>
 
+      <PostCreationBox
+        email={email}
+        firstName={firstName}
+        lastName={lastName}
+        photoUrl={photoUrl}
+        onCreate={handleCreate}
+      />
+
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-16">
           <Spinner size="lg" />
         </div>
-      ) : deposits.length === 0 ? (
+      ) : posts.length === 0 ? (
         <div className="rounded-2xl border p-10 text-center space-y-3"
-          style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-            style={{ background: "var(--st-surface, #F2F4F4)" }}>
-            <FileText size={22} style={{ color: "var(--st-ink-muted)" }} />
-          </div>
-          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail déposé</p>
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            Vos travaux déposés dans vos cours apparaîtront ici.
-          </p>
+          style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+          <Palette size={32} className="mx-auto" style={{ color: "var(--st-ink-muted)" }} />
+          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun post pour l'instant</p>
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Soyez le premier à partager votre travail !</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {deposits.map((d: any) => (
-            <div key={d.id} className="rounded-2xl border overflow-hidden transition-shadow hover:shadow-sm"
-              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-              {d.file_mime?.startsWith("image/") ? (
-                <img src={d.file_url} alt={d.file_name} className="w-full h-36 object-cover" />
-              ) : (
-                <div className="w-full h-36 flex items-center justify-center"
-                  style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                  <FileImage size={32} style={{ color: "var(--st-ink-muted)" }} />
-                </div>
-              )}
-              <div className="p-4 space-y-2">
-                <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{
-                      background: d.publication_status === "published" ? "#dcfce7" : "#f1f5f9",
-                      color: d.publication_status === "published" ? "#15803d" : "#475569",
-                    }}>
-                    {d.publication_status === "published" ? "Partagé" : "Privé"}
-                  </span>
-                  <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                    {format(new Date(d.created_at), "d MMM yyyy", { locale: fr })}
-                  </span>
-                </div>
-                {d.comment && (
-                  <p className="text-xs line-clamp-2" style={{ color: "var(--st-ink-muted)" }}>{d.comment}</p>
-                )}
-              </div>
-            </div>
+        <div className="space-y-4">
+          {posts.map((post) => (
+            <PracticePostCard
+              key={post.id}
+              post={post}
+              currentEmail={email}
+              onReact={handleReact}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
@@ -1251,125 +1972,527 @@ function TravauxView({ email }: { email: string }) {
   );
 }
 
-// ── Pratique view ─────────────────────────────────────────────────────────────
+// ── Compte view ───────────────────────────────────────────────────────────────
 
-function PratiqueView({ email, courseIds }: { email: string; courseIds: string[] }) {
-  const { data: deposits = [], isLoading } = usePracticeDeposits(courseIds);
+const NOTIF_PREFS: { key: keyof LearnerProfile & `email_notif_${string}`; label: string }[] = [
+  { key: "email_notif_work_reply", label: "Me prévenir quand SuperTilt répond à un de mes travaux" },
+  { key: "email_notif_work_comment", label: "Me prévenir quand quelqu'un commente un travail partagé" },
+  { key: "email_notif_live", label: "Me prévenir avant les lives de mes formations" },
+  { key: "email_notif_important", label: "Recevoir les informations importantes" },
+];
+
+function CompteView({
+  email,
+  profile,
+  onNav,
+}: {
+  email: string;
+  profile: LearnerProfile | null | undefined;
+  onNav: (s: NavSection) => void;
+}) {
+  const { toast } = useToast();
+  const upsert = useUpsertLearnerProfile();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+  const [lastName, setLastName] = useState(profile?.last_name ?? "");
+  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  const [notifs, setNotifs] = useState({
+    email_notif_work_reply: profile?.email_notif_work_reply ?? true,
+    email_notif_work_comment: profile?.email_notif_work_comment ?? true,
+    email_notif_live: profile?.email_notif_live ?? true,
+    email_notif_important: profile?.email_notif_important ?? true,
+  });
+  const [savingNotifs, setSavingNotifs] = useState(false);
+
+  const [lastSignIn, setLastSignIn] = useState<string | null>(null);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  useEffect(() => {
+    setFirstName(profile?.first_name ?? "");
+    setLastName(profile?.last_name ?? "");
+    setPhotoUrl(profile?.photo_url ?? "");
+    setNotifs({
+      email_notif_work_reply: profile?.email_notif_work_reply ?? true,
+      email_notif_work_comment: profile?.email_notif_work_comment ?? true,
+      email_notif_live: profile?.email_notif_live ?? true,
+      email_notif_important: profile?.email_notif_important ?? true,
+    });
+  }, [profile]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.last_sign_in_at) {
+        setLastSignIn(session.user.last_sign_in_at);
+      }
+    });
+  }, []);
+
+  const handlePhotoFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLearnerPhoto(file, email);
+      setPhotoUrl(url);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de l'upload de la photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await upsert.mutateAsync({
+        email,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        photo_url: photoUrl || null,
+      });
+      toast({ title: "Informations enregistrées" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
+    }
+  };
+
+  const handleSaveNotifs = async () => {
+    setSavingNotifs(true);
+    try {
+      await upsert.mutateAsync({ email, ...notifs });
+      toast({ title: "Préférences enregistrées" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
+    } finally {
+      setSavingNotifs(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/apprenant/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: "E-mail envoyé", description: "Vérifiez votre boîte mail pour réinitialiser votre mot de passe." });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de l'envoi");
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || email[0].toUpperCase();
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Mon compte</h2>
         <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-          Travaux partagés par les autres apprenants
+          Gérez vos informations personnelles, vos accès aux formations et vos préférences.
         </p>
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Spinner size="lg" />
-        </div>
-      ) : deposits.length === 0 ? (
-        <div className="rounded-2xl border p-10 text-center space-y-3"
-          style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-            <Palette size={22} style={{ color: "#101820" }} />
-          </div>
-          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail partagé</p>
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            Les travaux partagés par les autres apprenants apparaîtront ici.
-          </p>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {deposits.map((d: any) => {
-            const authorInitials = (d.learner_email || "?")
-              .split("@")[0]
-              .split(/[._-]/)
-              .map((w: string) => w[0] ?? "")
-              .join("")
-              .toUpperCase()
-              .slice(0, 2);
-            return (
-              <div key={d.id} className="rounded-2xl border overflow-hidden transition-shadow hover:shadow-sm"
-                style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-                {d.file_mime?.startsWith("image/") ? (
-                  <img src={d.file_url} alt={d.file_name} className="w-full h-36 object-cover" />
-                ) : (
-                  <div className="w-full h-36 flex items-center justify-center"
-                    style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                    <FileImage size={32} style={{ color: "var(--st-ink-muted)" }} />
-                  </div>
-                )}
-                <div className="p-4 space-y-2">
-                  <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                      {authorInitials}
-                    </div>
-                    <span className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
-                      {d.learner_email !== email ? d.learner_email?.split("@")[0] : "Vous"}
-                    </span>
-                    <span className="text-xs ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }}>
-                      {format(new Date(d.created_at), "d MMM", { locale: fr })}
-                    </span>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
+        {/* Left column */}
+        <div className="space-y-5">
+          {/* Informations personnelles */}
+          <div className="rounded-2xl border p-6 space-y-5"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <div>
+              <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Informations personnelles</h3>
+              <p className="text-sm mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                Ces informations sont utilisées dans votre espace de formation et dans les échanges avec SuperTilt.
+              </p>
+            </div>
+
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <div className="relative group cursor-pointer shrink-0" onClick={() => fileRef.current?.click()}>
+                <div
+                  className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center text-lg font-bold select-none"
+                  style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
+                >
+                  {photoUrl ? (
+                    <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : initials}
+                </div>
+                <div
+                  className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ background: "rgba(16,24,32,0.45)" }}
+                >
+                  {uploading ? <Spinner className="text-white h-4 w-4" /> : <Camera size={16} className="text-white" />}
                 </div>
               </div>
-            );
-          })}
+              <input
+                ref={fileRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePhotoFile(f); e.target.value = ""; }}
+              />
+              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Cliquez sur la photo pour la modifier</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Prénom</label>
+                <input
+                  type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Prénom"
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{ borderColor: "rgba(16,24,32,0.12)", background: "var(--st-white)", color: "var(--st-ink)", fontFamily: "inherit" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Nom</label>
+                <input
+                  type="text" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Nom"
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{ borderColor: "rgba(16,24,32,0.12)", background: "var(--st-white)", color: "var(--st-ink)", fontFamily: "inherit" }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Adresse e-mail</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="email" value={email} readOnly
+                  className="flex-1 rounded-xl border px-3 py-2 text-sm cursor-not-allowed"
+                  style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+                />
+                <p className="text-xs shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+                  Pour modifier, contactez SuperTilt.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSaveProfile}
+              disabled={upsert.isPending || uploading}
+              className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {upsert.isPending ? "Enregistrement..." : "Enregistrer"}
+            </button>
+          </div>
+
+          {/* Sécurité */}
+          <div className="rounded-2xl border p-6 space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <div>
+              <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Sécurité</h3>
+              {lastSignIn && (
+                <p className="text-sm mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                  Dernière connexion : {format(new Date(lastSignIn), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handlePasswordReset}
+              disabled={sendingReset}
+              className="px-5 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {sendingReset ? "Envoi en cours..." : "Modifier mon mot de passe"}
+            </button>
+          </div>
+
+          {/* Besoin d'aide */}
+          <div className="rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4"
+            style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(255,209,0,0.25)" }}>
+            <div className="flex-1">
+              <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Besoin d'aide ?</p>
+              <p className="text-sm mt-0.5" style={{ color: "rgba(16,24,32,0.65)" }}>
+                Si vous avez un problème d'accès, de connexion ou une question sur votre formation, vous pouvez nous contacter.
+              </p>
+            </div>
+            <button
+              onClick={() => onNav("aide")}
+              className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              Contacter SuperTilt
+            </button>
+          </div>
         </div>
-      )}
+
+        {/* Right column */}
+        <div className="space-y-5">
+          {/* Notifications */}
+          <div className="rounded-2xl border p-5 space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <div>
+              <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Notifications par e-mail</h3>
+              <p className="text-sm mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                Choisissez les informations que vous souhaitez recevoir.
+              </p>
+            </div>
+            <ul className="space-y-3">
+              {NOTIF_PREFS.map(({ key, label }) => (
+                <li key={key} className="flex items-start gap-3">
+                  <button
+                    role="checkbox"
+                    aria-checked={notifs[key]}
+                    onClick={() => setNotifs((p) => ({ ...p, [key]: !p[key] }))}
+                    className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5 transition-colors border"
+                    style={{
+                      background: notifs[key] ? "var(--st-yellow)" : "transparent",
+                      borderColor: notifs[key] ? "var(--st-yellow)" : "rgba(16,24,32,0.2)",
+                    }}
+                  >
+                    {notifs[key] && (
+                      <CheckCircle2 size={12} style={{ color: "#101820" }} />
+                    )}
+                  </button>
+                  <span className="text-sm leading-snug" style={{ color: "var(--st-ink)" }}>{label}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleSaveNotifs}
+              disabled={savingNotifs}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+            >
+              {savingNotifs ? "Enregistrement..." : "Enregistrer mes préférences"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ── Aide view ────────────────────────────────────────────────────────────────
 
+const LEARNER_CATEGORIES = [
+  { value: "acces_connexion", label: "Accès / Connexion" },
+  { value: "technique", label: "Problème technique" },
+  { value: "pedagogique", label: "Question pédagogique" },
+  { value: "administratif", label: "Administratif" },
+];
+
+const USEFUL_LINKS: { label: string; icon: React.ElementType; section: NavSection }[] = [
+  { label: "Mon compte", icon: User2, section: "dashboard" },
+  { label: "Mes formations", icon: GraduationCap, section: "formations" },
+  { label: "Mes travaux", icon: FileText, section: "travaux" },
+];
+
 function AideView({
   email,
   mainTraining,
+  onNav,
 }: {
   email: string;
   mainTraining: Training | null;
+  onNav: (section: NavSection) => void;
 }) {
+  const { data: faqItems = [] } = useFaqItems(true);
+  const createTicket = useCreateSupportTicket();
+  const { toast } = useToast();
+
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [category, setCategory] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    if (!subject.trim() || !message.trim()) return;
+    setSending(true);
+    try {
+      await createTicket.mutateAsync({
+        type: "evolution",
+        priority: "low",
+        title: subject.trim(),
+        description: message.trim(),
+        page_url: null,
+        learner_category: category || null,
+      });
+      toast({ title: "Demande envoyée", description: "Nous vous répondrons dans les plus brefs délais." });
+      setCategory("");
+      setSubject("");
+      setMessage("");
+    } catch {
+      toastError(toast, "Impossible d'envoyer la demande.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const hasLive = !!mainTraining?.next_event;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Aide</h2>
-        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Besoin d'un coup de main ?</p>
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          Retrouvez ici les réponses aux questions les plus fréquentes.<br />
+          Si vous ne trouvez pas la réponse, vous pouvez nous envoyer un message.
+        </p>
       </div>
 
-      {/* Contact / messaging section */}
-      <div className="rounded-2xl border p-6 space-y-4"
-        style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-            <MessageSquare size={18} style={{ color: "#101820" }} />
-          </div>
-          <div>
-            <p className="text-base font-semibold" style={{ color: "var(--st-ink)" }}>Nous contacter</p>
-            <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-              Notre équipe est disponible pour répondre à vos questions.
-            </p>
-          </div>
+      {/* Banner */}
+      <div className="rounded-2xl p-5 flex items-center gap-5"
+        style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(16,24,32,0.06)" }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: "var(--st-yellow)", color: "#101820" }}>
+          <HelpCircle size={26} />
         </div>
-        <div className="mt-2">
-          {mainTraining?.lms_course_id ? (
-            <LearnerLmsMessaging courseId={mainTraining.lms_course_id} learnerEmail={email} />
-          ) : mainTraining ? (
-            <LearnerMessaging trainingId={mainTraining.training_id} participantId={mainTraining.participant_id} learnerEmail={email} />
-          ) : (
+        <div>
+          <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Comment pouvons-nous vous aider ?</p>
+          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+            Choisissez une question fréquente ou envoyez-nous un message ci-dessous.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+        {/* Left: FAQ */}
+        <div className="rounded-2xl border p-6 space-y-1"
+          style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+          <p className="text-base font-bold mb-4" style={{ color: "var(--st-ink)" }}>Questions fréquentes</p>
+          {faqItems.length === 0 ? (
             <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-              Aucune formation active. Contactez-nous à{" "}
-              <a href="mailto:contact@supertilt.fr" className="underline" style={{ color: "var(--st-ink)" }}>
-                contact@supertilt.fr
-              </a>
+              Aucune question pour le moment.
             </p>
+          ) : (
+            faqItems.map((item) => (
+              <div key={item.id} className="border-b last:border-0"
+                style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+                <button
+                  className="w-full flex items-center justify-between py-3 text-sm font-medium text-left gap-3"
+                  style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                  onClick={() => setOpenFaq(openFaq === item.id ? null : item.id)}
+                >
+                  <span>{item.question}</span>
+                  {openFaq === item.id
+                    ? <ChevronDown size={16} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                    : <ChevronRight size={16} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                  }
+                </button>
+                {openFaq === item.id && (
+                  <p className="text-sm pb-3 leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
+                    {item.answer}
+                  </p>
+                )}
+              </div>
+            ))
           )}
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Contact form */}
+          <div className="rounded-2xl border p-5 space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Besoin d'une aide plus précise ?</p>
+            <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+              Envoyez-nous un message, notre équipe vous répondra dans les plus brefs délais.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
+                  Type de demande
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    background: "var(--st-white)",
+                    color: category ? "var(--st-ink)" : "var(--st-ink-muted)",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <option value="">Sélectionnez un type</option>
+                  {LEARNER_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Sujet</label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Ex : Problème d'accès à ma formation"
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    background: "var(--st-white)",
+                    color: "var(--st-ink)",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Message</label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Décrivez votre question ou votre problème en détail..."
+                  rows={4}
+                  className="w-full rounded-xl border px-3 py-2 text-sm resize-none"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    background: "var(--st-white)",
+                    color: "var(--st-ink)",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+
+              <button
+                onClick={handleSend}
+                disabled={!subject.trim() || !message.trim() || sending}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+                style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+              >
+                {sending ? "Envoi en cours..." : "Envoyer ma demande"}
+              </button>
+            </div>
+          </div>
+
+          {/* Useful links */}
+          <div className="rounded-2xl border p-5"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <p className="text-base font-bold mb-3" style={{ color: "var(--st-ink)" }}>Liens utiles</p>
+            <ul className="space-y-0.5">
+              {USEFUL_LINKS.map(({ label, icon: Icon, section }) => (
+                <li key={section}>
+                  <button
+                    onClick={() => onNav(section)}
+                    className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
+                    style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                  >
+                    <Icon size={15} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                    <span className="flex-1">{label}</span>
+                    <ChevronRight size={14} style={{ color: "var(--st-ink-muted)" }} />
+                  </button>
+                </li>
+              ))}
+              {hasLive && (
+                <li>
+                  <button
+                    onClick={() => onNav("formations")}
+                    className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
+                    style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                  >
+                    <Calendar size={15} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                    <span className="flex-1">Voir les dates des lives</span>
+                    <ChevronRight size={14} style={{ color: "var(--st-ink-muted)" }} />
+                  </button>
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -1544,6 +2667,7 @@ export default function LearnerPortal() {
     travaux: "Mes travaux",
     pratique: "Espace de pratique",
     aide: "Aide",
+    compte: "Mon compte",
   };
   const sectionSubtitle: Record<NavSection, string> = {
     dashboard: "Retrouvez vos formations, votre progression et vos prochains rendez-vous.",
@@ -1551,6 +2675,7 @@ export default function LearnerPortal() {
     travaux: "Tous vos travaux déposés dans vos cours.",
     pratique: "Découvrez les travaux partagés par la communauté.",
     aide: "Ressources et contact.",
+    compte: "Gérez vos informations personnelles et vos préférences.",
   };
 
   const courseIds = data.trainings
@@ -1572,7 +2697,7 @@ export default function LearnerPortal() {
           photoUrl={photoUrl}
           email={data.email}
           onLogout={handleLogout}
-          onEditProfile={() => setProfileModalOpen(true)}
+          onEditProfile={() => setActiveSection("compte")}
         />
       </div>
 
@@ -1590,7 +2715,7 @@ export default function LearnerPortal() {
               photoUrl={photoUrl}
               email={data.email}
               onLogout={handleLogout}
-              onEditProfile={() => { setSidebarOpen(false); setProfileModalOpen(true); }}
+              onEditProfile={() => { setSidebarOpen(false); setActiveSection("compte"); }}
               mobile
               onClose={() => setSidebarOpen(false)}
             />
@@ -1626,6 +2751,27 @@ export default function LearnerPortal() {
             </p>
           </div>
 
+          {/* Mon compte button */}
+          <button
+            onClick={() => setActiveSection("compte")}
+            className="hidden sm:flex items-center gap-2.5 rounded-xl px-3 py-1.5 transition-all hover:bg-black/5"
+            style={{ fontFamily: "inherit" }}
+          >
+            <div className="text-right">
+              <p className="text-xs font-semibold leading-none" style={{ color: "var(--st-ink)" }}>Mon compte</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>Espace apprenant</p>
+            </div>
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+              style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820", overflow: "hidden" }}
+            >
+              {photoUrl
+                ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+                : getInitials(firstName, lastName)
+              }
+            </div>
+          </button>
+
         </header>
 
         {/* Scrollable content */}
@@ -1647,30 +2793,27 @@ export default function LearnerPortal() {
               />
             )}
             {activeSection === "travaux" && (
-              <TravauxView email={data.email} />
+              <TravauxView email={data.email} trainings={data.trainings} />
             )}
             {activeSection === "pratique" && (
               <PratiqueView
                 email={data.email}
                 courseIds={courseIds}
+                firstName={firstName}
+                lastName={lastName}
+                photoUrl={photoUrl}
               />
             )}
             {activeSection === "aide" && (
-              <AideView email={data.email} mainTraining={mainTraining} />
+              <AideView email={data.email} mainTraining={mainTraining} onNav={setActiveSection} />
+            )}
+            {activeSection === "compte" && (
+              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} />
             )}
           </div>
         </div>
       </div>
 
-      {/* Floating help button */}
-      <button
-        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-4 py-3 rounded-full text-sm font-semibold shadow-lg transition-all hover:-translate-y-px hover:shadow-xl"
-        style={{ background: "#101820", color: "#fff", fontFamily: "inherit" }}
-        onClick={() => setActiveSection("aide")}
-      >
-        <MessageSquare size={15} />
-        Une question ?
-      </button>
     </div>
   );
 }

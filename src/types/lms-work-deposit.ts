@@ -54,8 +54,8 @@ export function withDepositDefaults(config: WorkDepositConfig | null | undefined
 
 export interface WorkDeposit {
   id: string;
-  lesson_id: string;
-  course_id: string;
+  lesson_id: string | null;
+  course_id: string | null;
   module_id: string | null;
   learner_email: string;
   file_url: string | null;
@@ -72,8 +72,8 @@ export interface WorkDeposit {
 }
 
 export interface CreateWorkDepositInput {
-  lesson_id: string;
-  course_id: string;
+  lesson_id?: string | null;
+  course_id?: string | null;
   module_id?: string | null;
   learner_email: string;
   file_url: string | null;
