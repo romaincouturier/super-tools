@@ -22,6 +22,7 @@ interface BulkAddParticipantsDialogProps {
   trainingStartDate?: string;
   trainingEndDate?: string | null;
   onParticipantsAdded: () => void;
+  onScheduledEmailsRefresh?: () => void;
   isInterEntreprise?: boolean;
   formatFormation?: string | null;
 }
@@ -29,7 +30,7 @@ interface BulkAddParticipantsDialogProps {
 const pluralize = (count: number) => (count !== 1 ? "s" : "");
 
 const BulkAddParticipantsDialog = ({
-  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, isInterEntreprise = false, formatFormation,
+  trainingId, trainingStartDate, trainingEndDate, onParticipantsAdded, onScheduledEmailsRefresh, isInterEntreprise = false, formatFormation,
 }: BulkAddParticipantsDialogProps) => {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
