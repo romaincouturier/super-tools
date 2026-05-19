@@ -546,3 +546,6 @@ verify_jwt = false
 
 [functions.time-tracker-github-import]
 verify_jwt = false
+
+[functions.upload-learner-photo]
+verify_jwt = false

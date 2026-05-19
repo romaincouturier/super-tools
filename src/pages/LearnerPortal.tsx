@@ -1,7 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
@@ -10,7 +14,7 @@ import {
   AlertCircle, MessageSquare, Video, Play, RotateCcw,
   Lock, ChevronRight, ChevronDown, LayoutDashboard,
   Palette, HelpCircle, LogOut, Bell, BarChart2, ArrowRight,
-  CalendarPlus, Users, Sparkles, Menu, X,
+  CalendarPlus, Users, Sparkles, Menu, X, Pencil, Camera,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -20,6 +24,12 @@ import LearnerMessaging from "@/components/learner/LearnerMessaging";
 import LearnerLmsMessaging from "@/components/learner/LearnerLmsMessaging";
 import CoachingBooking from "@/components/learner/CoachingBooking";
 import { cn } from "@/lib/utils";
+import {
+  useLearnerProfile,
+  useUpsertLearnerProfile,
+  uploadLearnerPhoto,
+  type LearnerProfile,
+} from "@/hooks/useLearnerProfile";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -145,6 +155,167 @@ function ProgressCircle({ pct, size = 80 }: { pct: number; size?: number }) {
   );
 }
 
+// ── Edit profile modal ────────────────────────────────────────────────────────
+
+function EditProfileModal({
+  open,
+  onClose,
+  email,
+  profile,
+}: {
+  open: boolean;
+  onClose: () => void;
+  email: string;
+  profile: LearnerProfile | null | undefined;
+}) {
+  const { toast } = useToast();
+  const upsert = useUpsertLearnerProfile();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+  const [lastName, setLastName] = useState(profile?.last_name ?? "");
+  const [fonction, setFonction] = useState(profile?.fonction ?? "");
+  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  // Reset fields when profile loads or modal re-opens
+  useEffect(() => {
+    if (open) {
+      setFirstName(profile?.first_name ?? "");
+      setLastName(profile?.last_name ?? "");
+      setFonction(profile?.fonction ?? "");
+      setPhotoUrl(profile?.photo_url ?? "");
+    }
+  }, [open, profile]);
+
+  const handlePhotoFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLearnerPhoto(file, email);
+      setPhotoUrl(url);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de l'upload de la photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await upsert.mutateAsync({
+        email,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        fonction: fonction.trim() || null,
+        photo_url: photoUrl || null,
+      });
+      toast({ title: "Profil mis à jour" });
+      onClose();
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
+    }
+  };
+
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm w-full" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
+        <DialogHeader>
+          <DialogTitle>Mon profil</DialogTitle>
+        </DialogHeader>
+
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-2 py-2">
+          <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
+            <div
+              className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold select-none"
+              style={{ background: photoUrl ? "transparent" : "#FFD100", color: "#101820" }}
+            >
+              {photoUrl ? (
+                <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+            <div
+              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "rgba(16,24,32,0.45)" }}
+            >
+              {uploading ? (
+                <Spinner className="text-white h-5 w-5" />
+              ) : (
+                <Camera size={20} className="text-white" />
+              )}
+            </div>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handlePhotoFile(f);
+              e.target.value = "";
+            }}
+          />
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            Cliquez pour changer la photo
+          </p>
+        </div>
+
+        {/* Fields */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="ep-firstname">Prénom</Label>
+              <Input
+                id="ep-firstname"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Prénom"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ep-lastname">Nom</Label>
+              <Input
+                id="ep-lastname"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Nom"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="ep-fonction">Fonction</Label>
+            <Input
+              id="ep-fonction"
+              value={fonction}
+              onChange={(e) => setFonction(e.target.value)}
+              placeholder="Ex: Directeur artistique, Manager…"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={handleSave}
+            disabled={upsert.isPending || uploading}
+          >
+            {upsert.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
+            Enregistrer
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
 function Sidebar({
@@ -152,8 +323,11 @@ function Sidebar({
   onNav,
   firstName,
   lastName,
+  fonction,
+  photoUrl,
   email,
   onLogout,
+  onEditProfile,
   mobile,
   onClose,
 }: {
@@ -161,8 +335,11 @@ function Sidebar({
   onNav: (s: NavSection) => void;
   firstName: string;
   lastName: string;
+  fonction?: string | null;
+  photoUrl?: string | null;
   email: string;
   onLogout: () => void;
+  onEditProfile: () => void;
   mobile?: boolean;
   onClose?: () => void;
 }) {
@@ -210,20 +387,32 @@ function Sidebar({
 
       {/* User block */}
       <div className="px-3 pb-5 pt-3 border-t space-y-3" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <div className="flex items-center gap-3 px-3 py-2">
+        <button
+          onClick={onEditProfile}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 group text-left"
+          style={{ fontFamily: "inherit" }}
+          title="Modifier mon profil"
+        >
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: "var(--st-yellow)", color: "#101820" }}
+            className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
           >
-            {getInitials(firstName, lastName)}
+            {photoUrl ? (
+              <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              getInitials(firstName, lastName)
+            )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold leading-snug truncate" style={{ color: "var(--st-ink)" }}>
               {firstName} {lastName}
             </p>
-            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>Apprenant·e</p>
+            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
+              {fonction || "Apprenant·e"}
+            </p>
           </div>
-        </div>
+          <Pencil size={13} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: "var(--st-ink-muted)" }} />
+        </button>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
@@ -889,6 +1078,10 @@ export default function LearnerPortal() {
   const [requestingCoach, setRequestingCoach] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<NavSection>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const email = data?.email ?? null;
+  const { data: learnerProfile } = useLearnerProfile(email);
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -991,8 +1184,10 @@ export default function LearnerPortal() {
 
   if (!data) return null;
 
-  const firstName = data.trainings[0]?.first_name || "";
-  const lastName = data.trainings[0]?.last_name || "";
+  const firstName = learnerProfile?.first_name || data.trainings[0]?.first_name || "";
+  const lastName = learnerProfile?.last_name || data.trainings[0]?.last_name || "";
+  const fonction = learnerProfile?.fonction || null;
+  const photoUrl = learnerProfile?.photo_url || null;
 
   const sectionTitle: Record<NavSection, string> = {
     dashboard: "Tableau de bord",
@@ -1016,8 +1211,11 @@ export default function LearnerPortal() {
           onNav={setActiveSection}
           firstName={firstName}
           lastName={lastName}
+          fonction={fonction}
+          photoUrl={photoUrl}
           email={data.email}
           onLogout={handleLogout}
+          onEditProfile={() => setProfileModalOpen(true)}
         />
       </div>
 
@@ -1031,14 +1229,24 @@ export default function LearnerPortal() {
               onNav={setActiveSection}
               firstName={firstName}
               lastName={lastName}
+              fonction={fonction}
+              photoUrl={photoUrl}
               email={data.email}
               onLogout={handleLogout}
+              onEditProfile={() => { setSidebarOpen(false); setProfileModalOpen(true); }}
               mobile
               onClose={() => setSidebarOpen(false)}
             />
           </div>
         </>
       )}
+
+      <EditProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        email={data.email}
+        profile={learnerProfile}
+      />
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -1061,16 +1269,6 @@ export default function LearnerPortal() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <button className="hidden sm:flex flex-col items-end cursor-pointer hover:opacity-70 transition-opacity">
-              <span className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>Mon compte</span>
-              <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Espace apprenant</span>
-            </button>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}>
-              {getInitials(firstName, lastName)}
-            </div>
-          </div>
         </header>
 
         {/* Scrollable content */}

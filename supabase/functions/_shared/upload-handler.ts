@@ -63,6 +63,12 @@ export interface UploadConfig<TParams> {
 
   /** Function name used in error logs. Defaults to "upload-handler". */
   name?: string;
+
+  /**
+   * Skip JWT verification — for public/anon endpoints (e.g. learner uploads
+   * where no Supabase session exists). userId will be passed as "anon".
+   */
+  skipAuth?: boolean;
 }
 
 export async function handleFileUpload<TParams>(
@@ -79,9 +85,13 @@ export async function handleFileUpload<TParams>(
   }
 
   try {
-    const user = await verifyAuth(req.headers.get("Authorization"));
-    if (!user?.id) {
-      return createErrorResponse("Authentification requise", 401);
+    let userId = "anon";
+    if (!config.skipAuth) {
+      const user = await verifyAuth(req.headers.get("Authorization"));
+      if (!user?.id) {
+        return createErrorResponse("Authentification requise", 401);
+      }
+      userId = user.id;
     }
 
     const form = await req.formData();
@@ -110,7 +120,7 @@ export async function handleFileUpload<TParams>(
     const admin = createClient(supabaseUrl, serviceKey);
 
     if (config.authorize) {
-      const allowed = await config.authorize(admin, user.id, params);
+      const allowed = await config.authorize(admin, userId, params);
       if (!allowed) {
         return createErrorResponse("Accès refusé", 403);
       }
@@ -151,7 +161,7 @@ export async function handleFileUpload<TParams>(
 
     let responseData: Record<string, unknown>;
     try {
-      responseData = await config.persist(admin, params, fileUrl, filePath, file, user.id);
+      responseData = await config.persist(admin, params, fileUrl, filePath, file, userId);
     } catch (persistError) {
       console.error(`[${fnName}] persist error — rolling back storage`, persistError);
       await admin.storage.from(config.bucket).remove([filePath]);

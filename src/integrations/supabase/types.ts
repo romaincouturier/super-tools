@@ -3781,6 +3781,33 @@ export type Database = {
           },
         ]
       }
+      learner_profiles: {
+        Row: {
+          email: string
+          first_name: string | null
+          last_name: string | null
+          fonction: string | null
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          email: string
+          first_name?: string | null
+          last_name?: string | null
+          fonction?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          email?: string
+          first_name?: string | null
+          last_name?: string | null
+          fonction?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lms_modules: {
         Row: {
           course_id: string
