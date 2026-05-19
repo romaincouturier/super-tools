@@ -13,4 +13,6 @@ export interface AddParticipantResponse {
   elearningAccessSent: boolean;
   elearningMode: "magic_link" | "woocommerce" | null;
   couponGenerated: boolean;
+  conventionGenerated: boolean;
+  conventionEmailSent: boolean;
 }
