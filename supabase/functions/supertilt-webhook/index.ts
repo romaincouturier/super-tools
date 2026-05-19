@@ -621,6 +621,55 @@ Deno.serve(async (req: Request): Promise<Response> => {
           console.error("Failed to queue email for item:", e);
         }
       }
+     } catch (itemErr) {
+        const msg = itemErr instanceof Error ? itemErr.message : String(itemErr);
+        console.error(`Line item processing failed (product ${item.product_id}):`, msg);
+        // Safety net: ensure the orphan line item is visible in the inbox
+        await (admin as any).from("order_items").upsert({
+          woocommerce_order_id: wooOrderId,
+          wc_order_id: order.id,
+          wc_product_id: item.product_id,
+          product_name: item.name,
+          game_id: null,
+          game_type: null,
+          quantity: item.quantity,
+          unit_price: item.price,
+          line_total: parseFloat(item.total ?? "0"),
+          kanban_status: "to_validate",
+          block_reason: `Erreur de traitement automatique : ${msg}`,
+          validation_status: "pending",
+          raw_line_item: item,
+        }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+        results.items_to_validate++;
+      }
+    }
+
+    // ── Safety net: if the order produced no order_items at all,
+    //    insert orphan rows so it surfaces in the WooCommerce inbox.
+    const { count: itemsCount } = await (admin as any)
+      .from("order_items")
+      .select("id", { count: "exact", head: true })
+      .eq("woocommerce_order_id", wooOrderId);
+
+    if ((itemsCount ?? 0) === 0 && (order.line_items?.length ?? 0) > 0) {
+      console.warn(`[supertilt-webhook] Order #${order.id} produced 0 order_items — inserting orphans`);
+      for (const item of order.line_items ?? []) {
+        await (admin as any).from("order_items").upsert({
+          woocommerce_order_id: wooOrderId,
+          wc_order_id: order.id,
+          wc_product_id: item.product_id,
+          product_name: item.name,
+          game_id: null,
+          game_type: null,
+          quantity: item.quantity,
+          unit_price: item.price,
+          line_total: parseFloat(item.total ?? "0"),
+          kanban_status: "to_validate",
+          block_reason: `Commande non routée automatiquement — aucune ligne n'a pu être traitée (produit #${item.product_id})`,
+          validation_status: "pending",
+          raw_line_item: item,
+        }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+      }
     }
 
     await updateLog({ status: "processed", response_status: 200, wc_order_id: order.id, processed_at: new Date().toISOString() });
