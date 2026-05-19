@@ -14,15 +14,40 @@ export default function ExerciseBlockViewer({ content }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length) return null;
+  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url) return null;
 
   const checklistItems = (content.checklist_items || []).filter((i) => i.label.trim());
 
   const toggle = (id: string) =>
     setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  const videoUrl = content.video_url;
+  const isYouTube = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be"));
+  const isVimeo = videoUrl && videoUrl.includes("vimeo");
+
   return (
     <ActionBlockShell icon={Pencil} label="Exercice">
+      {videoUrl && (
+        <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted mb-3">
+          {isYouTube ? (
+            <iframe
+              src={videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : isVimeo ? (
+            <iframe
+              src={videoUrl.replace("vimeo.com/", "player.vimeo.com/video/")}
+              className="w-full h-full"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+            />
+          ) : (
+            <video src={videoUrl} controls className="w-full h-full" />
+          )}
+        </div>
+      )}
       {content.prompt_html && (
         <div
           className="prose prose-sm max-w-none break-words"

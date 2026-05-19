@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Video } from "lucide-react";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { cryptoRandomId } from "@/types/lms-blocks";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
@@ -10,6 +10,32 @@ interface Props {
   content: ExerciseBlockContent;
   onChange: (content: ExerciseBlockContent) => void;
   slim?: boolean;
+}
+
+function VideoPreview({ url }: { url: string }) {
+  const isYouTube = url.includes("youtube") || url.includes("youtu.be");
+  const isVimeo = url.includes("vimeo");
+  return (
+    <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted">
+      {isYouTube ? (
+        <iframe
+          src={url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      ) : isVimeo ? (
+        <iframe
+          src={url.replace("vimeo.com/", "player.vimeo.com/video/")}
+          className="w-full h-full"
+          allow="autoplay; fullscreen"
+          allowFullScreen
+        />
+      ) : (
+        <video src={url} controls className="w-full h-full" />
+      )}
+    </div>
+  );
 }
 
 export default function ExerciseBlockEditor({ content, onChange, slim }: Props) {
@@ -47,6 +73,7 @@ export default function ExerciseBlockEditor({ content, onChange, slim }: Props) 
   if (slim) {
     return (
       <div className="space-y-3">
+        {content.video_url && <VideoPreview url={content.video_url} />}
         <RichTextEditor
           content={content.prompt_html || ""}
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
@@ -89,6 +116,21 @@ export default function ExerciseBlockEditor({ content, onChange, slim }: Props) 
 
   return (
     <div className="space-y-3">
+      {/* Video de consigne */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Video className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm">Vidéo de consigne (optionnel)</Label>
+        </div>
+        <Input
+          value={content.video_url || ""}
+          onChange={(e) => onChange({ ...content, video_url: e.target.value || null })}
+          placeholder="URL YouTube, Vimeo ou lien direct…"
+          type="url"
+        />
+        {content.video_url && <VideoPreview url={content.video_url} />}
+      </div>
+
       <div>
         <Label>Énoncé de l'exercice</Label>
         <RichTextEditor

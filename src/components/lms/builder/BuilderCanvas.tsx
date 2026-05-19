@@ -9,6 +9,7 @@ import {
   useDuplicateLessonBlock,
 } from "@/hooks/useLmsBlocks";
 import { buildBlockTree } from "@/services/lms-blocks";
+import type { BlockTreeNode } from "@/services/lms-blocks";
 import type { LessonBlockType, LessonBlockContent } from "@/types/lms-blocks";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -18,15 +19,18 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  useDroppable,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
+  useSortable,
 } from "@dnd-kit/sortable";
-import BlockTreeNodeView, { dropzoneId, parseDropzoneId } from "@/components/lms/blocks/BlockTreeNode";
-import { useDroppable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { dropzoneId, parseDropzoneId } from "@/components/lms/blocks/BlockTreeNode";
+import BlockEditCard from "@/components/lms/blocks/BlockEditCard";
 import { cn } from "@/lib/utils";
 import BuilderBlockWrapper from "./BuilderBlockWrapper";
 import BuilderInsertMenu from "./BuilderInsertMenu";
@@ -310,27 +314,19 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
               <RootDropzone hasChildren={tree.length > 0} density={density}>
                 <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
                   {tree.map((node) => (
-                    <BuilderBlockWrapper
+                    <SortableBuilderBlock
                       key={node.block.id}
+                      node={node}
+                      lessonId={lesson.id}
+                      courseId={courseId}
                       blockRadius={blockRadius}
                       density={density}
                       onDelete={() => handleDelete(node.block.id)}
                       onDuplicate={() => handleDuplicate(node.block.id)}
                       onInsertAfter={(type) => handleAdd(type, null)}
-                    >
-                      <BlockTreeNodeView
-                        node={node}
-                        parentId={null}
-                        lessonId={lesson.id}
-                        courseId={courseId}
-                        onUpdateContent={handleUpdateContent}
-                        onToggleHidden={handleToggleHidden}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                        onAddChild={(parentId, type) => handleAdd(type, parentId)}
-                        slim
-                      />
-                    </BuilderBlockWrapper>
+                      onUpdateContent={handleUpdateContent}
+                      onToggleHidden={handleToggleHidden}
+                    />
                   ))}
                 </SortableContext>
               </RootDropzone>
@@ -339,6 +335,67 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function SortableBuilderBlock({
+  node,
+  lessonId,
+  courseId,
+  blockRadius,
+  density,
+  onDelete,
+  onDuplicate,
+  onInsertAfter,
+  onUpdateContent,
+  onToggleHidden,
+}: {
+  node: BlockTreeNode;
+  lessonId: string;
+  courseId: string;
+  blockRadius: number;
+  density: "compact" | "normal" | "spacious";
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onInsertAfter: (type: LessonBlockType) => void;
+  onUpdateContent: (blockId: string, content: LessonBlockContent) => Promise<void>;
+  onToggleHidden: (blockId: string, hidden: boolean) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: node.block.id,
+    data: { type: "block", parentId: null, blockId: node.block.id },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : undefined,
+        zIndex: isDragging ? 10 : undefined,
+      }}
+    >
+      <BuilderBlockWrapper
+        blockRadius={blockRadius}
+        density={density}
+        onDelete={onDelete}
+        onDuplicate={onDuplicate}
+        onInsertAfter={onInsertAfter}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      >
+        <BlockEditCard
+          block={node.block}
+          lessonId={lessonId}
+          courseId={courseId}
+          onUpdateContent={(content) => onUpdateContent(node.block.id, content)}
+          onToggleHidden={(hidden) => onToggleHidden(node.block.id, hidden)}
+          onDelete={onDelete}
+          onDuplicate={onDuplicate}
+          slim
+        />
+      </BuilderBlockWrapper>
     </div>
   );
 }
