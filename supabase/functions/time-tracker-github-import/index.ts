@@ -10,6 +10,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const REPO = "romaincouturier/super-tools";
 const GITHUB_API = "https://api.github.com";
+const RESPONSE_BUDGET_MS = 115_000;
+const GITHUB_FETCH_TIMEOUT_MS = 12_000;
+const AI_FETCH_TIMEOUT_MS = 25_000;
+const AI_CHUNK_SIZE = 6;
+const AI_CONCURRENCY = 2;
 
 interface GitHubPR {
   number: number;
@@ -32,7 +37,35 @@ interface ProposedEntry {
   github_pr_url: string;
 }
 
-async function fetchAllMergedPRs(token: string, since: string, until: string): Promise<GitHubPR[]> {
+function remainingBudget(deadline: number): number {
+  return deadline - Date.now();
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function fallbackEstimate(pr: GitHubPR): number {
+  const churn = pr.additions + pr.deletions;
+  if (pr.changed_files > 15 || churn > 500 || pr.commits > 8) return 360;
+  if (pr.changed_files > 5 || churn > 200 || pr.commits > 3) return 180;
+  if (pr.changed_files > 2 || churn > 50) return 90;
+  return 60;
+}
+
+function fallbackDescription(pr: GitHubPR): string {
+  const labels = pr.labels.map((l) => l.name).filter(Boolean).join(", ");
+  const details = `${pr.changed_files} fichier${pr.changed_files > 1 ? "s" : ""} modifié${pr.changed_files > 1 ? "s" : ""}, ${pr.commits} commit${pr.commits > 1 ? "s" : ""}, +${pr.additions}/-${pr.deletions} lignes`;
+  return `Travail réalisé sur ${pr.title}. Analyse, développement et validation de la PR #${pr.number} (${details}${labels ? `, labels : ${labels}` : ""}).`;
+}
+
+async function fetchAllMergedPRs(token: string, since: string, until: string, deadline: number): Promise<GitHubPR[]> {
   const prs: GitHubPR[] = [];
   let page = 1;
 
