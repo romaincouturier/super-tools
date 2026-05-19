@@ -427,6 +427,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           city?: string; postcode?: string; country?: string;
         } | undefined;
 
+        // Prix HT de la ligne
+        const linePriceHt = parseFloat(item.total ?? "0");
+
         // Détermine si la session trouvée est e-learning (pour l'envoi du lien d'accès)
         const trainingFormat = (training.format_formation ?? "").toLowerCase();
         const isElearningSession = trainingFormat.includes("e_learning") || trainingFormat.includes("elearning") || trainingFormat.includes("classe_virtuelle");
