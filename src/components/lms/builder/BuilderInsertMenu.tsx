@@ -42,9 +42,10 @@ interface Props {
   onInsert: (type: LessonBlockType) => void;
   onClose: () => void;
   anchorRef: React.RefObject<HTMLElement>;
+  placement?: "top" | "bottom";
 }
 
-export default function BuilderInsertMenu({ onInsert, onClose, anchorRef }: Props) {
+export default function BuilderInsertMenu({ onInsert, onClose, anchorRef, placement = "bottom" }: Props) {
   const [search, setSearch] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
