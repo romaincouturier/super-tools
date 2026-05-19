@@ -1789,6 +1789,7 @@ export type Database = {
           audit_metadata: Json | null
           client_name: string
           created_at: string
+          crm_card_id: string | null
           devis_type: string
           email_opened_at: string | null
           email_sent_at: string | null
@@ -1808,6 +1809,7 @@ export type Database = {
           status: string
           token: string
           total_amount_ht: number | null
+          training_id: string | null
           updated_at: string
           user_agent: string | null
         }
@@ -1816,6 +1818,7 @@ export type Database = {
           audit_metadata?: Json | null
           client_name: string
           created_at?: string
+          crm_card_id?: string | null
           devis_type: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -1835,6 +1838,7 @@ export type Database = {
           status?: string
           token: string
           total_amount_ht?: number | null
+          training_id?: string | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1843,6 +1847,7 @@ export type Database = {
           audit_metadata?: Json | null
           client_name?: string
           created_at?: string
+          crm_card_id?: string | null
           devis_type?: string
           email_opened_at?: string | null
           email_sent_at?: string | null
@@ -1862,6 +1867,7 @@ export type Database = {
           status?: string
           token?: string
           total_amount_ht?: number | null
+          training_id?: string | null
           updated_at?: string
           user_agent?: string | null
         }
@@ -1871,6 +1877,20 @@ export type Database = {
             columns: ["activity_log_id"]
             isOneToOne: false
             referencedRelation: "activity_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_signatures_crm_card_id_fkey"
+            columns: ["crm_card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devis_signatures_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
             referencedColumns: ["id"]
           },
         ]
@@ -3720,6 +3740,47 @@ export type Database = {
           },
         ]
       }
+      lms_messages: {
+        Row: {
+          content: string
+          course_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          learner_email: string
+          sender_email: string
+          sender_role: string
+        }
+        Insert: {
+          content: string
+          course_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email: string
+          sender_email: string
+          sender_role: string
+        }
+        Update: {
+          content?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email?: string
+          sender_email?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_modules: {
         Row: {
           course_id: string
@@ -3770,47 +3831,6 @@ export type Database = {
             columns: ["prerequisite_module_id"]
             isOneToOne: false
             referencedRelation: "lms_modules"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lms_messages: {
-        Row: {
-          content: string
-          course_id: string
-          created_at: string
-          id: string
-          is_read: boolean
-          learner_email: string
-          sender_email: string
-          sender_role: string
-        }
-        Insert: {
-          content: string
-          course_id: string
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          learner_email: string
-          sender_email: string
-          sender_role: string
-        }
-        Update: {
-          content?: string
-          course_id?: string
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          learner_email?: string
-          sender_email?: string
-          sender_role?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lms_messages_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "lms_courses"
             referencedColumns: ["id"]
           },
         ]
