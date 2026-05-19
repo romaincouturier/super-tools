@@ -116,6 +116,20 @@ function parseFrenchDates(text: string): { start: string } | null {
   return null;
 }
 
+function subtractWorkingDays(
+  fromDate: Date,
+  daysToSubtract: number,
+  workingDays: boolean[] = [false, true, true, true, true, true, false],
+): Date {
+  const result = new Date(fromDate);
+  let remaining = daysToSubtract;
+  while (remaining > 0) {
+    result.setDate(result.getDate() - 1);
+    if (workingDays[result.getDay()]) remaining--;
+  }
+  return result;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
@@ -278,12 +292,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load formation formulas (e-learning products) ────────────
     const { data: formulas } = await (admin as any)
       .from("formation_formulas")
-      .select("id, name, formation_config_id, woocommerce_product_id, formation_configs(formation_name, format_formation)")
+      .select("id, name, coaching_sessions_count, formation_config_id, woocommerce_product_id, formation_configs(formation_name, format_formation)")
       .not("woocommerce_product_id", "is", null);
 
     type FormulaRow = {
       id: string;
       name: string;
+      coaching_sessions_count: number | null;
       formation_config_id: string | null;
       woocommerce_product_id: number;
       formation_configs: { formation_name: string; format_formation: string | null } | null;
@@ -292,15 +307,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ((formulas ?? []) as FormulaRow[]).map((f) => [f.woocommerce_product_id, f]),
     );
 
-    // ── Load e-learning access mode from app_settings ────────────
+    // ── Load app_settings (e-learning access mode + email scheduling params) ────
     const { data: appSettingsRows } = await (admin as any)
       .from("app_settings")
       .select("setting_key, setting_value")
-      .in("setting_key", ["elearning_access_mode"]);
+      .in("setting_key", ["elearning_access_mode", "working_days", "delay_needs_survey_days", "delay_trainer_summary_days"]);
     const getAppSetting = (k: string) =>
       (appSettingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
     const elearningAccessMode = getAppSetting("elearning_access_mode") || "magic_link";
+    const workingDaysArr: boolean[] = (() => {
+      try {
+        const p = JSON.parse(getAppSetting("working_days"));
+        return Array.isArray(p) && p.length === 7 ? p : [false, true, true, true, true, true, false];
+      } catch { return [false, true, true, true, true, true, false]; }
+    })();
+    const needsSurveyDelay = parseInt(getAppSetting("delay_needs_survey_days") || "7", 10) || 7;
+    const trainerSummaryDelay = parseInt(getAppSetting("delay_trainer_summary_days") || "1", 10) || 1;
 
     // ── Process each line item ───────────────────────────────────
     const results = { items_processed: 0, items_to_validate: 0, emails_queued: 0, formations_processed: 0 };
@@ -461,6 +484,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const shouldSendWelcomeNow = !isElearningSession
           && (emailMode.status !== "non_envoye" || emailMode.ongoing);
 
+        const coachingTotal = formula.coaching_sessions_count ?? 0;
+        const coachingDeadline = coachingTotal > 0
+          ? (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split("T")[0]; })()
+          : null;
+
         let participantId: string;
         if (existing) {
           participantId = existing.id;
@@ -482,8 +510,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
               payment_mode: "online",
               needs_survey_token: needsSurveyToken,
               needs_survey_status: needsSurveyStatus,
-              coaching_sessions_total: 0,
+              coaching_sessions_total: coachingTotal,
               coaching_sessions_completed: 0,
+              coaching_deadline: coachingDeadline,
               formula: formula.name || null,
               formula_id: formula.id || null,
               notes: `Vente WooCommerce #${order.id} — ${item.name}`,
@@ -502,6 +531,70 @@ Deno.serve(async (req: Request): Promise<Response> => {
             token: needsSurveyToken,
             etat: needsSurveyStatus,
           });
+
+          // Schedule needs_survey email (future non-e-learning, non-ongoing trainings)
+          if (training.start_date && !isElearningSession && needsSurveyStatus !== "non_envoye" && !emailMode.ongoing) {
+            try {
+              const startDate = new Date(`${training.start_date}T00:00:00`);
+              const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
+              if (surveyDate > new Date()) {
+                await (admin as any).from("scheduled_emails").insert({
+                  training_id: training.id,
+                  participant_id: participantId,
+                  email_type: "needs_survey",
+                  scheduled_for: `${surveyDate.toISOString().split("T")[0]}T09:00:00`,
+                  status: "pending",
+                });
+              }
+            } catch (schedErr) {
+              console.error("Failed to schedule needs_survey email:", schedErr);
+            }
+          }
+
+          // Schedule welcome email J-7 (when training is > 7 days away)
+          if (training.start_date && !isElearningSession && emailMode.status === "programme") {
+            try {
+              const startDate = new Date(`${training.start_date}T00:00:00`);
+              const welcomeDate = subtractWorkingDays(startDate, 7, workingDaysArr);
+              if (welcomeDate > new Date()) {
+                await (admin as any).from("scheduled_emails").insert({
+                  training_id: training.id,
+                  participant_id: participantId,
+                  email_type: "welcome",
+                  scheduled_for: `${welcomeDate.toISOString().split("T")[0]}T09:00:00`,
+                  status: "pending",
+                });
+              }
+            } catch (schedErr) {
+              console.error("Failed to schedule welcome J-7 email:", schedErr);
+            }
+          }
+        }
+
+        // Schedule trainer_summary email (once per training, if not already scheduled)
+        if (training.start_date && needsSurveyStatus !== "non_envoye") {
+          try {
+            const { data: existingTrainerSummary } = await (admin as any)
+              .from("scheduled_emails")
+              .select("id")
+              .eq("training_id", training.id)
+              .eq("email_type", "trainer_summary")
+              .limit(1);
+            if (!existingTrainerSummary || existingTrainerSummary.length === 0) {
+              const startDate = new Date(`${training.start_date}T00:00:00`);
+              const summaryDate = subtractWorkingDays(startDate, trainerSummaryDelay, workingDaysArr);
+              if (summaryDate > new Date()) {
+                await (admin as any).from("scheduled_emails").insert({
+                  training_id: training.id,
+                  email_type: "trainer_summary",
+                  scheduled_for: `${summaryDate.toISOString().split("T")[0]}T07:00:00`,
+                  status: "pending",
+                });
+              }
+            }
+          } catch (schedErr) {
+            console.error("Failed to schedule trainer_summary email:", schedErr);
+          }
         }
 
         // Envoi de la convocation (welcome email) pour les sessions non e-learning
@@ -513,6 +606,35 @@ Deno.serve(async (req: Request): Promise<Response> => {
             });
           } catch (welcomeErr) {
             console.error("send-welcome-email failed:", welcomeErr);
+          }
+        }
+
+        // Catch-up emargement pour les formations en cours (mid-session add)
+        if (emailMode.ongoing && !isElearningSession) {
+          try {
+            const { data: sentSlots } = await (admin as any)
+              .from("attendance_signatures")
+              .select("schedule_date, period")
+              .eq("training_id", training.id)
+              .not("email_sent_at", "is", null);
+            const uniqueSlots = Array.from(
+              new Map(
+                ((sentSlots ?? []) as Array<{ schedule_date: string; period: string }>).map(
+                  (r) => [`${r.schedule_date}|${r.period}`, r],
+                ),
+              ).values(),
+            );
+            for (const slot of uniqueSlots) {
+              try {
+                await (admin as any).functions.invoke("send-attendance-signature-request", {
+                  body: { trainingId: training.id, scheduleDate: slot.schedule_date, period: slot.period, participantIds: [participantId] },
+                });
+              } catch (slotErr) {
+                console.error("Catch-up attendance slot failed:", slot, slotErr);
+              }
+            }
+          } catch (catchUpErr) {
+            console.error("Catch-up attendance failed:", catchUpErr);
           }
         }
 
