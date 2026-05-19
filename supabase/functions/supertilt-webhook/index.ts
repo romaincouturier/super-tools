@@ -455,8 +455,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         };
         const emailMode = computeEmailMode(training.start_date, training.end_date);
         const needsSurveyStatus = emailMode.status;
-        // L'e-learning a son propre flux d'accès → pas de convocation classique
-        const shouldSendWelcomeNow = !isElearningSession && (emailMode.sendNow || emailMode.ongoing);
+        // Aligné sur useAddParticipant : convocation envoyée immédiatement dès que
+        // la formation n'est pas passée (ou si elle est en cours, mid-session add).
+        // L'e-learning a son propre flux d'accès → pas de convocation classique.
+        const shouldSendWelcomeNow = !isElearningSession
+          && (emailMode.status !== "non_envoye" || emailMode.ongoing);
 
         let participantId: string;
         if (existing) {
