@@ -247,10 +247,9 @@ Format attendu :
   }
 }
 
-async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
+async function generateEntries(prs: GitHubPR[], deadline: number): Promise<ProposedEntry[]> {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
 
-  const deadline = Date.now() + RESPONSE_BUDGET_MS;
   // Smaller batches reduce AI latency and avoid edge idle timeouts.
   const CHUNK = AI_CHUNK_SIZE;
   const batches: GitHubPR[][] = [];
@@ -352,7 +351,8 @@ serve(async (req) => {
   }
 
   try {
-    const prs = await fetchAllMergedPRs(githubToken, since + "T00:00:00Z", until + "T23:59:59Z");
+    const deadline = Date.now() + RESPONSE_BUDGET_MS;
+    const prs = await fetchAllMergedPRs(githubToken, since + "T00:00:00Z", until + "T23:59:59Z", deadline);
 
     if (prs.length === 0) {
       return new Response(JSON.stringify({ entries: [], message: "No merged PRs found in the given period." }), {
@@ -361,7 +361,7 @@ serve(async (req) => {
       });
     }
 
-    const entries = await generateEntries(prs);
+    const entries = await generateEntries(prs, deadline);
 
     return new Response(JSON.stringify({ entries }), {
       status: 200,
