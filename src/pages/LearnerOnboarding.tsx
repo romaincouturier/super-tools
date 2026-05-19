@@ -34,6 +34,7 @@ export default function LearnerOnboarding() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [usedTokenBanner, setUsedTokenBanner] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
+  const [hasAccount, setHasAccount] = useState(false);
 
   const strength = checkPasswordStrength(password);
   const isStrongEnough = strength.score >= 4;
@@ -61,6 +62,7 @@ export default function LearnerOnboarding() {
           setErrorMsg("Ce lien a expiré. Connectez-vous directement depuis votre espace apprenant ou contactez votre formateur.");
         } else {
           setEmail(result.email ?? "");
+          setHasAccount(!!result.has_account);
           if (result.status === "used" || result.has_account) {
             setUsedTokenBanner(result.status === "used");
             setMode("login");
@@ -342,31 +344,33 @@ export default function LearnerOnboarding() {
                     : "Me connecter"}
               </Button>
 
-              <div className="text-center text-sm text-muted-foreground">
-                {mode === "create" ? (
-                  <>
-                    Vous avez déjà un compte ?{" "}
-                    <button
-                      type="button"
-                      onClick={() => { setMode("login"); setPassword(""); setErrorMsg(null); }}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      Se connecter
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    Vous n'avez pas encore de compte ?{" "}
-                    <button
-                      type="button"
-                      onClick={() => { setMode("create"); setPassword(""); setErrorMsg(null); setUsedTokenBanner(false); }}
-                      className="text-primary hover:underline font-medium"
-                    >
-                      Créer un compte
-                    </button>
-                  </>
-                )}
-              </div>
+              {!hasAccount && (
+                <div className="text-center text-sm text-muted-foreground">
+                  {mode === "create" ? (
+                    <>
+                      Vous avez déjà un compte ?{" "}
+                      <button
+                        type="button"
+                        onClick={() => { setMode("login"); setPassword(""); setErrorMsg(null); }}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Se connecter
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Vous n'avez pas encore de compte ?{" "}
+                      <button
+                        type="button"
+                        onClick={() => { setMode("create"); setPassword(""); setErrorMsg(null); setUsedTokenBanner(false); }}
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Créer un compte
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
 
               {mode === "login" && (
                 <div className="text-center">
