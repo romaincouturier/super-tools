@@ -20,6 +20,7 @@ interface Props {
 }
 
 const VARIANTS: { value: ButtonVariant; label: string }[] = [
+  { value: "supertilt", label: "SuperTilt (CTA jaune)" },
   { value: "primary", label: "Principal" },
   { value: "secondary", label: "Secondaire" },
   { value: "outline", label: "Contour" },
