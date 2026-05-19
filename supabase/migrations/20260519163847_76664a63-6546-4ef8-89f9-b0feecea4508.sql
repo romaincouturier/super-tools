@@ -1,0 +1,1 @@
+UPDATE public.testimonials SET status='pending_review', published_at=NULL WHERE id='3533da21-8ba3-4d45-a668-1a446615de4c';

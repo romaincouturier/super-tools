@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw } from "lucide-react";
+import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -30,6 +30,7 @@ function StatusBadge({ status }: { status: TestimonialStatus }) {
 }
 
 function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }) {
+  const driveUrl = t.drive_file_id ? `https://drive.google.com/file/d/${t.drive_file_id}/view` : null;
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <CardContent className="p-4 space-y-2">
@@ -44,7 +45,20 @@ function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }
         {t.raw_transcript && (
           <p className="text-xs text-muted-foreground line-clamp-2 italic">"{t.raw_transcript.slice(0, 150)}…"</p>
         )}
-        <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("fr-FR")}</p>
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("fr-FR")}</p>
+          {driveUrl && (
+            <a
+              href={driveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <Download className="h-3 w-3" /> Vidéo
+            </a>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
