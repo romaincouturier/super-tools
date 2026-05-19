@@ -110,6 +110,24 @@ async function fetchAllMergedPRs(token: string, since: string, until: string, de
     const BATCH_SIZE = 10;
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE);
+      if (remainingBudget(deadline) < 20_000) {
+        console.warn(`Skipping GitHub PR detail calls for ${candidates.length - i} PRs: response budget nearly exhausted`);
+        for (const pr of candidates.slice(i)) {
+          prs.push({
+            number: pr.number,
+            title: pr.title,
+            body: pr.body || "",
+            merged_at: pr.merged_at,
+            html_url: pr.html_url,
+            commits: 1,
+            additions: 0,
+            deletions: 0,
+            changed_files: 0,
+            labels: pr.labels || [],
+          });
+        }
+        break;
+      }
       const results = await Promise.all(batch.map(async (pr) => {
         let detail: any = {};
         try {
