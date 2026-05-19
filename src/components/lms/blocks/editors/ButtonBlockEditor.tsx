@@ -32,8 +32,22 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
   if (slim) {
     const isPrimary = content.variant === "primary";
     const isOutline = content.variant === "outline";
+    const isSupertilt = content.variant === "supertilt";
 
-    const btnStyle: React.CSSProperties = isPrimary
+    const btnStyle: React.CSSProperties = isSupertilt
+      ? {
+          background: "#FFD100",
+          color: "#101820",
+          border: "none",
+          borderRadius: 20,
+          padding: "0.75rem 1.75rem",
+          fontWeight: 600,
+          fontSize: "0.9375rem",
+          cursor: "text",
+          display: "inline-block",
+          boxShadow: "0 4px 12px rgba(255, 209, 0, 0.35)",
+        }
+      : isPrimary
       ? {
           background: "var(--st-ink)",
           color: "#fff",
