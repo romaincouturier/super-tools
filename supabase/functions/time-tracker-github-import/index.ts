@@ -163,7 +163,7 @@ Format attendu :
     },
     body: JSON.stringify({
       model: CLAUDE_ADVANCED,
-      max_tokens: 4096,
+      max_tokens: 16000,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -176,9 +176,40 @@ Format attendu :
 
   const aiData = await response.json();
   const content = aiData.content?.[0]?.text || "";
+  console.log("AI stop_reason:", aiData.stop_reason, "content length:", content.length);
 
-  const jsonMatch = content.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error("No JSON array in AI response");
+  // Robust JSON array extraction with repair for truncated responses
+  let cleaned = content.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const startIdx = cleaned.indexOf("[");
+  if (startIdx === -1) {
+    console.error("AI response preview:", content.slice(0, 500));
+    throw new Error("No JSON array in AI response");
+  }
+  cleaned = cleaned.slice(startIdx);
+  const lastClose = cleaned.lastIndexOf("]");
+  if (lastClose !== -1) cleaned = cleaned.slice(0, lastClose + 1);
+
+  let aiResults: Array<{ pr_number: number; duration_minutes: number; description: string }>;
+  try {
+    aiResults = JSON.parse(cleaned);
+  } catch {
+    // Repair: extract complete objects only
+    const objects: string[] = [];
+    let depth = 0, start = -1, inStr = false, esc = false;
+    for (let i = 0; i < cleaned.length; i++) {
+      const c = cleaned[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\") { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === "{") { if (depth === 0) start = i; depth++; }
+      else if (c === "}") { depth--; if (depth === 0 && start !== -1) { objects.push(cleaned.slice(start, i + 1)); start = -1; } }
+    }
+    aiResults = objects.map((o) => { try { return JSON.parse(o); } catch { return null; } }).filter(Boolean) as any;
+    if (aiResults.length === 0) throw new Error("Failed to parse AI response as JSON array");
+    console.warn(`Recovered ${aiResults.length} entries from truncated AI response`);
+  }
+  const jsonMatch = [cleaned]; if (!jsonMatch) throw new Error("unreachable");
 
   const aiResults: Array<{ pr_number: number; duration_minutes: number; description: string }> =
     JSON.parse(jsonMatch[0]);
