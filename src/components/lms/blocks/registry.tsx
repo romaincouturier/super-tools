@@ -18,6 +18,7 @@ import {
   Minus,
   MoveVertical,
   Table as TableIcon,
+  Code2,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType, LessonBlockKind } from "@/types/lms-blocks";
