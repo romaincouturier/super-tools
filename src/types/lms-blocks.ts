@@ -205,6 +205,26 @@ export interface WorkDepositBlockContent {
   feedback_enabled?: boolean;
 }
 
+// ── Shortcode block ─────────────────────────────────────────────────
+
+/** Codes courts disponibles — formulaires intégrés au cours. */
+export type ShortcodeKind = "besoins" | "evaluation";
+
+export interface ShortcodeBlockContent {
+  /** Type de formulaire à intégrer. */
+  code: ShortcodeKind;
+  /**
+   * ID LearnDash du cours (numérique). Optionnel : si vide, l'apprenant
+   * doit accéder au formulaire depuis ses emails. Surchargeable par
+   * l'auteur pour pointer vers un cours WP spécifique.
+   */
+  course_id?: string | null;
+  /** Titre optionnel à afficher au-dessus du formulaire intégré. */
+  title?: string | null;
+}
+
+
+
 // ── Layout block contents ───────────────────────────────────────────
 
 export type SectionBackground = "default" | "muted" | "primary" | "accent";
