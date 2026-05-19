@@ -191,6 +191,14 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       return <DividerBlockViewer content={block.content as DividerBlockContent} />;
     case "spacer":
       return <SpacerBlockViewer content={block.content as SpacerBlockContent} />;
+    case "shortcode":
+      return (
+        <ShortcodeBlockViewer
+          content={block.content as ShortcodeBlockContent}
+          learnerEmail={learnerEmail}
+          fallbackCourseId={shortcodeCourseId}
+        />
+      );
     default:
       return null;
   }
