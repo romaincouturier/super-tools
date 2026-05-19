@@ -150,7 +150,12 @@ async function fetchAllMergedPRs(token: string, since: string, until: string, de
   return prs;
 }
 
-async function generateEntriesForBatch(prs: GitHubPR[]): Promise<Array<{ pr_number: number; duration_minutes: number; description: string }>> {
+async function generateEntriesForBatch(prs: GitHubPR[], deadline: number): Promise<Array<{ pr_number: number; duration_minutes: number; description: string }>> {
+  if (remainingBudget(deadline) < AI_FETCH_TIMEOUT_MS + 5_000) {
+    console.warn(`Skipping AI batch (${prs.length} PRs): response budget nearly exhausted`);
+    return [];
+  }
+
   const prSummaries = prs.map((pr) => {
     const labelNames = pr.labels.map((l) => l.name).join(", ");
     const body = (pr.body || "").slice(0, 400);
@@ -188,7 +193,7 @@ Pour chaque PR, génère un objet JSON avec :
 Format attendu :
 [{"pr_number":123,"duration_minutes":90,"description":"..."}]`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -201,7 +206,7 @@ Format attendu :
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
-  });
+  }, Math.min(AI_FETCH_TIMEOUT_MS, Math.max(5_000, remainingBudget(deadline) - 5_000)));
 
   if (!response.ok) {
     const errText = await response.text();
@@ -245,12 +250,25 @@ Format attendu :
 async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
 
-  // Chunk into batches of 12 PRs, run in parallel to stay under 150s
-  const CHUNK = 12;
+  const deadline = Date.now() + RESPONSE_BUDGET_MS;
+  // Smaller batches reduce AI latency and avoid edge idle timeouts.
+  const CHUNK = AI_CHUNK_SIZE;
   const batches: GitHubPR[][] = [];
   for (let i = 0; i < prs.length; i += CHUNK) batches.push(prs.slice(i, i + CHUNK));
 
-  const results = await Promise.all(batches.map((b) => generateEntriesForBatch(b)));
+  const results: Array<Array<{ pr_number: number; duration_minutes: number; description: string }>> = [];
+  for (let i = 0; i < batches.length; i += AI_CONCURRENCY) {
+    if (remainingBudget(deadline) < AI_FETCH_TIMEOUT_MS + 5_000) {
+      console.warn(`Stopping AI analysis early after ${i}/${batches.length} batches`);
+      break;
+    }
+    const group = batches.slice(i, i + AI_CONCURRENCY);
+    const groupResults = await Promise.all(group.map((b) => generateEntriesForBatch(b, deadline).catch((err) => {
+      console.warn("AI batch failed, using fallback entries:", err instanceof Error ? err.message : err);
+      return [];
+    })));
+    results.push(...groupResults);
+  }
   const aiResults = results.flat();
   const resultMap = new Map(aiResults.map((r) => [r.pr_number, r]));
 
@@ -259,8 +277,8 @@ async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
     const ai = resultMap.get(pr.number);
     return {
       entry_date: pr.merged_at!.slice(0, 10),
-      duration_minutes: ai?.duration_minutes ?? 60,
-      description: ai?.description ?? pr.title,
+      duration_minutes: ai?.duration_minutes ?? fallbackEstimate(pr),
+      description: ai?.description ?? fallbackDescription(pr),
       github_pr_number: pr.number,
       github_pr_url: pr.html_url,
     };
