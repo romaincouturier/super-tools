@@ -321,9 +321,9 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       courseId={courseId}
                       blockRadius={blockRadius}
                       density={density}
-                      onDelete={() => handleDelete(node.block.id)}
-                      onDuplicate={() => handleDuplicate(node.block.id)}
-                      onInsertAfter={(type) => handleAdd(type, null)}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                      onAdd={handleAdd}
                       onUpdateContent={handleUpdateContent}
                       onToggleHidden={handleToggleHidden}
                     />
