@@ -454,27 +454,26 @@ export default function LmsCoursePlayer() {
 
               {/* Navigation */}
               <div className="rounded-lg border bg-card p-4 space-y-3">
-                {!completedIds.has(selectedLesson.id) && selectedLesson.lesson_type !== "quiz" && (
-                  <Button
-                    size="lg"
-                    onClick={handleMarkComplete}
-                    disabled={markComplete.isPending}
-                  >
-                    {markComplete.isPending
-                      ? <Spinner className="mr-2" />
-                      : <CheckCircle2 className="w-5 h-5 mr-2" />}
-                    Marquer comme terminé
-                  </Button>
-                )}
-                {completedIds.has(selectedLesson.id) && (
-                  <div className="flex items-center justify-center gap-2 py-1 text-sm font-medium text-primary">
-                    <CheckCircle2 className="w-4 h-4" /> Leçon terminée
-                  </div>
-                )}
                 <div className="flex items-center gap-3">
                   <Button variant="outline" className="flex-1" onClick={goPrev} disabled={currentIndex <= 0}>
                     <ChevronLeft className="w-4 h-4 mr-1" /> Précédent
                   </Button>
+                  {!completedIds.has(selectedLesson.id) && selectedLesson.lesson_type !== "quiz" ? (
+                    <Button
+                      onClick={handleMarkComplete}
+                      disabled={markComplete.isPending}
+                      className="flex-1"
+                    >
+                      {markComplete.isPending
+                        ? <Spinner className="mr-2" />
+                        : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                      Terminé
+                    </Button>
+                  ) : completedIds.has(selectedLesson.id) ? (
+                    <div className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-primary">
+                      <CheckCircle2 className="w-4 h-4" /> Terminé
+                    </div>
+                  ) : null}
                   <Button variant="outline" className="flex-1" onClick={goNext} disabled={currentIndex >= orderedLessons.length - 1}>
                     Suivant <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>

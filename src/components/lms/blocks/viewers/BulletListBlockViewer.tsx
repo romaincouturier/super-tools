@@ -23,7 +23,7 @@ export default function BulletListBlockViewer({ content }: Props) {
   return (
     <div style={textColor ? { color: textColor } : undefined}>
       {content.title && (
-        <p className="mb-2 break-words text-sm leading-relaxed">{content.title}</p>
+        <p className="mb-2 break-words leading-relaxed">{content.title}</p>
       )}
       <ul className={spacingClass}>
         {items.map((item, idx) => (
@@ -35,7 +35,7 @@ export default function BulletListBlockViewer({ content }: Props) {
             >
               {bulletChar}
             </span>
-            <span className="flex-1 min-w-0 break-words text-sm leading-relaxed">{item}</span>
+            <span className="flex-1 min-w-0 break-words leading-relaxed">{item}</span>
           </li>
         ))}
       </ul>
