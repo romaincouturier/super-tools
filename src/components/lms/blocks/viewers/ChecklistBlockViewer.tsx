@@ -34,7 +34,7 @@ export default function ChecklistBlockViewer({ content }: Props) {
             <label
               htmlFor={`checklist-${item.id}`}
               className={cn(
-                "text-sm cursor-pointer flex-1 min-w-0 break-words",
+                "cursor-pointer flex-1 min-w-0 break-words",
                 checked[item.id] && "line-through text-muted-foreground",
               )}
             >

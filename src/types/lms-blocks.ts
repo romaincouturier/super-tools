@@ -144,12 +144,14 @@ export interface ChecklistBlockContent {
 }
 
 export type ButtonVariant = "primary" | "secondary" | "outline" | "supertilt";
+export type ButtonAlignment = "left" | "center" | "right";
 
 export interface ButtonBlockContent {
   label: string;
   url: string;
   variant: ButtonVariant;
   open_in_new_tab: boolean;
+  alignment?: ButtonAlignment;
 }
 
 export interface ExerciseBlockContent {

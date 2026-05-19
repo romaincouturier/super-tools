@@ -14,7 +14,7 @@ export default function KeyPointsBlockViewer({ content }: Props) {
         <Lightbulb className="h-4 w-4 shrink-0 mt-0.5" />
         <p className="font-semibold break-words">{content.title || "À retenir"}</p>
       </div>
-      <ul className="space-y-1.5 text-sm text-amber-950 list-disc pl-5">
+      <ul className="space-y-1.5 text-amber-950 list-disc pl-5">
         {items.map((item, i) => (
           <li key={i} className="break-words">{item}</li>
         ))}

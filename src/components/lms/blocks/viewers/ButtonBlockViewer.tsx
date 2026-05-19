@@ -12,19 +12,26 @@ const VARIANT_TO_BUTTON: Record<Exclude<ButtonVariant, "supertilt">, "default" |
   outline: "outline",
 };
 
+const ALIGN_CLASS: Record<string, string> = {
+  left: "flex justify-start",
+  center: "flex justify-center",
+  right: "flex justify-end",
+};
+
 export default function ButtonBlockViewer({ content }: Props) {
   if (!content.url || !content.label) return null;
   const newTab = content.open_in_new_tab !== false;
+  const alignClass = ALIGN_CLASS[content.alignment ?? "center"];
 
   // SuperTilt brand CTA: yellow #FFD100 background, ink #101820 text, 20px radius
   if (content.variant === "supertilt") {
     return (
-      <div>
+      <div className={alignClass}>
         <a
           href={content.url}
           target={newTab ? "_blank" : undefined}
           rel={newTab ? "noopener noreferrer" : undefined}
-          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto whitespace-normal text-center font-semibold transition-all hover:-translate-y-px hover:shadow-lg"
+          className="inline-flex items-center justify-center gap-2 whitespace-normal text-center font-semibold transition-all hover:-translate-y-px hover:shadow-lg"
           style={{
             background: "#FFD100",
             color: "#101820",
@@ -42,11 +49,11 @@ export default function ButtonBlockViewer({ content }: Props) {
   }
 
   return (
-    <div>
+    <div className={alignClass}>
       <Button
         asChild
         variant={VARIANT_TO_BUTTON[content.variant as Exclude<ButtonVariant, "supertilt">] || "default"}
-        className="w-full sm:w-auto whitespace-normal h-auto min-h-10 py-2 text-center"
+        className="whitespace-normal h-auto min-h-10 py-2 text-center"
       >
         <a
           href={content.url}

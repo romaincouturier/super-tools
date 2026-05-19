@@ -33,7 +33,7 @@ export default function CalloutBlockViewer({ content }: Props) {
       )}
       {content.body_html && (
         <div
-          className="prose prose-sm max-w-none break-words"
+          className="prose max-w-none break-words"
           style={{ color: palette.text }}
           dangerouslySetInnerHTML={{ __html: content.body_html }}
         />
