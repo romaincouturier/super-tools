@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useLesson, useCourse, useCourseModules, useModuleLessons, useUpdateLesson } from "@/hooks/useLms";
+import { useAuth } from "@/hooks/useAuth";
 import BuilderTopbar from "@/components/lms/builder/BuilderTopbar";
 import BuilderSidebar from "@/components/lms/builder/BuilderSidebar";
 import BuilderCanvas from "@/components/lms/builder/BuilderCanvas";
