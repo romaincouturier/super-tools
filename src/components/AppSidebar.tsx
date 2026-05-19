@@ -113,6 +113,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const { hasAny: hasSettingsAlert } = useSettingsAlerts();
   const timeTrackerAlert = useTimeTrackerAlert();
   const routingInboxAlert = useRoutingInboxAlert();
+  const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
+  const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
+
 
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
