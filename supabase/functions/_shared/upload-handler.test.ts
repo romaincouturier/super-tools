@@ -22,10 +22,17 @@ vi.stubGlobal("Deno", { env: { get: mockEnvGet } });
 const mockRemove = vi.fn().mockResolvedValue({ data: null, error: null });
 const mockGetPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://cdn.example.com/file.pdf" } }));
 const mockStorageUpload = vi.fn().mockResolvedValue({ error: null });
+// list() is called after upload to verify the object was written.
+// Return a one-item array whose `name` matches the last path segment.
+const mockList = vi.fn().mockImplementation((_dir: string, opts?: { search?: string }) => ({
+  data: [{ name: opts?.search ?? "file" }],
+  error: null,
+}));
 const mockStorageBucket = {
   upload: mockStorageUpload,
   getPublicUrl: mockGetPublicUrl,
   remove: mockRemove,
+  list: mockList,
 };
 const mockStorageFrom = vi.fn(() => mockStorageBucket);
 const mockCreateClient = vi.fn(() => ({
