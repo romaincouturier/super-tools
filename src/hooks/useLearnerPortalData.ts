@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadDepositFile, createDeposit } from "@/services/lms-work-deposit";
 
 // Dépôts de travaux de l'apprenant
 export function useLearnerWorkDeposits(email: string | null) {
@@ -9,14 +10,53 @@ export function useLearnerWorkDeposits(email: string | null) {
       if (!email) return [];
       const { data, error } = await (supabase as any)
         .from("lms_work_deposits")
-        .select("id, lesson_id, course_id, file_name, file_url, file_mime, comment, visibility, publication_status, created_at, updated_at")
+        .select(`
+          id, lesson_id, course_id, file_name, file_url, file_mime,
+          comment, visibility, publication_status, pedagogical_status,
+          created_at, updated_at,
+          lms_courses ( title ),
+          lms_lessons ( title )
+        `)
         .eq("learner_email", email.toLowerCase())
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
     enabled: !!email,
+  });
+}
+
+// Mutation pour déposer un travail portfolio (libre, sans leçon)
+export function useCreatePortfolioDeposit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      file,
+      caption,
+      courseId,
+      learnerEmail,
+    }: {
+      file: File;
+      caption: string;
+      courseId: string | null;
+      learnerEmail: string;
+    }) => {
+      const uploaded = await uploadDepositFile(file, null, learnerEmail);
+      return createDeposit({
+        lesson_id: null,
+        course_id: courseId,
+        learner_email: learnerEmail,
+        file_url: uploaded.url,
+        file_name: uploaded.name,
+        file_size: uploaded.size,
+        file_mime: uploaded.mime,
+        comment: caption || null,
+        visibility: "shared",
+      });
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["learner_work_deposits", variables.learnerEmail] });
+    },
   });
 }
 

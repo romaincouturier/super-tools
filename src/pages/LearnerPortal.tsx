@@ -15,7 +15,7 @@ import {
   Lock, ChevronRight, ChevronDown, LayoutDashboard,
   Palette, HelpCircle, LogOut, Bell, ArrowRight,
   CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
-  FileImage, Award, RefreshCw, BookmarkCheck, User2,
+  FileImage, Award, RefreshCw, BookmarkCheck, User2, Upload,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -32,10 +32,12 @@ import {
 } from "@/hooks/useLearnerProfile";
 import {
   useLearnerWorkDeposits,
+  useCreatePortfolioDeposit,
   usePracticeDeposits,
   useLearnerReceivedComments,
   useCoursePageViews,
 } from "@/hooks/useLearnerPortalData";
+import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
 
