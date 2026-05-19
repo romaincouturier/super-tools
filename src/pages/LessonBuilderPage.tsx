@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useLesson, useCourse, useCourseModules, useModuleLessons, useUpdateLesson } from "@/hooks/useLms";
+import { useAuth } from "@/hooks/useAuth";
 import BuilderTopbar from "@/components/lms/builder/BuilderTopbar";
 import BuilderSidebar from "@/components/lms/builder/BuilderSidebar";
 import BuilderCanvas from "@/components/lms/builder/BuilderCanvas";
@@ -15,6 +16,9 @@ const DEFAULT_TWEAKS: TweakValues = {
 };
 
 export default function LessonBuilderPage() {
+  // Auth guard: redirects to /auth if no session — without it, the page loads via
+  // anon SELECT policies but every storage upload fails with RLS errors.
+  useAuth();
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
 
   const { data: lesson, isLoading: lessonLoading } = useLesson(lessonId);
