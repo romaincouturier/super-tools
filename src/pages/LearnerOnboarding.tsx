@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ export default function LearnerOnboarding() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get("token");
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [mode, setMode] = useState<Mode>("loading");
   const [email, setEmail] = useState("");
@@ -73,10 +74,13 @@ export default function LearnerOnboarding() {
       });
   }, [token]);
 
+  useEffect(() => () => {
+    if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+  }, []);
+
   const redirectToPortal = () => {
     setMode("success");
-    // Brief success state so the user sees confirmation before the page changes
-    setTimeout(() => navigate("/espace-apprenant"), 800);
+    redirectTimerRef.current = setTimeout(() => navigate("/espace-apprenant"), 800);
   };
 
   const handleCreate = async (e: React.FormEvent) => {

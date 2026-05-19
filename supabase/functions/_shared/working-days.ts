@@ -4,6 +4,24 @@
 const DEFAULT_WORKING_DAYS = [false, true, true, true, true, true, false];
 
 /**
+ * Returns a new date obtained by subtracting `daysToSubtract` working days
+ * from `fromDate`, using the provided working-day mask.
+ */
+export function subtractWorkingDays(
+  fromDate: Date,
+  daysToSubtract: number,
+  workingDays: boolean[] = DEFAULT_WORKING_DAYS,
+): Date {
+  const result = new Date(fromDate);
+  let remaining = daysToSubtract;
+  while (remaining > 0) {
+    result.setDate(result.getDate() - 1);
+    if (workingDays[result.getDay()]) remaining--;
+  }
+  return result;
+}
+
+/**
  * Fetches the working_days configuration from app_settings.
  * Returns an array of 7 booleans [Sun, Mon, Tue, Wed, Thu, Fri, Sat].
  */

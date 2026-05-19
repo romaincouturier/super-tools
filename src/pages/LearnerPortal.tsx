@@ -1,7 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
@@ -9,17 +13,29 @@ import {
   Download, ExternalLink, BookOpen, CheckCircle2, Clock,
   AlertCircle, MessageSquare, Video, Play, RotateCcw,
   Lock, ChevronRight, ChevronDown, LayoutDashboard,
-  Palette, HelpCircle, LogOut, Bell, BarChart2, ArrowRight,
-  CalendarPlus, Users, Sparkles, Menu, X,
+  Palette, HelpCircle, LogOut, Bell, ArrowRight,
+  CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
+  FileImage, Award, RefreshCw, BookmarkCheck,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
 import LearnerLmsMessaging from "@/components/learner/LearnerLmsMessaging";
-import CoachingBooking from "@/components/learner/CoachingBooking";
 import { cn } from "@/lib/utils";
+import {
+  useLearnerProfile,
+  useUpsertLearnerProfile,
+  uploadLearnerPhoto,
+  type LearnerProfile,
+} from "@/hooks/useLearnerProfile";
+import {
+  useLearnerWorkDeposits,
+  usePracticeDeposits,
+  useLearnerReceivedComments,
+  useCoursePageViews,
+} from "@/hooks/useLearnerPortalData";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +68,9 @@ interface Training {
   next_event?: NextEvent | null;
   is_coached?: boolean;
   is_permanent?: boolean;
+  coaching_sessions_completed?: number;
+  coaching_sessions_total?: number;
+  trainer_booking_url?: string | null;
 }
 
 interface Questionnaire {
@@ -67,14 +86,14 @@ interface LearnerData {
   evaluations: Questionnaire[];
 }
 
-type NavSection = "dashboard" | "formations" | "aide";
+type NavSection = "dashboard" | "formations" | "travaux" | "pratique" | "aide";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const eventTypeLabel: Record<string, string> = {
   launch: "Lancement",
   live: "Live",
-  closing: "Séance de clôture",
+  closing: "Dernière séance",
 };
 
 function statusBadge(status: string | null) {
@@ -145,6 +164,195 @@ function ProgressCircle({ pct, size = 80 }: { pct: number; size?: number }) {
   );
 }
 
+// ── Coaching circles ──────────────────────────────────────────────────────────
+
+function CoachingCircles({ completed, total }: { completed: number; total: number }) {
+  if (total <= 0) return null;
+  return (
+    <div className="flex items-center gap-1.5 mt-2">
+      {Array.from({ length: total }).map((_, i) => {
+        const isDone = i < completed;
+        return (
+          <div
+            key={i}
+            className="h-5 w-5 rounded-full border-2 flex items-center justify-center"
+            style={{
+              background: isDone ? "#FFD100" : "transparent",
+              borderColor: isDone ? "#FFD100" : "rgba(16,24,32,0.25)",
+            }}
+          >
+            {isDone && <CheckCircle2 size={10} style={{ color: "#101820" }} />}
+          </div>
+        );
+      })}
+      <span className="text-xs ml-1" style={{ color: "var(--st-ink-muted)" }}>
+        {completed}/{total} séances
+      </span>
+    </div>
+  );
+}
+
+// ── Edit profile modal ────────────────────────────────────────────────────────
+
+function EditProfileModal({
+  open,
+  onClose,
+  email,
+  profile,
+}: {
+  open: boolean;
+  onClose: () => void;
+  email: string;
+  profile: LearnerProfile | null | undefined;
+}) {
+  const { toast } = useToast();
+  const upsert = useUpsertLearnerProfile();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
+  const [lastName, setLastName] = useState(profile?.last_name ?? "");
+  const [fonction, setFonction] = useState(profile?.fonction ?? "");
+  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? "");
+  const [uploading, setUploading] = useState(false);
+
+  // Reset fields when profile loads or modal re-opens
+  useEffect(() => {
+    if (open) {
+      setFirstName(profile?.first_name ?? "");
+      setLastName(profile?.last_name ?? "");
+      setFonction(profile?.fonction ?? "");
+      setPhotoUrl(profile?.photo_url ?? "");
+    }
+  }, [open, profile]);
+
+  const handlePhotoFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLearnerPhoto(file, email);
+      setPhotoUrl(url);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de l'upload de la photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await upsert.mutateAsync({
+        email,
+        first_name: firstName.trim() || null,
+        last_name: lastName.trim() || null,
+        fonction: fonction.trim() || null,
+        photo_url: photoUrl || null,
+      });
+      toast({ title: "Profil mis à jour" });
+      onClose();
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
+    }
+  };
+
+  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm w-full" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
+        <DialogHeader>
+          <DialogTitle>Mon profil</DialogTitle>
+        </DialogHeader>
+
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-2 py-2">
+          <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
+            <div
+              className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold select-none"
+              style={{ background: photoUrl ? "transparent" : "#FFD100", color: "#101820" }}
+            >
+              {photoUrl ? (
+                <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                initials
+              )}
+            </div>
+            <div
+              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "rgba(16,24,32,0.45)" }}
+            >
+              {uploading ? (
+                <Spinner className="text-white h-5 w-5" />
+              ) : (
+                <Camera size={20} className="text-white" />
+              )}
+            </div>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handlePhotoFile(f);
+              e.target.value = "";
+            }}
+          />
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            Cliquez pour changer la photo
+          </p>
+        </div>
+
+        {/* Fields */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="ep-firstname">Prénom</Label>
+              <Input
+                id="ep-firstname"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Prénom"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="ep-lastname">Nom</Label>
+              <Input
+                id="ep-lastname"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Nom"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="ep-fonction">Fonction</Label>
+            <Input
+              id="ep-fonction"
+              value={fonction}
+              onChange={(e) => setFonction(e.target.value)}
+              placeholder="Ex: Directeur artistique, Manager…"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={handleSave}
+            disabled={upsert.isPending || uploading}
+          >
+            {upsert.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
+            Enregistrer
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
 function Sidebar({
@@ -152,8 +360,11 @@ function Sidebar({
   onNav,
   firstName,
   lastName,
+  fonction,
+  photoUrl,
   email,
   onLogout,
+  onEditProfile,
   mobile,
   onClose,
 }: {
@@ -161,14 +372,19 @@ function Sidebar({
   onNav: (s: NavSection) => void;
   firstName: string;
   lastName: string;
+  fonction?: string | null;
+  photoUrl?: string | null;
   email: string;
   onLogout: () => void;
+  onEditProfile: () => void;
   mobile?: boolean;
   onClose?: () => void;
 }) {
   const navItems: Array<{ id: NavSection; label: string; icon: React.ElementType }> = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "formations", label: "Mes formations", icon: BookOpen },
+    { id: "travaux", label: "Mes travaux", icon: FileText },
+    { id: "pratique", label: "Espace de pratique", icon: Palette },
     { id: "aide", label: "Aide", icon: HelpCircle },
   ];
 
@@ -180,7 +396,7 @@ function Sidebar({
       {/* Logo */}
       <div className="flex items-center justify-between px-5 h-16 border-b shrink-0"
         style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <SupertiltLogo className="h-7" />
+        <SupertiltLogo className="h-9" />
         {mobile && onClose && (
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5">
             <X size={16} style={{ color: "var(--st-ink)" }} />
@@ -210,20 +426,32 @@ function Sidebar({
 
       {/* User block */}
       <div className="px-3 pb-5 pt-3 border-t space-y-3" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <div className="flex items-center gap-3 px-3 py-2">
+        <button
+          onClick={onEditProfile}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 group text-left"
+          style={{ fontFamily: "inherit" }}
+          title="Modifier mon profil"
+        >
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: "var(--st-yellow)", color: "#101820" }}
+            className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
           >
-            {getInitials(firstName, lastName)}
+            {photoUrl ? (
+              <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              getInitials(firstName, lastName)
+            )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold leading-snug truncate" style={{ color: "var(--st-ink)" }}>
               {firstName} {lastName}
             </p>
-            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>Apprenant·e</p>
+            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
+              {fonction || "Apprenant·e"}
+            </p>
           </div>
-        </div>
+          <Pencil size={13} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: "var(--st-ink-muted)" }} />
+        </button>
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
@@ -237,7 +465,7 @@ function Sidebar({
   );
 }
 
-// ── Training detail (documents / messages / coaching) ─────────────────────────
+// ── Training detail (documents / coaching) ────────────────────────────────────
 
 function TrainingDetail({
   training,
@@ -258,12 +486,15 @@ function TrainingDetail({
     training.program_file_url || training.supports_url || questionnaire || evaluation
   );
 
+  const coachingCompleted = training.coaching_sessions_completed ?? 0;
+  const coachingTotal = training.coaching_sessions_total ?? 0;
+  const remainingSessions = coachingTotal - coachingCompleted;
+
   return (
     <Tabs defaultValue="documents" className="mt-4">
       <TabsList className="mb-3 bg-transparent gap-1 p-0 h-auto">
         {[
           { value: "documents", label: "Documents", icon: FileText },
-          { value: "messages", label: "Messages", icon: MessageSquare },
           { value: "coaching", label: "Coaching", icon: Video },
         ].map(({ value, label, icon: Icon }) => (
           <TabsTrigger
@@ -323,17 +554,39 @@ function TrainingDetail({
         )}
       </TabsContent>
 
-      <TabsContent value="messages">
-        {training.lms_course_id ? (
-          <LearnerLmsMessaging courseId={training.lms_course_id} learnerEmail={email} />
-        ) : (
-          <LearnerMessaging trainingId={training.training_id} participantId={training.participant_id} learnerEmail={email} />
-        )}
-      </TabsContent>
-
       <TabsContent value="coaching">
         {training.is_coached ? (
-          <CoachingBooking trainingId={training.training_id} participantId={training.participant_id} learnerEmail={email} />
+          <div className="space-y-4">
+            {coachingTotal > 0 && (
+              <div>
+                <p className="text-sm font-medium mb-2" style={{ color: "var(--st-ink)" }}>
+                  Séances de coaching
+                </p>
+                <CoachingCircles completed={coachingCompleted} total={coachingTotal} />
+                <p className="text-xs mt-2" style={{ color: "var(--st-ink-muted)" }}>
+                  {remainingSessions > 0
+                    ? `${remainingSessions} séance${remainingSessions > 1 ? "s" : ""} restante${remainingSessions > 1 ? "s" : ""}`
+                    : "Toutes les séances ont été réalisées"}
+                </p>
+              </div>
+            )}
+            {remainingSessions > 0 && training.trainer_booking_url ? (
+              <a
+                href={training.trainer_booking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full transition-all hover:-translate-y-0.5"
+                style={{ background: "var(--st-yellow)", color: "#101820" }}
+              >
+                <CalendarPlus size={14} />
+                Prendre rendez-vous →
+              </a>
+            ) : remainingSessions > 0 ? (
+              <p className="text-sm p-3 rounded-xl" style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
+                Contactez votre formateur pour planifier votre séance.
+              </p>
+            ) : null}
+          </div>
         ) : (
           <div className="rounded-2xl border border-dashed p-6 text-center space-y-4"
             style={{ borderColor: "rgba(16,24,32,0.12)", background: "rgba(16,24,32,0.02)" }}>
@@ -460,34 +713,59 @@ function FormationItem({
                 </div>
               </div>
             )}
+            {training.is_coached && (training.coaching_sessions_total ?? 0) > 0 && (
+              <CoachingCircles
+                completed={training.coaching_sessions_completed ?? 0}
+                total={training.coaching_sessions_total ?? 0}
+              />
+            )}
           </div>
         </div>
 
         {/* Actions */}
         {hasElearning && continueUrl && (
           <div className="flex flex-wrap gap-2 mt-4">
-            <Link to={continueUrl}
-              className="flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}>
-              {hasStarted ? <><RotateCcw size={13} /> Reprendre</> : <><Play size={13} /> Commencer</>}
-            </Link>
-            <Link to={`/lms/${training.lms_course_id}/home?email=${encodeURIComponent(email)}`}
-              className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-              style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
-              Accueil du cours
-            </Link>
+            {completion === 100 ? (
+              <>
+                <a
+                  href="#"
+                  className="flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
+                  style={{ background: "var(--st-yellow)", color: "#101820" }}
+                >
+                  <Award size={13} /> Télécharger mon certificat
+                </a>
+                <Link to={continueUrl}
+                  className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
+                  style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
+                  <RefreshCw size={13} /> Refaire la formation
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to={continueUrl}
+                  className="flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
+                  style={{ background: "var(--st-yellow)", color: "#101820" }}>
+                  {hasStarted ? <><RotateCcw size={13} /> Reprendre</> : <><Play size={13} /> Commencer</>}
+                </Link>
+                <Link to={`/lms/${training.lms_course_id}/home?email=${encodeURIComponent(email)}`}
+                  className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
+                  style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
+                  Accueil du cours
+                </Link>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Expand docs/messages/coaching */}
+      {/* Expand docs/coaching */}
       <div className="border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
         <button
           onClick={() => setExpanded((v) => !v)}
           className="w-full flex items-center gap-2 px-5 py-3 text-sm transition-all hover:bg-black/5 text-left"
           style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
         >
-          <span className="flex-1">Documents · Messages · Coaching</span>
+          <span className="flex-1">Documents · Coaching</span>
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         {expanded && (
@@ -521,7 +799,6 @@ function DashboardView({
   onNav: (s: NavSection) => void;
 }) {
   const firstName = data.trainings[0]?.first_name || "";
-  const lastName = data.trainings[0]?.last_name || "";
 
   const lmsTrainings = data.trainings.filter((t) => t.lms_course_id);
   const mainTraining = lmsTrainings[0] ?? data.trainings[0];
@@ -539,24 +816,20 @@ function DashboardView({
       )[0]?.next_event ?? null;
   }, [data.trainings]);
 
-  const hasStarted = !!mainTraining?.last_lesson_id || (mainTraining?.lms_completion ?? 0) > 0;
-  const resumeUrl = mainTraining?.lms_course_id
-    ? `/lms/${mainTraining.lms_course_id}/home?email=${encodeURIComponent(data.email)}${mainTraining.last_lesson_id ? `&lesson=${mainTraining.last_lesson_id}` : ""}`
-    : null;
+  const courseIds = useMemo(
+    () => data.trainings.filter((t) => t.lms_course_id).map((t) => t.lms_course_id!),
+    [data.trainings]
+  );
 
-  const nextActions = useMemo(() => {
-    const actions: string[] = [];
-    if (mainTraining?.lms_course_id) {
-      actions.push("Reprendre votre progression");
-      if ((mainTraining.lms_completion ?? 0) < 50) actions.push("Consulter le programme de formation");
-      if (nextEvent) actions.push(`Rejoindre le prochain live — ${format(new Date(nextEvent.scheduled_at), "d MMM", { locale: fr })}`);
-    }
-    const pending = data.questionnaires?.filter((q) => q.etat !== "complete" && q.etat !== "soumis");
-    if (pending?.length) actions.push("Compléter votre questionnaire des besoins");
-    const pendingEval = data.evaluations?.filter((q) => q.etat !== "complete" && q.etat !== "soumis");
-    if (pendingEval?.length) actions.push("Remplir votre évaluation à chaud");
-    return actions.slice(0, 4);
-  }, [mainTraining, nextEvent, data.questionnaires, data.evaluations]);
+  // Hooks for dashboard blocks
+  const { data: workDeposits = [] } = useLearnerWorkDeposits(data.email);
+  const { data: receivedComments = [] } = useLearnerReceivedComments(data.email, courseIds);
+  const { data: viewedLessons = [] } = useCoursePageViews(
+    mainTraining?.lms_course_id ?? null,
+    data.email
+  );
+
+  const isClosing = nextEvent?.meeting_type === "closing";
 
   return (
     <div className="space-y-6">
@@ -575,40 +848,15 @@ function DashboardView({
               {progressMessage(globalPct)}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            {resumeUrl && (
-              <Link to={resumeUrl}
-                className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5"
-                style={{ background: "var(--st-yellow)", color: "#101820", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}>
-                {hasStarted ? <><RotateCcw size={14} /> Reprendre ma formation</> : <><Play size={14} /> Commencer ma formation</>}
-              </Link>
-            )}
-            <button onClick={() => onNav("formations")}
-              className="flex items-center gap-2 px-5 py-3 rounded-full text-sm font-medium border transition-all hover:bg-black/5"
-              style={{ borderColor: "rgba(16,24,32,0.18)", color: "var(--st-ink)", fontFamily: "inherit" }}>
-              Voir mes formations
-            </button>
-          </div>
         </div>
 
         {/* Right — progress */}
         <div className="md:col-span-2 flex items-center justify-center md:justify-end gap-6">
-          <ProgressCircle pct={globalPct} size={100} />
-          <div className="space-y-2">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
-                Dernière activité
-              </p>
-              <p className="text-sm font-semibold mt-0.5" style={{ color: "var(--st-ink)" }}>
-                {mainTraining?.lms_course_title || mainTraining?.training_name || "—"}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ background: hasStarted ? "#16a34a" : "#d1d5db" }} />
-              <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                {hasStarted ? "En cours" : "Non commencée"}
-              </span>
-            </div>
+          <div className="text-center">
+            <ProgressCircle pct={globalPct} size={100} />
+            <p className="text-xs mt-2 font-medium" style={{ color: "var(--st-ink-muted)" }}>
+              Votre progression globale
+            </p>
           </div>
         </div>
       </div>
@@ -619,11 +867,12 @@ function DashboardView({
           style={{ background: "#101820" }}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "var(--st-yellow)" }}>
-              <Calendar size={18} style={{ color: "#101820" }} />
+              style={{ background: isClosing ? "#e11d48" : "var(--st-yellow)" }}>
+              <Calendar size={18} style={{ color: isClosing ? "#fff" : "#101820" }} />
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--st-yellow)" }}>
+              <p className="text-xs font-medium uppercase tracking-wider"
+                style={{ color: isClosing ? "#fda4af" : "var(--st-yellow)" }}>
                 {eventTypeLabel[nextEvent.meeting_type] ?? "Prochain évènement"}
               </p>
               <p className="text-sm font-bold text-white">
@@ -632,7 +881,7 @@ function DashboardView({
             </div>
           </div>
           <p className="text-sm flex-1 min-w-[160px]" style={{ color: "rgba(255,255,255,0.6)" }}>
-            Rencontre en direct avec votre formateur
+            {isClosing ? "Votre dernière séance en direct avec votre formateur." : "Rencontre en direct avec votre formateur"}
           </p>
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             {nextEvent.meeting_url && (
@@ -644,7 +893,7 @@ function DashboardView({
             )}
             <button
               className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}>
+              style={{ background: isClosing ? "#e11d48" : "var(--st-yellow)", color: isClosing ? "#fff" : "#101820", fontFamily: "inherit" }}>
               <CalendarPlus size={14} />
               Ajouter au calendrier
             </button>
@@ -652,12 +901,11 @@ function DashboardView({
         </div>
       )}
 
-      {/* Main grid */}
+      {/* Main grid — Row 3: Mes formations (col-span-2) + right col */}
       <div className="grid lg:grid-cols-3 gap-4">
-        {/* Left col (2/3) */}
+        {/* Left col (2/3) — Mes formations */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Mes formations */}
-          <DashCard title="Mes formations" icon={GraduationCap} action={{ label: "Voir toutes", onClick: () => onNav("formations") }}>
+          <DashCard title="Mes formations" icon={GraduationCap} action={{ label: "Voir toutes mes formations", onClick: () => onNav("formations") }}>
             {data.trainings.length === 0 ? (
               <div className="py-6 text-center">
                 <GraduationCap size={32} className="mx-auto mb-2" style={{ color: "var(--st-ink-muted)" }} />
@@ -665,7 +913,7 @@ function DashboardView({
               </div>
             ) : (
               <div className="space-y-3">
-                {data.trainings.slice(0, 1).map((t) => (
+                {data.trainings.slice(0, 3).map((t, idx) => (
                   <FormationItem
                     key={t.training_id + t.participant_id}
                     training={t}
@@ -674,51 +922,66 @@ function DashboardView({
                     evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
                     onRequestCoach={onRequestCoach}
                     requestingCoach={requestingCoach}
-                    primary
-                  />
-                ))}
-                {data.trainings.slice(1).map((t) => (
-                  <FormationItem
-                    key={t.training_id + t.participant_id}
-                    training={t}
-                    email={data.email}
-                    questionnaire={data.questionnaires?.find((q) => q.training_id === t.training_id)}
-                    evaluation={data.evaluations?.find((e) => e.training_id === t.training_id)}
-                    onRequestCoach={onRequestCoach}
-                    requestingCoach={requestingCoach}
-                    primary={false}
+                    primary={idx === 0}
                   />
                 ))}
               </div>
             )}
           </DashCard>
-
-          {/* À faire ensuite */}
-          {nextActions.length > 0 && (
-            <DashCard title="À faire ensuite" icon={ArrowRight}>
-              <ul className="space-y-1">
-                {nextActions.map((action, i) => (
-                  <li key={i}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-black/5 group"
-                    style={{ color: "var(--st-ink)" }}>
-                    <span
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-sm">{action}</span>
-                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-40 transition-opacity shrink-0" />
-                  </li>
-                ))}
-              </ul>
-            </DashCard>
-          )}
         </div>
 
-        {/* Right col (1/3) */}
+        {/* Right col (1/3) — À faire ensuite + Mes travaux */}
         <div className="space-y-4">
-          {/* Retours SuperTilt */}
-          <DashCard title="Retours SuperTilt" icon={MessageSquare}>
+          {/* À faire ensuite */}
+          <DashCard title="À faire ensuite" icon={BookmarkCheck} action={{ label: "Voir toutes mes tâches", onClick: () => onNav("formations") }}>
+            <NextLessonsBlock
+              mainTraining={mainTraining ?? null}
+              viewedLessons={viewedLessons}
+              email={data.email}
+            />
+          </DashCard>
+
+          {/* Mes derniers travaux */}
+          <DashCard title="Mes derniers travaux" icon={FileText} action={{ label: "Voir tous mes travaux", onClick: () => onNav("travaux") }}>
+            {workDeposits.length === 0 ? (
+              <div className="py-3 text-center">
+                <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun travail déposé pour l'instant.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {workDeposits.slice(0, 3).map((d: any) => (
+                  <div key={d.id} className="flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-black/5">
+                    {d.file_mime?.startsWith("image/") ? (
+                      <img src={d.file_url} alt={d.file_name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ background: "var(--st-surface, #F2F4F4)" }}>
+                        <FileImage size={16} style={{ color: "var(--st-ink-muted)" }} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</p>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full"
+                        style={{
+                          background: d.publication_status === "published" ? "#dcfce7" : "#f1f5f9",
+                          color: d.publication_status === "published" ? "#15803d" : "#475569",
+                        }}>
+                        {d.publication_status === "published" ? "Partagé" : "Privé"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DashCard>
+        </div>
+      </div>
+
+      {/* Row 4: Derniers retours + Osez partager + Aide rapide */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* Derniers retours SuperTilt */}
+        <DashCard title="Derniers retours SuperTilt" icon={MessageSquare}>
+          {receivedComments.length === 0 ? (
             <div className="py-4 text-center">
               <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center"
                 style={{ background: "var(--st-surface, #F2F4F4)" }}>
@@ -726,48 +989,157 @@ function DashboardView({
               </div>
               <p className="text-sm font-medium mb-1" style={{ color: "var(--st-ink)" }}>Aucun retour pour l'instant</p>
               <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                Vos commentaires de formateur apparaîtront ici.
+                Les retours de votre communauté apparaîtront ici.
               </p>
             </div>
-          </DashCard>
-
-          {/* Partager */}
-          <div className="rounded-2xl p-5" style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(255,209,0,0.25)" }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={16} style={{ color: "#101820" }} />
-              <p className="text-sm font-semibold" style={{ color: "#101820" }}>Osez partager vos réalisations</p>
+          ) : (
+            <div className="space-y-3">
+              {receivedComments.slice(0, 3).map((c: any) => {
+                const initials = (c.learner_name || c.learner_email || "?")
+                  .split(" ")
+                  .map((w: string) => w[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2);
+                const daysAgo = formatDistanceToNow(new Date(c.created_at), { locale: fr, addSuffix: true });
+                return (
+                  <div key={c.id} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                      style={{ background: "var(--st-yellow)", color: "#101820" }}>
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs truncate" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{daysAgo}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              <button
+                onClick={() => onNav("pratique")}
+                className="text-xs font-medium transition-colors hover:opacity-70 mt-1"
+                style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              >
+                Voir les retours →
+              </button>
             </div>
-            <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(16,24,32,0.7)" }}>
-              Partagez vos travaux avec la communauté pour recevoir des retours et progresser plus vite. Vos travaux restent privés par défaut.
-            </p>
-            <button
-              className="w-full text-sm font-semibold py-2.5 rounded-xl transition-all hover:-translate-y-px"
-              style={{ background: "#101820", color: "#fff", fontFamily: "inherit" }}>
-              Espace de pratique →
-            </button>
-          </div>
+          )}
+        </DashCard>
 
-          {/* Aide rapide */}
-          <DashCard title="Aide rapide" icon={HelpCircle}>
-            <ul className="space-y-0.5">
-              {[
-                { label: "Accéder à l'aide", icon: HelpCircle },
-                { label: "Voir mes notifications", icon: Bell },
-                { label: "Contacter SuperTilt", icon: MessageSquare },
-              ].map(({ label, icon: Icon }) => (
-                <li key={label}>
-                  <button
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all hover:bg-black/5 text-left group"
-                    style={{ color: "var(--st-ink)", fontFamily: "inherit" }}>
-                    <Icon size={15} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
-                    <span className="flex-1">{label}</span>
-                    <ChevronRight size={13} className="opacity-0 group-hover:opacity-40 transition-opacity shrink-0" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </DashCard>
+        {/* Osez partager */}
+        <div className="rounded-2xl p-5" style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(255,209,0,0.25)" }}>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={16} style={{ color: "#101820" }} />
+            <p className="text-sm font-semibold" style={{ color: "#101820" }}>Osez partager vos réalisations</p>
+          </div>
+          <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(16,24,32,0.7)" }}>
+            Partagez vos travaux avec la communauté pour recevoir des retours et progresser plus vite.
+          </p>
+          <button
+            onClick={() => onNav("pratique")}
+            className="w-full text-sm font-semibold py-2.5 rounded-xl transition-all hover:-translate-y-px"
+            style={{ background: "#101820", color: "#fff", fontFamily: "inherit" }}>
+            Aller à l'espace de pratique →
+          </button>
         </div>
+
+        {/* Aide rapide */}
+        <DashCard title="Aide rapide" icon={HelpCircle}>
+          <ul className="space-y-0.5">
+            {[
+              { label: "Accéder à l'aide", icon: HelpCircle, onClick: () => onNav("aide") },
+              { label: "Voir mes notifications", icon: Bell, onClick: () => {} },
+              { label: "Contacter SuperTilt", icon: MessageSquare, onClick: () => onNav("aide") },
+            ].map(({ label, icon: Icon, onClick }) => (
+              <li key={label}>
+                <button
+                  onClick={onClick}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all hover:bg-black/5 text-left group"
+                  style={{ color: "var(--st-ink)", fontFamily: "inherit" }}>
+                  <Icon size={15} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                  <span className="flex-1">{label}</span>
+                  <ChevronRight size={13} className="opacity-0 group-hover:opacity-40 transition-opacity shrink-0" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </DashCard>
+      </div>
+    </div>
+  );
+}
+
+// ── Next lessons block ────────────────────────────────────────────────────────
+
+function NextLessonsBlock({
+  mainTraining,
+  viewedLessons,
+  email,
+}: {
+  mainTraining: Training | null;
+  viewedLessons: string[];
+  email: string;
+}) {
+  if (!mainTraining?.lms_course_id) {
+    return (
+      <div className="py-3 text-center">
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucune leçon en cours.</p>
+      </div>
+    );
+  }
+
+  const completedPct = mainTraining.lms_completion ?? 0;
+
+  // Show viewed-but-not-completed lessons first, then not-yet-viewed info
+  const inProgressCount = viewedLessons.length;
+  const hasProgress = inProgressCount > 0 || completedPct > 0;
+
+  if (!hasProgress) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "var(--st-surface, #F2F4F4)" }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: "var(--st-yellow)" }}>
+            <Play size={12} style={{ color: "#101820" }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>Commencer la formation</p>
+            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
+              {mainTraining.lms_course_title || mainTraining.training_name}
+            </p>
+          </div>
+          <Link
+            to={`/lms/${mainTraining.lms_course_id}/home?email=${encodeURIComponent(email)}`}
+            className="text-xs font-semibold shrink-0 px-2 py-1 rounded-lg"
+            style={{ background: "var(--st-ink)", color: "#fff" }}
+          >
+            Démarrer
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "var(--st-surface, #F2F4F4)" }}>
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: "var(--st-yellow)" }}>
+          <RotateCcw size={12} style={{ color: "#101820" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>Reprendre la formation</p>
+          <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
+            {inProgressCount} leçon{inProgressCount > 1 ? "s" : ""} consultée{inProgressCount > 1 ? "s" : ""} · {Math.round(completedPct)}% terminé
+          </p>
+        </div>
+        <Link
+          to={`/lms/${mainTraining.lms_course_id}/home?email=${encodeURIComponent(email)}${mainTraining.last_lesson_id ? `&lesson=${mainTraining.last_lesson_id}` : ""}`}
+          className="text-xs font-semibold shrink-0 px-2 py-1 rounded-lg"
+          style={{ background: "var(--st-ink)", color: "#fff" }}
+        >
+          Continuer
+        </Link>
       </div>
     </div>
   );
@@ -810,32 +1182,195 @@ function FormationsView({
   );
 }
 
+// ── Travaux view ──────────────────────────────────────────────────────────────
+
+function TravauxView({ email }: { email: string }) {
+  const { data: deposits = [], isLoading } = useLearnerWorkDeposits(email);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Mes travaux</h2>
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          Tous vos travaux déposés
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      ) : deposits.length === 0 ? (
+        <div className="rounded-2xl border p-10 text-center space-y-3"
+          style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
+            style={{ background: "var(--st-surface, #F2F4F4)" }}>
+            <FileText size={22} style={{ color: "var(--st-ink-muted)" }} />
+          </div>
+          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail déposé</p>
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            Vos travaux déposés dans vos cours apparaîtront ici.
+          </p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {deposits.map((d: any) => (
+            <div key={d.id} className="rounded-2xl border overflow-hidden transition-shadow hover:shadow-sm"
+              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+              {d.file_mime?.startsWith("image/") ? (
+                <img src={d.file_url} alt={d.file_name} className="w-full h-36 object-cover" />
+              ) : (
+                <div className="w-full h-36 flex items-center justify-center"
+                  style={{ background: "var(--st-surface, #F2F4F4)" }}>
+                  <FileImage size={32} style={{ color: "var(--st-ink-muted)" }} />
+                </div>
+              )}
+              <div className="p-4 space-y-2">
+                <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{
+                      background: d.publication_status === "published" ? "#dcfce7" : "#f1f5f9",
+                      color: d.publication_status === "published" ? "#15803d" : "#475569",
+                    }}>
+                    {d.publication_status === "published" ? "Partagé" : "Privé"}
+                  </span>
+                  <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                    {format(new Date(d.created_at), "d MMM yyyy", { locale: fr })}
+                  </span>
+                </div>
+                {d.comment && (
+                  <p className="text-xs line-clamp-2" style={{ color: "var(--st-ink-muted)" }}>{d.comment}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Pratique view ─────────────────────────────────────────────────────────────
+
+function PratiqueView({ email, courseIds }: { email: string; courseIds: string[] }) {
+  const { data: deposits = [], isLoading } = usePracticeDeposits(courseIds);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          Travaux partagés par les autres apprenants
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Spinner size="lg" />
+        </div>
+      ) : deposits.length === 0 ? (
+        <div className="rounded-2xl border p-10 text-center space-y-3"
+          style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
+            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
+            <Palette size={22} style={{ color: "#101820" }} />
+          </div>
+          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail partagé</p>
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            Les travaux partagés par les autres apprenants apparaîtront ici.
+          </p>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {deposits.map((d: any) => {
+            const authorInitials = (d.learner_email || "?")
+              .split("@")[0]
+              .split(/[._-]/)
+              .map((w: string) => w[0] ?? "")
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            return (
+              <div key={d.id} className="rounded-2xl border overflow-hidden transition-shadow hover:shadow-sm"
+                style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+                {d.file_mime?.startsWith("image/") ? (
+                  <img src={d.file_url} alt={d.file_name} className="w-full h-36 object-cover" />
+                ) : (
+                  <div className="w-full h-36 flex items-center justify-center"
+                    style={{ background: "var(--st-surface, #F2F4F4)" }}>
+                    <FileImage size={32} style={{ color: "var(--st-ink-muted)" }} />
+                  </div>
+                )}
+                <div className="p-4 space-y-2">
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                      style={{ background: "var(--st-yellow)", color: "#101820" }}>
+                      {authorInitials}
+                    </div>
+                    <span className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
+                      {d.learner_email !== email ? d.learner_email?.split("@")[0] : "Vous"}
+                    </span>
+                    <span className="text-xs ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+                      {format(new Date(d.created_at), "d MMM", { locale: fr })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Aide view ────────────────────────────────────────────────────────────────
 
-function AideView() {
+function AideView({
+  email,
+  mainTraining,
+}: {
+  email: string;
+  mainTraining: Training | null;
+}) {
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Aide</h2>
         <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Besoin d'un coup de main ?</p>
       </div>
-      <div className="rounded-2xl border p-8 text-center space-y-4"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-          style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-          <MessageSquare size={20} style={{ color: "#101820" }} />
+
+      {/* Contact / messaging section */}
+      <div className="rounded-2xl border p-6 space-y-4"
+        style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
+            <MessageSquare size={18} style={{ color: "#101820" }} />
+          </div>
+          <div>
+            <p className="text-base font-semibold" style={{ color: "var(--st-ink)" }}>Nous contacter</p>
+            <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+              Notre équipe est disponible pour répondre à vos questions.
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-base font-semibold mb-1" style={{ color: "var(--st-ink)" }}>Contacter SuperTilt</p>
-          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-            Notre équipe est disponible pour répondre à vos questions.
-          </p>
+        <div className="mt-2">
+          {mainTraining?.lms_course_id ? (
+            <LearnerLmsMessaging courseId={mainTraining.lms_course_id} learnerEmail={email} />
+          ) : mainTraining ? (
+            <LearnerMessaging trainingId={mainTraining.training_id} participantId={mainTraining.participant_id} learnerEmail={email} />
+          ) : (
+            <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+              Aucune formation active. Contactez-nous à{" "}
+              <a href="mailto:contact@supertilt.fr" className="underline" style={{ color: "var(--st-ink)" }}>
+                contact@supertilt.fr
+              </a>
+            </p>
+          )}
         </div>
-        <button
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5"
-          style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit" }}>
-          Nous contacter
-        </button>
       </div>
     </div>
   );
@@ -889,6 +1424,10 @@ export default function LearnerPortal() {
   const [requestingCoach, setRequestingCoach] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<NavSection>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const email = data?.email ?? null;
+  const { data: learnerProfile } = useLearnerProfile(email);
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -991,19 +1530,32 @@ export default function LearnerPortal() {
 
   if (!data) return null;
 
-  const firstName = data.trainings[0]?.first_name || "";
-  const lastName = data.trainings[0]?.last_name || "";
+  const firstName = learnerProfile?.first_name || data.trainings[0]?.first_name || "";
+  const lastName = learnerProfile?.last_name || data.trainings[0]?.last_name || "";
+  const fonction = learnerProfile?.fonction || null;
+  const photoUrl = learnerProfile?.photo_url || null;
+
+  const lmsTrainings = data.trainings.filter((t) => t.lms_course_id);
+  const mainTraining = lmsTrainings[0] ?? data.trainings[0] ?? null;
 
   const sectionTitle: Record<NavSection, string> = {
     dashboard: "Tableau de bord",
     formations: "Mes formations",
+    travaux: "Mes travaux",
+    pratique: "Espace de pratique",
     aide: "Aide",
   };
   const sectionSubtitle: Record<NavSection, string> = {
     dashboard: "Retrouvez vos formations, votre progression et vos prochains rendez-vous.",
-    formations: "Toutes vos formations, documents, messages et coaching.",
+    formations: "Toutes vos formations, documents et coaching.",
+    travaux: "Tous vos travaux déposés dans vos cours.",
+    pratique: "Découvrez les travaux partagés par la communauté.",
     aide: "Ressources et contact.",
   };
+
+  const courseIds = data.trainings
+    .filter((t) => t.lms_course_id)
+    .map((t) => t.lms_course_id!);
 
   return (
     <div className="flex h-screen overflow-hidden"
@@ -1016,8 +1568,11 @@ export default function LearnerPortal() {
           onNav={setActiveSection}
           firstName={firstName}
           lastName={lastName}
+          fonction={fonction}
+          photoUrl={photoUrl}
           email={data.email}
           onLogout={handleLogout}
+          onEditProfile={() => setProfileModalOpen(true)}
         />
       </div>
 
@@ -1031,14 +1586,24 @@ export default function LearnerPortal() {
               onNav={setActiveSection}
               firstName={firstName}
               lastName={lastName}
+              fonction={fonction}
+              photoUrl={photoUrl}
               email={data.email}
               onLogout={handleLogout}
+              onEditProfile={() => { setSidebarOpen(false); setProfileModalOpen(true); }}
               mobile
               onClose={() => setSidebarOpen(false)}
             />
           </div>
         </>
       )}
+
+      <EditProfileModal
+        open={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        email={data.email}
+        profile={learnerProfile}
+      />
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -1061,16 +1626,6 @@ export default function LearnerPortal() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            <button className="hidden sm:flex flex-col items-end cursor-pointer hover:opacity-70 transition-opacity">
-              <span className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>Mon compte</span>
-              <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Espace apprenant</span>
-            </button>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}>
-              {getInitials(firstName, lastName)}
-            </div>
-          </div>
         </header>
 
         {/* Scrollable content */}
@@ -1091,7 +1646,18 @@ export default function LearnerPortal() {
                 requestingCoach={requestingCoach}
               />
             )}
-            {activeSection === "aide" && <AideView />}
+            {activeSection === "travaux" && (
+              <TravauxView email={data.email} />
+            )}
+            {activeSection === "pratique" && (
+              <PratiqueView
+                email={data.email}
+                courseIds={courseIds}
+              />
+            )}
+            {activeSection === "aide" && (
+              <AideView email={data.email} mainTraining={mainTraining} />
+            )}
           </div>
         </div>
       </div>

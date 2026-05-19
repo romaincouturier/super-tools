@@ -108,18 +108,20 @@ export function formatDateTime(dateStr: string | Date): string {
 }
 
 /**
- * Format for ICS calendar files in Europe/Paris timezone: "20240115T143000"
+ * Format for ICS calendar files in UTC: "20240115T143000Z"
+ * RFC 5545 §3.3.5 — UTC form requires the Z suffix.
  */
 export function formatICSDate(dateStr: string | Date): string {
   const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
-  const parts = new Intl.DateTimeFormat('fr-FR', {
-    timeZone: 'Europe/Paris',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).formatToParts(date);
-  const get = (type: string) => parts.find(p => p.type === type)?.value || '00';
-  return `${get('year')}${get('month')}${get('day')}T${get('hour')}${get('minute')}${get('second')}`;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getUTCFullYear()}` +
+    `${pad(date.getUTCMonth() + 1)}` +
+    `${pad(date.getUTCDate())}` +
+    `T${pad(date.getUTCHours())}` +
+    `${pad(date.getUTCMinutes())}` +
+    `${pad(date.getUTCSeconds())}Z`
+  );
 }
 
 /**

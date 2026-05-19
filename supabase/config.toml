@@ -1,5 +1,8 @@
 project_id = "yewffntzgrdgztrwtava"
 
+[functions.add-training-participant]
+verify_jwt = false
+
 [functions.notify-learner-lms-message]
 verify_jwt = false
 
@@ -545,4 +548,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.time-tracker-github-import]
+verify_jwt = false
+
+[functions.upload-learner-photo]
 verify_jwt = false

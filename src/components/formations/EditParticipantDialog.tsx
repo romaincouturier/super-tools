@@ -52,12 +52,6 @@ const EditParticipantDialog = ({
     isInterEntrepriseProp ??
     (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
 
-  const selectedFormula = availableFormulas.find(
-    (f) => f.id === participant.formula_id,
-  );
-  const formulaAllowsCoaching =
-    (selectedFormula?.coaching_sessions_count || 0) > 0;
-
   const hook = useEditParticipant({
     participant,
     trainingId,
@@ -65,9 +59,12 @@ const EditParticipantDialog = ({
     isInterEntreprise,
     trainingElearningDuration,
     availableFormulas,
-    formulaAllowsCoaching,
     onParticipantUpdated,
   });
+
+  // selectedFormula et formulaAllowsCoaching sont calculés en interne dans le hook
+  // à partir de la sélection courante (réactif aux changements de l'utilisateur).
+  const { selectedFormula, formulaAllowsCoaching } = hook;
 
   return (
     <Dialog

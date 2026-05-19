@@ -3781,6 +3781,33 @@ export type Database = {
           },
         ]
       }
+      learner_profiles: {
+        Row: {
+          email: string
+          first_name: string | null
+          last_name: string | null
+          fonction: string | null
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          email: string
+          first_name?: string | null
+          last_name?: string | null
+          fonction?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          email?: string
+          first_name?: string | null
+          last_name?: string | null
+          fonction?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lms_modules: {
         Row: {
           course_id: string
@@ -7505,6 +7532,7 @@ export type Database = {
       }
       trainers: {
         Row: {
+          booking_url: string | null
           competences: string[] | null
           created_at: string
           cv_url: string | null
@@ -7521,6 +7549,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_url?: string | null
           competences?: string[] | null
           created_at?: string
           cv_url?: string | null
@@ -7537,6 +7566,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_url?: string | null
           competences?: string[] | null
           created_at?: string
           cv_url?: string | null
