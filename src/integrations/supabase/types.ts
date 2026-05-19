@@ -3774,6 +3774,47 @@ export type Database = {
           },
         ]
       }
+      lms_messages: {
+        Row: {
+          content: string
+          course_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          learner_email: string
+          sender_email: string
+          sender_role: string
+        }
+        Insert: {
+          content: string
+          course_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email: string
+          sender_email: string
+          sender_role: string
+        }
+        Update: {
+          content?: string
+          course_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email?: string
+          sender_email?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_page_views: {
         Row: {
           course_id: string
@@ -3921,41 +3962,62 @@ export type Database = {
         Row: {
           correct_answer: string | null
           created_at: string
+          difficulty_level: string | null
           explanation: string | null
+          feedback_correct: string | null
+          feedback_incorrect: string | null
+          hint: string | null
           id: string
           media_url: string | null
+          multi_select: boolean
+          notion: string | null
           options: Json | null
           points: number | null
           position: number
           question_text: string
           question_type: string
           quiz_id: string
+          title: string | null
         }
         Insert: {
           correct_answer?: string | null
           created_at?: string
+          difficulty_level?: string | null
           explanation?: string | null
+          feedback_correct?: string | null
+          feedback_incorrect?: string | null
+          hint?: string | null
           id?: string
           media_url?: string | null
+          multi_select?: boolean
+          notion?: string | null
           options?: Json | null
           points?: number | null
           position?: number
           question_text: string
           question_type?: string
           quiz_id: string
+          title?: string | null
         }
         Update: {
           correct_answer?: string | null
           created_at?: string
+          difficulty_level?: string | null
           explanation?: string | null
+          feedback_correct?: string | null
+          feedback_incorrect?: string | null
+          hint?: string | null
           id?: string
           media_url?: string | null
+          multi_select?: boolean
+          notion?: string | null
           options?: Json | null
           points?: number | null
           position?: number
           question_text?: string
           question_type?: string
           quiz_id?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -7744,6 +7806,7 @@ export type Database = {
           duration_minutes: number
           email_content: string | null
           id: string
+          meeting_type: string
           meeting_url: string | null
           run_notes: string | null
           scheduled_at: string
@@ -7758,6 +7821,7 @@ export type Database = {
           duration_minutes?: number
           email_content?: string | null
           id?: string
+          meeting_type?: string
           meeting_url?: string | null
           run_notes?: string | null
           scheduled_at: string
@@ -7772,6 +7836,7 @@ export type Database = {
           duration_minutes?: number
           email_content?: string | null
           id?: string
+          meeting_type?: string
           meeting_url?: string | null
           run_notes?: string | null
           scheduled_at?: string

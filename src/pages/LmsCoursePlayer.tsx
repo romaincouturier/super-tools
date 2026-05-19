@@ -8,17 +8,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
   useCourse, useCourseModules, useCourseLessons, useModuleLessons,
   useLearnerProgress, useMarkLessonComplete,
-  useQuiz, useQuizQuestions, useSubmitQuizAttempt,
   useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile,
   useLearnerBadges, useTrackPageView,
-  LmsLesson, LmsModule, LmsQuizQuestion,
+  LmsLesson, LmsModule,
 } from "@/hooks/useLms";
+import QuizPlayer from "@/components/lms/QuizPlayer";
 import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
@@ -502,160 +501,6 @@ function LessonContent({
       renderWorkDeposit={renderWorkDeposit}
       learnerEmail={learnerEmail}
     />
-  );
-}
-
-// ---- Quiz Player ----
-function QuizPlayer({ quizId, learnerEmail, onComplete }: { quizId: string; learnerEmail: string; onComplete: () => void }) {
-  const { data: quiz } = useQuiz(quizId);
-  const { data: questions = [] } = useQuizQuestions(quizId);
-  const submitAttempt = useSubmitQuizAttempt();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<{ score: number; maxScore: number; passed: boolean } | null>(null);
-
-  if (!quiz) return <p className="text-muted-foreground">Chargement du quiz...</p>;
-
-  const handleSubmit = async () => {
-    let score = 0;
-    const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
-    const answerDetails: { question_id: string; answer: string; is_correct: boolean; points_earned: number }[] = [];
-
-    for (const q of questions) {
-      const userAnswer = answers[q.id] || "";
-      let isCorrect = false;
-
-      if (q.question_type === "mcq" || q.question_type === "true_false") {
-        const correctOpt = q.options.find((o) => o.is_correct);
-        isCorrect = correctOpt?.label === userAnswer;
-      } else {
-        isCorrect = userAnswer.trim().toLowerCase() === (q.correct_answer || "").trim().toLowerCase();
-      }
-
-      if (isCorrect) score += q.points;
-      answerDetails.push({ question_id: q.id, answer: userAnswer, is_correct: isCorrect, points_earned: isCorrect ? q.points : 0 });
-    }
-
-    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
-    const passed = percentage >= (quiz.passing_score || 70);
-
-    await submitAttempt.mutateAsync({
-      quiz_id: quizId,
-      learner_email: learnerEmail,
-      score,
-      max_score: maxScore,
-      percentage,
-      passed,
-      answers: answerDetails,
-      completed_at: new Date().toISOString(),
-    });
-
-    setResult({ score, maxScore, passed });
-    setSubmitted(true);
-    if (passed) onComplete();
-  };
-
-  if (submitted && result) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center space-y-4">
-          {result.passed ? (
-            <>
-              <Trophy className="w-16 h-16 mx-auto text-primary" />
-              <h3 className="text-xl font-bold">Bravo ! Quiz réussi 🎉</h3>
-            </>
-          ) : (
-            <>
-              <HelpCircle className="w-16 h-16 mx-auto text-destructive" />
-              <h3 className="text-xl font-bold">Quiz non validé</h3>
-            </>
-          )}
-          <p className="text-lg">
-            Score : <strong>{result.score}/{result.maxScore}</strong> ({Math.round((result.score / result.maxScore) * 100)}%)
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Score minimum requis : {quiz.passing_score}%
-          </p>
-
-          {/* Show corrections */}
-          {quiz.show_correct_answers && (
-            <div className="text-left space-y-3 mt-6">
-              {questions.map((q, i) => {
-                const userAnswer = answers[q.id] || "";
-                const correctOpt = q.options.find((o) => o.is_correct);
-                const isCorrect = q.question_type === "mcq" || q.question_type === "true_false"
-                  ? correctOpt?.label === userAnswer
-                  : userAnswer.trim().toLowerCase() === (q.correct_answer || "").trim().toLowerCase();
-
-                return (
-                  <div key={q.id} className={`p-3 rounded-lg border ${isCorrect ? "bg-primary/5 border-primary/20" : "bg-destructive/5 border-destructive/20"}`}>
-                    <p className="text-sm font-medium">{i + 1}. {q.question_text}</p>
-                    <p className="text-xs mt-1">
-                      Votre réponse : <strong>{userAnswer || "—"}</strong>
-                      {!isCorrect && correctOpt && (
-                        <span className="ml-2 text-primary">→ Correct : {correctOpt.label}</span>
-                      )}
-                    </p>
-                    {q.explanation && <p className="text-xs text-muted-foreground mt-1 italic">💡 {q.explanation}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium">{quiz.title}</h3>
-        <Badge variant="outline">Score minimum : {quiz.passing_score}%</Badge>
-      </div>
-
-      {questions.map((q, i) => (
-        <Card key={q.id}>
-          <CardContent className="py-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <Badge variant="outline" className="shrink-0">{i + 1}</Badge>
-              <p className="text-sm font-medium">{q.question_text}</p>
-            </div>
-
-            {(q.question_type === "mcq" || q.question_type === "true_false") && (
-              <RadioGroup
-                value={answers[q.id] || ""}
-                onValueChange={(v) => setAnswers({ ...answers, [q.id]: v })}
-              >
-                {q.options.map((opt, j) => (
-                  <div key={j} className="flex items-center space-x-2">
-                    <RadioGroupItem value={opt.label} id={`${q.id}-${j}`} />
-                    <Label htmlFor={`${q.id}-${j}`} className="text-sm">{opt.label}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            )}
-
-            {(q.question_type === "open" || q.question_type === "fill_blank") && (
-              <Input
-                value={answers[q.id] || ""}
-                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })}
-                placeholder="Votre réponse..."
-              />
-            )}
-          </CardContent>
-        </Card>
-      ))}
-
-      <Button
-        onClick={handleSubmit}
-        disabled={submitAttempt.isPending}
-        className="w-full"
-        size="lg"
-      >
-        Soumettre le quiz
-      </Button>
-    </div>
   );
 }
 

@@ -2,18 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
-const { mockRpc, mockSignUp, mockSignIn } = vi.hoisted(() => {
+const { mockRpc, mockInvoke, mockSignIn } = vi.hoisted(() => {
   const mockRpc = vi.fn();
-  const mockSignUp = vi.fn();
+  const mockInvoke = vi.fn();
   const mockSignIn = vi.fn();
-  return { mockRpc, mockSignUp, mockSignIn };
+  return { mockRpc, mockInvoke, mockSignIn };
 });
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: mockRpc,
+    functions: { invoke: mockInvoke },
     auth: {
-      signUp: mockSignUp,
       signInWithPassword: mockSignIn,
     },
   },
@@ -142,7 +142,9 @@ describe("LearnerOnboarding — create account flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     previewOk(false);
-    mockSignUp.mockResolvedValue({ error: null });
+    // create-learner-account returns success, then signInWithPassword succeeds
+    mockInvoke.mockResolvedValue({ data: {}, error: null });
+    mockSignIn.mockResolvedValue({ error: null });
   });
 
   it("keeps submit button disabled until password field has a value", async () => {
@@ -170,7 +172,7 @@ describe("LearnerOnboarding — create account flow", () => {
     expect(screen.getByRole("button", { name: /créer mon compte/i })).not.toBeDisabled();
   });
 
-  it("calls supabase.auth.signUp with role=learner on submit", async () => {
+  it("calls create-learner-account edge function on submit", async () => {
     render(<LearnerOnboarding />);
     await waitFor(() => screen.getByLabelText("Mot de passe"));
 
@@ -180,12 +182,9 @@ describe("LearnerOnboarding — create account flow", () => {
     });
 
     await waitFor(() =>
-      expect(mockSignUp).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: "alice@example.com",
-          password: "Str0ng!Pass",
-          options: expect.objectContaining({ data: { role: "learner" } }),
-        }),
+      expect(mockInvoke).toHaveBeenCalledWith(
+        "create-learner-account",
+        expect.objectContaining({ body: expect.objectContaining({ password: "Str0ng!Pass" }) }),
       ),
     );
   });
@@ -218,8 +217,8 @@ describe("LearnerOnboarding — create account flow", () => {
     });
   });
 
-  it("switches silently to login mode when signUp returns 'already registered'", async () => {
-    mockSignUp.mockResolvedValueOnce({ error: { message: "User already registered" } });
+  it("switches to login mode when create-learner-account returns already_exists", async () => {
+    mockInvoke.mockResolvedValueOnce({ data: { error: "already_exists" }, error: null });
     render(<LearnerOnboarding />);
     await waitFor(() => screen.getByLabelText("Mot de passe"));
 
@@ -228,14 +227,13 @@ describe("LearnerOnboarding — create account flow", () => {
       fireEvent.submit(screen.getByRole("button", { name: /créer mon compte/i }).closest("form")!);
     });
 
-    // The form switches to login mode — that's the key assertion
     await waitFor(() =>
       expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument(),
     );
   });
 
-  it("shows error message when signUp fails for another reason", async () => {
-    mockSignUp.mockResolvedValueOnce({ error: { message: "Email rate limit exceeded" } });
+  it("shows error message when create-learner-account fails", async () => {
+    mockInvoke.mockResolvedValueOnce({ data: { error: "server error" }, error: null });
     render(<LearnerOnboarding />);
     await waitFor(() => screen.getByLabelText("Mot de passe"));
 
@@ -245,7 +243,7 @@ describe("LearnerOnboarding — create account flow", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText(/email rate limit exceeded/i)).toBeInTheDocument(),
+      expect(screen.getByText(/server error/i)).toBeInTheDocument(),
     );
   });
 });
@@ -326,17 +324,30 @@ describe("LearnerOnboarding — mode switcher", () => {
     expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument();
   });
 
-  it("lets user switch from login to create mode manually", async () => {
-    previewOk(true);
+  it("lets user switch from login to create mode manually (has_account=false)", async () => {
+    // Switcher only visible when has_account is false (token not yet consumed)
+    mockRpc.mockImplementation((fn: string) => {
+      if (fn === "preview_learner_token")
+        return Promise.resolve({ data: { status: "ok", email: "alice@example.com", has_account: false }, error: null });
+      return Promise.resolve({ data: null, error: null });
+    });
     render(<LearnerOnboarding />);
 
-    await waitFor(() => screen.getByRole("heading", { name: /se connecter/i }));
-    fireEvent.click(screen.getByRole("button", { name: /créer un compte/i }));
+    // Start in create mode, switch to login
+    await waitFor(() => screen.getByRole("heading", { name: /créer mon compte/i }));
+    fireEvent.click(screen.getByRole("button", { name: /se connecter/i }));
 
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument(),
+    );
+
+    // Now switch back to create
+    fireEvent.click(screen.getByRole("button", { name: /créer un compte/i }));
     expect(screen.getByRole("heading", { name: /créer mon compte/i })).toBeInTheDocument();
   });
 
-  it("clears the used-token banner when switching to create mode", async () => {
+  it("hides create-account switcher when user already has an account (used token)", async () => {
+    // A consumed token always implies has_account=true → no "Créer un compte" button
     previewStatus("used");
     render(<LearnerOnboarding />);
 
@@ -344,8 +355,6 @@ describe("LearnerOnboarding — mode switcher", () => {
       expect(screen.getByText(/ce lien d'accès a déjà été utilisé/i)).toBeInTheDocument(),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /créer un compte/i }));
-
-    expect(screen.queryByText(/ce lien d'accès a déjà été utilisé/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /créer un compte/i })).not.toBeInTheDocument();
   });
 });
