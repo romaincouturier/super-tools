@@ -36,7 +36,8 @@ export type ContentBlockType =
   | "exercise"
   | "self_assessment"
   | "work_deposit"
-  | "table";
+  | "table"
+  | "shortcode";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
