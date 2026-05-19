@@ -76,21 +76,19 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
 
     return (
       <div>
-        {content.title && (
-          <InlineEdit
-            value={content.title || ""}
-            onChange={(v) => onChange({ ...content, title: v || null })}
-            placeholder="Titre (optionnel)"
-            style={{
-              fontWeight: 700,
-              fontSize: "1rem",
-              color: "var(--st-ink)",
-              outline: "none",
-              marginBottom: "0.75rem",
-              display: "block",
-            }}
-          />
-        )}
+        <InlineEdit
+          value={content.title || ""}
+          onChange={(v) => onChange({ ...content, title: v || null })}
+          placeholder="Texte d'introduction (optionnel)"
+          style={{
+            fontWeight: 400,
+            fontSize: "0.9375rem",
+            color: "var(--st-ink)",
+            outline: "none",
+            marginBottom: "0.75rem",
+            display: "block",
+          }}
+        />
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap }}>
           {items.map((item, i) => (
             <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: "0.625rem" }}>
@@ -153,11 +151,11 @@ export default function BulletListBlockEditor({ content, onChange, slim }: Props
   return (
     <div className="space-y-4">
       <div>
-        <Label>Titre (optionnel)</Label>
+        <Label>Texte d'introduction (optionnel)</Label>
         <Input
           value={content.title || ""}
           onChange={(e) => onChange({ ...content, title: e.target.value || null })}
-          placeholder="Ex: Points importants"
+          placeholder="Ex: Voici les points importants à retenir :"
         />
       </div>
 
