@@ -278,6 +278,15 @@ export async function updateSupportTicket(
     notifyTicketResolved(data);
   }
 
+  // If status changed via the detail form, ensure the card lands at the top
+  // of the target column with properly renumbered positions, otherwise it can
+  // appear "stuck" because multiple tickets share position=0.
+  if (updates.status) {
+    await moveSupportTicket(id, updates.status as TicketStatus, 0);
+    const refetch = await db().from("support_tickets").select("*").eq("id", id).single();
+    return throwIfError(refetch) as SupportTicket;
+  }
+
   return data;
 }
 
