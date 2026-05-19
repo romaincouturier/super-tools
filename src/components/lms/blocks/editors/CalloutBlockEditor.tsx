@@ -7,6 +7,7 @@ import { InlineEdit } from "./InlineEdit";
 import { cn } from "@/lib/utils";
 import {
   CALLOUT_PALETTE,
+  CALLOUT_COLORS,
   CALLOUT_COLOR_GROUPS,
   CALLOUT_LEVELS,
   CALLOUT_LEVEL_LIST,
@@ -60,6 +61,32 @@ export default function CalloutBlockEditor({ content, onChange, slim }: Props) {
             content={content.body_html || ""}
             onChange={(body_html) => onChange({ ...content, body_html })}
           />
+        </div>
+        {/* Compact color picker */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginTop: "0.75rem", paddingTop: "0.625rem", borderTop: `1px solid ${palette.text}22` }}>
+          {CALLOUT_COLORS.map((c) => {
+            const entry = CALLOUT_PALETTE[c];
+            return (
+              <button
+                key={c}
+                type="button"
+                title={entry.label}
+                onClick={() => onChange({ ...content, color: c })}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: 4,
+                  background: entry.swatch || entry.bg,
+                  border: content.color === c ? "2.5px solid rgba(0,0,0,0.65)" : "2px solid rgba(0,0,0,0.12)",
+                  outline: c === "white" ? "1px solid rgba(0,0,0,0.1)" : "none",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+                aria-label={entry.label}
+                aria-pressed={content.color === c}
+              />
+            );
+          })}
         </div>
       </div>
     );

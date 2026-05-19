@@ -9,9 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlignLeft, AlignCenter, AlignRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { InlineEdit } from "./InlineEdit";
 import ButtonBlockViewer from "../viewers/ButtonBlockViewer";
-import type { ButtonBlockContent, ButtonVariant } from "@/types/lms-blocks";
+import type { ButtonBlockContent, ButtonVariant, ButtonAlignment } from "@/types/lms-blocks";
 
 interface Props {
   content: ButtonBlockContent;
@@ -83,8 +85,9 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
           display: "inline-block",
         };
 
+    const alignItems = content.alignment === "left" ? "flex-start" : content.alignment === "right" ? "flex-end" : "center";
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.625rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems, gap: "0.625rem" }}>
         <InlineEdit
           value={content.label}
           onChange={(v) => onChange({ ...content, label: v })}
@@ -162,6 +165,32 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
           onChange={(e) => onChange({ ...content, url: e.target.value })}
           placeholder="https://…"
         />
+      </div>
+      <div>
+        <Label>Alignement</Label>
+        <div className="flex gap-1 mt-1">
+          {(["left", "center", "right"] as ButtonAlignment[]).map((a) => {
+            const Icon = a === "left" ? AlignLeft : a === "center" ? AlignCenter : AlignRight;
+            const label = a === "left" ? "Gauche" : a === "center" ? "Centré" : "Droite";
+            const active = (content.alignment ?? "center") === a;
+            return (
+              <button
+                key={a}
+                type="button"
+                title={label}
+                onClick={() => onChange({ ...content, alignment: a })}
+                className={cn(
+                  "flex items-center justify-center h-8 w-8 rounded border transition-colors",
+                  active ? "bg-foreground text-background border-foreground" : "bg-background text-muted-foreground border-input hover:border-foreground/50"
+                )}
+                aria-pressed={active}
+                aria-label={label}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Switch

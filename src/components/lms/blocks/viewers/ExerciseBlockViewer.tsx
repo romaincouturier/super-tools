@@ -59,7 +59,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
       )}
       {content.prompt_html && (
         <div
-          className="prose prose-sm max-w-none break-words"
+          className="prose max-w-none break-words"
           dangerouslySetInnerHTML={{ __html: content.prompt_html }}
         />
       )}
@@ -67,7 +67,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
       {checklistItems.length > 0 && (
         <div className="mt-3 rounded-lg border bg-card px-4 py-3">
           {content.checklist_title && (
-            <p className="font-semibold mb-2 text-sm break-words">{content.checklist_title}</p>
+            <p className="font-semibold mb-2 break-words">{content.checklist_title}</p>
           )}
           <ul className="space-y-2">
             {checklistItems.map((item) => (
@@ -81,7 +81,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
                 <label
                   htmlFor={`ex-check-${item.id}`}
                   className={cn(
-                    "text-sm cursor-pointer flex-1 min-w-0 break-words",
+                    "cursor-pointer flex-1 min-w-0 break-words",
                     checked[item.id] && "line-through text-muted-foreground",
                   )}
                 >
