@@ -80,6 +80,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
             mod={mod}
             courseId={courseId}
             activeLessonId={activeLessonId}
+            index={idx + 1}
             isFirst={idx === 0}
             isLast={idx === modules.length - 1}
             onMoveUp={() => handleMoveModule(mod.id, "up")}
@@ -221,6 +222,7 @@ function ModuleItem({
   mod,
   courseId,
   activeLessonId,
+  index,
   isFirst,
   isLast,
   onMoveUp,
@@ -229,6 +231,7 @@ function ModuleItem({
   mod: LmsModule;
   courseId: string;
   activeLessonId: string;
+  index: number;
   isFirst: boolean;
   isLast: boolean;
   onMoveUp: () => void;
@@ -334,13 +337,13 @@ function ModuleItem({
       <ConfirmDialog />
       {/* Module header */}
       <div
-        className="group flex items-center gap-2 cursor-pointer"
+        className="group flex items-start gap-2 cursor-pointer"
         onClick={() => !renaming && setOpen((o) => !o)}
         style={{ padding: ".5rem .75rem", fontWeight: 600, fontSize: ".875rem", color: "var(--st-ink)", borderRadius: 8, justifyContent: "space-between" }}
         onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)")}
         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
       >
-        <div className="flex items-center gap-2" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+        <div className="flex items-start gap-2" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
           <ChevronRight
             size={14}
             style={{
@@ -365,12 +368,26 @@ function ModuleItem({
               style={{ fontSize: ".875rem", fontWeight: 600, color: "var(--st-ink)", background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.2)", padding: "1px 4px" }}
             />
           ) : (
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {mod.title}
-            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: ".6875rem", fontWeight: 700, color: "var(--st-ink-50)", letterSpacing: ".04em", textTransform: "uppercase", lineHeight: 1.2 }}>
+                Module {index}
+              </div>
+              <div style={{
+                fontSize: ".875rem",
+                fontWeight: 600,
+                color: "var(--st-ink)",
+                lineHeight: 1.35,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}>
+                {mod.title}
+              </div>
+            </div>
           )}
         </div>
-        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+        <div className="flex items-start gap-1" style={{ flexShrink: 0 }}>
           {/* Rename + Delete — visible on hover */}
           {!renaming && (
             <>
