@@ -62,8 +62,6 @@ const MicroDevis = () => {
   const [includeCadeau, setIncludeCadeau] = useState(false);
   const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
-  const [selectedTrainingId, setSelectedTrainingId] = useState<string>("");
-  const [interTrainings, setInterTrainings] = useState<{ id: string; training_name: string; start_date: string | null }[]>([]);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
 
