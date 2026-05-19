@@ -88,6 +88,7 @@ const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const LmsCourseHomePage = lazy(() => import("./pages/LmsCourseHomePage"));
 const LmsDeposits = lazy(() => import("./pages/LmsDeposits"));
 const LmsLearners = lazy(() => import("./pages/LmsLearners"));
+const LmsFaq = lazy(() => import("./pages/LmsFaq"));
 const LessonBuilderPage = lazy(() => import("./pages/LessonBuilderPage"));
 const Reseau = lazy(() => import("./pages/Reseau"));
 const Watch = lazy(() => import("./pages/Watch"));
@@ -192,6 +193,7 @@ const App = () => (
               <Route path="/lms/deposits" element={<LmsDeposits />} />
               <Route path="/lms/apprenants" element={<LmsLearners />} />
               <Route path="/lms/messages" element={<LmsMessages />} />
+              <Route path="/lms/faq" element={<LmsFaq />} />
               <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
               <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
               <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />

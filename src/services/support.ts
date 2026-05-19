@@ -122,6 +122,7 @@ export async function analyzeTicket(description: string): Promise<TicketAiAnalys
 
 export async function createSupportTicket(
   input: Pick<SupportTicket, "type" | "title" | "description" | "priority" | "page_url"> & {
+    learner_category?: string | null;
     files?: File[];
     ai_analysis?: TicketAiAnalysis | null;
   }

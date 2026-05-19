@@ -15,7 +15,7 @@ import {
   Lock, ChevronRight, ChevronDown, LayoutDashboard,
   Palette, HelpCircle, LogOut, Bell, ArrowRight,
   CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
-  FileImage, Award, RefreshCw, BookmarkCheck,
+  FileImage, Award, RefreshCw, BookmarkCheck, User2,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -36,6 +36,8 @@ import {
   useLearnerReceivedComments,
   useCoursePageViews,
 } from "@/hooks/useLearnerPortalData";
+import { useFaqItems } from "@/hooks/useFaq";
+import { useCreateSupportTicket } from "@/hooks/useSupport";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -1049,7 +1051,6 @@ function DashboardView({
             {[
               { label: "Accéder à l'aide", icon: HelpCircle, onClick: () => onNav("aide") },
               { label: "Voir mes notifications", icon: Bell, onClick: () => {} },
-              { label: "Contacter SuperTilt", icon: MessageSquare, onClick: () => onNav("aide") },
             ].map(({ label, icon: Icon, onClick }) => (
               <li key={label}>
                 <button
@@ -1328,48 +1329,233 @@ function PratiqueView({ email, courseIds }: { email: string; courseIds: string[]
 
 // ── Aide view ────────────────────────────────────────────────────────────────
 
+const LEARNER_CATEGORIES = [
+  { value: "acces_connexion", label: "Accès / Connexion" },
+  { value: "technique", label: "Problème technique" },
+  { value: "pedagogique", label: "Question pédagogique" },
+  { value: "administratif", label: "Administratif" },
+];
+
+const USEFUL_LINKS: { label: string; icon: React.ElementType; section: NavSection }[] = [
+  { label: "Mon compte", icon: User2, section: "dashboard" },
+  { label: "Mes formations", icon: GraduationCap, section: "formations" },
+  { label: "Mes travaux", icon: FileText, section: "travaux" },
+];
+
 function AideView({
   email,
   mainTraining,
+  onNav,
 }: {
   email: string;
   mainTraining: Training | null;
+  onNav: (section: NavSection) => void;
 }) {
+  const { data: faqItems = [] } = useFaqItems(true);
+  const createTicket = useCreateSupportTicket();
+  const { toast } = useToast();
+
+  const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const [category, setCategory] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async () => {
+    if (!subject.trim() || !message.trim()) return;
+    setSending(true);
+    try {
+      await createTicket.mutateAsync({
+        type: "evolution",
+        priority: "low",
+        title: subject.trim(),
+        description: message.trim(),
+        page_url: null,
+        learner_category: category || null,
+      });
+      toast({ title: "Demande envoyée", description: "Nous vous répondrons dans les plus brefs délais." });
+      setCategory("");
+      setSubject("");
+      setMessage("");
+    } catch {
+      toastError(toast, "Impossible d'envoyer la demande.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const hasLive = !!mainTraining?.next_event;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Aide</h2>
-        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Besoin d'un coup de main ?</p>
+        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+          Retrouvez ici les réponses aux questions les plus fréquentes.<br />
+          Si vous ne trouvez pas la réponse, vous pouvez nous envoyer un message.
+        </p>
       </div>
 
-      {/* Contact / messaging section */}
-      <div className="rounded-2xl border p-6 space-y-4"
-        style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-            <MessageSquare size={18} style={{ color: "#101820" }} />
-          </div>
-          <div>
-            <p className="text-base font-semibold" style={{ color: "var(--st-ink)" }}>Nous contacter</p>
-            <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-              Notre équipe est disponible pour répondre à vos questions.
-            </p>
-          </div>
+      {/* Banner */}
+      <div className="rounded-2xl p-5 flex items-center gap-5"
+        style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid rgba(16,24,32,0.06)" }}>
+        <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: "var(--st-yellow)", color: "#101820" }}>
+          <HelpCircle size={26} />
         </div>
-        <div className="mt-2">
-          {mainTraining?.lms_course_id ? (
-            <LearnerLmsMessaging courseId={mainTraining.lms_course_id} learnerEmail={email} />
-          ) : mainTraining ? (
-            <LearnerMessaging trainingId={mainTraining.training_id} participantId={mainTraining.participant_id} learnerEmail={email} />
-          ) : (
+        <div>
+          <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Comment pouvons-nous vous aider ?</p>
+          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+            Choisissez une question fréquente ou envoyez-nous un message ci-dessous.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
+        {/* Left: FAQ */}
+        <div className="rounded-2xl border p-6 space-y-1"
+          style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+          <p className="text-base font-bold mb-4" style={{ color: "var(--st-ink)" }}>Questions fréquentes</p>
+          {faqItems.length === 0 ? (
             <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-              Aucune formation active. Contactez-nous à{" "}
-              <a href="mailto:contact@supertilt.fr" className="underline" style={{ color: "var(--st-ink)" }}>
-                contact@supertilt.fr
-              </a>
+              Aucune question pour le moment.
             </p>
+          ) : (
+            faqItems.map((item) => (
+              <div key={item.id} className="border-b last:border-0"
+                style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+                <button
+                  className="w-full flex items-center justify-between py-3 text-sm font-medium text-left gap-3"
+                  style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                  onClick={() => setOpenFaq(openFaq === item.id ? null : item.id)}
+                >
+                  <span>{item.question}</span>
+                  {openFaq === item.id
+                    ? <ChevronDown size={16} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                    : <ChevronRight size={16} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                  }
+                </button>
+                {openFaq === item.id && (
+                  <p className="text-sm pb-3 leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
+                    {item.answer}
+                  </p>
+                )}
+              </div>
+            ))
           )}
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Contact form */}
+          <div className="rounded-2xl border p-5 space-y-4"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Besoin d'une aide plus précise ?</p>
+            <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+              Envoyez-nous un message, notre équipe vous répondra dans les plus brefs délais.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
+                  Type de demande
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    background: "var(--st-white)",
+                    color: category ? "var(--st-ink)" : "var(--st-ink-muted)",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <option value="">Sélectionnez un type</option>
+                  {LEARNER_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Sujet</label>
+                <input
+                  type="text"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Ex : Problème d'accès à ma formation"
+                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    background: "var(--st-white)",
+                    color: "var(--st-ink)",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>Message</label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Décrivez votre question ou votre problème en détail..."
+                  rows={4}
+                  className="w-full rounded-xl border px-3 py-2 text-sm resize-none"
+                  style={{
+                    borderColor: "rgba(16,24,32,0.12)",
+                    background: "var(--st-white)",
+                    color: "var(--st-ink)",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+
+              <button
+                onClick={handleSend}
+                disabled={!subject.trim() || !message.trim() || sending}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
+                style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+              >
+                {sending ? "Envoi en cours..." : "Envoyer ma demande"}
+              </button>
+            </div>
+          </div>
+
+          {/* Useful links */}
+          <div className="rounded-2xl border p-5"
+            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <p className="text-base font-bold mb-3" style={{ color: "var(--st-ink)" }}>Liens utiles</p>
+            <ul className="space-y-0.5">
+              {USEFUL_LINKS.map(({ label, icon: Icon, section }) => (
+                <li key={section}>
+                  <button
+                    onClick={() => onNav(section)}
+                    className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
+                    style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                  >
+                    <Icon size={15} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                    <span className="flex-1">{label}</span>
+                    <ChevronRight size={14} style={{ color: "var(--st-ink-muted)" }} />
+                  </button>
+                </li>
+              ))}
+              {hasLive && (
+                <li>
+                  <button
+                    onClick={() => onNav("formations")}
+                    className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
+                    style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                  >
+                    <Calendar size={15} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                    <span className="flex-1">Voir les dates des lives</span>
+                    <ChevronRight size={14} style={{ color: "var(--st-ink-muted)" }} />
+                  </button>
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -1656,21 +1842,12 @@ export default function LearnerPortal() {
               />
             )}
             {activeSection === "aide" && (
-              <AideView email={data.email} mainTraining={mainTraining} />
+              <AideView email={data.email} mainTraining={mainTraining} onNav={setActiveSection} />
             )}
           </div>
         </div>
       </div>
 
-      {/* Floating help button */}
-      <button
-        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 px-4 py-3 rounded-full text-sm font-semibold shadow-lg transition-all hover:-translate-y-px hover:shadow-xl"
-        style={{ background: "#101820", color: "#fff", fontFamily: "inherit" }}
-        onClick={() => setActiveSection("aide")}
-      >
-        <MessageSquare size={15} />
-        Une question ?
-      </button>
     </div>
   );
 }
