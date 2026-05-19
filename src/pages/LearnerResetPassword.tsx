@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, Shield, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Shield, User, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
