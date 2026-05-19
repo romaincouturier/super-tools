@@ -78,6 +78,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const LearnerAccess = lazy(() => import("./pages/LearnerAccess"));
 const LearnerPortal = lazy(() => import("./pages/LearnerPortal"));
 const LearnerOnboarding = lazy(() => import("./pages/LearnerOnboarding"));
+const LearnerResetPassword = lazy(() => import("./pages/LearnerResetPassword"));
 const AiTools = lazy(() => import("./pages/AiTools"));
 const LmsCourses = lazy(() => import("./pages/LmsCourses"));
 const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
@@ -221,6 +222,7 @@ const App = () => (
               {/* Learner portal (M3) */}
               <Route path="/apprenant" element={<LearnerAccess />} />
               <Route path="/apprenant/connexion" element={<LearnerOnboarding />} />
+              <Route path="/apprenant/reset-password" element={<LearnerResetPassword />} />
               <Route path="/espace-apprenant" element={<LearnerPortal />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/force-password-change" element={<ForcePasswordChange />} />
