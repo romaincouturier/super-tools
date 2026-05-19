@@ -65,7 +65,7 @@ interface Props {
  * blocks are deferred to the parent page via render props so they receive
  * the learner email and completion callbacks.
  */
-export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment, renderWorkDeposit }: Props) {
+export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment, renderWorkDeposit, learnerEmail, shortcodeCourseId }: Props) {
   const tree = buildBlockTree(blocks).filter((n) => !n.block.hidden);
   if (tree.length === 0) return null;
   return (
@@ -77,6 +77,8 @@ export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignmen
           renderQuiz={renderQuiz}
           renderAssignment={renderAssignment}
           renderWorkDeposit={renderWorkDeposit}
+          learnerEmail={learnerEmail}
+          shortcodeCourseId={shortcodeCourseId}
         />
       ))}
     </div>
@@ -88,9 +90,11 @@ interface RenderProps {
   renderQuiz?: (quizId: string, lessonId: string) => ReactNode;
   renderAssignment?: (lessonId: string) => ReactNode;
   renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
+  learnerEmail?: string;
+  shortcodeCourseId?: string | null;
 }
 
-function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }: RenderProps) {
+function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, learnerEmail, shortcodeCourseId }: RenderProps) {
   const { block, children } = node;
   const visibleChildren = children
     .filter((c) => !c.block.hidden)
@@ -101,6 +105,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
         renderQuiz={renderQuiz}
         renderAssignment={renderAssignment}
         renderWorkDeposit={renderWorkDeposit}
+        learnerEmail={learnerEmail}
+        shortcodeCourseId={shortcodeCourseId}
       />
     ));
 
