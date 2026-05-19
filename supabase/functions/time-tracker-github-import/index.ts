@@ -54,30 +54,35 @@ async function fetchAllMergedPRs(token: string, since: string, until: string): P
     const items = await resp.json();
     if (!Array.isArray(items) || items.length === 0) break;
 
+    // Filter PRs in window first
+    const candidates: any[] = [];
+    let pastWindow = false;
     for (const pr of items) {
       if (!pr.merged_at) continue;
-
       const mergedDate = pr.merged_at as string;
       if (mergedDate < since) {
-        // PRs are sorted by updated desc, but merged_at can differ
-        // Continue but if we're way past the window, stop
-        if (mergedDate < since.slice(0, 7) + "-01") break;
+        if (mergedDate < since.slice(0, 7) + "-01") { pastWindow = true; break; }
         continue;
       }
       if (mergedDate > until) continue;
+      candidates.push(pr);
+    }
 
-      // Fetch PR details for commit/file stats
-      const detailResp = await fetch(`${GITHUB_API}/repos/${REPO}/pulls/${pr.number}`, {
-        headers: {
-          Authorization: `token ${token}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "SuperTools-TimeTracker",
-        },
-      });
-
-      if (detailResp.ok) {
+    // Fetch PR details in parallel batches of 10 to avoid timeout
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batch = candidates.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(batch.map(async (pr) => {
+        const detailResp = await fetch(`${GITHUB_API}/repos/${REPO}/pulls/${pr.number}`, {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: "application/vnd.github.v3+json",
+            "User-Agent": "SuperTools-TimeTracker",
+          },
+        });
+        if (!detailResp.ok) return null;
         const detail = await detailResp.json();
-        prs.push({
+        return {
           number: pr.number,
           title: pr.title,
           body: pr.body || "",
@@ -88,9 +93,13 @@ async function fetchAllMergedPRs(token: string, since: string, until: string): P
           deletions: detail.deletions || 0,
           changed_files: detail.changed_files || 0,
           labels: pr.labels || [],
-        });
-      }
+        } as GitHubPR;
+      }));
+      for (const r of results) if (r) prs.push(r);
     }
+
+    if (pastWindow) break;
+
 
     if (items.length < 100) break;
     page++;
