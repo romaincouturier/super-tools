@@ -52,6 +52,7 @@ import RowBlockEditor from "./editors/RowBlockEditor";
 import ContainerBlockEditor from "./editors/ContainerBlockEditor";
 import DividerBlockEditor from "./editors/DividerBlockEditor";
 import SpacerBlockEditor from "./editors/SpacerBlockEditor";
+import ShortcodeBlockEditor from "./editors/ShortcodeBlockEditor";
 
 interface Props {
   block: LessonBlock;
