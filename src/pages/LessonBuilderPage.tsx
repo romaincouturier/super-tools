@@ -16,6 +16,9 @@ const DEFAULT_TWEAKS: TweakValues = {
 };
 
 export default function LessonBuilderPage() {
+  // Auth guard: redirects to /auth if no session — without it, the page loads via
+  // anon SELECT policies but every storage upload fails with RLS errors.
+  useAuth();
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
 
   const { data: lesson, isLoading: lessonLoading } = useLesson(lessonId);
