@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, CheckCircle2, Shield, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Shield, User } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
@@ -19,7 +19,6 @@ const LearnerResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -79,7 +78,11 @@ const LearnerResetPassword = () => {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      setSaved(true);
+      toast({
+        title: "Mot de passe mis à jour",
+        description: "Votre mot de passe a été modifié avec succès.",
+      });
+      navigate("/espace-apprenant");
     } catch (error: unknown) {
       toast({
         title: "Erreur",
@@ -180,13 +183,6 @@ const LearnerResetPassword = () => {
                 {isLoading ? <Spinner /> : "Enregistrer mon nouveau mot de passe"}
               </Button>
             </form>
-
-            {saved && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                Votre nouveau mot de passe a bien été enregistré.
-              </div>
-            )}
 
             <div className="mt-6 text-center text-xs text-muted-foreground">
               Besoin d'aide ? Écrivez-nous à{" "}
