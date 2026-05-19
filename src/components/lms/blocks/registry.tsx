@@ -66,6 +66,7 @@ export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "work_deposit", label: "Dépôt de travail", icon: Upload, kind: "content", editable: true },
   { type: "quiz", label: "Quiz", icon: HelpCircle, kind: "content", editable: true },
   { type: "assignment", label: "Devoir", icon: ClipboardCheck, kind: "content", editable: true },
+  { type: "shortcode", label: "Code court (formulaire)", icon: Code2, kind: "content", editable: true },
 ];
 
 /** Combined registry; previously exported as BLOCK_TYPES. */
