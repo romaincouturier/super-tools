@@ -53,6 +53,10 @@ interface Props {
   renderAssignment?: (lessonId: string) => ReactNode;
   /** Renderer for work_deposit blocks — needs the learner context (email, course id, etc.). */
   renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
+  /** Learner context propagated to embedded shortcode forms (besoins / évaluation). */
+  learnerEmail?: string;
+  /** Fallback LearnDash course id used by shortcode blocks when none is set on the block. */
+  shortcodeCourseId?: string | null;
 }
 
 /**
