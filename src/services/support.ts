@@ -286,9 +286,45 @@ export async function moveSupportTicket(
   newStatus: TicketStatus,
   newPosition: number
 ): Promise<void> {
+  // 1. Fetch the moved ticket to know its source column.
+  const currentRes = await db().from("support_tickets").select("status").eq("id", id).single();
+  const currentTicket = throwIfError(currentRes) as { status: TicketStatus };
+  const sourceStatus = currentTicket.status;
+
+  // 2. Update the moved ticket itself (status + temporary position).
   const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
   const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
   const data = throwIfError(result) as SupportTicket;
+
+  // 3. Renumber the target column so positions are unique & contiguous.
+  //    Without this, every ticket keeps position=0 and drag-drop/status changes
+  //    don't visually reorder on refetch.
+  const renumberColumn = async (status: TicketStatus) => {
+    const colRes = await db()
+      .from("support_tickets")
+      .select("id, position, created_at")
+      .eq("status", status)
+      .is("archived_at", null)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false });
+    const rows = (throwIfError(colRes) || []) as Array<{ id: string; position: number; created_at: string }>;
+    // Place the moved ticket at the requested index, keep others in their fetched order.
+    const others = rows.filter((r) => r.id !== id);
+    const moved = rows.find((r) => r.id === id);
+    const ordered = moved ? [...others.slice(0, newPosition), moved, ...others.slice(newPosition)] : rows;
+    await Promise.all(
+      ordered.map((row, idx) =>
+        row.position === idx
+          ? Promise.resolve()
+          : db().from("support_tickets").update({ position: idx }).eq("id", row.id),
+      ),
+    );
+  };
+
+  await renumberColumn(newStatus);
+  if (sourceStatus && sourceStatus !== newStatus) {
+    await renumberColumn(sourceStatus);
+  }
 
   if (RESOLVED_STATUSES.includes(newStatus)) {
     notifyTicketResolved(data);
