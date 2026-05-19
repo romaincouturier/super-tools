@@ -1,4 +1,4 @@
-import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Send, Clock, Linkedin } from "lucide-react";
+import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Linkedin } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,7 +14,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getStatusConfig } from "./statusConfig";
 import ParticipantActions from "./ParticipantActions";
 import type { Participant, ParticipantActionsProps, SortField, SortDirection } from "./types";
 
@@ -56,6 +55,7 @@ const ParticipantTable = ({
               Participant <SortIcon field="last_name" sortField={sortField} sortDirection={sortDirection} />
             </button>
           </TableHead>
+          <TableHead>Entreprise</TableHead>
           {actionsProps.isInterEntreprise && (
             <TableHead>
               <button onClick={() => onToggleSort("amount")} className="flex items-center hover:text-foreground transition-colors">
@@ -63,16 +63,12 @@ const ParticipantTable = ({
               </button>
             </TableHead>
           )}
-          <TableHead>Convocation</TableHead>
-          <TableHead>Recueil</TableHead>
           {hasCoachingParticipants && <TableHead>Coaching</TableHead>}
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sortedParticipants.map((participant) => {
-          const statusConfig = getStatusConfig(participant.needs_survey_status);
-          const StatusIcon = statusConfig.icon;
           const displayName = participant.first_name || participant.last_name
             ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
             : participant.email;
@@ -88,9 +84,6 @@ const ParticipantTable = ({
                           ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim()
                           : participant.email}
                       </span>
-                      {participant.company && (
-                        <span className="text-xs text-muted-foreground">{participant.company}</span>
-                      )}
                       {participant.formula && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                           {participant.formula}
@@ -146,42 +139,16 @@ const ParticipantTable = ({
                   )}
                 </div>
               </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {participant.company || "—"}
+              </TableCell>
               {actionsProps.isInterEntreprise && (
                 <TableCell className="tabular-nums">
                   {participant.sold_price_ht != null
-                    ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} \u20ac`
-                    : "\u2014"}
+                    ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`
+                    : "—"}
                 </TableCell>
               )}
-              <TableCell>
-                {(() => {
-                  const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
-                  return (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${isConvoked ? "text-primary" : "text-muted-foreground"}`}>
-                          {isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-                          {isConvoked ? "Envoyée" : "Non envoyée"}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{isConvoked ? "La convocation a été envoyée au participant" : "La convocation n'a pas encore été envoyée"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })()}
-              </TableCell>
-              <TableCell>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge variant={statusConfig.variant} className="cursor-help gap-1">
-                      <StatusIcon className="h-3 w-3" />
-                      {statusConfig.label}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent><p>{statusConfig.tooltip}</p></TooltipContent>
-                </Tooltip>
-              </TableCell>
               {hasCoachingParticipants && (
                 <TableCell>
                   {(participant.coaching_sessions_total || 0) > 0 ? (

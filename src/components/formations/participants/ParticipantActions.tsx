@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Send, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History } from "lucide-react";
+import { Loader2, Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import ViewQuestionnaireDialog from "../ViewQuestionnaireDialog";
 import EditParticipantDialog from "../EditParticipantDialog";
+import { getStatusConfig } from "./statusConfig";
 import type { ParticipantActionsProps } from "./types";
 
 const ParticipantActions = ({
@@ -69,8 +70,40 @@ const ParticipantActions = ({
   canSendReminderFor,
   canSendConventionReminderFor,
 }: ParticipantActionsProps) => {
+  const surveyStatusConfig = getStatusConfig(participant.needs_survey_status);
+  const SurveyStatusIcon = surveyStatusConfig.icon;
+  const surveyIconColor =
+    surveyStatusConfig.variant === "default" ? "text-primary" :
+    surveyStatusConfig.variant === "destructive" ? "text-destructive" :
+    "text-muted-foreground";
+
   return (
     <div className="flex items-center gap-0.5">
+      {/* 0a. Convocation status indicator */}
+      {(() => {
+        const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className={`inline-flex items-center justify-center h-7 w-7 ${isConvoked ? "text-primary" : "text-muted-foreground/50"}`}>
+                {isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent><p>{isConvoked ? "Convocation envoyée" : "Convocation non envoyée"}</p></TooltipContent>
+          </Tooltip>
+        );
+      })()}
+
+      {/* 0b. Recueil status indicator */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className={`inline-flex items-center justify-center h-7 w-7 ${surveyIconColor}`}>
+            <SurveyStatusIcon className="h-3.5 w-3.5" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent><p>Recueil : {surveyStatusConfig.tooltip}</p></TooltipContent>
+      </Tooltip>
+
       {/* 1. Convention - inter/e-learning */}
       {isIndividualConvention && (() => {
         const hasConvention = !!participant.convention_file_url;
