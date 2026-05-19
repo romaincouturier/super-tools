@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Eye, EyeOff, CheckCircle2, AlertCircle, Lock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { GraduationCap, Eye, EyeOff, CheckCircle2, AlertCircle, Lock, Mail, Shield, ArrowLeft } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import { useLoginAttempts } from "@/hooks/useLoginAttempts";
+import LoginAttemptFeedback from "@/components/LoginAttemptFeedback";
 
 type Mode = "loading" | "error" | "create" | "login" | "forgot" | "success";
 
@@ -36,6 +38,9 @@ export default function LearnerOnboarding() {
   const [usedTokenBanner, setUsedTokenBanner] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
+  const [showAttemptFeedback, setShowAttemptFeedback] = useState(false);
+
+  const { status, countdown, checkAttempt, logAttempt, formatTimeRemaining } = useLoginAttempts();
 
   const strength = checkPasswordStrength(password);
   const isStrongEnough = strength.score >= 4;
@@ -89,7 +94,6 @@ export default function LearnerOnboarding() {
     setSubmitting(true);
     setErrorMsg(null);
 
-    // Create the account via service-role edge function (public signups are disabled)
     const { data: created, error: createErr } = await supabase.functions.invoke(
       "create-learner-account",
       { body: { token, password } },
@@ -110,7 +114,6 @@ export default function LearnerOnboarding() {
       return;
     }
 
-    // Sign in with the freshly created credentials
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
     if (signInErr) {
       setErrorMsg(signInErr.message);
@@ -119,7 +122,6 @@ export default function LearnerOnboarding() {
     }
 
     await supabase.rpc("consume_learner_token", { p_token: token });
-
     redirectToPortal();
   };
 
@@ -127,14 +129,24 @@ export default function LearnerOnboarding() {
     e.preventDefault();
     setSubmitting(true);
     setErrorMsg(null);
+    setShowAttemptFeedback(false);
+
+    const allowed = await checkAttempt(email);
+    if (!allowed) {
+      setSubmitting(false);
+      return;
+    }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
+      await logAttempt(email, false);
+      setShowAttemptFeedback(true);
       setErrorMsg("Mot de passe incorrect. Réessayez ou réinitialisez votre mot de passe.");
       setSubmitting(false);
       return;
     }
 
+    await logAttempt(email, true);
     redirectToPortal();
   };
 
@@ -150,6 +162,8 @@ export default function LearnerOnboarding() {
   };
 
   const strengthColor = ["bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-green-400", "bg-emerald-500"][strength.score] ?? "bg-gray-200";
+
+  // ── Loading / success / error states ──────────────────────────────────────
 
   if (mode === "loading") {
     return (
@@ -187,208 +201,291 @@ export default function LearnerOnboarding() {
     );
   }
 
+  // ── Forgot password — full 2-column layout ────────────────────────────────
+
+  if (mode === "forgot") {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex items-center justify-between px-8 py-4">
+          <SupertiltLogo className="h-8" />
+          <button
+            type="button"
+            onClick={() => { setMode("login"); setForgotSent(false); setErrorMsg(null); }}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour à la connexion
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg overflow-hidden flex">
+
+            {/* Left: form */}
+            <div className="flex-1 p-10">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+                <Lock className="w-7 h-7 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold mb-1">Mot de passe oublié</h1>
+              <p className="text-sm text-muted-foreground mb-8">
+                Indiquez l'adresse e-mail utilisée pour votre compte.<br />
+                Nous vous enverrons un lien pour définir un nouveau mot de passe.
+              </p>
+
+              <form onSubmit={handleForgot} className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="forgot-email">Adresse e-mail</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      value={email}
+                      readOnly
+                      className="pl-10 bg-muted/50 cursor-not-allowed"
+                      placeholder="exemple@entreprise.com"
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full font-semibold" disabled={submitting}>
+                  {submitting ? <Spinner /> : "Envoyer le lien de réinitialisation"}
+                </Button>
+              </form>
+
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => { setMode("login"); setForgotSent(false); setErrorMsg(null); }}
+                  className="text-sm underline text-foreground hover:text-primary transition-colors"
+                >
+                  Je me souviens de mon mot de passe
+                </button>
+              </div>
+
+              {forgotSent && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  Si cette adresse existe dans notre système, un e-mail vient d'être envoyé.
+                </div>
+              )}
+
+              <div className="mt-6 text-center text-xs text-muted-foreground">
+                Besoin d'aide ? Écrivez-nous à{" "}
+                <a href="mailto:contact@supertilt.fr" className="underline hover:text-foreground transition-colors">
+                  contact@supertilt.fr
+                </a>
+              </div>
+            </div>
+
+            {/* Right: info panel */}
+            <div className="w-80 bg-gray-50 border-l p-8 flex flex-col gap-6 justify-center">
+              <div className="flex items-center justify-center h-44 rounded-xl bg-white border">
+                <div className="relative">
+                  <div className="w-20 h-16 bg-gray-100 rounded border-2 border-gray-200 flex items-center justify-center">
+                    <Mail className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Mail className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Vérifiez votre boîte mail</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Vous recevrez un e-mail contenant un lien valable pendant 24 h.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                  <Shield className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Pas d'e-mail reçu ?</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Si vous ne voyez rien, pensez à vérifier vos courriers indésirables.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Create / login — existing card layout ─────────────────────────────────
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-2 shadow-xl">
-        <CardHeader className="text-center space-y-3">
+        <div className="text-center space-y-3 p-6 pb-0">
           <SupertiltLogo className="h-10 mx-auto" />
           <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
             <GraduationCap className="w-8 h-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {mode === "create" ? "Créer mon compte" : mode === "forgot" ? "Mot de passe oublié" : "Se connecter"}
-          </CardTitle>
-          <CardDescription>
+          <h2 className="text-2xl font-bold">
+            {mode === "create" ? "Créer mon compte" : "Se connecter"}
+          </h2>
+          <p className="text-sm text-muted-foreground pb-2">
             {mode === "create"
               ? "Choisissez un mot de passe pour accéder à votre formation"
-              : mode === "forgot"
-                ? "Nous vous enverrons un lien pour réinitialiser votre mot de passe"
-                : "Connectez-vous avec votre email et votre mot de passe"}
-          </CardDescription>
-        </CardHeader>
+              : "Connectez-vous avec votre email et votre mot de passe"}
+          </p>
+        </div>
 
         <CardContent className="space-y-4">
-          {usedTokenBanner && mode !== "forgot" && (
+          {usedTokenBanner && (
             <div className="rounded-md bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-800">
               Ce lien d'accès a déjà été utilisé. Connectez-vous avec votre mot de passe.
             </div>
           )}
 
-          {mode === "forgot" ? (
-            forgotSent ? (
-              <div className="text-center space-y-4 py-2">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
-                <p className="text-sm text-muted-foreground">
-                  Si un compte existe pour <strong>{email}</strong>, vous recevrez un email avec un lien de réinitialisation.
-                </p>
+          <form onSubmit={mode === "create" ? handleCreate : handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                readOnly
+                className="bg-muted/50 cursor-not-allowed"
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Mot de passe</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10"
+                  required
+                  autoFocus
+                  autoComplete={mode === "create" ? "new-password" : "current-password"}
+                />
                 <button
                   type="button"
-                  onClick={() => { setMode("login"); setForgotSent(false); setErrorMsg(null); }}
-                  className="text-sm text-primary hover:underline"
+                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                 >
-                  Retour à la connexion
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleForgot} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    readOnly
-                    className="bg-muted/50 cursor-not-allowed"
-                    autoComplete="email"
-                  />
-                </div>
-                {errorMsg && <p className="text-sm text-destructive">{errorMsg}</p>}
-                <Button type="submit" className="w-full font-semibold" disabled={submitting}>
-                  {submitting ? <Spinner /> : "Envoyer le lien de réinitialisation"}
-                </Button>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => { setMode("login"); setErrorMsg(null); }}
-                    className="text-xs text-muted-foreground hover:underline"
-                  >
-                    Retour à la connexion
-                  </button>
-                </div>
-              </form>
-            )
-          ) : (
-            <form onSubmit={mode === "create" ? handleCreate : handleLogin} className="space-y-4">
-              {/* Email (read-only, pre-filled from token) */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  readOnly
-                  className="bg-muted/50 cursor-not-allowed"
-                  autoComplete="email"
-                />
-              </div>
+            </div>
 
-              {/* Password */}
+            {mode === "create" && password.length > 0 && (
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
-                    required
-                    autoFocus
-                    autoComplete={mode === "create" ? "new-password" : "current-password"}
-                  />
-                  <button
-                    type="button"
-                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
+                        isStrongEnough
+                          ? "bg-emerald-500"
+                          : i < strength.score
+                            ? strengthColor
+                            : "bg-muted"
+                      }`}
+                    />
+                  ))}
                 </div>
-              </div>
-
-              {/* Password strength indicator (create mode only) */}
-              {mode === "create" && password.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex gap-1">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={`h-1.5 flex-1 rounded-full transition-colors ${
-                          isStrongEnough
-                            ? "bg-emerald-500"
-                            : i < strength.score
-                              ? strengthColor
-                              : "bg-muted"
-                        }`}
-                      />
+                {strength.hints.length > 0 && (
+                  <ul className="text-xs text-muted-foreground space-y-0.5">
+                    {strength.hints.map((h) => (
+                      <li key={h} className="flex items-center gap-1">
+                        <span className="text-orange-400">·</span> {h}
+                      </li>
                     ))}
-                  </div>
-                  {strength.hints.length > 0 && (
-                    <ul className="text-xs text-muted-foreground space-y-0.5">
-                      {strength.hints.map((h) => (
-                        <li key={h} className="flex items-center gap-1">
-                          <span className="text-orange-400">·</span> {h}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {isStrongEnough && (
-                    <p className="text-xs text-emerald-600 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Mot de passe fort
-                    </p>
-                  )}
-                </div>
-              )}
+                  </ul>
+                )}
+                {isStrongEnough && (
+                  <p className="text-xs text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Mot de passe fort
+                  </p>
+                )}
+              </div>
+            )}
 
-              {errorMsg && (
-                <p className="text-sm text-destructive">{errorMsg}</p>
-              )}
+            {mode === "login" && (
+              <LoginAttemptFeedback
+                isBlocked={status.isBlocked}
+                remainingAttempts={status.remainingAttempts}
+                countdown={countdown}
+                formatTimeRemaining={formatTimeRemaining}
+                showRemaining={showAttemptFeedback}
+              />
+            )}
 
-              <Button
-                type="submit"
-                className="w-full font-semibold"
-                disabled={submitting || !password || (mode === "create" && !isStrongEnough)}
-              >
-                {submitting
-                  ? <Spinner />
-                  : mode === "create"
-                    ? "Créer mon compte et accéder à ma formation"
-                    : "Me connecter"}
-              </Button>
+            {errorMsg && !status.isBlocked && (
+              <p className="text-sm text-destructive">{errorMsg}</p>
+            )}
 
-              {!hasAccount && (
-                <div className="text-center text-sm text-muted-foreground">
-                  {mode === "create" ? (
-                    <>
-                      Vous avez déjà un compte ?{" "}
-                      <button
-                        type="button"
-                        onClick={() => { setMode("login"); setPassword(""); setErrorMsg(null); }}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Se connecter
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      Vous n'avez pas encore de compte ?{" "}
-                      <button
-                        type="button"
-                        onClick={() => { setMode("create"); setPassword(""); setErrorMsg(null); setUsedTokenBanner(false); }}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Créer un compte
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
+            <Button
+              type="submit"
+              className="w-full font-semibold"
+              disabled={submitting || status.isBlocked || !password || (mode === "create" && !isStrongEnough)}
+            >
+              {submitting
+                ? <Spinner />
+                : mode === "create"
+                  ? "Créer mon compte et accéder à ma formation"
+                  : "Me connecter"}
+            </Button>
 
-              {mode === "login" && (
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => { setMode("forgot"); setErrorMsg(null); }}
-                    className="text-xs text-muted-foreground hover:underline"
-                  >
-                    Mot de passe oublié ?
-                  </button>
-                </div>
-              )}
-            </form>
-          )}
+            {!hasAccount && (
+              <div className="text-center text-sm text-muted-foreground">
+                {mode === "create" ? (
+                  <>
+                    Vous avez déjà un compte ?{" "}
+                    <button
+                      type="button"
+                      onClick={() => { setMode("login"); setPassword(""); setErrorMsg(null); }}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Se connecter
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Vous n'avez pas encore de compte ?{" "}
+                    <button
+                      type="button"
+                      onClick={() => { setMode("create"); setPassword(""); setErrorMsg(null); setUsedTokenBanner(false); }}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Créer un compte
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {mode === "login" && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => { setMode("forgot"); setErrorMsg(null); setShowAttemptFeedback(false); }}
+                  className="text-xs text-muted-foreground hover:underline"
+                >
+                  Mot de passe oublié ?
+                </button>
+              </div>
+            )}
+          </form>
         </CardContent>
       </Card>
     </div>

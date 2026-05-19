@@ -4,9 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap } from "lucide-react";
+import { Eye, EyeOff, Lock, Shield, User } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
@@ -15,6 +14,8 @@ import { validatePassword } from "@/lib/passwordValidation";
 const LearnerResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -24,7 +25,6 @@ const LearnerResetPassword = () => {
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const type = hashParams.get("type");
 
@@ -49,7 +49,6 @@ const LearnerResetPassword = () => {
     });
 
     checkSession();
-
     return () => subscription.unsubscribe();
   }, [navigate, toast]);
 
@@ -76,17 +75,13 @@ const LearnerResetPassword = () => {
     }
 
     setIsLoading(true);
-
     try {
       const { error } = await supabase.auth.updateUser({ password });
-
       if (error) throw error;
-
       toast({
         title: "Mot de passe mis à jour",
         description: "Votre mot de passe a été modifié avec succès.",
       });
-
       navigate("/espace-apprenant");
     } catch (error: unknown) {
       toast({
@@ -107,56 +102,139 @@ const LearnerResetPassword = () => {
     );
   }
 
-  if (!isValidSession) {
-    return null;
-  }
+  if (!isValidSession) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-2 shadow-xl">
-        <CardHeader className="text-center space-y-3">
-          <SupertiltLogo className="h-10 mx-auto" />
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-            <GraduationCap className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Top bar */}
+      <div className="flex items-center px-8 py-4">
+        <SupertiltLogo className="h-8" />
+      </div>
+
+      {/* Main content */}
+      <div className="flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg overflow-hidden flex">
+
+          {/* Left: form */}
+          <div className="flex-1 p-10">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+              <Lock className="w-7 h-7 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold mb-1">Nouveau mot de passe</h1>
+            <p className="text-sm text-muted-foreground mb-8">
+              Choisissez un nouveau mot de passe pour sécuriser votre compte.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Password */}
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Nouveau mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <PasswordStrengthIndicator password={password} />
+              </div>
+
+              {/* Confirm password */}
+              <div className="space-y-1.5">
+                <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirm ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full font-semibold"
+                disabled={isLoading || !validatePassword(password).isValid}
+              >
+                {isLoading ? <Spinner /> : "Enregistrer mon nouveau mot de passe"}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center text-xs text-muted-foreground">
+              Besoin d'aide ? Écrivez-nous à{" "}
+              <a href="mailto:contact@supertilt.fr" className="underline hover:text-foreground transition-colors">
+                contact@supertilt.fr
+              </a>
+            </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Nouveau mot de passe</CardTitle>
-          <CardDescription>Définissez votre nouveau mot de passe</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">Nouveau mot de passe</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <PasswordStrengthIndicator password={password} />
+
+          {/* Right: illustration + info cards */}
+          <div className="w-80 bg-gray-50 border-l p-8 flex flex-col gap-6 justify-center">
+            {/* Illustration placeholder */}
+            <div className="flex items-center justify-center h-44 rounded-xl bg-white border">
+              <div className="relative">
+                <div className="w-24 h-18 bg-gray-100 rounded-lg border-2 border-gray-200 flex items-center justify-center">
+                  <Lock className="w-10 h-10 text-gray-400" />
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-white" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
+
+            {/* Info card 1 */}
+            <div className="bg-white rounded-xl border p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <Shield className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Mot de passe sécurisé</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Utilisez un mot de passe unique que vous n'utilisez pas ailleurs.
+                </p>
+              </div>
             </div>
-            <Button
-              type="submit"
-              className="w-full font-semibold"
-              disabled={isLoading || !validatePassword(password).isValid}
-            >
-              {isLoading ? <Spinner /> : "Mettre à jour le mot de passe"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+
+            {/* Info card 2 */}
+            <div className="bg-white rounded-xl border p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                <User className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Connexion ensuite</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Une fois enregistré, vous pourrez vous reconnecter à votre espace.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 };
