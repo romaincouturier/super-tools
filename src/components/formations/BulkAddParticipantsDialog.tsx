@@ -90,6 +90,7 @@ const BulkAddParticipantsDialog = ({
       setBulkText("");
       setOpen(false);
       onParticipantsAdded();
+      onScheduledEmailsRefresh?.();
     } catch (error: unknown) {
       console.error("Error adding participants:", error);
       toastError(toast, getErrorMessage(error));
