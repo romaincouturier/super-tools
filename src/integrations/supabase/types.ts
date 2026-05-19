@@ -2311,6 +2311,36 @@ export type Database = {
           },
         ]
       }
+      faq_items: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          is_active: boolean
+          position: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          position?: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          position?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feature_usage: {
         Row: {
           created_at: string
@@ -3100,6 +3130,45 @@ export type Database = {
           },
         ]
       }
+      learner_profiles: {
+        Row: {
+          email: string
+          email_notif_important: boolean
+          email_notif_live: boolean
+          email_notif_work_comment: boolean
+          email_notif_work_reply: boolean
+          first_name: string | null
+          fonction: string | null
+          last_name: string | null
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          email: string
+          email_notif_important?: boolean
+          email_notif_live?: boolean
+          email_notif_work_comment?: boolean
+          email_notif_work_reply?: boolean
+          first_name?: string | null
+          fonction?: string | null
+          last_name?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          email?: string
+          email_notif_important?: boolean
+          email_notif_live?: boolean
+          email_notif_work_comment?: boolean
+          email_notif_work_reply?: boolean
+          first_name?: string | null
+          fonction?: string | null
+          last_name?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lms_assignment_submissions: {
         Row: {
           comment: string | null
@@ -3781,33 +3850,6 @@ export type Database = {
           },
         ]
       }
-      learner_profiles: {
-        Row: {
-          email: string
-          first_name: string | null
-          last_name: string | null
-          fonction: string | null
-          photo_url: string | null
-          updated_at: string
-        }
-        Insert: {
-          email: string
-          first_name?: string | null
-          last_name?: string | null
-          fonction?: string | null
-          photo_url?: string | null
-          updated_at?: string
-        }
-        Update: {
-          email?: string
-          first_name?: string | null
-          last_name?: string | null
-          fonction?: string | null
-          photo_url?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       lms_modules: {
         Row: {
           course_id: string
@@ -4214,7 +4256,7 @@ export type Database = {
       lms_work_deposits: {
         Row: {
           comment: string | null
-          course_id: string
+          course_id: string | null
           created_at: string
           file_mime: string | null
           file_name: string | null
@@ -4222,7 +4264,7 @@ export type Database = {
           file_url: string | null
           id: string
           learner_email: string
-          lesson_id: string
+          lesson_id: string | null
           module_id: string | null
           pedagogical_status: string
           publication_status: string
@@ -4232,7 +4274,7 @@ export type Database = {
         }
         Insert: {
           comment?: string | null
-          course_id: string
+          course_id?: string | null
           created_at?: string
           file_mime?: string | null
           file_name?: string | null
@@ -4240,7 +4282,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           learner_email: string
-          lesson_id: string
+          lesson_id?: string | null
           module_id?: string | null
           pedagogical_status?: string
           publication_status?: string
@@ -4250,7 +4292,7 @@ export type Database = {
         }
         Update: {
           comment?: string | null
-          course_id?: string
+          course_id?: string | null
           created_at?: string
           file_mime?: string | null
           file_name?: string | null
@@ -4258,7 +4300,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           learner_email?: string
-          lesson_id?: string
+          lesson_id?: string | null
           module_id?: string | null
           pedagogical_status?: string
           publication_status?: string
@@ -6020,6 +6062,106 @@ export type Database = {
           },
         ]
       }
+      practice_post_comments: {
+        Row: {
+          author_email: string
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_email: string
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_post_reactions: {
+        Row: {
+          author_email: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_email: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_email?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_posts: {
+        Row: {
+          author_email: string
+          content: string | null
+          created_at: string
+          file_mime: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          author_email: string
+          content?: string | null
+          created_at?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          author_email?: string
+          content?: string | null
+          created_at?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -7203,6 +7345,7 @@ export type Database = {
           description: string
           discussion_requested_at: string | null
           id: string
+          learner_category: string | null
           page_url: string | null
           position: number
           priority: string
@@ -7225,6 +7368,7 @@ export type Database = {
           description: string
           discussion_requested_at?: string | null
           id?: string
+          learner_category?: string | null
           page_url?: string | null
           position?: number
           priority?: string
@@ -7247,6 +7391,7 @@ export type Database = {
           description?: string
           discussion_requested_at?: string | null
           id?: string
+          learner_category?: string | null
           page_url?: string | null
           position?: number
           priority?: string
