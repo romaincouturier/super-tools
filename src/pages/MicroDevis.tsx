@@ -10,8 +10,7 @@ import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// (Label and Select previously used by the inter-entreprise linking block — removed.)
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
