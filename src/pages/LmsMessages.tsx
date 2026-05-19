@@ -136,8 +136,8 @@ export default function LmsMessages() {
     <ModuleLayout>
       <PageHeader
         title="Messages e-learning"
-        description="Conversations des apprenants sur vos cours"
-        icon={<MessageSquare className="w-5 h-5" />}
+        subtitle="Conversations des apprenants sur vos cours"
+        icon={MessageSquare}
       />
 
       <div className="flex gap-4 h-[calc(100vh-180px)] min-h-0">
