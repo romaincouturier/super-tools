@@ -3962,41 +3962,62 @@ export type Database = {
         Row: {
           correct_answer: string | null
           created_at: string
+          difficulty_level: string | null
           explanation: string | null
+          feedback_correct: string | null
+          feedback_incorrect: string | null
+          hint: string | null
           id: string
           media_url: string | null
+          multi_select: boolean
+          notion: string | null
           options: Json | null
           points: number | null
           position: number
           question_text: string
           question_type: string
           quiz_id: string
+          title: string | null
         }
         Insert: {
           correct_answer?: string | null
           created_at?: string
+          difficulty_level?: string | null
           explanation?: string | null
+          feedback_correct?: string | null
+          feedback_incorrect?: string | null
+          hint?: string | null
           id?: string
           media_url?: string | null
+          multi_select?: boolean
+          notion?: string | null
           options?: Json | null
           points?: number | null
           position?: number
           question_text: string
           question_type?: string
           quiz_id: string
+          title?: string | null
         }
         Update: {
           correct_answer?: string | null
           created_at?: string
+          difficulty_level?: string | null
           explanation?: string | null
+          feedback_correct?: string | null
+          feedback_incorrect?: string | null
+          hint?: string | null
           id?: string
           media_url?: string | null
+          multi_select?: boolean
+          notion?: string | null
           options?: Json | null
           points?: number | null
           position?: number
           question_text?: string
           question_type?: string
           quiz_id?: string
+          title?: string | null
         }
         Relationships: [
           {

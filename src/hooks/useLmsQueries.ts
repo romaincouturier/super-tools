@@ -78,7 +78,14 @@ export interface LmsQuizQuestion {
   quiz_id: string;
   question_type: string;
   question_text: string;
+  title: string | null;
+  hint: string | null;
   explanation: string | null;
+  feedback_correct: string | null;
+  feedback_incorrect: string | null;
+  difficulty_level: string | null;
+  notion: string | null;
+  multi_select: boolean;
   points: number;
   position: number;
   options: { label: string; is_correct: boolean; feedback?: string }[];
