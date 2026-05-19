@@ -491,31 +491,6 @@ const MicroDevis = () => {
                 />
               )}
 
-              {typeDevis === "formation" && formatFormation === "inter" && (
-                <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <Label className="font-medium">Lier à une session inter-entreprises (optionnel)</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Si vous sélectionnez une session, le participant sera automatiquement ajouté à la formation dès signature du devis.
-                  </p>
-                  <Select
-                    value={selectedTrainingId || "__none__"}
-                    onValueChange={(v) => setSelectedTrainingId(v === "__none__" ? "" : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une formation inter-entreprises…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Aucune (ne pas lier)</SelectItem>
-                      {interTrainings.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.training_name}
-                          {t.start_date ? ` — ${new Date(t.start_date).toLocaleDateString("fr-FR")}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
 
               {typeDevis === "jeu" && (
                 <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-secondary">
