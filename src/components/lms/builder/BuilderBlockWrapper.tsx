@@ -10,6 +10,8 @@ interface Props {
   onDelete: () => void;
   onDuplicate: () => void;
   onInsertAfter: (type: LessonBlockType) => void;
+  /** Drag-handle attributes+listeners from useSortable — enables the grip button. */
+  dragHandleProps?: Record<string, unknown>;
   children: React.ReactNode;
 }
 
@@ -25,6 +27,7 @@ export default function BuilderBlockWrapper({
   onDelete,
   onDuplicate,
   onInsertAfter,
+  dragHandleProps,
   children,
 }: Props) {
   const [hovered, setHovered] = useState(false);
@@ -59,23 +62,30 @@ export default function BuilderBlockWrapper({
             className="absolute right-3 top-3 flex items-center gap-1 z-10"
             onMouseEnter={() => setHovered(true)}
           >
-            {/* Grip — disabled, tooltip */}
-            <div className="relative group/grip">
-              <button
-                disabled
-                className="w-7 h-7 flex items-center justify-center cursor-not-allowed"
-                style={{ background: "transparent", color: "rgba(16,24,32,0.25)", borderRadius: 999 }}
-                aria-label="Déplacer le bloc"
-              >
-                <GripVertical size={14} />
-              </button>
-              <span
-                className="absolute right-0 top-8 whitespace-nowrap text-xs px-2 py-1 opacity-0 group-hover/grip:opacity-100 pointer-events-none transition-opacity z-20"
-                style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit", borderRadius: 8 }}
-              >
-                Déplacement bientôt dispo
-              </span>
-            </div>
+            {/* Grip handle */}
+            <button
+              type="button"
+              aria-label="Déplacer le bloc"
+              className="w-7 h-7 flex items-center justify-center transition-colors rounded"
+              style={{
+                background: "transparent",
+                color: dragHandleProps ? "rgba(16,24,32,0.4)" : "rgba(16,24,32,0.2)",
+                cursor: dragHandleProps ? "grab" : "default",
+                borderRadius: 999,
+              }}
+              onMouseEnter={(e) => {
+                if (!dragHandleProps) return;
+                (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = dragHandleProps ? "rgba(16,24,32,0.4)" : "rgba(16,24,32,0.2)";
+              }}
+              {...(dragHandleProps ?? {})}
+            >
+              <GripVertical size={14} />
+            </button>
 
             {/* Duplicate */}
             <button

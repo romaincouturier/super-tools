@@ -157,6 +157,8 @@ export interface ExerciseBlockContent {
   answer_html?: string | null;
   checklist_title?: string | null;
   checklist_items?: ChecklistItem[] | null;
+  video_url?: string | null;
+  image_url?: string | null;
 }
 
 export type BulletStyle = "round" | "square" | "check" | "arrow" | "star" | "diamond";

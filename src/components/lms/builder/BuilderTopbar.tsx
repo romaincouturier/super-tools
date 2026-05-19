@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye, ArrowRight } from "lucide-react";
+import { Menu, ArrowLeft, Eye } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
-import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   lesson: LmsLesson;
@@ -13,7 +12,6 @@ interface Props {
 
 export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleChange, onMenuToggle }: Props) {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   return (
     <header
@@ -97,32 +95,22 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         </span>
 
         {/* Preview */}
-        <button
-          onClick={() => toast({ title: "Aperçu bientôt disponible" })}
+        <a
+          href={`/lms/${courseId}/home?preview=admin&lesson=${lesson.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
           style={{
             color: "var(--st-ink)",
             borderColor: "rgba(16,24,32,0.2)",
             fontFamily: "inherit",
+            textDecoration: "none",
           }}
         >
           <Eye size={14} />
           Aperçu
-        </button>
+        </a>
 
-        {/* Publish */}
-        <button
-          onClick={() => toast({ title: "Publication bientôt disponible" })}
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-full transition-all hover:-translate-y-px active:translate-y-0"
-          style={{
-            background: "var(--st-ink)",
-            color: "#fff",
-            fontFamily: "inherit",
-          }}
-        >
-          Publier
-          <ArrowRight size={14} />
-        </button>
       </div>
     </header>
   );

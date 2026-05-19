@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, FileText, Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronRight, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import {
   useCourseModules,
   useModuleLessons,
   useCreateModule,
   useCreateLesson,
+  useUpdateModule,
+  useDeleteModule,
   useReorderModules,
   useReorderLessons,
   LmsModule,
   LmsLesson,
 } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
+import { toastError } from "@/lib/toastError";
 
 interface Props {
   courseId: string;
@@ -233,10 +237,65 @@ function ModuleItem({
   const { data: lessons = [] } = useModuleLessons(mod.id);
   const hasActive = lessons.some((l) => l.id === activeLessonId);
   const [open, setOpen] = useState(hasActive);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(mod.title);
+  const renameRef = useRef<HTMLInputElement>(null);
   const createLesson = useCreateLesson();
+  const updateModule = useUpdateModule();
+  const deleteModule = useDeleteModule();
   const reorderLessons = useReorderLessons();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    if (renaming) renameRef.current?.focus();
+  }, [renaming]);
+
+  const handleStartRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenameValue(mod.title);
+    setRenaming(true);
+    setOpen(true);
+  };
+
+  const handleCommitRename = async () => {
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === mod.title) { setRenaming(false); return; }
+    try {
+      await updateModule.mutateAsync({ id: mod.id, title: trimmed });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur de renommage");
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const hasContent = lessons.length > 0;
+    const description = hasContent
+      ? `Ce module contient ${lessons.length} leçon${lessons.length > 1 ? "s" : ""}. En le supprimant, les leçons et éléments associés seront également supprimés. Cette action est irréversible.`
+      : "Cette action est irréversible.";
+
+    const ok = await confirm({
+      title: `Supprimer le module "${mod.title}" ?`,
+      description,
+      confirmText: "Oui, supprimer ce module",
+      cancelText: "Annuler",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    const activeInModule = lessons.some((l) => l.id === activeLessonId);
+    try {
+      await deleteModule.mutateAsync(mod.id);
+      toast({ title: "Module supprimé" });
+      if (activeInModule) navigate(`/lms/${courseId}`);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur de suppression");
+    }
+  };
 
   const handleAddLesson = async () => {
     try {
@@ -272,10 +331,11 @@ function ModuleItem({
 
   return (
     <div style={{ marginBottom: ".25rem" }}>
+      <ConfirmDialog />
       {/* Module header */}
       <div
         className="group flex items-center gap-2 cursor-pointer"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => !renaming && setOpen((o) => !o)}
         style={{ padding: ".5rem .75rem", fontWeight: 600, fontSize: ".875rem", color: "var(--st-ink)", borderRadius: 8, justifyContent: "space-between" }}
         onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)")}
         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
@@ -290,11 +350,55 @@ function ModuleItem({
               flexShrink: 0,
             }}
           />
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {mod.title}
-          </span>
+          {renaming ? (
+            <input
+              ref={renameRef}
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onBlur={handleCommitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleCommitRename(); }
+                if (e.key === "Escape") { setRenaming(false); }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 min-w-0 outline-none rounded px-1"
+              style={{ fontSize: ".875rem", fontWeight: 600, color: "var(--st-ink)", background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.2)", padding: "1px 4px" }}
+            />
+          ) : (
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {mod.title}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+          {/* Rename + Delete — visible on hover */}
+          {!renaming && (
+            <>
+              <button
+                type="button"
+                aria-label="Renommer le module"
+                onClick={handleStartRename}
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: "var(--st-ink-50)", background: "transparent" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.1)"; (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--st-ink-50)"; }}
+              >
+                <Pencil size={11} />
+              </button>
+              <button
+                type="button"
+                aria-label="Supprimer le module"
+                onClick={handleDelete}
+                disabled={deleteModule.isPending}
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: "var(--st-ink-50)", background: "transparent" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)"; (e.currentTarget as HTMLElement).style.color = "#dc2626"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--st-ink-50)"; }}
+              >
+                <Trash2 size={11} />
+              </button>
+            </>
+          )}
           <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
           <span style={{ fontWeight: 500, fontSize: ".75rem", color: "var(--st-ink-50)" }}>
             {lessons.length}
