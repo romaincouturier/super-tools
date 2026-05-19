@@ -106,7 +106,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
           </Button>
           {revealed && (
             <div
-              className="prose prose-sm max-w-none mt-2 break-words"
+              className="prose max-w-none mt-2 break-words"
               dangerouslySetInnerHTML={{ __html: content.answer_html }}
             />
           )}
