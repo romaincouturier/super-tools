@@ -303,6 +303,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const results = { items_processed: 0, items_to_validate: 0, emails_queued: 0, formations_processed: 0 };
 
     for (const item of order.line_items ?? []) {
+     try {
       const formula = formulasByProductId.get(item.product_id);
       const game = formula ? undefined : gamesByProductId.get(item.product_id);
 
