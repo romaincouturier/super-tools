@@ -23,9 +23,11 @@ interface PollingIndicatorProps {
   label?: string;
   /** Edge function name to invoke when forcing the polling. */
   functionName?: string;
+  /** Custom label for the force button. */
+  forceLabel?: string;
 }
 
-export function PollingIndicator({ source, label = "Polling", functionName }: PollingIndicatorProps) {
+export function PollingIndicator({ source, label = "Polling", functionName, forceLabel }: PollingIndicatorProps) {
   const { data: cursor, isLoading } = usePollingCursor(source);
   const [isRunning, setIsRunning] = useState(false);
   const { toast } = useToast();
