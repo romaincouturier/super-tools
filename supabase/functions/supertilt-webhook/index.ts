@@ -427,12 +427,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
           city?: string; postcode?: string; country?: string;
         } | undefined;
 
-        // Prix HT de la ligne
-        const linePriceHt = parseFloat(item.total ?? "0");
-
         // Détermine si la session trouvée est e-learning (pour l'envoi du lien d'accès)
         const trainingFormat = (training.format_formation ?? "").toLowerCase();
         const isElearningSession = trainingFormat.includes("e_learning") || trainingFormat.includes("elearning") || trainingFormat.includes("classe_virtuelle");
+
+        // Calcule le mode d'envoi de la convocation (aligné sur l'ajout manuel via getEmailMode)
+        // - pas de date           → "programme" (sera envoyée par cron J-7)
+        // - déjà commencée        → "non_envoye" (sauf formation ongoing → on envoie quand même)
+        // - < 2 j                 → "manuel"
+        // - 2 à 7 j               → "accueil_envoye" + envoi immédiat
+        // - > 7 j                 → "programme"
+        const computeEmailMode = (startStr: string | null, endStr: string | null) => {
+          if (!startStr) return { status: "programme", sendNow: false, ongoing: false };
+          const start = new Date(`${startStr}T00:00:00`);
+          const end = endStr ? new Date(`${endStr}T23:59:59`) : start;
+          const today = new Date();
+          const msPerDay = 86_400_000;
+          const days = Math.floor((start.getTime() - today.getTime()) / msPerDay);
+          const ongoing = today >= start && today <= end;
+          if (days <= 0) return { status: "non_envoye", sendNow: false, ongoing };
+          if (days < 2)  return { status: "manuel",     sendNow: false, ongoing };
+          if (days <= 7) return { status: "accueil_envoye", sendNow: true, ongoing };
+          return { status: "programme", sendNow: false, ongoing };
+        };
+        const emailMode = computeEmailMode(training.start_date, training.end_date);
+        const needsSurveyStatus = emailMode.status;
+        // L'e-learning a son propre flux d'accès → pas de convocation classique
+        const shouldSendWelcomeNow = !isElearningSession && (emailMode.sendNow || emailMode.ongoing);
 
         let participantId: string;
         if (existing) {
