@@ -395,6 +395,13 @@ function BlockEditorBody({
           slim={slim}
         />
       );
+    case "shortcode":
+      return (
+        <ShortcodeBlockEditor
+          content={content as ShortcodeBlockContent}
+          onChange={(c) => onChange(c)}
+        />
+      );
     default:
       return null;
   }
