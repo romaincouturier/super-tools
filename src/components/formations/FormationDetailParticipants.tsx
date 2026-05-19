@@ -145,6 +145,7 @@ const FormationDetailParticipants = ({
                 trainingStartDate={training.start_date}
                 trainingEndDate={training.end_date}
                 onParticipantsAdded={fetchParticipants}
+                onScheduledEmailsRefresh={() => setEmailsRefreshTrigger(prev => prev + 1)}
                 isInterEntreprise={isInterSession}
                 formatFormation={training.format_formation}
               />
