@@ -277,7 +277,8 @@ export type LessonBlockContent =
   | RowBlockContent
   | ContainerBlockContent
   | DividerBlockContent
-  | SpacerBlockContent;
+  | SpacerBlockContent
+  | ShortcodeBlockContent;
 
 export interface LessonBlock {
   id: string;
