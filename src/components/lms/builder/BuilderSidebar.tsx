@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, FileText, Plus } from "lucide-react";
+import { ChevronRight, FileText, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import {
   useCourseModules,
   useModuleLessons,
   useCreateModule,
   useCreateLesson,
+  useReorderModules,
+  useReorderLessons,
   LmsModule,
   LmsLesson,
 } from "@/hooks/useLms";
@@ -20,6 +22,7 @@ interface Props {
 export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }: Props) {
   const { data: modules = [] } = useCourseModules(courseId);
   const createModule = useCreateModule();
+  const reorderModules = useReorderModules();
   const { toast } = useToast();
 
   const handleAddModule = async () => {
@@ -32,6 +35,23 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
       toast({ title: "Module ajouté" });
     } catch {
       toast({ title: "Erreur lors de la création du module", variant: "destructive" });
+    }
+  };
+
+  const handleMoveModule = async (modId: string, dir: "up" | "down") => {
+    const idx = modules.findIndex((m) => m.id === modId);
+    if (idx < 0) return;
+    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= modules.length) return;
+    const updates = modules.map((m, i) => {
+      if (i === idx) return { id: m.id, position: modules[swapIdx].position };
+      if (i === swapIdx) return { id: m.id, position: modules[idx].position };
+      return { id: m.id, position: m.position };
+    });
+    try {
+      await reorderModules.mutateAsync(updates);
+    } catch {
+      toast({ title: "Erreur lors de la réorganisation", variant: "destructive" });
     }
   };
 
@@ -50,12 +70,16 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
 
       {/* Module list */}
       <nav className="flex-1">
-        {modules.map((mod) => (
+        {modules.map((mod, idx) => (
           <ModuleItem
             key={mod.id}
             mod={mod}
             courseId={courseId}
             activeLessonId={activeLessonId}
+            isFirst={idx === 0}
+            isLast={idx === modules.length - 1}
+            onMoveUp={() => handleMoveModule(mod.id, "up")}
+            onMoveDown={() => handleMoveModule(mod.id, "down")}
           />
         ))}
 
@@ -108,19 +132,109 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
   );
 }
 
+function ReorderButtons({
+  isFirst,
+  isLast,
+  onUp,
+  onDown,
+  disabled,
+}: {
+  isFirst: boolean;
+  isLast: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button
+        type="button"
+        aria-label="Monter"
+        disabled={isFirst || disabled}
+        onClick={(e) => {
+          e.stopPropagation();
+          onUp();
+        }}
+        style={{
+          padding: 2,
+          borderRadius: 4,
+          background: "transparent",
+          color: isFirst || disabled ? "rgba(16,24,32,0.2)" : "var(--st-ink-60)",
+          cursor: isFirst || disabled ? "not-allowed" : "pointer",
+          display: "flex",
+        }}
+        onMouseEnter={(e) => {
+          if (!isFirst && !disabled) {
+            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)";
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+          if (!isFirst && !disabled) {
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink-60)";
+          }
+        }}
+      >
+        <ChevronUp size={12} />
+      </button>
+      <button
+        type="button"
+        aria-label="Descendre"
+        disabled={isLast || disabled}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDown();
+        }}
+        style={{
+          padding: 2,
+          borderRadius: 4,
+          background: "transparent",
+          color: isLast || disabled ? "rgba(16,24,32,0.2)" : "var(--st-ink-60)",
+          cursor: isLast || disabled ? "not-allowed" : "pointer",
+          display: "flex",
+        }}
+        onMouseEnter={(e) => {
+          if (!isLast && !disabled) {
+            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)";
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+          if (!isLast && !disabled) {
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink-60)";
+          }
+        }}
+      >
+        <ChevronDown size={12} />
+      </button>
+    </div>
+  );
+}
+
 function ModuleItem({
   mod,
   courseId,
   activeLessonId,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
 }: {
   mod: LmsModule;
   courseId: string;
   activeLessonId: string;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const { data: lessons = [] } = useModuleLessons(mod.id);
   const hasActive = lessons.some((l) => l.id === activeLessonId);
   const [open, setOpen] = useState(hasActive);
   const createLesson = useCreateLesson();
+  const reorderLessons = useReorderLessons();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -139,11 +253,28 @@ function ModuleItem({
     }
   };
 
+  const handleMoveLesson = async (lessonId: string, dir: "up" | "down") => {
+    const idx = lessons.findIndex((l) => l.id === lessonId);
+    if (idx < 0) return;
+    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= lessons.length) return;
+    const updates = lessons.map((l, i) => {
+      if (i === idx) return { id: l.id, position: lessons[swapIdx].position };
+      if (i === swapIdx) return { id: l.id, position: lessons[idx].position };
+      return { id: l.id, position: l.position };
+    });
+    try {
+      await reorderLessons.mutateAsync(updates);
+    } catch {
+      toast({ title: "Erreur lors de la réorganisation", variant: "destructive" });
+    }
+  };
+
   return (
     <div style={{ marginBottom: ".25rem" }}>
       {/* Module header */}
       <div
-        className="flex items-center gap-2 cursor-pointer"
+        className="group flex items-center gap-2 cursor-pointer"
         onClick={() => setOpen((o) => !o)}
         style={{ padding: ".5rem .75rem", fontWeight: 600, fontSize: ".875rem", color: "var(--st-ink)", borderRadius: 8, justifyContent: "space-between" }}
         onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)")}
@@ -163,19 +294,26 @@ function ModuleItem({
             {mod.title}
           </span>
         </div>
-        <span style={{ fontWeight: 500, fontSize: ".75rem", color: "var(--st-ink-50)", flexShrink: 0 }}>
-          {lessons.length}
-        </span>
+        <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
+          <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
+          <span style={{ fontWeight: 500, fontSize: ".75rem", color: "var(--st-ink-50)" }}>
+            {lessons.length}
+          </span>
+        </div>
       </div>
 
       {/* Lessons with slide animation */}
       <div style={{ overflow: "hidden", maxHeight: open ? "1000px" : 0, transition: "max-height 240ms ease" }}>
-        {lessons.map((lesson) => (
+        {lessons.map((lesson, idx) => (
           <LessonItem
             key={lesson.id}
             lesson={lesson}
             courseId={courseId}
             isActive={lesson.id === activeLessonId}
+            isFirst={idx === 0}
+            isLast={idx === lessons.length - 1}
+            onMoveUp={() => handleMoveLesson(lesson.id, "up")}
+            onMoveDown={() => handleMoveLesson(lesson.id, "down")}
           />
         ))}
 
@@ -213,16 +351,24 @@ function LessonItem({
   lesson,
   courseId,
   isActive,
+  isFirst,
+  isLast,
+  onMoveUp,
+  onMoveDown,
 }: {
   lesson: LmsLesson;
   courseId: string;
   isActive: boolean;
+  isFirst: boolean;
+  isLast: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 }) {
   const navigate = useNavigate();
 
   return (
     <div
-      className={"flex items-center gap-2 cursor-pointer"}
+      className="group flex items-center gap-2 cursor-pointer"
       onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
       style={{
         padding: isActive ? ".5rem .75rem .5rem 1.75rem" : ".5rem .75rem .5rem 2rem",
@@ -256,6 +402,7 @@ function LessonItem({
       <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {lesson.title}
       </span>
+      <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
     </div>
   );
 }
