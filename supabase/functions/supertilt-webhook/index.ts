@@ -95,16 +95,19 @@ const FRENCH_MONTHS: Record<string, string> = {
 
 
 function parseFrenchDates(text: string): { start: string } | null {
-  const t = text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  const t = text.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   // "15/03/2025" or "15-03-2025"
   const numeric = t.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if (numeric) {
     const [, d, m, y] = numeric;
     return { start: `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}` };
   }
-  // "15 mars 2025" or "du 15 mars 2025" or "15 au 17 mars 2025"
+  // Supports: "15 mars 2025", "du 15 mars 2025", "15 au 17 mars 2025",
+  //           "15 et 16 juin 2026", "15 & 16 juin 2026", "les 15-16 juin 2026",
+  //           "15, 16 juin 2026", "15 ou 16 juin 2026"
   const monthPattern = Object.keys(FRENCH_MONTHS).join("|");
-  const french = t.match(new RegExp(`(\\d{1,2})(?:\\s+au\\s+\\d{1,2})?\\s+(${monthPattern})\\s+(\\d{4})`));
+  const sep = `(?:\\s*(?:au|et|ou|&|,|-|–|—|/)\\s*\\d{1,2})*`;
+  const french = t.match(new RegExp(`(\\d{1,2})${sep}\\s+(${monthPattern})\\s+(\\d{4})`));
   if (french) {
     const [, d, month, y] = french;
     const m = FRENCH_MONTHS[month];
@@ -357,20 +360,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
             }
           }
 
-          // 3️⃣ Sinon : prochaine session datée non encore commencée du même catalogue
+          // 3️⃣ Sinon : prochaine session INTER-ENTREPRISES datée non encore commencée du même catalogue
+          //    (on exclut volontairement les sessions intra pour ne pas inscrire un client B2C dans une session privée)
           if (!training) {
             const { data: upcoming } = await (admin as any)
               .from("trainings")
               .select("id, training_name, start_date, end_date, format_formation")
               .eq("catalog_id", catalogId)
               .eq("is_cancelled", false)
+              .eq("format_formation", "inter-entreprises")
               .gt("start_date", today)
               .order("start_date", { ascending: true })
               .limit(1)
               .maybeSingle();
             if (upcoming) {
               training = upcoming;
-              routingReason = `prochaine session datée du catalogue ${catalogId}`;
+              routingReason = `prochaine session inter-entreprises datée du catalogue ${catalogId}`;
             }
           }
         }
