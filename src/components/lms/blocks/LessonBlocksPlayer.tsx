@@ -43,6 +43,7 @@ import RowBlockViewer from "./viewers/RowBlockViewer";
 import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
 import DividerBlockViewer from "./viewers/DividerBlockViewer";
 import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
+import ShortcodeBlockViewer from "./viewers/ShortcodeBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
