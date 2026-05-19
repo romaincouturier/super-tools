@@ -874,6 +874,17 @@ function DashboardView({
             <p className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
               {progressMessage(globalPct)}
             </p>
+            {mainTraining?.lms_course_id && globalPct < 100 && (
+              <Link
+                to={`/lms/${mainTraining.lms_course_id}/home?email=${encodeURIComponent(data.email)}${mainTraining.last_lesson_id ? `&lesson=${mainTraining.last_lesson_id}` : ""}`}
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
+                style={{ background: "var(--st-yellow)", color: "#101820" }}
+              >
+                {(!!mainTraining.last_lesson_id || globalPct > 0)
+                  ? <><RotateCcw size={13} /> Reprendre</>
+                  : <><Play size={13} /> Commencer</>}
+              </Link>
+            )}
           </div>
         </div>
 
