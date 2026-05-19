@@ -116,20 +116,6 @@ function parseFrenchDates(text: string): { start: string } | null {
   return null;
 }
 
-function subtractWorkingDays(
-  fromDate: Date,
-  daysToSubtract: number,
-  workingDays: boolean[] = [false, true, true, true, true, true, false],
-): Date {
-  const result = new Date(fromDate);
-  let remaining = daysToSubtract;
-  while (remaining > 0) {
-    result.setDate(result.getDate() - 1);
-    if (workingDays[result.getDay()]) remaining--;
-  }
-  return result;
-}
-
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
@@ -307,23 +293,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ((formulas ?? []) as FormulaRow[]).map((f) => [f.woocommerce_product_id, f]),
     );
 
-    // ── Load app_settings (e-learning access mode + email scheduling params) ────
-    const { data: appSettingsRows } = await (admin as any)
-      .from("app_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", ["elearning_access_mode", "working_days", "delay_needs_survey_days", "delay_trainer_summary_days"]);
-    const getAppSetting = (k: string) =>
-      (appSettingsRows as Array<{ setting_key: string; setting_value: string }>)
-        ?.find((s) => s.setting_key === k)?.setting_value ?? "";
-    const elearningAccessMode = getAppSetting("elearning_access_mode") || "magic_link";
-    const workingDaysArr: boolean[] = (() => {
-      try {
-        const p = JSON.parse(getAppSetting("working_days"));
-        return Array.isArray(p) && p.length === 7 ? p : [false, true, true, true, true, true, false];
-      } catch { return [false, true, true, true, true, true, false]; }
-    })();
-    const needsSurveyDelay = parseInt(getAppSetting("delay_needs_survey_days") || "7", 10) || 7;
-    const trainerSummaryDelay = parseInt(getAppSetting("delay_trainer_summary_days") || "1", 10) || 1;
+    // (Les paramètres d'application et la logique d'ajout de participant sont
+    //  gérés par add-training-participant — plus besoin de les charger ici.)
 
     // ── Process each line item ───────────────────────────────────
     const results = { items_processed: 0, items_to_validate: 0, emails_queued: 0, formations_processed: 0 };
@@ -432,242 +403,55 @@ Deno.serve(async (req: Request): Promise<Response> => {
           continue;
         }
 
-        // 4️⃣ Ajoute le participant à la session trouvée
-        const { data: existing } = await (admin as any)
-          .from("training_participants")
-          .select("id")
-          .eq("training_id", training.id)
-          .eq("email", customerEmail)
-          .maybeSingle();
-
-        // Déduit type_stagiaire_bpf depuis billing
+        // 4️⃣ Ajoute le participant via la logique métier centralisée
         const billingCompany = (order.billing?.company ?? "").trim();
-        const typeStagiaire = billingCompany ? "Entreprise" : "Particulier";
-
-        // Adresse de facturation
         const billingAddr = order.billing as {
           address_1?: string; address_2?: string;
           city?: string; postcode?: string; country?: string;
         } | undefined;
-
-        // Prix HT de la ligne
-        const linePriceHt = parseFloat(item.total ?? "0");
-
-        // Détermine si la session trouvée est e-learning (pour l'envoi du lien d'accès)
-        const trainingFormat = (training.format_formation ?? "").toLowerCase();
-        const isElearningSession = trainingFormat.includes("e_learning") || trainingFormat.includes("elearning") || trainingFormat.includes("classe_virtuelle");
-
-        // Calcule le mode d'envoi de la convocation (aligné sur l'ajout manuel via getEmailMode)
-        // - pas de date           → "programme" (sera envoyée par cron J-7)
-        // - déjà commencée        → "non_envoye" (sauf formation ongoing → on envoie quand même)
-        // - < 2 j                 → "manuel"
-        // - 2 à 7 j               → "accueil_envoye" + envoi immédiat
-        // - > 7 j                 → "programme"
-        const computeEmailMode = (startStr: string | null, endStr: string | null) => {
-          if (!startStr) return { status: "programme", sendNow: false, ongoing: false };
-          const start = new Date(`${startStr}T00:00:00`);
-          const end = endStr ? new Date(`${endStr}T23:59:59`) : start;
-          const today = new Date();
-          const msPerDay = 86_400_000;
-          const days = Math.floor((start.getTime() - today.getTime()) / msPerDay);
-          const ongoing = today >= start && today <= end;
-          if (days <= 0) return { status: "non_envoye", sendNow: false, ongoing };
-          if (days < 2)  return { status: "manuel",     sendNow: false, ongoing };
-          if (days <= 7) return { status: "accueil_envoye", sendNow: true, ongoing };
-          return { status: "programme", sendNow: false, ongoing };
-        };
-        const emailMode = computeEmailMode(training.start_date, training.end_date);
-        const needsSurveyStatus = emailMode.status;
-        // Aligné sur useAddParticipant : convocation envoyée immédiatement dès que
-        // la formation n'est pas passée (ou si elle est en cours, mid-session add).
-        // L'e-learning a son propre flux d'accès → pas de convocation classique.
-        const shouldSendWelcomeNow = !isElearningSession
-          && (emailMode.status !== "non_envoye" || emailMode.ongoing);
-
         const coachingTotal = formula.coaching_sessions_count ?? 0;
         const coachingDeadline = coachingTotal > 0
           ? (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split("T")[0]; })()
           : null;
 
-        let participantId: string;
-        if (existing) {
-          participantId = existing.id;
-        } else {
-          const needsSurveyToken = crypto.randomUUID();
-          const { data: participant, error: insertErr } = await (admin as any)
-            .from("training_participants")
-            .insert({
-              training_id: training.id,
-              first_name: order.billing?.first_name ?? null,
-              last_name: order.billing?.last_name ?? null,
+        const { data: addResult, error: addError } = await (admin as any).functions.invoke(
+          "add-training-participant",
+          {
+            body: {
+              trainingId: training.id,
+              trainingStartDate: training.start_date,
+              trainingEndDate: training.end_date,
+              formatFormation: training.format_formation,
+              isInterEntreprise: true,
               email: customerEmail,
+              firstName: order.billing?.first_name ?? null,
+              lastName: order.billing?.last_name ?? null,
               company: billingCompany || null,
-              company_address: [billingAddr?.address_1, billingAddr?.address_2].filter(Boolean).join(", ") || null,
-              company_city: billingAddr?.city ?? null,
-              company_zip: billingAddr?.postcode ?? null,
-              type_stagiaire_bpf: typeStagiaire,
-              sold_price_ht: linePriceHt || null,
-              payment_mode: "online",
-              needs_survey_token: needsSurveyToken,
-              needs_survey_status: needsSurveyStatus,
-              coaching_sessions_total: coachingTotal,
-              coaching_sessions_completed: 0,
-              coaching_deadline: coachingDeadline,
-              formula: formula.name || null,
-              formula_id: formula.id || null,
+              companyAddress: [billingAddr?.address_1, billingAddr?.address_2].filter(Boolean).join(", ") || null,
+              companyCity: billingAddr?.city ?? null,
+              companyZip: billingAddr?.postcode ?? null,
+              typeStagiaireBpf: billingCompany ? "Entreprise" : "Particulier",
+              soldPriceHt: parseFloat(item.total ?? "0") || null,
+              paymentMode: "online",
+              formulaId: formula.id || null,
+              formulaName: formula.name || null,
+              coachingSessionsTotal: coachingTotal,
+              coachingDeadline,
+              source: "woocommerce",
               notes: `Vente WooCommerce #${order.id} — ${item.name}`,
-            })
-            .select("id")
-            .single();
-
-          if (insertErr || !participant) {
-            console.error("training_participants insert failed:", insertErr);
-            throw new Error(`Participant insert failed: ${insertErr?.message ?? "no row returned"}`);
-          }
-          participantId = (participant as { id: string }).id;
-          await (admin as any).from("questionnaire_besoins").insert({
-            training_id: training.id,
-            participant_id: participantId,
-            token: needsSurveyToken,
-            etat: needsSurveyStatus,
-          });
-
-          // Schedule needs_survey email (future non-e-learning, non-ongoing trainings)
-          if (training.start_date && !isElearningSession && needsSurveyStatus !== "non_envoye" && !emailMode.ongoing) {
-            try {
-              const startDate = new Date(`${training.start_date}T00:00:00`);
-              const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
-              if (surveyDate > new Date()) {
-                await (admin as any).from("scheduled_emails").insert({
-                  training_id: training.id,
-                  participant_id: participantId,
-                  email_type: "needs_survey",
-                  scheduled_for: `${surveyDate.toISOString().split("T")[0]}T09:00:00`,
-                  status: "pending",
-                });
-              }
-            } catch (schedErr) {
-              console.error("Failed to schedule needs_survey email:", schedErr);
-            }
-          }
-
-          // Schedule welcome email J-7 (when training is > 7 days away)
-          if (training.start_date && !isElearningSession && emailMode.status === "programme") {
-            try {
-              const startDate = new Date(`${training.start_date}T00:00:00`);
-              const welcomeDate = subtractWorkingDays(startDate, 7, workingDaysArr);
-              if (welcomeDate > new Date()) {
-                await (admin as any).from("scheduled_emails").insert({
-                  training_id: training.id,
-                  participant_id: participantId,
-                  email_type: "welcome",
-                  scheduled_for: `${welcomeDate.toISOString().split("T")[0]}T09:00:00`,
-                  status: "pending",
-                });
-              }
-            } catch (schedErr) {
-              console.error("Failed to schedule welcome J-7 email:", schedErr);
-            }
-          }
-        }
-
-        // Schedule trainer_summary email (once per training, if not already scheduled)
-        if (training.start_date && needsSurveyStatus !== "non_envoye") {
-          try {
-            const { data: existingTrainerSummary } = await (admin as any)
-              .from("scheduled_emails")
-              .select("id")
-              .eq("training_id", training.id)
-              .eq("email_type", "trainer_summary")
-              .limit(1);
-            if (!existingTrainerSummary || existingTrainerSummary.length === 0) {
-              const startDate = new Date(`${training.start_date}T00:00:00`);
-              const summaryDate = subtractWorkingDays(startDate, trainerSummaryDelay, workingDaysArr);
-              if (summaryDate > new Date()) {
-                await (admin as any).from("scheduled_emails").insert({
-                  training_id: training.id,
-                  email_type: "trainer_summary",
-                  scheduled_for: `${summaryDate.toISOString().split("T")[0]}T07:00:00`,
-                  status: "pending",
-                });
-              }
-            }
-          } catch (schedErr) {
-            console.error("Failed to schedule trainer_summary email:", schedErr);
-          }
-        }
-
-        // Envoi de la convocation (welcome email) pour les sessions non e-learning
-        // selon le mode calculé : J-2 à J-7 OU formation déjà en cours.
-        if (shouldSendWelcomeNow) {
-          try {
-            await (admin as any).functions.invoke("send-welcome-email", {
-              body: { participantId, trainingId: training.id },
-            });
-          } catch (welcomeErr) {
-            console.error("send-welcome-email failed:", welcomeErr);
-          }
-        }
-
-        // Catch-up emargement pour les formations en cours (mid-session add)
-        if (emailMode.ongoing && !isElearningSession) {
-          try {
-            const { data: sentSlots } = await (admin as any)
-              .from("attendance_signatures")
-              .select("schedule_date, period")
-              .eq("training_id", training.id)
-              .not("email_sent_at", "is", null);
-            const uniqueSlots = Array.from(
-              new Map(
-                ((sentSlots ?? []) as Array<{ schedule_date: string; period: string }>).map(
-                  (r) => [`${r.schedule_date}|${r.period}`, r],
-                ),
-              ).values(),
-            );
-            for (const slot of uniqueSlots) {
-              try {
-                await (admin as any).functions.invoke("send-attendance-signature-request", {
-                  body: { trainingId: training.id, scheduleDate: slot.schedule_date, period: slot.period, participantIds: [participantId] },
-                });
-              } catch (slotErr) {
-                console.error("Catch-up attendance slot failed:", slot, slotErr);
-              }
-            }
-          } catch (catchUpErr) {
-            console.error("Catch-up attendance failed:", catchUpErr);
-          }
-        }
-
-        // Envoi accès uniquement pour les sessions e-learning
-        if (isElearningSession) {
-          if (elearningAccessMode === "magic_link") {
-            await (admin as any).functions.invoke("send-learner-magic-link", {
-              body: { email: customerEmail, trainingId: training.id },
-            });
-          } else {
-            await (admin as any).functions.invoke("send-elearning-access", {
-              body: { participantId, trainingId: training.id },
-            });
-          }
-        }
-
-        // Activity log
-        await (admin as any).from("activity_logs").insert({
-          action_type: "participant_added_from_woocommerce",
-          recipient_email: customerEmail,
-          details: {
-            training_id: training.id,
-            training_name: training.training_name,
-            participant_id: participantId,
-            woocommerce_order_id: order.id,
-            woocommerce_product_id: item.product_id,
-            routing_reason: routingReason,
-            is_elearning: isElearningSession,
-            source: "woocommerce_webhook",
+              woocommerceOrderId: order.id,
+              woocommerceProductId: item.product_id,
+              routingReason,
+            },
           },
-        });
+        );
 
-        console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`);
+        if (addError) {
+          console.error("add-training-participant failed:", addError);
+          throw new Error(`add-training-participant: ${addError.message ?? String(addError)}`);
+        }
+
+        console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`, addResult);
         results.formations_processed++;
         // Les formations ne passent pas par le kanban jeux
         continue;

@@ -1,5 +1,8 @@
 project_id = "yewffntzgrdgztrwtava"
 
+[functions.add-training-participant]
+verify_jwt = false
+
 [functions.notify-learner-lms-message]
 verify_jwt = false
 

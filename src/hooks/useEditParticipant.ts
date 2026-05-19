@@ -54,7 +54,6 @@ export interface UseEditParticipantOptions {
   isInterEntreprise: boolean;
   trainingElearningDuration?: number | null;
   availableFormulas: FormationFormula[];
-  formulaAllowsCoaching: boolean;
   onParticipantUpdated: () => void;
 }
 
@@ -89,7 +88,6 @@ export function useEditParticipant({
   isInterEntreprise,
   trainingElearningDuration,
   availableFormulas,
-  formulaAllowsCoaching,
   onParticipantUpdated,
 }: UseEditParticipantOptions) {
   const { toast } = useToast();
@@ -102,6 +100,12 @@ export function useEditParticipant({
   const [formula, setFormula] = useState(participant.formula || "");
   const [typeStagiaireBpf, setTypeStagiaireBpf] = useState(participant.type_stagiaire_bpf || "");
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState(participant.source_financement_bpf || "");
+
+  // Dérive la formule sélectionnée depuis la valeur courante du champ (pas depuis
+  // participant.formula_id qui est stale si l'utilisateur vient de changer la formule).
+  const selectedFormula = availableFormulas.find((f) => f.name === formula)
+    ?? availableFormulas.find((f) => f.id === participant.formula_id);
+  const formulaAllowsCoaching = (selectedFormula?.coaching_sessions_count ?? 0) > 0;
   const [coachingSessionsTotal, setCoachingSessionsTotal] = useState(
     participant.coaching_sessions_total != null
       ? String(participant.coaching_sessions_total)
@@ -189,9 +193,13 @@ export function useEditParticipant({
         }
         if (availableFormulas.length > 0) {
           updateData.formula = v.formula || null;
+          const matched = availableFormulas.find((f) => f.name === v.formula);
+          updateData.formula_id = matched?.id ?? null;
         }
       }
 
+      // Toujours sauvegarder coaching_sessions_total quand le champ est visible
+      // (formulaAllowsCoaching n'est qu'une contrainte UI, pas DB)
       if (formulaAllowsCoaching) {
         updateData.coaching_sessions_total = v.coachingSessionsTotal
           ? parseInt(v.coachingSessionsTotal, 10)
@@ -200,7 +208,7 @@ export function useEditParticipant({
 
       return updateData;
     },
-    [isInterEntreprise, formatFormation, availableFormulas.length, formulaAllowsCoaching],
+    [isInterEntreprise, formatFormation, availableFormulas, formulaAllowsCoaching],
   );
 
   // --- Compose form values for auto-save tracking ---
@@ -355,6 +363,8 @@ export function useEditParticipant({
     // Formula & coaching
     formula,
     setFormula,
+    selectedFormula,
+    formulaAllowsCoaching,
     coachingSessionsTotal,
     setCoachingSessionsTotal,
 
