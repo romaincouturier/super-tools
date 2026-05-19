@@ -10,6 +10,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const REPO = "romaincouturier/super-tools";
 const GITHUB_API = "https://api.github.com";
+const RESPONSE_BUDGET_MS = 115_000;
+const GITHUB_FETCH_TIMEOUT_MS = 12_000;
+const AI_FETCH_TIMEOUT_MS = 25_000;
+const AI_CHUNK_SIZE = 6;
+const AI_CONCURRENCY = 2;
 
 interface GitHubPR {
   number: number;
@@ -32,19 +37,52 @@ interface ProposedEntry {
   github_pr_url: string;
 }
 
-async function fetchAllMergedPRs(token: string, since: string, until: string): Promise<GitHubPR[]> {
+function remainingBudget(deadline: number): number {
+  return deadline - Date.now();
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function fallbackEstimate(pr: GitHubPR): number {
+  const churn = pr.additions + pr.deletions;
+  if (pr.changed_files > 15 || churn > 500 || pr.commits > 8) return 360;
+  if (pr.changed_files > 5 || churn > 200 || pr.commits > 3) return 180;
+  if (pr.changed_files > 2 || churn > 50) return 90;
+  return 60;
+}
+
+function fallbackDescription(pr: GitHubPR): string {
+  const labels = pr.labels.map((l) => l.name).filter(Boolean).join(", ");
+  const details = `${pr.changed_files} fichier${pr.changed_files > 1 ? "s" : ""} modifié${pr.changed_files > 1 ? "s" : ""}, ${pr.commits} commit${pr.commits > 1 ? "s" : ""}, +${pr.additions}/-${pr.deletions} lignes`;
+  return `Travail réalisé sur ${pr.title}. Analyse, développement et validation de la PR #${pr.number} (${details}${labels ? `, labels : ${labels}` : ""}).`;
+}
+
+async function fetchAllMergedPRs(token: string, since: string, until: string, deadline: number): Promise<GitHubPR[]> {
   const prs: GitHubPR[] = [];
   let page = 1;
 
   while (true) {
+    if (remainingBudget(deadline) < 20_000) {
+      console.warn("Stopping GitHub fetch early: response budget nearly exhausted");
+      break;
+    }
+
     const url = `${GITHUB_API}/repos/${REPO}/pulls?state=closed&sort=updated&direction=desc&per_page=100&page=${page}`;
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       headers: {
         Authorization: `token ${token}`,
         Accept: "application/vnd.github.v3+json",
         "User-Agent": "SuperTools-TimeTracker",
       },
-    });
+    }, GITHUB_FETCH_TIMEOUT_MS);
 
     if (!resp.ok) {
       const err = await resp.text();
@@ -72,16 +110,38 @@ async function fetchAllMergedPRs(token: string, since: string, until: string): P
     const BATCH_SIZE = 10;
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batch = candidates.slice(i, i + BATCH_SIZE);
+      if (remainingBudget(deadline) < 20_000) {
+        console.warn(`Skipping GitHub PR detail calls for ${candidates.length - i} PRs: response budget nearly exhausted`);
+        for (const pr of candidates.slice(i)) {
+          prs.push({
+            number: pr.number,
+            title: pr.title,
+            body: pr.body || "",
+            merged_at: pr.merged_at,
+            html_url: pr.html_url,
+            commits: 1,
+            additions: 0,
+            deletions: 0,
+            changed_files: 0,
+            labels: pr.labels || [],
+          });
+        }
+        break;
+      }
       const results = await Promise.all(batch.map(async (pr) => {
-        const detailResp = await fetch(`${GITHUB_API}/repos/${REPO}/pulls/${pr.number}`, {
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: "application/vnd.github.v3+json",
-            "User-Agent": "SuperTools-TimeTracker",
-          },
-        });
-        if (!detailResp.ok) return null;
-        const detail = await detailResp.json();
+        let detail: any = {};
+        try {
+          const detailResp = await fetchWithTimeout(`${GITHUB_API}/repos/${REPO}/pulls/${pr.number}`, {
+            headers: {
+              Authorization: `token ${token}`,
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "SuperTools-TimeTracker",
+            },
+          }, GITHUB_FETCH_TIMEOUT_MS);
+          if (detailResp.ok) detail = await detailResp.json();
+        } catch (err) {
+          console.warn(`GitHub PR detail timeout/failure for #${pr.number}:`, err instanceof Error ? err.message : err);
+        }
         return {
           number: pr.number,
           title: pr.title,
@@ -108,7 +168,12 @@ async function fetchAllMergedPRs(token: string, since: string, until: string): P
   return prs;
 }
 
-async function generateEntriesForBatch(prs: GitHubPR[]): Promise<Array<{ pr_number: number; duration_minutes: number; description: string }>> {
+async function generateEntriesForBatch(prs: GitHubPR[], deadline: number): Promise<Array<{ pr_number: number; duration_minutes: number; description: string }>> {
+  if (remainingBudget(deadline) < AI_FETCH_TIMEOUT_MS + 5_000) {
+    console.warn(`Skipping AI batch (${prs.length} PRs): response budget nearly exhausted`);
+    return [];
+  }
+
   const prSummaries = prs.map((pr) => {
     const labelNames = pr.labels.map((l) => l.name).join(", ");
     const body = (pr.body || "").slice(0, 400);
@@ -146,7 +211,7 @@ Pour chaque PR, génère un objet JSON avec :
 Format attendu :
 [{"pr_number":123,"duration_minutes":90,"description":"..."}]`;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -159,7 +224,7 @@ Format attendu :
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
-  });
+  }, Math.min(AI_FETCH_TIMEOUT_MS, Math.max(5_000, remainingBudget(deadline) - 5_000)));
 
   if (!response.ok) {
     const errText = await response.text();
@@ -200,15 +265,27 @@ Format attendu :
   }
 }
 
-async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
+async function generateEntries(prs: GitHubPR[], deadline: number): Promise<ProposedEntry[]> {
   if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
 
-  // Chunk into batches of 12 PRs, run in parallel to stay under 150s
-  const CHUNK = 12;
+  // Smaller batches reduce AI latency and avoid edge idle timeouts.
+  const CHUNK = AI_CHUNK_SIZE;
   const batches: GitHubPR[][] = [];
   for (let i = 0; i < prs.length; i += CHUNK) batches.push(prs.slice(i, i + CHUNK));
 
-  const results = await Promise.all(batches.map((b) => generateEntriesForBatch(b)));
+  const results: Array<Array<{ pr_number: number; duration_minutes: number; description: string }>> = [];
+  for (let i = 0; i < batches.length; i += AI_CONCURRENCY) {
+    if (remainingBudget(deadline) < AI_FETCH_TIMEOUT_MS + 5_000) {
+      console.warn(`Stopping AI analysis early after ${i}/${batches.length} batches`);
+      break;
+    }
+    const group = batches.slice(i, i + AI_CONCURRENCY);
+    const groupResults = await Promise.all(group.map((b) => generateEntriesForBatch(b, deadline).catch((err) => {
+      console.warn("AI batch failed, using fallback entries:", err instanceof Error ? err.message : err);
+      return [];
+    })));
+    results.push(...groupResults);
+  }
   const aiResults = results.flat();
   const resultMap = new Map(aiResults.map((r) => [r.pr_number, r]));
 
@@ -217,8 +294,8 @@ async function generateEntries(prs: GitHubPR[]): Promise<ProposedEntry[]> {
     const ai = resultMap.get(pr.number);
     return {
       entry_date: pr.merged_at!.slice(0, 10),
-      duration_minutes: ai?.duration_minutes ?? 60,
-      description: ai?.description ?? pr.title,
+      duration_minutes: ai?.duration_minutes ?? fallbackEstimate(pr),
+      description: ai?.description ?? fallbackDescription(pr),
       github_pr_number: pr.number,
       github_pr_url: pr.html_url,
     };
@@ -292,7 +369,8 @@ serve(async (req) => {
   }
 
   try {
-    const prs = await fetchAllMergedPRs(githubToken, since + "T00:00:00Z", until + "T23:59:59Z");
+    const deadline = Date.now() + RESPONSE_BUDGET_MS;
+    const prs = await fetchAllMergedPRs(githubToken, since + "T00:00:00Z", until + "T23:59:59Z", deadline);
 
     if (prs.length === 0) {
       return new Response(JSON.stringify({ entries: [], message: "No merged PRs found in the given period." }), {
@@ -301,7 +379,7 @@ serve(async (req) => {
       });
     }
 
-    const entries = await generateEntries(prs);
+    const entries = await generateEntries(prs, deadline);
 
     return new Response(JSON.stringify({ entries }), {
       status: 200,
