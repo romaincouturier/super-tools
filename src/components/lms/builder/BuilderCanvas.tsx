@@ -321,9 +321,9 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       courseId={courseId}
                       blockRadius={blockRadius}
                       density={density}
-                      onDelete={() => handleDelete(node.block.id)}
-                      onDuplicate={() => handleDuplicate(node.block.id)}
-                      onInsertAfter={(type) => handleAdd(type, null)}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                      onAdd={handleAdd}
                       onUpdateContent={handleUpdateContent}
                       onToggleHidden={handleToggleHidden}
                     />
@@ -347,7 +347,7 @@ function SortableBuilderBlock({
   density,
   onDelete,
   onDuplicate,
-  onInsertAfter,
+  onAdd,
   onUpdateContent,
   onToggleHidden,
 }: {
@@ -356,16 +356,24 @@ function SortableBuilderBlock({
   courseId: string;
   blockRadius: number;
   density: "compact" | "normal" | "spacious";
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onInsertAfter: (type: LessonBlockType) => void;
+  onDelete: (blockId: string) => void;
+  onDuplicate: (blockId: string) => void;
+  onAdd: (type: LessonBlockType, parentBlockId: string | null) => void;
   onUpdateContent: (blockId: string, content: LessonBlockContent) => Promise<void>;
   onToggleHidden: (blockId: string, hidden: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: node.block.id,
-    data: { type: "block", parentId: null, blockId: node.block.id },
+    data: { type: "block", parentId: node.block.parent_block_id ?? null, blockId: node.block.id },
   });
+
+  const isContainer =
+    node.block.type === "section" ||
+    node.block.type === "row" ||
+    node.block.type === "container";
+  const hasChildren = node.children.length > 0;
+  const childIds = node.children.map((c) => c.block.id);
+  const gapClass = DENSITY_GAP[density] ?? "space-y-3";
 
   return (
     <div
@@ -380,9 +388,9 @@ function SortableBuilderBlock({
       <BuilderBlockWrapper
         blockRadius={blockRadius}
         density={density}
-        onDelete={onDelete}
-        onDuplicate={onDuplicate}
-        onInsertAfter={onInsertAfter}
+        onDelete={() => onDelete(node.block.id)}
+        onDuplicate={() => onDuplicate(node.block.id)}
+        onInsertAfter={(type) => onAdd(type, node.block.parent_block_id ?? null)}
         dragHandleProps={{ ...attributes, ...listeners }}
       >
         <BlockEditCard
@@ -391,11 +399,40 @@ function SortableBuilderBlock({
           courseId={courseId}
           onUpdateContent={(content) => onUpdateContent(node.block.id, content)}
           onToggleHidden={(hidden) => onToggleHidden(node.block.id, hidden)}
-          onDelete={onDelete}
-          onDuplicate={onDuplicate}
+          onDelete={() => onDelete(node.block.id)}
+          onDuplicate={() => onDuplicate(node.block.id)}
           slim
         />
       </BuilderBlockWrapper>
+      {(isContainer || hasChildren) && (
+        <div
+          className={cn(gapClass, "mt-3 ml-4 pl-4 border-l-2 border-dashed")}
+          style={{ borderColor: "rgba(16,24,32,0.12)" }}
+        >
+          {hasChildren && (
+            <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+              {node.children.map((child) => (
+                <SortableBuilderBlock
+                  key={child.block.id}
+                  node={child}
+                  lessonId={lessonId}
+                  courseId={courseId}
+                  blockRadius={blockRadius}
+                  density={density}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                  onAdd={onAdd}
+                  onUpdateContent={onUpdateContent}
+                  onToggleHidden={onToggleHidden}
+                />
+              ))}
+            </SortableContext>
+          )}
+          {isContainer && (
+            <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id)} />
+          )}
+        </div>
+      )}
     </div>
   );
 }
