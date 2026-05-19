@@ -28,6 +28,7 @@ import type {
   ContainerBlockContent,
   DividerBlockContent,
   SpacerBlockContent,
+  ShortcodeBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
@@ -51,6 +52,7 @@ import RowBlockEditor from "./editors/RowBlockEditor";
 import ContainerBlockEditor from "./editors/ContainerBlockEditor";
 import DividerBlockEditor from "./editors/DividerBlockEditor";
 import SpacerBlockEditor from "./editors/SpacerBlockEditor";
+import ShortcodeBlockEditor from "./editors/ShortcodeBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -391,6 +393,13 @@ function BlockEditorBody({
           content={content as SpacerBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
+        />
+      );
+    case "shortcode":
+      return (
+        <ShortcodeBlockEditor
+          content={content as ShortcodeBlockContent}
+          onChange={(c) => onChange(c)}
         />
       );
     default:

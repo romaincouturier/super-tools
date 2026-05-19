@@ -21,6 +21,7 @@ import type {
   ContainerBlockContent,
   DividerBlockContent,
   SpacerBlockContent,
+  ShortcodeBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
@@ -42,6 +43,7 @@ import RowBlockViewer from "./viewers/RowBlockViewer";
 import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
 import DividerBlockViewer from "./viewers/DividerBlockViewer";
 import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
+import ShortcodeBlockViewer from "./viewers/ShortcodeBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -51,6 +53,10 @@ interface Props {
   renderAssignment?: (lessonId: string) => ReactNode;
   /** Renderer for work_deposit blocks — needs the learner context (email, course id, etc.). */
   renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
+  /** Learner context propagated to embedded shortcode forms (besoins / évaluation). */
+  learnerEmail?: string;
+  /** Fallback LearnDash course id used by shortcode blocks when none is set on the block. */
+  shortcodeCourseId?: string | null;
 }
 
 /**
@@ -59,7 +65,7 @@ interface Props {
  * blocks are deferred to the parent page via render props so they receive
  * the learner email and completion callbacks.
  */
-export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment, renderWorkDeposit }: Props) {
+export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignment, renderWorkDeposit, learnerEmail, shortcodeCourseId }: Props) {
   const tree = buildBlockTree(blocks).filter((n) => !n.block.hidden);
   if (tree.length === 0) return null;
   return (
@@ -71,6 +77,8 @@ export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignmen
           renderQuiz={renderQuiz}
           renderAssignment={renderAssignment}
           renderWorkDeposit={renderWorkDeposit}
+          learnerEmail={learnerEmail}
+          shortcodeCourseId={shortcodeCourseId}
         />
       ))}
     </div>
@@ -82,9 +90,11 @@ interface RenderProps {
   renderQuiz?: (quizId: string, lessonId: string) => ReactNode;
   renderAssignment?: (lessonId: string) => ReactNode;
   renderWorkDeposit?: (lessonId: string, config: WorkDepositBlockContent) => ReactNode;
+  learnerEmail?: string;
+  shortcodeCourseId?: string | null;
 }
 
-function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }: RenderProps) {
+function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, learnerEmail, shortcodeCourseId }: RenderProps) {
   const { block, children } = node;
   const visibleChildren = children
     .filter((c) => !c.block.hidden)
@@ -95,6 +105,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
         renderQuiz={renderQuiz}
         renderAssignment={renderAssignment}
         renderWorkDeposit={renderWorkDeposit}
+        learnerEmail={learnerEmail}
+        shortcodeCourseId={shortcodeCourseId}
       />
     ));
 
@@ -179,6 +191,14 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit }:
       return <DividerBlockViewer content={block.content as DividerBlockContent} />;
     case "spacer":
       return <SpacerBlockViewer content={block.content as SpacerBlockContent} />;
+    case "shortcode":
+      return (
+        <ShortcodeBlockViewer
+          content={block.content as ShortcodeBlockContent}
+          learnerEmail={learnerEmail}
+          fallbackCourseId={shortcodeCourseId}
+        />
+      );
     default:
       return null;
   }

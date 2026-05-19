@@ -36,7 +36,8 @@ export type ContentBlockType =
   | "exercise"
   | "self_assessment"
   | "work_deposit"
-  | "table";
+  | "table"
+  | "shortcode";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -204,6 +205,26 @@ export interface WorkDepositBlockContent {
   feedback_enabled?: boolean;
 }
 
+// ── Shortcode block ─────────────────────────────────────────────────
+
+/** Codes courts disponibles — formulaires intégrés au cours. */
+export type ShortcodeKind = "besoins" | "evaluation";
+
+export interface ShortcodeBlockContent {
+  /** Type de formulaire à intégrer. */
+  code: ShortcodeKind;
+  /**
+   * ID LearnDash du cours (numérique). Optionnel : si vide, l'apprenant
+   * doit accéder au formulaire depuis ses emails. Surchargeable par
+   * l'auteur pour pointer vers un cours WP spécifique.
+   */
+  course_id?: string | null;
+  /** Titre optionnel à afficher au-dessus du formulaire intégré. */
+  title?: string | null;
+}
+
+
+
 // ── Layout block contents ───────────────────────────────────────────
 
 export type SectionBackground = "default" | "muted" | "primary" | "accent";
@@ -256,7 +277,8 @@ export type LessonBlockContent =
   | RowBlockContent
   | ContainerBlockContent
   | DividerBlockContent
-  | SpacerBlockContent;
+  | SpacerBlockContent
+  | ShortcodeBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -345,6 +367,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { style: "solid" };
     case "spacer":
       return { height_px: 24 };
+    case "shortcode":
+      return { code: "besoins", course_id: null, title: null };
   }
 }
 
