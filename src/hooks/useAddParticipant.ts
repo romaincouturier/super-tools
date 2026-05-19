@@ -138,6 +138,14 @@ export function useAddParticipant({
         statusMessage = "Mail de convocation envoyé, recueil des besoins programmé.";
       }
 
+      // Suffix convention status
+      if (result.conventionGenerated) {
+        const convSuffix = result.conventionEmailSent
+          ? " Convention générée et envoyée pour signature."
+          : " Convention générée (pas d'email sponsor).";
+        statusMessage = statusMessage.replace(/\.$/, "") + convSuffix;
+      }
+
       const isWarn =
         !result.needsSurveyScheduled && result.status !== "non_envoye" && !result.ongoing
         || result.welcomeFailed

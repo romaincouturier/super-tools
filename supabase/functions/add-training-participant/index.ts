@@ -133,6 +133,8 @@ export interface AddParticipantResponse {
   elearningAccessSent: boolean;
   elearningMode: "magic_link" | "woocommerce" | null;
   couponGenerated: boolean;
+  conventionGenerated: boolean;
+  conventionEmailSent: boolean;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -486,7 +488,58 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // ── 11. Log d'activité ────────────────────────────────────────────────────
+    // ── 11. Convention de formation (inter-entreprises uniquement) ───────────────
+    // Générée automatiquement pour tout nouveau participant inter-entreprise.
+    // Le PDF est stocké dans training_participants.convention_file_url.
+    // Si un email sponsor est connu, la convention est envoyée pour signature en ligne.
+    let conventionGenerated = false;
+    let conventionEmailSent = false;
+    if (isInterEntreprise && !alreadyExisted) {
+      try {
+        const { data: convData, error: convErr } = await admin.functions.invoke(
+          "generate-convention-formation",
+          { body: { trainingId, participantId, subrogation: false } },
+        );
+        if (convErr) {
+          console.error("[add-training-participant] generate-convention-formation:", convErr);
+        } else if (convData?.success && convData?.pdfUrl) {
+          conventionGenerated = true;
+          // Envoi pour signature si un email sponsor est disponible
+          const normalizedSponsorEmail = sponsorEmail?.trim().toLowerCase() || null;
+          if (normalizedSponsorEmail) {
+            const recipientName = [sponsorFirstName, sponsorLastName]
+              .map((s) => s?.trim())
+              .filter(Boolean)
+              .join(" ") || null;
+            try {
+              const { error: sendErr } = await admin.functions.invoke("send-convention-email", {
+                body: {
+                  trainingId,
+                  conventionUrl: convData.pdfUrl,
+                  recipientEmail: normalizedSponsorEmail,
+                  ...(recipientName && { recipientName }),
+                  ...(sponsorFirstName?.trim() && { recipientFirstName: sponsorFirstName.trim() }),
+                  ...(convData.fileName && { conventionFileName: convData.fileName }),
+                  enableOnlineSignature: true,
+                  formalAddress: true,
+                },
+              });
+              if (sendErr) {
+                console.error("[add-training-participant] send-convention-email:", sendErr);
+              } else {
+                conventionEmailSent = true;
+              }
+            } catch (sendErr) {
+              console.error("[add-training-participant] send-convention-email:", sendErr);
+            }
+          }
+        }
+      } catch (convErr) {
+        console.error("[add-training-participant] generate-convention-formation:", convErr);
+      }
+    }
+
+    // ── 12. Log d'activité ────────────────────────────────────────────────────
     const actionType =
       source === "woocommerce" ? "participant_added_from_woocommerce"
       : source === "bulk"      ? "participant_added_bulk"
@@ -527,6 +580,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       elearningAccessSent,
       elearningMode: isElearning ? elearningAccessMode : null,
       couponGenerated,
+      conventionGenerated,
+      conventionEmailSent,
     };
 
     return new Response(JSON.stringify(response), {
