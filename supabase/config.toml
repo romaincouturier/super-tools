@@ -1,5 +1,11 @@
 project_id = "yewffntzgrdgztrwtava"
 
+[functions.notify-learner-lms-message]
+verify_jwt = false
+
+[functions.request-coached-formula]
+verify_jwt = false
+
 [functions.assemblyai-webhook]
 verify_jwt = false
 
