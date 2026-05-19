@@ -3,8 +3,6 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -24,7 +22,7 @@ import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
   Play, FileText, HelpCircle, ClipboardList, Video, Lock,
-  Trophy, Clock, ImageIcon, Paperclip, Download, Menu,
+  Clock, ImageIcon, Paperclip, Download, Menu, Bell,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
@@ -159,35 +157,99 @@ export default function LmsCoursePlayer() {
         </div>
       )}
       {/* Top bar */}
-      <header className="h-14 border-b bg-card flex items-center px-4 gap-3 shrink-0">
-        {/* Mobile sidebar toggle */}
-        <button
-          onClick={() => setSidebarOpen((v) => !v)}
-          className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 shrink-0"
-          aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu de parcours"}
-        >
-          <Menu className="w-4 h-4" />
-        </button>
-        {/* Desktop sidebar toggle */}
-        <button
-          onClick={() => setSidebarOpen((v) => !v)}
-          className="hidden lg:flex w-8 h-8 items-center justify-center rounded-lg hover:bg-black/5 shrink-0"
-          aria-label={sidebarOpen ? "Réduire le parcours" : "Afficher le parcours"}
-        >
-          <Menu className="w-4 h-4" />
-        </button>
-        <SupertiltLogo className="h-6 shrink-0" />
-        <Separator orientation="vertical" className="h-6 shrink-0" />
-        <h1 className="text-sm font-medium truncate flex-1">{course.title}</h1>
-        <div className="flex items-center gap-2 shrink-0">
-          <Progress value={completionPct} className="w-24 h-2 hidden sm:block" />
-          <span className="text-xs text-muted-foreground">{completionPct}%</span>
+      <header
+        className="sticky top-0 z-30 flex flex-col bg-white shrink-0"
+        style={{ borderBottom: "1px solid #EDEDED" }}
+      >
+        <div className="flex items-center gap-3 h-16 px-6">
+          {/* Sidebar toggle */}
+          <button
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors hover:bg-black/5 shrink-0"
+            aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu de parcours"}
+          >
+            <Menu size={18} style={{ color: "#101820" }} />
+          </button>
+
+          {/* Logo */}
+          <a href="/lms" className="shrink-0 flex items-center" title="Retour aux formations">
+            <SupertiltLogo className="h-8" />
+          </a>
+
+          {/* Vertical divider — desktop only */}
+          <div
+            className="hidden lg:block w-px h-7 shrink-0"
+            style={{ background: "#EDEDED" }}
+          />
+
+          {/* Breadcrumb + course title */}
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-[11px] font-medium leading-none mb-0.5 hidden lg:block"
+              style={{ color: "#9CA3AF" }}
+            >
+              Mes formations
+            </p>
+            <p
+              className="text-sm font-semibold truncate leading-tight"
+              style={{ color: "#101820" }}
+            >
+              {course.title}
+            </p>
+          </div>
+
+          {/* Right cluster */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Progress — desktop */}
+            <div className="hidden md:flex flex-col items-end gap-1.5 mr-1">
+              <span className="text-[11px] font-medium" style={{ color: "#101820" }}>
+                {completionPct === 100
+                  ? "Formation terminée"
+                  : `Progression : ${completionPct} %`}
+              </span>
+              <div
+                className="w-28 h-[3px] rounded-full overflow-hidden"
+                style={{ background: "#F2F4F4" }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${completionPct}%`,
+                    background: completionPct === 100 ? "#69c3c4" : "#FFD100",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Notification bell */}
+            <button
+              className="hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+              aria-label="Notifications"
+            >
+              <Bell size={18} style={{ color: "#101820" }} />
+            </button>
+
+            {/* Avatar with initials */}
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 select-none cursor-default"
+              style={{ background: "#FFD100", color: "#101820" }}
+              title={learnerEmail || "Administrateur"}
+            >
+              {getLearnerInitials(learnerEmail)}
+            </div>
+          </div>
         </div>
-        {completionPct === 100 && (
-          <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0">
-            <Trophy className="w-3 h-3 mr-1" /> Terminé
-          </Badge>
-        )}
+
+        {/* Mobile progress bar — thin line below the main row */}
+        <div className="md:hidden h-[3px] w-full" style={{ background: "#F2F4F4" }}>
+          <div
+            className="h-full transition-all duration-500"
+            style={{
+              width: `${completionPct}%`,
+              background: completionPct === 100 ? "#69c3c4" : "#FFD100",
+            }}
+          />
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -218,7 +280,7 @@ export default function LmsCoursePlayer() {
               onClick={() => setSidebarOpen(false)}
             />
             <div
-              className="lg:hidden fixed left-0 top-14 bottom-0 z-50 w-[300px] border-r bg-card overflow-hidden shadow-xl"
+              className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] border-r bg-card overflow-hidden shadow-xl"
             >
               <CourseProgressSidebar
                 modules={modules}
@@ -428,6 +490,16 @@ export default function LmsCoursePlayer() {
       </div>
     </div>
   );
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function getLearnerInitials(email: string): string {
+  if (!email) return "?";
+  const name = email.split("@")[0];
+  const parts = name.split(/[._-]/);
+  if (parts.length >= 2 && parts[0] && parts[1])
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
 }
 
 // ---- Legacy work-deposit opt-in (suppressed when a work_deposit block exists) ----
