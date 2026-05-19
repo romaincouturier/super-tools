@@ -77,23 +77,6 @@ const MicroDevis = () => {
   const formulasHook = useFormationFormulas(formationDemandee, configsHook.formationConfigs);
   const historyHook = useDevisHistory();
 
-  // Load inter-company trainings when format is "inter"
-  useEffect(() => {
-    if (formatFormation !== "inter") {
-      setInterTrainings([]);
-      setSelectedTrainingId("");
-      return;
-    }
-    supabase
-      .from("trainings")
-      .select("id, training_name, start_date")
-      .ilike("format_formation", "%inter%")
-      .eq("is_cancelled", false)
-      .order("start_date", { ascending: true })
-      .then(({ data }) => {
-        setInterTrainings(data ?? []);
-      });
-  }, [formatFormation]);
 
   // Restore saved formula selection after formulas load
   useEffect(() => {
