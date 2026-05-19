@@ -497,12 +497,15 @@ const MicroDevis = () => {
                   <p className="text-xs text-muted-foreground">
                     Si vous sélectionnez une session, le participant sera automatiquement ajouté à la formation dès signature du devis.
                   </p>
-                  <Select value={selectedTrainingId} onValueChange={setSelectedTrainingId}>
+                  <Select
+                    value={selectedTrainingId || "__none__"}
+                    onValueChange={(v) => setSelectedTrainingId(v === "__none__" ? "" : v)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner une formation inter-entreprises…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucune (ne pas lier)</SelectItem>
+                      <SelectItem value="__none__">Aucune (ne pas lier)</SelectItem>
                       {interTrainings.map((t) => (
                         <SelectItem key={t.id} value={t.id}>
                           {t.training_name}
