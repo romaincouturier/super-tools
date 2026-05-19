@@ -133,7 +133,7 @@ export function PollingIndicator({ source, label = "Polling", functionName, forc
           ) : (
             <Play className="h-3 w-3" />
           )}
-          Forcer
+          {forceLabel ?? "Forcer"}
         </Button>
       )}
     </div>
