@@ -89,7 +89,7 @@ export default function BuilderInsertMenu({ onInsert, onClose, anchorRef, placem
     <div
       ref={menuRef}
       role="menu"
-      className="absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2"
+      className={`absolute z-50 left-1/2 -translate-x-1/2 ${placement === "top" ? "bottom-full mb-2" : "top-full mt-2"}`}
       style={{
         width: 320,
         maxHeight: 480,
