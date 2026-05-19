@@ -16,6 +16,7 @@ import {
   Palette, HelpCircle, LogOut, Bell, ArrowRight,
   CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
   FileImage, Award, RefreshCw, BookmarkCheck, User2, Upload,
+  ThumbsUp, Send, ImageIcon, Trash2,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
