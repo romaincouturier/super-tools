@@ -275,9 +275,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           sponsor_first_name: capitalizeName(effectiveSponsorFirstName),
           sponsor_last_name: capitalizeName(effectiveSponsorLastName),
           sponsor_email: effectiveSponsorEmail?.trim().toLowerCase() || null,
-          financeur_same_as_sponsor: financeurSameAsSponsor,
-          financeur_name: !financeurSameAsSponsor ? (financeurName?.trim() || null) : null,
-          financeur_url: !financeurSameAsSponsor ? (financeurUrl?.trim() || null) : null,
+          financeur_same_as_sponsor: paymentMode === "online" ? true : financeurSameAsSponsor,
+          financeur_name: (paymentMode === "online" || financeurSameAsSponsor) ? null : (financeurName?.trim() || null),
+          financeur_url: (paymentMode === "online" || financeurSameAsSponsor) ? null : (financeurUrl?.trim() || null),
         }),
       };
 

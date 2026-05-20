@@ -1,0 +1,1 @@
+UPDATE training_participants SET financeur_same_as_sponsor = true, financeur_name = NULL, financeur_url = NULL WHERE id = '25c48c55-84be-4871-94d6-bc3e1323fa2e';
