@@ -91,6 +91,26 @@ const ConventionSection = ({
     }
   };
 
+  const handleDownloadConvention = async () => {
+    if (!conventionFileUrl) return;
+    // If already a permanent storage URL, open directly
+    if (!conventionFileUrl.includes("X-Amz-Signature")) {
+      window.open(conventionFileUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", { body: { trainingId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error as string);
+      const url = (data?.pdf_url as string) || conventionFileUrl;
+      if (data?.refreshed && url !== conventionFileUrl) setConventionFileUrl(url);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error: unknown) {
+      console.error("Refresh convention URL error:", error);
+      toastError(toast, error instanceof Error ? error : "Impossible de rafraîchir le lien de téléchargement.");
+    }
+  };
+
   const handleSendConvention = async () => {
     if (!conventionFileUrl || !sponsorEmail) {
       toastError(toast, !conventionFileUrl ? "Aucune convention générée." : "Aucun email de commanditaire défini.", { title: "Impossible" });
@@ -139,7 +159,7 @@ const ConventionSection = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild><a href={conventionFileUrl} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4 mr-2" />Télécharger</a></DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadConvention}><Download className="h-4 w-4 mr-2" />Télécharger</DropdownMenuItem>
                   <DropdownMenuItem onClick={handleGenerateConvention} disabled={generatingConvention}><RotateCw className="h-4 w-4 mr-2" />Regénérer</DropdownMenuItem>
                   {sponsorEmail && <DropdownMenuItem onClick={handleSendConvention} disabled={sendingConvention}><Send className="h-4 w-4 mr-2" />Envoyer</DropdownMenuItem>}
                   {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
@@ -160,7 +180,7 @@ const ConventionSection = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-muted/50 border border-border rounded-md">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <a href={conventionFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground hover:underline flex-1 truncate">Convention générée</a>
+            <button type="button" onClick={handleDownloadConvention} className="text-sm text-foreground hover:underline flex-1 truncate text-left">Convention générée</button>
           </div>
           {sponsorEmail && (
             <div className="flex items-center space-x-2 pl-1">
