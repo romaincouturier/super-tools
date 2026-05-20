@@ -48,7 +48,6 @@ export interface Training {
   equipment_ready: boolean;
   convention_file_url?: string | null;
   signed_convention_urls?: string[];
-  elearning_duration?: number | null;
   notes?: string | null;
   assigned_to?: string | null;
   max_participants?: number | null;
