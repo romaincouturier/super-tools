@@ -35,6 +35,32 @@ export const useAssignTag = () =>
       tagId: string;
       actorEmail: string;
     }) => {
+      const { data: tag, error: tagError } = await supabase
+        .from("crm_tags")
+        .select("id, name, category")
+        .eq("id", tagId)
+        .single();
+      if (tagError) throw tagError;
+
+      let sameCategoryTagsQuery = supabase.from("crm_tags").select("id");
+      sameCategoryTagsQuery = tag.category
+        ? sameCategoryTagsQuery.eq("category", tag.category)
+        : sameCategoryTagsQuery.is("category", null);
+      const { data: sameCategoryTags, error: sameCategoryError } = await sameCategoryTagsQuery;
+      if (sameCategoryError) throw sameCategoryError;
+
+      const sameCategoryTagIds = (sameCategoryTags || [])
+        .map((sameCategoryTag) => sameCategoryTag.id)
+        .filter((sameCategoryTagId) => sameCategoryTagId !== tagId);
+      if (sameCategoryTagIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from("crm_card_tags")
+          .delete()
+          .eq("card_id", cardId)
+          .in("tag_id", sameCategoryTagIds);
+        if (deleteError) throw deleteError;
+      }
+
       const { error } = await supabase
         .from("crm_card_tags")
         .upsert(
@@ -42,11 +68,6 @@ export const useAssignTag = () =>
           { onConflict: "card_id,tag_id", ignoreDuplicates: true }
         );
       if (error) throw error;
-      const { data: tag } = await supabase
-        .from("crm_tags")
-        .select("name")
-        .eq("id", tagId)
-        .single();
       await logCrmActivity(cardId, "tag_added", actorEmail, null, tag?.name);
     }
   );
