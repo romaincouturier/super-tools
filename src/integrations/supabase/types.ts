@@ -8141,6 +8141,7 @@ export type Database = {
           repositioned_to_training_id: string | null
           signed_convention_url: string | null
           sold_price_ht: number | null
+          source_financement_bpf: string | null
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_last_name: string | null
@@ -8178,6 +8179,7 @@ export type Database = {
           repositioned_to_training_id?: string | null
           signed_convention_url?: string | null
           sold_price_ht?: number | null
+          source_financement_bpf?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
@@ -8215,6 +8217,7 @@ export type Database = {
           repositioned_to_training_id?: string | null
           signed_convention_url?: string | null
           sold_price_ht?: number | null
+          source_financement_bpf?: string | null
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
