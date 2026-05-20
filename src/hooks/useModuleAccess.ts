@@ -121,24 +121,26 @@ export function useModuleAccess() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const checkAccess = useCallback(async () => {
+    setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       if (!user) {
         setAccessibleModules([]);
         setIsAdmin(false);
+        setUserEmail(null);
         setLoading(false);
         return;
       }
 
       setUserEmail(user.email || null);
 
-      // Check if user is admin via profiles table
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_admin")
-        .eq("user_id", user.id)
-        .single();
-      const isAdminUser = profile?.is_admin === true;
+      // Check admin status through the security-definer RPC to avoid RLS/client timing issues.
+      const { data: adminRpc, error: adminError } = await supabase.rpc("is_admin", {
+        _user_id: user.id,
+      });
+      if (adminError) console.error("Error checking admin access:", adminError);
+      const isAdminUser = adminRpc === true;
       setIsAdmin(isAdminUser);
 
       if (isAdminUser) {
@@ -181,8 +183,23 @@ export function useModuleAccess() {
       window.clearTimeout(timeout);
     });
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setAccessibleModules([]);
+        setIsAdmin(false);
+        setUserEmail(null);
+        setLoading(false);
+        return;
+      }
+
+      window.setTimeout(() => {
+        checkAccess();
+      }, 0);
+    });
+
     return () => {
       window.clearTimeout(timeout);
+      subscription.unsubscribe();
     };
   }, [checkAccess]);
 
