@@ -346,7 +346,7 @@ const FormationEdit = () => {
 
                   {/* Dates */}
                   {form.isElearning ? (
-                    <ElearningDatesFields form={form} showDuration={!form.hasFormulas} />
+                    <ElearningDatesFields form={form} />
                   ) : (
                     <TrainingDaysCalendar form={form} />
                   )}

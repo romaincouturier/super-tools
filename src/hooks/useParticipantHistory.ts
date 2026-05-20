@@ -12,7 +12,6 @@ export interface ParticipantTraining {
   added_at: string;
   needs_survey_status: string;
   needs_survey_sent_at: string | null;
-  elearning_duration: number | null;
   convention_file_url: string | null;
   signed_convention_url: string | null;
   invoice_file_url: string | null;
@@ -95,7 +94,6 @@ export function useParticipantHistory() {
         added_at: p.added_at,
         needs_survey_status: p.needs_survey_status,
         needs_survey_sent_at: p.needs_survey_sent_at,
-        elearning_duration: p.elearning_duration ?? null,
         convention_file_url: p.convention_file_url ?? null,
         signed_convention_url: p.signed_convention_url ?? null,
         invoice_file_url: p.invoice_file_url,

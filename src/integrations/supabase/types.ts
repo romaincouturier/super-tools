@@ -2377,7 +2377,6 @@ export type Database = {
           display_order: number
           duree_heures: number
           elearning_access_email_content: string | null
-          elearning_duration: number | null
           format_formation: string | null
           formation_name: string
           id: string
@@ -2404,7 +2403,6 @@ export type Database = {
           display_order?: number
           duree_heures?: number
           elearning_access_email_content?: string | null
-          elearning_duration?: number | null
           format_formation?: string | null
           formation_name: string
           id?: string
@@ -2431,7 +2429,6 @@ export type Database = {
           display_order?: number
           duree_heures?: number
           elearning_access_email_content?: string | null
-          elearning_duration?: number | null
           format_formation?: string | null
           formation_name?: string
           id?: string
@@ -8121,7 +8118,6 @@ export type Database = {
           company_zip: string | null
           convention_document_id: string | null
           convention_file_url: string | null
-          elearning_duration: number | null
           email: string
           financeur_name: string | null
           financeur_same_as_sponsor: boolean | null
@@ -8159,7 +8155,6 @@ export type Database = {
           company_zip?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
-          elearning_duration?: number | null
           email: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
@@ -8197,7 +8192,6 @@ export type Database = {
           company_zip?: string | null
           convention_document_id?: string | null
           convention_file_url?: string | null
-          elearning_duration?: number | null
           email?: string
           financeur_name?: string | null
           financeur_same_as_sponsor?: boolean | null
@@ -8596,7 +8590,6 @@ export type Database = {
           created_at: string
           created_by: string
           elearning_access_email_content: string | null
-          elearning_duration: number | null
           end_date: string | null
           equipment_ready: boolean
           evaluation_link: string
@@ -8661,7 +8654,6 @@ export type Database = {
           created_at?: string
           created_by: string
           elearning_access_email_content?: string | null
-          elearning_duration?: number | null
           end_date?: string | null
           equipment_ready?: boolean
           evaluation_link: string
@@ -8726,7 +8718,6 @@ export type Database = {
           created_at?: string
           created_by?: string
           elearning_access_email_content?: string | null
-          elearning_duration?: number | null
           end_date?: string | null
           equipment_ready?: boolean
           evaluation_link?: string
