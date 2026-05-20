@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, Plus, X, Tag } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, X, Tag, Check } from "lucide-react";
 import type { CrmTag } from "@/types/crm";
 import type { CardDetailState, CardDetailHandlers } from "./types";
 
@@ -11,26 +11,21 @@ interface Props {
 
 const CardDetailTagsBar = ({ state, handlers }: Props) => {
   const [expanded, setExpanded] = useState(false);
+  const [creatingIn, setCreatingIn] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
-  const [creating, setCreating] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { card, allTags, tagUsageCounts } = state;
   const cardTags = card.tags || [];
 
-  // Categories already represented on this card
   const usedCategories = useMemo(() => {
     const cats = new Set<string>();
-    for (const t of cardTags) {
-      cats.add(t.category || "Autre");
-    }
+    for (const t of cardTags) cats.add(t.category || "Autre");
     return cats;
   }, [cardTags]);
 
-  // Sort tags by usage frequency (descending)
   const sortByFrequency = (a: CrmTag, b: CrmTag) =>
     (tagUsageCounts[b.id] || 0) - (tagUsageCounts[a.id] || 0);
 
-  // Card tags sorted by frequency
   const sortedCardTags = useMemo(
     () => [...cardTags].sort(sortByFrequency),
     [cardTags, tagUsageCounts],
@@ -43,34 +38,43 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(tag);
     }
-    // Sort tags inside each category by frequency
-    for (const cat of Object.keys(acc)) {
-      acc[cat].sort(sortByFrequency);
-    }
+    for (const cat of Object.keys(acc)) acc[cat].sort(sortByFrequency);
     return acc;
   }, [allTags, tagUsageCounts]);
 
   const availableTags = allTags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
 
-  const handleSubmitNewTag = async () => {
+  const startCreate = (category: string) => {
+    setCreatingIn(category);
+    setNewTagName("");
+  };
+
+  const cancelCreate = () => {
+    setCreatingIn(null);
+    setNewTagName("");
+  };
+
+  const submitCreate = async (category: string) => {
     const name = newTagName.trim();
     if (!name) return;
-    // Reject if an identical tag already exists (case-insensitive)
-    if (allTags.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
-      const existing = allTags.find((t) => t.name.toLowerCase() === name.toLowerCase())!;
+    // If a tag with this name already exists, just assign it.
+    const existing = allTags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
       if (!cardTags.some((ct) => ct.id === existing.id)) {
         await handlers.handleToggleTag(existing.id);
       }
-      setNewTagName("");
+      cancelCreate();
       return;
     }
-    setCreating(true);
+    setSubmitting(true);
     try {
-      await handlers.handleCreateAndAddTag(name);
-      setNewTagName("");
+      // Reuse the dominant color of the category for visual cohesion.
+      const color = tagsByCategory[category]?.[0]?.color;
+      const cat = category === "Autre" ? undefined : category;
+      await handlers.handleCreateAndAddTag(name, cat, color);
+      cancelCreate();
     } finally {
-      setCreating(false);
-      inputRef.current?.focus();
+      setSubmitting(false);
     }
   };
 
@@ -116,10 +120,10 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
       {expanded && (
         <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5 pb-1">
           {Object.entries(tagsByCategory).map(([category, tags]) => {
-            // Hide category if card already has a tag from it
             if (usedCategories.has(category)) return null;
             const available = tags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
-            if (available.length === 0) return null;
+            const color = tags[0]?.color;
+            const isCreating = creatingIn === category;
             return (
               <div key={category} className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] text-muted-foreground w-16 shrink-0 truncate">{category}</span>
@@ -135,35 +139,54 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
                     {tag.name}
                   </Badge>
                 ))}
+                {isCreating ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); submitCreate(category); }
+                        if (e.key === "Escape") cancelCreate();
+                      }}
+                      placeholder="Nouvelle valeur…"
+                      disabled={submitting}
+                      className="h-5 text-[10px] border border-dashed rounded px-1.5 bg-transparent placeholder:text-muted-foreground/50 focus:outline-none min-w-0"
+                      style={{ borderColor: color, color }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => submitCreate(category)}
+                      disabled={submitting || !newTagName.trim()}
+                      className="h-5 w-5 flex items-center justify-center rounded border border-dashed text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                      style={{ borderColor: color }}
+                    >
+                      <Check className="h-2.5 w-2.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelCreate}
+                      className="h-5 w-5 flex items-center justify-center rounded border border-dashed border-muted-foreground/40 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => startCreate(category)}
+                    className="h-5 px-1.5 rounded-md border border-dashed text-[10px] flex items-center gap-0.5 hover:bg-muted transition-colors"
+                    style={{ borderColor: color, color }}
+                    title={`Ajouter une valeur dans « ${category} »`}
+                  >
+                    <Plus className="h-2.5 w-2.5" />
+                    nouvelle valeur
+                  </button>
+                )}
               </div>
             );
           })}
-
-          {/* Création d'un nouveau tag à la volée */}
-          <div className="flex items-center gap-1 pt-1 border-t border-border/30 mt-0.5">
-            <span className="text-[10px] text-muted-foreground w-16 shrink-0">Nouveau</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={newTagName}
-              onChange={(e) => setNewTagName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); handleSubmitNewTag(); }
-                if (e.key === "Escape") setNewTagName("");
-              }}
-              placeholder="Nom du tag…"
-              disabled={creating}
-              className="h-5 text-[10px] border border-dashed border-muted-foreground/40 rounded px-1.5 bg-transparent placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/50 min-w-0 flex-1"
-            />
-            <button
-              type="button"
-              onClick={handleSubmitNewTag}
-              disabled={creating || !newTagName.trim()}
-              className="h-5 w-5 flex items-center justify-center rounded border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-foreground/50 hover:text-foreground disabled:opacity-40 transition-colors"
-            >
-              <Plus className="h-2.5 w-2.5" />
-            </button>
-          </div>
         </div>
       )}
     </div>
