@@ -3358,6 +3358,7 @@ export type Database = {
       }
       lms_courses: {
         Row: {
+          community_preview_count: number
           cover_image_url: string | null
           created_at: string
           created_by: string | null
@@ -3371,8 +3372,11 @@ export type Database = {
           tags: string[] | null
           title: string
           updated_at: string
+          welcome_text: string | null
+          welcome_video_url: string | null
         }
         Insert: {
+          community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -3386,8 +3390,11 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string
+          welcome_text?: string | null
+          welcome_video_url?: string | null
         }
         Update: {
+          community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -3401,6 +3408,8 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string
+          welcome_text?: string | null
+          welcome_video_url?: string | null
         }
         Relationships: [
           {
@@ -8003,6 +8012,7 @@ export type Database = {
           id: string
           meeting_type: string
           meeting_url: string | null
+          replay_url: string | null
           run_notes: string | null
           scheduled_at: string
           status: string
@@ -8018,6 +8028,7 @@ export type Database = {
           id?: string
           meeting_type?: string
           meeting_url?: string | null
+          replay_url?: string | null
           run_notes?: string | null
           scheduled_at: string
           status?: string
@@ -8033,6 +8044,7 @@ export type Database = {
           id?: string
           meeting_type?: string
           meeting_url?: string | null
+          replay_url?: string | null
           run_notes?: string | null
           scheduled_at?: string
           status?: string

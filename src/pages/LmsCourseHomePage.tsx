@@ -552,13 +552,6 @@ function Sidebar({
 
 // ── Hero section ──────────────────────────────────────────────────────────────
 
-function heroVideoEmbed(url: string) {
-  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  if (yt) return `https://www.youtube.com/embed/${yt[1]}?autoplay=1&rel=0`;
-  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1`;
-  return null;
-}
 
 function HeroSection({
   course,
@@ -571,7 +564,7 @@ function HeroSection({
 }) {
   const [playing, setPlaying] = useState(false);
   const videoUrl = course.welcome_video_url ?? null;
-  const embedUrl = videoUrl ? heroVideoEmbed(videoUrl) : null;
+  const embedUrl = videoUrl ? videoEmbed(videoUrl) : null;
 
   return (
     <section className="grid lg:grid-cols-2 gap-8 items-center">
