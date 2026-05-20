@@ -602,10 +602,10 @@ const CardDetailDrawer = ({
     }
   };
 
-  const handleCreateAndAddTag = async (name: string) => {
+  const handleCreateAndAddTag = async (name: string, category?: string, color?: string) => {
     if (!card || !user?.email) return;
     try {
-      const newTag = await createTag.mutateAsync({ name: name.trim() });
+      const newTag = await createTag.mutateAsync({ name: name.trim(), category, color });
       await assignTag.mutateAsync({ cardId: card.id, tagId: newTag.id, actorEmail: user.email });
     } catch (e: unknown) {
       const detail = (e as any)?.message || "";
