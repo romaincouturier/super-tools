@@ -194,6 +194,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // classe_virtuelle → convocation classique (lien Zoom/Teams dans le mail).
     const isElearning = formatFormation === "e_learning";
 
+    // Pour les ventes en ligne, le commanditaire est le participant lui-même
+    const effectiveSponsorFirstName = paymentMode === "online" ? firstName : sponsorFirstName;
+    const effectiveSponsorLastName = paymentMode === "online" ? lastName : sponsorLastName;
+    const effectiveSponsorEmail = paymentMode === "online" ? email : sponsorEmail;
+
     // ── 1. Paramètres d'application ──────────────────────────────────────────
     const { data: settingsRows } = await admin
       .from("app_settings")
