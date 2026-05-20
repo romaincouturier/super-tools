@@ -75,12 +75,18 @@ serve(async (req: Request): Promise<Response> => {
         return json({ error: "Impossible de rafraîchir l'URL du PDF" }, 500);
       }
 
+      console.log("Refreshing PdfMonkey document:", documentId);
       const pmResponse = await fetch(
         `https://api.pdfmonkey.io/api/v1/documents/${documentId}`,
         { headers: { Authorization: `Bearer ${pdfMonkeyApiKey}` } }
       );
       if (!pmResponse.ok) {
-        return json({ error: "PdfMonkey API indisponible" }, 500);
+        const body = await pmResponse.text();
+        console.error("PdfMonkey API failed:", pmResponse.status, body);
+        const msg = pmResponse.status === 404 || pmResponse.status === 410
+          ? "Le document n'est plus disponible chez PdfMonkey, merci de cliquer sur Regénérer."
+          : `PdfMonkey API indisponible (${pmResponse.status})`;
+        return json({ error: msg }, 500);
       }
       const pmData = await pmResponse.json();
       const freshUrl = pmData?.document?.download_url;
