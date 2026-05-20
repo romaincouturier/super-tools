@@ -348,7 +348,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // ── Formation reconnue dans le catalogue ─────────────────
       if (formula) {
         const customerEmail = (order.billing?.email ?? "").trim().toLowerCase();
-        if (!customerEmail) { results.items_to_validate++; continue; }
+
+        if (!customerEmail) {
+          await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
+            game_type: "formation",
+            kanban_status: "to_validate",
+            block_reason: "[Formation] Email client manquant — routage participant impossible",
+            validation_status: "pending",
+          });
+          results.items_to_validate++;
+          continue;
+        }
 
         const formationName = formula.formation_configs?.formation_name ?? "";
         const catalogFormat = (formula.formation_configs?.format_formation ?? "").toLowerCase();
@@ -424,21 +434,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
             ? "Formation e-learning sans session programmée à venir"
             : "Formation reconnue mais aucune session inter ou e-learning trouvée";
 
-          await (admin as any).from("order_items").upsert({
-            woocommerce_order_id: wooOrderId,
-            wc_order_id: order.id,
-            wc_product_id: item.product_id,
-            product_name: item.name,
-            game_id: null,
+          await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
             game_type: "formation",
-            quantity: item.quantity,
-            unit_price: item.price,
-            line_total: parseFloat(item.total ?? "0"),
             kanban_status: "to_validate",
             block_reason: `[Formation] ${formationName} — ${reason}`,
             validation_status: "pending",
-            raw_line_item: item,
-          }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+          });
 
           results.items_to_validate++;
           continue;
@@ -493,6 +494,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`, addResult);
+        await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
+          game_type: "formation",
+          kanban_status: "received",
+          block_reason: `[Formation] Routée vers ${training.training_name} — ${routingReason}`,
+          validation_status: "validated",
+        });
         results.formations_processed++;
         // Les formations ne passent pas par le kanban jeux
         continue;
