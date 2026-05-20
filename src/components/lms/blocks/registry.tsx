@@ -20,6 +20,7 @@ import {
   MoveVertical,
   Table as TableIcon,
   Code2,
+  Braces,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType, LessonBlockKind } from "@/types/lms-blocks";
@@ -69,6 +70,7 @@ export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "quiz", label: "Quiz", icon: HelpCircle, kind: "content", editable: true },
   { type: "assignment", label: "Devoir", icon: ClipboardCheck, kind: "content", editable: true },
   { type: "shortcode", label: "Code court (formulaire)", icon: Code2, kind: "content", editable: true },
+  { type: "html_embed", label: "HTML / Embed", icon: Braces, kind: "content", editable: true },
 ];
 
 /** Combined registry; previously exported as BLOCK_TYPES. */

@@ -23,6 +23,7 @@ import type {
   DividerBlockContent,
   SpacerBlockContent,
   ShortcodeBlockContent,
+  HtmlEmbedBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
@@ -46,6 +47,7 @@ import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
 import DividerBlockViewer from "./viewers/DividerBlockViewer";
 import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
 import ShortcodeBlockViewer from "./viewers/ShortcodeBlockViewer";
+import HtmlEmbedBlockViewer from "./viewers/HtmlEmbedBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -203,6 +205,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
           fallbackCourseId={shortcodeCourseId}
         />
       );
+    case "html_embed":
+      return <HtmlEmbedBlockViewer content={block.content as HtmlEmbedBlockContent} />;
     default:
       return null;
   }

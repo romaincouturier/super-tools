@@ -30,6 +30,7 @@ import type {
   DividerBlockContent,
   SpacerBlockContent,
   ShortcodeBlockContent,
+  HtmlEmbedBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
@@ -55,6 +56,7 @@ import ContainerBlockEditor from "./editors/ContainerBlockEditor";
 import DividerBlockEditor from "./editors/DividerBlockEditor";
 import SpacerBlockEditor from "./editors/SpacerBlockEditor";
 import ShortcodeBlockEditor from "./editors/ShortcodeBlockEditor";
+import HtmlEmbedBlockEditor from "./editors/HtmlEmbedBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -412,6 +414,14 @@ function BlockEditorBody({
         <ShortcodeBlockEditor
           content={content as ShortcodeBlockContent}
           onChange={(c) => onChange(c)}
+        />
+      );
+    case "html_embed":
+      return (
+        <HtmlEmbedBlockEditor
+          content={content as HtmlEmbedBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     default:
