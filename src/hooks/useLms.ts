@@ -32,6 +32,7 @@ export {
   useLessonViewStats,
   useLessonComments,
   useAllCourseComments,
+  useCourseLiveMeetings,
 } from "./useLmsQueries";
 
 export {

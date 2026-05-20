@@ -10,7 +10,9 @@ import {
   useCourseForums,
   useForumPosts,
   useCreateForumPost,
+  useCourseLiveMeetings,
 } from "@/hooks/useLms";
+import type { CourseLiveMeeting, CourseLiveData } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   CheckCircle2,
@@ -36,6 +38,9 @@ import {
   Sparkles,
   HelpCircle,
   LogOut,
+  Video,
+  ArrowLeft,
+  Flag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -194,6 +199,218 @@ function CommunitySidebarPreview({
   );
 }
 
+// ── Live helpers ──────────────────────────────────────────────────────────────
+
+function fmtLive(iso: string) {
+  return new Date(iso).toLocaleDateString("fr-FR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
+function fmtLiveTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function googleCalendarUrl(m: CourseLiveMeeting): string {
+  const start = new Date(m.scheduled_at);
+  const end = new Date(start.getTime() + m.duration_minutes * 60_000);
+  const fmt = (d: Date) => d.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: m.title,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: m.description ?? m.meeting_url ?? "",
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+function meetingTypeLabel(type: string) {
+  if (type === "launch") return "Lancement";
+  if (type === "closing") return "Séance de clôture";
+  return "Live";
+}
+
+function videoEmbed(url: string): string | null {
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}?autoplay=1&rel=0`;
+  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1`;
+  return null;
+}
+
+// ── Calendar view ─────────────────────────────────────────────────────────────
+
+function CalendarView({
+  liveData,
+  onReplay,
+}: {
+  liveData: CourseLiveData;
+  onReplay: (id: string) => void;
+}) {
+  const { training, meetings } = liveData;
+
+  type CalItem =
+    | { kind: "date"; label: string; date: string }
+    | { kind: "meeting"; meeting: CourseLiveMeeting };
+
+  const items: CalItem[] = [];
+  if (training?.start_date)
+    items.push({ kind: "date", label: "Début de la formation", date: training.start_date });
+  for (const m of meetings)
+    items.push({ kind: "meeting", meeting: m });
+  if (training?.end_date)
+    items.push({ kind: "date", label: "Fin de la formation", date: training.end_date });
+
+  return (
+    <section className="space-y-6">
+      <h2 className="text-xl font-bold" style={{ color: "var(--st-ink)" }}>Calendrier des lives</h2>
+
+      <ol className="relative space-y-0 border-l-2" style={{ borderColor: "rgba(16,24,32,0.1)", marginLeft: 8 }}>
+        {items.map((item, i) => {
+          if (item.kind === "date") {
+            return (
+              <li key={i} className="pl-6 pb-8 relative">
+                <span
+                  className="absolute -left-[9px] w-4 h-4 rounded-full border-2 flex items-center justify-center"
+                  style={{ top: 2, background: "var(--st-white)", borderColor: "rgba(16,24,32,0.2)" }}
+                >
+                  <Flag size={7} style={{ color: "var(--st-ink-muted)" }} />
+                </span>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+                  {item.label}
+                </p>
+                <p className="text-sm font-medium mt-0.5" style={{ color: "var(--st-ink)" }}>
+                  {new Date(item.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </li>
+            );
+          }
+          const m = item.meeting;
+          const hasReplay = !!m.replay_url;
+          return (
+            <li key={m.id} className="pl-6 pb-8 relative">
+              <span
+                className="absolute -left-[9px] w-4 h-4 rounded-full flex items-center justify-center"
+                style={{ top: 2, background: "var(--st-yellow)" }}
+              >
+                <Video size={7} style={{ color: "#101820" }} />
+              </span>
+              <div
+                className="rounded-2xl border p-4 space-y-3"
+                style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
+              >
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-0.5" style={{ color: "var(--st-yellow)" }}>
+                      {meetingTypeLabel(m.meeting_type)}
+                    </p>
+                    <p className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>{m.title}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                      {fmtLive(m.scheduled_at)} à {fmtLiveTime(m.scheduled_at)}
+                      {" · "}{m.duration_minutes} min
+                    </p>
+                    {m.description && (
+                      <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>{m.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    href={googleCalendarUrl(m)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
+                    style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}
+                  >
+                    <CalendarPlus size={12} />
+                    Ajouter au calendrier
+                  </a>
+                  {hasReplay ? (
+                    <button
+                      onClick={() => onReplay(m.id)}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all hover:-translate-y-px"
+                      style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
+                    >
+                      <Play size={11} />
+                      Voir le replay
+                    </button>
+                  ) : (
+                    <span
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
+                      style={{ color: "var(--st-ink-muted)", background: "rgba(16,24,32,0.04)" }}
+                    >
+                      <Play size={11} />
+                      Replay à venir
+                    </span>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+// ── Replay view ───────────────────────────────────────────────────────────────
+
+function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
+  const [playing, setPlaying] = useState(false);
+  const embed = meeting.replay_url ? videoEmbed(meeting.replay_url) : null;
+
+  return (
+    <section className="space-y-5">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--st-ink-muted)" }}>
+          {meetingTypeLabel(meeting.meeting_type)} · {fmtLive(meeting.scheduled_at)}
+        </p>
+        <h2 className="text-xl font-bold" style={{ color: "var(--st-ink)" }}>{meeting.title}</h2>
+        {meeting.description && (
+          <p className="text-sm mt-1" style={{ color: "var(--st-ink-muted)" }}>{meeting.description}</p>
+        )}
+      </div>
+
+      {meeting.replay_url ? (
+        <div
+          className="relative rounded-2xl overflow-hidden aspect-video bg-black"
+          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
+        >
+          {playing ? (
+            embed ? (
+              <iframe src={embed} className="w-full h-full" allow="autoplay; fullscreen" allowFullScreen />
+            ) : (
+              <video src={meeting.replay_url} className="w-full h-full" autoPlay controls />
+            )
+          ) : (
+            <button
+              onClick={() => setPlaying(true)}
+              className="absolute inset-0 flex items-center justify-center group w-full h-full"
+              aria-label="Lancer le replay"
+            >
+              <div className="absolute inset-0 bg-black/30" />
+              <div
+                className="relative w-20 h-20 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+                style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+              >
+                <Play size={28} style={{ color: "#101820", marginLeft: 4 }} />
+              </div>
+            </button>
+          )}
+        </div>
+      ) : (
+        <div
+          className="rounded-2xl border border-dashed flex flex-col items-center justify-center py-16 gap-3"
+          style={{ borderColor: "rgba(16,24,32,0.15)" }}
+        >
+          <Video size={32} style={{ color: "var(--st-ink-muted)", opacity: 0.4 }} />
+          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Le replay n'est pas encore disponible.</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -208,7 +425,10 @@ interface SidebarProps {
   lessonCountByModule: Record<string, number>;
   activeLessonId: string | null;
   communityPreviewCount: number;
+  meetings: CourseLiveMeeting[];
+  activeView: string;
   onModuleClick: (moduleId: string) => void;
+  onViewChange: (view: string) => void;
 }
 
 function Sidebar({
@@ -223,18 +443,69 @@ function Sidebar({
   lessonCountByModule,
   activeLessonId,
   communityPreviewCount,
+  meetings,
+  activeView,
   onModuleClick,
+  onViewChange,
 }: SidebarProps) {
   const navigate = useNavigate();
   const playerUrl = isPreview
     ? `/lms/${courseId}/player?preview=admin`
     : `/lms/${courseId}/player?email=${encodeURIComponent(email)}`;
 
+  const SidebarBtn = ({
+    label,
+    icon: Icon,
+    viewKey,
+    sub,
+  }: { label: string; icon: React.ElementType; viewKey: string; sub?: boolean }) => (
+    <button
+      onClick={() => onViewChange(viewKey)}
+      className={cn(
+        "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors",
+        sub ? "pl-7 text-xs" : "text-sm",
+        activeView === viewKey ? "font-semibold" : "hover:bg-black/5",
+      )}
+      style={{
+        fontFamily: "inherit",
+        background: activeView === viewKey ? "var(--st-yellow)" : "transparent",
+        color: activeView === viewKey ? "#101820" : "var(--st-ink-muted)",
+      }}
+    >
+      <Icon size={sub ? 13 : 15} style={{ flexShrink: 0 }} />
+      <span className="truncate leading-snug">{label}</span>
+    </button>
+  );
+
   return (
     <aside
       className="flex flex-col h-full overflow-y-auto"
       style={{ background: "var(--st-white)" }}
     >
+      {/* Live et replays — only if meetings exist */}
+      {meetings.length > 0 && (
+        <div className="p-5 pb-3 border-b" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--st-ink-muted)" }}>
+            Live et replays
+          </p>
+          <ul className="space-y-0.5">
+            <li>
+              <SidebarBtn label="Calendrier des lives" icon={Calendar} viewKey="calendar" />
+            </li>
+            {meetings.map((m) => (
+              <li key={m.id}>
+                <SidebarBtn
+                  label={m.title}
+                  icon={m.replay_url ? Play : Video}
+                  viewKey={`replay:${m.id}`}
+                  sub
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Module list */}
       <div className="p-5 flex-1">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
@@ -396,7 +667,18 @@ function HeroSection({
 
 // ── Live banner ───────────────────────────────────────────────────────────────
 
-function LiveBanner() {
+function LiveBanner({
+  meeting,
+  onViewCalendar,
+}: {
+  meeting: CourseLiveMeeting;
+  onViewCalendar: () => void;
+}) {
+  const now = new Date();
+  const start = new Date(meeting.scheduled_at);
+  const end = new Date(start.getTime() + meeting.duration_minutes * 60_000);
+  const isLive = now >= start && now <= end;
+
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-4 px-6 py-5"
@@ -412,38 +694,63 @@ function LiveBanner() {
         </div>
         <div>
           <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--st-yellow)" }}>
-            Prochain live
+            {isLive ? "En direct maintenant" : "Prochain live"}
           </p>
-          <p className="text-base font-bold text-white">Live #1</p>
+          <p className="text-base font-bold text-white">{meeting.title}</p>
         </div>
       </div>
 
       {/* Date */}
-      <div className="flex items-center gap-2 shrink-0">
-        <Clock size={14} style={{ color: "rgba(255,255,255,0.5)" }} />
-        <span className="text-sm text-white font-medium">Mercredi 3 juin 2026 à 12h30</span>
-      </div>
+      {!isLive && (
+        <div className="flex items-center gap-2 shrink-0">
+          <Clock size={14} style={{ color: "rgba(255,255,255,0.5)" }} />
+          <span className="text-sm text-white font-medium">
+            {new Date(meeting.scheduled_at).toLocaleDateString("fr-FR", {
+              weekday: "long", day: "numeric", month: "long",
+            })} à {fmtLiveTime(meeting.scheduled_at)}
+          </span>
+        </div>
+      )}
 
       {/* Description */}
-      <p className="text-sm flex-1 min-w-0" style={{ color: "rgba(255,255,255,0.65)" }}>
-        Rencontre en direct + questions sur le Module 1
-      </p>
+      {meeting.description && (
+        <p className="text-sm flex-1 min-w-0" style={{ color: "rgba(255,255,255,0.65)" }}>
+          {meeting.description}
+        </p>
+      )}
 
       {/* Actions */}
       <div className="flex items-center gap-2 shrink-0 flex-wrap">
         <button
+          onClick={onViewCalendar}
           className="text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-white/10"
           style={{ borderColor: "rgba(255,255,255,0.2)", color: "#fff", fontFamily: "inherit" }}
         >
           Voir toutes les dates
         </button>
-        <button
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-          style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
-        >
-          <CalendarPlus size={14} />
-          Ajouter au calendrier
-        </button>
+        {isLive && meeting.meeting_url ? (
+          <a
+            href={meeting.meeting_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
+            style={{ background: "var(--st-yellow)", color: "#101820" }}
+          >
+            <Play size={14} />
+            Rejoindre
+          </a>
+        ) : (
+          <a
+            href={googleCalendarUrl(meeting)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
+            style={{ background: "var(--st-yellow)", color: "#101820" }}
+          >
+            <CalendarPlus size={14} />
+            Ajouter au calendrier
+          </a>
+        )}
       </div>
     </section>
   );
@@ -764,8 +1071,11 @@ export default function LmsCourseHomePage() {
   const { data: modules = [] } = useCourseModules(courseId);
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, email || undefined);
+  const { data: liveData } = useCourseLiveMeetings(courseId);
+  const meetings = liveData?.meetings ?? [];
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState<string>("home");
 
   // Completed lesson IDs
   const completedIds = useMemo(
@@ -846,6 +1156,20 @@ export default function LmsCourseHomePage() {
     navigate(firstLessonInModule ? `${base}&lesson=${firstLessonInModule.id}` : base);
   };
 
+  // Current or next meeting for the LiveBanner
+  const currentOrNextMeeting = useMemo(() => {
+    const now = new Date();
+    // First check for a meeting happening right now
+    const live = meetings.find((m) => {
+      const s = new Date(m.scheduled_at);
+      const e = new Date(s.getTime() + m.duration_minutes * 60_000);
+      return now >= s && now <= e;
+    });
+    if (live) return live;
+    // Otherwise first upcoming
+    return meetings.find((m) => new Date(m.scheduled_at) > now) ?? null;
+  }, [meetings]);
+
   if (courseLoading || !course) {
     return (
       <div className="flex items-center justify-center h-screen" style={{ background: "var(--st-white)", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
@@ -855,6 +1179,10 @@ export default function LmsCourseHomePage() {
   }
 
   const sortedModules = [...modules].sort((a, b) => a.position - b.position);
+
+  // View helpers
+  const replayMeetingId = activeView.startsWith("replay:") ? activeView.slice(7) : null;
+  const replayMeeting = replayMeetingId ? meetings.find((m) => m.id === replayMeetingId) ?? null : null;
 
   return (
     <div
@@ -885,7 +1213,10 @@ export default function LmsCourseHomePage() {
             lessonCountByModule={lessonCountByModule}
             activeLessonId={null}
             communityPreviewCount={course.community_preview_count ?? 2}
+            meetings={meetings}
+            activeView={activeView}
             onModuleClick={handleModuleClick}
+            onViewChange={setActiveView}
           />
         </div>
 
@@ -922,7 +1253,10 @@ export default function LmsCourseHomePage() {
                   lessonCountByModule={lessonCountByModule}
                   activeLessonId={null}
                   communityPreviewCount={course.community_preview_count ?? 2}
+                  meetings={meetings}
+                  activeView={activeView}
                   onModuleClick={(id) => { handleModuleClick(id); setSidebarOpen(false); }}
+                  onViewChange={(v) => { setActiveView(v); setSidebarOpen(false); }}
                 />
               </div>
             </div>
@@ -931,41 +1265,74 @@ export default function LmsCourseHomePage() {
 
         {/* Main scrollable area */}
         <main className="flex-1 overflow-y-auto">
-          {/* Mobile progress bar */}
-          <div
-            className="lg:hidden flex items-center gap-3 px-4 py-3 border-b"
-            style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
-          >
-            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${completionPct}%`, background: "var(--st-yellow)" }}
-              />
-            </div>
-            <span className="text-xs font-semibold shrink-0" style={{ color: "var(--st-ink)" }}>
-              {Math.round(completionPct)}%
-            </span>
-            <button
-              onClick={handleContinue}
-              className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition-all"
-              style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit" }}
+          {/* Mobile progress bar — only on home view */}
+          {activeView === "home" && (
+            <div
+              className="lg:hidden flex items-center gap-3 px-4 py-3 border-b"
+              style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
             >
-              Continuer
-            </button>
-          </div>
+              <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${completionPct}%`, background: "var(--st-yellow)" }}
+                />
+              </div>
+              <span className="text-xs font-semibold shrink-0" style={{ color: "var(--st-ink)" }}>
+                {Math.round(completionPct)}%
+              </span>
+              <button
+                onClick={handleContinue}
+                className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full transition-all"
+                style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit" }}
+              >
+                Continuer
+              </button>
+            </div>
+          )}
+
+          {/* Back button for non-home views */}
+          {activeView !== "home" && (
+            <div className="px-5 pt-5">
+              <button
+                onClick={() => setActiveView("home")}
+                className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
+                style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+              >
+                <ArrowLeft size={13} />
+                Accueil du cours
+              </button>
+            </div>
+          )}
 
           <div className="px-5 py-6 flex flex-col gap-8">
-            <HeroSection
-              course={course}
-              completionPct={completionPct}
-              onContinue={handleContinue}
-            />
+            {activeView === "home" && (
+              <>
+                <HeroSection
+                  course={course}
+                  completionPct={completionPct}
+                  onContinue={handleContinue}
+                />
+                {currentOrNextMeeting && (
+                  <LiveBanner
+                    meeting={currentOrNextMeeting}
+                    onViewCalendar={() => setActiveView("calendar")}
+                  />
+                )}
+                <InfoCardsGrid />
+                <CommunitySection />
+              </>
+            )}
 
-            <LiveBanner />
+            {activeView === "calendar" && liveData && (
+              <CalendarView
+                liveData={liveData}
+                onReplay={(id) => setActiveView(`replay:${id}`)}
+              />
+            )}
 
-            <InfoCardsGrid />
-
-            <CommunitySection />
+            {replayMeeting && (
+              <ReplayView meeting={replayMeeting} />
+            )}
           </div>
         </main>
       </div>

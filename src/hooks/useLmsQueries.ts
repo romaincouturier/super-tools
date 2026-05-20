@@ -458,6 +458,48 @@ export function useLearnerBadges(email: string | undefined) {
   });
 }
 
+// ---- Live meetings (course home page) ----
+
+export interface CourseLiveMeeting {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  meeting_url: string | null;
+  meeting_type: string;
+  status: string;
+  description: string | null;
+  replay_url: string | null;
+}
+
+export interface CourseLiveData {
+  training: {
+    id: string;
+    start_date: string | null;
+    end_date: string | null;
+    training_name: string;
+  } | null;
+  meetings: CourseLiveMeeting[];
+}
+
+export function useCourseLiveMeetings(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ["course-live-meetings", courseId],
+    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_course_live_meetings" as any, {
+        p_course_id: courseId!,
+      });
+      if (error) throw error;
+      const result = data as CourseLiveData;
+      return {
+        training: result?.training ?? null,
+        meetings: result?.meetings ?? [],
+      } as CourseLiveData;
+    },
+  });
+}
+
 // ---- Page views ----
 
 export function useLessonViewStats(courseId: string | undefined) {
