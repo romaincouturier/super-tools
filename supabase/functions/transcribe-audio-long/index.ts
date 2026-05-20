@@ -63,7 +63,7 @@ serve(async (req) => {
         audio_url: audioUrl,
         // Auto-detect spoken language instead of forcing French.
         language_detection: true,
-        language_confidence_threshold: 0.5,
+        language_confidence_threshold: 0.3,
         punctuate: true,
         format_text: true,
         speaker_labels: true,
@@ -125,6 +125,14 @@ serve(async (req) => {
 
       if (result.status === "error") {
         console.error("AssemblyAI transcription error:", result.error);
+        const errStr = String(result.error || "");
+        // No spoken audio detected — return empty transcript gracefully (200)
+        if (/no spoken audio|language_detection cannot be performed/i.test(errStr)) {
+          return createJsonResponse({
+            transcript: "",
+            warning: "Aucune parole détectée dans l'enregistrement.",
+          });
+        }
         return createErrorResponse(
           `Erreur de transcription : ${result.error}`,
           500
