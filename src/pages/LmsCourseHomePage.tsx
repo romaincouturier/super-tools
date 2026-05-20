@@ -5,6 +5,9 @@ import {
   useCourseModules,
   useCourseLessons,
   useLearnerProgress,
+  useCourseForums,
+  useForumPosts,
+  useCreateForumPost,
 } from "@/hooks/useLms";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
@@ -26,6 +29,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +95,99 @@ function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: number }
   );
 }
 
+// ── Community sidebar preview ─────────────────────────────────────────────────
+
+function CommunitySidebarPreview({
+  courseId,
+  email,
+  previewCount,
+}: {
+  courseId: string;
+  email: string;
+  previewCount: number;
+}) {
+  const [content, setContent] = useState("");
+  const { data: forums = [] } = useCourseForums(courseId);
+  const mainForum = forums[0] ?? null;
+  const { data: allPosts = [] } = useForumPosts(mainForum?.id);
+  const createPost = useCreateForumPost();
+
+  // Posts ordered ASC in the hook — take the last N (most recent)
+  const recentPosts = [...allPosts].reverse().slice(0, previewCount);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() || !mainForum || !email) return;
+    await createPost.mutateAsync({
+      forum_id: mainForum.id,
+      author_email: email,
+      content_html: `<p>${content.trim()}</p>`,
+    });
+    setContent("");
+  };
+
+  return (
+    <div className="p-5 border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+      <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
+        Communauté
+      </p>
+
+      {/* Mini post form */}
+      <form onSubmit={handleSubmit} className="mb-3">
+        <p className="text-xs mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Une question ?</p>
+        <div className="flex gap-1.5">
+          <input
+            type="text"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Écrire un message…"
+            className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border outline-none min-w-0"
+            style={{ borderColor: "rgba(16,24,32,0.15)", fontFamily: "inherit", color: "var(--st-ink)", background: "transparent" }}
+          />
+          <button
+            type="submit"
+            disabled={!content.trim() || createPost.isPending}
+            className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all disabled:opacity-40"
+            style={{ background: "var(--st-yellow)", color: "#101820" }}
+          >
+            <Send size={12} />
+          </button>
+        </div>
+      </form>
+
+      {/* Recent posts */}
+      {recentPosts.length > 0 ? (
+        <ul className="space-y-2.5">
+          {recentPosts.map((post) => {
+            const initials = post.author_email.split("@")[0].slice(0, 2).toUpperCase();
+            const date = new Date(post.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+            return (
+              <li key={post.id} className="flex gap-2 items-start">
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5"
+                  style={{ background: "var(--st-yellow)", color: "#101820" }}
+                >
+                  {initials}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="text-xs leading-snug line-clamp-2 [&>*]:inline"
+                    style={{ color: "var(--st-ink)" }}
+                    dangerouslySetInnerHTML={{ __html: post.content_html }}
+                  />
+                  <p className="text-[10px] mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{date}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Pas encore de message. Soyez le premier !</p>
+      )}
+    </div>
+  );
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -104,6 +201,7 @@ interface SidebarProps {
   moduleStatuses: Record<string, ModuleStatus>;
   lessonCountByModule: Record<string, number>;
   activeLessonId: string | null;
+  communityPreviewCount: number;
   onModuleClick: (moduleId: string) => void;
 }
 
@@ -118,6 +216,7 @@ function Sidebar({
   moduleStatuses,
   lessonCountByModule,
   activeLessonId,
+  communityPreviewCount,
   onModuleClick,
 }: SidebarProps) {
   const navigate = useNavigate();
@@ -163,6 +262,13 @@ function Sidebar({
         </ul>
       </div>
 
+      {!isPreview && (
+        <CommunitySidebarPreview
+          courseId={courseId}
+          email={email}
+          previewCount={communityPreviewCount}
+        />
+      )}
     </aside>
   );
 }
@@ -515,7 +621,7 @@ function CourseHomeHeader({
 
       {/* Logo */}
       <div className="shrink-0">
-        <SupertiltLogo className="h-7" />
+        <SupertiltLogo className="h-9" />
       </div>
 
       {/* Course title */}
@@ -698,6 +804,7 @@ export default function LmsCourseHomePage() {
             moduleStatuses={moduleStatuses}
             lessonCountByModule={lessonCountByModule}
             activeLessonId={null}
+            communityPreviewCount={course.community_preview_count ?? 2}
             onModuleClick={handleModuleClick}
           />
         </div>
@@ -734,6 +841,7 @@ export default function LmsCourseHomePage() {
                   moduleStatuses={moduleStatuses}
                   lessonCountByModule={lessonCountByModule}
                   activeLessonId={null}
+                  communityPreviewCount={course.community_preview_count ?? 2}
                   onModuleClick={(id) => { handleModuleClick(id); setSidebarOpen(false); }}
                 />
               </div>

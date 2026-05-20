@@ -396,7 +396,7 @@ function Sidebar({
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "formations", label: "Mes formations", icon: BookOpen },
     { id: "travaux", label: "Mes travaux", icon: FileText },
-    { id: "pratique", label: "Espace de pratique", icon: Palette },
+    { id: "pratique", label: "Communauté", icon: Palette },
     { id: "aide", label: "Aide", icon: HelpCircle },
   ];
 
@@ -1064,8 +1064,8 @@ function DashboardView({
           )}
         </DashCard>
 
-        {/* Espace de pratique */}
-        <DashCard title="Espace de pratique" icon={Palette} action={{ label: "Voir tous les posts", onClick: () => onNav("pratique") }}>
+        {/* Communauté */}
+        <DashCard title="Communauté" icon={Palette} action={{ label: "Voir tous les posts", onClick: () => onNav("pratique") }}>
           {recentPosts.length === 0 ? (
             <div className="py-3 text-center">
               <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
@@ -1941,7 +1941,7 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
     <div className="max-w-2xl mx-auto space-y-4">
       <ConfirmDialog />
       <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Communauté</h2>
         <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
           Partagez vos travaux et réagissez à ceux des autres participants.
         </p>
@@ -2676,7 +2676,7 @@ export default function LearnerPortal() {
     dashboard: "Tableau de bord",
     formations: "Mes formations",
     travaux: "Mes travaux",
-    pratique: "Espace de pratique",
+    pratique: "Communauté",
     aide: "Aide",
     compte: "Mon compte",
   };

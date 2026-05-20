@@ -21,6 +21,7 @@ export interface LmsCourse {
   created_at: string;
   updated_at: string;
   formation_configs?: { formation_name: string } | null;
+  community_preview_count: number;
 }
 
 export interface LmsModule {
