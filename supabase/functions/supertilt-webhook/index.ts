@@ -55,6 +55,47 @@ interface WCOrder {
   meta_data?: Array<{ key: string; value: unknown }>;
 }
 
+type VisibleOrderItemPatch = {
+  game_id?: string | null;
+  game_type?: string | null;
+  kanban_status?: string;
+  block_reason?: string | null;
+  validation_status?: string;
+};
+
+async function upsertVisibleOrderItem(
+  admin: any,
+  wooOrderId: string,
+  order: WCOrder,
+  item: WCLineItem,
+  patch: VisibleOrderItemPatch = {},
+) {
+  const payload = {
+    woocommerce_order_id: wooOrderId,
+    wc_order_id: order.id,
+    wc_product_id: item.product_id,
+    product_name: item.name,
+    game_id: patch.game_id ?? null,
+    game_type: patch.game_type ?? null,
+    quantity: item.quantity,
+    unit_price: item.price,
+    line_total: parseFloat(item.total ?? "0"),
+    kanban_status: patch.kanban_status ?? "to_validate",
+    block_reason: patch.block_reason ?? null,
+    validation_status: patch.validation_status ?? "pending",
+    raw_line_item: item,
+  };
+
+  const { data, error } = await (admin as any)
+    .from("order_items")
+    .upsert(payload, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false })
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as { id: string } | null;
+}
+
 // Verify WooCommerce HMAC-SHA256 signature
 async function verifySignature(secret: string, body: string, sig: string): Promise<boolean> {
   if (!secret || !sig) return true; // no secret configured → skip verification
@@ -307,7 +348,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
       // ── Formation reconnue dans le catalogue ─────────────────
       if (formula) {
         const customerEmail = (order.billing?.email ?? "").trim().toLowerCase();
-        if (!customerEmail) { results.items_to_validate++; continue; }
+
+        if (!customerEmail) {
+          await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
+            game_type: "formation",
+            kanban_status: "to_validate",
+            block_reason: "[Formation] Email client manquant — routage participant impossible",
+            validation_status: "pending",
+          });
+          results.items_to_validate++;
+          continue;
+        }
 
         const formationName = formula.formation_configs?.formation_name ?? "";
         const catalogFormat = (formula.formation_configs?.format_formation ?? "").toLowerCase();
@@ -383,21 +434,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
             ? "Formation e-learning sans session programmée à venir"
             : "Formation reconnue mais aucune session inter ou e-learning trouvée";
 
-          await (admin as any).from("order_items").upsert({
-            woocommerce_order_id: wooOrderId,
-            wc_order_id: order.id,
-            wc_product_id: item.product_id,
-            product_name: item.name,
-            game_id: null,
+          await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
             game_type: "formation",
-            quantity: item.quantity,
-            unit_price: item.price,
-            line_total: parseFloat(item.total ?? "0"),
             kanban_status: "to_validate",
             block_reason: `[Formation] ${formationName} — ${reason}`,
             validation_status: "pending",
-            raw_line_item: item,
-          }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+          });
 
           results.items_to_validate++;
           continue;
@@ -452,6 +494,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         console.log(`Formation routed: ${formationName} → training ${training.id} (${routingReason})`, addResult);
+        await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
+          game_type: "formation",
+          kanban_status: "received",
+          block_reason: `[Formation] Routée vers ${training.training_name} — ${routingReason}`,
+          validation_status: "validated",
+        });
         results.formations_processed++;
         // Les formations ne passent pas par le kanban jeux
         continue;
@@ -479,33 +527,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.items_processed++;
       }
 
-      const itemPayload = {
-        woocommerce_order_id: wooOrderId,
-        wc_order_id: order.id,
-        wc_product_id: item.product_id,
-        product_name: item.name,
+      const savedItem = await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
         game_id: gameId,
         game_type: gameType,
-        quantity: item.quantity,
-        unit_price: item.price,
-        line_total: parseFloat(item.total ?? "0"),
         kanban_status: kanbanStatus,
         block_reason: blockReason,
         validation_status: game ? "validated" : "pending",
-        raw_line_item: item,
-      };
-
-      // Upsert by (wc_order_id, wc_product_id) — use delete+insert via unique constraint
-      const { data: savedItem, error: itemErr } = await (admin as any)
-        .from("order_items")
-        .upsert(itemPayload, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false })
-        .select("id")
-        .maybeSingle();
-
-      if (itemErr) {
-        // If no unique constraint, fall back to insert
-        await (admin as any).from("order_items").insert(itemPayload);
-      }
+      });
 
       // ── Historize sale into game_sales (with Stripe fee calc) ──
       if (game && gameId) {
@@ -575,21 +603,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const msg = itemErr instanceof Error ? itemErr.message : String(itemErr);
         console.error(`Line item processing failed (product ${item.product_id}):`, msg);
         // Safety net: ensure the orphan line item is visible in the inbox
-        await (admin as any).from("order_items").upsert({
-          woocommerce_order_id: wooOrderId,
-          wc_order_id: order.id,
-          wc_product_id: item.product_id,
-          product_name: item.name,
-          game_id: null,
-          game_type: null,
-          quantity: item.quantity,
-          unit_price: item.price,
-          line_total: parseFloat(item.total ?? "0"),
+        await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
           kanban_status: "to_validate",
           block_reason: `Erreur de traitement automatique : ${msg}`,
           validation_status: "pending",
-          raw_line_item: item,
-        }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+        });
         results.items_to_validate++;
       }
     }
@@ -604,21 +622,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if ((itemsCount ?? 0) === 0 && (order.line_items?.length ?? 0) > 0) {
       console.warn(`[supertilt-webhook] Order #${order.id} produced 0 order_items — inserting orphans`);
       for (const item of order.line_items ?? []) {
-        await (admin as any).from("order_items").upsert({
-          woocommerce_order_id: wooOrderId,
-          wc_order_id: order.id,
-          wc_product_id: item.product_id,
-          product_name: item.name,
-          game_id: null,
-          game_type: null,
-          quantity: item.quantity,
-          unit_price: item.price,
-          line_total: parseFloat(item.total ?? "0"),
+        await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
           kanban_status: "to_validate",
           block_reason: `Commande non routée automatiquement — aucune ligne n'a pu être traitée (produit #${item.product_id})`,
           validation_status: "pending",
-          raw_line_item: item,
-        }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+        });
       }
     }
 
