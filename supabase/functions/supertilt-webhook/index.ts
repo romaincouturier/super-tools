@@ -55,6 +55,47 @@ interface WCOrder {
   meta_data?: Array<{ key: string; value: unknown }>;
 }
 
+type VisibleOrderItemPatch = {
+  game_id?: string | null;
+  game_type?: string | null;
+  kanban_status?: string;
+  block_reason?: string | null;
+  validation_status?: string;
+};
+
+async function upsertVisibleOrderItem(
+  admin: ReturnType<typeof createClient>,
+  wooOrderId: string,
+  order: WCOrder,
+  item: WCLineItem,
+  patch: VisibleOrderItemPatch = {},
+) {
+  const payload = {
+    woocommerce_order_id: wooOrderId,
+    wc_order_id: order.id,
+    wc_product_id: item.product_id,
+    product_name: item.name,
+    game_id: patch.game_id ?? null,
+    game_type: patch.game_type ?? null,
+    quantity: item.quantity,
+    unit_price: item.price,
+    line_total: parseFloat(item.total ?? "0"),
+    kanban_status: patch.kanban_status ?? "to_validate",
+    block_reason: patch.block_reason ?? null,
+    validation_status: patch.validation_status ?? "pending",
+    raw_line_item: item,
+  };
+
+  const { data, error } = await (admin as any)
+    .from("order_items")
+    .upsert(payload, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false })
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as { id: string } | null;
+}
+
 // Verify WooCommerce HMAC-SHA256 signature
 async function verifySignature(secret: string, body: string, sig: string): Promise<boolean> {
   if (!secret || !sig) return true; // no secret configured → skip verification
