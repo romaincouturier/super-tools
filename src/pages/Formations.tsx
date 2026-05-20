@@ -45,12 +45,16 @@ interface Training {
   created_at: string;
   session_type: string | null;
   session_format: string | null;
+  format_formation: string | null;
+  source_financement_bpf: string | null;
   is_cancelled: boolean | null;
   participant_count?: number;
   /** Number of participants with payment_mode=invoice and no invoice_file_url */
   unbilled_count?: number;
   /** true if session_type is "intra" (billing at training level, not per-participant) */
   is_intra?: boolean;
+  /** true if BPF data is incomplete for this past training */
+  bpf_incomplete?: boolean;
 }
 
 interface TrainingAction {
@@ -69,6 +73,8 @@ interface ParticipantSearchData {
   sponsor_email: string | null;
   invoice_file_url: string | null;
   payment_mode: string | null;
+  source_financement_bpf: string | null;
+  type_stagiaire_bpf: string | null;
 }
 
 type SortField = "date" | "title" | "client" | "location";
@@ -123,7 +129,7 @@ const Formations = () => {
         .eq("status", "pending"),
       supabase
         .from("training_participants")
-        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode"),
+        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode, source_financement_bpf, type_stagiaire_bpf"),
     ]);
 
     if (trainingsResult.error) {
@@ -148,11 +154,24 @@ const Formations = () => {
           : participants.filter(
               (p) => p.payment_mode === "invoice" && !p.invoice_file_url
             ).length;
+
+        // BPF incomplet : source financement ou type stagiaire manquant
+        const isInter = t.session_type === "inter"
+          || t.format_formation === "inter-entreprises"
+          || t.format_formation === "e_learning";
+        const bpfIncomplete = isInter
+          ? participants.length > 0 && participants.some(
+              (p) => !p.source_financement_bpf || !p.type_stagiaire_bpf
+            )
+          : !t.source_financement_bpf
+            || (participants.length > 0 && participants.some((p) => !p.type_stagiaire_bpf));
+
         return {
           ...t,
           participant_count: countMap.get(t.id) || 0,
           unbilled_count: unbilledCount,
           is_intra: isIntra,
+          bpf_incomplete: bpfIncomplete,
         };
       });
       setTrainings(trainingsWithCount);
@@ -333,13 +352,13 @@ const Formations = () => {
   // Billing status styling for past trainings
   const getPastTrainingStyle = (training: Training) => {
     if (filter !== "past") return "";
-    if ((training.unbilled_count ?? 0) > 0) return "border-red-300 bg-red-50/50";
+    if ((training.unbilled_count ?? 0) > 0 || training.bpf_incomplete) return "border-red-300 bg-red-50/50";
     return "opacity-60";
   };
 
   const getPastRowStyle = (training: Training) => {
     if (filter !== "past") return "";
-    if ((training.unbilled_count ?? 0) > 0) return "bg-red-50/50 hover:bg-red-50/70";
+    if ((training.unbilled_count ?? 0) > 0 || training.bpf_incomplete) return "bg-red-50/50 hover:bg-red-50/70";
     return "opacity-60";
   };
 
@@ -573,6 +592,11 @@ const Formations = () => {
                                   : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
                               </Badge>
                             )}
+                            {filter === "past" && training.bpf_incomplete && (
+                              <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                BPF
+                              </Badge>
+                            )}
                             {hasActions(training.id) && (
                               <span
                                 className="inline-block w-2 h-2 rounded-full bg-warning"
@@ -696,6 +720,11 @@ const Formations = () => {
                                   {training.is_intra
                                     ? "non facturée"
                                     : `${training.unbilled_count} non facturé${(training.unbilled_count ?? 0) > 1 ? "s" : ""}`}
+                                </Badge>
+                              )}
+                              {filter === "past" && training.bpf_incomplete && (
+                                <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                  BPF
                                 </Badge>
                               )}
                               {hasActions(training.id) && (
