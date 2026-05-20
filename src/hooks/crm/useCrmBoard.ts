@@ -7,6 +7,26 @@ import {
 } from "@/lib/crmDataTransform";
 import { CRM_QUERY_KEY } from "./useCrmMutation";
 
+const CRM_PAGE_SIZE = 1000;
+
+const fetchAllCardTags = async () => {
+  const rows = [];
+
+  for (let from = 0; ; from += CRM_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("crm_card_tags")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .range(from, from + CRM_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < CRM_PAGE_SIZE) break;
+  }
+
+  return rows;
+};
+
 /** Fetch all board data: columns, cards, tags. */
 export const useCrmBoard = () => {
   return useQuery({
@@ -27,7 +47,7 @@ export const useCrmBoard = () => {
           .from("crm_tags")
           .select("*")
           .order("category", { ascending: true }),
-        supabase.from("crm_card_tags").select("*"),
+        fetchAllCardTags(),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
