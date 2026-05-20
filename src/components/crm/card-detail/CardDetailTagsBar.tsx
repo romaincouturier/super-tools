@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Plus, X, Tag } from "lucide-react";
 import type { CrmTag } from "@/types/crm";
@@ -11,6 +11,9 @@ interface Props {
 
 const CardDetailTagsBar = ({ state, handlers }: Props) => {
   const [expanded, setExpanded] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { card, allTags, tagUsageCounts } = state;
   const cardTags = card.tags || [];
 
@@ -48,6 +51,28 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
   }, [allTags, tagUsageCounts]);
 
   const availableTags = allTags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
+
+  const handleSubmitNewTag = async () => {
+    const name = newTagName.trim();
+    if (!name) return;
+    // Reject if an identical tag already exists (case-insensitive)
+    if (allTags.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      const existing = allTags.find((t) => t.name.toLowerCase() === name.toLowerCase())!;
+      if (!cardTags.some((ct) => ct.id === existing.id)) {
+        await handlers.handleToggleTag(existing.id);
+      }
+      setNewTagName("");
+      return;
+    }
+    setCreating(true);
+    try {
+      await handlers.handleCreateAndAddTag(name);
+      setNewTagName("");
+    } finally {
+      setCreating(false);
+      inputRef.current?.focus();
+    }
+  };
 
   return (
     <div className="px-4 py-2 border-b bg-muted/20">
@@ -113,6 +138,32 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
               </div>
             );
           })}
+
+          {/* Création d'un nouveau tag à la volée */}
+          <div className="flex items-center gap-1 pt-1 border-t border-border/30 mt-0.5">
+            <span className="text-[10px] text-muted-foreground w-16 shrink-0">Nouveau</span>
+            <input
+              ref={inputRef}
+              type="text"
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleSubmitNewTag(); }
+                if (e.key === "Escape") setNewTagName("");
+              }}
+              placeholder="Nom du tag…"
+              disabled={creating}
+              className="h-5 text-[10px] border border-dashed border-muted-foreground/40 rounded px-1.5 bg-transparent placeholder:text-muted-foreground/50 focus:outline-none focus:border-foreground/50 min-w-0 flex-1"
+            />
+            <button
+              type="button"
+              onClick={handleSubmitNewTag}
+              disabled={creating || !newTagName.trim()}
+              className="h-5 w-5 flex items-center justify-center rounded border border-dashed border-muted-foreground/40 text-muted-foreground hover:border-foreground/50 hover:text-foreground disabled:opacity-40 transition-colors"
+            >
+              <Plus className="h-2.5 w-2.5" />
+            </button>
+          </div>
         </div>
       )}
     </div>
