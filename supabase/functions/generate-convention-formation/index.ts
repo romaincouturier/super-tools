@@ -300,8 +300,10 @@ serve(async (req: Request): Promise<Response> => {
     // PRIX sent to PDFMonkey must be the total amount (sold price + ancillary fees)
     // because the convention template renders PRIX as the contractual total.
     const priceHt = basePriceHt + ancillaryFees;
-    const fraisValue = ancillaryFees > 0 ? ancillaryFees.toString() : fraisDefault;
-    const displayFrais = ancillaryFees > 0 ? "Oui" : afficheFrais;
+    // Les frais sont systématiquement intégrés dans PRIX. On n'envoie plus jamais
+    // de FRAIS séparés à PDFMonkey (FRAIS=0, AFFICHE_FRAIS=Non).
+    const fraisValue = "0";
+    const displayFrais = "Non";
 
     // Build client name and address
     let clientName = training.client_name;
