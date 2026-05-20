@@ -159,7 +159,7 @@ const ConventionSection = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild><a href={conventionFileUrl} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4 mr-2" />Télécharger</a></DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadConvention}><Download className="h-4 w-4 mr-2" />Télécharger</DropdownMenuItem>
                   <DropdownMenuItem onClick={handleGenerateConvention} disabled={generatingConvention}><RotateCw className="h-4 w-4 mr-2" />Regénérer</DropdownMenuItem>
                   {sponsorEmail && <DropdownMenuItem onClick={handleSendConvention} disabled={sendingConvention}><Send className="h-4 w-4 mr-2" />Envoyer</DropdownMenuItem>}
                   {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
