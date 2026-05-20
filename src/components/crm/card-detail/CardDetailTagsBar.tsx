@@ -120,6 +120,7 @@ const CardDetailTagsBar = ({ state, handlers }: Props) => {
       {expanded && (
         <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5 pb-1">
           {Object.entries(tagsByCategory).map(([category, tags]) => {
+            if (usedCategories.has(category)) return null;
             const available = tags.filter((t) => !cardTags.some((ct) => ct.id === t.id));
             const color = tags[0]?.color;
             const isCreating = creatingIn === category;
