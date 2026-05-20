@@ -110,6 +110,21 @@ export interface AttendanceByToken {
   email_sent_at: string | null;
 }
 
+export interface LocationSignatureByToken {
+  id: string;
+  token: string;
+  recipient_email: string;
+  recipient_name: string | null;
+  game_name: string | null;
+  contrat_reference: string | null;
+  pdf_url: string;
+  status: string;
+  signed_at: string | null;
+  email_opened_at: string | null;
+  created_at: string;
+  expires_at: string | null;
+}
+
 export interface ConventionSignatureByToken {
   id: string;
   token: string;
@@ -370,6 +385,13 @@ export const rpc = {
 
   markConventionOpened: (token: string, timestamp: string) =>
     callVoid("mark_convention_opened", { p_token: token, p_timestamp: timestamp }),
+
+  // --- Location contract signatures ---
+  getLocationSignatureByToken: (token: string) =>
+    call<LocationSignatureByToken>("get_location_signature_by_token", { p_token: token }),
+
+  markLocationSignatureOpened: (token: string, openedAt: string) =>
+    callVoid("mark_location_signature_opened", { p_token: token, p_opened_at: openedAt }),
 
   // --- Devis signatures ---
   getDevisSignatureByToken: (token: string) =>

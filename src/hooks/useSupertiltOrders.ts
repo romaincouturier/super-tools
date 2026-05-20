@@ -61,6 +61,12 @@ export interface GameFull {
   commission_formula: string | null;
   include_stripe_fees: boolean;
   cost_price: number | null;
+  // Location contract
+  pdfmonkey_template_id: string | null;
+  location_duree_libelle: string | null;
+  location_duree_jours: number | null;
+  location_tarif_retard_mois: number | null;
+  location_prix_remplacement: number | null;
   // V3 stock
   min_stock: number | null;
   current_stock: number | null;
@@ -110,6 +116,9 @@ export interface OrderItem {
   email_sent_to: string | null;
   invoice_received_at: string | null;
   shipped_confirmed_at: string | null;
+  location_contract_file_url: string | null;
+  location_document_id: string | null;
+  contrat_reference: string | null;
   notes: string | null;
   commission_amount: number | null;
   raw_line_item: Record<string, unknown> | null;
@@ -904,6 +913,81 @@ export function useSendRestockEmail() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data as { ok?: boolean; subject?: string; html?: string; to?: string };
+    },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// LOCATION CONTRACT
+// ════════════════════════════════════════════════════════════════
+
+export interface LocationContractSignature {
+  id: string;
+  token: string;
+  order_item_id: string | null;
+  recipient_email: string;
+  recipient_name: string | null;
+  game_name: string | null;
+  contrat_reference: string | null;
+  pdf_url: string | null;
+  signed_pdf_url: string | null;
+  status: "pending" | "signed" | "expired" | "cancelled";
+  signed_at: string | null;
+  email_sent_at: string | null;
+  created_at: string;
+}
+
+export function useLocationContractSignature(orderItemId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["location-contract-signature", orderItemId],
+    enabled: !!orderItemId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("location_contract_signatures")
+        .select("id, token, order_item_id, recipient_email, recipient_name, game_name, contrat_reference, pdf_url, signed_pdf_url, status, signed_at, email_sent_at, created_at")
+        .eq("order_item_id", orderItemId as string)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as LocationContractSignature | null;
+    },
+  });
+}
+
+export function useGenerateLocationContract() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (orderItemId: string) => {
+      const { data, error } = await (supabase as any).functions.invoke("generate-location-contract", {
+        body: { orderItemId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { contractUrl: string; documentId: string; contratReference: string };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
+    },
+  });
+}
+
+export function useSendLocationContractEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ orderItemId, enableOnlineSignature = true }: { orderItemId: string; enableOnlineSignature?: boolean }) => {
+      const { data, error } = await (supabase as any).functions.invoke("send-location-contract-email", {
+        body: { orderItemId, enableOnlineSignature },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { success: boolean; signatureUrl: string; signatureToken: string };
+    },
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
+      qc.invalidateQueries({ queryKey: ["location-contract-signature", variables.orderItemId] });
     },
   });
 }
