@@ -104,9 +104,7 @@ export default function ParticipantSearchDrawer({ open, onOpenChange }: Particip
                           {t.invoice_file_url && (
                             <Badge variant="outline" className="text-[10px]">Facture</Badge>
                           )}
-                          {t.elearning_duration != null && t.elearning_duration > 0 && (
-                            <Badge variant="outline" className="text-[10px]">{t.elearning_duration}h e-learning</Badge>
-                          )}
+
                         </div>
                       </div>
                     ))}

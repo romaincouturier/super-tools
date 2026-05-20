@@ -182,7 +182,6 @@ const FormationDetailParticipants = ({
           trainingLocation={training.location}
           formatFormation={training.format_formation}
           isInterEntreprise={isInterSession}
-          elearningDuration={training.elearning_duration}
           availableFormulas={availableFormulas}
           attendanceSheetsUrls={training.attendance_sheets_urls || []}
           clientName={training.client_name}

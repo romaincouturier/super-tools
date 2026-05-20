@@ -184,7 +184,6 @@ const DuplicateTrainingDialog = ({
           financeur_name: original.financeur_name,
           financeur_url: original.financeur_url,
           trainer_id: original.trainer_id,
-          elearning_duration: original.elearning_duration,
           catalog_id: original.catalog_id,
            supports_url: original.supports_url,
           private_group_url: original.private_group_url,

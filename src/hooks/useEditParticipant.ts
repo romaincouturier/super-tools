@@ -34,7 +34,6 @@ export interface Participant {
   payment_mode?: string;
   sold_price_ht?: number | null;
   signed_convention_url?: string | null;
-  elearning_duration?: number | null;
   notes?: string | null;
   formula?: string | null;
   formula_id?: string | null;
@@ -52,7 +51,6 @@ export interface UseEditParticipantOptions {
   trainingId: string;
   formatFormation?: string | null;
   isInterEntreprise: boolean;
-  trainingElearningDuration?: number | null;
   availableFormulas: FormationFormula[];
   onParticipantUpdated: () => void;
 }
@@ -73,7 +71,6 @@ interface FormValues {
   financeurUrl: string;
   paymentMode: string;
   soldPriceHt: string;
-  elearningDuration: string;
   notes: string;
   formula: string;
   coachingSessionsTotal: string;
@@ -86,7 +83,6 @@ export function useEditParticipant({
   trainingId,
   formatFormation,
   isInterEntreprise,
-  trainingElearningDuration,
   availableFormulas,
   onParticipantUpdated,
 }: UseEditParticipantOptions) {
@@ -120,7 +116,6 @@ export function useEditParticipant({
     participant,
     open,
     formatFormation,
-    trainingElearningDuration,
   });
   const filesHook = useParticipantFiles({
     participantId: participant.id,
@@ -186,11 +181,6 @@ export function useEditParticipant({
         updateData.sold_price_ht = v.soldPriceHt
           ? parseFloat(v.soldPriceHt)
           : null;
-        if (formatFormation === "e_learning") {
-          updateData.elearning_duration = v.elearningDuration
-            ? parseFloat(v.elearningDuration)
-            : null;
-        }
         if (availableFormulas.length > 0) {
           updateData.formula = v.formula || null;
           const matched = availableFormulas.find((f) => f.name === v.formula);
@@ -208,7 +198,7 @@ export function useEditParticipant({
 
       return updateData;
     },
-    [isInterEntreprise, formatFormation, availableFormulas, formulaAllowsCoaching],
+    [isInterEntreprise, availableFormulas, formulaAllowsCoaching],
   );
 
   // --- Compose form values for auto-save tracking ---
@@ -228,13 +218,12 @@ export function useEditParticipant({
     financeurUrl: financeurInfo.financeurUrl,
     paymentMode: paymentInfo.paymentMode,
     soldPriceHt: paymentInfo.soldPriceHt,
-    elearningDuration: paymentInfo.elearningDuration,
     notes,
     formula,
     coachingSessionsTotal,
     typeStagiaireBpf,
     sourceFinancementBpf,
-  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, paymentInfo.elearningDuration, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(
@@ -284,7 +273,7 @@ export function useEditParticipant({
   useEffect(() => {
     autoSave.resetTracking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participant, trainingElearningDuration]);
+  }, [participant]);
 
   // --- Flush pending auto-save and close ---
   const handleClose = useCallback(() => {
@@ -353,8 +342,6 @@ export function useEditParticipant({
     setPaymentMode: paymentInfo.setPaymentMode,
     soldPriceHt: paymentInfo.soldPriceHt,
     setSoldPriceHt: paymentInfo.setSoldPriceHt,
-    elearningDuration: paymentInfo.elearningDuration,
-    setElearningDuration: paymentInfo.setElearningDuration,
 
     // Notes
     notes,

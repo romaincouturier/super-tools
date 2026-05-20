@@ -45,7 +45,6 @@ interface CatalogEntry {
   objectives: string[] | null;
   prerequisites: string[] | null;
   supports_url: string | null;
-  elearning_duration: number | null;
   elearning_access_email_content: string | null;
   supertilt_link: string | null;
   woocommerce_product_id: number | null;
@@ -93,7 +92,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [requiredEquipment, setRequiredEquipment] = useState("");
   const [objectives, setObjectives] = useState<string[]>([]);
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
-  const [elearningDuration, setElearningDuration] = useState("");
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -121,7 +119,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   // Always keep latest values in ref
   formValuesRef.current = {
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
-    supertiltLink, requiredEquipment, objectives, prerequisites, elearningDuration,
+    supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, isActive,
     formulas,
   };
@@ -130,7 +128,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const activeFormulas = formulas.filter((f) => !f._deleted);
   const formHash = JSON.stringify({
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
-    supertiltLink, requiredEquipment, objectives, prerequisites, elearningDuration,
+    supertiltLink, requiredEquipment, objectives, prerequisites,
     elearningAccessEmailContent, woocommerceProductId, isActive,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
@@ -141,7 +139,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       formationName: string; description: string; prix: string; dureeHeures: string;
       programmeUrl: string; supportsUrl: string; supertiltLink: string;
       requiredEquipment: string;
-      objectives: string[]; prerequisites: string[]; elearningDuration: string;
+      objectives: string[]; prerequisites: string[];
       elearningAccessEmailContent: string; woocommerceProductId: string;
       isActive: boolean; formulas: FormulaEdit[];
     };
@@ -159,7 +157,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       required_equipment: v.requiredEquipment.trim() || null,
       objectives: v.objectives,
       prerequisites: v.prerequisites,
-      elearning_duration: v.elearningDuration ? parseFloat(v.elearningDuration) : null,
       elearning_access_email_content: v.elearningAccessEmailContent.trim() || null,
       woocommerce_product_id: v.woocommerceProductId ? parseInt(v.woocommerceProductId, 10) : null,
       is_active: v.isActive,
@@ -276,7 +273,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setRequiredEquipment((entry as unknown as { required_equipment?: string | null }).required_equipment || "");
         setObjectives(entry.objectives || []);
         setPrerequisites(entry.prerequisites || []);
-        setElearningDuration(entry.elearning_duration ? String(entry.elearning_duration) : "");
         setElearningAccessEmailContent(entry.elearning_access_email_content || "");
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
         setIsActive(entry.is_active);
@@ -302,7 +298,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setRequiredEquipment("");
         setObjectives([]);
         setPrerequisites([]);
-        setElearningDuration("");
         setElearningAccessEmailContent("");
         setWoocommerceProductId("");
         setIsActive(true);
@@ -350,7 +345,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         required_equipment: requiredEquipment.trim() || null,
         objectives,
         prerequisites,
-        elearning_duration: elearningDuration ? parseFloat(elearningDuration) : null,
         elearning_access_email_content: elearningAccessEmailContent.trim() || null,
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
         is_active: isActive,
@@ -770,28 +764,6 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
 
             {!hasFormulas && (
               <>
-                <AccordionItem value="elearning">
-                  <AccordionTrigger>Configuration e-learning (intra)</AccordionTrigger>
-                  <AccordionContent className="space-y-4 pt-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="elearningDuration">Durée du parcours e-learning (heures)</Label>
-                      <Input
-                        id="elearningDuration"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={elearningDuration}
-                        onChange={(e) => setElearningDuration(e.target.value)}
-                        placeholder="Ex: 25"
-                      />
-                    </div>
-
-                    <p className="text-xs text-muted-foreground">
-                      Le contenu de l'email d'accès e-learning est géré dans <strong>Paramètres → Templates Email</strong> (template elearning_access_tu / elearning_access_vous).
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-
                 <AccordionItem value="woocommerce">
                   <AccordionTrigger>WooCommerce (intra)</AccordionTrigger>
                   <AccordionContent className="space-y-4 pt-2">

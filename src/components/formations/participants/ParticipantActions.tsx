@@ -295,7 +295,6 @@ const ParticipantActions = ({
         trainingId={trainingId}
         formatFormation={formatFormation}
         isInterEntreprise={isInterEntreprise}
-        trainingElearningDuration={elearningDuration}
         availableFormulas={availableFormulas}
         trainingDuree={trainingDuree}
         trainingDates={[trainingStartDate, trainingEndDate]}

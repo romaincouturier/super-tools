@@ -33,9 +33,6 @@ interface ParticipantFormFieldsProps {
   setFormula: (v: string) => void;
   availableFormulas: FormationFormula[];
   formatFormation?: string | null;
-  elearningDuration: string;
-  setElearningDuration: (v: string) => void;
-  trainingElearningDuration?: number | null;
   couponCode: string | null;
   formulaAllowsCoaching: boolean;
   coachingSessionsTotal: string;
@@ -71,9 +68,6 @@ const ParticipantFormFields = ({
   setFormula,
   availableFormulas,
   formatFormation,
-  elearningDuration,
-  setElearningDuration,
-  trainingElearningDuration,
   couponCode,
   formulaAllowsCoaching,
   coachingSessionsTotal,
@@ -226,29 +220,6 @@ const ParticipantFormFields = ({
 
           {formatFormation === "e_learning" && (
             <>
-              <div className="space-y-2">
-                <Label htmlFor="edit-elearningDuration">
-                  Durée e-learning (heures)
-                </Label>
-                <Input
-                  id="edit-elearningDuration"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  value={elearningDuration}
-                  onChange={(e) => setElearningDuration(e.target.value)}
-                  placeholder={
-                    trainingElearningDuration != null
-                      ? String(trainingElearningDuration)
-                      : "7"
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  Par défaut : {trainingElearningDuration ?? 7}h (durée de la
-                  formation)
-                </p>
-              </div>
-
               {couponCode && (
                 <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
                   <Tag className="h-5 w-5 text-green-600 flex-shrink-0" />

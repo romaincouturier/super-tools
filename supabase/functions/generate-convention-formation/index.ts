@@ -230,7 +230,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch single participant for inter/e-learning
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, elearning_duration")
+        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id")
         .eq("id", participantId)
         .single();
 
@@ -240,6 +240,18 @@ serve(async (req: Request): Promise<Response> => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // Fetch formula duration separately to avoid join ambiguity in PostgREST
+      let formulaDureeHeures: number | null = null;
+      if ((participant as any).formula_id) {
+        const { data: formula } = await supabase
+          .from("formation_formulas")
+          .select("duree_heures")
+          .eq("id", (participant as any).formula_id)
+          .single();
+        formulaDureeHeures = formula?.duree_heures ?? null;
+      }
+      (participant as any)._formulaDureeHeures = formulaDureeHeures;
 
       singleParticipant = participant;
       participantList = [participant];
@@ -307,7 +319,10 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build client name and address
     let clientName = training.client_name;
-    let clientAddress = training.client_address || "";
+    // Pour les conventions individuelles (inter/e-learning), l'adresse est celle
+    // du participant — on ne replie PAS sur training.client_address qui est
+    // l'adresse de l'organisme, pas du client.
+    let clientAddress = isIndividualConvention ? "" : (training.client_address || "");
 
     // For inter-entreprises individual convention, use participant's company if available
     if (isIndividualConvention && singleParticipant) {
@@ -349,13 +364,15 @@ serve(async (req: Request): Promise<Response> => {
       PARTICIPANTS: maxParticipants > 0 ? maxParticipants.toString() : "1",
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
-        ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
+        ? (training.start_date
+            ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
+            : "Accès permanent (formation e-learning)")
         : formatDateRange(scheduleList),
       JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
+        ? ((singleParticipant as any)?._formulaDureeHeures || elearningDefaultDuration).toString()
         : calculateTotalHours(scheduleList).toString(),
       NOMBRE_JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
+        ? ((singleParticipant as any)?._formulaDureeHeures || elearningDefaultDuration).toString()
         : calculateTotalDays(scheduleList).toString(),
       HORAIRES: training.format_formation === "e_learning"
         ? elearningHorairesText

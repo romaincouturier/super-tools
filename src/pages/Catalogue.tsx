@@ -31,7 +31,6 @@ interface CatalogEntry {
   objectives: string[] | null;
   prerequisites: string[] | null;
   supports_url: string | null;
-  elearning_duration: number | null;
   elearning_access_email_content: string | null;
   supertilt_link: string | null;
   woocommerce_product_id: number | null;

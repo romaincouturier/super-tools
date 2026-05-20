@@ -194,10 +194,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // classe_virtuelle → convocation classique (lien Zoom/Teams dans le mail).
     const isElearning = formatFormation === "e_learning";
 
-    // Pour les ventes en ligne, le commanditaire est le participant lui-même
-    const effectiveSponsorFirstName = paymentMode === "online" ? firstName : sponsorFirstName;
-    const effectiveSponsorLastName = paymentMode === "online" ? lastName : sponsorLastName;
-    const effectiveSponsorEmail = paymentMode === "online" ? email : sponsorEmail;
+    // Pour les ventes en ligne, le commanditaire est le participant lui-même.
+    // Pour les e-learning en ajout manuel sans commanditaire renseigné,
+    // on replie sur l'email du participant (le stagiaire paie souvent lui-même).
+    const effectiveSponsorFirstName = paymentMode === "online" ? firstName : (sponsorFirstName || (isElearning ? firstName : null));
+    const effectiveSponsorLastName = paymentMode === "online" ? lastName : (sponsorLastName || (isElearning ? lastName : null));
+    const effectiveSponsorEmail = paymentMode === "online" ? email : (sponsorEmail || (isElearning ? email : null));
 
     // ── 1. Paramètres d'application ──────────────────────────────────────────
     const { data: settingsRows } = await admin

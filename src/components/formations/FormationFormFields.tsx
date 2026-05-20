@@ -69,10 +69,8 @@ export function SessionTypeFormatSelector({
 
 export function ElearningDatesFields({
   form,
-  showDuration = true,
 }: {
   form: FormationFormHook;
-  showDuration?: boolean;
 }) {
   return (
     <div className="space-y-4">
@@ -134,21 +132,6 @@ export function ElearningDatesFields({
           </Popover>
         </div>
       </div>
-      {showDuration && (
-        <div className="space-y-2">
-          <Label htmlFor="elearningDuration">Durée totale (heures)</Label>
-          <Input
-            id="elearningDuration"
-            type="number"
-            placeholder="Ex: 25"
-            value={form.elearningDuration}
-            onChange={(e) => form.setElearningDuration(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Durée estimée du parcours e-learning
-          </p>
-        </div>
-      )}
       <div className="space-y-2">
         <Label htmlFor="privateGroupUrl">URL du groupe privé</Label>
         <Input
