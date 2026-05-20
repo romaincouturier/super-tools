@@ -72,19 +72,23 @@ function ProgressCircle({ pct }: { pct: number }) {
 
 type ModuleStatus = "completed" | "in_progress" | "not_started";
 
-function ModuleStatusIcon({ status }: { status: ModuleStatus }) {
+function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: number }) {
   if (status === "completed") {
     return <CheckCircle2 size={18} style={{ color: "#16a34a", flexShrink: 0 }} />;
   }
-  if (status === "in_progress") {
-    return (
-      <div className="w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0"
-        style={{ borderColor: "#FFD100", background: "#FFD100" }}>
-        <div className="w-2 h-2 rounded-full bg-white" />
-      </div>
-    );
-  }
-  return <Circle size={18} style={{ color: "#CCCCCC", flexShrink: 0 }} />;
+  const borderColor = status === "in_progress" ? "#FFD100" : "#CCCCCC";
+  const bg = status === "in_progress" ? "#FFD100" : "transparent";
+  const textColor = status === "in_progress" ? "#101820" : "#AAAAAA";
+  return (
+    <div
+      className="w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0"
+      style={{ borderColor, background: bg }}
+    >
+      <span style={{ fontSize: 6, fontWeight: 700, color: textColor, lineHeight: 1, letterSpacing: 0 }}>
+        M{num}
+      </span>
+    </div>
+  );
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -159,7 +163,7 @@ function Sidebar({
           Modules
         </p>
         <ul className="space-y-1">
-          {modules.map((m) => {
+          {modules.map((m, idx) => {
             const status = moduleStatuses[m.id] ?? "not_started";
             const count = lessonCountByModule[m.id] ?? 0;
             return (
@@ -169,7 +173,7 @@ function Sidebar({
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-black/5 group"
                   style={{ fontFamily: "inherit" }}
                 >
-                  <ModuleStatusIcon status={status} />
+                  <ModuleStatusIcon status={status} num={idx + 1} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
                       {m.title}
