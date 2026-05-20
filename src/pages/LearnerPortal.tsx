@@ -437,12 +437,12 @@ function Sidebar({
       </nav>
 
       {/* User block */}
-      <div className="px-3 pb-5 pt-3 border-t space-y-3" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+      <div className="px-3 pb-5 pt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
         <button
           onClick={onEditProfile}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 group text-left"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 text-left"
           style={{ fontFamily: "inherit" }}
-          title="Modifier mon profil"
+          title="Mon compte"
         >
           <div
             className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
@@ -454,23 +454,6 @@ function Sidebar({
               getInitials(firstName, lastName)
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-snug truncate" style={{ color: "var(--st-ink)" }}>
-              {firstName} {lastName}
-            </p>
-            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
-              {fonction || "Apprenant·e"}
-            </p>
-          </div>
-          <Pencil size={13} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: "var(--st-ink-muted)" }} />
-        </button>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
-          style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-        >
-          <LogOut size={15} />
-          Se déconnecter
         </button>
       </div>
     </aside>
@@ -1996,10 +1979,12 @@ function CompteView({
   email,
   profile,
   onNav,
+  onLogout,
 }: {
   email: string;
   profile: LearnerProfile | null | undefined;
   onNav: (s: NavSection) => void;
+  onLogout: () => void;
 }) {
   const { toast } = useToast();
   const upsert = useUpsertLearnerProfile();
@@ -2270,6 +2255,23 @@ function CompteView({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Déconnexion */}
+      <div className="rounded-2xl border p-5 flex items-center justify-between gap-4"
+        style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Se déconnecter</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>Vous serez redirigé vers la page de connexion.</p>
+        </div>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:bg-red-50 hover:border-red-200 hover:text-red-600 shrink-0"
+          style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+        >
+          <LogOut size={14} />
+          Se déconnecter
+        </button>
       </div>
     </div>
   );
@@ -2819,7 +2821,7 @@ export default function LearnerPortal() {
               <AideView email={data.email} mainTraining={mainTraining} onNav={setActiveSection} />
             )}
             {activeSection === "compte" && (
-              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} />
+              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} onLogout={handleLogout} />
             )}
           </div>
         </div>
