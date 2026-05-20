@@ -366,8 +366,9 @@ serve(async (req: Request): Promise<Response> => {
       PRIX: priceHt.toString(),
       TVA: tvaRate.toString(),
       PRIX_TTC: prixTtc.toFixed(2),
-      FRAIS: fraisDefault,
-      AFFICHE_FRAIS: afficheFrais,
+      FRAIS: fraisValue,
+      AFFICHE_FRAIS: displayFrais,
+
       SUBROGATION: subrogation ? "Oui" : "Non",
       MOYEN_PEDAGOGIQUE: moyenPedagogique,
       _date: new Date().toISOString().split("T")[0],
