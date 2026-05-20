@@ -13,6 +13,7 @@ import {
   type DividerBlockContent,
   type TextBlockContent,
   type GalleryBlockContent,
+  type HtmlEmbedBlockContent,
 } from "./lms-blocks";
 
 describe("isLayoutBlockType", () => {
@@ -41,6 +42,7 @@ describe("isLayoutBlockType", () => {
       "work_deposit",
       "table",
       "shortcode",
+      "html_embed",
     ];
     for (const t of contentTypes) {
       expect(isLayoutBlockType(t)).toBe(false);
@@ -118,6 +120,7 @@ describe("defaultBlockContent — regression on existing content types", () => {
       "work_deposit",
       "table",
       "shortcode",
+      "html_embed",
     ] as const;
     for (const t of allTypes) {
       expect(defaultBlockContent(t)).toBeDefined();
@@ -139,5 +142,21 @@ describe("defaultBlockContent — gallery", () => {
 
   it("isLayoutBlockType returns false for gallery", () => {
     expect(isLayoutBlockType("gallery")).toBe(false);
+  });
+});
+
+describe("defaultBlockContent — html_embed", () => {
+  it("defaults to empty html and null title", () => {
+    const c = defaultBlockContent("html_embed") as HtmlEmbedBlockContent;
+    expect(c.html).toBe("");
+    expect(c.title).toBeNull();
+  });
+
+  it("blockKindOf returns 'content' for html_embed", () => {
+    expect(blockKindOf("html_embed")).toBe("content");
+  });
+
+  it("isLayoutBlockType returns false for html_embed", () => {
+    expect(isLayoutBlockType("html_embed")).toBe(false);
   });
 });

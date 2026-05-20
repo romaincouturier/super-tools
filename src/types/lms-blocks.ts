@@ -38,7 +38,8 @@ export type ContentBlockType =
   | "self_assessment"
   | "work_deposit"
   | "table"
-  | "shortcode";
+  | "shortcode"
+  | "html_embed";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -228,6 +229,13 @@ export interface WorkDepositBlockContent {
 /** Codes courts disponibles — formulaires intégrés au cours. */
 export type ShortcodeKind = "besoins" | "evaluation";
 
+export interface HtmlEmbedBlockContent {
+  /** Raw HTML / iframe code entered by the author. */
+  html: string;
+  /** Optional heading displayed above the rendered content. */
+  title?: string | null;
+}
+
 export interface ShortcodeBlockContent {
   /** Type de formulaire à intégrer. */
   code: ShortcodeKind;
@@ -297,7 +305,8 @@ export type LessonBlockContent =
   | ContainerBlockContent
   | DividerBlockContent
   | SpacerBlockContent
-  | ShortcodeBlockContent;
+  | ShortcodeBlockContent
+  | HtmlEmbedBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -390,6 +399,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { height_px: 24 };
     case "shortcode":
       return { code: "besoins", course_id: null, title: null };
+    case "html_embed":
+      return { html: "", title: null };
   }
 }
 
@@ -478,6 +489,11 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
         sharing_allowed: true,
         comments_enabled: true,
         feedback_enabled: true,
+      };
+    case "html_embed":
+      return {
+        html: '<iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:example" height="400" width="100%" frameborder="0" allowfullscreen title="Post intégré"></iframe>',
+        title: "Publication LinkedIn",
       };
     default:
       return null;
