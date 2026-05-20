@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Trash2, GripVertical, Copy } from "lucide-react";
+import { Trash2, GripVertical, Copy, ChevronUp, ChevronDown } from "lucide-react";
 import { InsertButton } from "./BuilderInsertMenu";
 import BuilderInsertMenu from "./BuilderInsertMenu";
 import type { LessonBlockType } from "@/types/lms-blocks";
@@ -10,6 +10,10 @@ interface Props {
   onDelete: () => void;
   onDuplicate: () => void;
   onInsertAfter: (type: LessonBlockType) => void;
+  /** Called when the user clicks "move up". Omit to hide the button. */
+  onMoveUp?: () => void;
+  /** Called when the user clicks "move down". Omit to hide the button. */
+  onMoveDown?: () => void;
   /** Drag-handle attributes+listeners from useSortable — enables the grip button. */
   dragHandleProps?: Record<string, unknown>;
   children: React.ReactNode;
@@ -27,6 +31,8 @@ export default function BuilderBlockWrapper({
   onDelete,
   onDuplicate,
   onInsertAfter,
+  onMoveUp,
+  onMoveDown,
   dragHandleProps,
   children,
 }: Props) {
@@ -86,6 +92,46 @@ export default function BuilderBlockWrapper({
             >
               <GripVertical size={14} />
             </button>
+
+            {/* Move up */}
+            {onMoveUp && (
+              <button
+                onClick={onMoveUp}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                }}
+                aria-label="Monter le bloc"
+              >
+                <ChevronUp size={14} />
+              </button>
+            )}
+
+            {/* Move down */}
+            {onMoveDown && (
+              <button
+                onClick={onMoveDown}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                }}
+                aria-label="Descendre le bloc"
+              >
+                <ChevronDown size={14} />
+              </button>
+            )}
 
             {/* Duplicate */}
             <button

@@ -83,6 +83,35 @@ export async function getMaxBlockPosition(
   return row?.position ?? -1;
 }
 
+/**
+ * Shift all siblings at or after `fromPosition` up by one to make room
+ * for a new block being inserted at that position.
+ */
+export async function shiftBlocksUpFrom(
+  lessonId: string,
+  parentBlockId: string | null,
+  fromPosition: number,
+): Promise<void> {
+  let query = blocks()
+    .select("id, position")
+    .eq("lesson_id", lessonId)
+    .gte("position", fromPosition);
+  query = parentBlockId
+    ? query.eq("parent_block_id", parentBlockId)
+    : query.is("parent_block_id", null);
+  const { data, error } = await query;
+  if (error) throw error;
+  if (!data?.length) return;
+  await Promise.all(
+    (data as { id: string; position: number }[]).map((row) =>
+      blocks()
+        .update({ position: row.position + 1 })
+        .eq("id", row.id)
+        .eq("lesson_id", lessonId),
+    ),
+  );
+}
+
 // ── Tree helpers ──────────────────────────────────────────────────────
 
 export interface BlockTreeNode {
