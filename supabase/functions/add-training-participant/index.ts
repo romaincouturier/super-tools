@@ -314,16 +314,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         try {
           const startDate = new Date(`${trainingStartDate}T00:00:00`);
           const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
-          if (surveyDate > new Date()) {
-            await admin.from("scheduled_emails").insert({
-              training_id: trainingId,
-              participant_id: participantId,
-              email_type: "needs_survey",
-              scheduled_for: `${surveyDate.toISOString().split("T")[0]}T09:00:00`,
-              status: "pending",
-            });
-            needsSurveyScheduled = true;
-          }
+          const now = new Date();
+          // Si la fenêtre optimale est déjà passée mais la formation n'a pas
+          // encore commencé, on envoie immédiatement plutôt que de ne pas envoyer.
+          const scheduledFor = surveyDate > now
+            ? `${surveyDate.toISOString().split("T")[0]}T09:00:00`
+            : now.toISOString();
+          await admin.from("scheduled_emails").insert({
+            training_id: trainingId,
+            participant_id: participantId,
+            email_type: "needs_survey",
+            scheduled_for: scheduledFor,
+            status: "pending",
+          });
+          needsSurveyScheduled = true;
         } catch (err) {
           console.error("[add-training-participant] schedule needs_survey:", err);
         }
