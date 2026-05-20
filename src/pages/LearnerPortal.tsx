@@ -83,6 +83,11 @@ interface Training {
   coaching_sessions_completed?: number;
   coaching_sessions_total?: number;
   trainer_booking_url?: string | null;
+  objectives?: string[];
+  prerequisites?: string[];
+  reglement_interieur_url?: string | null;
+  trainer_name?: string | null;
+  trainer_photo_url?: string | null;
 }
 
 interface Questionnaire {
@@ -588,9 +593,10 @@ function TrainingDetail({
   const remainingSessions = coachingTotal - coachingCompleted;
 
   return (
-    <Tabs defaultValue="documents" className="mt-4">
+    <Tabs defaultValue="details" className="mt-4">
       <TabsList className="mb-3 bg-transparent gap-1 p-0 h-auto">
         {[
+          { value: "details", label: "Formation", icon: GraduationCap },
           { value: "documents", label: "Documents", icon: FileText },
           { value: "coaching", label: "Coaching", icon: Video },
         ].map(({ value, label, icon: Icon }) => (
@@ -605,6 +611,89 @@ function TrainingDetail({
           </TabsTrigger>
         ))}
       </TabsList>
+
+      <TabsContent value="details">
+        <div className="space-y-4">
+          {/* Objectifs */}
+          {(training.objectives?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Objectifs</p>
+              <ul className="space-y-1">
+                {training.objectives!.map((obj, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#FFD100" }} />
+                    {obj}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Prérequis */}
+          {(training.prerequisites?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Prérequis</p>
+              <ul className="space-y-1">
+                {training.prerequisites!.map((req, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(16,24,32,0.25)" }} />
+                    {req}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Programme + Règlement intérieur */}
+          {(training.program_file_url || training.reglement_interieur_url) && (
+            <div className="grid sm:grid-cols-2 gap-2">
+              {training.program_file_url && (
+                <a href={training.program_file_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
+                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                  <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                  Programme
+                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                </a>
+              )}
+              {training.reglement_interieur_url && (
+                <a href={training.reglement_interieur_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
+                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                  <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                  Règlement intérieur
+                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Formateur */}
+          {training.trainer_name && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Votre formateur</p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-sm font-bold"
+                  style={{ background: training.trainer_photo_url ? "transparent" : "#EDEDED", color: "#101820" }}>
+                  {training.trainer_photo_url
+                    ? <img src={training.trainer_photo_url} alt={training.trainer_name} className="w-full h-full object-cover" />
+                    : training.trainer_name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                </div>
+                <span className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>{training.trainer_name}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {(training.objectives?.length ?? 0) === 0 &&
+            (training.prerequisites?.length ?? 0) === 0 &&
+            !training.program_file_url &&
+            !training.reglement_interieur_url &&
+            !training.trainer_name && (
+            <p className="text-sm py-3" style={{ color: "var(--st-ink-muted)" }}>Aucun détail disponible.</p>
+          )}
+        </div>
+      </TabsContent>
 
       <TabsContent value="documents">
         {!hasDocuments ? (
@@ -862,7 +951,7 @@ function FormationItem({
           className="w-full flex items-center gap-2 px-5 py-3 text-sm transition-all hover:bg-black/5 text-left"
           style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
         >
-          <span className="flex-1">Documents · Coaching</span>
+          <span className="flex-1">Formation · Documents · Coaching</span>
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         {expanded && (
