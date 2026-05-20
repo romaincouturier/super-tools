@@ -267,9 +267,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
           type_stagiaire_bpf: typeStagiaireBpf || null,
           sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
           payment_mode: paymentMode,
-          sponsor_first_name: capitalizeName(sponsorFirstName),
-          sponsor_last_name: capitalizeName(sponsorLastName),
-          sponsor_email: sponsorEmail?.trim().toLowerCase() || null,
+          // Pour les ventes en ligne, le commanditaire est le participant lui-même
+          sponsor_first_name: paymentMode === "online"
+            ? capitalizeName(firstName)
+            : capitalizeName(sponsorFirstName),
+          sponsor_last_name: paymentMode === "online"
+            ? capitalizeName(lastName)
+            : capitalizeName(sponsorLastName),
+          sponsor_email: paymentMode === "online"
+            ? email
+            : (sponsorEmail?.trim().toLowerCase() || null),
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: !financeurSameAsSponsor ? (financeurName?.trim() || null) : null,
           financeur_url: !financeurSameAsSponsor ? (financeurUrl?.trim() || null) : null,
