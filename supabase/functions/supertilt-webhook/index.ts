@@ -64,7 +64,7 @@ type VisibleOrderItemPatch = {
 };
 
 async function upsertVisibleOrderItem(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   wooOrderId: string,
   order: WCOrder,
   item: WCLineItem,
@@ -527,33 +527,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.items_processed++;
       }
 
-      const itemPayload = {
-        woocommerce_order_id: wooOrderId,
-        wc_order_id: order.id,
-        wc_product_id: item.product_id,
-        product_name: item.name,
+      const savedItem = await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
         game_id: gameId,
         game_type: gameType,
-        quantity: item.quantity,
-        unit_price: item.price,
-        line_total: parseFloat(item.total ?? "0"),
         kanban_status: kanbanStatus,
         block_reason: blockReason,
         validation_status: game ? "validated" : "pending",
-        raw_line_item: item,
-      };
-
-      // Upsert by (wc_order_id, wc_product_id) — use delete+insert via unique constraint
-      const { data: savedItem, error: itemErr } = await (admin as any)
-        .from("order_items")
-        .upsert(itemPayload, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false })
-        .select("id")
-        .maybeSingle();
-
-      if (itemErr) {
-        // If no unique constraint, fall back to insert
-        await (admin as any).from("order_items").insert(itemPayload);
-      }
+      });
 
       // ── Historize sale into game_sales (with Stripe fee calc) ──
       if (game && gameId) {
@@ -623,21 +603,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const msg = itemErr instanceof Error ? itemErr.message : String(itemErr);
         console.error(`Line item processing failed (product ${item.product_id}):`, msg);
         // Safety net: ensure the orphan line item is visible in the inbox
-        await (admin as any).from("order_items").upsert({
-          woocommerce_order_id: wooOrderId,
-          wc_order_id: order.id,
-          wc_product_id: item.product_id,
-          product_name: item.name,
-          game_id: null,
-          game_type: null,
-          quantity: item.quantity,
-          unit_price: item.price,
-          line_total: parseFloat(item.total ?? "0"),
+        await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
           kanban_status: "to_validate",
           block_reason: `Erreur de traitement automatique : ${msg}`,
           validation_status: "pending",
-          raw_line_item: item,
-        }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+        });
         results.items_to_validate++;
       }
     }
