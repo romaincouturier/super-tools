@@ -29,7 +29,6 @@ export interface Participant {
   convention_file_url?: string | null;
   convention_document_id?: string | null;
   signed_convention_url?: string | null;
-  elearning_duration?: number | null;
   notes?: string | null;
   formula?: string | null;
   formula_id?: string | null;
@@ -54,7 +53,6 @@ export interface ParticipantListProps {
   trainingLocation: string | null;
   formatFormation: string | null;
   isInterEntreprise?: boolean;
-  elearningDuration?: number | null;
   availableFormulas?: FormationFormula[];
   attendanceSheetsUrls: string[];
   clientName: string;
@@ -73,7 +71,6 @@ export interface ParticipantActionsProps {
   formatFormation: string | null;
   isInterEntreprise: boolean;
   isIndividualConvention: boolean;
-  elearningDuration?: number | null;
   availableFormulas: FormationFormula[];
   clientName: string;
   trainingDuree: string;

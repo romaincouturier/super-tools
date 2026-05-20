@@ -536,10 +536,9 @@ export function useFormationDetail() {
 
   const calculateTotalDuration = (): number => {
     // E-learning formations have no `training_schedules` entries — the
-    // duration lives on `trainings.elearning_duration` (hours). Without
-    // this fallback the participant "Copier les infos" displayed "Durée : 0h".
+    // duration per participant comes from formation_formulas.duree_heures (via formula_id).
     if (training?.format_formation === "e_learning") {
-      return Number(training.elearning_duration) || 0;
+      return 0;
     }
     if (schedules.length === 0) return 0;
     return schedules.reduce((total, schedule) => {

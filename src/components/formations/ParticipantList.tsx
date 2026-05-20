@@ -12,7 +12,7 @@ import type { Participant, ParticipantListProps, SortField, SortDirection } from
 
 const ParticipantList = ({
   participants, trainingId, trainingName, trainingStartDate, trainingEndDate, trainingLocation,
-  formatFormation, isInterEntreprise: isInterEntrepriseProp, elearningDuration,
+  formatFormation, isInterEntreprise: isInterEntrepriseProp,
   availableFormulas = [], attendanceSheetsUrls, clientName, trainingDuree, onParticipantUpdated,
 }: ParticipantListProps) => {
   const isMobile = useIsMobile();
@@ -75,7 +75,7 @@ const ParticipantList = ({
 
   const sharedActionsProps = {
     trainingId, trainingName, trainingStartDate, trainingEndDate, trainingLocation, formatFormation,
-    isInterEntreprise, isIndividualConvention, elearningDuration, availableFormulas,
+    isInterEntreprise, isIndividualConvention, availableFormulas,
     clientName, trainingDuree, attendanceSheetsUrls,
     sendingId: actions.sendingId, remindingId: actions.remindingId,
     deletingId: actions.deletingId, generatingConventionId: actions.generatingConventionId,

@@ -120,7 +120,6 @@ const FormationEdit = () => {
       if (loadedIsElearning) {
         if (training.start_date) form.setElearningStartDate(parseISO(training.start_date));
         if (training.end_date) form.setElearningEndDate(parseISO(training.end_date));
-        form.setElearningDuration(training.elearning_duration != null ? String(training.elearning_duration) : "");
         form.setElearningAccessEmailContent(training.elearning_access_email_content || "");
         form.setSchedules([]);
         form.setSelectedDates([]);

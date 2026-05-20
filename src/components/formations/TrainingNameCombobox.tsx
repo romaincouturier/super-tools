@@ -27,7 +27,6 @@ export interface FormationConfig {
   objectives: string[] | null;
   prerequisites: string[] | null;
   supports_url: string | null;
-  elearning_duration: number | null;
   elearning_access_email_content: string | null;
   supertilt_link: string | null;
   woocommerce_product_id: number | null;
@@ -64,7 +63,7 @@ const TrainingNameCombobox = ({ value, onChange, onFormationSelect }: TrainingNa
   const fetchFormations = async () => {
     const { data, error } = await supabase
       .from("formation_configs")
-      .select("id, formation_name, duree_heures, prix, programme_url, objectives, prerequisites, supports_url, elearning_duration, elearning_access_email_content, supertilt_link, woocommerce_product_id, description, is_active, format_formation")
+      .select("id, formation_name, duree_heures, prix, programme_url, objectives, prerequisites, supports_url, elearning_access_email_content, supertilt_link, woocommerce_product_id, description, is_active, format_formation")
       .eq("is_active", true)
       .order("display_order", { ascending: true });
 

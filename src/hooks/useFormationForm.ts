@@ -17,7 +17,6 @@ export interface FormationFormState {
   // E-learning
   elearningStartDate: Date | null;
   elearningEndDate: Date | null;
-  elearningDuration: string;
   elearningAccessEmailContent: string;
 
   // Location
@@ -97,7 +96,6 @@ export function useFormationForm() {
   // E-learning
   const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
   const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
-  const [elearningDuration, setElearningDuration] = useState("");
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
 
   // Location
@@ -218,7 +216,6 @@ export function useFormationForm() {
       if (formation.objectives?.length) setObjectives(formation.objectives);
       if (formation.prerequisites?.length) setPrerequisites(formation.prerequisites);
       if (formation.supertilt_link) setSupertiltLink(formation.supertilt_link);
-      if (formation.elearning_duration) setElearningDuration(String(formation.elearning_duration));
       if (formation.elearning_access_email_content) setElearningAccessEmailContent(formation.elearning_access_email_content);
     } else {
       setCatalogId(null);
@@ -285,7 +282,6 @@ export function useFormationForm() {
         sponsor_formal_address: isInter ? true : sponsorFormalAddress,
         participants_formal_address: false,
         financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
-        elearning_duration: isElearning && elearningDuration ? parseFloat(elearningDuration) : null,
         catalog_id: catalogId || null,
       };
 
@@ -339,7 +335,7 @@ export function useFormationForm() {
       sessionType, sessionFormat, prerequisites, objectives,
       programFileUrl, supertiltLink, privateGroupUrl,
       sponsorFormalAddress, financeurSameAsSponsor,
-      elearningDuration, catalogId,
+      catalogId,
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail,
       financeurName, financeurUrl,
@@ -357,7 +353,6 @@ export function useFormationForm() {
     schedules, setSchedules,
     elearningStartDate, setElearningStartDate,
     elearningEndDate, setElearningEndDate,
-    elearningDuration, setElearningDuration,
     elearningAccessEmailContent, setElearningAccessEmailContent,
     locationType, setLocationType,
     locationCustom, setLocationCustom,
