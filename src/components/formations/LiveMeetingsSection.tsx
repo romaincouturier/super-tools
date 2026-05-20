@@ -50,6 +50,7 @@ interface LiveMeeting {
   description: string | null;
   email_content: string | null;
   run_notes: string | null;
+  replay_url: string | null;
   status: string;
 }
 
@@ -70,6 +71,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   const [meetingUrl, setMeetingUrl] = useState("");
   const [description, setDescription] = useState("");
   const [emailContent, setEmailContent] = useState("");
+  const [replayUrl, setReplayUrl] = useState("");
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [notesMeeting, setNotesMeeting] = useState<LiveMeeting | null>(null);
   const [runNotes, setRunNotes] = useState("");
@@ -99,6 +101,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setMeetingUrl("");
     setDescription("");
     setEmailContent("");
+    setReplayUrl("");
     setEditingMeeting(null);
   };
 
@@ -116,6 +119,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setMeetingUrl(meeting.meeting_url || "");
     setDescription(meeting.description || "");
     setEmailContent(meeting.email_content || "");
+    setReplayUrl(meeting.replay_url || "");
     setEditingMeeting(meeting);
     setDialogOpen(true);
   };
@@ -131,6 +135,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     setMeetingUrl(meeting.meeting_url || "");
     setDescription(meeting.description || "");
     setEmailContent(meeting.email_content || "");
+    setReplayUrl(meeting.replay_url || "");
     setEditingMeeting(null);
     setDialogOpen(true);
   };
@@ -181,6 +186,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       meeting_url: meetingUrl.trim() || null,
       description: description.trim() || null,
       email_content: emailContent.trim() || null,
+      replay_url: replayUrl.trim() || null,
     };
 
     try {
@@ -492,6 +498,14 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                 value={meetingUrl}
                 onChange={(e) => setMeetingUrl(e.target.value)}
                 placeholder="https://zoom.us/j/..."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Lien du replay (après le live)</Label>
+              <Input
+                value={replayUrl}
+                onChange={(e) => setReplayUrl(e.target.value)}
+                placeholder="https://youtube.com/watch?v=… ou URL directe"
               />
             </div>
             <div className="space-y-2">

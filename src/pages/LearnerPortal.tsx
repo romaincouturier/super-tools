@@ -83,6 +83,11 @@ interface Training {
   coaching_sessions_completed?: number;
   coaching_sessions_total?: number;
   trainer_booking_url?: string | null;
+  objectives?: string[];
+  prerequisites?: string[];
+  reglement_interieur_url?: string | null;
+  trainer_name?: string | null;
+  trainer_photo_url?: string | null;
 }
 
 interface Questionnaire {
@@ -140,6 +145,108 @@ function statusBadge(status: string | null) {
 
 function getInitials(firstName: string, lastName: string) {
   return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
+}
+
+// ── Learner greeting dropdown ─────────────────────────────────────────────────
+
+function LearnerGreetingDropdown({
+  firstName,
+  lastName,
+  photoUrl,
+  onNav,
+  onLogout,
+}: {
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+  onNav: (s: NavSection) => void;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    const confirmed = await confirm({
+      title: "Se déconnecter",
+      description: "Êtes-vous sûr de vouloir vous déconnecter ?",
+      variant: "destructive",
+    });
+    if (confirmed) onLogout();
+  };
+
+  const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Apprenant";
+  const initials = getInitials(firstName, lastName);
+
+  const items: { label: string; icon: React.ElementType; section: NavSection }[] = [
+    { label: "Mon compte", icon: User2, section: "compte" },
+    { label: "Mes formations", icon: GraduationCap, section: "formations" },
+    { label: "Mes formations recommandées", icon: Sparkles, section: "dashboard" },
+    { label: "Aide", icon: HelpCircle, section: "aide" },
+  ];
+
+  return (
+    <>
+      <ConfirmDialog />
+      <div ref={ref} className="relative">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all hover:bg-black/5"
+          style={{ fontFamily: "inherit" }}
+        >
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820", overflow: "hidden" }}
+          >
+            {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
+          </div>
+          <div className="hidden sm:block text-left">
+            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
+            <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>{displayName}</p>
+          </div>
+          <ChevronDown size={13} className="hidden sm:block shrink-0 opacity-50" style={{ color: "var(--st-ink-muted)" }} />
+        </button>
+
+        {open && (
+          <div
+            className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border shadow-lg overflow-hidden z-50"
+            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
+          >
+            {items.map(({ label, icon: Icon, section }) => (
+              <button
+                key={section + label}
+                onClick={() => { onNav(section); setOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-black/5"
+                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+              >
+                <Icon size={15} style={{ color: "var(--st-ink-muted)" }} />
+                {label}
+              </button>
+            ))}
+            <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }}>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-red-50"
+                style={{ color: "#ef4444", fontFamily: "inherit" }}
+              >
+                <LogOut size={15} />
+                Se déconnecter
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
 }
 
 function progressMessage(pct: number) {
@@ -396,7 +503,7 @@ function Sidebar({
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "formations", label: "Mes formations", icon: BookOpen },
     { id: "travaux", label: "Mes travaux", icon: FileText },
-    { id: "pratique", label: "Espace de pratique", icon: Palette },
+    { id: "pratique", label: "Communauté", icon: Palette },
     { id: "aide", label: "Aide", icon: HelpCircle },
   ];
 
@@ -437,12 +544,12 @@ function Sidebar({
       </nav>
 
       {/* User block */}
-      <div className="px-3 pb-5 pt-3 border-t space-y-3" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+      <div className="px-3 pb-5 pt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
         <button
           onClick={onEditProfile}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 group text-left"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 text-left"
           style={{ fontFamily: "inherit" }}
-          title="Modifier mon profil"
+          title="Mon compte"
         >
           <div
             className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
@@ -454,23 +561,6 @@ function Sidebar({
               getInitials(firstName, lastName)
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold leading-snug truncate" style={{ color: "var(--st-ink)" }}>
-              {firstName} {lastName}
-            </p>
-            <p className="text-xs truncate" style={{ color: "var(--st-ink-muted)" }}>
-              {fonction || "Apprenant·e"}
-            </p>
-          </div>
-          <Pencil size={13} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" style={{ color: "var(--st-ink-muted)" }} />
-        </button>
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all hover:bg-black/5 text-left"
-          style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-        >
-          <LogOut size={15} />
-          Se déconnecter
         </button>
       </div>
     </aside>
@@ -503,9 +593,10 @@ function TrainingDetail({
   const remainingSessions = coachingTotal - coachingCompleted;
 
   return (
-    <Tabs defaultValue="documents" className="mt-4">
+    <Tabs defaultValue="details" className="mt-4">
       <TabsList className="mb-3 bg-transparent gap-1 p-0 h-auto">
         {[
+          { value: "details", label: "Formation", icon: GraduationCap },
           { value: "documents", label: "Documents", icon: FileText },
           { value: "coaching", label: "Coaching", icon: Video },
         ].map(({ value, label, icon: Icon }) => (
@@ -520,6 +611,89 @@ function TrainingDetail({
           </TabsTrigger>
         ))}
       </TabsList>
+
+      <TabsContent value="details">
+        <div className="space-y-4">
+          {/* Objectifs */}
+          {(training.objectives?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Objectifs</p>
+              <ul className="space-y-1">
+                {training.objectives!.map((obj, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#FFD100" }} />
+                    {obj}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Prérequis */}
+          {(training.prerequisites?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Prérequis</p>
+              <ul className="space-y-1">
+                {training.prerequisites!.map((req, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(16,24,32,0.25)" }} />
+                    {req}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Programme + Règlement intérieur */}
+          {(training.program_file_url || training.reglement_interieur_url) && (
+            <div className="grid sm:grid-cols-2 gap-2">
+              {training.program_file_url && (
+                <a href={training.program_file_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
+                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                  <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                  Programme
+                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                </a>
+              )}
+              {training.reglement_interieur_url && (
+                <a href={training.reglement_interieur_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
+                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
+                  <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
+                  Règlement intérieur
+                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Formateur */}
+          {training.trainer_name && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Votre formateur</p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-sm font-bold"
+                  style={{ background: training.trainer_photo_url ? "transparent" : "#EDEDED", color: "#101820" }}>
+                  {training.trainer_photo_url
+                    ? <img src={training.trainer_photo_url} alt={training.trainer_name} className="w-full h-full object-cover" />
+                    : training.trainer_name.split(" ").map(n => n[0]).join("").toUpperCase()}
+                </div>
+                <span className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>{training.trainer_name}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {(training.objectives?.length ?? 0) === 0 &&
+            (training.prerequisites?.length ?? 0) === 0 &&
+            !training.program_file_url &&
+            !training.reglement_interieur_url &&
+            !training.trainer_name && (
+            <p className="text-sm py-3" style={{ color: "var(--st-ink-muted)" }}>Aucun détail disponible.</p>
+          )}
+        </div>
+      </TabsContent>
 
       <TabsContent value="documents">
         {!hasDocuments ? (
@@ -777,7 +951,7 @@ function FormationItem({
           className="w-full flex items-center gap-2 px-5 py-3 text-sm transition-all hover:bg-black/5 text-left"
           style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
         >
-          <span className="flex-1">Documents · Coaching</span>
+          <span className="flex-1">Formation · Documents · Coaching</span>
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
         {expanded && (
@@ -966,6 +1140,12 @@ function DashboardView({
               </div>
             )}
           </DashCard>
+
+          <DashCard title="Mes formations recommandées" icon={Sparkles}>
+            <p className="text-sm py-2" style={{ color: "var(--st-ink-muted)" }}>
+              Ici vous retrouverez toutes les formations recommandées pour votre profil.
+            </p>
+          </DashCard>
         </div>
 
         {/* Right col (1/3) — À faire ensuite + Mes travaux */}
@@ -1064,8 +1244,8 @@ function DashboardView({
           )}
         </DashCard>
 
-        {/* Espace de pratique */}
-        <DashCard title="Espace de pratique" icon={Palette} action={{ label: "Voir tous les posts", onClick: () => onNav("pratique") }}>
+        {/* Communauté */}
+        <DashCard title="Communauté" icon={Palette} action={{ label: "Voir tous les posts", onClick: () => onNav("pratique") }}>
           {recentPosts.length === 0 ? (
             <div className="py-3 text-center">
               <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
@@ -1941,7 +2121,7 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
     <div className="max-w-2xl mx-auto space-y-4">
       <ConfirmDialog />
       <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Espace de pratique</h2>
+        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Communauté</h2>
         <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
           Partagez vos travaux et réagissez à ceux des autres participants.
         </p>
@@ -1996,10 +2176,12 @@ function CompteView({
   email,
   profile,
   onNav,
+  onLogout,
 }: {
   email: string;
   profile: LearnerProfile | null | undefined;
   onNav: (s: NavSection) => void;
+  onLogout: () => void;
 }) {
   const { toast } = useToast();
   const upsert = useUpsertLearnerProfile();
@@ -2270,6 +2452,23 @@ function CompteView({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Déconnexion */}
+      <div className="rounded-2xl border p-5 flex items-center justify-between gap-4"
+        style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Se déconnecter</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>Vous serez redirigé vers la page de connexion.</p>
+        </div>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all hover:bg-red-50 hover:border-red-200 hover:text-red-600 shrink-0"
+          style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+        >
+          <LogOut size={14} />
+          Se déconnecter
+        </button>
       </div>
     </div>
   );
@@ -2556,7 +2755,9 @@ export default function LearnerPortal() {
   const [data, setData] = useState<LearnerData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestingCoach, setRequestingCoach] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<NavSection>("dashboard");
+  const [activeSection, setActiveSection] = useState<NavSection>(
+    (searchParams.get("section") as NavSection) ?? "dashboard"
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -2676,7 +2877,7 @@ export default function LearnerPortal() {
     dashboard: "Tableau de bord",
     formations: "Mes formations",
     travaux: "Mes travaux",
-    pratique: "Espace de pratique",
+    pratique: "Communauté",
     aide: "Aide",
     compte: "Mon compte",
   };
@@ -2762,26 +2963,13 @@ export default function LearnerPortal() {
             </p>
           </div>
 
-          {/* Mon compte button */}
-          <button
-            onClick={() => setActiveSection("compte")}
-            className="hidden sm:flex items-center gap-2.5 rounded-xl px-3 py-1.5 transition-all hover:bg-black/5"
-            style={{ fontFamily: "inherit" }}
-          >
-            <div className="text-right">
-              <p className="text-xs font-semibold leading-none" style={{ color: "var(--st-ink)" }}>Mon compte</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>Espace apprenant</p>
-            </div>
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-              style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820", overflow: "hidden" }}
-            >
-              {photoUrl
-                ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
-                : getInitials(firstName, lastName)
-              }
-            </div>
-          </button>
+          <LearnerGreetingDropdown
+            firstName={firstName}
+            lastName={lastName}
+            photoUrl={photoUrl}
+            onNav={setActiveSection}
+            onLogout={handleLogout}
+          />
 
         </header>
 
@@ -2819,7 +3007,7 @@ export default function LearnerPortal() {
               <AideView email={data.email} mainTraining={mainTraining} onNav={setActiveSection} />
             )}
             {activeSection === "compte" && (
-              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} />
+              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} onLogout={handleLogout} />
             )}
           </div>
         </div>

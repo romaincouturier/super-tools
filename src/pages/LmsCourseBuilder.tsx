@@ -305,13 +305,15 @@ export default function LmsCourseBuilder() {
   );
 }
 
-function CourseSettings({ course }: { course: { id: string; title: string; description: string | null; difficulty_level: string | null; estimated_duration_minutes: number } }) {
+function CourseSettings({ course }: { course: { id: string; title: string; description: string | null; difficulty_level: string | null; estimated_duration_minutes: number; welcome_video_url?: string | null; welcome_text?: string | null } }) {
   const updateCourse = useUpdateCourse();
   const [form, setForm] = useState({
     title: course.title,
     description: course.description || "",
     difficulty_level: course.difficulty_level || "beginner",
     estimated_duration_minutes: course.estimated_duration_minutes || 0,
+    welcome_video_url: course.welcome_video_url || "",
+    welcome_text: course.welcome_text || "",
   });
   const { toast } = useToast();
 
@@ -330,6 +332,24 @@ function CourseSettings({ course }: { course: { id: string; title: string; descr
         <div>
           <Label>Description</Label>
           <VoiceTextarea value={form.description} onValueChange={(v) => setForm({ ...form, description: v })} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+        </div>
+        <div>
+          <Label>Vidéo d'accueil (URL YouTube, Vimeo ou fichier)</Label>
+          <Input
+            value={form.welcome_video_url}
+            onChange={(e) => setForm({ ...form, welcome_video_url: e.target.value })}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+        </div>
+        <div>
+          <Label>Texte sous le titre (page d'accueil)</Label>
+          <VoiceTextarea
+            value={form.welcome_text}
+            onValueChange={(v) => setForm({ ...form, welcome_text: v })}
+            onChange={(e) => setForm({ ...form, welcome_text: e.target.value })}
+            rows={3}
+            placeholder="Message de bienvenue affiché sous le titre…"
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

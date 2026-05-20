@@ -20,6 +20,10 @@ export interface LmsCourse {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  formation_configs?: { formation_name: string } | null;
+  community_preview_count: number;
+  welcome_video_url?: string | null;
+  welcome_text?: string | null;
 }
 
 export interface LmsModule {
@@ -204,7 +208,7 @@ export function useCourse(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_courses")
-        .select("*")
+        .select("*, formation_configs(formation_name)")
         .eq("id", id!)
         .single();
       if (error) throw error;
@@ -450,6 +454,48 @@ export function useLearnerBadges(email: string | undefined) {
         .order("awarded_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as LmsBadge[];
+    },
+  });
+}
+
+// ---- Live meetings (course home page) ----
+
+export interface CourseLiveMeeting {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  meeting_url: string | null;
+  meeting_type: string;
+  status: string;
+  description: string | null;
+  replay_url: string | null;
+}
+
+export interface CourseLiveData {
+  training: {
+    id: string;
+    start_date: string | null;
+    end_date: string | null;
+    training_name: string;
+  } | null;
+  meetings: CourseLiveMeeting[];
+}
+
+export function useCourseLiveMeetings(courseId: string | undefined) {
+  return useQuery({
+    queryKey: ["course-live-meetings", courseId],
+    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_course_live_meetings" as any, {
+        p_course_id: courseId!,
+      });
+      if (error) throw error;
+      const result = data as CourseLiveData;
+      return {
+        training: result?.training ?? null,
+        meetings: result?.meetings ?? [],
+      } as CourseLiveData;
     },
   });
 }
