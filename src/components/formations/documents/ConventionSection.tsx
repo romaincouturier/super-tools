@@ -91,6 +91,26 @@ const ConventionSection = ({
     }
   };
 
+  const handleDownloadConvention = async () => {
+    if (!conventionFileUrl) return;
+    // If already a permanent storage URL, open directly
+    if (!conventionFileUrl.includes("X-Amz-Signature")) {
+      window.open(conventionFileUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", { body: { trainingId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error as string);
+      const url = (data?.pdf_url as string) || conventionFileUrl;
+      if (data?.refreshed && url !== conventionFileUrl) setConventionFileUrl(url);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error: unknown) {
+      console.error("Refresh convention URL error:", error);
+      toastError(toast, error instanceof Error ? error : "Impossible de rafraîchir le lien de téléchargement.");
+    }
+  };
+
   const handleSendConvention = async () => {
     if (!conventionFileUrl || !sponsorEmail) {
       toastError(toast, !conventionFileUrl ? "Aucune convention générée." : "Aucun email de commanditaire défini.", { title: "Impossible" });
