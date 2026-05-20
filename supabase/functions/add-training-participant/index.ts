@@ -510,9 +510,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         } else if (convData?.success && convData?.pdfUrl) {
           conventionGenerated = true;
           // Envoi pour signature si un email sponsor est disponible
-          const normalizedSponsorEmail = sponsorEmail?.trim().toLowerCase() || null;
+          const normalizedSponsorEmail = effectiveSponsorEmail?.trim().toLowerCase() || null;
           if (normalizedSponsorEmail) {
-            const recipientName = [sponsorFirstName, sponsorLastName]
+            const recipientName = [effectiveSponsorFirstName, effectiveSponsorLastName]
               .map((s) => s?.trim())
               .filter(Boolean)
               .join(" ") || null;
@@ -523,7 +523,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
                   conventionUrl: convData.pdfUrl,
                   recipientEmail: normalizedSponsorEmail,
                   ...(recipientName && { recipientName }),
-                  ...(sponsorFirstName?.trim() && { recipientFirstName: sponsorFirstName.trim() }),
+                  ...(effectiveSponsorFirstName?.trim() && { recipientFirstName: effectiveSponsorFirstName.trim() }),
                   ...(convData.fileName && { conventionFileName: convData.fileName }),
                   enableOnlineSignature: true,
                   formalAddress: true,
