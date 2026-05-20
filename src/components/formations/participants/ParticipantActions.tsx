@@ -40,7 +40,6 @@ const ParticipantActions = ({
   trainingDuree,
   trainingStartDate,
   trainingEndDate,
-  elearningDuration,
   availableFormulas,
   sendingId,
   remindingId,
