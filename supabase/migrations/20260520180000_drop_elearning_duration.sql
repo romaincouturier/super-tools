@@ -8,7 +8,8 @@ FROM (
     ff2.id AS formula_id,
     t.elearning_duration AS duration
   FROM public.formation_formulas ff2
-  JOIN public.trainings t ON t.catalog_id = ff2.catalog_id
+  JOIN public.formation_configs fc ON fc.id = ff2.formation_config_id
+  JOIN public.trainings t ON t.catalog_id = fc.id
   WHERE ff2.duree_heures IS NULL
     AND t.elearning_duration IS NOT NULL
 ) subq
