@@ -7,13 +7,33 @@ import {
 } from "@/lib/crmDataTransform";
 import { CRM_QUERY_KEY } from "./useCrmMutation";
 
+const CRM_PAGE_SIZE = 1000;
+
+const fetchAllCardTags = async () => {
+  const rows = [];
+
+  for (let from = 0; ; from += CRM_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("crm_card_tags")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .range(from, from + CRM_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < CRM_PAGE_SIZE) break;
+  }
+
+  return rows;
+};
+
 /** Fetch all board data: columns, cards, tags. */
 export const useCrmBoard = () => {
   return useQuery({
     queryKey: [CRM_QUERY_KEY],
     queryFn: async () => {
       // Run all 4 queries in parallel for speed
-      const [columnsRes, cardsRes, tagsRes, cardTagsRes] = await Promise.all([
+      const [columnsRes, cardsRes, tagsRes, cardTagRows] = await Promise.all([
         supabase
           .from("crm_columns")
           .select("*")
@@ -27,17 +47,16 @@ export const useCrmBoard = () => {
           .from("crm_tags")
           .select("*")
           .order("category", { ascending: true }),
-        supabase.from("crm_card_tags").select("*"),
+        fetchAllCardTags(),
       ]);
 
       if (columnsRes.error) throw columnsRes.error;
       if (cardsRes.error) throw cardsRes.error;
       if (tagsRes.error) throw tagsRes.error;
-      if (cardTagsRes.error) throw cardTagsRes.error;
 
       const columns = mapColumns(columnsRes.data || []);
       const tags = mapTags(tagsRes.data || []);
-      const cards = mapCards(cardsRes.data || [], cardTagsRes.data || [], tags);
+      const cards = mapCards(cardsRes.data || [], cardTagRows, tags);
 
       return { columns, cards, tags };
     },
