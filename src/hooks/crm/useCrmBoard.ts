@@ -33,7 +33,7 @@ export const useCrmBoard = () => {
     queryKey: [CRM_QUERY_KEY],
     queryFn: async () => {
       // Run all 4 queries in parallel for speed
-      const [columnsRes, cardsRes, tagsRes, cardTagsRes] = await Promise.all([
+      const [columnsRes, cardsRes, tagsRes, cardTagRows] = await Promise.all([
         supabase
           .from("crm_columns")
           .select("*")
@@ -53,11 +53,10 @@ export const useCrmBoard = () => {
       if (columnsRes.error) throw columnsRes.error;
       if (cardsRes.error) throw cardsRes.error;
       if (tagsRes.error) throw tagsRes.error;
-      if (cardTagsRes.error) throw cardTagsRes.error;
 
       const columns = mapColumns(columnsRes.data || []);
       const tags = mapTags(tagsRes.data || []);
-      const cards = mapCards(cardsRes.data || [], cardTagsRes.data || [], tags);
+      const cards = mapCards(cardsRes.data || [], cardTagRows, tags);
 
       return { columns, cards, tags };
     },
