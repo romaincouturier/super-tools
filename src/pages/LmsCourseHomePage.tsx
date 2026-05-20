@@ -323,11 +323,9 @@ function HeroSection({
       {/* Welcome text */}
       <div className="flex flex-col gap-5">
         <div>
-          <p className="text-sm font-medium mb-2" style={{ color: "var(--st-yellow)" }}>
-            Bienvenue dans
-          </p>
-          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ color: "var(--st-ink)", letterSpacing: "-0.02em" }}>
-            votre formation
+          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
+            <span style={{ color: "var(--st-ink)" }}>Bienvenue dans </span>
+            <span style={{ color: "var(--st-yellow)" }}>votre formation</span>
           </h1>
           <p className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
             {course.description ||
@@ -935,7 +933,7 @@ export default function LmsCourseHomePage() {
             </button>
           </div>
 
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 flex flex-col gap-10">
+          <div className="px-5 py-6 flex flex-col gap-8">
             <HeroSection
               course={course}
               onContinue={handleContinue}
