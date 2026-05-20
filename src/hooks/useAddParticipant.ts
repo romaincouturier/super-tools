@@ -10,6 +10,9 @@ export interface AddParticipantParams {
   lastName: string;
   email: string;
   company: string;
+  companyAddress: string;
+  companyZip: string;
+  companyCity: string;
   formulaId: string;
   formulaName: string;
   selectedFormula: FormationFormula | undefined;
@@ -70,6 +73,9 @@ export function useAddParticipant({
             firstName: params.firstName,
             lastName: params.lastName,
             company: params.company,
+            companyAddress: params.companyAddress || null,
+            companyZip: params.companyZip || null,
+            companyCity: params.companyCity || null,
             soldPriceHt: params.soldPriceHt ? parseFloat(params.soldPriceHt) : null,
             paymentMode: params.paymentMode,
             formulaId: params.formulaId || null,

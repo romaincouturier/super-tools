@@ -76,6 +76,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   const [soldPriceHt, setSoldPriceHt] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
+  const [companyZip, setCompanyZip] = useState("");
+  const [companyCity, setCompanyCity] = useState("");
   const [sponsorSameAsParticipant, setSponsorSameAsParticipant] = useState(false);
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
@@ -100,6 +103,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
     setLastName("");
     setEmail("");
     setCompany("");
+    setCompanyAddress("");
+    setCompanyZip("");
+    setCompanyCity("");
     setSoldPriceHt("");
     setSponsorSameAsParticipant(false);
     setSponsorFirstName("");
@@ -183,6 +189,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       lastName,
       email,
       company,
+      companyAddress,
+      companyZip,
+      companyCity,
       formulaId,
       formulaName: formula,
       selectedFormula,
@@ -269,6 +278,32 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                 placeholder="ACME Corp"
               />
             </div>
+
+            {isInterEntreprise && (
+              <div className="space-y-2">
+                <Label htmlFor="companyAddress">Adresse de la société</Label>
+                <Input
+                  id="companyAddress"
+                  value={companyAddress}
+                  onChange={(e) => setCompanyAddress(e.target.value)}
+                  placeholder="12 rue de la République"
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <Input
+                    value={companyZip}
+                    onChange={(e) => setCompanyZip(e.target.value)}
+                    placeholder="Code postal"
+                  />
+                  <div className="sm:col-span-2">
+                    <Input
+                      value={companyCity}
+                      onChange={(e) => setCompanyCity(e.target.value)}
+                      placeholder="Ville"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Formula selector (shown when catalog has 2+ formulas, hidden for permanent formations) */}
             {availableFormulas.length >= 2 && !trainingFormulaId && (
