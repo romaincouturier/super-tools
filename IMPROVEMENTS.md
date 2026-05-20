@@ -211,6 +211,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
+### [027] Check admin — toujours lire `profiles.is_admin`, jamais un email hardcodé
+- **Constat** : Lovable a remplacé le check `profiles.is_admin` par un RPC `is_admin()` vérifiant uniquement l'email `romain@supertilt.fr`. En production, tous les utilisateurs avec `is_admin = true` en base sont devenus non-admins du jour au lendemain. N'ayant pas de records dans `user_module_access`, ils ont vu une sidebar entièrement vide — bug critique bloquant l'app pour tous les utilisateurs.
+- **Règle** : La détection du statut admin dans `useModuleAccess` doit toujours passer par `supabase.from("profiles").select("is_admin").eq("user_id", user.id).single()`. Ne jamais remplacer ce check par une vérification d'email hardcodé (que ce soit dans le frontend ou dans un RPC). Le champ `profiles.is_admin` est la source de vérité et supporte plusieurs admins.
+- **Vérification** : `grep -n "is_admin" src/hooks/useModuleAccess.ts` doit montrer un accès à la table `profiles`, pas un appel `supabase.rpc("is_admin", ...)` ni une comparaison avec un email en dur.
+- **Fichiers de référence** : `src/hooks/useModuleAccess.ts`
+- **Origine** : régression majeure — sidebar vide pour tous les utilisateurs en production après tentative de "fix" Lovable
+- **Date** : 2026-05-20
+
 ### [008] CORS — ne jamais utiliser `Access-Control-Allow-Origin: *` en production
 - **Constat** : Toutes les edge functions Supabase (50+) utilisent un header CORS wildcard `"Access-Control-Allow-Origin": "*"` via `_shared/cors.ts`. Cela expose les API à des appels depuis n'importe quel site externe (risque CSRF, abus de quotas API).
 - **Règle** : Les headers CORS doivent restreindre l'origine aux domaines légitimes. Utiliser la configuration centralisée dans `_shared/cors.ts` avec le domaine de production.
