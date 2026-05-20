@@ -1,0 +1,1 @@
+UPDATE training_participants SET sponsor_first_name = 'Aude', sponsor_last_name = 'Bellanger', sponsor_email = 'audebellanger@outlook.com' WHERE id = '25c48c55-84be-4871-94d6-bc3e1323fa2e';
