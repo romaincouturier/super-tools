@@ -139,7 +139,9 @@ serve(async (req: Request): Promise<Response> => {
       const { data: { publicUrl } } = supabase.storage
         .from("training-documents")
         .getPublicUrl(storagePath);
-      permanentUrl = publicUrl;
+      // Cache-buster: le chemin storage est fixe et écrasé via upsert. Sans ce param,
+      // le CDN/navigateur sert l'ancienne version en cache (ex: prix à 5000 au lieu de 5810).
+      permanentUrl = `${publicUrl}?v=${Date.now()}`;
       await supabase.from(table).update({ convention_file_url: permanentUrl }).eq("id", rowId);
     }
 
