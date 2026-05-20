@@ -180,7 +180,7 @@ const ConventionSection = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-muted/50 border border-border rounded-md">
             <CheckCircle className="h-4 w-4 text-primary" />
-            <a href={conventionFileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-foreground hover:underline flex-1 truncate">Convention générée</a>
+            <button type="button" onClick={handleDownloadConvention} className="text-sm text-foreground hover:underline flex-1 truncate text-left">Convention générée</button>
           </div>
           {sponsorEmail && (
             <div className="flex items-center space-x-2 pl-1">
