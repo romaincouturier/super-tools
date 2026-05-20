@@ -239,7 +239,7 @@ const STAGIAIRE_LABELS: Record<TypeStagiaire, string> = {
 export default function BPFReport() {
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
-  const [annee, setAnnee] = useState(currentYear - 1);
+  const [annee, setAnnee] = useState(currentYear);
   const [activeTab, setActiveTab] = useState("auto");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

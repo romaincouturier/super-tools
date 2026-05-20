@@ -155,16 +155,30 @@ const Formations = () => {
               (p) => p.payment_mode === "invoice" && !p.invoice_file_url
             ).length;
 
-        // BPF incomplet : source financement ou type stagiaire manquant
+        // BPF incomplet — on mirror la logique du rapport BPF :
+        // · Inter (session_type=inter / format inter-entreprises / e_learning) :
+        //     - source : on accepte la source de la formation comme fallback global ;
+        //       on ne signale que si AUCUNE source n'existe (ni sur le participant
+        //       ni sur la formation)
+        //     - type_stagiaire_bpf : requis sur chaque participant
+        // · Non-inter (intra, classe virtuelle…) :
+        //     - source : obligatoire au niveau de la formation (si sold_price_ht > 0)
+        //     - type_stagiaire_bpf : requis sur chaque participant
         const isInter = t.session_type === "inter"
           || t.format_formation === "inter-entreprises"
           || t.format_formation === "e_learning";
-        const bpfIncomplete = isInter
-          ? participants.length > 0 && participants.some(
-              (p) => !p.source_financement_bpf || !p.type_stagiaire_bpf
-            )
-          : !t.source_financement_bpf
-            || (participants.length > 0 && participants.some((p) => !p.type_stagiaire_bpf));
+        const hasTrainingSource = !!t.source_financement_bpf;
+        const bpfIncomplete = (() => {
+          if (participants.length === 0) return false; // Rien à contrôler
+          // type_stagiaire_bpf requis pour chaque participant (section F du BPF)
+          if (participants.some((p) => !p.type_stagiaire_bpf)) return true;
+          if (isInter) {
+            // La source formation sert de fallback ; flag seulement si aucune source
+            return !hasTrainingSource && participants.some((p) => !p.source_financement_bpf);
+          }
+          // Non-inter : source obligatoire au niveau de la formation
+          return !hasTrainingSource;
+        })();
 
         return {
           ...t,
