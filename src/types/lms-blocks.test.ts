@@ -12,6 +12,7 @@ import {
   type ContainerBlockContent,
   type DividerBlockContent,
   type TextBlockContent,
+  type GalleryBlockContent,
 } from "./lms-blocks";
 
 describe("isLayoutBlockType", () => {
@@ -26,6 +27,7 @@ describe("isLayoutBlockType", () => {
       "text",
       "video",
       "image",
+      "gallery",
       "file",
       "quiz",
       "assignment",
@@ -38,6 +40,7 @@ describe("isLayoutBlockType", () => {
       "self_assessment",
       "work_deposit",
       "table",
+      "shortcode",
     ];
     for (const t of contentTypes) {
       expect(isLayoutBlockType(t)).toBe(false);
@@ -101,6 +104,7 @@ describe("defaultBlockContent — regression on existing content types", () => {
       "text",
       "video",
       "image",
+      "gallery",
       "file",
       "quiz",
       "assignment",
@@ -113,9 +117,27 @@ describe("defaultBlockContent — regression on existing content types", () => {
       "self_assessment",
       "work_deposit",
       "table",
+      "shortcode",
     ] as const;
     for (const t of allTypes) {
       expect(defaultBlockContent(t)).toBeDefined();
     }
+  });
+});
+
+describe("defaultBlockContent — gallery", () => {
+  it("defaults to an empty images array, grid mode, 3 columns", () => {
+    const c = defaultBlockContent("gallery") as GalleryBlockContent;
+    expect(c.images).toEqual([]);
+    expect(c.mode).toBe("grid");
+    expect(c.columns).toBe(3);
+  });
+
+  it("blockKindOf returns 'content' for gallery", () => {
+    expect(blockKindOf("gallery")).toBe("content");
+  });
+
+  it("isLayoutBlockType returns false for gallery", () => {
+    expect(isLayoutBlockType("gallery")).toBe(false);
   });
 });
