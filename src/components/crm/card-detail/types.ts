@@ -153,7 +153,7 @@ export interface CardDetailHandlers {
   handleSuggestNextAction: () => Promise<void>;
   handleDelete: () => Promise<void>;
   handleToggleTag: (tagId: string) => Promise<void>;
-  handleCreateAndAddTag: (name: string) => Promise<void>;
+  handleCreateAndAddTag: (name: string, category?: string, color?: string) => Promise<void>;
   handleAddComment: () => Promise<void>;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleEmailAttachFiles: (e: React.ChangeEvent<HTMLInputElement>) => void;
