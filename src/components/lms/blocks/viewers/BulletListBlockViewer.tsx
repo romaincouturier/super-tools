@@ -23,7 +23,7 @@ export default function BulletListBlockViewer({ content }: Props) {
   return (
     <div style={textColor ? { color: textColor } : undefined}>
       {content.title && (
-        <p className="mb-2 break-words leading-relaxed">{content.title}</p>
+        <p className="mb-3 break-words font-semibold text-base leading-snug">{content.title}</p>
       )}
       <ul className={spacingClass}>
         {items.map((item, idx) => (
