@@ -130,33 +130,6 @@ function Sidebar({
       className="flex flex-col h-full overflow-y-auto"
       style={{ background: "var(--st-white)" }}
     >
-      {/* Progress block */}
-      <div className="p-5 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--st-ink-muted)" }}>
-          Ma progression
-        </p>
-        <div className="flex items-center gap-4">
-          <ProgressCircle pct={completionPct} />
-          <div className="min-w-0">
-            {lastLessonTitle ? (
-              <>
-                <p className="text-xs mb-0.5" style={{ color: "var(--st-ink-muted)" }}>Dernière activité</p>
-                <p className="text-sm font-medium leading-snug break-words" style={{ color: "var(--st-ink)" }}>
-                  {lastLessonTitle}
-                </p>
-                {lastActivityDate && (
-                  <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>
-                    {fmt(lastActivityDate)}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Pas encore commencé</p>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* Module list */}
       <div className="p-5 flex-1">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
@@ -190,22 +163,6 @@ function Sidebar({
         </ul>
       </div>
 
-      {/* Help block */}
-      <div className="p-5 mx-4 mb-5 rounded-2xl" style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-        <div className="flex items-center gap-2 mb-1">
-          <MessageSquare size={16} style={{ color: "var(--st-ink)" }} />
-          <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Une question ?</p>
-        </div>
-        <p className="text-xs mb-3" style={{ color: "var(--st-ink-muted)" }}>
-          Notre équipe est là pour vous aider.
-        </p>
-        <button
-          className="w-full text-sm font-semibold py-2 rounded-xl transition-all hover:-translate-y-px"
-          style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit" }}
-        >
-          Contacter SuperTilt
-        </button>
-      </div>
     </aside>
   );
 }
