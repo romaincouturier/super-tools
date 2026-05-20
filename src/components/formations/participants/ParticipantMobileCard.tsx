@@ -66,7 +66,7 @@ const ParticipantMobileCard = ({
                 })()}
                 <Badge
                   variant={statusConfig.variant}
-                  className="gap-1 text-xs"
+                  className={`gap-1 text-xs ${statusConfig.colorClass ?? ""}`}
                 >
                   <StatusIcon className="h-3 w-3" />
                   {statusConfig.label}
