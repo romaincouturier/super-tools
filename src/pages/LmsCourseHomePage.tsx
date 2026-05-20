@@ -281,15 +281,27 @@ function Sidebar({
 
 // ── Hero section ──────────────────────────────────────────────────────────────
 
+function heroVideoEmbed(url: string) {
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}?autoplay=1&rel=0`;
+  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return `https://player.vimeo.com/video/${vm[1]}?autoplay=1`;
+  return null;
+}
+
 function HeroSection({
   course,
+  completionPct,
   onContinue,
-  onProgram,
 }: {
-  course: { title: string; description: string | null; cover_image_url: string | null };
+  course: { cover_image_url: string | null; welcome_video_url?: string | null; welcome_text?: string | null };
+  completionPct: number;
   onContinue: () => void;
-  onProgram: () => void;
 }) {
+  const [playing, setPlaying] = useState(false);
+  const videoUrl = course.welcome_video_url ?? null;
+  const embedUrl = videoUrl ? heroVideoEmbed(videoUrl) : null;
+
   return (
     <section className="grid lg:grid-cols-2 gap-8 items-center">
       {/* Video / cover */}
@@ -297,20 +309,36 @@ function HeroSection({
         className="relative rounded-2xl overflow-hidden aspect-video bg-black flex items-center justify-center"
         style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
       >
-        {course.cover_image_url ? (
+        {playing && videoUrl ? (
+          embedUrl ? (
+            <iframe
+              src={embedUrl}
+              className="w-full h-full"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+            />
+          ) : (
+            <video src={videoUrl} className="w-full h-full" autoPlay controls />
+          )
+        ) : videoUrl || course.cover_image_url ? (
           <>
-            <img src={course.cover_image_url} alt="" className="w-full h-full object-cover" />
-            <button
-              className="absolute inset-0 flex items-center justify-center group"
-              aria-label="Lancer la vidéo"
-            >
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+            {course.cover_image_url && (
+              <img src={course.cover_image_url} alt="" className="w-full h-full object-cover" />
+            )}
+            {videoUrl && (
+              <button
+                onClick={() => setPlaying(true)}
+                className="absolute inset-0 flex items-center justify-center group"
+                aria-label="Lancer la vidéo"
               >
-                <Play size={22} style={{ color: "#101820", marginLeft: 3 }} />
-              </div>
-            </button>
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+                  style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+                >
+                  <Play size={22} style={{ color: "#101820", marginLeft: 3 }} />
+                </div>
+              </button>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center gap-3 opacity-40">
@@ -327,10 +355,11 @@ function HeroSection({
             <span style={{ color: "var(--st-ink)" }}>Bienvenue dans </span>
             <span style={{ color: "var(--st-yellow)" }}>votre formation</span>
           </h1>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
-            {course.description ||
-              "Cette formation se déroule en modules progressifs que vous pouvez suivre à votre rythme, avec un repère simple : 1 module = 1 semaine."}
-          </p>
+          {course.welcome_text && (
+            <p className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
+              {course.welcome_text}
+            </p>
+          )}
         </div>
 
         {/* Reminders */}
@@ -349,23 +378,15 @@ function HeroSection({
           ))}
         </div>
 
-        {/* CTAs */}
+        {/* CTA */}
         <div className="flex flex-wrap gap-3">
           <button
             onClick={onContinue}
             className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
             style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
           >
-            Continuer la formation
+            {completionPct > 0 ? "Continuer la formation" : "Commencer la formation"}
             <ChevronRight size={16} />
-          </button>
-          <button
-            onClick={onProgram}
-            className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium border transition-all hover:bg-black/5"
-            style={{ borderColor: "rgba(16,24,32,0.2)", color: "var(--st-ink)", fontFamily: "inherit" }}
-          >
-            <FileText size={14} />
-            Voir le programme
           </button>
         </div>
       </div>
@@ -936,8 +957,8 @@ export default function LmsCourseHomePage() {
           <div className="px-5 py-6 flex flex-col gap-8">
             <HeroSection
               course={course}
+              completionPct={completionPct}
               onContinue={handleContinue}
-              onProgram={() => {}}
             />
 
             <LiveBanner />

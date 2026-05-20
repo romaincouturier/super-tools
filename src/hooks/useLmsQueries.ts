@@ -22,6 +22,8 @@ export interface LmsCourse {
   updated_at: string;
   formation_configs?: { formation_name: string } | null;
   community_preview_count: number;
+  welcome_video_url?: string | null;
+  welcome_text?: string | null;
 }
 
 export interface LmsModule {
