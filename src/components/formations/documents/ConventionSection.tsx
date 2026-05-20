@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { downloadFile } from "@/lib/file-utils";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import {
@@ -91,29 +92,19 @@ const ConventionSection = ({
     }
   };
 
-  const openInNewTab = (url: string) => {
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
-
   const handleDownloadConvention = async () => {
     if (!conventionFileUrl) return;
-    if (!conventionFileUrl.includes("X-Amz-Signature")) {
-      openInNewTab(conventionFileUrl);
-      return;
-    }
+    const fileName = lastGeneratedConventionFileName || `convention_${trainingId}.pdf`;
     try {
-      const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", { body: { trainingId } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error as string);
-      const url = (data?.pdf_url as string) || conventionFileUrl;
-      if (data?.refreshed && url !== conventionFileUrl) setConventionFileUrl(url);
-      openInNewTab(url);
+      let url = conventionFileUrl;
+      if (url.includes("X-Amz-Signature")) {
+        const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", { body: { trainingId } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error as string);
+        url = (data?.pdf_url as string) || url;
+        if (data?.refreshed && url !== conventionFileUrl) setConventionFileUrl(url);
+      }
+      await downloadFile(url, fileName);
     } catch (error: unknown) {
       console.error("Refresh convention URL error:", error);
       toastError(toast, error instanceof Error ? error : "Impossible de rafraîchir le lien de téléchargement.");
