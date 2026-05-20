@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
+import { downloadFile } from "@/lib/file-utils";
 import type { Participant } from "./types";
 import type { CertificateInfo as CertInfo } from "@/lib/evaluationUtils";
 
@@ -45,31 +46,22 @@ export function useDocumentActions({
     if (!participant.convention_file_url) return;
     setDownloadingConventionId(participant.id);
     try {
-      const response = await fetch(participant.convention_file_url);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `Convention_${(participant.company || "").replace(/\s+/g, "_")}_${(participant.first_name || "").replace(/\s+/g, "_")}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } else if (response.status === 403 && participant.convention_document_id) {
-        toast({
-          title: "URL expirée",
-          description: "Veuillez ré-générer la convention pour obtenir un nouveau lien.",
-          variant: "destructive",
+      let url = participant.convention_file_url;
+      if (url.includes("X-Amz-Signature")) {
+        const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", {
+          body: { participantId: participant.id },
         });
-      } else {
-        throw new Error(`Erreur ${response.status}`);
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error as string);
+        url = (data?.pdf_url as string) || url;
+        if (data?.refreshed) onParticipantUpdated();
       }
+      await downloadFile(url, `Convention_${(participant.company || "").replace(/\s+/g, "_")}_${(participant.first_name || "").replace(/\s+/g, "_")}.pdf`);
     } catch (error: unknown) {
       console.error("Error downloading convention:", error);
       toast({
         title: "Erreur de téléchargement",
-        description: "Impossible de télécharger la convention. Essayez de la ré-générer.",
+        description: error instanceof Error ? error.message : "Impossible de télécharger la convention. Essayez de la ré-générer.",
         variant: "destructive",
       });
     } finally {
