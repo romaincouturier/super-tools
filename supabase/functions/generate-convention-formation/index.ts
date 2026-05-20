@@ -307,7 +307,10 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build client name and address
     let clientName = training.client_name;
-    let clientAddress = training.client_address || "";
+    // Pour les conventions individuelles (inter/e-learning), l'adresse est celle
+    // du participant — on ne replie PAS sur training.client_address qui est
+    // l'adresse de l'organisme, pas du client.
+    let clientAddress = isIndividualConvention ? "" : (training.client_address || "");
 
     // For inter-entreprises individual convention, use participant's company if available
     if (isIndividualConvention && singleParticipant) {
