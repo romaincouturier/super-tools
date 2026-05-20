@@ -291,12 +291,15 @@ serve(async (req: Request): Promise<Response> => {
     const participantPrice = isIndividualConvention && singleParticipant
       ? (singleParticipant as any).sold_price_ht
       : null;
-    const basePriceHt = participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt;
-    // For intra (and global conventions), add ancillary fees on top of the sold price
+    const basePriceHt = Number(participantPrice || inputPrice || training.sold_price_ht || defaultPriceHt);
+    // For intra (and global conventions), surface ancillary fees as FRAIS so they
+    // appear as a separate line on the convention PDF and are summed into the total.
     const ancillaryFees = !isIndividualConvention && (training as any).ancillary_fees_ht
       ? Number((training as any).ancillary_fees_ht)
       : 0;
-    const priceHt = Number(basePriceHt) + ancillaryFees;
+    const priceHt = basePriceHt;
+    const fraisValue = ancillaryFees > 0 ? ancillaryFees.toString() : fraisDefault;
+    const displayFrais = ancillaryFees > 0 ? "Oui" : afficheFrais;
 
     // Build client name and address
     let clientName = training.client_name;
@@ -329,8 +332,10 @@ serve(async (req: Request): Promise<Response> => {
       clientAddress += ` – Mandataire Payeur : ${mandatairePayeur}`;
     }
 
-    // Calculate TTC
-    const prixTtc = priceHt * (1 + tvaRate / 100);
+    // Calculate TTC on (price + frais)
+    const totalHt = priceHt + (ancillaryFees > 0 ? ancillaryFees : 0);
+    const prixTtc = totalHt * (1 + tvaRate / 100);
+
 
     // Build the payload for PDFMonkey
     const payload = {
@@ -361,8 +366,9 @@ serve(async (req: Request): Promise<Response> => {
       PRIX: priceHt.toString(),
       TVA: tvaRate.toString(),
       PRIX_TTC: prixTtc.toFixed(2),
-      FRAIS: fraisDefault,
-      AFFICHE_FRAIS: afficheFrais,
+      FRAIS: fraisValue,
+      AFFICHE_FRAIS: displayFrais,
+
       SUBROGATION: subrogation ? "Oui" : "Non",
       MOYEN_PEDAGOGIQUE: moyenPedagogique,
       _date: new Date().toISOString().split("T")[0],
