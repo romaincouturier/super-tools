@@ -50,35 +50,49 @@ async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<
     throw new Error("ANTHROPIC_API_KEY not configured");
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: CLAUDE_DEFAULT,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: userPrompt,
-        },
-      ],
-    }),
-  });
+  const RETRYABLE = new Set([429, 503, 529, 502, 504]);
+  const MAX_ATTEMPTS = 4;
+  let lastErrorText = "";
+  let lastStatus = 0;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Anthropic API error:", errorText);
-    throw new Error(`AI API error: ${response.status}`);
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: CLAUDE_DEFAULT,
+        max_tokens: 2048,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      return result.content[0]?.text || "";
+    }
+
+    lastStatus = response.status;
+    lastErrorText = await response.text();
+    console.error(`Anthropic API error (attempt ${attempt}/${MAX_ATTEMPTS}, status ${lastStatus}):`, lastErrorText);
+
+    if (!RETRYABLE.has(lastStatus) || attempt === MAX_ATTEMPTS) break;
+
+    // Exponential backoff with jitter: 1s, 2s, 4s
+    const delay = 1000 * 2 ** (attempt - 1) + Math.random() * 500;
+    await new Promise((r) => setTimeout(r, delay));
   }
 
-  const result = await response.json();
-  return result.content[0]?.text || "";
+  if (lastStatus === 529 || lastStatus === 503) {
+    throw new Error("Le service IA est temporairement surchargé. Réessayez dans quelques instants.");
+  }
+  throw new Error(`AI API error: ${lastStatus}`);
 }
+
 
 function buildContextFromCard(cardData: CrmAiRequest["card_data"]): string {
   let context = `# Opportunité CRM\n\n`;
