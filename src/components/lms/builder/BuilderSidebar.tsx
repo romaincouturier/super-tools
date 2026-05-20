@@ -8,6 +8,7 @@ import {
   useCreateLesson,
   useUpdateModule,
   useDeleteModule,
+  useDeleteLesson,
   useReorderModules,
   useReorderLessons,
   LmsModule,
@@ -486,44 +487,100 @@ function LessonItem({
   onMoveDown: () => void;
 }) {
   const navigate = useNavigate();
+  const deleteLesson = useDeleteLesson();
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const ok = await confirm({
+      title: `Supprimer la leçon "${lesson.title}" ?`,
+      description: "Cette action est irréversible. Le contenu de la leçon sera définitivement supprimé.",
+      confirmText: "Oui, supprimer cette leçon",
+      cancelText: "Annuler",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteLesson.mutateAsync(lesson.id);
+      toast({ title: "Leçon supprimée" });
+      if (isActive) navigate(`/lms/${courseId}`);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur de suppression");
+    }
+  };
 
   return (
-    <div
-      className="group flex items-center gap-2 cursor-pointer"
-      onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
-      style={{
-        padding: isActive ? ".5rem .75rem .5rem 1.75rem" : ".5rem .75rem .5rem 2rem",
-        fontSize: ".875rem",
-        fontWeight: isActive ? 600 : 400,
-        color: isActive ? "var(--st-ink)" : "var(--st-ink-70, rgba(16,24,32,0.7))",
-        borderRadius: 6,
-        borderLeft: isActive ? "3px solid var(--st-yellow)" : "3px solid transparent",
-        background: isActive ? "var(--st-yellow-soft)" : "transparent",
-        transition: "color 120ms ease, background 120ms ease",
-      }}
-      onMouseEnter={(e) => {
-        if (!isActive) {
-          (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
-          (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.03)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isActive) {
-          (e.currentTarget as HTMLElement).style.color = "var(--st-ink-70, rgba(16,24,32,0.7))";
-          (e.currentTarget as HTMLElement).style.background = "transparent";
-        }
-      }}
-    >
-      <span
-        className="flex items-center justify-center shrink-0"
-        style={{ width: 16, height: 16, color: isActive ? "var(--st-ink)" : "rgba(16,24,32,0.4)" }}
+    <>
+      <ConfirmDialog />
+      <div
+        className="group flex items-center gap-2 cursor-pointer"
+        onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
+        style={{
+          padding: isActive ? ".5rem .75rem .5rem 1.75rem" : ".5rem .75rem .5rem 2rem",
+          fontSize: ".875rem",
+          fontWeight: isActive ? 600 : 400,
+          color: isActive ? "var(--st-ink)" : "var(--st-ink-70, rgba(16,24,32,0.7))",
+          borderRadius: 6,
+          borderLeft: isActive ? "3px solid var(--st-yellow)" : "3px solid transparent",
+          background: isActive ? "var(--st-yellow-soft)" : "transparent",
+          transition: "color 120ms ease, background 120ms ease",
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+            (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.03)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            (e.currentTarget as HTMLElement).style.color = "var(--st-ink-70, rgba(16,24,32,0.7))";
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+          }
+        }}
       >
-        <FileText size={16} />
-      </span>
-      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {lesson.title}
-      </span>
-      <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
-    </div>
+        <span
+          className="flex items-center justify-center shrink-0"
+          style={{ width: 16, height: 16, color: isActive ? "var(--st-ink)" : "rgba(16,24,32,0.4)" }}
+        >
+          <FileText size={16} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {lesson.title}
+        </span>
+        <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
+        <button
+          type="button"
+          aria-label="Supprimer la leçon"
+          onClick={handleDelete}
+          disabled={deleteLesson.isPending}
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 20,
+            height: 20,
+            borderRadius: 4,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "rgba(16,24,32,0.4)",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "#dc2626";
+            (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+          }}
+        >
+          <Trash2 size={12} />
+        </button>
+      </div>
+    </>
   );
 }

@@ -30,6 +30,7 @@ import {
   useCrmCardDetails,
   useUpdateCard,
   useDeleteCard,
+  useCreateTag,
   useAssignTag,
   useUnassignTag,
   useAddComment,
@@ -87,6 +88,7 @@ const CardDetailDrawer = ({
 
   const updateCard = useUpdateCard();
   const deleteCard = useDeleteCard();
+  const createTag = useCreateTag();
   const assignTag = useAssignTag();
   const unassignTag = useUnassignTag();
   const addComment = useAddComment();
@@ -600,6 +602,17 @@ const CardDetailDrawer = ({
     }
   };
 
+  const handleCreateAndAddTag = async (name: string) => {
+    if (!card || !user?.email) return;
+    try {
+      const newTag = await createTag.mutateAsync({ name: name.trim() });
+      await assignTag.mutateAsync({ cardId: card.id, tagId: newTag.id, actorEmail: user.email });
+    } catch (e: unknown) {
+      const detail = (e as any)?.message || "";
+      toastError(toast, `Impossible de créer le tag.${detail ? ` ${detail}` : ""}`);
+    }
+  };
+
   const handleAddComment = async () => {
     if (!card || !user?.email || !newComment.trim()) return;
     try {
@@ -779,7 +792,7 @@ const CardDetailDrawer = ({
   const handlers: CardDetailHandlers = {
     handleDescriptionChange, handleSalesStatusChange, handleColumnChange,
     handleScheduleAction, handleClearSchedule, handleSuggestNextAction,
-    handleDelete, handleToggleTag, handleAddComment, handleFileUpload,
+    handleDelete, handleToggleTag, handleCreateAndAddTag, handleAddComment, handleFileUpload,
     handleEmailAttachFiles, handleRemoveAttachment, handleSendEmail,
     handleAiAnalysis, handleGenerateQuoteDescription,
     handleImproveEmailSubject, handleImproveEmailBody,
