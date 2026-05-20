@@ -273,6 +273,13 @@ else
      grep -q 'storage\.upload' \"\$f\" && echo \"VIOLATION: participants.ts utilise storage.upload direct\"; \
      true"
 
+  # [027] Le check admin doit lire profiles.is_admin, pas un RPC ou email hardcodé
+  check "027" "Check admin dans useModuleAccess utilise profiles.is_admin (pas un RPC email-hardcodé)" \
+    "f=\"src/hooks/useModuleAccess.ts\"; \
+     grep -q 'supabase\.rpc(\"is_admin\"' \"\$f\" && echo \"VIOLATION: useModuleAccess appelle le RPC is_admin() — utiliser profiles.is_admin\"; \
+     grep -q 'romain@supertilt\.fr' \"\$f\" && echo \"VIOLATION: email hardcodé dans useModuleAccess\"; \
+     true"
+
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
 fi
