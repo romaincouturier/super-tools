@@ -121,7 +121,7 @@ export default function LearnerOnboarding() {
       return;
     }
 
-    await supabase.rpc("consume_learner_token", { p_token: token });
+    supabase.rpc("consume_learner_token", { p_token: token });
     redirectToPortal();
   };
 
@@ -146,7 +146,7 @@ export default function LearnerOnboarding() {
       return;
     }
 
-    await logAttempt(email, true);
+    logAttempt(email, true);
     redirectToPortal();
   };
 
