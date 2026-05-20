@@ -622,21 +622,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if ((itemsCount ?? 0) === 0 && (order.line_items?.length ?? 0) > 0) {
       console.warn(`[supertilt-webhook] Order #${order.id} produced 0 order_items — inserting orphans`);
       for (const item of order.line_items ?? []) {
-        await (admin as any).from("order_items").upsert({
-          woocommerce_order_id: wooOrderId,
-          wc_order_id: order.id,
-          wc_product_id: item.product_id,
-          product_name: item.name,
-          game_id: null,
-          game_type: null,
-          quantity: item.quantity,
-          unit_price: item.price,
-          line_total: parseFloat(item.total ?? "0"),
+        await upsertVisibleOrderItem(admin, wooOrderId, order, item, {
           kanban_status: "to_validate",
           block_reason: `Commande non routée automatiquement — aucune ligne n'a pu être traitée (produit #${item.product_id})`,
           validation_status: "pending",
-          raw_line_item: item,
-        }, { onConflict: "woocommerce_order_id,wc_product_id", ignoreDuplicates: false });
+        });
       }
     }
 
