@@ -194,6 +194,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // classe_virtuelle → convocation classique (lien Zoom/Teams dans le mail).
     const isElearning = formatFormation === "e_learning";
 
+    // Pour les ventes en ligne, le commanditaire est le participant lui-même
+    const effectiveSponsorFirstName = paymentMode === "online" ? firstName : sponsorFirstName;
+    const effectiveSponsorLastName = paymentMode === "online" ? lastName : sponsorLastName;
+    const effectiveSponsorEmail = paymentMode === "online" ? email : sponsorEmail;
+
     // ── 1. Paramètres d'application ──────────────────────────────────────────
     const { data: settingsRows } = await admin
       .from("app_settings")
@@ -267,9 +272,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           type_stagiaire_bpf: typeStagiaireBpf || null,
           sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
           payment_mode: paymentMode,
-          sponsor_first_name: capitalizeName(sponsorFirstName),
-          sponsor_last_name: capitalizeName(sponsorLastName),
-          sponsor_email: sponsorEmail?.trim().toLowerCase() || null,
+          sponsor_first_name: capitalizeName(effectiveSponsorFirstName),
+          sponsor_last_name: capitalizeName(effectiveSponsorLastName),
+          sponsor_email: effectiveSponsorEmail?.trim().toLowerCase() || null,
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: !financeurSameAsSponsor ? (financeurName?.trim() || null) : null,
           financeur_url: !financeurSameAsSponsor ? (financeurUrl?.trim() || null) : null,
@@ -505,9 +510,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         } else if (convData?.success && convData?.pdfUrl) {
           conventionGenerated = true;
           // Envoi pour signature si un email sponsor est disponible
-          const normalizedSponsorEmail = sponsorEmail?.trim().toLowerCase() || null;
+          const normalizedSponsorEmail = effectiveSponsorEmail?.trim().toLowerCase() || null;
           if (normalizedSponsorEmail) {
-            const recipientName = [sponsorFirstName, sponsorLastName]
+            const recipientName = [effectiveSponsorFirstName, effectiveSponsorLastName]
               .map((s) => s?.trim())
               .filter(Boolean)
               .join(" ") || null;
@@ -518,7 +523,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
                   conventionUrl: convData.pdfUrl,
                   recipientEmail: normalizedSponsorEmail,
                   ...(recipientName && { recipientName }),
-                  ...(sponsorFirstName?.trim() && { recipientFirstName: sponsorFirstName.trim() }),
+                  ...(effectiveSponsorFirstName?.trim() && { recipientFirstName: effectiveSponsorFirstName.trim() }),
                   ...(convData.fileName && { conventionFileName: convData.fileName }),
                   enableOnlineSignature: true,
                   formalAddress: true,
