@@ -151,13 +151,6 @@ function Sidebar({
             )}
           </div>
         </div>
-        <button
-          onClick={() => navigate(playerUrl)}
-          className="mt-4 w-full text-sm font-medium py-2 rounded-xl border transition-all hover:bg-black/5"
-          style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)", fontFamily: "inherit" }}
-        >
-          Voir mon parcours
-        </button>
       </div>
 
       {/* Module list */}
