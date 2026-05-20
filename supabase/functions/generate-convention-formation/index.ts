@@ -349,7 +349,9 @@ serve(async (req: Request): Promise<Response> => {
       PARTICIPANTS: maxParticipants > 0 ? maxParticipants.toString() : "1",
       URL_PROGRAMME_FORMATION: training.program_file_url || "",
       DATES: training.format_formation === "e_learning"
-        ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
+        ? (training.start_date
+            ? `Du ${formatDateFrench(training.start_date)} au ${formatDateFrench(training.end_date || training.start_date)}`
+            : "Accès permanent (formation e-learning)")
         : formatDateRange(scheduleList),
       JOURS: training.format_formation === "e_learning"
         ? ((singleParticipant as any)?.elearning_duration || training.elearning_duration || elearningDefaultDuration).toString()
