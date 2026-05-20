@@ -1,5 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   useCourse,
   useCourseModules,
@@ -14,6 +16,7 @@ import {
   CheckCircle2,
   Circle,
   ChevronRight,
+  ChevronDown,
   BookOpen,
   Calendar,
   Target,
@@ -30,6 +33,9 @@ import {
   Menu,
   X,
   Send,
+  Sparkles,
+  HelpCircle,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -605,67 +611,122 @@ function CourseHomeHeader({
   learnerName: string;
   onMobileMenu: () => void;
 }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    const confirmed = await confirm({
+      title: "Se déconnecter",
+      description: "Êtes-vous sûr de vouloir vous déconnecter ?",
+      variant: "destructive",
+    });
+    if (confirmed) {
+      sessionStorage.removeItem("learner_email");
+      await supabase.auth.signOut();
+      navigate("/apprenant/connexion");
+    }
+  };
+
+  const initial = learnerName ? learnerName[0].toUpperCase() : "?";
+
+  const portalItems = [
+    { label: "Mon compte", icon: User, section: "compte" },
+    { label: "Mes formations", icon: BookOpen, section: "formations" },
+    { label: "Mes formations recommandées", icon: Sparkles, section: "dashboard" },
+    { label: "Aide", icon: HelpCircle, section: "aide" },
+  ];
+
   return (
-    <header
-      className="sticky top-0 z-30 flex items-center gap-4 px-5 h-16 border-b"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}
-    >
-      {/* Mobile menu */}
-      <button
-        onClick={onMobileMenu}
-        className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
-        aria-label="Menu"
+    <>
+      <ConfirmDialog />
+      <header
+        className="sticky top-0 z-30 flex items-center gap-4 px-5 h-16 border-b"
+        style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}
       >
-        <Menu size={18} style={{ color: "var(--st-ink)" }} />
-      </button>
-
-      {/* Logo */}
-      <div className="shrink-0">
-        <SupertiltLogo className="h-9" />
-      </div>
-
-      {/* Course title */}
-      <div
-        className="hidden sm:block h-5 w-px shrink-0"
-        style={{ background: "rgba(16,24,32,0.1)" }}
-      />
-      <p
-        className="hidden sm:block flex-1 text-sm font-medium truncate min-w-0"
-        style={{ color: "var(--st-ink)" }}
-      >
-        {courseTitle}
-      </p>
-
-      <div className="ml-auto flex items-center gap-3 shrink-0">
+        {/* Mobile menu */}
         <button
-          className="hidden sm:flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70"
-          style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+          onClick={onMobileMenu}
+          className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
+          aria-label="Menu"
         >
-          <BookOpen size={14} />
-          Mes formations
+          <Menu size={18} style={{ color: "var(--st-ink)" }} />
         </button>
-        <div
-          className="hidden sm:block h-5 w-px"
-          style={{ background: "rgba(16,24,32,0.1)" }}
-        />
-        {/* Avatar */}
-        <div className="flex items-center gap-2 cursor-pointer group">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-            style={{ background: "var(--st-yellow)", color: "#101820" }}
-          >
-            {learnerName ? learnerName[0].toUpperCase() : "?"}
-          </div>
-          <div className="hidden sm:block">
-            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
-            <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>
-              {learnerName || "Apprenant"}
-            </p>
-          </div>
-          <ChevronRight size={12} className="hidden sm:block opacity-40 rotate-90" />
+
+        {/* Logo */}
+        <div className="shrink-0">
+          <SupertiltLogo className="h-9" />
         </div>
-      </div>
-    </header>
+
+        {/* Course title */}
+        <div className="hidden sm:block h-5 w-px shrink-0" style={{ background: "rgba(16,24,32,0.1)" }} />
+        <p className="hidden sm:block flex-1 text-sm font-medium truncate min-w-0" style={{ color: "var(--st-ink)" }}>
+          {courseTitle}
+        </p>
+
+        {/* Greeting dropdown */}
+        <div ref={ref} className="ml-auto relative shrink-0">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all hover:bg-black/5"
+            style={{ fontFamily: "inherit" }}
+          >
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+              style={{ background: "var(--st-yellow)", color: "#101820" }}
+            >
+              {initial}
+            </div>
+            <div className="hidden sm:block text-left">
+              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
+              <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>
+                {learnerName || "Apprenant"}
+              </p>
+            </div>
+            <ChevronDown size={13} className="hidden sm:block shrink-0 opacity-50" style={{ color: "var(--st-ink-muted)" }} />
+          </button>
+
+          {open && (
+            <div
+              className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border shadow-lg overflow-hidden z-50"
+              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
+            >
+              {portalItems.map(({ label, icon: Icon, section }) => (
+                <button
+                  key={section}
+                  onClick={() => { navigate(`/espace-apprenant?section=${section}`); setOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-black/5"
+                  style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                >
+                  <Icon size={15} style={{ color: "var(--st-ink-muted)" }} />
+                  {label}
+                </button>
+              ))}
+              <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }}>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-red-50"
+                  style={{ color: "#ef4444", fontFamily: "inherit" }}
+                >
+                  <LogOut size={15} />
+                  Se déconnecter
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+    </>
   );
 }
 
