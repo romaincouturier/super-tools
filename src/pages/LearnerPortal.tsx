@@ -103,7 +103,7 @@ interface LearnerData {
   evaluations: Questionnaire[];
 }
 
-type NavSection = "dashboard" | "formations" | "travaux" | "pratique" | "aide" | "compte";
+type NavSection = "dashboard" | "formations" | "recommandees" | "travaux" | "pratique" | "aide" | "compte";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -190,7 +190,7 @@ function LearnerGreetingDropdown({
   const items: { label: string; icon: React.ElementType; section: NavSection }[] = [
     { label: "Mon compte", icon: User2, section: "compte" },
     { label: "Mes formations", icon: GraduationCap, section: "formations" },
-    { label: "Mes formations recommandées", icon: Sparkles, section: "dashboard" },
+    { label: "Mes formations recommandées", icon: Sparkles, section: "recommandees" },
     { label: "Aide", icon: HelpCircle, section: "aide" },
   ];
 
@@ -502,6 +502,7 @@ function Sidebar({
   const navItems: Array<{ id: NavSection; label: string; icon: React.ElementType }> = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "formations", label: "Mes formations", icon: BookOpen },
+    { id: "recommandees", label: "Mes formations recommandées", icon: Sparkles },
     { id: "travaux", label: "Mes travaux", icon: FileText },
     { id: "pratique", label: "Communauté", icon: Palette },
     { id: "aide", label: "Aide", icon: HelpCircle },
@@ -2876,6 +2877,7 @@ export default function LearnerPortal() {
   const sectionTitle: Record<NavSection, string> = {
     dashboard: "Tableau de bord",
     formations: "Mes formations",
+    recommandees: "Mes formations recommandées",
     travaux: "Mes travaux",
     pratique: "Communauté",
     aide: "Aide",
@@ -2884,6 +2886,7 @@ export default function LearnerPortal() {
   const sectionSubtitle: Record<NavSection, string> = {
     dashboard: "Retrouvez vos formations, votre progression et vos prochains rendez-vous.",
     formations: "Toutes vos formations, documents et coaching.",
+    recommandees: "Formations sélectionnées pour votre profil.",
     travaux: "Tous vos travaux déposés dans vos cours.",
     pratique: "Découvrez les travaux partagés par la communauté.",
     aide: "Ressources et contact.",
@@ -2990,6 +2993,13 @@ export default function LearnerPortal() {
                 onRequestCoach={handleRequestCoach}
                 requestingCoach={requestingCoach}
               />
+            )}
+            {activeSection === "recommandees" && (
+              <div className="py-4">
+                <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
+                  Ici vous retrouverez toutes les formations recommandées pour votre profil.
+                </p>
+              </div>
             )}
             {activeSection === "travaux" && (
               <TravauxView email={data.email} trainings={data.trainings} />

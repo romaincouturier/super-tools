@@ -365,7 +365,7 @@ export function useSubmitAssignment() {
 export function useCreateForumPost() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: Partial<LmsForumPost> & { forum_id: string; author_email: string; content_html: string }) => {
+    mutationFn: async (input: Partial<LmsForumPost> & { forum_id: string; author_email: string; content_html: string; file_url?: string | null; file_name?: string | null }) => {
       const client = createLearnerClient(input.author_email);
       const { data, error } = await client
         .from("lms_forum_posts")

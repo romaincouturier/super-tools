@@ -154,6 +154,8 @@ export interface LmsForumPost {
   is_pinned: boolean;
   is_deleted: boolean;
   created_at: string;
+  file_url?: string | null;
+  file_name?: string | null;
 }
 
 export interface LmsAssignmentSubmission {

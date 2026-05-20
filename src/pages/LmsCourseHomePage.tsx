@@ -12,6 +12,7 @@ import {
   useForumPosts,
   useCreateForumPost,
   useCourseLiveMeetings,
+  uploadForumAttachment,
 } from "@/hooks/useLms";
 import type { CourseLiveMeeting, CourseLiveData } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
@@ -42,6 +43,8 @@ import {
   Video,
   ArrowLeft,
   Flag,
+  Paperclip,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -119,34 +122,57 @@ function CommunitySidebarPreview({
   previewCount: number;
 }) {
   const [content, setContent] = useState("");
+  const [attachment, setAttachment] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
   const { data: allPosts = [] } = useForumPosts(mainForum?.id);
   const createPost = useCreateForumPost();
 
-  // Posts ordered ASC in the hook — take the last N (most recent)
   const recentPosts = [...allPosts].reverse().slice(0, previewCount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !mainForum || !email) return;
-    await createPost.mutateAsync({
-      forum_id: mainForum.id,
-      author_email: email,
-      content_html: `<p>${content.trim()}</p>`,
-    });
-    setContent("");
+    if ((!content.trim() && !attachment) || !mainForum || !email) return;
+    setError(null);
+    setUploading(true);
+    try {
+      let fileUrl: string | null = null;
+      let fileName: string | null = null;
+      if (attachment) {
+        const uploaded = await uploadForumAttachment(attachment, courseId, email);
+        fileUrl = uploaded.url;
+        fileName = uploaded.name;
+      }
+      await createPost.mutateAsync({
+        forum_id: mainForum.id,
+        author_email: email,
+        content_html: content.trim() ? `<p>${content.trim()}</p>` : "",
+        file_url: fileUrl,
+        file_name: fileName,
+      });
+      setContent("");
+      setAttachment(null);
+      if (fileRef.current) fileRef.current.value = "";
+    } catch (err) {
+      setError("Impossible d'envoyer le message. Réessayez.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <div className="p-5 border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
+    <div className="p-5 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
       <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
         Communauté
       </p>
 
       {/* Mini post form */}
-      <form onSubmit={handleSubmit} className="mb-3">
-        <p className="text-xs mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Une question ?</p>
+      <form onSubmit={handleSubmit} className="mb-3 space-y-1.5">
+        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Une question ?</p>
         <div className="flex gap-1.5">
           <input
             type="text"
@@ -156,15 +182,37 @@ function CommunitySidebarPreview({
             className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border outline-none min-w-0"
             style={{ borderColor: "rgba(16,24,32,0.15)", fontFamily: "inherit", color: "var(--st-ink)", background: "transparent" }}
           />
+          {/* Attachment button */}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all hover:bg-black/5"
+            style={{ color: attachment ? "var(--st-yellow)" : "var(--st-ink-muted)" }}
+            title="Joindre un fichier"
+          >
+            <Paperclip size={12} />
+          </button>
+          <input ref={fileRef} type="file" className="hidden" onChange={(e) => setAttachment(e.target.files?.[0] ?? null)} />
+          {/* Send button */}
           <button
             type="submit"
-            disabled={!content.trim() || createPost.isPending}
+            disabled={(!content.trim() && !attachment) || uploading || createPost.isPending}
             className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all disabled:opacity-40"
             style={{ background: "var(--st-yellow)", color: "#101820" }}
           >
             <Send size={12} />
           </button>
         </div>
+        {attachment && (
+          <p className="text-[10px] truncate" style={{ color: "var(--st-ink-muted)" }}>
+            📎 {attachment.name}
+          </p>
+        )}
+        {error && (
+          <p className="text-[10px] flex items-center gap-1" style={{ color: "#ef4444" }}>
+            <AlertCircle size={10} /> {error}
+          </p>
+        )}
       </form>
 
       {/* Recent posts */}
@@ -175,18 +223,22 @@ function CommunitySidebarPreview({
             const date = new Date(post.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
             return (
               <li key={post.id} className="flex gap-2 items-start">
-                <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5"
-                  style={{ background: "var(--st-yellow)", color: "#101820" }}
-                >
+                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5"
+                  style={{ background: "var(--st-yellow)", color: "#101820" }}>
                   {initials}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div
-                    className="text-xs leading-snug line-clamp-2 [&>*]:inline"
-                    style={{ color: "var(--st-ink)" }}
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content_html) }}
-                  />
+                  {post.content_html && (
+                    <div className="text-xs leading-snug line-clamp-2 [&>*]:inline" style={{ color: "var(--st-ink)" }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content_html) }} />
+                  )}
+                  {post.file_url && (
+                    <a href={post.file_url} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] flex items-center gap-1 mt-0.5 hover:underline truncate"
+                      style={{ color: "var(--st-ink-muted)" }}>
+                      <Paperclip size={9} /> {post.file_name ?? "Fichier joint"}
+                    </a>
+                  )}
                   <p className="text-[10px] mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{date}</p>
                 </div>
               </li>
@@ -507,6 +559,15 @@ function Sidebar({
         </div>
       )}
 
+      {/* Community — above modules */}
+      {!isPreview && (
+        <CommunitySidebarPreview
+          courseId={courseId}
+          email={email}
+          previewCount={communityPreviewCount}
+        />
+      )}
+
       {/* Module list */}
       <div className="p-5 flex-1">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
@@ -539,14 +600,6 @@ function Sidebar({
           })}
         </ul>
       </div>
-
-      {!isPreview && (
-        <CommunitySidebarPreview
-          courseId={courseId}
-          email={email}
-          previewCount={communityPreviewCount}
-        />
-      )}
     </aside>
   );
 }
@@ -963,7 +1016,7 @@ function CourseHomeHeader({
   const portalItems = [
     { label: "Mon compte", icon: User, section: "compte" },
     { label: "Mes formations", icon: BookOpen, section: "formations" },
-    { label: "Mes formations recommandées", icon: Sparkles, section: "dashboard" },
+    { label: "Mes formations recommandées", icon: Sparkles, section: "recommandees" },
     { label: "Aide", icon: HelpCircle, section: "aide" },
   ];
 
@@ -1150,18 +1203,22 @@ export default function LmsCourseHomePage() {
     navigate(firstLessonInModule ? `${base}&lesson=${firstLessonInModule.id}` : base);
   };
 
-  // Current or next meeting for the LiveBanner
+  // Best meeting for LiveBanner: current live → next upcoming → most recent past
   const currentOrNextMeeting = useMemo(() => {
+    if (!meetings.length) return null;
     const now = new Date();
-    // First check for a meeting happening right now
     const live = meetings.find((m) => {
       const s = new Date(m.scheduled_at);
       const e = new Date(s.getTime() + m.duration_minutes * 60_000);
       return now >= s && now <= e;
     });
     if (live) return live;
-    // Otherwise first upcoming
-    return meetings.find((m) => new Date(m.scheduled_at) > now) ?? null;
+    const upcoming = meetings.find((m) => new Date(m.scheduled_at) > now);
+    if (upcoming) return upcoming;
+    const past = [...meetings]
+      .filter((m) => new Date(m.scheduled_at) <= now)
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+    return past[0] ?? null;
   }, [meetings]);
 
   if (courseLoading || !course) {
@@ -1184,7 +1241,7 @@ export default function LmsCourseHomePage() {
       style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "var(--st-white)" }}
     >
       <CourseHomeHeader
-        courseTitle={course.formation_configs?.formation_name || course.title}
+        courseTitle={liveData?.training?.training_name || course.formation_configs?.formation_name || course.title}
         learnerName={learnerName}
         onMobileMenu={() => setSidebarOpen((v) => !v)}
       />
@@ -1312,8 +1369,6 @@ export default function LmsCourseHomePage() {
                     onViewCalendar={() => setActiveView("calendar")}
                   />
                 )}
-                <InfoCardsGrid />
-                <CommunitySection />
               </>
             )}
 

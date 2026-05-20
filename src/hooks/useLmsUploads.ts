@@ -44,3 +44,10 @@ export async function uploadAssignmentFile(file: File, lessonId: string, email: 
   const publicUrl = await uploadAndGetUrl(`assignments/${lessonId}/${email}/${Date.now()}_${safeName}`, file, contentType);
   return { url: publicUrl, name: file.name, size: file.size };
 }
+
+export async function uploadForumAttachment(file: File, courseId: string, email: string): Promise<{ url: string; name: string }> {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
+  const contentType = resolveContentType(file) || "application/octet-stream";
+  const publicUrl = await uploadAndGetUrl(`forum-attachments/${courseId}/${email}/${Date.now()}_${safeName}`, file, contentType);
+  return { url: publicUrl, name: file.name };
+}

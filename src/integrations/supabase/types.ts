@@ -3547,6 +3547,8 @@ export type Database = {
           author_email: string
           content_html: string
           created_at: string
+          file_name: string | null
+          file_url: string | null
           forum_id: string
           id: string
           is_deleted: boolean | null
@@ -3558,6 +3560,8 @@ export type Database = {
           author_email: string
           content_html: string
           created_at?: string
+          file_name?: string | null
+          file_url?: string | null
           forum_id: string
           id?: string
           is_deleted?: boolean | null
@@ -3569,6 +3573,8 @@ export type Database = {
           author_email?: string
           content_html?: string
           created_at?: string
+          file_name?: string | null
+          file_url?: string | null
           forum_id?: string
           id?: string
           is_deleted?: boolean | null

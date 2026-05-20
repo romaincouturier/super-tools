@@ -63,4 +63,5 @@ export {
   uploadLmsImage,
   uploadLmsFile,
   uploadAssignmentFile,
+  uploadForumAttachment,
 } from "./useLmsUploads";
