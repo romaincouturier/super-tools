@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from "react";
+import DOMPurify from "dompurify";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -184,7 +185,7 @@ function CommunitySidebarPreview({
                   <div
                     className="text-xs leading-snug line-clamp-2 [&>*]:inline"
                     style={{ color: "var(--st-ink)" }}
-                    dangerouslySetInnerHTML={{ __html: post.content_html }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content_html) }}
                   />
                   <p className="text-[10px] mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{date}</p>
                 </div>
