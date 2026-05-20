@@ -230,7 +230,7 @@ serve(async (req: Request): Promise<Response> => {
       // Fetch single participant for inter/e-learning
       const { data: participant } = await supabase
         .from("training_participants")
-        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id, formation_formulas(duree_heures)")
+        .select("first_name, last_name, email, company, company_address, company_zip, company_city, sponsor_email, sponsor_first_name, sponsor_last_name, sold_price_ht, formula_id")
         .eq("id", participantId)
         .single();
 
@@ -240,6 +240,18 @@ serve(async (req: Request): Promise<Response> => {
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      // Fetch formula duration separately to avoid join ambiguity in PostgREST
+      let formulaDureeHeures: number | null = null;
+      if ((participant as any).formula_id) {
+        const { data: formula } = await supabase
+          .from("formation_formulas")
+          .select("duree_heures")
+          .eq("id", (participant as any).formula_id)
+          .single();
+        formulaDureeHeures = formula?.duree_heures ?? null;
+      }
+      (participant as any)._formulaDureeHeures = formulaDureeHeures;
 
       singleParticipant = participant;
       participantList = [participant];
@@ -357,10 +369,10 @@ serve(async (req: Request): Promise<Response> => {
             : "Accès permanent (formation e-learning)")
         : formatDateRange(scheduleList),
       JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.formation_formulas?.duree_heures || elearningDefaultDuration).toString()
+        ? ((singleParticipant as any)?._formulaDureeHeures || elearningDefaultDuration).toString()
         : calculateTotalHours(scheduleList).toString(),
       NOMBRE_JOURS: training.format_formation === "e_learning"
-        ? ((singleParticipant as any)?.formation_formulas?.duree_heures || elearningDefaultDuration).toString()
+        ? ((singleParticipant as any)?._formulaDureeHeures || elearningDefaultDuration).toString()
         : calculateTotalDays(scheduleList).toString(),
       HORAIRES: training.format_formation === "e_learning"
         ? elearningHorairesText
