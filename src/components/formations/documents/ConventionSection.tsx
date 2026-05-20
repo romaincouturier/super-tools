@@ -95,16 +95,15 @@ const ConventionSection = ({
   const handleDownloadConvention = async () => {
     if (!conventionFileUrl) return;
     const fileName = lastGeneratedConventionFileName || `convention_${trainingId}.pdf`;
-    if (!conventionFileUrl.includes("X-Amz-Signature")) {
-      await downloadFile(conventionFileUrl, fileName);
-      return;
-    }
     try {
-      const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", { body: { trainingId } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error as string);
-      const url = (data?.pdf_url as string) || conventionFileUrl;
-      if (data?.refreshed && url !== conventionFileUrl) setConventionFileUrl(url);
+      let url = conventionFileUrl;
+      if (url.includes("X-Amz-Signature")) {
+        const { data, error } = await supabase.functions.invoke("refresh-training-convention-url", { body: { trainingId } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error as string);
+        url = (data?.pdf_url as string) || url;
+        if (data?.refreshed && url !== conventionFileUrl) setConventionFileUrl(url);
+      }
       await downloadFile(url, fileName);
     } catch (error: unknown) {
       console.error("Refresh convention URL error:", error);
