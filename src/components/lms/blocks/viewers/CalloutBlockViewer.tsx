@@ -22,12 +22,12 @@ export default function CalloutBlockViewer({ content }: Props) {
 
   return (
     <div
-      className="border-l-4 px-4 py-3"
+      className="border-l-4 px-5 py-4"
       style={containerStyle}
     >
       {(content.title || levelEntry) && (
-        <p className="font-semibold mb-1 break-words flex items-center gap-1.5">
-          {showIcon && levelEntry && <span aria-hidden="true">{levelEntry.icon}</span>}
+        <p className="text-lg font-bold mb-2 break-words flex items-center gap-2">
+          {showIcon && levelEntry && <span aria-hidden="true" className="text-xl leading-none">{levelEntry.icon}</span>}
           {content.title || (levelEntry ? levelEntry.defaultTitle : null)}
         </p>
       )}

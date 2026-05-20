@@ -9,12 +9,12 @@ interface Props {
 
 export default function ActionBlockShell({ icon: Icon, label, children }: Props) {
   return (
-    <div className="rounded-lg border border-primary/30 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 border-b border-primary/20">
-        <Icon className="h-4 w-4 text-primary shrink-0" />
-        <span className="text-sm font-semibold">{label}</span>
+    <div className="rounded-xl border border-primary/30 overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-4 bg-primary/10 border-b border-primary/20">
+        <Icon className="h-5 w-5 text-primary shrink-0" />
+        <span className="text-lg font-bold">{label}</span>
       </div>
-      <div className="p-4 space-y-4">
+      <div className="p-5 space-y-4">
         {children}
       </div>
     </div>
