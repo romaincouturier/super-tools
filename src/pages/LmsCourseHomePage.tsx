@@ -156,7 +156,7 @@ function Sidebar({
       {/* Module list */}
       <div className="p-5 flex-1">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
-          Structure de la formation
+          Sommaire
         </p>
         <ul className="space-y-1">
           {modules.map((m) => {
