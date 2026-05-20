@@ -74,7 +74,7 @@ type ModuleStatus = "completed" | "in_progress" | "not_started";
 
 function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: number }) {
   if (status === "completed") {
-    return <CheckCircle2 size={18} style={{ color: "#16a34a", flexShrink: 0 }} />;
+    return <CheckCircle2 size={18} style={{ color: "#69C3C4", flexShrink: 0 }} />;
   }
   const borderColor = status === "in_progress" ? "#FFD100" : "#CCCCCC";
   const bg = status === "in_progress" ? "#FFD100" : "transparent";
