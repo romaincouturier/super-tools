@@ -949,6 +949,12 @@ function DashboardView({
               </div>
             )}
           </DashCard>
+
+          <DashCard title="Mes formations recommandées" icon={Sparkles}>
+            <p className="text-sm py-2" style={{ color: "var(--st-ink-muted)" }}>
+              Ici vous retrouverez toutes les formations recommandées pour votre profil.
+            </p>
+          </DashCard>
         </div>
 
         {/* Right col (1/3) — À faire ensuite + Mes travaux */}
