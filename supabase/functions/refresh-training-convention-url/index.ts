@@ -83,10 +83,35 @@ serve(async (req: Request): Promise<Response> => {
       if (!pmResponse.ok) {
         const body = await pmResponse.text();
         console.error("PdfMonkey API failed:", pmResponse.status, body);
-        const msg = pmResponse.status === 404 || pmResponse.status === 410
-          ? "Le document n'est plus disponible chez PdfMonkey, merci de cliquer sur Regénérer."
-          : `PdfMonkey API indisponible (${pmResponse.status})`;
-        return json({ error: msg }, 500);
+        // Document gone from PdfMonkey -> auto-regenerate the convention
+        if (pmResponse.status === 404 || pmResponse.status === 410) {
+          console.log("Document missing on PdfMonkey, auto-regenerating convention...");
+          const regenBody: Record<string, unknown> = {
+            trainingId: trainingForPath,
+            subrogation: false,
+          };
+          if (participantId) regenBody.participantId = participantId;
+          const { data: regenData, error: regenError } = await supabase.functions.invoke(
+            "generate-convention-formation",
+            { body: regenBody },
+          );
+          if (regenError || (regenData as any)?.error) {
+            const msg = regenError?.message || (regenData as any)?.error || "Regeneration failed";
+            console.error("Auto-regeneration failed:", msg);
+            return json({ error: `Régénération automatique impossible: ${msg}` }, 500);
+          }
+          const newUrl = (regenData as any)?.pdfUrl as string | undefined;
+          // Re-read updated row to get the freshly stored URL (may be permanent storage URL)
+          const { data: refreshed } = await supabase
+            .from(table)
+            .select("convention_file_url")
+            .eq("id", rowId)
+            .single();
+          const finalUrl = (refreshed as any)?.convention_file_url || newUrl;
+          if (!finalUrl) return json({ error: "Régénération sans URL retournée" }, 500);
+          return json({ pdf_url: finalUrl, refreshed: true, regenerated: true }, 200);
+        }
+        return json({ error: `PdfMonkey API indisponible (${pmResponse.status})` }, 500);
       }
       const pmData = await pmResponse.json();
       const freshUrl = pmData?.document?.download_url;
