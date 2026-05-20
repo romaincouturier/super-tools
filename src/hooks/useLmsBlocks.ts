@@ -6,6 +6,7 @@ import {
   deleteLessonBlock,
   reorderLessonBlocks,
   getMaxBlockPosition,
+  shiftBlocksUpFrom,
   moveLessonBlock,
   duplicateLessonBlock,
   insertLessonTemplate,
@@ -37,9 +38,16 @@ export function useCreateLessonBlock(lessonId: string) {
       type: LessonBlockType;
       content?: LessonBlockContent;
       parentBlockId?: string | null;
+      atPosition?: number;
     }) => {
       const parentBlockId = vars.parentBlockId ?? null;
-      const position = (await getMaxBlockPosition(lessonId, parentBlockId)) + 1;
+      let position: number;
+      if (vars.atPosition != null) {
+        await shiftBlocksUpFrom(lessonId, parentBlockId, vars.atPosition);
+        position = vars.atPosition;
+      } else {
+        position = (await getMaxBlockPosition(lessonId, parentBlockId)) + 1;
+      }
       const payload: CreateLessonBlockInput = {
         lesson_id: lessonId,
         type: vars.type,

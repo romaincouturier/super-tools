@@ -178,9 +178,9 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   const h1Ref = useRef<HTMLInputElement>(null);
 
   const handleAdd = useCallback(
-    (type: LessonBlockType, parentBlockId: string | null = null) => {
+    (type: LessonBlockType, parentBlockId: string | null = null, atPosition?: number) => {
       createBlock.mutate(
-        { type, parentBlockId },
+        { type, parentBlockId, atPosition },
         { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de création") },
       );
     },
@@ -231,10 +231,42 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
       if (activeParentId !== targetParentId) return;
       const siblings = childrenIdsByParent.get(activeParentId) || [];
       const oldIdx = siblings.indexOf(String(active.id));
-      const newIdx = siblings.indexOf(overIdStr);
+      // When landing on a dropzone of the same parent, move to the end of the list.
+      const newIdx =
+        dropzoneParent !== undefined ? siblings.length - 1 : siblings.indexOf(overIdStr);
       if (oldIdx < 0 || newIdx < 0 || oldIdx === newIdx) return;
       reorderBlocks.mutate(arrayMove(siblings, oldIdx, newIdx), {
         onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de réorganisation"),
+      });
+    },
+    [blocksById, childrenIdsByParent, reorderBlocks, toast],
+  );
+
+  const handleMoveUp = useCallback(
+    (blockId: string) => {
+      const block = blocksById.get(blockId);
+      if (!block) return;
+      const parentId = block.parent_block_id ?? null;
+      const siblings = childrenIdsByParent.get(parentId) || [];
+      const idx = siblings.indexOf(blockId);
+      if (idx <= 0) return;
+      reorderBlocks.mutate(arrayMove(siblings, idx, idx - 1), {
+        onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement"),
+      });
+    },
+    [blocksById, childrenIdsByParent, reorderBlocks, toast],
+  );
+
+  const handleMoveDown = useCallback(
+    (blockId: string) => {
+      const block = blocksById.get(blockId);
+      if (!block) return;
+      const parentId = block.parent_block_id ?? null;
+      const siblings = childrenIdsByParent.get(parentId) || [];
+      const idx = siblings.indexOf(blockId);
+      if (idx < 0 || idx >= siblings.length - 1) return;
+      reorderBlocks.mutate(arrayMove(siblings, idx, idx + 1), {
+        onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement"),
       });
     },
     [blocksById, childrenIdsByParent, reorderBlocks, toast],
@@ -313,10 +345,12 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <RootDropzone hasChildren={tree.length > 0} density={density}>
                 <SortableContext items={rootIds} strategy={verticalListSortingStrategy}>
-                  {tree.map((node) => (
+                  {tree.map((node, idx) => (
                     <SortableBuilderBlock
                       key={node.block.id}
                       node={node}
+                      siblingIndex={idx}
+                      siblingCount={tree.length}
                       lessonId={lesson.id}
                       courseId={courseId}
                       blockRadius={blockRadius}
@@ -326,6 +360,8 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       onAdd={handleAdd}
                       onUpdateContent={handleUpdateContent}
                       onToggleHidden={handleToggleHidden}
+                      onMoveUp={handleMoveUp}
+                      onMoveDown={handleMoveDown}
                     />
                   ))}
                 </SortableContext>
@@ -341,6 +377,8 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
 
 function SortableBuilderBlock({
   node,
+  siblingIndex,
+  siblingCount,
   lessonId,
   courseId,
   blockRadius,
@@ -350,17 +388,23 @@ function SortableBuilderBlock({
   onAdd,
   onUpdateContent,
   onToggleHidden,
+  onMoveUp,
+  onMoveDown,
 }: {
   node: BlockTreeNode;
+  siblingIndex: number;
+  siblingCount: number;
   lessonId: string;
   courseId: string;
   blockRadius: number;
   density: "compact" | "normal" | "spacious";
   onDelete: (blockId: string) => void;
   onDuplicate: (blockId: string) => void;
-  onAdd: (type: LessonBlockType, parentBlockId: string | null) => void;
+  onAdd: (type: LessonBlockType, parentBlockId: string | null, atPosition?: number) => void;
   onUpdateContent: (blockId: string, content: LessonBlockContent) => Promise<void>;
   onToggleHidden: (blockId: string, hidden: boolean) => void;
+  onMoveUp: (blockId: string) => void;
+  onMoveDown: (blockId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: node.block.id,
@@ -390,7 +434,9 @@ function SortableBuilderBlock({
         density={density}
         onDelete={() => onDelete(node.block.id)}
         onDuplicate={() => onDuplicate(node.block.id)}
-        onInsertAfter={(type) => onAdd(type, node.block.parent_block_id ?? null)}
+        onInsertAfter={(type) => onAdd(type, node.block.parent_block_id ?? null, node.block.position + 1)}
+        onMoveUp={siblingIndex > 0 ? () => onMoveUp(node.block.id) : undefined}
+        onMoveDown={siblingIndex < siblingCount - 1 ? () => onMoveDown(node.block.id) : undefined}
         dragHandleProps={{ ...attributes, ...listeners }}
       >
         <BlockEditCard
@@ -411,10 +457,12 @@ function SortableBuilderBlock({
         >
           {hasChildren && (
             <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-              {node.children.map((child) => (
+              {node.children.map((child, idx) => (
                 <SortableBuilderBlock
                   key={child.block.id}
                   node={child}
+                  siblingIndex={idx}
+                  siblingCount={node.children.length}
                   lessonId={lessonId}
                   courseId={courseId}
                   blockRadius={blockRadius}
@@ -424,6 +472,8 @@ function SortableBuilderBlock({
                   onAdd={onAdd}
                   onUpdateContent={onUpdateContent}
                   onToggleHidden={onToggleHidden}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
                 />
               ))}
             </SortableContext>

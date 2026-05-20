@@ -5,6 +5,7 @@ import type {
   TableBlockContent,
   VideoBlockContent,
   ImageBlockContent,
+  GalleryBlockContent,
   FileBlockContent,
   QuizBlockContent,
   AssignmentBlockContent,
@@ -29,6 +30,7 @@ import TextBlockViewer from "./viewers/TextBlockViewer";
 import TableBlockViewer from "./viewers/TableBlockViewer";
 import VideoBlockViewer from "./viewers/VideoBlockViewer";
 import ImageBlockViewer from "./viewers/ImageBlockViewer";
+import GalleryBlockViewer from "./viewers/GalleryBlockViewer";
 import FileBlockViewer from "./viewers/FileBlockViewer";
 import CalloutBlockViewer from "./viewers/CalloutBlockViewer";
 import KeyPointsBlockViewer from "./viewers/KeyPointsBlockViewer";
@@ -119,6 +121,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       return <VideoBlockViewer content={block.content as VideoBlockContent} />;
     case "image":
       return <ImageBlockViewer content={block.content as ImageBlockContent} />;
+    case "gallery":
+      return <GalleryBlockViewer content={block.content as GalleryBlockContent} />;
     case "file":
       return <FileBlockViewer content={block.content as FileBlockContent} />;
     case "quiz": {

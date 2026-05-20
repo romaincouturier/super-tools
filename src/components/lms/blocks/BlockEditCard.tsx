@@ -12,6 +12,7 @@ import type {
   TableBlockContent,
   VideoBlockContent,
   ImageBlockContent,
+  GalleryBlockContent,
   FileBlockContent,
   QuizBlockContent,
   AssignmentBlockContent,
@@ -36,6 +37,7 @@ import TextBlockEditor from "./editors/TextBlockEditor";
 import TableBlockEditor from "./editors/TableBlockEditor";
 import VideoBlockEditor from "./editors/VideoBlockEditor";
 import ImageBlockEditor from "./editors/ImageBlockEditor";
+import GalleryBlockEditor from "./editors/GalleryBlockEditor";
 import FileBlockEditor from "./editors/FileBlockEditor";
 import QuizBlockEditor from "./editors/QuizBlockEditor";
 import AssignmentBlockEditor from "./editors/AssignmentBlockEditor";
@@ -268,6 +270,15 @@ function BlockEditorBody({
         <ImageBlockEditor
           lessonId={lessonId}
           content={content as ImageBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "gallery":
+      return (
+        <GalleryBlockEditor
+          lessonId={lessonId}
+          content={content as GalleryBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
         />

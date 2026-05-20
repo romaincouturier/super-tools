@@ -25,6 +25,7 @@ export type ContentBlockType =
   | "text"
   | "video"
   | "image"
+  | "gallery"
   | "file"
   | "quiz"
   | "assignment"
@@ -94,6 +95,19 @@ export interface VideoBlockContent {
 export interface ImageBlockContent {
   url: string | null;
   caption_html?: string | null;
+}
+
+export type GalleryMode = "grid" | "carousel";
+
+export interface GalleryImage {
+  url: string | null;
+  caption_html?: string | null;
+}
+
+export interface GalleryBlockContent {
+  images: GalleryImage[];
+  mode?: GalleryMode;
+  columns?: 2 | 3 | 4;
 }
 
 export interface FileBlockContent {
@@ -266,6 +280,7 @@ export type LessonBlockContent =
   | TableBlockContent
   | VideoBlockContent
   | ImageBlockContent
+  | GalleryBlockContent
   | FileBlockContent
   | QuizBlockContent
   | AssignmentBlockContent
@@ -326,6 +341,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { url: null, duration_seconds: null };
     case "image":
       return { url: null, caption_html: null };
+    case "gallery":
+      return { images: [], mode: "grid", columns: 3 };
     case "file":
       return { url: null, name: null, size: null, description_html: null };
     case "quiz":
@@ -387,6 +404,12 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
       return {
         url: null,
         caption_html: "<p>Légende — décrivez ici le contenu de l'image</p>",
+      };
+    case "gallery":
+      return {
+        images: [{ url: null }, { url: null }, { url: null }],
+        mode: "grid",
+        columns: 3,
       };
     case "file":
       return {
