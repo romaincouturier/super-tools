@@ -6,6 +6,8 @@ interface StatusConfig {
   icon: LucideIcon;
   variant: "default" | "secondary" | "outline" | "destructive";
   tooltip: string;
+  /** Tailwind color class that overrides the variant-based default. */
+  colorClass?: string;
 }
 
 export const getStatusConfig = (status: string): StatusConfig => {
@@ -15,35 +17,38 @@ export const getStatusConfig = (status: string): StatusConfig => {
         label: "Non envoyé",
         icon: Mail,
         variant: "secondary",
-        tooltip: "Le questionnaire n'a pas encore été envoyé",
+        tooltip: "Le recueil des besoins n'a pas été programmé",
       };
     case "programme":
       return {
         label: "Recueil programmé",
-        icon: Clock,
+        icon: Mail,
         variant: "outline",
-        tooltip: "Le mail d'accueil a été envoyé, l'envoi du questionnaire de recueil est programmé",
+        tooltip: "Le recueil des besoins a été programmé à J-7",
+        colorClass: "text-amber-500",
       };
     case "manuel":
       return {
         label: "Mode manuel",
         icon: AlertTriangle,
         variant: "secondary",
-        tooltip: "Formation trop proche, envoi manuel requis",
+        tooltip: "Formation trop proche, envoi du recueil requis manuellement",
       };
     case "envoye":
       return {
         label: "Envoyé",
         icon: MailCheck,
         variant: "outline",
-        tooltip: "Le questionnaire a été envoyé, en attente de réponse",
+        tooltip: "Le recueil des besoins a été envoyé, en attente de réponse",
+        colorClass: "text-amber-500",
       };
     case "accueil_envoye":
       return {
-        label: "Accueil envoyé",
-        icon: MailCheck,
+        label: "Recueil programmé",
+        icon: Mail,
         variant: "outline",
-        tooltip: "Le mail d'accueil a été envoyé (J-7)",
+        tooltip: "Le recueil des besoins a été programmé (formation proche, envoi immédiat)",
+        colorClass: "text-amber-500",
       };
     case "en_cours":
       return {

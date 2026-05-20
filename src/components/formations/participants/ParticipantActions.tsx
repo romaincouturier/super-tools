@@ -72,10 +72,11 @@ const ParticipantActions = ({
 }: ParticipantActionsProps) => {
   const surveyStatusConfig = getStatusConfig(participant.needs_survey_status);
   const SurveyStatusIcon = surveyStatusConfig.icon;
-  const surveyIconColor =
+  const surveyIconColor = surveyStatusConfig.colorClass ?? (
     surveyStatusConfig.variant === "default" ? "text-primary" :
     surveyStatusConfig.variant === "destructive" ? "text-destructive" :
-    "text-muted-foreground";
+    "text-muted-foreground"
+  );
 
   return (
     <div className="flex items-center gap-0.5">
