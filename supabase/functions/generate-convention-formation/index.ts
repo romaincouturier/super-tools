@@ -258,7 +258,7 @@ serve(async (req: Request): Promise<Response> => {
         const { data: catalogFormulas } = await supabase
           .from("formation_formulas")
           .select("duree_heures")
-          .eq("catalog_id", training.catalog_id)
+          .eq("formation_config_id", training.catalog_id)
           .not("duree_heures", "is", null)
           .order("created_at", { ascending: true })
           .limit(1);
