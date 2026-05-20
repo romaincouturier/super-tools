@@ -20,6 +20,7 @@ export interface LmsCourse {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  formation_configs?: { formation_name: string } | null;
 }
 
 export interface LmsModule {
@@ -204,7 +205,7 @@ export function useCourse(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lms_courses")
-        .select("*")
+        .select("*, formation_configs(formation_name)")
         .eq("id", id!)
         .single();
       if (error) throw error;

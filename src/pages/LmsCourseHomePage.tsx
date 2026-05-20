@@ -676,7 +676,7 @@ export default function LmsCourseHomePage() {
       style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "var(--st-white)" }}
     >
       <CourseHomeHeader
-        courseTitle={course.title}
+        courseTitle={course.formation_configs?.formation_name || course.title}
         learnerName={learnerName}
         onMobileMenu={() => setSidebarOpen((v) => !v)}
       />
