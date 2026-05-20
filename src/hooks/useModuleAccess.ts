@@ -135,12 +135,13 @@ export function useModuleAccess() {
 
       setUserEmail(user.email || null);
 
-      // Check admin status through the security-definer RPC to avoid RLS/client timing issues.
-      const { data: adminRpc, error: adminError } = await supabase.rpc("is_admin", {
-        _user_id: user.id,
-      });
-      if (adminError) console.error("Error checking admin access:", adminError);
-      const isAdminUser = adminRpc === true;
+      // Check admin status via profiles table (readable by all authenticated users).
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("user_id", user.id)
+        .single();
+      const isAdminUser = profile?.is_admin === true;
       setIsAdmin(isAdminUser);
 
       if (isAdminUser) {
