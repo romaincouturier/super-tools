@@ -241,15 +241,28 @@ serve(async (req: Request): Promise<Response> => {
         );
       }
 
-      // Fetch formula duration separately to avoid join ambiguity in PostgREST
+      // Résolution de la durée e-learning (priorité : formule participant → formules du catalogue → défaut global)
       let formulaDureeHeures: number | null = null;
       if ((participant as any).formula_id) {
+        // 1. Formule explicitement choisie par le participant
         const { data: formula } = await supabase
           .from("formation_formulas")
           .select("duree_heures")
           .eq("id", (participant as any).formula_id)
           .single();
         formulaDureeHeures = formula?.duree_heures ?? null;
+      }
+      if (formulaDureeHeures == null && training.catalog_id) {
+        // 2. Aucune formule participant : on prend la première durée définie
+        //    dans les formules du catalogue de la session
+        const { data: catalogFormulas } = await supabase
+          .from("formation_formulas")
+          .select("duree_heures")
+          .eq("formation_config_id", training.catalog_id)
+          .not("duree_heures", "is", null)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        formulaDureeHeures = catalogFormulas?.[0]?.duree_heures ?? null;
       }
       (participant as any)._formulaDureeHeures = formulaDureeHeures;
 
