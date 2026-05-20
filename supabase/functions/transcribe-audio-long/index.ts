@@ -63,7 +63,7 @@ serve(async (req) => {
         audio_url: audioUrl,
         // Auto-detect spoken language instead of forcing French.
         language_detection: true,
-        language_confidence_threshold: 0.5,
+        language_confidence_threshold: 0.3,
         punctuate: true,
         format_text: true,
         speaker_labels: true,
