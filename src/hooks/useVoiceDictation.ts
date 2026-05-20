@@ -17,12 +17,27 @@ export function useVoiceDictation({
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const silenceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Stable ref so stopAndTranscribe / startRecording don't cascade-recreate
   // every time the caller passes a new onTranscript function.
   const onTranscriptRef = useRef(onTranscript);
   onTranscriptRef.current = onTranscript;
 
+  const stopSilenceDetection = useCallback(() => {
+    if (silenceIntervalRef.current) {
+      clearInterval(silenceIntervalRef.current);
+      silenceIntervalRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+  }, []);
+
   const stopAndTranscribe = useCallback(async () => {
+    stopSilenceDetection();
+
     // Clear timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -95,7 +110,7 @@ export function useVoiceDictation({
       recorder.stop();
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stopSilenceDetection]);
 
   const startRecording = useCallback(async () => {
     if (isRecording) {
@@ -132,6 +147,41 @@ export function useVoiceDictation({
       mediaRecorderRef.current = recorder;
       recorder.start(1000);
       setIsRecording(true);
+
+      // Silence detection via Web Audio API
+      try {
+        const audioCtx = new AudioContext();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        const buffer = new Uint8Array(analyser.frequencyBinCount);
+        const SILENCE_THRESHOLD = 8; // 0–255 scale, ~3% — distingue silence vs voix
+        const SILENCE_DELAY_MS = 5000;
+        let silentMs = 0;
+        let warningShown = false;
+
+        silenceIntervalRef.current = setInterval(() => {
+          analyser.getByteFrequencyData(buffer);
+          const avg = buffer.reduce((s, v) => s + v, 0) / buffer.length;
+          if (avg < SILENCE_THRESHOLD) {
+            silentMs += 100;
+            if (silentMs >= SILENCE_DELAY_MS && !warningShown) {
+              warningShown = true;
+              toast.warning(
+                "Vous n'êtes pas audible. Avez-vous commencé à parler ? Vérifiez que votre microphone est bien activé et sélectionné.",
+                { duration: 8000 }
+              );
+            }
+          } else {
+            silentMs = 0;
+          }
+        }, 100);
+      } catch {
+        // Web Audio non supporté — pas bloquant, on ignore
+      }
 
       // Auto-stop after max duration
       timeoutRef.current = setTimeout(() => {
