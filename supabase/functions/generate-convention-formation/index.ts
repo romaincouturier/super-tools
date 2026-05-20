@@ -297,7 +297,9 @@ serve(async (req: Request): Promise<Response> => {
     const ancillaryFees = !isIndividualConvention && (training as any).ancillary_fees_ht
       ? Number((training as any).ancillary_fees_ht)
       : 0;
-    const priceHt = basePriceHt;
+    // PRIX sent to PDFMonkey must be the total amount (sold price + ancillary fees)
+    // because the convention template renders PRIX as the contractual total.
+    const priceHt = basePriceHt + ancillaryFees;
     const fraisValue = ancillaryFees > 0 ? ancillaryFees.toString() : fraisDefault;
     const displayFrais = ancillaryFees > 0 ? "Oui" : afficheFrais;
 
@@ -332,9 +334,8 @@ serve(async (req: Request): Promise<Response> => {
       clientAddress += ` – Mandataire Payeur : ${mandatairePayeur}`;
     }
 
-    // Calculate TTC on (price + frais)
-    const totalHt = priceHt + (ancillaryFees > 0 ? ancillaryFees : 0);
-    const prixTtc = totalHt * (1 + tvaRate / 100);
+    // PRIX already includes ancillary fees → PRIX_TTC computed directly on it
+    const prixTtc = priceHt * (1 + tvaRate / 100);
 
 
     // Build the payload for PDFMonkey
