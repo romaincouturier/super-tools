@@ -561,3 +561,9 @@ verify_jwt = false
 
 [functions.upload-learner-photo]
 verify_jwt = false
+
+[functions.refresh-training-convention-url]
+verify_jwt = false
+
+[functions.upload-media-file]
+verify_jwt = false
