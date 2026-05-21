@@ -52,6 +52,27 @@ const FormationDetail = () => {
 
   if (!fd.training) return null;
 
+  // BPF incomplet — détermine où l'utilisateur doit agir :
+  // · Inter / e-learning : la source peut être renseignée sur la formation OU par
+  //   participant. On flag les Participants si type_stagiaire manque, ou si la
+  //   source manque sur la formation ET sur au moins un participant.
+  // · Intra / classe virtuelle : la source est attendue au niveau de la formation,
+  //   et le type de stagiaire reste par participant.
+  const bpfIsInter =
+    fd.isInterSession || fd.training.format_formation === "e_learning";
+  const bpfTrainingMissingSource = !fd.training.source_financement_bpf;
+  const bpfSomeMissingType = fd.participants.some((p) => !p.type_stagiaire_bpf);
+  const bpfSomeMissingSource = fd.participants.some(
+    (p) => !p.source_financement_bpf,
+  );
+  const bpfHasParticipants = fd.participants.length > 0;
+  const bpfTrainingNeedsAttention =
+    bpfHasParticipants && !bpfIsInter && bpfTrainingMissingSource;
+  const bpfParticipantsNeedAttention =
+    bpfHasParticipants &&
+    (bpfSomeMissingType ||
+      (bpfIsInter && bpfTrainingMissingSource && bpfSomeMissingSource));
+
   return (
     <ModuleLayout>
       <main className="max-w-7xl mx-auto p-3 md:p-6">
@@ -105,6 +126,7 @@ const FormationDetail = () => {
             isInterSession={fd.isInterSession}
             getFormatLabel={fd.getFormatLabel}
             calculateTotalDuration={fd.calculateTotalDuration}
+            bpfNeedsAttention={bpfTrainingNeedsAttention}
           />
           <FormationDetailParticipants
             training={fd.training}
@@ -125,6 +147,7 @@ const FormationDetail = () => {
             schedules={fd.schedules}
             calculateTotalDuration={fd.calculateTotalDuration}
             fetchParticipants={fd.fetchParticipants}
+            bpfNeedsAttention={bpfParticipantsNeedAttention}
           />
         </div>
 
