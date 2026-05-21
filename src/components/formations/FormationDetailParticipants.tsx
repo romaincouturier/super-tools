@@ -102,6 +102,13 @@ const FormationDetailParticipants = ({
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />Participants
+              {bpfNeedsAttention && (
+                <span
+                  className="ml-1 inline-block h-2 w-2 rounded-full bg-destructive ring-2 ring-background"
+                  title="BPF incomplet : renseignez le type de stagiaire (et la source de financement pour les inter)"
+                  aria-label="BPF incomplet"
+                />
+              )}
             </CardTitle>
             <CardDescription className="flex items-center gap-1.5">
               {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
