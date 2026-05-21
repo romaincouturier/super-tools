@@ -57,6 +57,7 @@ const FormationDetailParticipants = ({
   schedules: _schedules,
   calculateTotalDuration,
   fetchParticipants,
+  bpfNeedsAttention,
 }: Props) => {
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
   const [requestingEmails, setRequestingEmails] = useState(false);
