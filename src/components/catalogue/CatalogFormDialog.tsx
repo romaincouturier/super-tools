@@ -294,9 +294,14 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
           .eq("formation_config_id", entry.id)
           .order("display_order")
           .then(({ data }) => {
-            setFormulas((data || []).map(formulaFromDb));
-            // Skip the auto-save triggered by formula load
-            skipNextAutoSave.current++;
+            const loaded = (data || []).map(formulaFromDb);
+            // Only skip auto-save if loading formulas will actually change the hash.
+            // Otherwise the skip counter stays stuck and silently swallows the user's
+            // next real edit (e.g. NSF selection).
+            if (loaded.length > 0) {
+              skipNextAutoSave.current++;
+            }
+            setFormulas(loaded);
           });
       } else {
         setFormationName("");
