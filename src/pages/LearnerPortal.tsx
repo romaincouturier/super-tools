@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -104,6 +104,25 @@ interface LearnerData {
 }
 
 type NavSection = "dashboard" | "formations" | "recommandees" | "travaux" | "pratique" | "aide" | "compte";
+
+const SECTION_SLUGS: Record<NavSection, string | null> = {
+  dashboard:    "tableau-de-bord",
+  formations:   "mes-formations",
+  recommandees: "formations-recommandees",
+  travaux:      "mes-travaux",
+  pratique:     "communaute",
+  aide:         "aide",
+  compte:       null,
+};
+
+const SLUG_TO_SECTION: Record<string, NavSection> = {
+  "tableau-de-bord":        "dashboard",
+  "mes-formations":         "formations",
+  "formations-recommandees": "recommandees",
+  "mes-travaux":            "travaux",
+  "communaute":             "pratique",
+  "aide":                   "aide",
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -2749,18 +2768,24 @@ function DashCard({
 
 export default function LearnerPortal() {
   const [searchParams] = useSearchParams();
+  const { section: sectionSlug } = useParams<{ section?: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const sectionFromUrl: NavSection = (sectionSlug && SLUG_TO_SECTION[sectionSlug]) ?? "dashboard";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [requestingCoach, setRequestingCoach] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<NavSection>(
-    (searchParams.get("section") as NavSection) ?? "dashboard"
-  );
+  const [activeSection, setActiveSection] = useState<NavSection>(sectionFromUrl);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  // Sync URL → state when navigating via browser back/forward
+  useEffect(() => {
+    setActiveSection(sectionFromUrl);
+  }, [sectionFromUrl]);
 
   const email = data?.email ?? null;
   const { data: learnerProfile } = useLearnerProfile(email);
@@ -2771,7 +2796,7 @@ export default function LearnerPortal() {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.user_metadata?.role === "learner" && session.user.email) {
-        window.history.replaceState({}, "", "/espace-apprenant");
+        navigate("/espace-apprenant/tableau-de-bord", { replace: true });
         loadData(session.user.email);
         return;
       }
@@ -2800,6 +2825,15 @@ export default function LearnerPortal() {
       setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNav = (s: NavSection) => {
+    const slug = SECTION_SLUGS[s];
+    if (slug) {
+      navigate(`/espace-apprenant/${slug}`);
+    } else {
+      setActiveSection(s);
     }
   };
 
@@ -2905,7 +2939,7 @@ export default function LearnerPortal() {
       <div className="hidden lg:flex flex-col shrink-0" style={{ width: 240 }}>
         <Sidebar
           active={activeSection}
-          onNav={setActiveSection}
+          onNav={handleNav}
           firstName={firstName}
           lastName={lastName}
           fonction={fonction}
@@ -2923,7 +2957,7 @@ export default function LearnerPortal() {
           <div className="lg:hidden fixed left-0 top-0 bottom-0 z-50" style={{ width: 260 }}>
             <Sidebar
               active={activeSection}
-              onNav={setActiveSection}
+              onNav={(s) => { setSidebarOpen(false); handleNav(s); }}
               firstName={firstName}
               lastName={lastName}
               fonction={fonction}
@@ -2970,7 +3004,7 @@ export default function LearnerPortal() {
             firstName={firstName}
             lastName={lastName}
             photoUrl={photoUrl}
-            onNav={setActiveSection}
+            onNav={handleNav}
             onLogout={handleLogout}
           />
 
@@ -2984,7 +3018,7 @@ export default function LearnerPortal() {
                 data={data}
                 onRequestCoach={handleRequestCoach}
                 requestingCoach={requestingCoach}
-                onNav={setActiveSection}
+                onNav={handleNav}
               />
             )}
             {activeSection === "formations" && (
@@ -3014,10 +3048,10 @@ export default function LearnerPortal() {
               />
             )}
             {activeSection === "aide" && (
-              <AideView email={data.email} mainTraining={mainTraining} onNav={setActiveSection} />
+              <AideView email={data.email} mainTraining={mainTraining} onNav={handleNav} />
             )}
             {activeSection === "compte" && (
-              <CompteView email={data.email} profile={learnerProfile} onNav={setActiveSection} onLogout={handleLogout} />
+              <CompteView email={data.email} profile={learnerProfile} onNav={handleNav} onLogout={handleLogout} />
             )}
           </div>
         </div>

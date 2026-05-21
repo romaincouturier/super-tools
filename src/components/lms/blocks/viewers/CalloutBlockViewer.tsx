@@ -33,7 +33,7 @@ export default function CalloutBlockViewer({ content }: Props) {
       )}
       {content.body_html && (
         <div
-          className="prose max-w-none break-words"
+          className="prose max-w-none break-words [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5"
           style={{
             color: palette.text,
             // Force link color to match the palette text so links are readable

@@ -28,6 +28,7 @@ export function useLessonBlocks(lessonId: string | null | undefined) {
     queryKey: KEY(lessonId || ""),
     queryFn: () => (lessonId ? fetchLessonBlocks(lessonId) : Promise.resolve([] as LessonBlock[])),
     enabled: !!lessonId,
+    staleTime: 0,
   });
 }
 

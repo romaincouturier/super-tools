@@ -11,7 +11,7 @@ export interface CalloutPaletteEntry {
 export const CALLOUT_PALETTE: Record<CalloutColor, CalloutPaletteEntry> = {
   // Classic semantic colours (kept for backward compat)
   blue:             { label: "Bleu",            bg: "#eff6ff", text: "#1e3a5f", border: "#60a5fa", swatch: "#60a5fa" },
-  amber:            { label: "Orange",           bg: "#fffbeb", text: "#78350f", border: "#fbbf24", swatch: "#fbbf24" },
+  amber:            { label: "Orange",           bg: "#fffbeb", text: "#101820", border: "#fbbf24", swatch: "#fbbf24" },
   green:            { label: "Vert",             bg: "#f0fdf4", text: "#14532d", border: "#22c55e", swatch: "#22c55e" },
   red:              { label: "Rouge",            bg: "#fef2f2", text: "#7f1d1d", border: "#f87171", swatch: "#f87171" },
   gray:             { label: "Gris",             bg: "#f3f4f6", text: "#111827", border: "#9ca3af", swatch: "#9ca3af" },
