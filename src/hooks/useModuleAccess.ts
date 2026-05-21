@@ -123,8 +123,7 @@ export function useModuleAccess() {
   const checkAccess = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user ?? null;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setAccessibleModules([]);
         setIsAdmin(false);
@@ -184,23 +183,8 @@ export function useModuleAccess() {
       window.clearTimeout(timeout);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        setAccessibleModules([]);
-        setIsAdmin(false);
-        setUserEmail(null);
-        setLoading(false);
-        return;
-      }
-
-      window.setTimeout(() => {
-        checkAccess();
-      }, 0);
-    });
-
     return () => {
       window.clearTimeout(timeout);
-      subscription.unsubscribe();
     };
   }, [checkAccess]);
 
