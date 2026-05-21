@@ -37,6 +37,8 @@ export interface Participant {
   coaching_deadline?: string | null;
   repositioned_to_training_id?: string | null;
   repositioned_at?: string | null;
+  type_stagiaire_bpf?: string | null;
+  source_financement_bpf?: string | null;
 }
 
 export interface ConventionSignatureInfo {
