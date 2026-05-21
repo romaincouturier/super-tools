@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
+import { resolveContentType } from "@/lib/file-utils";
 
 export type MediaSourceType = "mission" | "event" | "training" | "crm" | "content" | "lms";
 
@@ -337,10 +337,7 @@ export const useUpdateMediaTranscript = () => {
 };
 
 
-const STORAGE_BUCKET = "media";
-
 export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, sourceId: string) => {
-  const path = `${sourceType}/${sourceId}/${Date.now()}_${sanitizeFileName(file.name)}`;
   const resolvedContentType = resolveContentType(file);
 
   // Some browsers (notably iOS Safari) attach unsupported non-standard MIME types
@@ -354,17 +351,19 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
         })
       : file;
 
-  const { error: uploadError } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(path, normalizedFile, { contentType: resolvedContentType });
+  const formData = new FormData();
+  formData.append("sourceType", sourceType);
+  formData.append("sourceId", sourceId);
+  formData.append("file", normalizedFile, file.name || "media");
+
+  const { data, error: uploadError } = await supabase.functions.invoke("upload-media-file", {
+    body: formData,
+  });
 
   if (uploadError) throw uploadError;
-
-  const { data: urlData } = supabase.storage
-    .from(STORAGE_BUCKET)
-    .getPublicUrl(path);
-
-  return urlData.publicUrl;
+  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+  if (!publicUrl) throw new Error("URL du média introuvable après upload");
+  return publicUrl;
 };
 
 /**

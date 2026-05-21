@@ -94,13 +94,16 @@ const AgentChat = () => {
       for (const file of Array.from(files)) {
         const mimeType = resolveContentType(file);
         const isImage = mimeType.startsWith("image/");
-        const ext = file.name.split(".").pop() || "bin";
-        const path = `agent/${crypto.randomUUID()}.${ext}`;
-        const { error } = await supabase.storage.from("media").upload(path, file, { contentType: mimeType });
+        const formData = new FormData();
+        formData.append("sourceType", "agent");
+        formData.append("sourceId", conversationId || "agent");
+        formData.append("file", file, file.name || "media");
+        const { data, error } = await supabase.functions.invoke("upload-media-file", { body: formData });
         if (error) throw error;
-        const { data: urlData } = supabase.storage.from("media").getPublicUrl(path);
+        const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+        if (!publicUrl) throw new Error("URL du média introuvable après upload");
         setAttachments((prev) => [...prev, {
-          url: urlData.publicUrl,
+          url: publicUrl,
           name: file.name,
           type: isImage ? "image" : "document",
           mimeType,
