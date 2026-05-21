@@ -64,6 +64,7 @@ function toTrainingRow(row: Record<string, unknown>): TrainingRow | null {
     source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,
     sold_price_ht: typeof row.sold_price_ht === "number" ? row.sold_price_ht : null,
     start_date: typeof row.start_date === "string" ? row.start_date : null,
+    end_date: typeof row.end_date === "string" ? row.end_date : null,
     trainer_name: typeof row.trainer_name === "string" ? row.trainer_name : "",
     catalog_id: typeof row.catalog_id === "string" ? row.catalog_id : null,
     commanditaire_of_name: typeof row.commanditaire_of_name === "string" ? row.commanditaire_of_name : null,
