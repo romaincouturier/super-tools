@@ -942,20 +942,27 @@ function NsfSpecialiteSelector({ code, label, onSelect }: NsfSpecialiteSelectorP
               <CommandList>
                 <CommandEmpty>Aucune spécialité trouvée.</CommandEmpty>
                 <CommandGroup>
-                  {NSF_CODES.map((item) => (
-                    <CommandItem
-                      key={item.code}
-                      value={`${item.code} ${item.label}`}
-                      onSelect={() => {
-                        onSelect(item.code, item.label);
-                        setOpen(false);
-                      }}
-                    >
-                      <Check className={cn("mr-2 h-4 w-4", code === item.code ? "opacity-100" : "opacity-0")} />
-                      <span className="font-mono text-xs text-muted-foreground mr-2 w-10">{item.code}</span>
-                      <span className="flex-1">{item.label}</span>
-                    </CommandItem>
-                  ))}
+                  {NSF_CODES.map((item) => {
+                    const handlePick = () => {
+                      onSelect(item.code, item.label);
+                      setOpen(false);
+                    };
+                    return (
+                      <CommandItem
+                        key={item.code}
+                        value={`${item.code} ${item.label}`}
+                        onSelect={handlePick}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handlePick();
+                        }}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", code === item.code ? "opacity-100" : "opacity-0")} />
+                        <span className="font-mono text-xs text-muted-foreground mr-2 w-10">{item.code}</span>
+                        <span className="flex-1">{item.label}</span>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               </CommandList>
             </Command>
