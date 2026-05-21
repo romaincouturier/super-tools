@@ -49,6 +49,7 @@ interface TrainingRow {
   source_financement_bpf: SourceFinancement | null;
   sold_price_ht: number | null;
   start_date: string | null;
+  end_date: string | null;
   trainer_name: string;
   catalog_id: string | null;
   commanditaire_of_name: string | null;
@@ -63,6 +64,7 @@ function toTrainingRow(row: Record<string, unknown>): TrainingRow | null {
     source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,
     sold_price_ht: typeof row.sold_price_ht === "number" ? row.sold_price_ht : null,
     start_date: typeof row.start_date === "string" ? row.start_date : null,
+    end_date: typeof row.end_date === "string" ? row.end_date : null,
     trainer_name: typeof row.trainer_name === "string" ? row.trainer_name : "",
     catalog_id: typeof row.catalog_id === "string" ? row.catalog_id : null,
     commanditaire_of_name: typeof row.commanditaire_of_name === "string" ? row.commanditaire_of_name : null,
@@ -294,9 +296,17 @@ export default function BPFReport() {
 
       if (tErr) throw tErr;
 
+      // Exclure les sessions à venir : ne comptabiliser que les formations
+      // terminées (end_date < aujourd'hui, ou start_date < aujourd'hui si pas
+      // d'end_date). Le BPF déclare un réalisé, pas un prévisionnel.
+      const todayIso = new Date().toISOString().slice(0, 10);
       const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as Record<string, unknown>[])
         .map(toTrainingRow)
-        .filter((training): training is TrainingRow => training !== null);
+        .filter((training): training is TrainingRow => training !== null)
+        .filter((t) => {
+          const ref = (t.end_date ?? t.start_date) as string | null;
+          return !!ref && ref < todayIso;
+        });
 
       // 2. Fetch participants with type_stagiaire_bpf
       const trainingIds = trainings.map((t) => t.id);
