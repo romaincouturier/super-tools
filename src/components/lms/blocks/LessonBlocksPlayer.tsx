@@ -24,6 +24,8 @@ import type {
   SpacerBlockContent,
   ShortcodeBlockContent,
   HtmlEmbedBlockContent,
+  TimelineBlockContent,
+  FlipCardsBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
@@ -48,6 +50,8 @@ import DividerBlockViewer from "./viewers/DividerBlockViewer";
 import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
 import ShortcodeBlockViewer from "./viewers/ShortcodeBlockViewer";
 import HtmlEmbedBlockViewer from "./viewers/HtmlEmbedBlockViewer";
+import TimelineBlockViewer from "./viewers/TimelineBlockViewer";
+import FlipCardsBlockViewer from "./viewers/FlipCardsBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -216,6 +220,10 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       );
     case "html_embed":
       return <HtmlEmbedBlockViewer content={block.content as HtmlEmbedBlockContent} />;
+    case "timeline":
+      return <TimelineBlockViewer content={block.content as TimelineBlockContent} />;
+    case "flip_cards":
+      return <FlipCardsBlockViewer content={block.content as FlipCardsBlockContent} />;
     default:
       return null;
   }
