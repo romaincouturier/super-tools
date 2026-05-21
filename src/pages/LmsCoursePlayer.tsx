@@ -171,8 +171,12 @@ export default function LmsCoursePlayer() {
             <Menu size={18} style={{ color: "#101820" }} />
           </button>
 
-          {/* Logo */}
-          <a href="/lms" className="shrink-0 flex items-center" title="Retour aux formations">
+          {/* Logo — learners go to their portal, admins/trainers go to the back-office LMS */}
+          <a
+            href={learnerEmail && !isPreview ? "/espace-apprenant" : "/lms"}
+            className="shrink-0 flex items-center"
+            title="Retour aux formations"
+          >
             <SupertiltLogo className="h-8" />
           </a>
 

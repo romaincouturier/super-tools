@@ -174,20 +174,15 @@ export default function TrainerManager() {
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `trainer-${Date.now()}.${fileExt}`;
-      const filePath = `trainers/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("training-documents")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("training-documents")
-        .getPublicUrl(filePath);
-
-      setPhotoUrl(urlData.publicUrl);
+      const path = `trainers/trainer-${Date.now()}.${fileExt}`;
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+      formData.append("path", path);
+      const { data, error } = await supabase.functions.invoke("upload-training-file", { body: formData });
+      if (error) throw error;
+      const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+      if (!publicUrl) throw new Error("URL introuvable après l'upload");
+      setPhotoUrl(publicUrl);
       toast({ title: "Photo uploadée" });
     } catch (error) {
       console.error("Error uploading photo:", error);

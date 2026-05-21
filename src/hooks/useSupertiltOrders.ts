@@ -62,6 +62,7 @@ export interface GameFull {
   include_stripe_fees: boolean;
   cost_price: number | null;
   // Location contract
+  location_variation_id: number | null;
   pdfmonkey_template_id: string | null;
   location_duree_libelle: string | null;
   location_duree_jours: number | null;

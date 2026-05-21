@@ -227,11 +227,15 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
                     setUploadingReglement(true);
                     try {
                       const ext = file.name.split(".").pop();
-                      const filePath = `reglement-interieur/reglement-interieur-${Date.now()}.${ext}`;
-                      const { error: uploadError } = await supabase.storage.from("training-documents").upload(filePath, file, { upsert: true });
-                      if (uploadError) throw uploadError;
-                      const { data: urlData } = supabase.storage.from("training-documents").getPublicUrl(filePath);
-                      updateSetting("reglement_interieur_url", urlData.publicUrl);
+                      const path = `reglement-interieur/reglement-interieur-${Date.now()}.${ext}`;
+                      const formData = new FormData();
+                      formData.append("file", file, file.name);
+                      formData.append("path", path);
+                      const { data, error } = await supabase.functions.invoke("upload-training-file", { body: formData });
+                      if (error) throw error;
+                      const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+                      if (!publicUrl) throw new Error("URL introuvable après l'upload");
+                      updateSetting("reglement_interieur_url", publicUrl);
                       toast({ title: "Fichier uploadé" });
                     } catch (error: unknown) {
                       console.error("Upload error:", error);
@@ -282,11 +286,15 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
                     setUploadingStamp(true);
                     try {
                       const ext = file.name.split(".").pop();
-                      const filePath = `company-stamp/tampon-${Date.now()}.${ext}`;
-                      const { error: uploadError } = await supabase.storage.from("training-documents").upload(filePath, file, { upsert: true, contentType: ct });
-                      if (uploadError) throw uploadError;
-                      const { data: urlData } = supabase.storage.from("training-documents").getPublicUrl(filePath);
-                      updateSetting("company_stamp_url", urlData.publicUrl);
+                      const path = `company-stamp/tampon-${Date.now()}.${ext}`;
+                      const formData = new FormData();
+                      formData.append("file", file, file.name);
+                      formData.append("path", path);
+                      const { data, error } = await supabase.functions.invoke("upload-training-file", { body: formData });
+                      if (error) throw error;
+                      const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+                      if (!publicUrl) throw new Error("URL introuvable après l'upload");
+                      updateSetting("company_stamp_url", publicUrl);
                       toast({ title: "Tampon uploadé" });
                     } catch (error: unknown) {
                       console.error("Upload error:", error);

@@ -113,17 +113,18 @@ export async function uploadDepositFile(
   lessonId: string | null,
   learnerEmail: string,
 ): Promise<{ url: string; name: string; size: number; mime: string }> {
-  const c = clientFor(learnerEmail);
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
   const folder = lessonId ?? "portfolio";
   const path = `deposits/${folder}/${learnerEmail}/${Date.now()}_${safeName}`;
   const mime = resolveContentType(file);
-  const { error } = await c.storage
-    .from("lms-content")
-    .upload(path, file, { contentType: mime, upsert: true });
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  formData.append("path", path);
+  const { data, error } = await supabase.functions.invoke("upload-lms-content", { body: formData });
   if (error) throw error;
-  const { data } = c.storage.from("lms-content").getPublicUrl(path);
-  return { url: data.publicUrl, name: file.name, size: file.size, mime };
+  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+  if (!publicUrl) throw new Error("URL introuvable après l'upload");
+  return { url: publicUrl, name: file.name, size: file.size, mime };
 }
 
 // ── Comments (Stage 2 surface) ──────────────────────────────────────

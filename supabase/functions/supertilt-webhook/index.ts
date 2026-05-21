@@ -31,6 +31,7 @@ interface WCAddress {
 interface WCLineItem {
   id: number;
   product_id: number;
+  variation_id?: number | null;
   name: string;
   quantity: number;
   price: number;
@@ -74,6 +75,7 @@ async function upsertVisibleOrderItem(
     woocommerce_order_id: wooOrderId,
     wc_order_id: order.id,
     wc_product_id: item.product_id,
+    wc_variation_id: item.variation_id || null,
     product_name: item.name,
     game_id: patch.game_id ?? null,
     game_type: patch.game_type ?? null,
@@ -299,13 +301,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load games catalog ───────────────────────────────────────
     const { data: games } = await (admin as any)
       .from("games")
-      .select("id, woocommerce_product_id, game_type, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees")
+      .select("id, woocommerce_product_id, game_type, location_variation_id, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees")
       .not("woocommerce_product_id", "is", null);
 
     type GameRow = {
       id: string;
       woocommerce_product_id: number;
       game_type: string;
+      location_variation_id: number | null;
       commission_type: string | null;
       commission_rate: number | null;
       commission_fixed: number | null;
@@ -519,12 +522,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.items_to_validate++;
       } else {
         gameId = game.id;
-        gameType = game.game_type;
-        kanbanStatus = game.game_type === "supertilt"
+        // If the game has a dedicated location variation, check whether this
+        // specific line item is the rental variant or the purchase variant.
+        // variation_id === 0 means WooCommerce sent no variation (simple product).
+        const isLocationVariant =
+          game.location_variation_id != null &&
+          item.variation_id != null &&
+          item.variation_id !== 0 &&
+          item.variation_id === game.location_variation_id;
+        const effectiveGameType = isLocationVariant ? "location" : game.game_type;
+        gameType = effectiveGameType;
+        kanbanStatus = effectiveGameType === "supertilt"
           ? "to_ship"
-          : game.game_type === "dropshipping"
+          : effectiveGameType === "dropshipping"
           ? "dropshipping"
-          : game.game_type === "location"
+          : effectiveGameType === "location"
           ? "location_pending"
           : "received"; // partner or other
         results.items_processed++;

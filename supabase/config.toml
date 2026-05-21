@@ -567,3 +567,21 @@ verify_jwt = false
 
 [functions.upload-media-file]
 verify_jwt = false
+
+[functions.upload-lms-content]
+verify_jwt = false
+
+[functions.upload-training-file]
+verify_jwt = false
+
+[functions.upload-mission-file]
+verify_jwt = false
+
+[functions.upload-watch-file]
+verify_jwt = false
+
+[functions.upload-balance-sheet]
+verify_jwt = false
+
+[functions.upload-content-image]
+verify_jwt = false

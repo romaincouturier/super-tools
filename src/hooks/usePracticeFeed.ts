@@ -117,16 +117,17 @@ export function usePracticeComments(postId: string | null, learnerEmail: string 
 // ── Upload + Create post ──────────────────────────────────────────────────────
 
 async function uploadPracticeFile(file: File, learnerEmail: string) {
-  const c = clientFor(learnerEmail);
   const mime = resolveContentType(file);
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
   const path = `practice/${learnerEmail}/${Date.now()}_${safeName}`;
-  const { error } = await (c as any).storage
-    .from("lms-content")
-    .upload(path, file, { contentType: mime, upsert: true });
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  formData.append("path", path);
+  const { data, error } = await supabase.functions.invoke("upload-lms-content", { body: formData });
   if (error) throw error;
-  const { data } = (c as any).storage.from("lms-content").getPublicUrl(path);
-  return { url: data.publicUrl, name: file.name, size: file.size, mime };
+  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+  if (!publicUrl) throw new Error("URL introuvable après l'upload");
+  return { url: publicUrl, name: file.name, size: file.size, mime };
 }
 
 export function useCreatePracticePost(learnerEmail: string | null) {
