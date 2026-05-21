@@ -126,6 +126,7 @@ const FormationDetail = () => {
             isInterSession={fd.isInterSession}
             getFormatLabel={fd.getFormatLabel}
             calculateTotalDuration={fd.calculateTotalDuration}
+            bpfNeedsAttention={bpfTrainingNeedsAttention}
           />
           <FormationDetailParticipants
             training={fd.training}
@@ -146,6 +147,7 @@ const FormationDetail = () => {
             schedules={fd.schedules}
             calculateTotalDuration={fd.calculateTotalDuration}
             fetchParticipants={fd.fetchParticipants}
+            bpfNeedsAttention={bpfParticipantsNeedAttention}
           />
         </div>
 
