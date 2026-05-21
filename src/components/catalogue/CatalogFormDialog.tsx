@@ -162,6 +162,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       prerequisites: v.prerequisites,
       elearning_access_email_content: v.elearningAccessEmailContent.trim() || null,
       woocommerce_product_id: v.woocommerceProductId ? parseInt(v.woocommerceProductId, 10) : null,
+      code_specialite_nsf: v.codeSpecialiteNsf.trim() || null,
+      label_specialite_nsf: v.labelSpecialiteNsf.trim() || null,
       is_active: v.isActive,
     };
 
