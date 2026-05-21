@@ -60,6 +60,10 @@ export interface ParticipantListProps {
   clientName: string;
   trainingDuree: string;
   onParticipantUpdated: () => void;
+  /** True if the training itself has a source_financement_bpf — used to dim
+   * the per-participant BPF alert for inter sessions where the training-level
+   * source already covers everyone. */
+  bpfTrainingHasSource?: boolean;
 }
 
 export interface ParticipantActionsProps {
