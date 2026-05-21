@@ -97,6 +97,7 @@ const ParticipantList = ({
     onViewEvaluation: handleViewEvaluation, onParticipantUpdated,
     canSendSurveyFor: actions.canSendSurveyFor, canSendReminderFor: actions.canSendReminderFor,
     canSendConventionReminderFor: actions.canSendConventionReminderFor,
+    bpfTrainingHasSource: !!bpfTrainingHasSource,
   };
 
   return (
