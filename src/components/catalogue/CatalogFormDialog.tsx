@@ -94,6 +94,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
+  const [codeSpecialiteNsf, setCodeSpecialiteNsf] = useState("");
+  const [labelSpecialiteNsf, setLabelSpecialiteNsf] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
