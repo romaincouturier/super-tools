@@ -2749,7 +2749,6 @@ export type Database = {
           location_duree_libelle: string | null
           location_prix_remplacement: number | null
           location_tarif_retard_mois: number | null
-          location_variation_id: number | null
           min_stock: number | null
           partner_email: string | null
           partner_name: string | null
@@ -2787,7 +2786,6 @@ export type Database = {
           location_duree_libelle?: string | null
           location_prix_remplacement?: number | null
           location_tarif_retard_mois?: number | null
-          location_variation_id?: number | null
           min_stock?: number | null
           partner_email?: string | null
           partner_name?: string | null
@@ -2825,7 +2823,6 @@ export type Database = {
           location_duree_libelle?: string | null
           location_prix_remplacement?: number | null
           location_tarif_retard_mois?: number | null
-          location_variation_id?: number | null
           min_stock?: number | null
           partner_email?: string | null
           partner_name?: string | null
@@ -5748,7 +5745,6 @@ export type Database = {
           validation_status: string
           wc_order_id: number
           wc_product_id: number
-          wc_variation_id: number | null
           woocommerce_order_id: string | null
         }
         Insert: {
@@ -5776,7 +5772,6 @@ export type Database = {
           validation_status?: string
           wc_order_id: number
           wc_product_id: number
-          wc_variation_id?: number | null
           woocommerce_order_id?: string | null
         }
         Update: {
@@ -5804,7 +5799,6 @@ export type Database = {
           validation_status?: string
           wc_order_id?: number
           wc_product_id?: number
-          wc_variation_id?: number | null
           woocommerce_order_id?: string | null
         }
         Relationships: [
