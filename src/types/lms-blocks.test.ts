@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   blockKindOf,
   defaultBlockContent,
+  exampleBlockContent,
   isLayoutBlockType,
   LAYOUT_BLOCK_TYPES,
   type ContentBlockType,
@@ -14,6 +15,8 @@ import {
   type TextBlockContent,
   type GalleryBlockContent,
   type HtmlEmbedBlockContent,
+  type TimelineBlockContent,
+  type FlipCardsBlockContent,
 } from "./lms-blocks";
 
 describe("isLayoutBlockType", () => {
@@ -43,6 +46,8 @@ describe("isLayoutBlockType", () => {
       "table",
       "shortcode",
       "html_embed",
+      "timeline",
+      "flip_cards",
     ];
     for (const t of contentTypes) {
       expect(isLayoutBlockType(t)).toBe(false);
@@ -121,6 +126,8 @@ describe("defaultBlockContent — regression on existing content types", () => {
       "table",
       "shortcode",
       "html_embed",
+      "timeline",
+      "flip_cards",
     ] as const;
     for (const t of allTypes) {
       expect(defaultBlockContent(t)).toBeDefined();
@@ -158,5 +165,85 @@ describe("defaultBlockContent — html_embed", () => {
 
   it("isLayoutBlockType returns false for html_embed", () => {
     expect(isLayoutBlockType("html_embed")).toBe(false);
+  });
+});
+
+describe("defaultBlockContent — timeline", () => {
+  it("defaults to 3 steps with titles and empty panel_items", () => {
+    const c = defaultBlockContent("timeline") as TimelineBlockContent;
+    expect(c.steps).toHaveLength(3);
+    expect(c.steps[0].title).toBe("Étape 1");
+    expect(c.steps[1].title).toBe("Étape 2");
+    expect(c.steps[2].title).toBe("Étape 3");
+    for (const step of c.steps) {
+      expect(step.id).toBeTruthy();
+      expect(step.panel_items).toEqual([]);
+    }
+  });
+
+  it("defaults to null accent_color", () => {
+    const c = defaultBlockContent("timeline") as TimelineBlockContent;
+    expect(c.accent_color).toBeNull();
+  });
+
+  it("blockKindOf returns 'content' for timeline", () => {
+    expect(blockKindOf("timeline")).toBe("content");
+  });
+
+  it("isLayoutBlockType returns false for timeline", () => {
+    expect(isLayoutBlockType("timeline")).toBe(false);
+  });
+});
+
+describe("exampleBlockContent — timeline", () => {
+  it("returns an example with 3 steps each having panel_items", () => {
+    const c = exampleBlockContent("timeline") as TimelineBlockContent;
+    expect(c.steps).toHaveLength(3);
+    for (const step of c.steps) {
+      expect(step.panel_items!.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("defaultBlockContent — flip_cards", () => {
+  it("defaults to 2 cards with recto/verso placeholder text", () => {
+    const c = defaultBlockContent("flip_cards") as FlipCardsBlockContent;
+    expect(c.cards).toHaveLength(2);
+    for (const card of c.cards) {
+      expect(card.id).toBeTruthy();
+      expect(card.front_text).toBe("Recto");
+      expect(card.back_text).toBe("Verso");
+    }
+  });
+
+  it("defaults to card_height_px of 180", () => {
+    const c = defaultBlockContent("flip_cards") as FlipCardsBlockContent;
+    expect(c.card_height_px).toBe(180);
+  });
+
+  it("blockKindOf returns 'content' for flip_cards", () => {
+    expect(blockKindOf("flip_cards")).toBe("content");
+  });
+
+  it("isLayoutBlockType returns false for flip_cards", () => {
+    expect(isLayoutBlockType("flip_cards")).toBe(false);
+  });
+});
+
+describe("exampleBlockContent — flip_cards", () => {
+  it("returns an example with 3 cards, each having distinct front and back text", () => {
+    const c = exampleBlockContent("flip_cards") as FlipCardsBlockContent;
+    expect(c.cards).toHaveLength(3);
+    for (const card of c.cards) {
+      expect(card.front_text).toBeTruthy();
+      expect(card.back_text).toBeTruthy();
+      expect(card.front_text).not.toBe(card.back_text);
+    }
+  });
+
+  it("example cards have unique ids", () => {
+    const c = exampleBlockContent("flip_cards") as FlipCardsBlockContent;
+    const ids = c.cards.map((card) => card.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
