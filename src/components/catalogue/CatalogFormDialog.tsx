@@ -122,7 +122,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   formValuesRef.current = {
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
-    elearningAccessEmailContent, woocommerceProductId, isActive,
+    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf, isActive,
     formulas,
   };
 
