@@ -341,13 +341,12 @@ export const useWatchDigests = () => {
 export const uploadWatchFile = async (file: File) => {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const path = `${Date.now()}_${safeName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("watch")
-    .upload(path, file, { contentType: resolveContentType(file) });
-
-  if (uploadError) throw uploadError;
-
-  const { data: urlData } = supabase.storage.from("watch").getPublicUrl(path);
-  return urlData.publicUrl;
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+  formData.append("path", path);
+  const { data, error } = await supabase.functions.invoke("upload-watch-file", { body: formData });
+  if (error) throw error;
+  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+  if (!publicUrl) throw new Error("URL introuvable après l'upload");
+  return publicUrl;
 };

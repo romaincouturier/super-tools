@@ -98,31 +98,19 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
       const safeName = sanitizeFileName(file.name);
       const fileName = `${crypto.randomUUID()}_${safeName}`;
 
-      // Some browsers (notably iOS Safari) attach unsupported non-standard MIME types
-      // to the File object. Rebuild the file with normalized type so storage validation
-      // checks the supported MIME.
+      // Normalize MIME type (iOS Safari can attach non-standard types)
       const normalizedFile =
         file.type && file.type !== resolvedContentType
-          ? new File([file], file.name, {
-              type: resolvedContentType,
-              lastModified: file.lastModified,
-            })
+          ? new File([file], file.name, { type: resolvedContentType, lastModified: file.lastModified })
           : file;
 
-      const { error: uploadError } = await supabase.storage
-        .from("content-images")
-        .upload(fileName, normalizedFile, {
-          contentType: resolvedContentType,
-          upsert: false,
-        });
-
+      const formData = new FormData();
+      formData.append("file", normalizedFile, file.name);
+      formData.append("path", fileName);
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke("upload-content-image", { body: formData });
       if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("content-images")
-        .getPublicUrl(fileName);
-
-      const publicUrl = urlData.publicUrl;
+      const publicUrl = (uploadData as { publicUrl?: string } | null)?.publicUrl;
+      if (!publicUrl) throw new Error("URL introuvable après l'upload");
 
       // Register in media library if card exists
       if (cardId) {

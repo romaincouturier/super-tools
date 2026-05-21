@@ -7,18 +7,12 @@ import {
 } from "../_shared/cors.ts";
 import { resolveContentType } from "../_shared/file-utils.ts";
 
-const BUCKET = "lms-content";
+const BUCKET = "training-documents";
 
-// Allowed path prefixes — prevents arbitrary writes to the bucket
 const ALLOWED_PREFIXES = new Set([
-  "images",
-  "videos",
-  "files",
-  "pdfs",
-  "assignments",
-  "forum-attachments",
-  "practice",
-  "deposits",
+  "trainers",
+  "reglement-interieur",
+  "company-stamp",
 ]);
 
 Deno.serve(async (req) => {
@@ -39,7 +33,6 @@ Deno.serve(async (req) => {
     if (!(file instanceof File)) return createErrorResponse("Fichier manquant", 400);
     if (!path) return createErrorResponse("Chemin manquant", 400);
 
-    // Validate path prefix to prevent arbitrary writes
     const prefix = path.split("/")[0];
     if (!ALLOWED_PREFIXES.has(prefix)) {
       return createErrorResponse(`Préfixe de chemin non autorisé: ${prefix}`, 400);
@@ -50,18 +43,18 @@ Deno.serve(async (req) => {
 
     const { error } = await admin.storage.from(BUCKET).upload(path, file, {
       contentType,
-      upsert: false,
+      upsert: true,
     });
 
     if (error) {
-      console.error("[upload-lms-content] storage error", error);
+      console.error("[upload-training-file] storage error", error);
       return createErrorResponse(error.message || "Erreur de stockage", 500);
     }
 
     const { data } = admin.storage.from(BUCKET).getPublicUrl(path);
     return createJsonResponse({ publicUrl: data.publicUrl });
   } catch (err) {
-    console.error("[upload-lms-content] unexpected error", err);
+    console.error("[upload-training-file] unexpected error", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Erreur inconnue" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

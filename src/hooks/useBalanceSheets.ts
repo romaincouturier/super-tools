@@ -64,11 +64,12 @@ export function useUploadBalanceSheetPDF() {
 
       const ts = Date.now();
       const path = `${userData.user.id}/${input.annee}-${ts}.pdf`;
-      const { error: upErr } = await supabase.storage.from("balance-sheets").upload(path, input.file, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
-      if (upErr) throw upErr;
+      const formData = new FormData();
+      formData.append("file", input.file, input.file.name);
+      formData.append("path", path);
+      const { data, error } = await supabase.functions.invoke("upload-balance-sheet", { body: formData });
+      if (error) throw error;
+      if (!(data as { publicUrl?: string } | null)?.publicUrl) throw new Error("Upload échoué");
       return { storage_path: path, filename: input.file.name };
     },
   });

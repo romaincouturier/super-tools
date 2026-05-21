@@ -7,19 +7,7 @@ import {
 } from "../_shared/cors.ts";
 import { resolveContentType } from "../_shared/file-utils.ts";
 
-const BUCKET = "lms-content";
-
-// Allowed path prefixes — prevents arbitrary writes to the bucket
-const ALLOWED_PREFIXES = new Set([
-  "images",
-  "videos",
-  "files",
-  "pdfs",
-  "assignments",
-  "forum-attachments",
-  "practice",
-  "deposits",
-]);
+const BUCKET = "content-images";
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -39,14 +27,12 @@ Deno.serve(async (req) => {
     if (!(file instanceof File)) return createErrorResponse("Fichier manquant", 400);
     if (!path) return createErrorResponse("Chemin manquant", 400);
 
-    // Validate path prefix to prevent arbitrary writes
-    const prefix = path.split("/")[0];
-    if (!ALLOWED_PREFIXES.has(prefix)) {
-      return createErrorResponse(`Préfixe de chemin non autorisé: ${prefix}`, 400);
+    const contentType = resolveContentType(file);
+    if (!contentType.startsWith("image/")) {
+      return createErrorResponse("Seules les images sont acceptées", 400);
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const contentType = resolveContentType(file);
 
     const { error } = await admin.storage.from(BUCKET).upload(path, file, {
       contentType,
@@ -54,14 +40,14 @@ Deno.serve(async (req) => {
     });
 
     if (error) {
-      console.error("[upload-lms-content] storage error", error);
+      console.error("[upload-content-image] storage error", error);
       return createErrorResponse(error.message || "Erreur de stockage", 500);
     }
 
     const { data } = admin.storage.from(BUCKET).getPublicUrl(path);
     return createJsonResponse({ publicUrl: data.publicUrl });
   } catch (err) {
-    console.error("[upload-lms-content] unexpected error", err);
+    console.error("[upload-content-image] unexpected error", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Erreur inconnue" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

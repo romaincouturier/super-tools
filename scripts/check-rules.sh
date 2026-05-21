@@ -273,6 +273,18 @@ else
      grep -q 'storage\.upload' \"\$f\" && echo \"VIOLATION: participants.ts utilise storage.upload direct\"; \
      true"
 
+  # [026d] Aucun supabase.storage.upload() direct dans src/ — DOIT passer par une edge function.
+  # Exceptions légitimes :
+  #   useMedia.ts          — uploadMediaFile() appelle upload-media-file (edge fn), pas storage direct
+  #   useTrainingSupport.ts — bucket géré côté edge fn
+  # Tous les autres fichiers src/ ne doivent JAMAIS appeler .storage.from(...).upload(
+  check "026d" "Aucun storage.upload() direct dans src/ (tout doit passer par une edge function)" \
+    "grep -rln '\.storage\.' src/ --include='*.ts' --include='*.tsx' \
+       | grep -v '\.test\.' | grep -v '\.spec\.' \
+       | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' \
+       | xargs grep -l '\.upload(' 2>/dev/null \
+       | while read f; do echo \"VIOLATION: \$f appelle storage.upload() directement — passer par une edge function\"; done; true"
+
   # [027] Le check admin doit lire profiles.is_admin, pas un RPC ou email hardcodé
   check "027" "Check admin dans useModuleAccess utilise profiles.is_admin (pas un RPC email-hardcodé)" \
     "f=\"src/hooks/useModuleAccess.ts\"; \

@@ -528,15 +528,16 @@ const PageEditor = ({
   const uploadDocument = useCallback(
     async (file: File): Promise<string | null> => {
       try {
-        const fileName = `pages/${page.id}/docs/${Date.now()}-${file.name}`;
-        const { error } = await supabase.storage
-          .from("mission-media")
-          .upload(fileName, file, { contentType: resolveContentType(file) });
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
+        const path = `pages/${page.id}/docs/${Date.now()}_${safeName}`;
+        const formData = new FormData();
+        formData.append("file", file, file.name);
+        formData.append("path", path);
+        const { data, error } = await supabase.functions.invoke("upload-mission-file", { body: formData });
         if (error) throw error;
-        const { data: urlData } = supabase.storage
-          .from("mission-media")
-          .getPublicUrl(fileName);
-        return urlData.publicUrl;
+        const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+        if (!publicUrl) throw new Error("URL introuvable après l'upload");
+        return publicUrl;
       } catch (err) {
         console.error("Upload error:", err);
         toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");

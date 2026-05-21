@@ -86,18 +86,15 @@ const GenerateInvoiceDialog = ({
     setUploading(true);
     try {
       const ext = file.name.split(".").pop() || "pdf";
-      const fileName = `invoices/${missionId}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("mission-media")
-        .upload(fileName, file, { contentType: resolveContentType(file) });
-
+      const path = `invoices/${missionId}/${Date.now()}.${ext}`;
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+      formData.append("path", path);
+      const { data, error } = await supabase.functions.invoke("upload-mission-file", { body: formData });
       if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from("mission-media")
-        .getPublicUrl(fileName);
-
-      setInvoiceUrl(urlData.publicUrl);
+      const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
+      if (!publicUrl) throw new Error("URL introuvable après l'upload");
+      setInvoiceUrl(publicUrl);
       toast({ title: "Fichier uploadé" });
     } catch (err: unknown) {
       toastError(toast, err instanceof Error ? err : "Erreur inconnue", { title: "Erreur d'upload" });
