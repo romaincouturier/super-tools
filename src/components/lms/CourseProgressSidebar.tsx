@@ -170,8 +170,14 @@ function ModuleBlock({
   const [open, setOpen] = useState(defaultOpen);
 
   useEffect(() => {
-    // Auto-open when the active lesson is in this module
-    if (lessons.some((l) => l.id === selectedLessonId)) setOpen(true);
+    const hasLesson = lessons.some((l) => l.id === selectedLessonId);
+    if (hasLesson) {
+      setOpen(true);
+    } else if (selectedLessonId !== null) {
+      // Auto-close when the active lesson moves to another module.
+      // selectedLessonId !== null guard preserves manual state when no lesson is selected.
+      setOpen(false);
+    }
   }, [selectedLessonId]);
 
   const completedCount = lessons.filter((l) => completedIds.has(l.id)).length;
@@ -295,9 +301,10 @@ export default function CourseProgressSidebar({
           const unlocked = isModuleUnlocked(mod);
           const completedCount = lessons.filter((l) => completedIds.has(l.id)).length;
           const allDone = completedCount === lessons.length && lessons.length > 0;
-          // Default open: active module or first non-completed
           const isActiveModule = mod.id === activeModuleId;
-          const defaultOpen = isActiveModule || (!allDone && unlocked && activeModuleId === null);
+          // Only open the active module by default; never pre-open all unlocked modules
+          // (avoids the flash of all-expanded when selectedLessonId hasn't been set yet)
+          const defaultOpen = isActiveModule;
 
           return (
             <div key={mod.id} className="border-b pb-5 last:border-b-0 last:pb-0"

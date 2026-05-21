@@ -8,8 +8,25 @@ interface Props {
   slim?: boolean;
 }
 
+const WIDTH_LABELS: Record<ContainerMaxWidth, string> = {
+  sm: "Étroite",
+  md: "Moyenne",
+  lg: "Large",
+  xl: "Très large",
+  full: "Pleine largeur",
+};
+
 export default function ContainerBlockEditor({ content, onChange, slim }: Props) {
-  if (slim) return null;
+  if (slim) {
+    return (
+      <p className="text-xs py-0.5" style={{ color: "var(--st-ink-muted)" }}>
+        Largeur max :{" "}
+        <span className="font-medium" style={{ color: "var(--st-ink)" }}>
+          {WIDTH_LABELS[content.max_width] ?? content.max_width}
+        </span>
+      </p>
+    );
+  }
 
   return (
     <div className="space-y-2">

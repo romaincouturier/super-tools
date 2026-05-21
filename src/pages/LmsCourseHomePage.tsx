@@ -535,26 +535,61 @@ function Sidebar({
       className="flex flex-col h-full overflow-y-auto"
       style={{ background: "var(--st-white)" }}
     >
-      {/* Live et replays — only if meetings exist */}
+      {/* Live et replays — distinctive style section */}
       {meetings.length > 0 && (
-        <div className="p-5 pb-3 border-b" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--st-ink-muted)" }}>
-            Live et replays
+        <div className="p-3 pb-3 border-b" style={{ borderColor: "rgba(16,24,32,0.06)", background: "#101820" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-2 px-2" style={{ color: "rgba(255,209,0,0.7)", letterSpacing: ".06em" }}>
+            Live &amp; Replays
           </p>
           <ul className="space-y-0.5">
             <li>
-              <SidebarBtn label="Calendrier des lives" icon={Calendar} viewKey="calendar" />
+              <button
+                onClick={() => onViewChange("calendar")}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-sm"
+                style={{
+                  fontFamily: "inherit",
+                  background: activeView === "calendar" ? "#FFD100" : "rgba(255,209,0,0.1)",
+                  color: activeView === "calendar" ? "#101820" : "#FFD100",
+                  fontWeight: activeView === "calendar" ? 600 : 500,
+                }}
+                onMouseEnter={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.2)"; }}
+                onMouseLeave={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
+              >
+                <Calendar size={15} style={{ flexShrink: 0 }} />
+                <span className="truncate leading-snug">Calendrier des lives</span>
+              </button>
             </li>
-            {meetings.map((m) => (
-              <li key={m.id}>
-                <SidebarBtn
-                  label={m.title}
-                  icon={m.replay_url ? Play : Video}
-                  viewKey={`replay:${m.id}`}
-                  sub
-                />
-              </li>
-            ))}
+            {meetings.map((m) => {
+              const vk = `replay:${m.id}`;
+              const isActive = activeView === vk;
+              const hasReplay = !!m.replay_url;
+              return (
+                <li key={m.id}>
+                  <button
+                    onClick={() => onViewChange(vk)}
+                    className="w-full flex items-center gap-2.5 pl-7 pr-3 py-2 rounded-xl text-left transition-colors text-xs"
+                    style={{
+                      fontFamily: "inherit",
+                      background: isActive ? "#FFD100" : "transparent",
+                      color: isActive ? "#101820" : hasReplay ? "#FFD100" : "rgba(255,209,0,0.5)",
+                      fontWeight: isActive ? 600 : 400,
+                    }}
+                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
+                    onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                  >
+                    {hasReplay
+                      ? <Play size={13} style={{ flexShrink: 0 }} />
+                      : <Video size={13} style={{ flexShrink: 0 }} />}
+                    <span className="truncate leading-snug">{m.title}</span>
+                    {!hasReplay && (
+                      <span className="ml-auto shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,209,0,0.2)", color: "rgba(255,209,0,0.6)" }}>
+                        À venir
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

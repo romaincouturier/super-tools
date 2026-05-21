@@ -40,6 +40,7 @@ const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const Emargement = lazy(() => import("./pages/Emargement"));
 const SignatureDevis = lazy(() => import("./pages/SignatureDevis"));
 const SignatureConvention = lazy(() => import("./pages/SignatureConvention"));
+const SignatureLocation = lazy(() => import("./pages/SignatureLocation"));
 const ContentBoard = lazy(() => import("./pages/ContentBoard"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const BesoinsParticipants = lazy(() => import("./pages/BesoinsParticipants"));
@@ -215,6 +216,8 @@ const App = () => (
               <Route path="/signature-devis/:token" element={<SignatureDevis />} />
               {/* Public convention signature */}
               <Route path="/signature-convention/:token" element={<SignatureConvention />} />
+              {/* Public location contract signature */}
+              <Route path="/signature-location/:token" element={<SignatureLocation />} />
               {/* Public training summary for participants */}
               <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
               <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />

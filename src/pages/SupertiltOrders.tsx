@@ -42,6 +42,9 @@ import {
   useUpsertSupertiltSetting,
   useOrderKpis,
   useCsvExport,
+  useLocationContractSignature,
+  useGenerateLocationContract,
+  useSendLocationContractEmail,
   type GameFull,
   type GameAuthorFull,
   type OrderItem,
@@ -499,6 +502,92 @@ function NoteDialog({ item, onClose }: { item: OrderItem; onClose: () => void })
   );
 }
 
+function LocationContractSection({ item }: { item: OrderItem }) {
+  const { data: sig, isLoading: sigLoading } = useLocationContractSignature(item.id);
+  const { mutateAsync: generateContract, isPending: generating } = useGenerateLocationContract();
+  const { mutateAsync: sendContract, isPending: sending } = useSendLocationContractEmail();
+  const { toast } = useToast();
+
+  const hasContract = !!item.location_contract_file_url;
+  const isSigned = sig?.status === "signed";
+  const isSent = !!sig?.email_sent_at;
+
+  const handleGenerate = async () => {
+    try {
+      const result = await generateContract(item.id);
+      toast({ title: "Contrat généré", description: `Réf. ${result.contratReference}` });
+    } catch (e: any) {
+      toastError(toast, e?.message || "Erreur génération contrat");
+    }
+  };
+
+  const handleSend = async () => {
+    try {
+      await sendContract({ orderItemId: item.id, enableOnlineSignature: true });
+      toast({ title: "Contrat envoyé", description: "Email avec lien de signature envoyé au locataire." });
+    } catch (e: any) {
+      toastError(toast, e?.message || "Erreur envoi contrat");
+    }
+  };
+
+  return (
+    <div className="mt-2 pt-2 border-t border-orange-200 space-y-2">
+      <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Contrat de location</p>
+      {item.contrat_reference && (
+        <p className="text-xs text-muted-foreground">Réf. {item.contrat_reference}</p>
+      )}
+      {isSigned ? (
+        <div className="flex items-center gap-1.5 text-xs text-green-700">
+          <CheckCircle className="h-3.5 w-3.5" />
+          Signé le {sig?.signed_at ? DATE(sig.signed_at) : ""}
+          {sig?.signed_pdf_url && (
+            <a href={sig.signed_pdf_url} target="_blank" rel="noopener noreferrer" className="ml-1 underline">Télécharger</a>
+          )}
+        </div>
+      ) : isSent ? (
+        <p className="text-xs text-blue-700 flex items-center gap-1">
+          <Send className="h-3 w-3" />En attente de signature (envoyé le {sig?.email_sent_at ? DATE(sig.email_sent_at) : ""})
+        </p>
+      ) : hasContract ? (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <FileText className="h-3 w-3" />Contrat généré — pas encore envoyé
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-6 text-xs px-2"
+          onClick={handleGenerate}
+          disabled={generating}
+        >
+          {generating ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <FileText className="h-3 w-3 mr-1" />}
+          {hasContract ? "Regénérer" : "Générer"}
+        </Button>
+        {hasContract && !isSigned && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-xs px-2 text-orange-700"
+            onClick={handleSend}
+            disabled={sending || sigLoading}
+          >
+            {sending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
+            Envoyer + signer
+          </Button>
+        )}
+        {hasContract && (
+          <Button variant="ghost" size="sm" className="h-6 text-xs px-2" asChild>
+            <a href={item.location_contract_file_url!} target="_blank" rel="noopener noreferrer">
+              <Eye className="h-3 w-3 mr-1" />PDF
+            </a>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const [showDetail, setShowDetail] = useState(false);
   const [showValidate, setShowValidate] = useState(false);
@@ -569,6 +658,10 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
 
       {item.notes && (
         <p className="text-xs text-muted-foreground italic border-l-2 pl-2">{item.notes}</p>
+      )}
+
+      {item.kanban_status === "location_pending" && (
+        <LocationContractSection item={item} />
       )}
 
       <div className="flex flex-wrap gap-1 pt-1">
@@ -873,18 +966,52 @@ function GameDialog({
                 />
                 <p className="text-xs text-muted-foreground">Utilisé pour calculer la marge réelle dans le bilan (CA SuperTilt − prix de revient × qté − dépenses).</p>
               </div>
-              {form.game_type === "location" && (
+              {form.game_type === "location" && (<>
                 <div className="col-span-2 space-y-1">
-                  <Label>URL du contrat de location (lien à signer)</Label>
+                  <Label>ID template PDF Monkey</Label>
                   <Input
-                    type="url"
-                    placeholder="https://supertilt.fr/contrat-de-location-du-jeu-..."
-                    value={(form as any).location_contract_url ?? ""}
-                    onChange={(e) => set("location_contract_url" as any, e.target.value)}
+                    placeholder="A9C4C140-4854-40AF-9EFA-BDD88EEA39A4"
+                    value={form.pdfmonkey_template_id ?? ""}
+                    onChange={(e) => set("pdfmonkey_template_id", e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">Sera inséré dans le mail de location à la place de <code>{"{{contrat_url}}"}</code>.</p>
+                  <p className="text-xs text-muted-foreground">Identifiant du template dans PDF Monkey pour générer le contrat.</p>
                 </div>
-              )}
+                <div className="space-y-1">
+                  <Label>Durée (libellé)</Label>
+                  <Input
+                    placeholder="1 mois"
+                    value={form.location_duree_libelle ?? ""}
+                    onChange={(e) => set("location_duree_libelle", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Durée (jours)</Label>
+                  <Input
+                    type="number" min="1"
+                    placeholder="30"
+                    value={form.location_duree_jours ?? ""}
+                    onChange={(e) => set("location_duree_jours", e.target.value ? parseInt(e.target.value) : null)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Tarif retard / mois (€)</Label>
+                  <Input
+                    type="number" min="0" step="0.01"
+                    placeholder="49"
+                    value={form.location_tarif_retard_mois ?? ""}
+                    onChange={(e) => set("location_tarif_retard_mois", e.target.value ? parseFloat(e.target.value) : null)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Prix remplacement (€)</Label>
+                  <Input
+                    type="number" min="0" step="0.01"
+                    placeholder="390"
+                    value={form.location_prix_remplacement ?? ""}
+                    onChange={(e) => set("location_prix_remplacement", e.target.value ? parseFloat(e.target.value) : null)}
+                  />
+                </div>
+              </>)}
             </div>
           </div>
         </div>
@@ -1297,6 +1424,39 @@ export function SettingsTab() {
             <div>
               <Label>Envoi automatique des emails</Label>
               <p className="text-xs text-muted-foreground">Si désactivé, les emails nécessitent une validation manuelle</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bailleur (Location contracts) */}
+      <Card>
+        <CardHeader><CardTitle className="text-base">Bailleur (contrats de location)</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1">
+              <Label>Nom du bailleur</Label>
+              <Input value={get("bailleur_nom")} onChange={(e) => setLocal("bailleur_nom", e.target.value)} placeholder="SuperTilt" />
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Adresse</Label>
+              <Input value={get("bailleur_adresse")} onChange={(e) => setLocal("bailleur_adresse", e.target.value)} placeholder="55 Chemin du Moulin du Gôt" />
+            </div>
+            <div className="space-y-1">
+              <Label>Code postal</Label>
+              <Input value={get("bailleur_code_postal")} onChange={(e) => setLocal("bailleur_code_postal", e.target.value)} placeholder="69340" />
+            </div>
+            <div className="space-y-1">
+              <Label>Ville</Label>
+              <Input value={get("bailleur_ville")} onChange={(e) => setLocal("bailleur_ville", e.target.value)} placeholder="Francheville" />
+            </div>
+            <div className="space-y-1">
+              <Label>Pays</Label>
+              <Input value={get("bailleur_pays")} onChange={(e) => setLocal("bailleur_pays", e.target.value)} placeholder="France" />
+            </div>
+            <div className="space-y-1">
+              <Label>Email bailleur</Label>
+              <Input value={get("bailleur_email")} onChange={(e) => setLocal("bailleur_email", e.target.value)} placeholder="contact@supertilt.fr" />
             </div>
           </div>
         </CardContent>

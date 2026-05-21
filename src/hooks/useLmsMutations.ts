@@ -211,6 +211,60 @@ export function useDeleteLesson() {
   });
 }
 
+export function useDuplicateLesson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (lessonId: string) => {
+      const { data: original, error: fetchErr } = await supabase
+        .from("lms_lessons")
+        .select("*")
+        .eq("id", lessonId)
+        .single();
+      if (fetchErr) throw fetchErr;
+
+      const { data: siblings, error: sibErr } = await supabase
+        .from("lms_lessons")
+        .select("position")
+        .eq("module_id", original.module_id)
+        .order("position", { ascending: false })
+        .limit(1);
+      if (sibErr) throw sibErr;
+      const nextPosition = siblings && siblings.length > 0 ? siblings[0].position + 1 : 0;
+
+      const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = original;
+      const { data: copy, error: insertErr } = await supabase
+        .from("lms_lessons")
+        .insert({ ...rest, title: `Copie de ${original.title}`, position: nextPosition } as LmsLessonInsert)
+        .select()
+        .single();
+      if (insertErr) throw insertErr;
+
+      const { data: blocks, error: blocksErr } = await supabase
+        .from("lms_lesson_blocks")
+        .select("*")
+        .eq("lesson_id", lessonId)
+        .order("position");
+      if (blocksErr) throw blocksErr;
+
+      if (blocks && blocks.length > 0) {
+        const { error: blocksInsertErr } = await supabase
+          .from("lms_lesson_blocks")
+          .insert(blocks.map(({ id: _bid, created_at: _bca, updated_at: _bua, ...b }) => ({
+            ...b,
+            lesson_id: copy.id,
+          })));
+        if (blocksInsertErr) throw blocksInsertErr;
+      }
+
+      return copy;
+    },
+    onSuccess: (copy) => {
+      qc.invalidateQueries({ queryKey: ["lms-lessons", copy.module_id] });
+      qc.invalidateQueries({ queryKey: ["lms-course-lessons"] });
+    },
+  });
+}
+
 export function useReorderLessons() {
   const qc = useQueryClient();
   return useMutation({
@@ -222,6 +276,31 @@ export function useReorderLessons() {
           .eq("id", l.id);
         if (error) throw error;
       }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-lessons"] });
+      qc.invalidateQueries({ queryKey: ["lms-course-lessons"] });
+    },
+  });
+}
+
+export function useMoveLessonToModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ lessonId, targetModuleId }: { lessonId: string; targetModuleId: string }) => {
+      const { data: existing, error: fetchErr } = await supabase
+        .from("lms_lessons")
+        .select("position")
+        .eq("module_id", targetModuleId)
+        .order("position", { ascending: false })
+        .limit(1);
+      if (fetchErr) throw fetchErr;
+      const nextPosition = existing && existing.length > 0 ? existing[0].position + 1 : 0;
+      const { error } = await supabase
+        .from("lms_lessons")
+        .update({ module_id: targetModuleId, position: nextPosition, updated_at: new Date().toISOString() } as LmsLessonUpdate)
+        .eq("id", lessonId);
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lms-lessons"] });

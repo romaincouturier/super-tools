@@ -2,14 +2,17 @@ import { useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Video, Image as ImageIcon, Upload } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, X, Video, Image as ImageIcon, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { cryptoRandomId } from "@/types/lms-blocks";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
-import { uploadLmsImage } from "@/hooks/useLms";
+import { uploadLmsImage, uploadLmsFile } from "@/hooks/useLms";
+import { resolveContentType } from "@/lib/file-utils";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import WorkDepositBlockEditor from "./WorkDepositBlockEditor";
 
 interface Props {
   lessonId: string;
@@ -41,6 +44,82 @@ function VideoPreview({ url }: { url: string }) {
         <video src={url} controls className="w-full h-full" />
       )}
     </div>
+  );
+}
+
+function PdfUploader({
+  lessonId,
+  pdfUrl,
+  onUpload,
+  onRemove,
+}: {
+  lessonId: string;
+  pdfUrl: string | null | undefined;
+  onUpload: (url: string) => void;
+  onRemove: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleFile = async (file: File) => {
+    if (resolveContentType(file) !== "application/pdf") {
+      toastError(toast, "Seuls les fichiers PDF sont acceptés.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toastError(toast, "Le fichier ne doit pas dépasser 20 Mo.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const result = await uploadLmsFile(file, lessonId);
+      onUpload(result.url);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur d'upload");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (pdfUrl) {
+    return (
+      <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5 bg-muted/40">
+        <FileText size={16} className="shrink-0 text-muted-foreground" />
+        <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm truncate underline">
+          Voir le PDF de consigne
+        </a>
+        <button onClick={onRemove} aria-label="Supprimer le PDF" className="shrink-0">
+          <X size={14} className="text-muted-foreground hover:text-destructive" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
+        }}
+      />
+      <button
+        type="button"
+        disabled={uploading}
+        onClick={() => fileRef.current?.click()}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border-2 border-dashed text-sm transition-all hover:bg-black/5"
+        style={{ borderColor: "rgba(16,24,32,0.18)", color: "var(--st-ink-muted)" }}
+      >
+        {uploading ? <Spinner className="h-4 w-4" /> : <FileText size={16} />}
+        {uploading ? "Upload en cours…" : "Ajouter un PDF de consigne"}
+      </button>
+    </>
   );
 }
 
@@ -117,6 +196,8 @@ function ImageUploader({
 export default function ExerciseBlockEditor({ lessonId, content, onChange, slim }: Props) {
   const checklistItems = content.checklist_items || [];
   const hasChecklist = checklistItems.length > 0 || content.checklist_title;
+  const depositEnabled = content.work_deposit_enabled === true;
+  const depositConfig = content.work_deposit ?? {};
 
   const setChecklistLabel = (id: string, label: string) =>
     onChange({
@@ -163,6 +244,12 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
             </button>
           </div>
         ) : null}
+        <PdfUploader
+          lessonId={lessonId}
+          pdfUrl={content.pdf_url}
+          onUpload={(url) => onChange({ ...content, pdf_url: url })}
+          onRemove={() => onChange({ ...content, pdf_url: null })}
+        />
         <RichTextEditor
           content={content.prompt_html || ""}
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
@@ -205,6 +292,16 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
 
   return (
     <div className="space-y-3">
+      {/* Custom title */}
+      <div>
+        <Label>Titre du bloc (optionnel)</Label>
+        <Input
+          value={content.title || ""}
+          onChange={(e) => onChange({ ...content, title: e.target.value || null })}
+          placeholder="Exercice"
+        />
+      </div>
+
       {/* Video de consigne */}
       <div className="rounded-lg border p-3 space-y-2">
         <div className="flex items-center gap-2">
@@ -231,6 +328,20 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           imageUrl={content.image_url}
           onUpload={(url) => onChange({ ...content, image_url: url })}
           onRemove={() => onChange({ ...content, image_url: null })}
+        />
+      </div>
+
+      {/* PDF de consigne */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <Label className="text-sm">PDF de consigne (optionnel)</Label>
+        </div>
+        <PdfUploader
+          lessonId={lessonId}
+          pdfUrl={content.pdf_url}
+          onUpload={(url) => onChange({ ...content, pdf_url: url })}
+          onRemove={() => onChange({ ...content, pdf_url: null })}
         />
       </div>
 
@@ -291,6 +402,26 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           onChange={(answer_html) => onChange({ ...content, answer_html })}
           placeholder="Le corrigé est masqué par défaut, l'apprenant le révèle d'un clic."
         />
+      </div>
+
+      {/* Work deposit toggle (ST-2026-0138) */}
+      <div className="rounded-lg border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm">Demander un dépôt de travail</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">L'apprenant pourra remettre un fichier en réponse à cet exercice.</p>
+          </div>
+          <Switch
+            checked={depositEnabled}
+            onCheckedChange={(v) => onChange({ ...content, work_deposit_enabled: v, work_deposit: v ? (content.work_deposit ?? {}) : null })}
+          />
+        </div>
+        {depositEnabled && (
+          <WorkDepositBlockEditor
+            content={depositConfig}
+            onChange={(wd) => onChange({ ...content, work_deposit: wd })}
+          />
+        )}
       </div>
     </div>
   );
