@@ -860,6 +860,20 @@ function GameDialog({
                 <Label>URL produit WooCommerce</Label>
                 <Input value={form.woocommerce_product_url ?? ""} onChange={(e) => set("woocommerce_product_url", e.target.value)} placeholder="https://…" />
               </div>
+              <div className="col-span-2 space-y-1">
+                <Label>ID variation location WooCommerce (optionnel)</Label>
+                <Input
+                  type="number"
+                  value={form.location_variation_id ?? ""}
+                  onChange={(e) => set("location_variation_id", e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="Ex: 4567 — ID de la variation « Location » dans WooCommerce"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Si ce jeu a deux variations WooCommerce (achat + location), renseignez ici l&apos;ID de la variation location.
+                  Les commandes avec cette variation seront automatiquement routées en <strong>attente contrat</strong>,
+                  quelle que soit la configuration du type de jeu.
+                </p>
+              </div>
             </div>
           </div>
 
