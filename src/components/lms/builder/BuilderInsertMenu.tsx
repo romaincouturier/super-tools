@@ -22,6 +22,8 @@ const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }
   assignment:      { desc: "Devoir à rendre", kbd: "/ devoir" },
   table:           { desc: "Tableau structuré", kbd: "/ tableau" },
   shortcode:       { desc: "Formulaire intégré (besoins, avis)", kbd: "/ code" },
+  gallery:         { desc: "Grille ou carrousel d'images", kbd: "/ galerie" },
+  html_embed:      { desc: "HTML ou iframe personnalisé", kbd: "/ html" },
   section:         { desc: "Conteneur pleine largeur", kbd: "/ section" },
   row:             { desc: "Colonnes côte à côte", kbd: "/ colonnes" },
   divider:         { desc: "Trait fin entre sections", kbd: "/ ---" },
@@ -33,6 +35,7 @@ const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
   "text", "key_points", "callout", "image", "video", "file",
   "quiz", "checklist", "bullet_list", "button", "exercise",
   "self_assessment", "work_deposit", "assignment", "table", "shortcode",
+  "gallery", "html_embed",
 ];
 
 const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [
