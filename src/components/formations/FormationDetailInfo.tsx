@@ -25,6 +25,7 @@ interface Props {
   isInterSession: boolean;
   getFormatLabel: () => string | null;
   calculateTotalDuration: () => number;
+  bpfNeedsAttention?: boolean;
 }
 
 const FormationDetailInfo = ({
@@ -36,6 +37,7 @@ const FormationDetailInfo = ({
   isInterSession,
   getFormatLabel,
   calculateTotalDuration,
+  bpfNeedsAttention,
 }: Props) => {
   const { toast } = useToast();
   const { loading: sendingLogistics, invoke: invokeSendLogistics } = useEdgeFunction(
