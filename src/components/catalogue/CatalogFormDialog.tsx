@@ -94,6 +94,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const [prerequisites, setPrerequisites] = useState<string[]>([]);
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
   const [woocommerceProductId, setWoocommerceProductId] = useState("");
+  const [codeSpecialiteNsf, setCodeSpecialiteNsf] = useState("");
+  const [labelSpecialiteNsf, setLabelSpecialiteNsf] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [formulas, setFormulas] = useState<FormulaEdit[]>([]);
   const [expandedFormula, setExpandedFormula] = useState<number | null>(null);
@@ -120,7 +122,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   formValuesRef.current = {
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
-    elearningAccessEmailContent, woocommerceProductId, isActive,
+    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf, isActive,
     formulas,
   };
 
@@ -129,7 +131,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const formHash = JSON.stringify({
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
-    elearningAccessEmailContent, woocommerceProductId, isActive,
+    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf, isActive,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
@@ -141,6 +143,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       requiredEquipment: string;
       objectives: string[]; prerequisites: string[];
       elearningAccessEmailContent: string; woocommerceProductId: string;
+      codeSpecialiteNsf: string; labelSpecialiteNsf: string;
       isActive: boolean; formulas: FormulaEdit[];
     };
 
@@ -159,6 +162,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       prerequisites: v.prerequisites,
       elearning_access_email_content: v.elearningAccessEmailContent.trim() || null,
       woocommerce_product_id: v.woocommerceProductId ? parseInt(v.woocommerceProductId, 10) : null,
+      code_specialite_nsf: v.codeSpecialiteNsf.trim() || null,
+      label_specialite_nsf: v.labelSpecialiteNsf.trim() || null,
       is_active: v.isActive,
     };
 
@@ -275,6 +280,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setPrerequisites(entry.prerequisites || []);
         setElearningAccessEmailContent(entry.elearning_access_email_content || "");
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
+        setCodeSpecialiteNsf((entry as unknown as { code_specialite_nsf?: string | null }).code_specialite_nsf || "");
+        setLabelSpecialiteNsf((entry as unknown as { label_specialite_nsf?: string | null }).label_specialite_nsf || "");
         setIsActive(entry.is_active);
         // Load formulas from DB
         supabase
@@ -300,6 +307,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setPrerequisites([]);
         setElearningAccessEmailContent("");
         setWoocommerceProductId("");
+        setCodeSpecialiteNsf("");
+        setLabelSpecialiteNsf("");
         setIsActive(true);
         setFormulas([]);
       }
@@ -347,6 +356,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         prerequisites,
         elearning_access_email_content: elearningAccessEmailContent.trim() || null,
         woocommerce_product_id: woocommerceProductId ? parseInt(woocommerceProductId, 10) : null,
+        code_specialite_nsf: codeSpecialiteNsf.trim() || null,
+        label_specialite_nsf: labelSpecialiteNsf.trim() || null,
         is_active: isActive,
       };
 
@@ -483,6 +494,29 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
                 />
               </div>
             </div>
+
+            {/* BPF — Spécialité NSF */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="codeSpecialiteNsf">Code NSF (BPF)</Label>
+                <Input
+                  id="codeSpecialiteNsf"
+                  value={codeSpecialiteNsf}
+                  onChange={(e) => setCodeSpecialiteNsf(e.target.value)}
+                  placeholder="Ex: 326"
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="labelSpecialiteNsf">Libellé spécialité NSF</Label>
+                <Input
+                  id="labelSpecialiteNsf"
+                  value={labelSpecialiteNsf}
+                  onChange={(e) => setLabelSpecialiteNsf(e.target.value)}
+                  placeholder="Ex: Informatique, traitement de l'information"
+                />
+              </div>
+            </div>
+
 
             {/* Inter-entreprise formulas */}
             <div className="space-y-2">
