@@ -50,6 +50,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Architecture
 
+### [028] Blocs LMS — tout bloc avec editor + viewer doit être activé dans BuilderInsertMenu
+- **Constat** : `GalleryBlockEditor`, `GalleryBlockViewer`, `HtmlEmbedBlockEditor`, `HtmlEmbedBlockViewer` existaient tous les quatre, les types TypeScript et les entrées dans `registry.tsx` étaient corrects, mais les deux blocs n'étaient pas dans `ACTIVE_CONTENT_TYPES` de `BuilderInsertMenu.tsx` → affichés grisés avec badge "soon" et inutilisables malgré une implémentation complète.
+- **Règle** : Quand un type de bloc LMS a un editor (`.../editors/XxxBlockEditor.tsx`) ET un viewer (`.../viewers/XxxBlockViewer.tsx`), il doit obligatoirement apparaître dans `ACTIVE_CONTENT_TYPES` de `BuilderInsertMenu.tsx` ET avoir une entrée dans `BLOCK_META` (description + raccourci clavier). Un bloc sans ces deux ajouts reste grisé même si tout le reste est implémenté.
+- **Vérification** : comparer les types listés dans `ACTIVE_CONTENT_TYPES` (`src/components/lms/builder/BuilderInsertMenu.tsx`) avec les fichiers présents dans `src/components/lms/blocks/editors/` — tout type `XxxBlockEditor.tsx` dont le type correspondant n'est pas dans `ACTIVE_CONTENT_TYPES` est une violation. Commande : `for f in src/components/lms/blocks/editors/*BlockEditor.tsx; do type=$(basename "$f" BlockEditor.tsx | sed 's/\([A-Z]\)/_\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^_//'); grep -q "\"$type\"" src/components/lms/builder/BuilderInsertMenu.tsx || echo "MISSING in ACTIVE_CONTENT_TYPES: $type"; done`
+- **Fichiers de référence** : `src/components/lms/builder/BuilderInsertMenu.tsx` (ACTIVE_CONTENT_TYPES + BLOCK_META), `src/components/lms/blocks/registry.tsx`
+- **Origine** : galerie d'images et HTML embed grisés "soon" dans le menu d'insertion malgré editors et viewers complets
+- **Date** : 2026-05-21
+
 ### [014] Séparation Pages → Hooks → Client Supabase — jamais d'accès données dans les composants UI
 - **Constat** : L'architecture agent-chat (AgentChat.tsx, useAgentChat.ts, useAgentConversations.ts) respecte une séparation propre en 3 couches : (1) les **pages** orchestrent les composants et appellent les hooks, (2) les **hooks** encapsulent toute la logique métier (state, SSE streaming, CRUD), (3) seul le **client Supabase** accède aux données. Un point de vigilance : `AgentIndexationSettings.tsx` fait un `fetch()` direct au lieu de passer par un hook — à surveiller pour ne pas propager ce raccourci. Les fichiers restent sous ~400 lignes ; au-delà, extraire un sous-composant ou splitter le hook.
 - **Règle** : Aucun composant UI (pages ou composants) ne doit contenir de `fetch()`, `supabase.from()`, ou accès réseau direct. Toute logique d'accès données doit être dans un hook dédié (`use*.ts`). Seuil de vigilance : extraire un sous-composant dès qu'un fichier dépasse ~400 lignes, splitter un hook dès qu'il dépasse ~300 lignes.
