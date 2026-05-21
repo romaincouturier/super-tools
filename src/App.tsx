@@ -9,6 +9,7 @@ import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import AgentCommandDialog from "@/components/AgentCommandDialog";
+import { RequireStaff } from "@/components/RequireStaff";
 import "@/i18n";
 import { registerToast } from "@/lib/offlineMutationGuard";
 import { toast } from "@/hooks/use-toast";
@@ -139,141 +140,109 @@ const App = () => (
         <Suspense fallback={<PageLoader />}>
           <RouteErrorBoundary>
             <Routes>
+              {/* Public routes — no auth required */}
               <Route path="/" element={<Landing />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/agent" element={<AgentChat />} />
-              <Route path="/certificates" element={<CertificateGenerator />} />
-              <Route path="/micro-devis" element={<MicroDevis />} />
-              <Route path="/historique" element={<Historique />} />
-              <Route path="/parametres" element={<Parametres />} />
-              <Route path="/formations" element={<Formations />} />
-              <Route path="/formations/new" element={<FormationCreate />} />
-              <Route path="/formations/bpf" element={<BPFReport />} />
-              <Route path="/formations/:id" element={<FormationDetail />} />
-              <Route path="/formations/:id/edit" element={<FormationEdit />} />
-              {/* Needs summary across all trainings */}
-              <Route path="/besoins" element={<BesoinsParticipants />} />
-              {/* Evaluations dashboard */}
-              <Route path="/evaluations" element={<Evaluations />} />
-              {/* Improvements tracking */}
-              <Route path="/ameliorations" element={<Ameliorations />} />
-              {/* Content marketing board */}
-              <Route path="/contenu" element={<ContentBoard />} />
-              {/* Chatbot knowledge base admin */}
-              <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
-              {/* Inbound emails */}
-              <Route path="/emails" element={<InboundEmails />} />
-              <Route path="/emails-a-valider" element={<EmailsAValider />} />
-              {/* Web analytics (WP-Statistics) */}
-              <Route path="/web-analytics" element={<WebAnalytics />} />
-              {/* CRM Kanban */}
-              <Route path="/crm" element={<Crm />} />
-              <Route path="/crm/card/:cardId" element={<Crm />} />
-              <Route path="/crm/reports" element={<CrmReports />} />
-              {/* Missions Kanban */}
-              <Route path="/missions" element={<Missions />} />
-              <Route path="/missions/:missionId" element={<Missions />} />
-              {/* OKR Management */}
-              <Route path="/okr" element={<OKR />} />
-              {/* Media library */}
-              <Route path="/medias" element={<MediaLibrary />} />
-              {/* Events */}
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/new" element={<EventCreate />} />
-              <Route path="/events/:id" element={<EventDetail />} />
-              <Route path="/events/:id/edit" element={<EventEdit />} />
-              {/* Admin monitoring */}
-              <Route path="/monitoring" element={<Monitoring />} />
-              <Route path="/screenshots" element={<Screenshots />} />
-              {/* Training catalog */}
-              <Route path="/catalogue" element={<Catalogue />} />
-              {/* AI Tools (M4) */}
-              <Route path="/ia" element={<AiTools />} />
-              {/* LMS (M7) */}
-              <Route path="/lms" element={<LmsCourses />} />
-              <Route path="/lms/deposits" element={<LmsDeposits />} />
-              <Route path="/lms/apprenants" element={<LmsLearners />} />
-              <Route path="/lms/messages" element={<LmsMessages />} />
-              <Route path="/lms/faq" element={<LmsFaq />} />
-              <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
-              <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
-              <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
-              <Route path="/lms/:courseId/home" element={<LmsCourseHomePage />} />
-              {/* Failed emails */}
-              <Route path="/emails-erreur" element={<FailedEmails />} />
-              {/* Public needs survey */}
-              <Route path="/questionnaire/:token" element={<Questionnaire />} />
-              {/* Public evaluation form */}
-              <Route path="/evaluation/:token" element={<Evaluation />} />
-              {/* Public e-learning redirects (resolve participant by email + WooCommerce product ID) */}
-              <Route path="/formulaire/besoins" element={<FormulaireRedirect />} />
-              <Route path="/formulaire/evaluation" element={<FormulaireRedirect />} />
-              {/* Public sponsor cold evaluation form */}
-              <Route path="/evaluation-commanditaire/:token" element={<SponsorEvaluation />} />
-              {/* Public attendance signature */}
-              <Route path="/emargement/:token" element={<Emargement />} />
-              {/* Public devis signature */}
-              <Route path="/signature-devis/:token" element={<SignatureDevis />} />
-              {/* Public convention signature */}
-              <Route path="/signature-convention/:token" element={<SignatureConvention />} />
-              {/* Public location contract signature */}
-              <Route path="/signature-location/:token" element={<SignatureLocation />} />
-              {/* Public training summary for participants */}
-              <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
-              <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
-              <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
-              <Route path="/mission-info/:missionId" element={<MissionSummary />} />
-              {/* Privacy policy */}
-              <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/onboarding" element={<Onboarding />} />
-              {/* Learner portal (M3) */}
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/force-password-change" element={<ForcePasswordChange />} />
+              <Route path="/politique-confidentialite" element={<PolitiqueConfidentialite />} />
+              {/* Learner portal */}
               <Route path="/apprenant" element={<LearnerAccess />} />
               <Route path="/apprenant/connexion" element={<LearnerOnboarding />} />
               <Route path="/apprenant/reset-password" element={<LearnerResetPassword />} />
               <Route path="/espace-apprenant" element={<Navigate to="/espace-apprenant/tableau-de-bord" replace />} />
               <Route path="/espace-apprenant/:section" element={<LearnerPortal />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/force-password-change" element={<ForcePasswordChange />} />
-              {/* AI Arena */}
-              <Route path="/arena" element={<ArenaSetup />} />
-              <Route path="/arena/discussion" element={<ArenaDiscussion />} />
-              <Route path="/arena/results" element={<ArenaResults />} />
-              {/* Super Admin */}
-              <Route path="/admin" element={<Admin />} />
-              {/* Partner portal — public, no auth */}
-              <Route path="/partenaire/:token" element={<PartnerPortal />} />
-              {/* Reclamations */}
-              <Route path="/reclamation/:token" element={<ReclamationPublic />} />
-              <Route path="/reclamations" element={<Reclamations />} />
-              {/* Trainer evaluation public form */}
+              {/* LMS course player — accessible by learners and staff */}
+              <Route path="/lms/:courseId/player" element={<LmsCoursePlayer />} />
+              <Route path="/lms/:courseId/home" element={<LmsCourseHomePage />} />
+              {/* Public token-based forms */}
+              <Route path="/questionnaire/:token" element={<Questionnaire />} />
+              <Route path="/evaluation/:token" element={<Evaluation />} />
+              <Route path="/evaluation-commanditaire/:token" element={<SponsorEvaluation />} />
               <Route path="/evaluation-formateur/:token" element={<TrainerEvaluation />} />
-              {/* Quote workflow */}
-              <Route path="/devis/:cardId" element={<QuoteWorkflowPage />} />
-              {/* Support tickets Kanban */}
-              <Route path="/support" element={<Support />} />
-              {/* Network module */}
-              <Route path="/reseau" element={<Reseau />} />
-              {/* Watch module (veille) */}
-              <Route path="/veille" element={<Watch />} />
-              {/* SuperTilt (plan d'action) */}
-              <Route path="/supertilt" element={<SuperTilt />} />
-              {/* Finances (Pennylane) */}
-              <Route path="/finances" element={<Finances />} />
-              {/* Archives administratives */}
-              <Route path="/archives" element={<AdminArchives />} />
-
-              <Route path="/transcripts" element={<Transcripts />} />
-              <Route path="/temoignages" element={<Temoignages />} />
-              <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
-              <Route path="/commandes-jeux" element={<SupertiltOrders />} />
-              <Route path="/commandes/inbox" element={<WoocommerceInbox />} />
+              <Route path="/formulaire/besoins" element={<FormulaireRedirect />} />
+              <Route path="/formulaire/evaluation" element={<FormulaireRedirect />} />
+              <Route path="/emargement/:token" element={<Emargement />} />
+              <Route path="/signature-devis/:token" element={<SignatureDevis />} />
+              <Route path="/signature-convention/:token" element={<SignatureConvention />} />
+              <Route path="/signature-location/:token" element={<SignatureLocation />} />
+              <Route path="/reclamation/:token" element={<ReclamationPublic />} />
+              <Route path="/partenaire/:token" element={<PartnerPortal />} />
+              {/* Public participant pages */}
+              <Route path="/formation-info/:trainingId" element={<TrainingSummary />} />
+              <Route path="/formation-support/:trainingId" element={<TrainingSupportPage />} />
+              <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
+              <Route path="/mission-info/:missionId" element={<MissionSummary />} />
+              {/* OAuth callbacks */}
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
-              {/* Picto-Dico module */}
-              <Route path="/pictodico" element={<PictoDico />} />
-              {/* Time tracker */}
-              <Route path="/time-tracker" element={<TimeTracker />} />
+
+              {/* Back-office routes — staff only, learners redirected to /espace-apprenant */}
+              <Route element={<RequireStaff />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/agent" element={<AgentChat />} />
+                <Route path="/certificates" element={<CertificateGenerator />} />
+                <Route path="/micro-devis" element={<MicroDevis />} />
+                <Route path="/historique" element={<Historique />} />
+                <Route path="/parametres" element={<Parametres />} />
+                <Route path="/formations" element={<Formations />} />
+                <Route path="/formations/new" element={<FormationCreate />} />
+                <Route path="/formations/bpf" element={<BPFReport />} />
+                <Route path="/formations/:id" element={<FormationDetail />} />
+                <Route path="/formations/:id/edit" element={<FormationEdit />} />
+                <Route path="/besoins" element={<BesoinsParticipants />} />
+                <Route path="/evaluations" element={<Evaluations />} />
+                <Route path="/ameliorations" element={<Ameliorations />} />
+                <Route path="/contenu" element={<ContentBoard />} />
+                <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
+                <Route path="/emails" element={<InboundEmails />} />
+                <Route path="/emails-a-valider" element={<EmailsAValider />} />
+                <Route path="/emails-erreur" element={<FailedEmails />} />
+                <Route path="/web-analytics" element={<WebAnalytics />} />
+                <Route path="/crm" element={<Crm />} />
+                <Route path="/crm/card/:cardId" element={<Crm />} />
+                <Route path="/crm/reports" element={<CrmReports />} />
+                <Route path="/missions" element={<Missions />} />
+                <Route path="/missions/:missionId" element={<Missions />} />
+                <Route path="/okr" element={<OKR />} />
+                <Route path="/medias" element={<MediaLibrary />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/events/new" element={<EventCreate />} />
+                <Route path="/events/:id" element={<EventDetail />} />
+                <Route path="/events/:id/edit" element={<EventEdit />} />
+                <Route path="/monitoring" element={<Monitoring />} />
+                <Route path="/screenshots" element={<Screenshots />} />
+                <Route path="/catalogue" element={<Catalogue />} />
+                <Route path="/ia" element={<AiTools />} />
+                <Route path="/lms" element={<LmsCourses />} />
+                <Route path="/lms/deposits" element={<LmsDeposits />} />
+                <Route path="/lms/apprenants" element={<LmsLearners />} />
+                <Route path="/lms/messages" element={<LmsMessages />} />
+                <Route path="/lms/faq" element={<LmsFaq />} />
+                <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
+                <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
+                <Route path="/arena" element={<ArenaSetup />} />
+                <Route path="/arena/discussion" element={<ArenaDiscussion />} />
+                <Route path="/arena/results" element={<ArenaResults />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/reclamations" element={<Reclamations />} />
+                <Route path="/devis/:cardId" element={<QuoteWorkflowPage />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/reseau" element={<Reseau />} />
+                <Route path="/veille" element={<Watch />} />
+                <Route path="/supertilt" element={<SuperTilt />} />
+                <Route path="/finances" element={<Finances />} />
+                <Route path="/archives" element={<AdminArchives />} />
+                <Route path="/transcripts" element={<Transcripts />} />
+                <Route path="/temoignages" element={<Temoignages />} />
+                <Route path="/dropshipping" element={<Navigate to="/commandes-jeux" replace />} />
+                <Route path="/commandes-jeux" element={<SupertiltOrders />} />
+                <Route path="/commandes/inbox" element={<WoocommerceInbox />} />
+                <Route path="/pictodico" element={<PictoDico />} />
+                <Route path="/time-tracker" element={<TimeTracker />} />
+              </Route>
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
