@@ -21,6 +21,8 @@ import {
   Table as TableIcon,
   Code2,
   Braces,
+  GitCommitHorizontal,
+  FlipHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType, LessonBlockKind } from "@/types/lms-blocks";
@@ -71,6 +73,8 @@ export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "assignment", label: "Devoir", icon: ClipboardCheck, kind: "content", editable: true },
   { type: "shortcode", label: "Code court (formulaire)", icon: Code2, kind: "content", editable: true },
   { type: "html_embed", label: "HTML / Embed", icon: Braces, kind: "content", editable: true },
+  { type: "timeline", label: "Frise chronologique", icon: GitCommitHorizontal, kind: "content", editable: true },
+  { type: "flip_cards", label: "Cartes à retourner", icon: FlipHorizontal, kind: "content", editable: true },
 ];
 
 /** Combined registry; previously exported as BLOCK_TYPES. */

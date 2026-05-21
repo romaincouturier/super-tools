@@ -31,6 +31,8 @@ import type {
   SpacerBlockContent,
   ShortcodeBlockContent,
   HtmlEmbedBlockContent,
+  TimelineBlockContent,
+  FlipCardsBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
@@ -57,6 +59,8 @@ import DividerBlockEditor from "./editors/DividerBlockEditor";
 import SpacerBlockEditor from "./editors/SpacerBlockEditor";
 import ShortcodeBlockEditor from "./editors/ShortcodeBlockEditor";
 import HtmlEmbedBlockEditor from "./editors/HtmlEmbedBlockEditor";
+import TimelineBlockEditor from "./editors/TimelineBlockEditor";
+import FlipCardsBlockEditor from "./editors/FlipCardsBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -420,6 +424,24 @@ function BlockEditorBody({
       return (
         <HtmlEmbedBlockEditor
           content={content as HtmlEmbedBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "timeline":
+      return (
+        <TimelineBlockEditor
+          lessonId={lessonId}
+          content={content as TimelineBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "flip_cards":
+      return (
+        <FlipCardsBlockEditor
+          lessonId={lessonId}
+          content={content as FlipCardsBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
         />

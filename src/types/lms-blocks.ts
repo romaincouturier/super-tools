@@ -39,7 +39,9 @@ export type ContentBlockType =
   | "work_deposit"
   | "table"
   | "shortcode"
-  | "html_embed";
+  | "html_embed"
+  | "timeline"
+  | "flip_cards";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -228,6 +230,43 @@ export interface WorkDepositBlockContent {
   feedback_enabled?: boolean;
 }
 
+// ── Timeline block ──────────────────────────────────────────────────
+
+export interface TimelineDetailItem {
+  id: string;
+  icon_url?: string | null;
+  label: string;
+}
+
+export interface TimelineStep {
+  id: string;
+  icon_url?: string | null;
+  title: string;
+  description?: string | null;
+  panel_title?: string | null;
+  panel_items?: TimelineDetailItem[];
+}
+
+export interface TimelineBlockContent {
+  steps: TimelineStep[];
+  accent_color?: string | null;
+}
+
+// ── Flip cards block ─────────────────────────────────────────────────
+
+export interface FlipCard {
+  id: string;
+  front_text?: string | null;
+  front_image_url?: string | null;
+  back_text?: string | null;
+  back_image_url?: string | null;
+}
+
+export interface FlipCardsBlockContent {
+  cards: FlipCard[];
+  card_height_px?: number;
+}
+
 // ── Shortcode block ─────────────────────────────────────────────────
 
 /** Codes courts disponibles — formulaires intégrés au cours. */
@@ -310,7 +349,9 @@ export type LessonBlockContent =
   | DividerBlockContent
   | SpacerBlockContent
   | ShortcodeBlockContent
-  | HtmlEmbedBlockContent;
+  | HtmlEmbedBlockContent
+  | TimelineBlockContent
+  | FlipCardsBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -405,6 +446,23 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { code: "besoins", course_id: null, title: null };
     case "html_embed":
       return { html: "", title: null };
+    case "timeline":
+      return {
+        steps: [
+          { id: cryptoRandomId(), title: "Étape 1", description: "", panel_title: "Exemples d'usages", panel_items: [] },
+          { id: cryptoRandomId(), title: "Étape 2", description: "", panel_title: "Exemples d'usages", panel_items: [] },
+          { id: cryptoRandomId(), title: "Étape 3", description: "", panel_title: "Exemples d'usages", panel_items: [] },
+        ],
+        accent_color: null,
+      };
+    case "flip_cards":
+      return {
+        cards: [
+          { id: cryptoRandomId(), front_text: "Recto", back_text: "Verso" },
+          { id: cryptoRandomId(), front_text: "Recto", back_text: "Verso" },
+        ],
+        card_height_px: 180,
+      };
   }
 }
 
@@ -498,6 +556,24 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
       return {
         html: '<iframe src="https://www.linkedin.com/embed/feed/update/urn:li:share:example" height="400" width="100%" frameborder="0" allowfullscreen title="Post intégré"></iframe>',
         title: "Publication LinkedIn",
+      };
+    case "timeline":
+      return {
+        steps: [
+          { id: cryptoRandomId(), title: "Je dessine pour moi", description: "Je m'entraîne sans pression, pour apprendre, mémoriser ou clarifier mes idées.", panel_title: "Exemples d'usages", panel_items: [{ id: cryptoRandomId(), label: "Prendre des notes visuelles" }, { id: cryptoRandomId(), label: "Clarifier une idée complexe" }] },
+          { id: cryptoRandomId(), title: "Je prépare un visuel", description: "Je construis un support en amont, à mon rythme, pour mieux expliquer ou transmettre.", panel_title: "Exemples d'usages", panel_items: [{ id: cryptoRandomId(), label: "Préparer une affiche pédagogique" }, { id: cryptoRandomId(), label: "Créer un ordre du jour visuel" }, { id: cryptoRandomId(), label: "Illustrer une présentation" }] },
+          { id: cryptoRandomId(), title: "Je dessine avec les autres", description: "J'utilise le visuel pour accompagner une personne ou aider un groupe à réfléchir.", panel_title: "Exemples d'usages", panel_items: [{ id: cryptoRandomId(), label: "Faciliter un atelier" }, { id: cryptoRandomId(), label: "Animer une réunion" }] },
+        ],
+        accent_color: null,
+      };
+    case "flip_cards":
+      return {
+        cards: [
+          { id: cryptoRandomId(), front_text: "Qu'est-ce que la facilitation visuelle ?", back_text: "C'est l'art d'utiliser le dessin et la mise en forme visuelle pour rendre les idées plus claires et mémorables." },
+          { id: cryptoRandomId(), front_text: "Quand utiliser une frise chronologique ?", back_text: "Quand vous souhaitez montrer une progression, des étapes séquentielles ou un parcours dans le temps." },
+          { id: cryptoRandomId(), front_text: "Quelle est la règle des 3 C ?", back_text: "Clair, Concis, Cohérent — les trois critères d'un visuel efficace en facilitation." },
+        ],
+        card_height_px: 180,
       };
     default:
       return null;

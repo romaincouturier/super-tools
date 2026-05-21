@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -21,8 +20,7 @@ import CourseProgressSidebar from "@/components/lms/CourseProgressSidebar";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
-  Play, FileText, HelpCircle, ClipboardList, Video, Lock,
-  Clock, ImageIcon, Paperclip, Download, Menu, Bell,
+  Clock, Paperclip, Download, Menu, Bell,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
@@ -150,7 +148,7 @@ export default function LmsCoursePlayer() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "#F2F4F4", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
       {isPreview && (
         <div className="bg-amber-500 text-white text-center text-sm py-1 font-medium">
           🔍 Mode prévisualisation admin — les progressions ne sont pas enregistrées
@@ -261,18 +259,21 @@ export default function LmsCoursePlayer() {
 
         {/* Desktop sidebar */}
         <aside
-          className={`hidden lg:flex flex-col border-r bg-card shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[300px]" : "w-0"}`}
+          className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[316px]" : "w-0"}`}
           aria-hidden={!sidebarOpen}
+          style={{ padding: sidebarOpen ? "1rem" : undefined }}
         >
           {sidebarOpen && (
-            <CourseProgressSidebar
-              modules={modules}
-              lessonsByModule={lessonsByModule}
-              completedIds={completedIds}
-              selectedLessonId={selectedLessonId}
-              onSelectLesson={setSelectedLessonId}
-              isModuleUnlocked={isModuleUnlocked}
-            />
+            <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
+              <CourseProgressSidebar
+                modules={modules}
+                lessonsByModule={lessonsByModule}
+                completedIds={completedIds}
+                selectedLessonId={selectedLessonId}
+                onSelectLesson={setSelectedLessonId}
+                isModuleUnlocked={isModuleUnlocked}
+              />
+            </div>
           )}
         </aside>
 
@@ -284,7 +285,8 @@ export default function LmsCoursePlayer() {
               onClick={() => setSidebarOpen(false)}
             />
             <div
-              className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] border-r bg-card overflow-hidden shadow-xl"
+              className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
+              style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
             >
               <CourseProgressSidebar
                 modules={modules}
@@ -302,152 +304,165 @@ export default function LmsCoursePlayer() {
         {/* Main content */}
         <main className="flex-1 overflow-auto">
           {selectedLesson ? (
-            <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-              <div className="flex items-start gap-3">
-                <h2 className="text-2xl sm:text-3xl font-bold flex-1 leading-tight text-foreground">{selectedLesson.title}</h2>
-                {selectedLesson.estimated_minutes > 0 && (
-                  <Badge variant="outline">
-                    <Clock className="w-3 h-3 mr-1" /> {selectedLesson.estimated_minutes} min
-                  </Badge>
-                )}
-              </div>
+            <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
 
-              {/* Lesson content (block-based with legacy fallback) */}
-              <LessonContent
-                lessonId={selectedLesson.id}
-                learnerEmail={learnerEmail}
-                renderQuiz={(quizId) => (
-                  <QuizPlayer quizId={quizId} learnerEmail={learnerEmail} onComplete={handleMarkComplete} />
-                )}
-                renderAssignment={(lessonId) => (
-                  <AssignmentSubmitter lessonId={lessonId} learnerEmail={learnerEmail} />
-                )}
-                renderWorkDeposit={(lessonId, config) => courseId ? (
-                  <WorkDepositSection
-                    lessonId={lessonId}
-                    courseId={courseId}
-                    moduleId={selectedLesson.module_id}
-                    learnerEmail={learnerEmail}
-                    rawConfig={config as unknown as WorkDepositConfig}
-                    lessonTitle={selectedLesson.title}
-                  />
-                ) : null}
-                legacy={
-                  <>
-                    {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
-                      <div
-                        className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                        dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                      />
-                    )}
-                    {selectedLesson.lesson_type === "video" && selectedLesson.video_url && (
-                      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                        {selectedLesson.video_url.includes("youtube") || selectedLesson.video_url.includes("youtu.be") ? (
-                          <iframe
-                            src={selectedLesson.video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        ) : selectedLesson.video_url.includes("vimeo") ? (
-                          <iframe
-                            src={selectedLesson.video_url.replace("vimeo.com/", "player.vimeo.com/video/")}
-                            className="w-full h-full"
-                            allow="autoplay; fullscreen"
-                            allowFullScreen
-                          />
-                        ) : (
-                          <video src={selectedLesson.video_url} controls className="w-full h-full" />
-                        )}
-                      </div>
-                    )}
-                    {selectedLesson.lesson_type === "quiz" && selectedLesson.quiz_id && (
-                      <QuizPlayer
-                        quizId={selectedLesson.quiz_id}
-                        learnerEmail={learnerEmail}
-                        onComplete={handleMarkComplete}
-                      />
-                    )}
-                    {selectedLesson.lesson_type === "assignment" && (
-                      <div className="space-y-4">
-                        {selectedLesson.content_html && (
-                          <div
-                            className="prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                          />
-                        )}
-                        <AssignmentSubmitter lessonId={selectedLesson.id} learnerEmail={learnerEmail} />
-                      </div>
-                    )}
-                    {selectedLesson.lesson_type === "image" && (
-                      <div className="space-y-4">
-                        {selectedLesson.image_url && (
-                          <div className="rounded-lg overflow-hidden bg-muted border w-full">
-                            <img
-                              src={selectedLesson.image_url}
-                              alt={selectedLesson.title}
-                              className="w-full h-auto object-contain max-h-[70vh]"
-                            />
-                          </div>
-                        )}
-                        {selectedLesson.content_html && (
-                          <div
-                            className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                            dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {selectedLesson.lesson_type === "file" && (
-                      <div className="space-y-4">
-                        {selectedLesson.file_url && (
-                          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border">
-                            <Paperclip className="w-5 h-5 text-muted-foreground shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{selectedLesson.file_name || "Fichier"}</p>
-                              {selectedLesson.file_size && (
-                                <p className="text-sm text-muted-foreground">
-                                  {selectedLesson.file_size < 1024 * 1024
-                                    ? `${(selectedLesson.file_size / 1024).toFixed(1)} Ko`
-                                    : `${(selectedLesson.file_size / (1024 * 1024)).toFixed(1)} Mo`}
-                                </p>
-                              )}
-                            </div>
-                            <Button asChild>
-                              <a href={selectedLesson.file_url} target="_blank" rel="noopener noreferrer" download>
-                                <Download className="w-4 h-4 mr-2" /> Télécharger
-                              </a>
-                            </Button>
-                          </div>
-                        )}
-                        {selectedLesson.content_html && (
-                          <div
-                            className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                            dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </>
-                }
-              />
+              {/* ── Card 1 : titre + contenu pédagogique ─────────────────── */}
+              <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+                <div className="flex items-start gap-3 mb-6">
+                  <h2
+                    className="text-2xl sm:text-3xl font-bold flex-1 leading-tight"
+                    style={{ color: "#101820" }}
+                  >
+                    {selectedLesson.title}
+                  </h2>
+                  {selectedLesson.estimated_minutes > 0 && (
+                    <span
+                      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+                      style={{ background: "#F2F4F4", color: "rgba(16,24,32,0.55)" }}
+                    >
+                      <Clock className="w-3 h-3" /> {selectedLesson.estimated_minutes} min
+                    </span>
+                  )}
+                </div>
 
-
-              {/* Legacy lesson-level work_deposit_enabled flag is deprecated.
-                  Work deposit now requires an explicit `work_deposit` block in the lesson. */}
-
-              {/* Comments */}
-              {!isPreview && learnerEmail && (
-                <LessonComments
-                  courseId={courseId!}
+                {/* Lesson content (block-based with legacy fallback) */}
+                <LessonContent
                   lessonId={selectedLesson.id}
                   learnerEmail={learnerEmail}
-                  learnerName={learnerEmail}
+                  renderQuiz={(quizId) => (
+                    <QuizPlayer quizId={quizId} learnerEmail={learnerEmail} onComplete={handleMarkComplete} />
+                  )}
+                  renderAssignment={(lessonId) => (
+                    <AssignmentSubmitter lessonId={lessonId} learnerEmail={learnerEmail} />
+                  )}
+                  renderWorkDeposit={(lessonId, config) => courseId ? (
+                    <WorkDepositSection
+                      lessonId={lessonId}
+                      courseId={courseId}
+                      moduleId={selectedLesson.module_id}
+                      learnerEmail={learnerEmail}
+                      rawConfig={config as unknown as WorkDepositConfig}
+                      lessonTitle={selectedLesson.title}
+                    />
+                  ) : null}
+                  legacy={
+                    <>
+                      {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
+                        <div
+                          className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                          dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                        />
+                      )}
+                      {selectedLesson.lesson_type === "video" && selectedLesson.video_url && (
+                        <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                          {selectedLesson.video_url.includes("youtube") || selectedLesson.video_url.includes("youtu.be") ? (
+                            <iframe
+                              src={selectedLesson.video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : selectedLesson.video_url.includes("vimeo") ? (
+                            <iframe
+                              src={selectedLesson.video_url.replace("vimeo.com/", "player.vimeo.com/video/")}
+                              className="w-full h-full"
+                              allow="autoplay; fullscreen"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video src={selectedLesson.video_url} controls className="w-full h-full" />
+                          )}
+                        </div>
+                      )}
+                      {selectedLesson.lesson_type === "quiz" && selectedLesson.quiz_id && (
+                        <QuizPlayer
+                          quizId={selectedLesson.quiz_id}
+                          learnerEmail={learnerEmail}
+                          onComplete={handleMarkComplete}
+                        />
+                      )}
+                      {selectedLesson.lesson_type === "assignment" && (
+                        <div className="space-y-4">
+                          {selectedLesson.content_html && (
+                            <div
+                              className="prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                            />
+                          )}
+                          <AssignmentSubmitter lessonId={selectedLesson.id} learnerEmail={learnerEmail} />
+                        </div>
+                      )}
+                      {selectedLesson.lesson_type === "image" && (
+                        <div className="space-y-4">
+                          {selectedLesson.image_url && (
+                            <div className="rounded-lg overflow-hidden bg-muted border w-full">
+                              <img
+                                src={selectedLesson.image_url}
+                                alt={selectedLesson.title}
+                                className="w-full h-auto object-contain max-h-[70vh]"
+                              />
+                            </div>
+                          )}
+                          {selectedLesson.content_html && (
+                            <div
+                              className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                              dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                            />
+                          )}
+                        </div>
+                      )}
+                      {selectedLesson.lesson_type === "file" && (
+                        <div className="space-y-4">
+                          {selectedLesson.file_url && (
+                            <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border">
+                              <Paperclip className="w-5 h-5 text-muted-foreground shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{selectedLesson.file_name || "Fichier"}</p>
+                                {selectedLesson.file_size && (
+                                  <p className="text-sm text-muted-foreground">
+                                    {selectedLesson.file_size < 1024 * 1024
+                                      ? `${(selectedLesson.file_size / 1024).toFixed(1)} Ko`
+                                      : `${(selectedLesson.file_size / (1024 * 1024)).toFixed(1)} Mo`}
+                                  </p>
+                                )}
+                              </div>
+                              <Button asChild>
+                                <a href={selectedLesson.file_url} target="_blank" rel="noopener noreferrer" download>
+                                  <Download className="w-4 h-4 mr-2" /> Télécharger
+                                </a>
+                              </Button>
+                            </div>
+                          )}
+                          {selectedLesson.content_html && (
+                            <div
+                              className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
+                              dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </>
+                  }
                 />
+              </div>
+
+              {/* ── CTA communauté ───────────────────────────────────────── */}
+              <CommunityCtaBlock />
+
+              {/* ── Card 2 : commentaires ────────────────────────────────── */}
+              {!isPreview && learnerEmail && (
+                <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.5rem 1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+                  <LessonComments
+                    courseId={courseId!}
+                    lessonId={selectedLesson.id}
+                    learnerEmail={learnerEmail}
+                    learnerName={learnerEmail}
+                  />
+                </div>
               )}
 
-              {/* Navigation */}
-              <div className="rounded-lg border bg-card p-4 space-y-3">
+              {/* ── Card 3 : navigation précédent / terminé / suivant ────── */}
+              <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.25rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
                 <div className="flex items-center gap-3">
                   <Button variant="outline" className="flex-1" onClick={goPrev} disabled={currentIndex <= 0}>
                     <ChevronLeft className="w-4 h-4 mr-1" /> Précédent
@@ -457,6 +472,7 @@ export default function LmsCoursePlayer() {
                       onClick={handleMarkComplete}
                       disabled={markComplete.isPending}
                       className="flex-1"
+                      style={{ background: "#FFD100", color: "#101820", fontWeight: 700 }}
                     >
                       {markComplete.isPending
                         ? <Spinner className="mr-2" />
@@ -464,7 +480,7 @@ export default function LmsCoursePlayer() {
                       Terminé
                     </Button>
                   ) : completedIds.has(selectedLesson.id) ? (
-                    <div className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium text-primary">
+                    <div className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold" style={{ color: "#69c3c4" }}>
                       <CheckCircle2 className="w-4 h-4" /> Terminé
                     </div>
                   ) : null}
@@ -473,14 +489,61 @@ export default function LmsCoursePlayer() {
                   </Button>
                 </div>
               </div>
+
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="flex items-center justify-center h-full" style={{ color: "rgba(16,24,32,0.4)" }}>
               Sélectionnez une leçon pour commencer
             </div>
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+// ── Community CTA ────────────────────────────────────────────────────────────
+function CommunityCtaBlock() {
+  return (
+    <div
+      style={{
+        background: "#FFFBEA",
+        borderRadius: 20,
+        border: "1px solid rgba(255,209,0,0.35)",
+        padding: "1.25rem 1.5rem",
+        display: "flex",
+        alignItems: "center",
+        gap: "1.25rem",
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontWeight: 700, fontSize: "0.9375rem", color: "#101820", marginBottom: 4 }}>
+          Besoin d'un retour sur votre travail ?
+        </p>
+        <p style={{ fontSize: "0.8125rem", color: "rgba(16,24,32,0.6)", margin: 0 }}>
+          Partagez votre exercice dans l'espace de pratique et échangez avec les autres apprenants.
+        </p>
+      </div>
+      <a
+        href="/espace-apprenant"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "0.5625rem 1.125rem",
+          background: "#FFD100",
+          color: "#101820",
+          borderRadius: 12,
+          fontWeight: 700,
+          fontSize: "0.8125rem",
+          textDecoration: "none",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+        }}
+      >
+        Aller à l'espace de pratique
+      </a>
     </div>
   );
 }
