@@ -724,6 +724,8 @@ function Kanban() {
 
   const filter = search.toLowerCase();
   const filtered = (items ?? []).filter((i) => {
+    // Exclure les commandes routées vers une formation
+    if (i.game_type === "formation") return false;
     if (!filter) return true;
     const order = i.woocommerce_orders as any;
     return (
