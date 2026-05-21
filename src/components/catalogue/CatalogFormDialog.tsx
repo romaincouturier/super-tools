@@ -894,6 +894,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
 };
 
 export default CatalogFormDialog;
+export { NsfSpecialiteSelector };
 
 interface NsfSpecialiteSelectorProps {
   code: string;
