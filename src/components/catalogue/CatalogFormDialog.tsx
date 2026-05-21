@@ -894,3 +894,73 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
 };
 
 export default CatalogFormDialog;
+
+interface NsfSpecialiteSelectorProps {
+  code: string;
+  label: string;
+  onSelect: (code: string, label: string) => void;
+}
+
+function NsfSpecialiteSelector({ code, label, onSelect }: NsfSpecialiteSelectorProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      <div className="space-y-2">
+        <Label htmlFor="codeSpecialiteNsf">Code NSF (BPF)</Label>
+        <Input
+          id="codeSpecialiteNsf"
+          value={code}
+          readOnly
+          disabled
+          placeholder="Auto"
+          className="bg-muted"
+        />
+      </div>
+      <div className="space-y-2 col-span-2">
+        <Label>Libellé spécialité NSF</Label>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              type="button"
+              className={cn("w-full justify-between font-normal", !label && "text-muted-foreground")}
+            >
+              <span className="truncate">{label || "Sélectionner une spécialité NSF…"}</span>
+              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <Command
+              filter={(value, search) => {
+                const s = search.toLowerCase();
+                return value.toLowerCase().includes(s) ? 1 : 0;
+              }}
+            >
+              <CommandInput placeholder="Rechercher par libellé ou code…" />
+              <CommandList>
+                <CommandEmpty>Aucune spécialité trouvée.</CommandEmpty>
+                <CommandGroup>
+                  {NSF_CODES.map((item) => (
+                    <CommandItem
+                      key={item.code}
+                      value={`${item.code} ${item.label}`}
+                      onSelect={() => {
+                        onSelect(item.code, item.label);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", code === item.code ? "opacity-100" : "opacity-0")} />
+                      <span className="font-mono text-xs text-muted-foreground mr-2 w-10">{item.code}</span>
+                      <span className="flex-1">{item.label}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+}
