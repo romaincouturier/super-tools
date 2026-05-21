@@ -2745,9 +2745,14 @@ export type Database = {
           include_stripe_fees: boolean
           is_partner: boolean
           location_contract_url: string | null
+          location_duree_jours: number | null
+          location_duree_libelle: string | null
+          location_prix_remplacement: number | null
+          location_tarif_retard_mois: number | null
           min_stock: number | null
           partner_email: string | null
           partner_name: string | null
+          pdfmonkey_template_id: string | null
           processing_instructions: string | null
           restock_contact_email: string | null
           restock_items: string | null
@@ -2777,9 +2782,14 @@ export type Database = {
           include_stripe_fees?: boolean
           is_partner?: boolean
           location_contract_url?: string | null
+          location_duree_jours?: number | null
+          location_duree_libelle?: string | null
+          location_prix_remplacement?: number | null
+          location_tarif_retard_mois?: number | null
           min_stock?: number | null
           partner_email?: string | null
           partner_name?: string | null
+          pdfmonkey_template_id?: string | null
           processing_instructions?: string | null
           restock_contact_email?: string | null
           restock_items?: string | null
@@ -2809,9 +2819,14 @@ export type Database = {
           include_stripe_fees?: boolean
           is_partner?: boolean
           location_contract_url?: string | null
+          location_duree_jours?: number | null
+          location_duree_libelle?: string | null
+          location_prix_remplacement?: number | null
+          location_tarif_retard_mois?: number | null
           min_stock?: number | null
           partner_email?: string | null
           partner_name?: string | null
+          pdfmonkey_template_id?: string | null
           processing_instructions?: string | null
           restock_contact_email?: string | null
           restock_items?: string | null
@@ -4338,6 +4353,98 @@ export type Database = {
           },
         ]
       }
+      location_contract_signatures: {
+        Row: {
+          audit_metadata: Json | null
+          confirmation_email_sent_at: string | null
+          contrat_reference: string | null
+          created_at: string
+          email_opened_at: string | null
+          email_sent_at: string | null
+          expires_at: string | null
+          game_name: string | null
+          id: string
+          ip_address: string | null
+          journey_events: Json | null
+          order_item_id: string | null
+          pdf_hash: string | null
+          pdf_url: string | null
+          proof_file_url: string | null
+          proof_hash: string | null
+          recipient_email: string
+          recipient_name: string | null
+          signature_data: string | null
+          signed_at: string | null
+          signed_pdf_url: string | null
+          status: string
+          token: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          audit_metadata?: Json | null
+          confirmation_email_sent_at?: string | null
+          contrat_reference?: string | null
+          created_at?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          game_name?: string | null
+          id?: string
+          ip_address?: string | null
+          journey_events?: Json | null
+          order_item_id?: string | null
+          pdf_hash?: string | null
+          pdf_url?: string | null
+          proof_file_url?: string | null
+          proof_hash?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          audit_metadata?: Json | null
+          confirmation_email_sent_at?: string | null
+          contrat_reference?: string | null
+          created_at?: string
+          email_opened_at?: string | null
+          email_sent_at?: string | null
+          expires_at?: string | null
+          game_name?: string | null
+          id?: string
+          ip_address?: string | null
+          journey_events?: Json | null
+          order_item_id?: string | null
+          pdf_hash?: string | null
+          pdf_url?: string | null
+          proof_file_url?: string | null
+          proof_hash?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          signature_data?: string | null
+          signed_at?: string | null
+          signed_pdf_url?: string | null
+          status?: string
+          token?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_contract_signatures_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           attempted_at: string
@@ -5616,6 +5723,7 @@ export type Database = {
         Row: {
           block_reason: string | null
           commission_amount: number | null
+          contrat_reference: string | null
           created_at: string
           email_sent_at: string | null
           email_sent_to: string | null
@@ -5625,6 +5733,8 @@ export type Database = {
           invoice_received_at: string | null
           kanban_status: string
           line_total: number | null
+          location_contract_file_url: string | null
+          location_document_id: string | null
           notes: string | null
           product_name: string | null
           quantity: number
@@ -5640,6 +5750,7 @@ export type Database = {
         Insert: {
           block_reason?: string | null
           commission_amount?: number | null
+          contrat_reference?: string | null
           created_at?: string
           email_sent_at?: string | null
           email_sent_to?: string | null
@@ -5649,6 +5760,8 @@ export type Database = {
           invoice_received_at?: string | null
           kanban_status?: string
           line_total?: number | null
+          location_contract_file_url?: string | null
+          location_document_id?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -5664,6 +5777,7 @@ export type Database = {
         Update: {
           block_reason?: string | null
           commission_amount?: number | null
+          contrat_reference?: string | null
           created_at?: string
           email_sent_at?: string | null
           email_sent_to?: string | null
@@ -5673,6 +5787,8 @@ export type Database = {
           invoice_received_at?: string | null
           kanban_status?: string
           line_total?: number | null
+          location_contract_file_url?: string | null
+          location_document_id?: string | null
           notes?: string | null
           product_name?: string | null
           quantity?: number
@@ -9554,6 +9670,10 @@ export type Database = {
       }
       get_learner_email: { Args: never; Returns: string }
       get_learner_portal_data: { Args: { p_email: string }; Returns: Json }
+      get_location_signature_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
       get_mission_actions_public: {
         Args: { p_mission_id: string }
         Returns: Json
@@ -9712,6 +9832,10 @@ export type Database = {
         Args: { p_timestamp: string; p_token: string }
         Returns: undefined
       }
+      mark_location_signature_opened: {
+        Args: { p_opened_at: string; p_token: string }
+        Returns: undefined
+      }
       match_documents: {
         Args: {
           filter_source_types?: string[]
@@ -9745,6 +9869,7 @@ export type Database = {
       }
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
+      next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
