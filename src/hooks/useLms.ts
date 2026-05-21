@@ -46,6 +46,7 @@ export {
   useCreateLesson,
   useUpdateLesson,
   useDeleteLesson,
+  useDuplicateLesson,
   useReorderLessons,
   useMoveLessonToModule,
   useCreateQuiz,

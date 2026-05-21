@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
+import { ChevronRight, Copy, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
 import {
   useCourseModules,
   useModuleLessons,
@@ -9,6 +9,7 @@ import {
   useUpdateModule,
   useDeleteModule,
   useDeleteLesson,
+  useDuplicateLesson,
   useReorderModules,
   useReorderLessons,
   useMoveLessonToModule,
@@ -498,6 +499,7 @@ function LessonItem({
 }) {
   const navigate = useNavigate();
   const deleteLesson = useDeleteLesson();
+  const duplicateLesson = useDuplicateLesson();
   const moveLesson = useMoveLessonToModule();
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const { toast } = useToast();
@@ -511,6 +513,17 @@ function LessonItem({
       toast({ title: "Leçon déplacée" });
     } catch (err) {
       toastError(toast, err instanceof Error ? err : "Erreur lors du déplacement");
+    }
+  };
+
+  const handleDuplicate = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const copy = await duplicateLesson.mutateAsync(lesson.id);
+      toast({ title: "Leçon dupliquée" });
+      navigate(`/lms/${courseId}/lesson/${copy.id}/builder`);
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur de duplication");
     }
   };
 
@@ -613,6 +626,18 @@ function LessonItem({
             )}
           </div>
         )}
+        <button
+          type="button"
+          aria-label="Dupliquer la leçon"
+          onClick={handleDuplicate}
+          disabled={duplicateLesson.isPending}
+          className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+          style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        >
+          <Copy size={11} />
+        </button>
         <button
           type="button"
           aria-label="Supprimer la leçon"
