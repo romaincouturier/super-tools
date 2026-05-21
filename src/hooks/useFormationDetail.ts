@@ -84,6 +84,7 @@ export interface Participant {
   formula?: string | null;
   formula_id?: string | null;
   type_stagiaire_bpf?: string | null;
+  source_financement_bpf?: string | null;
 }
 
 export function useFormationDetail() {
