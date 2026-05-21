@@ -89,6 +89,27 @@ const ParticipantTable = ({
                           {participant.formula}
                         </Badge>
                       )}
+                      {(() => {
+                        const missingType = !participant.type_stagiaire_bpf;
+                        const missingSource =
+                          actionsProps.isInterEntreprise &&
+                          !actionsProps.bpfTrainingHasSource &&
+                          !participant.source_financement_bpf;
+                        if (!missingType && !missingSource) return null;
+                        const labelParts: string[] = [];
+                        if (missingType) labelParts.push("type de stagiaire");
+                        if (missingSource) labelParts.push("source de financement");
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>BPF incomplet : {labelParts.join(" + ")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })()}
                       {actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url && (
                         <Tooltip>
                           <TooltipTrigger asChild>
