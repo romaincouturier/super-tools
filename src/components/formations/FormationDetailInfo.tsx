@@ -92,6 +92,13 @@ const FormationDetailInfo = ({
       <CardTitle className="flex items-center gap-2">
         <Calendar className="h-5 w-5" />
         Informations
+        {bpfNeedsAttention && (
+          <span
+            className="ml-1 inline-block h-2 w-2 rounded-full bg-destructive ring-2 ring-background"
+            title="BPF incomplet : renseignez la source de financement de la formation"
+            aria-label="BPF incomplet"
+          />
+        )}
       </CardTitle>
     </CardHeader>
     <CardContent className="space-y-4">
