@@ -143,6 +143,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
       requiredEquipment: string;
       objectives: string[]; prerequisites: string[];
       elearningAccessEmailContent: string; woocommerceProductId: string;
+      codeSpecialiteNsf: string; labelSpecialiteNsf: string;
       isActive: boolean; formulas: FormulaEdit[];
     };
 
