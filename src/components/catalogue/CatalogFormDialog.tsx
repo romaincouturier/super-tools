@@ -307,6 +307,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setPrerequisites([]);
         setElearningAccessEmailContent("");
         setWoocommerceProductId("");
+        setCodeSpecialiteNsf("");
+        setLabelSpecialiteNsf("");
         setIsActive(true);
         setFormulas([]);
       }
