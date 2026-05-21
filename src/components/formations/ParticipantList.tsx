@@ -14,6 +14,7 @@ const ParticipantList = ({
   participants, trainingId, trainingName, trainingStartDate, trainingEndDate, trainingLocation,
   formatFormation, isInterEntreprise: isInterEntrepriseProp,
   availableFormulas = [], attendanceSheetsUrls, clientName, trainingDuree, onParticipantUpdated,
+  bpfTrainingHasSource,
 }: ParticipantListProps) => {
   const isMobile = useIsMobile();
   const [documentsParticipant, setDocumentsParticipant] = useState<Participant | null>(null);
@@ -96,6 +97,7 @@ const ParticipantList = ({
     onViewEvaluation: handleViewEvaluation, onParticipantUpdated,
     canSendSurveyFor: actions.canSendSurveyFor, canSendReminderFor: actions.canSendReminderFor,
     canSendConventionReminderFor: actions.canSendConventionReminderFor,
+    bpfTrainingHasSource: !!bpfTrainingHasSource,
   };
 
   return (

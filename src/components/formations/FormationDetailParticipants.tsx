@@ -196,6 +196,7 @@ const FormationDetailParticipants = ({
           clientName={training.client_name}
           trainingDuree={`${calculateTotalDuration()}h`}
           onParticipantUpdated={fetchParticipants}
+          bpfTrainingHasSource={!!training.source_financement_bpf}
         />
 
         <NeedsSurveySummaryDialog

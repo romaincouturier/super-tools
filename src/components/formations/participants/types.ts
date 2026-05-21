@@ -37,6 +37,8 @@ export interface Participant {
   coaching_deadline?: string | null;
   repositioned_to_training_id?: string | null;
   repositioned_at?: string | null;
+  type_stagiaire_bpf?: string | null;
+  source_financement_bpf?: string | null;
 }
 
 export interface ConventionSignatureInfo {
@@ -58,6 +60,10 @@ export interface ParticipantListProps {
   clientName: string;
   trainingDuree: string;
   onParticipantUpdated: () => void;
+  /** True if the training itself has a source_financement_bpf — used to dim
+   * the per-participant BPF alert for inter sessions where the training-level
+   * source already covers everyone. */
+  bpfTrainingHasSource?: boolean;
 }
 
 export interface ParticipantActionsProps {
@@ -106,6 +112,8 @@ export interface ParticipantActionsProps {
   canSendSurveyFor: (participant: Participant) => boolean;
   canSendReminderFor: (participant: Participant) => boolean;
   canSendConventionReminderFor: (participant: Participant) => boolean;
+  /** True if the training itself has a source_financement_bpf. */
+  bpfTrainingHasSource?: boolean;
 }
 
 export type SortField = "last_name" | "first_name" | "email" | "amount";
