@@ -294,9 +294,17 @@ export default function BPFReport() {
 
       if (tErr) throw tErr;
 
+      // Exclure les sessions à venir : ne comptabiliser que les formations
+      // terminées (end_date < aujourd'hui, ou start_date < aujourd'hui si pas
+      // d'end_date). Le BPF déclare un réalisé, pas un prévisionnel.
+      const todayIso = new Date().toISOString().slice(0, 10);
       const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as Record<string, unknown>[])
         .map(toTrainingRow)
-        .filter((training): training is TrainingRow => training !== null);
+        .filter((training): training is TrainingRow => training !== null)
+        .filter((t) => {
+          const ref = (t.end_date ?? t.start_date) as string | null;
+          return !!ref && ref < todayIso;
+        });
 
       // 2. Fetch participants with type_stagiaire_bpf
       const trainingIds = trainings.map((t) => t.id);
