@@ -53,6 +53,26 @@ const ParticipantMobileCard = ({
                     {participant.formula}
                   </Badge>
                 )}
+                {(() => {
+                  const missingType = !participant.type_stagiaire_bpf;
+                  const missingSource =
+                    actionsProps.isInterEntreprise &&
+                    !actionsProps.bpfTrainingHasSource &&
+                    !participant.source_financement_bpf;
+                  if (!missingType && !missingSource) return null;
+                  const labelParts: string[] = [];
+                  if (missingType) labelParts.push("type de stagiaire");
+                  if (missingSource) labelParts.push("source de financement");
+                  return (
+                    <span
+                      className="inline-flex items-center gap-1 text-[10px] text-destructive mt-0.5"
+                      title={`BPF incomplet : ${labelParts.join(" + ")}`}
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
+                      BPF
+                    </span>
+                  );
+                })()}
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
                 {(() => {
