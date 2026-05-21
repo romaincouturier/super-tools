@@ -280,6 +280,8 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
         setPrerequisites(entry.prerequisites || []);
         setElearningAccessEmailContent(entry.elearning_access_email_content || "");
         setWoocommerceProductId(entry.woocommerce_product_id ? String(entry.woocommerce_product_id) : "");
+        setCodeSpecialiteNsf((entry as unknown as { code_specialite_nsf?: string | null }).code_specialite_nsf || "");
+        setLabelSpecialiteNsf((entry as unknown as { label_specialite_nsf?: string | null }).label_specialite_nsf || "");
         setIsActive(entry.is_active);
         // Load formulas from DB
         supabase
