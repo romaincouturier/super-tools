@@ -495,6 +495,29 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
               </div>
             </div>
 
+            {/* BPF — Spécialité NSF */}
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="codeSpecialiteNsf">Code NSF (BPF)</Label>
+                <Input
+                  id="codeSpecialiteNsf"
+                  value={codeSpecialiteNsf}
+                  onChange={(e) => setCodeSpecialiteNsf(e.target.value)}
+                  placeholder="Ex: 326"
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="labelSpecialiteNsf">Libellé spécialité NSF</Label>
+                <Input
+                  id="labelSpecialiteNsf"
+                  value={labelSpecialiteNsf}
+                  onChange={(e) => setLabelSpecialiteNsf(e.target.value)}
+                  placeholder="Ex: Informatique, traitement de l'information"
+                />
+              </div>
+            </div>
+
+
             {/* Inter-entreprise formulas */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
