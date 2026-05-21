@@ -34,7 +34,14 @@ export default function CalloutBlockViewer({ content }: Props) {
       {content.body_html && (
         <div
           className="prose max-w-none break-words"
-          style={{ color: palette.text }}
+          style={{
+            color: palette.text,
+            // Force link color to match the palette text so links are readable
+            // on any background (yellow, black, teal, etc.) — underline stays visible.
+            "--tw-prose-links": palette.text,
+            "--tw-prose-bold": palette.text,
+            "--tw-prose-headings": palette.text,
+          } as React.CSSProperties}
           dangerouslySetInnerHTML={{ __html: content.body_html }}
         />
       )}
