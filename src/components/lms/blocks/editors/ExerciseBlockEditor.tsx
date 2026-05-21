@@ -2,7 +2,8 @@ import { useRef, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Video, Image as ImageIcon, Upload } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, X, Video, Image as ImageIcon } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { cryptoRandomId } from "@/types/lms-blocks";
@@ -10,6 +11,7 @@ import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import { uploadLmsImage } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import WorkDepositBlockEditor from "./WorkDepositBlockEditor";
 
 interface Props {
   lessonId: string;
@@ -117,6 +119,8 @@ function ImageUploader({
 export default function ExerciseBlockEditor({ lessonId, content, onChange, slim }: Props) {
   const checklistItems = content.checklist_items || [];
   const hasChecklist = checklistItems.length > 0 || content.checklist_title;
+  const depositEnabled = content.work_deposit_enabled === true;
+  const depositConfig = content.work_deposit ?? {};
 
   const setChecklistLabel = (id: string, label: string) =>
     onChange({
@@ -205,6 +209,16 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
 
   return (
     <div className="space-y-3">
+      {/* Custom title */}
+      <div>
+        <Label>Titre du bloc (optionnel)</Label>
+        <Input
+          value={content.title || ""}
+          onChange={(e) => onChange({ ...content, title: e.target.value || null })}
+          placeholder="Exercice"
+        />
+      </div>
+
       {/* Video de consigne */}
       <div className="rounded-lg border p-3 space-y-2">
         <div className="flex items-center gap-2">
@@ -291,6 +305,26 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           onChange={(answer_html) => onChange({ ...content, answer_html })}
           placeholder="Le corrigé est masqué par défaut, l'apprenant le révèle d'un clic."
         />
+      </div>
+
+      {/* Work deposit toggle (ST-2026-0138) */}
+      <div className="rounded-lg border p-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm">Demander un dépôt de travail</Label>
+            <p className="text-xs text-muted-foreground mt-0.5">L'apprenant pourra remettre un fichier en réponse à cet exercice.</p>
+          </div>
+          <Switch
+            checked={depositEnabled}
+            onCheckedChange={(v) => onChange({ ...content, work_deposit_enabled: v, work_deposit: v ? (content.work_deposit ?? {}) : null })}
+          />
+        </div>
+        {depositEnabled && (
+          <WorkDepositBlockEditor
+            content={depositConfig}
+            onChange={(wd) => onChange({ ...content, work_deposit: wd })}
+          />
+        )}
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
   const isVimeo = videoUrl && videoUrl.includes("vimeo");
 
   return (
-    <ActionBlockShell icon={Pencil} label="Exercice">
+    <ActionBlockShell icon={Pencil} label={content.title || "Exercice"}>
       {content.image_url && (
         <div className="rounded-lg overflow-hidden bg-muted mb-3">
           <img

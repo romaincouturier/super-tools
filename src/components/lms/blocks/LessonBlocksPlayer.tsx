@@ -162,8 +162,17 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       return <BulletListBlockViewer content={block.content as BulletListBlockContent} />;
     case "button":
       return <ButtonBlockViewer content={block.content as ButtonBlockContent} />;
-    case "exercise":
-      return <ExerciseBlockViewer content={block.content as ExerciseBlockContent} />;
+    case "exercise": {
+      const c = block.content as ExerciseBlockContent;
+      return (
+        <>
+          <ExerciseBlockViewer content={c} />
+          {c.work_deposit_enabled && c.work_deposit && renderWorkDeposit
+            ? renderWorkDeposit(block.lesson_id, c.work_deposit)
+            : null}
+        </>
+      );
+    }
     case "self_assessment":
       return <SelfAssessmentBlockViewer content={block.content as SelfAssessmentBlockContent} />;
     case "work_deposit": {

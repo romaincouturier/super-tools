@@ -230,6 +230,31 @@ export function useReorderLessons() {
   });
 }
 
+export function useMoveLessonToModule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ lessonId, targetModuleId }: { lessonId: string; targetModuleId: string }) => {
+      const { data: existing, error: fetchErr } = await supabase
+        .from("lms_lessons")
+        .select("position")
+        .eq("module_id", targetModuleId)
+        .order("position", { ascending: false })
+        .limit(1);
+      if (fetchErr) throw fetchErr;
+      const nextPosition = existing && existing.length > 0 ? existing[0].position + 1 : 0;
+      const { error } = await supabase
+        .from("lms_lessons")
+        .update({ module_id: targetModuleId, position: nextPosition, updated_at: new Date().toISOString() } as LmsLessonUpdate)
+        .eq("id", lessonId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-lessons"] });
+      qc.invalidateQueries({ queryKey: ["lms-course-lessons"] });
+    },
+  });
+}
+
 // ---- Quiz mutations ----
 
 export function useCreateQuiz() {

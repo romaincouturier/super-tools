@@ -170,12 +170,15 @@ export interface ButtonBlockContent {
 }
 
 export interface ExerciseBlockContent {
+  title?: string | null;
   prompt_html: string;
   answer_html?: string | null;
   checklist_title?: string | null;
   checklist_items?: ChecklistItem[] | null;
   video_url?: string | null;
   image_url?: string | null;
+  work_deposit_enabled?: boolean;
+  work_deposit?: WorkDepositBlockContent | null;
 }
 
 export type BulletStyle = "round" | "square" | "check" | "arrow" | "star" | "diamond";

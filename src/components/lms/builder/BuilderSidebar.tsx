@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
 import {
   useCourseModules,
   useModuleLessons,
@@ -11,6 +11,7 @@ import {
   useDeleteLesson,
   useReorderModules,
   useReorderLessons,
+  useMoveLessonToModule,
   LmsModule,
   LmsLesson,
 } from "@/hooks/useLms";
@@ -81,6 +82,7 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
             mod={mod}
             courseId={courseId}
             activeLessonId={activeLessonId}
+            allModules={modules}
             index={idx + 1}
             isFirst={idx === 0}
             isLast={idx === modules.length - 1}
@@ -223,6 +225,7 @@ function ModuleItem({
   mod,
   courseId,
   activeLessonId,
+  allModules,
   index,
   isFirst,
   isLast,
@@ -232,6 +235,7 @@ function ModuleItem({
   mod: LmsModule;
   courseId: string;
   activeLessonId: string;
+  allModules: LmsModule[];
   index: number;
   isFirst: boolean;
   isLast: boolean;
@@ -431,6 +435,8 @@ function ModuleItem({
             key={lesson.id}
             lesson={lesson}
             courseId={courseId}
+            currentModuleId={mod.id}
+            otherModules={allModules.filter((m) => m.id !== mod.id)}
             isActive={lesson.id === activeLessonId}
             isFirst={idx === 0}
             isLast={idx === lessons.length - 1}
@@ -472,6 +478,8 @@ function ModuleItem({
 function LessonItem({
   lesson,
   courseId,
+  currentModuleId: _currentModuleId,
+  otherModules,
   isActive,
   isFirst,
   isLast,
@@ -480,6 +488,8 @@ function LessonItem({
 }: {
   lesson: LmsLesson;
   courseId: string;
+  currentModuleId: string;
+  otherModules: LmsModule[];
   isActive: boolean;
   isFirst: boolean;
   isLast: boolean;
@@ -488,8 +498,21 @@ function LessonItem({
 }) {
   const navigate = useNavigate();
   const deleteLesson = useDeleteLesson();
+  const moveLesson = useMoveLessonToModule();
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+
+  const handleMoveToModule = async (e: React.MouseEvent, targetModuleId: string) => {
+    e.stopPropagation();
+    setShowMoveMenu(false);
+    try {
+      await moveLesson.mutateAsync({ lessonId: lesson.id, targetModuleId });
+      toast({ title: "Leçon déplacée" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur lors du déplacement");
+    }
+  };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -550,6 +573,46 @@ function LessonItem({
           {lesson.title}
         </span>
         <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
+        {otherModules.length > 0 && (
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+              type="button"
+              aria-label="Déplacer vers un autre module"
+              onClick={(e) => { e.stopPropagation(); setShowMoveMenu((v) => !v); }}
+              disabled={moveLesson.isPending}
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+            >
+              <ArrowRightLeft size={11} />
+            </button>
+            {showMoveMenu && (
+              <>
+                <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={(e) => { e.stopPropagation(); setShowMoveMenu(false); }} />
+                <div
+                  style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, minWidth: 160, background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.12)", borderRadius: 8, boxShadow: "0 4px 16px rgba(16,24,32,0.12)", padding: "4px 0" }}
+                >
+                  <div style={{ fontSize: ".6875rem", fontWeight: 600, color: "var(--st-ink-50)", padding: "4px 12px 2px", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                    Déplacer vers
+                  </div>
+                  {otherModules.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={(e) => handleMoveToModule(e, m.id)}
+                      style={{ width: "100%", textAlign: "left", padding: "6px 12px", fontSize: ".8125rem", color: "var(--st-ink)", background: "transparent", border: "none", cursor: "pointer" }}
+                      onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)"}
+                      onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                    >
+                      {m.title.length > 28 ? m.title.slice(0, 28) + "…" : m.title}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <button
           type="button"
           aria-label="Supprimer la leçon"
