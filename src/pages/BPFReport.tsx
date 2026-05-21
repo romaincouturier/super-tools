@@ -49,6 +49,7 @@ interface TrainingRow {
   source_financement_bpf: SourceFinancement | null;
   sold_price_ht: number | null;
   start_date: string | null;
+  end_date: string | null;
   trainer_name: string;
   catalog_id: string | null;
   commanditaire_of_name: string | null;
