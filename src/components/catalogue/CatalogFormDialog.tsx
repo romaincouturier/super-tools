@@ -25,6 +25,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { NSF_CODES } from "@/lib/nsfCodes";
+import { cn } from "@/lib/utils";
 import {
   Accordion,
   AccordionContent,
@@ -496,26 +500,15 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
             </div>
 
             {/* BPF — Spécialité NSF */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="codeSpecialiteNsf">Code NSF (BPF)</Label>
-                <Input
-                  id="codeSpecialiteNsf"
-                  value={codeSpecialiteNsf}
-                  onChange={(e) => setCodeSpecialiteNsf(e.target.value)}
-                  placeholder="Ex: 326"
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="labelSpecialiteNsf">Libellé spécialité NSF</Label>
-                <Input
-                  id="labelSpecialiteNsf"
-                  value={labelSpecialiteNsf}
-                  onChange={(e) => setLabelSpecialiteNsf(e.target.value)}
-                  placeholder="Ex: Informatique, traitement de l'information"
-                />
-              </div>
-            </div>
+            <NsfSpecialiteSelector
+              code={codeSpecialiteNsf}
+              label={labelSpecialiteNsf}
+              onSelect={(c, l) => {
+                setCodeSpecialiteNsf(c);
+                setLabelSpecialiteNsf(l);
+              }}
+            />
+
 
 
             {/* Inter-entreprise formulas */}
