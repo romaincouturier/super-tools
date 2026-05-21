@@ -131,7 +131,7 @@ const CatalogFormDialog = ({ open, onClose, entry, onDelete, trainingCount = 0 }
   const formHash = JSON.stringify({
     formationName, description, prix, dureeHeures, programmeUrl, supportsUrl,
     supertiltLink, requiredEquipment, objectives, prerequisites,
-    elearningAccessEmailContent, woocommerceProductId, isActive,
+    elearningAccessEmailContent, woocommerceProductId, codeSpecialiteNsf, labelSpecialiteNsf, isActive,
     fml: activeFormulas.map(f => `${f.id || ""}|${f.name}|${f.duree_heures}|${f.prix}|${f.woocommerce_product_id}|${f.learndash_course_id}|${f.supports_url}|${f.elearning_access_email_content}`),
   });
 
