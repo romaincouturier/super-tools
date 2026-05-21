@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import { ChevronDown, ChevronRight, FileText, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import ActionBlockShell from "./ActionBlockShell";
@@ -14,7 +14,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
   const [revealed, setRevealed] = useState(false);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url && !content.image_url) return null;
+  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url && !content.image_url && !content.pdf_url) return null;
 
   const checklistItems = (content.checklist_items || []).filter((i) => i.label.trim());
 
@@ -35,6 +35,17 @@ export default function ExerciseBlockViewer({ content }: Props) {
             className="w-full h-auto max-h-[480px] object-contain"
           />
         </div>
+      )}
+      {content.pdf_url && (
+        <a
+          href={content.pdf_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 rounded-lg border px-3 py-2.5 bg-muted/40 hover:bg-muted/70 transition-colors mb-3 no-underline"
+        >
+          <FileText size={16} className="shrink-0 text-muted-foreground" />
+          <span className="flex-1 text-sm font-medium">Télécharger la consigne en PDF</span>
+        </a>
       )}
       {videoUrl && (
         <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted mb-3">
