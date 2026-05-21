@@ -112,6 +112,8 @@ export interface ParticipantActionsProps {
   canSendSurveyFor: (participant: Participant) => boolean;
   canSendReminderFor: (participant: Participant) => boolean;
   canSendConventionReminderFor: (participant: Participant) => boolean;
+  /** True if the training itself has a source_financement_bpf. */
+  bpfTrainingHasSource?: boolean;
 }
 
 export type SortField = "last_name" | "first_name" | "email" | "amount";
