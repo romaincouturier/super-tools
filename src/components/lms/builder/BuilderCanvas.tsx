@@ -10,7 +10,7 @@ import {
 } from "@/hooks/useLmsBlocks";
 import { buildBlockTree } from "@/services/lms-blocks";
 import type { BlockTreeNode } from "@/services/lms-blocks";
-import type { LessonBlockType, LessonBlockContent } from "@/types/lms-blocks";
+import type { LessonBlockType, LessonBlockContent, RowBlockContent } from "@/types/lms-blocks";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
@@ -27,6 +27,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
+  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { dropzoneId, parseDropzoneId } from "@/components/lms/blocks/BlockTreeNode";
@@ -450,39 +451,49 @@ function SortableBuilderBlock({
           slim
         />
       </BuilderBlockWrapper>
-      {(isContainer || hasChildren) && (
-        <div
-          className={cn(gapClass, "mt-3 ml-4 pl-4 border-l-2 border-dashed")}
-          style={{ borderColor: "rgba(16,24,32,0.12)" }}
-        >
-          {hasChildren && (
-            <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-              {node.children.map((child, idx) => (
-                <SortableBuilderBlock
-                  key={child.block.id}
-                  node={child}
-                  siblingIndex={idx}
-                  siblingCount={node.children.length}
-                  lessonId={lessonId}
-                  courseId={courseId}
-                  blockRadius={blockRadius}
-                  density={density}
-                  onDelete={onDelete}
-                  onDuplicate={onDuplicate}
-                  onAdd={onAdd}
-                  onUpdateContent={onUpdateContent}
-                  onToggleHidden={onToggleHidden}
-                  onMoveUp={onMoveUp}
-                  onMoveDown={onMoveDown}
-                />
-              ))}
-            </SortableContext>
-          )}
-          {isContainer && (
-            <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id)} />
-          )}
-        </div>
-      )}
+      {(isContainer || hasChildren) && (() => {
+        const isRow = node.block.type === "row";
+        const colCount = isRow ? ((node.block.content as RowBlockContent).column_count ?? 2) : 1;
+        const GRID_COLS: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" };
+        const COL_SPAN: Record<number, string> = { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3" };
+        return (
+          <div
+            className={isRow
+              ? `mt-3 grid gap-3 ${GRID_COLS[colCount] ?? "grid-cols-2"}`
+              : cn(gapClass, "mt-3 ml-4 pl-4 border-l-2 border-dashed")}
+            style={isRow ? undefined : { borderColor: "rgba(16,24,32,0.12)" }}
+          >
+            {hasChildren && (
+              <SortableContext items={childIds} strategy={isRow ? rectSortingStrategy : verticalListSortingStrategy}>
+                {node.children.map((child, idx) => (
+                  <SortableBuilderBlock
+                    key={child.block.id}
+                    node={child}
+                    siblingIndex={idx}
+                    siblingCount={node.children.length}
+                    lessonId={lessonId}
+                    courseId={courseId}
+                    blockRadius={blockRadius}
+                    density={density}
+                    onDelete={onDelete}
+                    onDuplicate={onDuplicate}
+                    onAdd={onAdd}
+                    onUpdateContent={onUpdateContent}
+                    onToggleHidden={onToggleHidden}
+                    onMoveUp={onMoveUp}
+                    onMoveDown={onMoveDown}
+                  />
+                ))}
+              </SortableContext>
+            )}
+            {isContainer && (
+              <div className={isRow ? (COL_SPAN[colCount] ?? "col-span-2") : undefined}>
+                <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id)} />
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
