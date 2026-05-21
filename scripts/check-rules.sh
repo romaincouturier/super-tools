@@ -151,6 +151,30 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "023" "Utiliser todayAsISO() au lieu de new Date().toISOString().slice(0, 10)" \
     "echo \"$STAGED_FILES\" | xargs grep -n 'new Date().toISOString().slice(0, 10)' 2>/dev/null | grep -v 'lib/dateFormatters.ts'"
 
+  # [028] Blocs LMS — tout BlockEditor doit être dans ACTIVE_CONTENT_TYPES
+  STAGED_EDITORS=$(echo "$STAGED_FILES" | grep 'BlockEditor\.tsx$' || true)
+  STAGED_MENU=$(echo "$STAGED_FILES" | grep 'BuilderInsertMenu\.tsx' || true)
+  if [ -n "$STAGED_EDITORS" ] || [ -n "$STAGED_MENU" ]; then
+    {
+      menu="src/components/lms/blocks/editors/../../../lms/builder/BuilderInsertMenu.tsx"
+      menu="src/components/lms/builder/BuilderInsertMenu.tsx"
+      lms_v=""
+      for ef in src/components/lms/blocks/editors/*BlockEditor.tsx; do
+        bn=$(basename "$ef" BlockEditor.tsx)
+        bt=$(echo "$bn" | sed 's/\([A-Z]\)/_\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^_//')
+        grep -qF "\"$bt\"" "$menu" 2>/dev/null || lms_v="${lms_v}MISSING: $bt\n"
+      done
+      if [ -n "$lms_v" ]; then
+        echo -e "${RED}FAIL${NC} [028] Tout BlockEditor LMS doit être dans ACTIVE_CONTENT_TYPES de BuilderInsertMenu"
+        printf "$lms_v" | head -10
+        violations=$((violations + 1))
+      else
+        echo -e "${GREEN}OK${NC}   [028] Tout BlockEditor LMS doit être dans ACTIVE_CONTENT_TYPES de BuilderInsertMenu"
+      fi
+      checked=$((checked + 1))
+    }
+  fi
+
 else
   # --- Mode complet : audit de toute la codebase ---
 
@@ -291,6 +315,27 @@ else
      grep -q 'supabase\.rpc(\"is_admin\"' \"\$f\" && echo \"VIOLATION: useModuleAccess appelle le RPC is_admin() — utiliser profiles.is_admin\"; \
      grep -q 'romain@supertilt\.fr' \"\$f\" && echo \"VIOLATION: email hardcodé dans useModuleAccess\"; \
      true"
+
+  # [028] Blocs LMS — tout BlockEditor doit être dans ACTIVE_CONTENT_TYPES de BuilderInsertMenu
+  {
+    menu="src/components/lms/builder/BuilderInsertMenu.tsx"
+    lms_violations=""
+    for editor_file in src/components/lms/blocks/editors/*BlockEditor.tsx; do
+      bname=$(basename "$editor_file" BlockEditor.tsx)
+      btype=$(echo "$bname" | sed 's/\([A-Z]\)/_\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^_//')
+      if ! grep -qF "\"$btype\"" "$menu" 2>/dev/null; then
+        lms_violations="${lms_violations}MISSING in ACTIVE_CONTENT_TYPES: $btype\n"
+      fi
+    done
+    if [ -n "$lms_violations" ]; then
+      echo -e "${RED}FAIL${NC} [028] Tout BlockEditor LMS doit être dans ACTIVE_CONTENT_TYPES de BuilderInsertMenu"
+      printf "$lms_violations" | head -10
+      violations=$((violations + 1))
+    else
+      echo -e "${GREEN}OK${NC}   [028] Tout BlockEditor LMS doit être dans ACTIVE_CONTENT_TYPES de BuilderInsertMenu"
+    fi
+    checked=$((checked + 1))
+  }
 
   # [017] : migration progressive — check en mode staged uniquement
   # (71 usages restants de <Loader2 animate-spin> avec tailles non-standard légitimes)
