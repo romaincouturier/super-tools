@@ -35,6 +35,7 @@ interface Props {
   schedules: { id: string; day_date: string; start_time: string; end_time: string }[];
   calculateTotalDuration: () => number;
   fetchParticipants: () => Promise<void>;
+  bpfNeedsAttention?: boolean;
 }
 
 const FormationDetailParticipants = ({
