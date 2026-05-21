@@ -26,6 +26,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { todayAsISO } from "@/lib/dateFormatters";
 import {
   mapSourceToBpfLine,
   calcScheduleHours,
@@ -299,7 +300,7 @@ export default function BPFReport() {
       // Exclure les sessions à venir : ne comptabiliser que les formations
       // terminées (end_date < aujourd'hui, ou start_date < aujourd'hui si pas
       // d'end_date). Le BPF déclare un réalisé, pas un prévisionnel.
-      const todayIso = new Date().toISOString().slice(0, 10);
+      const todayIso = todayAsISO();
       const trainings: TrainingRow[] = ((trainingsRaw ?? []) as unknown as Record<string, unknown>[])
         .map(toTrainingRow)
         .filter((training): training is TrainingRow => training !== null)
