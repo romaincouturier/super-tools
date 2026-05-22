@@ -63,15 +63,19 @@ export function useCopyToClipboard({
       text: string,
       options?: { title?: string; description?: string; silent?: boolean },
     ) => {
-      let success = copyWithCopyEvent(text) || copyWithTextarea(text);
+      let success = false;
 
-      if (!success && navigator.clipboard?.writeText) {
+      if (navigator.clipboard?.writeText) {
         try {
           await navigator.clipboard.writeText(text);
           success = true;
         } catch {
           success = false;
         }
+      }
+
+      if (!success) {
+        success = copyWithCopyEvent(text) || copyWithTextarea(text);
       }
 
 
