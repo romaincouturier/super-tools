@@ -61,6 +61,13 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [result, setResult] = useState<{ htmlLink: string; meetLink: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (open) {
+      setSummary(buildTitle(company, opportunityTitle));
+      setAttendeeEmail(contactEmail || "");
+    }
+  }, [open, company, opportunityTitle, contactEmail]);
+
   const handleOpen = (v: boolean) => {
     if (!v) {
       setResult(null);
