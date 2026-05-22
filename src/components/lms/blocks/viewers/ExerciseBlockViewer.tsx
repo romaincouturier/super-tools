@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, FileText, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import ActionBlockShell from "./ActionBlockShell";
+import { ImageWithLightbox } from "./ImageLightbox";
 
 interface Props {
   content: ExerciseBlockContent;
@@ -34,24 +35,23 @@ export default function ExerciseBlockViewer({ content }: Props) {
   return (
     <ActionBlockShell icon={Pencil} label={content.title || "Exercice"}>
       {imageUrls.length === 1 && (
-        <div className="rounded-lg overflow-hidden bg-muted mb-3">
-          <img
+        <div className="mb-3">
+          <ImageWithLightbox
             src={imageUrls[0]}
             alt="Image de consigne"
-            className="w-full h-auto max-h-[480px] object-contain"
+            imgStyle={{ maxHeight: 480 }}
           />
         </div>
       )}
       {imageUrls.length > 1 && (
         <div className={`grid gap-2 mb-3 ${imageUrls.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
           {imageUrls.map((url, i) => (
-            <div key={i} className="rounded-lg overflow-hidden bg-muted">
-              <img
-                src={url}
-                alt={`Image de consigne ${i + 1}`}
-                className="w-full h-auto max-h-[280px] object-contain"
-              />
-            </div>
+            <ImageWithLightbox
+              key={i}
+              src={url}
+              alt={`Image de consigne ${i + 1}`}
+              imgStyle={{ maxHeight: 280 }}
+            />
           ))}
         </div>
       )}
