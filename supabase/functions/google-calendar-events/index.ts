@@ -400,7 +400,17 @@ serve(async (req: Request): Promise<Response> => {
       };
       if (description) eventPayload.description = description;
       if (location) eventPayload.location = location;
-      if (attendeeEmail) eventPayload.attendees = [{ email: attendeeEmail }];
+      const attendeesList = Array.isArray(attendeeEmail)
+        ? attendeeEmail
+        : typeof attendeeEmail === "string"
+          ? attendeeEmail.split(/[,;\s]+/)
+          : [];
+      const cleanedAttendees = attendeesList
+        .map((e: string) => e.trim())
+        .filter((e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+      if (cleanedAttendees.length > 0) {
+        eventPayload.attendees = cleanedAttendees.map((email: string) => ({ email }));
+      }
 
       const createResponse = await fetch(
         "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all&conferenceDataVersion=1",
