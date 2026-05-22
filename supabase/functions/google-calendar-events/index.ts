@@ -458,9 +458,9 @@ serve(async (req: Request): Promise<Response> => {
 
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
-        console.error("Calendar create event error:", errorText);
+        console.error("Calendar create event error raw:", errorText);
         const calendarError = getGoogleCalendarCreateError(errorText);
-        return new Response(JSON.stringify({ error: calendarError.message, reason: calendarError.reason }), {
+        return new Response(JSON.stringify({ error: calendarError.message, reason: calendarError.reason, _raw: errorText }), {
           status: calendarError.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
