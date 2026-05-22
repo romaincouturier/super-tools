@@ -57,9 +57,11 @@ export default function LmsCoursePlayer() {
     return map;
   }, [modules, allLessons]);
 
-  // Flat ordered list of lessons
+  // Flat ordered list of lessons — special sections excluded from progression
   const orderedLessons = useMemo(() => {
-    return modules.flatMap((m) => lessonsByModule[m.id] || []);
+    return modules
+      .filter((m) => !m.is_special_section)
+      .flatMap((m) => lessonsByModule[m.id] || []);
   }, [modules, lessonsByModule]);
 
   // Auto-select lesson: prefer ?lesson= param, else first lesson
@@ -86,8 +88,9 @@ export default function LmsCoursePlayer() {
   const currentIndex = orderedLessons.findIndex((l) => l.id === selectedLessonId);
 
   const completedIds = new Set(progress.filter((p) => p.status === "completed").map((p) => p.lesson_id));
+  const completedRegularCount = orderedLessons.filter((l) => completedIds.has(l.id)).length;
   const completionPct = orderedLessons.length > 0
-    ? Math.round((completedIds.size / orderedLessons.length) * 100)
+    ? Math.round((completedRegularCount / orderedLessons.length) * 100)
     : 0;
 
   // Check if a module is unlocked (all lessons of prerequisite module completed)
