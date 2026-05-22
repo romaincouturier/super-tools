@@ -116,6 +116,8 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const routingInboxAlert = useRoutingInboxAlert();
   const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
   const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
+  const edgeFunctionsAlert = useEdgeFunctionsAlert();
+
 
 
   const [expanded, setExpanded] = useState<boolean>(() => {
