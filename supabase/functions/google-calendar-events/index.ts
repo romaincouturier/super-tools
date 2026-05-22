@@ -76,7 +76,7 @@ function getGoogleCalendarCreateError(errorText: string): { message: string; rea
     };
   }
 
-  return { message: message || "Impossible de créer l'événement Google Calendar.", reason, status: status >= 400 ? status : 200 };
+  return { message: message || "Impossible de créer l'événement Google Calendar.", reason, status: 200 };
 }
 
 serve(async (req: Request): Promise<Response> => {
