@@ -27,7 +27,19 @@ import {
  * Data fetching is shared with generate-daily-actions via _shared/daily-data-fetchers.ts.
  */
 
-const VERSION = "process-logistics-reminders@6.1.0";
+const VERSION = "process-logistics-reminders@2026-05-22.1";
+
+function isMorningDigestWindowParis(now = new Date()): boolean {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Paris",
+    weekday: "short",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  return weekday !== "Sat" && weekday !== "Sun" && hour === 7;
+}
 
 // ─── Styles ───
 const COLORS = {
@@ -104,6 +116,21 @@ serve(async (req) => {
 
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed", _version: VERSION }),
+      { status: 405, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
+
+  if (!isMorningDigestWindowParis()) {
+    console.warn(`[${VERSION}] skipped: outside morning digest window`);
+    return new Response(
+      JSON.stringify({ success: true, skipped: true, reason: "outside_schedule_window", emailsSent: 0, totalAlerts: 0, _version: VERSION }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
+  }
 
   try {
     const { getAppUrls } = await import("../_shared/app-urls.ts");
