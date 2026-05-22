@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,13 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ htmlLink: string; meetLink: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setSummary(buildTitle(company, opportunityTitle));
+      setAttendeeEmail(contactEmail || "");
+    }
+  }, [open, company, opportunityTitle, contactEmail]);
 
   const handleOpen = (v: boolean) => {
     if (!v) {
