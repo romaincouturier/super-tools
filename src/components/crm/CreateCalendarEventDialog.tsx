@@ -54,7 +54,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [summary, setSummary] = useState(() => buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState("10:00");
-  const [endTime, setEndTime] = useState("11:00");
+  const [endTime, setEndTime] = useState("10:30");
   const [attendeeEmail, setAttendeeEmail] = useState(contactEmail);
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [submitting, setSubmitting] = useState(false);
