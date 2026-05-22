@@ -10,6 +10,7 @@ export function useEdgeFunctionsAlert(): boolean {
     queryKey: ["functions-health"],
     queryFn: checkEdgeFunctionsHealth,
     staleTime: 5 * 60_000,
+    retry: false,
     refetchOnWindowFocus: false,
   });
   return (data?.missing ?? 0) > 0;
