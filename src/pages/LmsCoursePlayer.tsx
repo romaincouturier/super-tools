@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,7 @@ export default function LmsCoursePlayer() {
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const mainRef = useRef<HTMLElement>(null);
 
   // Group lessons by module
   const lessonsByModule = useMemo(() => {
@@ -75,6 +76,11 @@ export default function LmsCoursePlayer() {
       trackView.mutate({ courseId, lessonId: selectedLessonId, learnerEmail: learnerEmail || "admin-preview" });
     }
   }, [selectedLessonId, courseId]);
+
+  // Scroll to top of lesson content when navigating
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [selectedLessonId]);
 
   const selectedLesson = orderedLessons.find((l) => l.id === selectedLessonId);
   const currentIndex = orderedLessons.findIndex((l) => l.id === selectedLessonId);
@@ -303,19 +309,19 @@ export default function LmsCoursePlayer() {
 
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto">
+        <main ref={mainRef} className="flex-1 overflow-auto">
           {selectedLesson ? (
             <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
 
               {/* ── Card 1 : titre + contenu pédagogique ─────────────────── */}
               <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
                 <div className="flex items-start gap-3 mb-6">
-                  <h2
-                    className="text-2xl sm:text-3xl font-bold flex-1 leading-tight"
+                  <h1
+                    className="text-2xl sm:text-4xl font-bold flex-1 leading-tight"
                     style={{ color: "#101820" }}
                   >
                     {selectedLesson.title}
-                  </h2>
+                  </h1>
                   {selectedLesson.estimated_minutes > 0 && (
                     <span
                       className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
@@ -325,8 +331,6 @@ export default function LmsCoursePlayer() {
                     </span>
                   )}
                 </div>
-
-                {/* Lesson content (block-based with legacy fallback) */}
                 <LessonContent
                   lessonId={selectedLesson.id}
                   courseId={courseId}

@@ -314,6 +314,7 @@ function BlockEditorBody({
       return (
         <QuizBlockEditor
           courseId={courseId}
+          lessonId={lessonId}
           content={content as QuizBlockContent}
           onChange={(c) => onChange(c)}
         />

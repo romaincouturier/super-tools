@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -7,19 +8,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HelpCircle } from "lucide-react";
-import { useCourseQuizzes } from "@/hooks/useLms";
+import { HelpCircle, Plus } from "lucide-react";
+import { useCourseQuizzes, useCreateQuiz } from "@/hooks/useLms";
+import { useToast } from "@/hooks/use-toast";
 import type { QuizBlockContent } from "@/types/lms-blocks";
 
 interface Props {
   courseId: string | undefined;
+  lessonId: string | undefined;
   content: QuizBlockContent;
   onChange: (content: QuizBlockContent) => void;
   slim?: boolean;
 }
 
-export default function QuizBlockEditor({ courseId, content, onChange, slim }: Props) {
+export default function QuizBlockEditor({ courseId, lessonId, content, onChange, slim }: Props) {
   const { data: quizzes = [], isLoading } = useCourseQuizzes(courseId);
+  const createQuiz = useCreateQuiz();
+  const { toast } = useToast();
+
+  const handleCreateQuiz = async () => {
+    if (!courseId || !lessonId) return;
+    try {
+      const q = await createQuiz.mutateAsync({ course_id: courseId, lesson_id: lessonId, title: "Nouveau quiz" });
+      onChange({ ...content, quiz_id: q.id });
+      toast({ title: "Quiz créé" });
+    } catch {
+      toast({ title: "Erreur lors de la création du quiz", variant: "destructive" });
+    }
+  };
 
   if (!courseId) {
     return <p className="text-sm text-muted-foreground italic">Contexte du cours introuvable.</p>;
@@ -46,13 +62,22 @@ export default function QuizBlockEditor({ courseId, content, onChange, slim }: P
             <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>
               {selected.title}
             </p>
+          ) : quizzes.length === 0 ? (
+            <button
+              onClick={handleCreateQuiz}
+              disabled={createQuiz.isPending || !courseId || !lessonId}
+              className="text-sm font-medium"
+              style={{ color: "var(--st-ink-50)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            >
+              {createQuiz.isPending ? "Création…" : "+ Créer un quiz"}
+            </button>
           ) : (
             <Select
               value={content.quiz_id || ""}
               onValueChange={(v) => onChange({ ...content, quiz_id: v || null })}
             >
               <SelectTrigger className="h-8 text-sm border-dashed">
-                <SelectValue placeholder={quizzes.length === 0 ? "Aucun quiz disponible" : "Associer un quiz…"} />
+                <SelectValue placeholder="Associer un quiz…" />
               </SelectTrigger>
               <SelectContent>
                 {quizzes.map((q) => (
@@ -77,9 +102,19 @@ export default function QuizBlockEditor({ courseId, content, onChange, slim }: P
 
   if (quizzes.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground italic">
-        Aucun quiz dans ce cours. Créez-en un d'abord depuis la liste des cours.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground italic">Aucun quiz dans ce cours.</p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleCreateQuiz}
+          disabled={createQuiz.isPending || !courseId || !lessonId}
+          className="gap-1.5"
+        >
+          {createQuiz.isPending ? <Spinner className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+          {createQuiz.isPending ? "Création…" : "Créer un quiz"}
+        </Button>
+      </div>
     );
   }
 
