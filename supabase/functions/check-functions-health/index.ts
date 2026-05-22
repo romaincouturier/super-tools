@@ -214,20 +214,23 @@ const EXPECTED_FUNCTIONS = [
 ];
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const PROBE_TIMEOUT_MS = 8000;
+const FIRST_TIMEOUT_MS = 10000;
+const RETRY_TIMEOUT_MS = 20000;
 
-async function probeFunction(name: string): Promise<"deployed" | "missing" | "unknown"> {
+async function probeOnce(name: string, timeoutMs: number): Promise<"deployed" | "missing" | "unknown"> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: "OPTIONS",
       signal: controller.signal,
       headers: {
         "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization,content-type",
         Origin: "https://supertools",
       },
     });
+    try { await res.arrayBuffer(); } catch { /* ignore */ }
     return res.status === 404 ? "missing" : "deployed";
   } catch {
     return "unknown";
@@ -241,19 +244,43 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const CONCURRENCY = 8;
-    const results: { name: string; status: "deployed" | "missing" | "unknown" }[] = [];
+    const CONCURRENCY = 10;
+    const results = new Map<string, "deployed" | "missing" | "unknown">();
+
+    // First pass: parallel batches
     for (let i = 0; i < EXPECTED_FUNCTIONS.length; i += CONCURRENCY) {
       const batch = EXPECTED_FUNCTIONS.slice(i, i + CONCURRENCY);
       const settled = await Promise.all(
-        batch.map(async (name) => ({ name, status: await probeFunction(name) })),
+        batch.map(async (name) => ({ name, status: await probeOnce(name, FIRST_TIMEOUT_MS) })),
       );
-      results.push(...settled);
+      for (const s of settled) results.set(s.name, s.status);
     }
 
-    const deployed = results.filter((r) => r.status === "deployed");
-    const missing = results.filter((r) => r.status === "missing");
-    const unknown = results.filter((r) => r.status === "unknown");
+    // Second pass: retry "unknown" with longer timeout and lower concurrency
+    const toRetry = [...results.entries()].filter(([, s]) => s === "unknown").map(([n]) => n);
+    const RETRY_CONCURRENCY = 4;
+    for (let i = 0; i < toRetry.length; i += RETRY_CONCURRENCY) {
+      const batch = toRetry.slice(i, i + RETRY_CONCURRENCY);
+      const settled = await Promise.all(
+        batch.map(async (name) => ({ name, status: await probeOnce(name, RETRY_TIMEOUT_MS) })),
+      );
+      for (const s of settled) results.set(s.name, s.status);
+    }
+
+    // Third pass: final sequential retry for any still-unknown
+    const stillUnknown = [...results.entries()].filter(([, s]) => s === "unknown").map(([n]) => n);
+    for (const name of stillUnknown) {
+      results.set(name, await probeOnce(name, RETRY_TIMEOUT_MS));
+    }
+
+    const finalResults = EXPECTED_FUNCTIONS.map((name) => ({
+      name,
+      status: results.get(name) || "unknown",
+    }));
+
+    const deployed = finalResults.filter((r) => r.status === "deployed");
+    const missing = finalResults.filter((r) => r.status === "missing");
+    const unknown = finalResults.filter((r) => r.status === "unknown");
 
     return createJsonResponse({
       checked_at: new Date().toISOString(),
@@ -261,7 +288,7 @@ serve(async (req) => {
       deployed: deployed.length,
       missing: missing.length,
       unknown: unknown.length,
-      functions: results.map((r) => ({ ...r, response_time_ms: 0 })),
+      functions: finalResults.map((r) => ({ ...r, response_time_ms: 0 })),
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
