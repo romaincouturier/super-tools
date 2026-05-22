@@ -11,6 +11,7 @@ import { analyzeTranscript, notifySlack } from "../_shared/google-drive-helper.t
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const FIREFLIES_API_KEY = Deno.env.get("FIREFLIES_API_KEY") ?? "";
 
 interface FirefliesTranscript {
   id: string;
@@ -38,12 +39,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
-    const apiKey = get("fireflies_api_key");
+    const apiKey = FIREFLIES_API_KEY || get("fireflies_api_key");
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ skipped: true, reason: "fireflies_api_key not configured" }),
+        JSON.stringify({ skipped: true, reason: "FIREFLIES_API_KEY not configured" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -56,14 +57,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .single();
 
     const lastSyncedAt = (cursorRow as { last_synced_at?: string } | null)?.last_synced_at;
-    const dateFrom = lastSyncedAt
-      ? new Date(lastSyncedAt).toISOString().split("T")[0]
-      : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split("T")[0]; // 30d default
+    const fromDate = lastSyncedAt
+      ? new Date(lastSyncedAt).toISOString()
+      : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(); // 30d default
 
     // ── Query Fireflies GraphQL ──────────────────────────────────
     const query = `
-      query($dateFrom: String) {
-        transcripts(date_from: $dateFrom, limit: 20) {
+      query($fromDate: DateTime) {
+        transcripts(fromDate: $fromDate, limit: 20) {
           id
           title
           date
@@ -80,7 +81,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query, variables: { dateFrom } }),
+      body: JSON.stringify({ query, variables: { fromDate } }),
     });
 
     if (!ffRes.ok) {
@@ -88,6 +89,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const ffData = await ffRes.json();
+    if (ffData.errors?.length) {
+      throw new Error(`Fireflies GraphQL error: ${JSON.stringify(ffData.errors)}`);
+    }
+
     const transcripts: FirefliesTranscript[] = ffData.data?.transcripts ?? [];
 
     const results = { imported: 0, skipped: 0, errors: 0 };
