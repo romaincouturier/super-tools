@@ -22,6 +22,7 @@ const EdgeFunctionsTab = () => {
     queryKey: ["functions-health"],
     queryFn: checkEdgeFunctionsHealth,
     staleTime: 5 * 60_000,
+    retry: false,
   });
 
 
