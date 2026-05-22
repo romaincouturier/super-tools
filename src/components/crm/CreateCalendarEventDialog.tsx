@@ -15,6 +15,10 @@ interface Props {
   opportunityTitle: string;
   company: string;
   contactEmail: string;
+  /** When provided, overrides the auto-generated buildTitle() computation. */
+  initialSummary?: string;
+  /** Called when the event is successfully created, with the event date (YYYY-MM-DD) and summary. */
+  onEventCreated?: (eventDate: string, eventSummary: string) => void;
 }
 
 const DEFAULT_DESCRIPTION = `Bonjour,
@@ -49,9 +53,9 @@ function toIso(dateLocal: string, timeLocal: string): string {
   return dt.toISOString();
 }
 
-export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail }: Props) {
+export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, onEventCreated }: Props) {
   const today = todayAsISO();
-  const [summary, setSummary] = useState(() => buildTitle(company, opportunityTitle));
+  const [summary, setSummary] = useState(() => initialSummary ?? buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("10:30");
@@ -63,10 +67,10 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
 
   useEffect(() => {
     if (open) {
-      setSummary(buildTitle(company, opportunityTitle));
+      setSummary(initialSummary ?? buildTitle(company, opportunityTitle));
       setAttendeeEmail(contactEmail || "");
     }
-  }, [open, company, opportunityTitle, contactEmail]);
+  }, [open, company, opportunityTitle, contactEmail, initialSummary]);
 
   const handleOpen = (v: boolean) => {
     if (!v) {
@@ -118,6 +122,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
         return;
       }
       setResult({ htmlLink: data.htmlLink, meetLink: data.meetLink });
+      onEventCreated?.(date, summary.trim());
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Erreur inconnue.");
     } finally {

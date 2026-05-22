@@ -219,6 +219,19 @@ const MissionDetailDrawer = ({
     },
   });
 
+  const handleCalendarEventCreated = async (eventDate: string, eventSummary: string) => {
+    if (!mission) return;
+    const existing = mission.waiting_next_action_date;
+    // Don't override if there's already an action scheduled before this event
+    if (existing && existing <= eventDate) return;
+    await updateMission.mutateAsync({
+      id: mission.id,
+      updates: { waiting_next_action_date: eventDate, waiting_next_action_text: eventSummary },
+    });
+    setScheduledDate(eventDate);
+    setScheduledText(eventSummary);
+  };
+
   const handleDelete = async () => {
     if (!mission) return;
     const ok = await confirm({
@@ -508,9 +521,11 @@ const MissionDetailDrawer = ({
         <CreateCalendarEventDialog
           open={showCreateCalendarEventDialog}
           onOpenChange={setShowCreateCalendarEventDialog}
-          opportunityTitle={title}
+          opportunityTitle=""
           company={clientName}
           contactEmail={primaryContactEmail}
+          initialSummary={clientName.trim() || undefined}
+          onEventCreated={handleCalendarEventCreated}
         />
         <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
           <DialogContent className="w-full sm:max-w-lg p-0 max-h-[85vh] flex flex-col">
