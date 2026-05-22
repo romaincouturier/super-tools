@@ -21,7 +21,7 @@ import CourseProgressSidebar from "@/components/lms/CourseProgressSidebar";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
-  Clock, Paperclip, Download, Menu, Bell,
+  Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
@@ -266,7 +266,7 @@ export default function LmsCoursePlayer() {
 
         {/* Desktop sidebar */}
         <aside
-          className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[316px]" : "w-0"}`}
+          className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[360px]" : "w-0"}`}
           aria-hidden={!sidebarOpen}
           style={{ padding: sidebarOpen ? "1rem" : undefined }}
         >
@@ -311,7 +311,11 @@ export default function LmsCoursePlayer() {
         {/* Main content */}
         <main ref={mainRef} className="flex-1 overflow-auto">
           {selectedLesson ? (
-            <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+            <div className="p-4 sm:p-6">
+              <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
+
+                {/* ── Center column ──────────────────────────────────────── */}
+                <div className="space-y-4">
 
               {/* ── Card 1 : titre + contenu pédagogique ─────────────────── */}
               <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
@@ -452,9 +456,6 @@ export default function LmsCoursePlayer() {
                 />
               </div>
 
-              {/* ── CTA communauté ───────────────────────────────────────── */}
-              <CommunityCtaBlock />
-
               {/* ── Card 2 : commentaires ────────────────────────────────── */}
               {!isPreview && learnerEmail && (
                 <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.5rem 1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
@@ -496,6 +497,23 @@ export default function LmsCoursePlayer() {
                 </div>
               </div>
 
+                </div>{/* end center column */}
+
+                {/* ── Right panel ────────────────────────────────────────── */}
+                <div className="hidden lg:flex flex-col gap-4 sticky top-6">
+                  <ModuleProgressWidget
+                    selectedLesson={selectedLesson}
+                    modules={modules}
+                    lessonsByModule={lessonsByModule}
+                    completedIds={completedIds}
+                  />
+                  {courseId && (
+                    <CommunityWidget courseId={courseId} learnerEmail={learnerEmail} />
+                  )}
+                  <TipWidget />
+                </div>
+
+              </div>{/* end grid */}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full" style={{ color: "rgba(16,24,32,0.4)" }}>
@@ -504,6 +522,126 @@ export default function LmsCoursePlayer() {
           )}
         </main>
       </div>
+    </div>
+  );
+}
+
+// ── Right panel: module progress ─────────────────────────────────────────────
+function ModuleProgressWidget({
+  selectedLesson,
+  modules,
+  lessonsByModule,
+  completedIds,
+}: {
+  selectedLesson: LmsLesson;
+  modules: LmsModule[];
+  lessonsByModule: Record<string, LmsLesson[]>;
+  completedIds: Set<string>;
+}) {
+  const modLessons = lessonsByModule[selectedLesson.module_id] ?? [];
+  const done = modLessons.filter((l) => completedIds.has(l.id)).length;
+  const total = modLessons.length;
+  const pct = total > 0 ? (done / total) * 100 : 0;
+  const r = 36;
+  const circ = 2 * Math.PI * r;
+  const dash = (circ * Math.min(pct, 100)) / 100;
+
+  return (
+    <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.25rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+      <p className="text-sm font-bold mb-4" style={{ color: "#101820" }}>Ma progression dans ce module</p>
+      <div className="flex items-center gap-4">
+        <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
+          <svg width={80} height={80} style={{ transform: "rotate(-90deg)" }}>
+            <circle cx={40} cy={40} r={r} fill="none" stroke="#EDEDED" strokeWidth={7} />
+            <circle
+              cx={40} cy={40} r={r} fill="none"
+              stroke={pct === 100 ? "#69C3C4" : "#FFD100"} strokeWidth={7}
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${circ}`}
+              style={{ transition: "stroke-dasharray 0.8s ease" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-lg font-bold leading-none" style={{ color: "#101820" }}>{Math.round(pct)}%</span>
+          </div>
+        </div>
+        <div>
+          <p className="text-base font-bold leading-tight" style={{ color: "#101820" }}>{done} / {total} séquences</p>
+          <p className="text-xs mt-0.5" style={{ color: "rgba(16,24,32,0.45)" }}>terminées</p>
+        </div>
+      </div>
+      <button
+        className="mt-4 flex items-center gap-1 text-xs font-medium"
+        style={{ color: "rgba(16,24,32,0.45)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+      >
+        Voir toutes les séquences <ChevronRight size={12} />
+      </button>
+    </div>
+  );
+}
+
+// ── Right panel: community ────────────────────────────────────────────────────
+const COMMUNITY_AVATAR_COLORS = ["#FFD100", "#69C3C4", "#F2A541", "#A8D8A8", "#D4A5A5"];
+
+function CommunityWidget({ courseId, learnerEmail }: { courseId: string; learnerEmail: string }) {
+  const { data: forums = [] } = useCourseForums(courseId);
+  const mainForum = forums[0] ?? null;
+  const { data: allPosts = [] } = useForumPosts(mainForum?.id);
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentPosts = allPosts.filter((p) => new Date(p.created_at) >= weekAgo);
+  const recentAuthors = [...new Set(recentPosts.map((p) => p.author_email))].slice(0, 4);
+
+  return (
+    <div style={{ background: "#FFFBEA", borderRadius: 20, padding: "1.25rem", border: "1px solid rgba(255,209,0,0.3)", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <MessageSquare size={15} style={{ color: "#101820" }} />
+        <p className="text-sm font-bold" style={{ color: "#101820" }}>Besoin d'échanger ?</p>
+      </div>
+      <p className="text-xs leading-relaxed mb-3" style={{ color: "rgba(16,24,32,0.6)" }}>
+        Posez vos questions, partagez vos essais et progressez ensemble.
+      </p>
+      {recentAuthors.length > 0 && (
+        <div className="flex items-center mb-3">
+          {recentAuthors.map((a, i) => (
+            <div
+              key={a}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white"
+              style={{ background: COMMUNITY_AVATAR_COLORS[i % COMMUNITY_AVATAR_COLORS.length], color: "#101820", marginLeft: i > 0 ? -6 : 0 }}
+            >
+              {a.split("@")[0].slice(0, 2).toUpperCase()}
+            </div>
+          ))}
+        </div>
+      )}
+      <a
+        href="/espace-apprenant"
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0.5rem 0", background: "#FFD100", color: "#101820", borderRadius: 12, fontWeight: 700, fontSize: "0.8125rem", textDecoration: "none" }}
+      >
+        Aller à la communauté <ChevronRight size={14} />
+      </a>
+      {recentPosts.length > 0 && (
+        <p className="text-[11px] text-center mt-2" style={{ color: "rgba(16,24,32,0.45)" }}>
+          {recentPosts.length} apprenant{recentPosts.length > 1 ? "s ont" : " a"} déposé {recentPosts.length > 1 ? "leur" : "son"} exercice cette semaine.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Right panel: tip ─────────────────────────────────────────────────────────
+function TipWidget() {
+  return (
+    <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.25rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F2F4F4" }}>
+          <Sparkles size={14} style={{ color: "#101820" }} />
+        </div>
+        <p className="text-sm font-bold" style={{ color: "#101820" }}>Conseil pratique</p>
+      </div>
+      <p className="text-xs leading-relaxed" style={{ color: "rgba(16,24,32,0.6)" }}>
+        Pas besoin de savoir dessiner pour avancer ! Ce qui compte, c'est de s'exprimer et de prendre plaisir à pratiquer.
+      </p>
     </div>
   );
 }
