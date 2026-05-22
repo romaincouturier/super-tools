@@ -108,6 +108,7 @@ const SupertiltOrders = lazy(() => import("./pages/SupertiltOrders"));
 const WoocommerceInbox = lazy(() => import("./pages/WoocommerceInbox"));
 const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
+const GoogleCalendarCallback = lazy(() => import("./pages/GoogleCalendarCallback"));
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
@@ -177,6 +178,7 @@ const App = () => (
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               {/* OAuth callbacks */}
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
+              <Route path="/google-calendar/callback" element={<GoogleCalendarCallback />} />
 
               {/* Back-office routes — staff only, learners redirected to /espace-apprenant */}
               <Route element={<RequireStaff />}>

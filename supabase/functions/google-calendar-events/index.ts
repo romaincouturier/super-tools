@@ -8,10 +8,25 @@ const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Calendar readonly scope
 const SCOPES = [
-  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar",
 ].join(" ");
+
+function redirectToClientCallback(
+  appCallbackUrl: string | undefined,
+  params: Record<string, string>,
+): Response {
+  if (!appCallbackUrl) {
+    return new Response("Authentification Google Calendar terminée. Vous pouvez fermer cette fenêtre.", {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+  const callbackUrl = new URL(appCallbackUrl);
+  for (const [key, value] of Object.entries(params)) {
+    callbackUrl.searchParams.set(key, value);
+  }
+  return Response.redirect(callbackUrl.toString(), 303);
+}
 
 async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -63,8 +78,9 @@ serve(async (req: Request): Promise<Response> => {
 
       const body = await req.json().catch(() => ({}));
       const redirectUri = body.redirectUri || `${SUPABASE_URL}/functions/v1/google-calendar-events?action=callback`;
+      const appCallbackUrl = body.appCallbackUrl;
 
-      const state = btoa(JSON.stringify({ userId: userData.user.id, redirectUri }));
+      const state = btoa(JSON.stringify({ userId: userData.user.id, redirectUri, appCallbackUrl }));
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", GOOGLE_OAUTH_CLIENT_ID);
@@ -87,29 +103,23 @@ serve(async (req: Request): Promise<Response> => {
       const state = url.searchParams.get("state");
       const error = url.searchParams.get("error");
 
+      let appCallbackUrl: string | undefined;
+      try { appCallbackUrl = JSON.parse(atob(state || "")).appCallbackUrl; } catch { /* ignore */ }
+
       if (error) {
-        const safeError = JSON.stringify(error);
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:${safeError}},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error: String(error) });
       }
 
       if (!code || !state) {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:'Missing code or state'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error: "Missing code or state" });
       }
 
-      let stateData: { userId: string; redirectUri: string };
+      let stateData: { userId: string; redirectUri: string; appCallbackUrl?: string };
       try {
         stateData = JSON.parse(atob(state));
+        appCallbackUrl = stateData.appCallbackUrl;
       } catch {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:'Invalid state'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(undefined, { success: "false", error: "Invalid state" });
       }
 
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -149,16 +159,10 @@ serve(async (req: Request): Promise<Response> => {
         });
 
       if (upsertError) {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:'Failed to store tokens'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error: "Failed to store tokens" });
       }
 
-      return new Response(
-        `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:true},'*');window.close();</script></body></html>`,
-        { headers: { "Content-Type": "text/html" } }
-      );
+      return redirectToClientCallback(appCallbackUrl, { success: "true" });
     }
 
     // Action: check connection status
@@ -322,6 +326,113 @@ serve(async (req: Request): Promise<Response> => {
       }));
 
       return new Response(JSON.stringify({ events }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action: create a calendar event
+    if (action === "create-event") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !userData.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: tokenRow } = await supabase
+        .from("google_calendar_tokens")
+        .select("*")
+        .eq("user_id", userData.user.id)
+        .single();
+
+      if (!tokenRow) {
+        return new Response(JSON.stringify({ error: "Not connected" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let accessToken = tokenRow.access_token;
+      const isExpired = new Date(tokenRow.token_expires_at) < new Date();
+      if (isExpired) {
+        accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+        const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
+        await supabase
+          .from("google_calendar_tokens")
+          .update({ access_token: accessToken, token_expires_at: newExpiry, updated_at: new Date().toISOString() })
+          .eq("user_id", userData.user.id);
+      }
+
+      const body = await req.json();
+      const { summary, description, location, startDateTime, endDateTime, attendeeEmail } = body;
+
+      if (!summary || !startDateTime || !endDateTime) {
+        return new Response(JSON.stringify({ error: "Missing required fields: summary, startDateTime, endDateTime" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const eventPayload: Record<string, unknown> = {
+        summary,
+        start: { dateTime: startDateTime },
+        end: { dateTime: endDateTime },
+        reminders: { useDefault: true },
+        conferenceData: {
+          createRequest: {
+            requestId: crypto.randomUUID(),
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        },
+      };
+      if (description) eventPayload.description = description;
+      if (location) eventPayload.location = location;
+      if (attendeeEmail) eventPayload.attendees = [{ email: attendeeEmail }];
+
+      const createResponse = await fetch(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all&conferenceDataVersion=1",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(eventPayload),
+        }
+      );
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error("Calendar create event error:", errorText);
+        return new Response(JSON.stringify({ error: "Failed to create event" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const createdEvent = await createResponse.json();
+      const meetLink = createdEvent.conferenceData?.entryPoints?.find(
+        (ep: { entryPointType: string; uri: string }) => ep.entryPointType === "video"
+      )?.uri ?? null;
+      return new Response(JSON.stringify({
+        id: createdEvent.id,
+        htmlLink: createdEvent.htmlLink,
+        summary: createdEvent.summary,
+        meetLink,
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
