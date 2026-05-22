@@ -27,13 +27,17 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
   const { toast } = useToast();
 
   const handleCreateQuiz = async () => {
-    if (!courseId || !lessonId) return;
+    if (!courseId) return;
     try {
-      const q = await createQuiz.mutateAsync({ course_id: courseId, lesson_id: lessonId, title: "Nouveau quiz" } as any);
+      const q = await createQuiz.mutateAsync({ course_id: courseId, title: "Nouveau quiz" });
       onChange({ ...content, quiz_id: q.id });
       toast({ title: "Quiz créé" });
-    } catch {
-      toast({ title: "Erreur lors de la création du quiz", variant: "destructive" });
+    } catch (err) {
+      toast({
+        title: "Erreur lors de la création du quiz",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     }
   };
 
@@ -65,7 +69,7 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
           ) : quizzes.length === 0 ? (
             <button
               onClick={handleCreateQuiz}
-              disabled={createQuiz.isPending || !courseId || !lessonId}
+              disabled={createQuiz.isPending || !courseId}
               className="text-sm font-medium"
               style={{ color: "var(--st-ink-50)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
@@ -108,7 +112,7 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
           size="sm"
           variant="outline"
           onClick={handleCreateQuiz}
-          disabled={createQuiz.isPending || !courseId || !lessonId}
+          disabled={createQuiz.isPending || !courseId}
           className="gap-1.5"
         >
           {createQuiz.isPending ? <Spinner className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}

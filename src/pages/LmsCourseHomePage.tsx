@@ -1682,11 +1682,11 @@ export default function LmsCourseHomePage() {
         )}
 
         {/* Main scrollable area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" style={{ background: "#F2F4F4" }}>
           {/* Mobile progress bar — only on home view */}
           {activeView === "home" && (
             <div
-              className="lg:hidden flex items-center gap-3 px-4 py-3 border-b"
+              className="lg:hidden flex items-center gap-3 px-6 py-3 border-b"
               style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
             >
               <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
@@ -1710,11 +1710,11 @@ export default function LmsCourseHomePage() {
 
           {/* Back button for non-home views */}
           {activeView !== "home" && (
-            <div className="px-5 pt-5">
+            <div className="px-6 sm:px-10 lg:px-12 pt-7">
               <button
                 onClick={() => setActiveView("home")}
                 className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+                style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", fontFamily: "inherit", background: "var(--st-white)" }}
               >
                 <ArrowLeft size={13} />
                 Accueil du cours
@@ -1722,7 +1722,7 @@ export default function LmsCourseHomePage() {
             </div>
           )}
 
-          <div className="px-5 py-6 flex flex-col gap-8">
+          <div className="px-6 sm:px-10 lg:px-12 py-8 flex flex-col gap-8 max-w-[1440px] mx-auto w-full">
             {activeView === "home" && (
               <>
                 <HeroSection
@@ -1730,7 +1730,7 @@ export default function LmsCourseHomePage() {
                   completionPct={completionPct}
                   onContinue={handleContinue}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <ProgressCard
                     completionPct={completionPct}
                     completedLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id) && completedIds.has(l.id)).length}
@@ -1745,7 +1745,7 @@ export default function LmsCourseHomePage() {
                   />
                   <CommunityInfoCard courseId={courseId!} email={email} />
                 </div>
-                <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+                <div className="grid lg:grid-cols-[1fr_300px] gap-7 items-start">
                   <ModulesListSection
                     modules={regularModules}
                     moduleStatuses={moduleStatuses}

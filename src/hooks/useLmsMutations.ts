@@ -323,8 +323,8 @@ export function useCreateQuiz() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["lms-quiz"] });
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ["lms-course-quizzes", variables.course_id] });
     },
   });
 }
