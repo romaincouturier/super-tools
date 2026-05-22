@@ -138,6 +138,10 @@ export interface CardDetailState {
   showPricingDialog: boolean;
   setShowPricingDialog: (v: boolean) => void;
 
+  // Google Calendar event
+  showCreateCalendarEventDialog: boolean;
+  setShowCreateCalendarEventDialog: (v: boolean) => void;
+
   // Comment
   newComment: string;
   setNewComment: (v: string) => void;

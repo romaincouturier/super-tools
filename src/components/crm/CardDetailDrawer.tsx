@@ -59,6 +59,7 @@ import CardDetailCommunication from "./card-detail/CardDetailCommunication";
 import CardDetailTabs from "./card-detail/CardDetailTabs";
 import CardDetailDialogs from "./card-detail/CardDetailDialogs";
 import { NewOpportunityDialog } from "./NewOpportunityDialog";
+import CreateCalendarEventDialog from "./CreateCalendarEventDialog";
 import type { CardDetailState, CardDetailHandlers } from "./card-detail/types";
 
 interface CardDetailDrawerProps {
@@ -164,6 +165,7 @@ const CardDetailDrawer = ({
   const fieldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedFieldsHashRef = useRef<string>("");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
+  const [showCreateCalendarEventDialog, setShowCreateCalendarEventDialog] = useState(false);
   const [pricingLines, setPricingLines] = useState<PricingLine[]>([]);
   const [pricingTravelTotal, setPricingTravelTotal] = useState(0);
   const [showCreateTrainingDialog, setShowCreateTrainingDialog] = useState(false);
@@ -787,6 +789,7 @@ const CardDetailDrawer = ({
     isFullScreen, setIsFullScreen, fieldSaving, fieldSaved, descriptionSaving, descriptionSaved,
     aiAnalyzing, aiAnalysis, setAiAnalysis, quoteGenerating, quoteDescription, setQuoteDescription,
     showPricingDialog, setShowPricingDialog, newComment, setNewComment,
+    showCreateCalendarEventDialog, setShowCreateCalendarEventDialog,
   };
 
   const handlers: CardDetailHandlers = {
@@ -902,6 +905,14 @@ const CardDetailDrawer = ({
           linkedin_url: linkedinUrl || null,
         }}
         forceAcquisitionSource="nouvelle_mission"
+      />
+
+      <CreateCalendarEventDialog
+        open={showCreateCalendarEventDialog}
+        onOpenChange={setShowCreateCalendarEventDialog}
+        opportunityTitle={title}
+        company={company}
+        contactEmail={email}
       />
     </>
   );

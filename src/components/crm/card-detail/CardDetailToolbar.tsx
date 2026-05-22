@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { X, Calendar, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, Bot, UserPlus } from "lucide-react";
+import { X, Calendar, CalendarPlus, MoreVertical, Wand2, ChevronDown, Trophy, XCircle, Undo2, Calculator, Bot, UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +31,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   const {
     card: _card, allColumns, columnId, estimatedValue, setEstimatedValue,
     confidenceScore, setConfidenceScore, salesStatus, setShowPricingDialog,
-    nextActionSuggesting, setShowSchedulePopover,
+    nextActionSuggesting, setShowSchedulePopover, setShowCreateCalendarEventDialog,
   } = state;
 
   return (
@@ -63,6 +63,10 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
           <DropdownMenuItem onClick={() => { trackFeature("new_opportunity_from_contact", "crm"); handlers.handleCreateOpportunityFromContact(); }}>
             <UserPlus className="h-4 w-4 mr-2" />
             Nouvelle opportunité depuis ce contact
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => { trackFeature("create_calendar_event", "crm"); setShowCreateCalendarEventDialog(true); }}>
+            <CalendarPlus className="h-4 w-4 mr-2" />
+            Créer un RDV Google Calendar
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

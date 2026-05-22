@@ -8,9 +8,8 @@ const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Calendar readonly scope
 const SCOPES = [
-  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar",
 ].join(" ");
 
 async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
@@ -322,6 +321,113 @@ serve(async (req: Request): Promise<Response> => {
       }));
 
       return new Response(JSON.stringify({ events }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action: create a calendar event
+    if (action === "create-event") {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !userData.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: tokenRow } = await supabase
+        .from("google_calendar_tokens")
+        .select("*")
+        .eq("user_id", userData.user.id)
+        .single();
+
+      if (!tokenRow) {
+        return new Response(JSON.stringify({ error: "Not connected" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let accessToken = tokenRow.access_token;
+      const isExpired = new Date(tokenRow.token_expires_at) < new Date();
+      if (isExpired) {
+        accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+        const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
+        await supabase
+          .from("google_calendar_tokens")
+          .update({ access_token: accessToken, token_expires_at: newExpiry, updated_at: new Date().toISOString() })
+          .eq("user_id", userData.user.id);
+      }
+
+      const body = await req.json();
+      const { summary, description, location, startDateTime, endDateTime, attendeeEmail } = body;
+
+      if (!summary || !startDateTime || !endDateTime) {
+        return new Response(JSON.stringify({ error: "Missing required fields: summary, startDateTime, endDateTime" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const eventPayload: Record<string, unknown> = {
+        summary,
+        start: { dateTime: startDateTime },
+        end: { dateTime: endDateTime },
+        reminders: { useDefault: true },
+        conferenceData: {
+          createRequest: {
+            requestId: crypto.randomUUID(),
+            conferenceSolutionKey: { type: "hangoutsMeet" },
+          },
+        },
+      };
+      if (description) eventPayload.description = description;
+      if (location) eventPayload.location = location;
+      if (attendeeEmail) eventPayload.attendees = [{ email: attendeeEmail }];
+
+      const createResponse = await fetch(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all&conferenceDataVersion=1",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(eventPayload),
+        }
+      );
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error("Calendar create event error:", errorText);
+        return new Response(JSON.stringify({ error: "Failed to create event" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const createdEvent = await createResponse.json();
+      const meetLink = createdEvent.conferenceData?.entryPoints?.find(
+        (ep: { entryPointType: string; uri: string }) => ep.entryPointType === "video"
+      )?.uri ?? null;
+      return new Response(JSON.stringify({
+        id: createdEvent.id,
+        htmlLink: createdEvent.htmlLink,
+        summary: createdEvent.summary,
+        meetLink,
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
