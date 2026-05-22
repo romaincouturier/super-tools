@@ -12,6 +12,22 @@ const SCOPES = [
   "https://www.googleapis.com/auth/calendar",
 ].join(" ");
 
+function redirectToClientCallback(
+  appCallbackUrl: string | undefined,
+  params: Record<string, string>,
+): Response {
+  if (!appCallbackUrl) {
+    return new Response("Authentification Google Calendar terminée. Vous pouvez fermer cette fenêtre.", {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+  const callbackUrl = new URL(appCallbackUrl);
+  for (const [key, value] of Object.entries(params)) {
+    callbackUrl.searchParams.set(key, value);
+  }
+  return Response.redirect(callbackUrl.toString(), 303);
+}
+
 async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
   const response = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -62,8 +78,9 @@ serve(async (req: Request): Promise<Response> => {
 
       const body = await req.json().catch(() => ({}));
       const redirectUri = body.redirectUri || `${SUPABASE_URL}/functions/v1/google-calendar-events?action=callback`;
+      const appCallbackUrl = body.appCallbackUrl;
 
-      const state = btoa(JSON.stringify({ userId: userData.user.id, redirectUri }));
+      const state = btoa(JSON.stringify({ userId: userData.user.id, redirectUri, appCallbackUrl }));
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", GOOGLE_OAUTH_CLIENT_ID);
@@ -86,29 +103,23 @@ serve(async (req: Request): Promise<Response> => {
       const state = url.searchParams.get("state");
       const error = url.searchParams.get("error");
 
+      let appCallbackUrl: string | undefined;
+      try { appCallbackUrl = JSON.parse(atob(state || "")).appCallbackUrl; } catch { /* ignore */ }
+
       if (error) {
-        const safeError = JSON.stringify(error);
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:${safeError}},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error: String(error) });
       }
 
       if (!code || !state) {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:'Missing code or state'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error: "Missing code or state" });
       }
 
-      let stateData: { userId: string; redirectUri: string };
+      let stateData: { userId: string; redirectUri: string; appCallbackUrl?: string };
       try {
         stateData = JSON.parse(atob(state));
+        appCallbackUrl = stateData.appCallbackUrl;
       } catch {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:'Invalid state'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(undefined, { success: "false", error: "Invalid state" });
       }
 
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -148,16 +159,10 @@ serve(async (req: Request): Promise<Response> => {
         });
 
       if (upsertError) {
-        return new Response(
-          `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:false,error:'Failed to store tokens'},'*');window.close();</script></body></html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        return redirectToClientCallback(appCallbackUrl, { success: "false", error: "Failed to store tokens" });
       }
 
-      return new Response(
-        `<html><body><script>window.opener.postMessage({type:'google-calendar-auth',success:true},'*');window.close();</script></body></html>`,
-        { headers: { "Content-Type": "text/html" } }
-      );
+      return redirectToClientCallback(appCallbackUrl, { success: "true" });
     }
 
     // Action: check connection status
