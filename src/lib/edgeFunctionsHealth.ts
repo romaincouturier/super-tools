@@ -74,22 +74,15 @@ const CONCURRENCY = 8;
 async function probe(name: string): Promise<FunctionInfo> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  const url = `${SUPABASE_URL}/functions/v1/${name}`;
   try {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-      method: "OPTIONS",
-      signal: controller.signal,
-      headers: {
-        "Access-Control-Request-Method": "POST",
-      },
-    });
+    // Use GET (simple request, no CORS preflight). Missing function → 404,
+    // any other status (401/405/500/2xx) means the function is deployed.
+    const res = await fetch(url, { method: "GET", signal: controller.signal });
     return { name, status: res.status === 404 ? "missing" : "deployed" };
   } catch {
-    // On network/timeout, retry once before declaring missing.
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-        method: "OPTIONS",
-        headers: { "Access-Control-Request-Method": "POST" },
-      });
+      const res = await fetch(url, { method: "GET" });
       return { name, status: res.status === 404 ? "missing" : "deployed" };
     } catch {
       return { name, status: "missing" };
@@ -98,6 +91,7 @@ async function probe(name: string): Promise<FunctionInfo> {
     clearTimeout(timeout);
   }
 }
+
 
 export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
   const results: FunctionInfo[] = [];
