@@ -1,6 +1,4 @@
-// Client-side edge functions health check.
-// Probing is done from the browser to avoid edge-runtime → edge-runtime
-// self-calls that hit Cloudflare rate limits and produce false "missing".
+import { supabase } from "@/integrations/supabase/client";
 
 export const EXPECTED_FUNCTIONS = [
   "add-training-participant","agent-chat","ai-content-assist","alert-form-error",
@@ -56,7 +54,7 @@ export const EXPECTED_FUNCTIONS = [
 
 export interface FunctionInfo {
   name: string;
-  status: "deployed" | "missing";
+  status: "deployed" | "missing" | "unknown";
 }
 
 export interface HealthCheckResult {
@@ -64,46 +62,22 @@ export interface HealthCheckResult {
   total: number;
   deployed: number;
   missing: number;
+  unknown?: number;
   functions: FunctionInfo[];
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const PROBE_TIMEOUT_MS = 4000;
-const CONCURRENCY = 20;
-
-async function probe(name: string): Promise<FunctionInfo> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-  const url = `${SUPABASE_URL}/functions/v1/${name}`;
-  try {
-    // OPTIONS without custom headers — browser sets Origin automatically.
-    // Deployed function returns 200 (CORS preflight), missing returns 404.
-    // No body is sent, so the function code never runs — no 401/400/500 noise.
-    const res = await fetch(url, { method: "OPTIONS", signal: controller.signal });
-    return { name, status: res.status === 404 ? "missing" : "deployed" };
-  } catch {
-    return { name, status: "missing" };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-
-
 export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
-  const results: FunctionInfo[] = [];
-  for (let i = 0; i < EXPECTED_FUNCTIONS.length; i += CONCURRENCY) {
-    const batch = EXPECTED_FUNCTIONS.slice(i, i + CONCURRENCY);
-    const settled = await Promise.all(batch.map(probe));
-    results.push(...settled);
+  const { data, error } = await supabase.functions.invoke<HealthCheckResult>("check-functions-health", {
+    body: {},
+  });
+
+  if (error) {
+    throw new Error(error.message || "Impossible de vérifier les Edge Functions");
   }
-  const deployed = results.filter((r) => r.status === "deployed").length;
-  const missing = results.filter((r) => r.status === "missing").length;
-  return {
-    checked_at: new Date().toISOString(),
-    total: EXPECTED_FUNCTIONS.length,
-    deployed,
-    missing,
-    functions: results,
-  };
+
+  if (!data) {
+    throw new Error("Aucune réponse de vérification des Edge Functions");
+  }
+
+  return data;
 }

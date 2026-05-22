@@ -33,6 +33,7 @@ const EdgeFunctionsTab = () => {
 
   const missing = filtered.filter((f) => f.status === "missing");
   const deployed = filtered.filter((f) => f.status === "deployed");
+  const unknown = filtered.filter((f) => f.status === "unknown");
 
   return (
     <div className="space-y-6">
@@ -78,6 +79,14 @@ const EdgeFunctionsTab = () => {
           </CardContent>
         </Card>
       </div>
+
+      {data?.unknown ? (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            {data.unknown} fonction{data.unknown > 1 ? "s" : ""} non vérifiée{data.unknown > 1 ? "s" : ""} à cause d’un timeout réseau. Elles ne sont pas comptées comme “à déployer”.
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Toolbar */}
       <div className="flex items-center gap-3">
@@ -128,6 +137,28 @@ const EdgeFunctionsTab = () => {
                     </div>
                     <Badge variant="destructive" className="text-[10px] shrink-0">
                       manquante
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {unknown.length > 0 && (
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Non vérifiées ({unknown.length})
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {unknown.map((fn) => (
+                  <div key={fn.name} className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{fn.name}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      timeout
                     </Badge>
                   </div>
                 ))}

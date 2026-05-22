@@ -1,10 +1,10 @@
 /**
- * Check Functions Health — v4 (probes each function via OPTIONS)
+ * Check Functions Health — v5 (probes each function via server-side OPTIONS)
  *
  * Maintains a static list of EXPECTED edge functions. Probes each one
  * via OPTIONS preflight to determine which are actually deployed.
  *
- * Status: "deployed" (responds) | "missing" (404 / not found)
+ * Status: "deployed" (responds) | "missing" (404 / not found) | "unknown" (network/timeout)
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -214,9 +214,9 @@ const EXPECTED_FUNCTIONS = [
 ];
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const PROBE_TIMEOUT_MS = 5000;
+const PROBE_TIMEOUT_MS = 8000;
 
-async function probeFunction(name: string): Promise<"deployed" | "missing"> {
+async function probeFunction(name: string): Promise<"deployed" | "missing" | "unknown"> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
@@ -228,12 +228,9 @@ async function probeFunction(name: string): Promise<"deployed" | "missing"> {
         Origin: "https://supertools",
       },
     });
-    // Supabase returns 404 (with a specific JSON body) when the function is not deployed.
-    // Any 2xx/3xx/401/405 means the function exists.
     return res.status === 404 ? "missing" : "deployed";
   } catch {
-    // Network/timeout — assume missing so it surfaces visibly.
-    return "missing";
+    return "unknown";
   } finally {
     clearTimeout(timeout);
   }
@@ -244,9 +241,8 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    // Probe everything in parallel with a small concurrency limit to avoid bursts.
-    const CONCURRENCY = 30;
-    const results: { name: string; status: "deployed" | "missing" }[] = [];
+    const CONCURRENCY = 8;
+    const results: { name: string; status: "deployed" | "missing" | "unknown" }[] = [];
     for (let i = 0; i < EXPECTED_FUNCTIONS.length; i += CONCURRENCY) {
       const batch = EXPECTED_FUNCTIONS.slice(i, i + CONCURRENCY);
       const settled = await Promise.all(
@@ -257,12 +253,14 @@ serve(async (req) => {
 
     const deployed = results.filter((r) => r.status === "deployed");
     const missing = results.filter((r) => r.status === "missing");
+    const unknown = results.filter((r) => r.status === "unknown");
 
     return createJsonResponse({
       checked_at: new Date().toISOString(),
       total: EXPECTED_FUNCTIONS.length,
       deployed: deployed.length,
       missing: missing.length,
+      unknown: unknown.length,
       functions: results.map((r) => ({ ...r, response_time_ms: 0 })),
     });
   } catch (error: unknown) {
