@@ -193,11 +193,23 @@ function ImageUploader({
   );
 }
 
+const MAX_IMAGES = 5;
+
 export default function ExerciseBlockEditor({ lessonId, content, onChange, slim }: Props) {
   const checklistItems = content.checklist_items || [];
   const hasChecklist = checklistItems.length > 0 || content.checklist_title;
   const depositEnabled = content.work_deposit_enabled === true;
   const depositConfig = content.work_deposit ?? {};
+
+  // Normalise legacy image_url into image_urls array
+  const imageUrls: string[] = content.image_urls?.length
+    ? content.image_urls
+    : content.image_url
+      ? [content.image_url]
+      : [];
+
+  const updateImages = (urls: string[]) =>
+    onChange({ ...content, image_urls: urls.length > 0 ? urls : null, image_url: null });
 
   const setChecklistLabel = (id: string, label: string) =>
     onChange({
@@ -231,11 +243,11 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
     return (
       <div className="space-y-3">
         {content.video_url && <VideoPreview url={content.video_url} />}
-        {content.image_url ? (
-          <div className="relative rounded-lg overflow-hidden border bg-muted">
-            <img src={content.image_url} alt="Image de consigne" className="w-full h-auto max-h-64 object-contain" />
+        {imageUrls.map((url, idx) => (
+          <div key={idx} className="relative rounded-lg overflow-hidden border bg-muted">
+            <img src={url} alt={`Image de consigne ${idx + 1}`} className="w-full h-auto max-h-64 object-contain" />
             <button
-              onClick={() => onChange({ ...content, image_url: null })}
+              onClick={() => updateImages(imageUrls.filter((_, i) => i !== idx))}
               aria-label="Supprimer l'image"
               className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
               style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
@@ -243,7 +255,15 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
               <X size={13} />
             </button>
           </div>
-        ) : null}
+        ))}
+        {imageUrls.length < MAX_IMAGES && (
+          <ImageUploader
+            lessonId={lessonId}
+            imageUrl={null}
+            onUpload={(url) => updateImages([...imageUrls, url])}
+            onRemove={() => {}}
+          />
+        )}
         <PdfUploader
           lessonId={lessonId}
           pdfUrl={content.pdf_url}
@@ -317,18 +337,35 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
         {content.video_url && <VideoPreview url={content.video_url} />}
       </div>
 
-      {/* Image de consigne */}
+      {/* Images de consigne — jusqu'à {MAX_IMAGES} */}
       <div className="rounded-lg border p-3 space-y-2">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4 text-muted-foreground" />
-          <Label className="text-sm">Image de consigne (optionnel)</Label>
+          <Label className="text-sm">
+            Images de consigne (optionnel{imageUrls.length > 0 ? ` — ${imageUrls.length}/${MAX_IMAGES}` : ""})
+          </Label>
         </div>
-        <ImageUploader
-          lessonId={lessonId}
-          imageUrl={content.image_url}
-          onUpload={(url) => onChange({ ...content, image_url: url })}
-          onRemove={() => onChange({ ...content, image_url: null })}
-        />
+        {imageUrls.map((url, idx) => (
+          <ImageUploader
+            key={idx}
+            lessonId={lessonId}
+            imageUrl={url}
+            onUpload={(newUrl) => {
+              const updated = [...imageUrls];
+              updated[idx] = newUrl;
+              updateImages(updated);
+            }}
+            onRemove={() => updateImages(imageUrls.filter((_, i) => i !== idx))}
+          />
+        ))}
+        {imageUrls.length < MAX_IMAGES && (
+          <ImageUploader
+            lessonId={lessonId}
+            imageUrl={null}
+            onUpload={(url) => updateImages([...imageUrls, url])}
+            onRemove={() => {}}
+          />
+        )}
       </div>
 
       {/* PDF de consigne */}

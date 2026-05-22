@@ -43,8 +43,10 @@ export default function VideoBlockViewer({ content }: Props) {
 
   if (!isStyled) {
     return (
-      <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted">
-        <VideoEmbed url={url} videoRadius={8} />
+      <div className="w-full max-w-[800px]">
+        <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted">
+          <VideoEmbed url={url} videoRadius={8} />
+        </div>
       </div>
     );
   }
