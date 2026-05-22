@@ -68,8 +68,8 @@ export interface HealthCheckResult {
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const PROBE_TIMEOUT_MS = 8000;
-const CONCURRENCY = 8;
+const PROBE_TIMEOUT_MS = 4000;
+const CONCURRENCY = 20;
 
 async function probe(name: string): Promise<FunctionInfo> {
   const controller = new AbortController();
