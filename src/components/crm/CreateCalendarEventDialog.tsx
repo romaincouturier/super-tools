@@ -207,14 +207,14 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cal-attendee">Email du client (invité)</Label>
+              <Label htmlFor="cal-attendee">Emails des invités</Label>
               <Input
                 id="cal-attendee"
-                type="email"
                 value={attendeeEmail}
                 onChange={(e) => setAttendeeEmail(e.target.value)}
-                placeholder="client@exemple.com"
+                placeholder="client@exemple.com, collegue@exemple.com"
               />
+              <p className="text-xs text-muted-foreground">Séparez plusieurs emails par une virgule, un point-virgule ou un espace.</p>
             </div>
 
             <div className="space-y-1.5">
