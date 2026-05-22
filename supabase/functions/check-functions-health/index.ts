@@ -214,20 +214,24 @@ const EXPECTED_FUNCTIONS = [
 ];
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const PROBE_TIMEOUT_MS = 8000;
+const PROBE_TIMEOUT_MS = 15000;
+const RETRY_TIMEOUT_MS = 25000;
 
-async function probeFunction(name: string): Promise<"deployed" | "missing" | "unknown"> {
+async function probeOnce(name: string, timeoutMs: number): Promise<"deployed" | "missing" | "unknown"> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: "OPTIONS",
       signal: controller.signal,
       headers: {
         "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization,content-type",
         Origin: "https://supertools",
       },
     });
+    // Drain the response body to free the connection (avoids socket exhaustion under concurrency)
+    try { await res.arrayBuffer(); } catch { /* ignore */ }
     return res.status === 404 ? "missing" : "deployed";
   } catch {
     return "unknown";
@@ -236,12 +240,22 @@ async function probeFunction(name: string): Promise<"deployed" | "missing" | "un
   }
 }
 
+async function probeFunction(name: string): Promise<"deployed" | "missing" | "unknown"> {
+  const first = await probeOnce(name, PROBE_TIMEOUT_MS);
+  if (first !== "unknown") return first;
+  // Retry once with a longer timeout — cold starts or transient network can timeout
+  const second = await probeOnce(name, RETRY_TIMEOUT_MS);
+  if (second !== "unknown") return second;
+  // Final retry
+  return await probeOnce(name, RETRY_TIMEOUT_MS);
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    const CONCURRENCY = 8;
+    const CONCURRENCY = 4;
     const results: { name: string; status: "deployed" | "missing" | "unknown" }[] = [];
     for (let i = 0; i < EXPECTED_FUNCTIONS.length; i += CONCURRENCY) {
       const batch = EXPECTED_FUNCTIONS.slice(i, i + CONCURRENCY);
