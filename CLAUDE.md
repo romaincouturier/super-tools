@@ -8,6 +8,7 @@ Application e-learning construite avec React, TypeScript, Vite, Tailwind CSS et 
 
 - `/sync-and-pr` — Synchronise la branche courante avec main, gère les conflits, et pousse une PR automatiquement.
 - `/learn` — Capture un constat ou un bug comme règle acquise dans `IMPROVEMENTS.md`.
+- `/tech-debt-audit` — Audit complet de dette technique et d'architecture. Produit `TECH_DEBT_AUDIT.md` avec findings cités (file:line), sévérité, effort, et quick wins.
 
 ## Amélioration continue
 
