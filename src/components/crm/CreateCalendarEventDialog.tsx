@@ -192,7 +192,22 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
                   id="cal-start"
                   type="time"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    const toMin = (t: string) => {
+                      const [h, m] = t.split(":").map(Number);
+                      return h * 60 + m;
+                    };
+                    const fromMin = (n: number) => {
+                      const v = ((n % 1440) + 1440) % 1440;
+                      return `${String(Math.floor(v / 60)).padStart(2, "0")}:${String(v % 60).padStart(2, "0")}`;
+                    };
+                    if (/^\d{2}:\d{2}$/.test(newStart)) {
+                      const duration = toMin(endTime) - toMin(startTime);
+                      setEndTime(fromMin(toMin(newStart) + (duration || 30)));
+                    }
+                    setStartTime(newStart);
+                  }}
                 />
               </div>
               <div className="space-y-1.5">
