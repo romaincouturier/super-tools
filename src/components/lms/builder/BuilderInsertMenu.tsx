@@ -26,6 +26,12 @@ const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }
   html_embed:      { desc: "HTML ou iframe personnalisé", kbd: "/ html" },
   timeline:        { desc: "Étapes numérotées dépliables", kbd: "/ frise" },
   flip_cards:      { desc: "Cartes recto-verso à retourner", kbd: "/ flip" },
+  accordion:       { desc: "Questions / réponses dépliables", kbd: "/ accordéon" },
+  image_hotspot:   { desc: "Image avec points d'annotation", kbd: "/ hotspot" },
+  before_after:    { desc: "Comparaison avant / après", kbd: "/ avant" },
+  fill_blanks:     { desc: "Texte à compléter ({{mots}})", kbd: "/ trous" },
+  drag_words:      { desc: "Glisser les mots au bon endroit", kbd: "/ glisser" },
+  summary:         { desc: "Cocher les affirmations correctes", kbd: "/ résumé" },
   section:         { desc: "Conteneur pleine largeur", kbd: "/ section" },
   row:             { desc: "Colonnes côte à côte", kbd: "/ colonnes" },
   divider:         { desc: "Trait fin entre sections", kbd: "/ ---" },
@@ -38,6 +44,7 @@ const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
   "quiz", "checklist", "bullet_list", "button", "exercise",
   "self_assessment", "work_deposit", "assignment", "table", "shortcode",
   "gallery", "html_embed", "timeline", "flip_cards",
+  "accordion", "image_hotspot", "before_after", "fill_blanks", "drag_words", "summary",
 ];
 
 const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [

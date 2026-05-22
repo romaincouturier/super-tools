@@ -33,6 +33,12 @@ import type {
   HtmlEmbedBlockContent,
   TimelineBlockContent,
   FlipCardsBlockContent,
+  AccordionBlockContent,
+  ImageHotspotBlockContent,
+  BeforeAfterBlockContent,
+  FillBlanksBlockContent,
+  DragWordsBlockContent,
+  SummaryBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
@@ -61,6 +67,12 @@ import ShortcodeBlockEditor from "./editors/ShortcodeBlockEditor";
 import HtmlEmbedBlockEditor from "./editors/HtmlEmbedBlockEditor";
 import TimelineBlockEditor from "./editors/TimelineBlockEditor";
 import FlipCardsBlockEditor from "./editors/FlipCardsBlockEditor";
+import AccordionBlockEditor from "./editors/AccordionBlockEditor";
+import ImageHotspotBlockEditor from "./editors/ImageHotspotBlockEditor";
+import BeforeAfterBlockEditor from "./editors/BeforeAfterBlockEditor";
+import FillBlanksBlockEditor from "./editors/FillBlanksBlockEditor";
+import DragWordsBlockEditor from "./editors/DragWordsBlockEditor";
+import SummaryBlockEditor from "./editors/SummaryBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -442,6 +454,56 @@ function BlockEditorBody({
         <FlipCardsBlockEditor
           lessonId={lessonId}
           content={content as FlipCardsBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "accordion":
+      return (
+        <AccordionBlockEditor
+          content={content as AccordionBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "image_hotspot":
+      return (
+        <ImageHotspotBlockEditor
+          lessonId={lessonId}
+          content={content as ImageHotspotBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "before_after":
+      return (
+        <BeforeAfterBlockEditor
+          lessonId={lessonId}
+          content={content as BeforeAfterBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "fill_blanks":
+      return (
+        <FillBlanksBlockEditor
+          content={content as FillBlanksBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "drag_words":
+      return (
+        <DragWordsBlockEditor
+          content={content as DragWordsBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "summary":
+      return (
+        <SummaryBlockEditor
+          content={content as SummaryBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
         />

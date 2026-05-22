@@ -26,6 +26,12 @@ import type {
   HtmlEmbedBlockContent,
   TimelineBlockContent,
   FlipCardsBlockContent,
+  AccordionBlockContent,
+  ImageHotspotBlockContent,
+  BeforeAfterBlockContent,
+  FillBlanksBlockContent,
+  DragWordsBlockContent,
+  SummaryBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
@@ -52,6 +58,12 @@ import ShortcodeBlockViewer from "./viewers/ShortcodeBlockViewer";
 import HtmlEmbedBlockViewer from "./viewers/HtmlEmbedBlockViewer";
 import TimelineBlockViewer from "./viewers/TimelineBlockViewer";
 import FlipCardsBlockViewer from "./viewers/FlipCardsBlockViewer";
+import AccordionBlockViewer from "./viewers/AccordionBlockViewer";
+import ImageHotspotBlockViewer from "./viewers/ImageHotspotBlockViewer";
+import BeforeAfterBlockViewer from "./viewers/BeforeAfterBlockViewer";
+import FillBlanksBlockViewer from "./viewers/FillBlanksBlockViewer";
+import DragWordsBlockViewer from "./viewers/DragWordsBlockViewer";
+import SummaryBlockViewer from "./viewers/SummaryBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -224,6 +236,18 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       return <TimelineBlockViewer content={block.content as TimelineBlockContent} />;
     case "flip_cards":
       return <FlipCardsBlockViewer content={block.content as FlipCardsBlockContent} />;
+    case "accordion":
+      return <AccordionBlockViewer content={block.content as AccordionBlockContent} />;
+    case "image_hotspot":
+      return <ImageHotspotBlockViewer content={block.content as ImageHotspotBlockContent} />;
+    case "before_after":
+      return <BeforeAfterBlockViewer content={block.content as BeforeAfterBlockContent} />;
+    case "fill_blanks":
+      return <FillBlanksBlockViewer content={block.content as FillBlanksBlockContent} />;
+    case "drag_words":
+      return <DragWordsBlockViewer content={block.content as DragWordsBlockContent} />;
+    case "summary":
+      return <SummaryBlockViewer content={block.content as SummaryBlockContent} />;
     default:
       return null;
   }
