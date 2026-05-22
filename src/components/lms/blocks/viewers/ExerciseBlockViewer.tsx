@@ -70,7 +70,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
       )}
       {content.prompt_html && (
         <div
-          className="prose max-w-none break-words"
+          className="prose prose-base sm:prose-lg max-w-none break-words"
           dangerouslySetInnerHTML={{ __html: content.prompt_html }}
         />
       )}
@@ -117,7 +117,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
           </Button>
           {revealed && (
             <div
-              className="prose max-w-none mt-2 break-words"
+              className="prose prose-base sm:prose-lg max-w-none mt-2 break-words"
               dangerouslySetInnerHTML={{ __html: content.answer_html }}
             />
           )}

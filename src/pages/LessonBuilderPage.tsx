@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type React from "react";
 import { useParams } from "react-router-dom";
 import { useLesson, useCourse, useCourseModules, useModuleLessons, useUpdateLesson } from "@/hooks/useLms";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,39 @@ export default function LessonBuilderPage() {
 
   const [tweaks, setTweaks] = useState<TweakValues>(DEFAULT_TWEAKS);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Resizable sidebar
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem("builder-sidebar-width");
+    return saved ? Math.max(220, Math.min(520, parseInt(saved, 10))) : 288;
+  });
+  const sidebarWidthRef = useRef(sidebarWidth);
+  sidebarWidthRef.current = sidebarWidth;
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidthRef.current;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.max(220, Math.min(520, startWidth + (ev.clientX - startX)));
+      setSidebarWidth(newWidth);
+      sidebarWidthRef.current = newWidth;
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      localStorage.setItem("builder-sidebar-width", String(sidebarWidthRef.current));
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, []);
 
   // Single source of truth for the title — shared by topbar input and canvas H1
   const [titleValue, setTitleValue] = useState("");
@@ -75,14 +109,16 @@ export default function LessonBuilderPage() {
     >
       {/* Sidebar — fixed left on desktop, drawer overlay on mobile */}
       <div
-        className="hidden lg:flex flex-col shrink-0 border-r"
-        style={{ width: 288, borderColor: "rgba(16,24,32,0.08)" }}
+        className="hidden lg:flex flex-col shrink-0 border-r relative"
+        style={{ width: sidebarWidth, borderColor: "rgba(16,24,32,0.08)" }}
       >
         <BuilderSidebar
           courseId={courseId}
           activeLessonId={lesson.id}
           courseTitle={course?.title ?? ""}
         />
+        {/* Drag-resize handle */}
+        <ResizeHandle onMouseDown={handleResizeStart} />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -131,6 +167,40 @@ export default function LessonBuilderPage() {
 
       {/* Tweaks panel */}
       <BuilderTweaksPanel values={tweaks} onChange={setTweaks} />
+    </div>
+  );
+}
+
+function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "absolute",
+        right: -3,
+        top: 0,
+        bottom: 0,
+        width: 6,
+        cursor: "col-resize",
+        zIndex: 10,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: 2,
+          height: hovered ? "60%" : "30%",
+          borderRadius: 2,
+          background: hovered ? "var(--st-yellow)" : "rgba(16,24,32,0.12)",
+          transition: "height 160ms ease, background 160ms ease",
+          pointerEvents: "none",
+        }}
+      />
     </div>
   );
 }

@@ -56,7 +56,7 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
   if (slim) {
     if (content.url) {
       return (
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ position: "relative" }}>
             <VideoBlockViewer content={content} />
             <button
@@ -78,6 +78,69 @@ export default function VideoBlockEditor({ lessonId, content, onChange, slim }: 
               aria-label="Supprimer la vidéo"
             >
               <X size={14} />
+            </button>
+          </div>
+          {/* Inline style controls */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              padding: "0.625rem 0.875rem",
+              borderRadius: 12,
+              background: "var(--st-surface)",
+              border: "1px solid var(--st-ink-08)",
+              flexWrap: "wrap",
+            }}
+          >
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.8125rem", color: "var(--st-ink-70)" }}>
+              <input
+                type="checkbox"
+                checked={content.display_style === "styled"}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    onChange({ ...content, ...SUPERTILT_PRESET });
+                  } else {
+                    onChange({ ...content, display_style: "simple" });
+                  }
+                }}
+                style={{ accentColor: "#FFD100", width: 14, height: 14 }}
+              />
+              Fond coloré
+            </label>
+            {content.display_style === "styled" && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
+                <input
+                  type="color"
+                  value={content.bg_color || "#FFD100"}
+                  onChange={(e) => onChange({ ...content, bg_color: e.target.value })}
+                  style={{ width: 28, height: 28, cursor: "pointer", borderRadius: 6, border: "1px solid var(--st-ink-08)", padding: 2 }}
+                />
+                <span style={{ fontSize: "0.75rem", fontFamily: "ui-monospace, monospace", color: "var(--st-ink-50)" }}>
+                  {content.bg_color || "#FFD100"}
+                </span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={applySupertiltPreset}
+              style={{
+                marginLeft: "auto",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                padding: "0.25rem 0.625rem",
+                borderRadius: 999,
+                border: "1px solid var(--st-ink-08)",
+                background: "#FFD100",
+                color: "#101820",
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <Sparkles size={11} />
+              SuperTilt
             </button>
           </div>
         </div>
