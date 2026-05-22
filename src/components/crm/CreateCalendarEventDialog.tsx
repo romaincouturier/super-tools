@@ -32,10 +32,12 @@ N'hésitez pas à me contacter si vous avez la moindre question en amont.
 Au plaisir d'échanger avec vous,`;
 
 function buildTitle(company: string, title: string): string {
-  const parts = [company?.trim(), "SuperTilt", title?.trim()].filter(Boolean);
-  if (parts.length === 3) return `${parts[0]} x ${parts[1]} — ${parts[2]}`;
-  if (parts.length === 2) return parts.join(" x ");
-  return parts[0] || "Échange";
+  const c = company?.trim();
+  const t = title?.trim();
+  if (c && t) return `${c} x SuperTilt, Échange ${t}`;
+  if (c) return `${c} x SuperTilt`;
+  if (t) return `SuperTilt, Échange ${t}`;
+  return "Échange";
 }
 
 function toDateTimeLocal(date: string, time: string): string {
