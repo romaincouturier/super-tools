@@ -71,40 +71,46 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
   };
 
   const handleCopyAll = useCallback(() => {
-    const priorityLabel = TICKET_PRIORITY_CONFIG[ticket.priority].label;
-    const statusLabel = SUPPORT_COLUMNS.find((c) => c.id === ticket.status)?.name || ticket.status;
-    const lines: string[] = [
-      `# ${ticket.ticket_number} — ${ticket.title}`,
-      "",
-      `- **Type** : ${ticket.type === "bug" ? "Bug" : "Évolution"}`,
-      `- **Priorité** : ${priorityLabel}`,
-      `- **Statut** : ${statusLabel}`,
-      ticket.page_url ? `- **Page** : ${ticket.page_url}` : "",
-      ticket.assigned_to ? `- **Assigné à** : ${ticket.assigned_to}` : "",
-      ticket.submitted_by_email ? `- **Soumis par** : ${ticket.submitted_by_email}` : "",
-      "",
-      "## Description",
-      ticket.description,
-    ];
+    try {
+      const priorityLabel = TICKET_PRIORITY_CONFIG[ticket.priority]?.label ?? ticket.priority ?? "—";
+      const statusLabel = SUPPORT_COLUMNS.find((c) => c.id === ticket.status)?.name || ticket.status;
+      const lines: string[] = [
+        `# ${ticket.ticket_number} — ${ticket.title}`,
+        "",
+        `- **Type** : ${ticket.type === "bug" ? "Bug" : "Évolution"}`,
+        `- **Priorité** : ${priorityLabel}`,
+        `- **Statut** : ${statusLabel}`,
+        ticket.page_url ? `- **Page** : ${ticket.page_url}` : "",
+        ticket.assigned_to ? `- **Assigné à** : ${ticket.assigned_to}` : "",
+        ticket.submitted_by_email ? `- **Soumis par** : ${ticket.submitted_by_email}` : "",
+        "",
+        "## Description",
+        ticket.description ?? "",
+      ];
 
-    if (ticket.ai_analysis) {
-      const a = ticket.ai_analysis;
-      lines.push("", "## Analyse IA");
-      if (a.type === "bug") {
-        const bug = a as BugAnalysis;
-        lines.push(`### Constat\n${bug.constat}`, `### Reproduction\n${bug.reproduction}`, `### Situation désirée\n${bug.situation_desiree}`, `### Procédure de test\n${bug.procedure_test}`);
-      } else {
-        const evo = a as EvolutionAnalysis;
-        lines.push(`### User stories\n${evo.user_stories}`, `### Critères d'acceptation\n${evo.criteres_acceptation}`, `### Impact produit\n${evo.impact_produit}`);
+      if (ticket.ai_analysis) {
+        const a = ticket.ai_analysis;
+        lines.push("", "## Analyse IA");
+        if (a.type === "bug") {
+          const bug = a as BugAnalysis;
+          lines.push(`### Constat\n${bug.constat ?? ""}`, `### Reproduction\n${bug.reproduction ?? ""}`, `### Situation désirée\n${bug.situation_desiree ?? ""}`, `### Procédure de test\n${bug.procedure_test ?? ""}`);
+        } else {
+          const evo = a as EvolutionAnalysis;
+          lines.push(`### User stories\n${evo.user_stories ?? ""}`, `### Critères d'acceptation\n${evo.criteres_acceptation ?? ""}`, `### Impact produit\n${evo.impact_produit ?? ""}`);
+        }
       }
-    }
 
-    if (ticket.resolution_notes) {
-      lines.push("", "## Notes de résolution", ticket.resolution_notes);
-    }
+      if (ticket.resolution_notes) {
+        lines.push("", "## Notes de résolution", ticket.resolution_notes);
+      }
 
-    copy(lines.filter((l) => l !== undefined).join("\n"), { title: "Ticket copié dans le presse-papier" });
+      copy(lines.filter((l) => l !== undefined && l !== null).join("\n"), { title: "Ticket copié dans le presse-papier" });
+    } catch (err) {
+      console.error("[TicketDetail] handleCopyAll error:", err);
+      toast.error("Impossible de copier le ticket");
+    }
   }, [ticket, copy]);
+
 
   return (
     <ScrollArea className="h-full">
