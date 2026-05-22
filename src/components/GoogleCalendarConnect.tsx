@@ -47,9 +47,6 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
     checkStatus();
 
     const handleMessage = (event: MessageEvent) => {
-      const expectedOrigin = import.meta.env.VITE_SUPABASE_URL;
-      if (expectedOrigin && event.origin !== expectedOrigin) return;
-
       if (event.data?.type === "google-calendar-auth") {
         setIsConnecting(false);
         if (event.data.success) {
@@ -68,6 +65,33 @@ const GoogleCalendarConnect = ({ onStatusChange }: GoogleCalendarConnectProps) =
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [onStatusChange, toast]);
+
+  // Polling fallback: when connecting, poll status every 2s (handles mobile where window.opener is null)
+  useEffect(() => {
+    if (!isConnecting) return;
+    const interval = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-events?action=status`,
+          { headers: { Authorization: `Bearer ${session.access_token}` } }
+        );
+        const data = await res.json();
+        if (data.connected) {
+          setIsConnecting(false);
+          setIsConnected(true);
+          onStatusChange?.(true);
+          toast({ title: "Google Calendar connecté", description: "Votre agenda sera utilisé par le coach commercial." });
+        }
+      } catch { /* ignore */ }
+    }, 2000);
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setIsConnecting(false);
+    }, 120_000);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
+  }, [isConnecting, onStatusChange, toast]);
 
   const handleConnect = async () => {
     setIsConnecting(true);
