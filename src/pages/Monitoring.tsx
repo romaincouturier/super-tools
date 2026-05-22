@@ -2,12 +2,16 @@ import { Database, Clock, Zap, MousePointerClick } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDot } from "@/components/ui/alert-dot";
 import DbSizeTab from "@/components/monitoring/DbSizeTab";
 import CronJobsTab from "@/components/monitoring/CronJobsTab";
 import EdgeFunctionsTab from "@/components/monitoring/EdgeFunctionsTab";
 import FeatureUsageTab from "@/components/monitoring/FeatureUsageTab";
+import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 
 const Monitoring = () => {
+  const edgeFunctionsAlert = useEdgeFunctionsAlert();
+
   return (
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6 space-y-6">
@@ -24,9 +28,12 @@ const Monitoring = () => {
               <Clock className="h-4 w-4" />
               Cron Jobs
             </TabsTrigger>
-            <TabsTrigger value="functions" className="gap-2">
+            <TabsTrigger value="functions" className="gap-2 relative">
               <Zap className="h-4 w-4" />
               Edge Functions
+              {edgeFunctionsAlert && (
+                <AlertDot active className="relative top-0 right-0 ml-1" />
+              )}
             </TabsTrigger>
             <TabsTrigger value="usage" className="gap-2">
               <MousePointerClick className="h-4 w-4" />
