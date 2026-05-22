@@ -1014,10 +1014,14 @@ function CourseHomeHeader({
   courseTitle,
   learnerName,
   onMobileMenu,
+  courseId,
+  isPreview,
 }: {
   courseTitle: string;
   learnerName: string;
   onMobileMenu: () => void;
+  courseId?: string;
+  isPreview?: boolean;
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -1081,6 +1085,22 @@ function CourseHomeHeader({
         <p className="hidden sm:block flex-1 text-sm font-medium truncate min-w-0" style={{ color: "var(--st-ink)" }}>
           {courseTitle}
         </p>
+
+        {/* Admin edit shortcut */}
+        {isPreview && courseId && (
+          <a
+            href={`/lms/${courseId}/edit`}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "6px 14px", borderRadius: 10,
+              background: "#FFD100", color: "#101820",
+              fontWeight: 700, fontSize: "0.8125rem",
+              textDecoration: "none", flexShrink: 0,
+            }}
+          >
+            Éditer
+          </a>
+        )}
 
         {/* Greeting dropdown */}
         <div ref={ref} className="ml-auto relative shrink-0">
@@ -1279,6 +1299,8 @@ export default function LmsCourseHomePage() {
         courseTitle={liveData?.training?.training_name || course.formation_configs?.formation_name || course.title}
         learnerName={learnerName}
         onMobileMenu={() => setSidebarOpen((v) => !v)}
+        courseId={courseId}
+        isPreview={isPreview}
       />
 
       <div className="flex flex-1 overflow-hidden">
