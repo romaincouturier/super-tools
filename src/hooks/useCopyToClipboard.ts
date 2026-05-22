@@ -24,6 +24,14 @@ export function useCopyToClipboard({
         success = true;
       } catch {
         try {
+          // Mount the textarea inside the topmost open dialog/sheet when
+          // present, otherwise body. Radix sets `inert`/`aria-hidden` on
+          // siblings of the open dialog, which breaks focus()/select() and
+          // makes execCommand('copy') silently return false.
+          const openDialog = document.querySelector<HTMLElement>(
+            "[role='dialog'][data-state='open']",
+          );
+          const host = openDialog ?? document.body;
           const ta = document.createElement("textarea");
           ta.value = text;
           ta.setAttribute("readonly", "");
@@ -31,16 +39,17 @@ export function useCopyToClipboard({
           ta.style.top = "0";
           ta.style.left = "0";
           ta.style.opacity = "0";
-          document.body.appendChild(ta);
+          host.appendChild(ta);
           ta.focus();
           ta.select();
           ta.setSelectionRange(0, text.length);
           success = document.execCommand("copy");
-          document.body.removeChild(ta);
+          host.removeChild(ta);
         } catch {
           success = false;
         }
       }
+
 
       if (success) {
         setCopied(true);
