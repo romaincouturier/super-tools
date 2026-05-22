@@ -95,9 +95,14 @@ async function resolveTicketScreenshots<T extends { id: string; screenshot_url: 
 }
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
-  // Note: on n'exclut pas les tickets archivés ici, sinon la colonne "Résolu"
-  // apparaît vide (les tickets résolus sont auto-archivés en arrière-plan).
-  const result = await db().from("support_tickets").select("*").order("created_at", { ascending: false });
+  // Exclure les tickets archivés : la purge hebdomadaire (archive-resolved-tickets)
+  // les retire du Kanban. La colonne "Résolu" ne doit afficher que les tickets
+  // résolus de la semaine en cours (non encore purgés).
+  const result = await db()
+    .from("support_tickets")
+    .select("*")
+    .is("archived_at", null)
+    .order("created_at", { ascending: false });
   const tickets = (throwIfError(result) || []) as SupportTicket[];
   return resolveTicketScreenshots(tickets);
 }
