@@ -33,6 +33,7 @@ export interface LmsModule {
   description: string | null;
   position: number;
   is_prerequisite_gated: boolean;
+  is_special_section: boolean;
   prerequisite_module_id: string | null;
   unlock_after_days: number | null;
   created_at: string;

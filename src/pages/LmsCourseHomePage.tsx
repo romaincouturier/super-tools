@@ -1466,11 +1466,19 @@ export default function LmsCourseHomePage() {
     [progress],
   );
 
-  // Overall completion %
-  const completionPct = useMemo(
-    () => (allLessons.length === 0 ? 0 : (completedIds.size / allLessons.length) * 100),
-    [completedIds, allLessons],
+  // IDs of modules that are regular (non-special)
+  const regularModuleIds = useMemo(
+    () => new Set(modules.filter((m) => !m.is_special_section).map((m) => m.id)),
+    [modules],
   );
+
+  // Overall completion % — excludes special-section lessons
+  const completionPct = useMemo(() => {
+    const regularLessons = allLessons.filter((l) => regularModuleIds.has(l.module_id));
+    if (regularLessons.length === 0) return 0;
+    const completedRegular = regularLessons.filter((l) => completedIds.has(l.id)).length;
+    return (completedRegular / regularLessons.length) * 100;
+  }, [completedIds, allLessons, regularModuleIds]);
 
   // Last lesson consulted
   const lastProgress = useMemo(() => {
@@ -1498,6 +1506,7 @@ export default function LmsCourseHomePage() {
   const moduleStatuses = useMemo((): Record<string, ModuleStatus> => {
     const statuses: Record<string, ModuleStatus> = {};
     for (const m of modules) {
+      if (m.is_special_section) continue;
       const lessons = lessonsByModule[m.id] ?? [];
       const doneCount = lessons.filter((l) => completedIds.has(l.id)).length;
       if (lessons.length === 0 || doneCount === 0) statuses[m.id] = "not_started";
@@ -1509,13 +1518,19 @@ export default function LmsCourseHomePage() {
 
   const lessonCountByModule = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const m of modules) counts[m.id] = (lessonsByModule[m.id] ?? []).length;
+    for (const m of modules) {
+      if (m.is_special_section) continue;
+      counts[m.id] = (lessonsByModule[m.id] ?? []).length;
+    }
     return counts;
   }, [modules, lessonsByModule]);
 
   const lessonsDoneByModule = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const m of modules) counts[m.id] = (lessonsByModule[m.id] ?? []).filter((l) => completedIds.has(l.id)).length;
+    for (const m of modules) {
+      if (m.is_special_section) continue;
+      counts[m.id] = (lessonsByModule[m.id] ?? []).filter((l) => completedIds.has(l.id)).length;
+    }
     return counts;
   }, [modules, lessonsByModule, completedIds]);
 
@@ -1577,6 +1592,7 @@ export default function LmsCourseHomePage() {
   }
 
   const sortedModules = [...modules].sort((a, b) => a.position - b.position);
+  const regularModules = sortedModules.filter((m) => !m.is_special_section);
 
   // View helpers
   const replayMeetingId = activeView.startsWith("replay:") ? activeView.slice(7) : null;
@@ -1608,7 +1624,7 @@ export default function LmsCourseHomePage() {
             completionPct={completionPct}
             lastLessonTitle={lastLesson?.title ?? null}
             lastActivityDate={lastProgress?.completed_at ?? null}
-            modules={sortedModules}
+            modules={regularModules}
             moduleStatuses={moduleStatuses}
             lessonCountByModule={lessonCountByModule}
             lessonsDoneByModule={lessonsDoneByModule}
@@ -1649,7 +1665,7 @@ export default function LmsCourseHomePage() {
                   completionPct={completionPct}
                   lastLessonTitle={lastLesson?.title ?? null}
                   lastActivityDate={lastProgress?.completed_at ?? null}
-                  modules={sortedModules}
+                  modules={regularModules}
                   moduleStatuses={moduleStatuses}
                   lessonCountByModule={lessonCountByModule}
                   lessonsDoneByModule={lessonsDoneByModule}
@@ -1717,10 +1733,10 @@ export default function LmsCourseHomePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <ProgressCard
                     completionPct={completionPct}
-                    completedLessons={completedIds.size}
-                    totalLessons={allLessons.length}
+                    completedLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id) && completedIds.has(l.id)).length}
+                    totalLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id)).length}
                     completedModules={completedModulesCount}
-                    totalModules={sortedModules.length}
+                    totalModules={regularModules.length}
                     onSeeStats={() => {}}
                   />
                   <LiveCard
@@ -1731,7 +1747,7 @@ export default function LmsCourseHomePage() {
                 </div>
                 <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
                   <ModulesListSection
-                    modules={sortedModules}
+                    modules={regularModules}
                     moduleStatuses={moduleStatuses}
                     lessonCountByModule={lessonCountByModule}
                     lessonsDoneByModule={lessonsDoneByModule}

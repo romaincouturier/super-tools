@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Copy, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft } from "lucide-react";
+import { ChevronRight, Copy, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft, Layers } from "lucide-react";
 import {
   useCourseModules,
   useModuleLessons,
@@ -306,6 +306,15 @@ function ModuleItem({
     }
   };
 
+  const handleToggleSpecial = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateModule.mutateAsync({ id: mod.id, is_special_section: !mod.is_special_section });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur");
+    }
+  };
+
   const handleAddLesson = async () => {
     try {
       const lesson = await createLesson.mutateAsync({
@@ -375,8 +384,8 @@ function ModuleItem({
             />
           ) : (
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: ".6875rem", fontWeight: 700, color: "var(--st-ink-50)", letterSpacing: ".04em", textTransform: "uppercase", lineHeight: 1.2 }}>
-                Module {index}
+              <div style={{ fontSize: ".6875rem", fontWeight: 700, color: mod.is_special_section ? "rgba(255,209,0,0.7)" : "var(--st-ink-50)", letterSpacing: ".04em", textTransform: "uppercase", lineHeight: 1.2 }}>
+                {mod.is_special_section ? "Section spéciale" : `Module ${index}`}
               </div>
               <div style={{
                 fontSize: ".875rem",
@@ -419,6 +428,17 @@ function ModuleItem({
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--st-ink-50)"; }}
               >
                 <Trash2 size={11} />
+              </button>
+              <button
+                type="button"
+                aria-label={mod.is_special_section ? "Convertir en module normal" : "Marquer comme section spéciale"}
+                onClick={handleToggleSpecial}
+                className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                style={{ width: 22, height: 22, borderRadius: 4, padding: 0, color: mod.is_special_section ? "rgba(255,209,0,0.9)" : "var(--st-ink-50)", background: mod.is_special_section ? "rgba(255,209,0,0.15)" : "transparent" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.2)"; (e.currentTarget as HTMLElement).style.color = "#b8950a"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = mod.is_special_section ? "rgba(255,209,0,0.15)" : "transparent"; (e.currentTarget as HTMLElement).style.color = mod.is_special_section ? "rgba(255,209,0,0.9)" : "var(--st-ink-50)"; }}
+              >
+                <Layers size={11} />
               </button>
             </>
           )}

@@ -3881,6 +3881,7 @@ export type Database = {
           description: string | null
           id: string
           is_prerequisite_gated: boolean | null
+          is_special_section: boolean
           position: number
           prerequisite_module_id: string | null
           title: string
@@ -3893,6 +3894,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_prerequisite_gated?: boolean | null
+          is_special_section?: boolean
           position?: number
           prerequisite_module_id?: string | null
           title: string
@@ -3905,6 +3907,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_prerequisite_gated?: boolean | null
+          is_special_section?: boolean
           position?: number
           prerequisite_module_id?: string | null
           title?: string
