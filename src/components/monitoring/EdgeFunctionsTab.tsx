@@ -13,36 +13,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-
-interface FunctionInfo {
-  name: string;
-  status: "deployed" | "missing";
-}
-
-interface HealthCheckResult {
-  checked_at: string;
-  total: number;
-  deployed: number;
-  missing: number;
-  functions: FunctionInfo[];
-}
+import { checkEdgeFunctionsHealth } from "@/lib/edgeFunctionsHealth";
 
 const EdgeFunctionsTab = () => {
   const [search, setSearch] = useState("");
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["functions-health"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await supabase.functions.invoke("check-functions-health", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
-      if (response.error) throw response.error;
-      return response.data as HealthCheckResult;
-    },
-    staleTime: 60000,
+    queryFn: checkEdgeFunctionsHealth,
+    staleTime: 5 * 60_000,
   });
+
 
   const functions = data?.functions || [];
   const filtered = search
