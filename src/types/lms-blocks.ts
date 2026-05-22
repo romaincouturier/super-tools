@@ -185,6 +185,7 @@ export interface ExerciseBlockContent {
   checklist_items?: ChecklistItem[] | null;
   video_url?: string | null;
   image_url?: string | null;
+  image_urls?: string[] | null;
   pdf_url?: string | null;
   work_deposit_enabled?: boolean;
   work_deposit?: WorkDepositBlockContent | null;

@@ -387,16 +387,19 @@ function ModuleItem({
               <div style={{ fontSize: ".6875rem", fontWeight: 700, color: mod.is_special_section ? "rgba(255,209,0,0.7)" : "var(--st-ink-50)", letterSpacing: ".04em", textTransform: "uppercase", lineHeight: 1.2 }}>
                 {mod.is_special_section ? "Section spéciale" : `Module ${index}`}
               </div>
-              <div style={{
-                fontSize: ".875rem",
-                fontWeight: 600,
-                color: "var(--st-ink)",
-                lineHeight: 1.35,
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}>
+              <div
+                title={mod.title}
+                style={{
+                  fontSize: ".875rem",
+                  fontWeight: 600,
+                  color: "var(--st-ink)",
+                  lineHeight: 1.35,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
                 {mod.title}
               </div>
             </div>
@@ -571,10 +574,10 @@ function LessonItem({
     <>
       <ConfirmDialog />
       <div
-        className="group flex items-center gap-2 cursor-pointer"
+        className="group flex items-center gap-1.5 cursor-pointer relative"
         onClick={() => navigate(`/lms/${courseId}/lesson/${lesson.id}/builder`)}
         style={{
-          padding: isActive ? ".5rem .75rem .5rem 1.75rem" : ".5rem .75rem .5rem 2rem",
+          padding: isActive ? ".5rem .5rem .5rem 1.75rem" : ".5rem .5rem .5rem 2rem",
           fontSize: ".875rem",
           fontWeight: isActive ? 600 : 400,
           color: isActive ? "var(--st-ink)" : "var(--st-ink-70, rgba(16,24,32,0.7))",
@@ -602,92 +605,88 @@ function LessonItem({
         >
           <FileText size={16} />
         </span>
-        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span
+          style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          title={lesson.title}
+        >
           {lesson.title}
         </span>
-        <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
-        {otherModules.length > 0 && (
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              aria-label="Déplacer vers un autre module"
-              onClick={(e) => { e.stopPropagation(); setShowMoveMenu((v) => !v); }}
-              disabled={moveLesson.isPending}
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-              style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-            >
-              <ArrowRightLeft size={11} />
-            </button>
-            {showMoveMenu && (
-              <>
-                <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={(e) => { e.stopPropagation(); setShowMoveMenu(false); }} />
-                <div
-                  style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, minWidth: 160, background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.12)", borderRadius: 8, boxShadow: "0 4px 16px rgba(16,24,32,0.12)", padding: "4px 0" }}
-                >
-                  <div style={{ fontSize: ".6875rem", fontWeight: 600, color: "var(--st-ink-50)", padding: "4px 12px 2px", textTransform: "uppercase", letterSpacing: ".04em" }}>
-                    Déplacer vers
-                  </div>
-                  {otherModules.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={(e) => handleMoveToModule(e, m.id)}
-                      style={{ width: "100%", textAlign: "left", padding: "6px 12px", fontSize: ".8125rem", color: "var(--st-ink)", background: "transparent", border: "none", cursor: "pointer" }}
-                      onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)"}
-                      onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
-                    >
-                      {m.title.length > 28 ? m.title.slice(0, 28) + "…" : m.title}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        <button
-          type="button"
-          aria-label="Dupliquer la leçon"
-          onClick={handleDuplicate}
-          disabled={duplicateLesson.isPending}
-          className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-          style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-        >
-          <Copy size={11} />
-        </button>
-        <button
-          type="button"
-          aria-label="Supprimer la leçon"
-          onClick={handleDelete}
-          disabled={deleteLesson.isPending}
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
+
+        {/* Action overlay — absolutely positioned so it never compresses the title */}
+        <div
+          className="absolute right-0 top-0 bottom-0 flex items-center gap-0.5 pl-5 pr-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 20,
-            height: 20,
-            borderRadius: 4,
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            color: "rgba(16,24,32,0.4)",
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "#dc2626";
-            (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
-            (e.currentTarget as HTMLElement).style.background = "transparent";
+            background: isActive
+              ? "linear-gradient(90deg, transparent, #FFFBEA 35%)"
+              : "linear-gradient(90deg, transparent, var(--st-surface, #fff) 35%)",
           }}
         >
-          <Trash2 size={12} />
-        </button>
+          <ReorderButtons isFirst={isFirst} isLast={isLast} onUp={onMoveUp} onDown={onMoveDown} />
+          {otherModules.length > 0 && (
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                type="button"
+                aria-label="Déplacer vers un autre module"
+                onClick={(e) => { e.stopPropagation(); setShowMoveMenu((v) => !v); }}
+                disabled={moveLesson.isPending}
+                className="flex items-center justify-center"
+                style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+              >
+                <ArrowRightLeft size={11} />
+              </button>
+              {showMoveMenu && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={(e) => { e.stopPropagation(); setShowMoveMenu(false); }} />
+                  <div
+                    style={{ position: "absolute", right: 0, top: "calc(100% + 4px)", zIndex: 50, minWidth: 160, background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.12)", borderRadius: 8, boxShadow: "0 4px 16px rgba(16,24,32,0.12)", padding: "4px 0" }}
+                  >
+                    <div style={{ fontSize: ".6875rem", fontWeight: 600, color: "var(--st-ink-50)", padding: "4px 12px 2px", textTransform: "uppercase", letterSpacing: ".04em" }}>
+                      Déplacer vers
+                    </div>
+                    {otherModules.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={(e) => handleMoveToModule(e, m.id)}
+                        style={{ width: "100%", textAlign: "left", padding: "6px 12px", fontSize: ".8125rem", color: "var(--st-ink)", background: "transparent", border: "none", cursor: "pointer" }}
+                        onMouseEnter={(e) => (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)"}
+                        onMouseLeave={(e) => (e.currentTarget as HTMLElement).style.background = "transparent"}
+                      >
+                        {m.title.length > 28 ? m.title.slice(0, 28) + "…" : m.title}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            aria-label="Dupliquer la leçon"
+            onClick={handleDuplicate}
+            disabled={duplicateLesson.isPending}
+            className="flex items-center justify-center"
+            style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "var(--st-ink)"; (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.08)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          >
+            <Copy size={11} />
+          </button>
+          <button
+            type="button"
+            aria-label="Supprimer la leçon"
+            onClick={handleDelete}
+            disabled={deleteLesson.isPending}
+            className="flex items-center justify-center"
+            style={{ width: 20, height: 20, borderRadius: 4, border: "none", background: "transparent", cursor: "pointer", color: "rgba(16,24,32,0.4)", flexShrink: 0 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#dc2626"; (e.currentTarget as HTMLElement).style.background = "rgba(220,38,38,0.08)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)"; (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
       </div>
     </>
   );

@@ -33,7 +33,7 @@ export default function LessonBuilderPage() {
   // Resizable sidebar
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem("builder-sidebar-width");
-    return saved ? Math.max(220, Math.min(520, parseInt(saved, 10))) : 288;
+    return saved ? Math.max(280, Math.min(520, parseInt(saved, 10))) : 320;
   });
   const sidebarWidthRef = useRef(sidebarWidth);
   sidebarWidthRef.current = sidebarWidth;
@@ -44,7 +44,7 @@ export default function LessonBuilderPage() {
     const startWidth = sidebarWidthRef.current;
 
     const handleMouseMove = (ev: MouseEvent) => {
-      const newWidth = Math.max(220, Math.min(520, startWidth + (ev.clientX - startX)));
+      const newWidth = Math.max(280, Math.min(520, startWidth + (ev.clientX - startX)));
       setSidebarWidth(newWidth);
       sidebarWidthRef.current = newWidth;
     };
