@@ -11,6 +11,7 @@ export function useEdgeFunctionsAlert(): boolean {
     queryFn: checkEdgeFunctionsHealth,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
+    retry: false,
   });
   return (data?.missing ?? 0) > 0;
 }
