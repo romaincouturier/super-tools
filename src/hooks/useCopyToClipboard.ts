@@ -12,6 +12,22 @@ export function useCopyToClipboard({
 }: UseCopyToClipboardOptions = {}) {
   const [copied, setCopied] = useState(false);
 
+  const copyWithCopyEvent = useCallback((text: string) => {
+    const onCopy = (event: ClipboardEvent) => {
+      event.clipboardData?.setData("text/plain", text);
+      event.preventDefault();
+    };
+
+    document.addEventListener("copy", onCopy);
+    try {
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      document.removeEventListener("copy", onCopy);
+    }
+  }, []);
+
   const copyWithTextarea = useCallback((text: string) => {
     let ta: HTMLTextAreaElement | null = null;
 
@@ -47,7 +63,7 @@ export function useCopyToClipboard({
       text: string,
       options?: { title?: string; description?: string; silent?: boolean },
     ) => {
-      let success = copyWithTextarea(text);
+      let success = copyWithCopyEvent(text) || copyWithTextarea(text);
 
       if (!success && navigator.clipboard?.writeText) {
         try {
@@ -73,7 +89,7 @@ export function useCopyToClipboard({
 
       return success;
     },
-    [autoResetMs, copyWithTextarea, defaultToastTitle],
+    [autoResetMs, copyWithCopyEvent, copyWithTextarea, defaultToastTitle],
   );
 
   return { copied, copy };
