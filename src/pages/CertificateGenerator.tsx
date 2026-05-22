@@ -13,7 +13,7 @@ import { User } from "@supabase/supabase-js";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import ProcessingLog, { LogEntry } from "@/components/ProcessingLog";
-import GoogleDriveConnect from "@/components/GoogleDriveConnect";
+import GoogleConnect from "@/components/GoogleConnect";
 import {
   Select,
   SelectContent,
@@ -316,7 +316,7 @@ const Index = () => {
           icon={Award}
           title="Certificats de formation"
           subtitle="Remplissez les informations et la liste des participants"
-          actions={<GoogleDriveConnect />}
+          actions={<GoogleConnect />}
         />
         <Card className="border-2 shadow-xl">
           <CardContent>

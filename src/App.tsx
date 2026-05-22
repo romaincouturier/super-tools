@@ -109,6 +109,7 @@ const WoocommerceInbox = lazy(() => import("./pages/WoocommerceInbox"));
 const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const GoogleCalendarCallback = lazy(() => import("./pages/GoogleCalendarCallback"));
+const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
@@ -177,6 +178,7 @@ const App = () => (
               <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               {/* OAuth callbacks */}
+              <Route path="/google/callback" element={<GoogleCallback />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
               <Route path="/google-calendar/callback" element={<GoogleCalendarCallback />} />
 

@@ -53,24 +53,37 @@ export async function assertDriveFolderAccessible(
   }
 }
 
-/** Returns a valid access token (auto-refreshes if expired). Null if no token stored. */
+/** Returns a valid access token (auto-refreshes if expired). Null if no token stored.
+ * Reads from google_tokens (unified) first, falls back to google_drive_tokens (legacy).
+ */
 export async function getValidDriveAccessToken(
   admin: ReturnType<typeof createClient>,
 ): Promise<string | null> {
+  // Try new unified table first
   const { data: token } = await (admin as any)
-    .from("google_drive_tokens")
+    .from("google_tokens")
     .select("id, access_token, refresh_token, token_expires_at")
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!token) return null;
+  // Fallback to legacy table
+  const { data: legacyToken } = !token ? await (admin as any)
+    .from("google_drive_tokens")
+    .select("id, access_token, refresh_token, token_expires_at")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle() : { data: null };
 
-  const expiresAt = new Date(token.token_expires_at).getTime();
+  const active = token || legacyToken;
+  const tableName = token ? "google_tokens" : "google_drive_tokens";
+  if (!active) return null;
+
+  const expiresAt = new Date(active.token_expires_at).getTime();
   const bufferMs = 5 * 60 * 1000;
 
   if (Date.now() + bufferMs < expiresAt) {
-    return token.access_token as string;
+    return active.access_token as string;
   }
 
   // Refresh
@@ -80,7 +93,7 @@ export async function getValidDriveAccessToken(
     body: new URLSearchParams({
       client_id: GOOGLE_OAUTH_CLIENT_ID,
       client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
-      refresh_token: token.refresh_token as string,
+      refresh_token: active.refresh_token as string,
       grant_type: "refresh_token",
     }),
   });
@@ -94,9 +107,9 @@ export async function getValidDriveAccessToken(
   const newExpiresAt = new Date(Date.now() + refreshData.expires_in * 1000).toISOString();
 
   await (admin as any)
-    .from("google_drive_tokens")
+    .from(tableName)
     .update({ access_token: refreshData.access_token, token_expires_at: newExpiresAt })
-    .eq("id", token.id);
+    .eq("id", active.id);
 
   return refreshData.access_token as string;
 }

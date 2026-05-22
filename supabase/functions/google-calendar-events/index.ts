@@ -286,12 +286,23 @@ serve(async (req: Request): Promise<Response> => {
         });
       }
 
-      // Get stored tokens
-      const { data: tokenRow } = await supabase
-        .from("google_calendar_tokens")
+      // Get stored tokens — try unified table first, fallback to legacy
+      let { data: tokenRow } = await supabase
+        .from("google_tokens")
         .select("*")
         .eq("user_id", userData.user.id)
         .single();
+      let tokenTable = "google_tokens";
+
+      if (!tokenRow) {
+        const fallback = await supabase
+          .from("google_calendar_tokens")
+          .select("*")
+          .eq("user_id", userData.user.id)
+          .single();
+        tokenRow = fallback.data;
+        tokenTable = "google_calendar_tokens";
+      }
 
       if (!tokenRow) {
         return new Response(JSON.stringify({ error: "Not connected", events: [] }), {
@@ -308,7 +319,7 @@ serve(async (req: Request): Promise<Response> => {
           accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
           const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
           await supabase
-            .from("google_calendar_tokens")
+            .from(tokenTable)
             .update({ access_token: accessToken, token_expires_at: newExpiry, updated_at: new Date().toISOString() })
             .eq("user_id", userData.user.id);
         } catch (refreshError) {
@@ -384,11 +395,23 @@ serve(async (req: Request): Promise<Response> => {
         });
       }
 
-      const { data: tokenRow } = await supabase
-        .from("google_calendar_tokens")
+      // Try unified table first, fallback to legacy
+      let { data: tokenRow } = await supabase
+        .from("google_tokens")
         .select("*")
         .eq("user_id", userData.user.id)
         .single();
+      let tokenTable = "google_tokens";
+
+      if (!tokenRow) {
+        const fallback = await supabase
+          .from("google_calendar_tokens")
+          .select("*")
+          .eq("user_id", userData.user.id)
+          .single();
+        tokenRow = fallback.data;
+        tokenTable = "google_calendar_tokens";
+      }
 
       if (!tokenRow) {
         return new Response(JSON.stringify({ error: "Not connected" }), {
@@ -403,7 +426,7 @@ serve(async (req: Request): Promise<Response> => {
         accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
         const newExpiry = new Date(Date.now() + 3600 * 1000).toISOString();
         await supabase
-          .from("google_calendar_tokens")
+          .from(tokenTable)
           .update({ access_token: accessToken, token_expires_at: newExpiry, updated_at: new Date().toISOString() })
           .eq("user_id", userData.user.id);
       }
