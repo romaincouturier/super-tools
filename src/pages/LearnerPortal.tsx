@@ -2772,7 +2772,7 @@ export default function LearnerPortal() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const sectionFromUrl: NavSection = (sectionSlug && SLUG_TO_SECTION[sectionSlug]) ?? "dashboard";
+  const sectionFromUrl: NavSection = (sectionSlug ? SLUG_TO_SECTION[sectionSlug] : undefined) ?? "dashboard";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
