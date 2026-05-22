@@ -407,7 +407,7 @@ const CardDetailDrawer = ({
     finally { setNextActionSuggesting(false); }
   };
 
-  const copyToClipboard = async (text: string) => { await copy(text, { silent: true }); };
+  const copyToClipboard = async (text: string) => { await copy(text, { title: "Copié !" }); };
 
   // ═══ LINKEDIN / WEBSITE AUTO ═══
   useEffect(() => {
