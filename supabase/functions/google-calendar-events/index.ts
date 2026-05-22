@@ -440,8 +440,25 @@ serve(async (req: Request): Promise<Response> => {
       const cleanedAttendees = attendeesList
         .map((e: string) => e.trim())
         .filter((e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
-      if (cleanedAttendees.length > 0) {
-        eventPayload.attendees = cleanedAttendees.map((email: string) => ({ email }));
+
+      // Get organizer email so we can mark them as accepted automatically
+      let organizerEmail: string | null = null;
+      try {
+        const tokenInfo = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+        if (tokenInfo.ok) {
+          const info = await tokenInfo.json();
+          organizerEmail = info.email ?? null;
+        }
+      } catch { /* ignore, non-blocking */ }
+
+      const allAttendees = [
+        ...(organizerEmail ? [{ email: organizerEmail, responseStatus: "accepted", self: true }] : []),
+        ...cleanedAttendees
+          .filter((e: string) => e !== organizerEmail)
+          .map((email: string) => ({ email })),
+      ];
+      if (allAttendees.length > 0) {
+        eventPayload.attendees = allAttendees;
       }
 
       const createResponse = await fetch(
@@ -460,7 +477,7 @@ serve(async (req: Request): Promise<Response> => {
         const errorText = await createResponse.text();
         console.error("Calendar create event error raw:", errorText);
         const calendarError = getGoogleCalendarCreateError(errorText);
-        return new Response(JSON.stringify({ error: calendarError.message, reason: calendarError.reason, _raw: errorText }), {
+        return new Response(JSON.stringify({ error: calendarError.message, reason: calendarError.reason }), {
           status: calendarError.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
