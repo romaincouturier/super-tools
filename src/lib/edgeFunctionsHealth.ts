@@ -76,21 +76,18 @@ async function probe(name: string): Promise<FunctionInfo> {
   const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   const url = `${SUPABASE_URL}/functions/v1/${name}`;
   try {
-    // Use GET (simple request, no CORS preflight). Missing function → 404,
-    // any other status (401/405/500/2xx) means the function is deployed.
-    const res = await fetch(url, { method: "GET", signal: controller.signal });
+    // OPTIONS without custom headers — browser sets Origin automatically.
+    // Deployed function returns 200 (CORS preflight), missing returns 404.
+    // No body is sent, so the function code never runs — no 401/400/500 noise.
+    const res = await fetch(url, { method: "OPTIONS", signal: controller.signal });
     return { name, status: res.status === 404 ? "missing" : "deployed" };
   } catch {
-    try {
-      const res = await fetch(url, { method: "GET" });
-      return { name, status: res.status === 404 ? "missing" : "deployed" };
-    } catch {
-      return { name, status: "missing" };
-    }
+    return { name, status: "missing" };
   } finally {
     clearTimeout(timeout);
   }
 }
+
 
 
 export async function checkEdgeFunctionsHealth(): Promise<HealthCheckResult> {
