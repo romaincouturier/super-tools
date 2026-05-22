@@ -47,6 +47,38 @@ async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {
   return data.access_token;
 }
 
+function getGoogleCalendarCreateError(errorText: string): { message: string; reason?: string; status: number } {
+  let data: any = null;
+  try {
+    data = JSON.parse(errorText);
+  } catch {
+    return { message: "Impossible de créer l'événement Google Calendar.", status: 200 };
+  }
+
+  const googleError = data?.error;
+  const reason = googleError?.errors?.[0]?.reason || googleError?.details?.[0]?.reason;
+  const status = Number(googleError?.code) || 200;
+  const message = String(googleError?.message || "");
+
+  if (reason === "accessNotConfigured" || reason === "SERVICE_DISABLED" || message.includes("calendar-json.googleapis.com")) {
+    return {
+      message: "L'API Google Calendar n'est pas activée sur le projet Google OAuth utilisé. Activez Google Calendar API dans Google Cloud, puis réessayez.",
+      reason: "calendar_api_disabled",
+      status: 200,
+    };
+  }
+
+  if (reason === "ACCESS_TOKEN_SCOPE_INSUFFICIENT" || message.includes("insufficient authentication scopes")) {
+    return {
+      message: "La connexion Google Calendar doit être renouvelée avec les droits d'écriture. Déconnectez puis reconnectez Google Calendar.",
+      reason: "insufficient_scope",
+      status: 200,
+    };
+  }
+
+  return { message: message || "Impossible de créer l'événement Google Calendar.", reason, status: status >= 400 ? status : 200 };
+}
+
 serve(async (req: Request): Promise<Response> => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -427,8 +459,9 @@ serve(async (req: Request): Promise<Response> => {
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
         console.error("Calendar create event error:", errorText);
-        return new Response(JSON.stringify({ error: "Failed to create event" }), {
-          status: 500,
+        const calendarError = getGoogleCalendarCreateError(errorText);
+        return new Response(JSON.stringify({ error: calendarError.message, reason: calendarError.reason }), {
+          status: calendarError.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
