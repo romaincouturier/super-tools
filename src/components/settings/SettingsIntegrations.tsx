@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { ApiKeyManager } from "@/components/settings/ApiKeyManager";
-import GoogleDriveConnect from "@/components/GoogleDriveConnect";
-import GoogleCalendarConnect from "@/components/GoogleCalendarConnect";
+import GoogleConnect from "@/components/GoogleConnect";
 import SlackChannelCard from "@/components/settings/SlackChannelCard";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
 
@@ -31,18 +30,10 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Google Drive</p>
-              <p className="text-xs text-muted-foreground">Stockage de fichiers et pièces jointes</p>
+              <p className="text-sm font-medium">Google (Drive + Calendar)</p>
+              <p className="text-xs text-muted-foreground">Stockage de fichiers, agenda et réunions</p>
             </div>
-            <GoogleDriveConnect />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Google Calendar</p>
-              <p className="text-xs text-muted-foreground">Agenda utilisé par le coach commercial pour contextualiser les recommandations</p>
-            </div>
-            <GoogleCalendarConnect />
+            <GoogleConnect />
           </div>
         </CardContent>
       </Card>

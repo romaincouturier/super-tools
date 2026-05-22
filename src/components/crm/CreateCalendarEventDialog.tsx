@@ -114,7 +114,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        setError(`${data.error || "Erreur lors de la création de l'événement."}${data._raw ? `\n\nDétail : ${data._raw}` : ""}`);
+        setError(data.error || "Erreur lors de la création de l'événement.");
         return;
       }
       setResult({ htmlLink: data.htmlLink, meetLink: data.meetLink });
