@@ -23,6 +23,12 @@ import {
   Braces,
   GitCommitHorizontal,
   FlipHorizontal,
+  ChevronDownSquare,
+  Target,
+  Layers,
+  PenLine,
+  GripHorizontal,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import type { LessonBlockType, LessonBlockKind } from "@/types/lms-blocks";
@@ -75,6 +81,12 @@ export const CONTENT_BLOCKS: BlockTypeMeta[] = [
   { type: "html_embed", label: "HTML / Embed", icon: Braces, kind: "content", editable: true },
   { type: "timeline", label: "Frise chronologique", icon: GitCommitHorizontal, kind: "content", editable: true },
   { type: "flip_cards", label: "Cartes à retourner", icon: FlipHorizontal, kind: "content", editable: true },
+  { type: "accordion", label: "Accordéon FAQ", icon: ChevronDownSquare, kind: "content", editable: true },
+  { type: "image_hotspot", label: "Image annotée", icon: Target, kind: "content", editable: true },
+  { type: "before_after", label: "Avant / Après", icon: Layers, kind: "content", editable: true },
+  { type: "fill_blanks", label: "Texte à trous", icon: PenLine, kind: "content", editable: true },
+  { type: "drag_words", label: "Glisser les mots", icon: GripHorizontal, kind: "content", editable: true },
+  { type: "summary", label: "Résumé interactif", icon: ClipboardList, kind: "content", editable: true },
 ];
 
 /** Combined registry; previously exported as BLOCK_TYPES. */

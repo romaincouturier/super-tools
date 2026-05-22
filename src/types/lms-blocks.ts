@@ -41,7 +41,13 @@ export type ContentBlockType =
   | "shortcode"
   | "html_embed"
   | "timeline"
-  | "flip_cards";
+  | "flip_cards"
+  | "accordion"
+  | "image_hotspot"
+  | "before_after"
+  | "fill_blanks"
+  | "drag_words"
+  | "summary";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -267,6 +273,76 @@ export interface FlipCardsBlockContent {
   card_height_px?: number;
 }
 
+// ── Accordion block ──────────────────────────────────────────────────
+
+export interface AccordionItem {
+  id: string;
+  question: string;
+  answer_html: string;
+}
+
+export interface AccordionBlockContent {
+  title?: string | null;
+  items: AccordionItem[];
+}
+
+// ── Image hotspot block ───────────────────────────────────────────────
+
+export interface HotspotItem {
+  id: string;
+  x_pct: number;
+  y_pct: number;
+  label: string;
+  description_html?: string | null;
+}
+
+export interface ImageHotspotBlockContent {
+  image_url?: string | null;
+  hotspots: HotspotItem[];
+}
+
+// ── Before / After block ──────────────────────────────────────────────
+
+export interface BeforeAfterBlockContent {
+  before_image_url?: string | null;
+  after_image_url?: string | null;
+  before_label?: string | null;
+  after_label?: string | null;
+  caption?: string | null;
+}
+
+// ── Fill in the blanks block ──────────────────────────────────────────
+
+export interface FillBlanksBlockContent {
+  title?: string | null;
+  instructions?: string | null;
+  /** Text with {{answer}} markers, e.g. "La {{photosynthèse}} transforme la {{lumière}} en énergie." */
+  text: string;
+}
+
+// ── Drag words block ──────────────────────────────────────────────────
+
+export interface DragWordsBlockContent {
+  title?: string | null;
+  instructions?: string | null;
+  /** Text with *word* markers for draggable targets, e.g. "Le *chat* est un *animal* domestique." */
+  text: string;
+}
+
+// ── Summary block ─────────────────────────────────────────────────────
+
+export interface SummaryStatement {
+  id: string;
+  text: string;
+  is_correct: boolean;
+}
+
+export interface SummaryBlockContent {
+  title?: string | null;
+  instructions?: string | null;
+  statements: SummaryStatement[];
+}
+
 // ── Shortcode block ─────────────────────────────────────────────────
 
 /** Codes courts disponibles — formulaires intégrés au cours. */
@@ -351,7 +427,13 @@ export type LessonBlockContent =
   | ShortcodeBlockContent
   | HtmlEmbedBlockContent
   | TimelineBlockContent
-  | FlipCardsBlockContent;
+  | FlipCardsBlockContent
+  | AccordionBlockContent
+  | ImageHotspotBlockContent
+  | BeforeAfterBlockContent
+  | FillBlanksBlockContent
+  | DragWordsBlockContent
+  | SummaryBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -462,6 +544,32 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
           { id: cryptoRandomId(), front_text: "Recto", back_text: "Verso" },
         ],
         card_height_px: 180,
+      };
+    case "accordion":
+      return {
+        title: null,
+        items: [
+          { id: cryptoRandomId(), question: "Question 1", answer_html: "" },
+          { id: cryptoRandomId(), question: "Question 2", answer_html: "" },
+        ],
+      };
+    case "image_hotspot":
+      return { image_url: null, hotspots: [] };
+    case "before_after":
+      return { before_image_url: null, after_image_url: null, before_label: "Avant", after_label: "Après", caption: null };
+    case "fill_blanks":
+      return { title: null, instructions: null, text: "" };
+    case "drag_words":
+      return { title: null, instructions: null, text: "" };
+    case "summary":
+      return {
+        title: "Cochez les affirmations exactes",
+        instructions: null,
+        statements: [
+          { id: cryptoRandomId(), text: "Affirmation 1", is_correct: true },
+          { id: cryptoRandomId(), text: "Affirmation 2", is_correct: false },
+          { id: cryptoRandomId(), text: "Affirmation 3", is_correct: true },
+        ],
       };
   }
 }
@@ -574,6 +682,49 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
           { id: cryptoRandomId(), front_text: "Quelle est la règle des 3 C ?", back_text: "Clair, Concis, Cohérent — les trois critères d'un visuel efficace en facilitation." },
         ],
         card_height_px: 180,
+      };
+    case "accordion":
+      return {
+        title: "Questions fréquentes",
+        items: [
+          { id: cryptoRandomId(), question: "À quoi sert la facilitation visuelle ?", answer_html: "<p>Elle permet de rendre les idées plus accessibles, de favoriser la mémorisation et d'engager davantage les participants lors d'ateliers ou de formations.</p>" },
+          { id: cryptoRandomId(), question: "Faut-il savoir dessiner pour l'utiliser ?", answer_html: "<p>Non ! La facilitation visuelle repose sur des formes simples : rectangles, cercles, flèches et quelques pictogrammes de base. Le message prime sur l'esthétique.</p>" },
+          { id: cryptoRandomId(), question: "Quels outils utiliser pour démarrer ?", answer_html: "<p>Un simple marqueur noir et une feuille blanche suffisent. Vous pouvez ensuite ajouter des post-its colorés et quelques marqueurs de couleur pour structurer l'information.</p>" },
+        ],
+      };
+    case "image_hotspot":
+      return { image_url: null, hotspots: [] };
+    case "before_after":
+      return {
+        before_image_url: null,
+        after_image_url: null,
+        before_label: "Avant",
+        after_label: "Après",
+        caption: "Comparez les deux états en déplaçant le curseur",
+      };
+    case "fill_blanks":
+      return {
+        title: "Complétez le texte",
+        instructions: "Saisissez les mots manquants dans les trous.",
+        text: "La facilitation visuelle permet de {{mémoriser}} plus facilement les informations en les rendant {{visuelles}}. Elle est particulièrement utile lors des {{ateliers}} collaboratifs.",
+      };
+    case "drag_words":
+      return {
+        title: "Replacez les mots dans le bon contexte",
+        instructions: "Cliquez sur un mot puis sur l'emplacement où le placer.",
+        text: "Un bon facilitateur visuel utilise des *formes simples* pour rendre les idées *accessibles*. Il n'est pas nécessaire d'être *artiste* pour pratiquer cette technique.",
+      };
+    case "summary":
+      return {
+        title: "Bilan — cochez les affirmations exactes",
+        instructions: "Sélectionnez toutes les affirmations vraies, puis vérifiez vos réponses.",
+        statements: [
+          { id: cryptoRandomId(), text: "La facilitation visuelle améliore la mémorisation des informations.", is_correct: true },
+          { id: cryptoRandomId(), text: "Il faut être artiste pour utiliser la facilitation visuelle.", is_correct: false },
+          { id: cryptoRandomId(), text: "Des formes simples comme des cercles et des flèches suffisent.", is_correct: true },
+          { id: cryptoRandomId(), text: "La facilitation visuelle ne fonctionne que sur support numérique.", is_correct: false },
+          { id: cryptoRandomId(), text: "Elle peut être utilisée aussi bien en atelier qu'en formation.", is_correct: true },
+        ],
       };
     default:
       return null;
