@@ -29,7 +29,7 @@ export default function QuizBlockEditor({ courseId, lessonId, content, onChange,
   const handleCreateQuiz = async () => {
     if (!courseId || !lessonId) return;
     try {
-      const q = await createQuiz.mutateAsync({ course_id: courseId, lesson_id: lessonId, title: "Nouveau quiz" });
+      const q = await createQuiz.mutateAsync({ course_id: courseId, lesson_id: lessonId, title: "Nouveau quiz" } as any);
       onChange({ ...content, quiz_id: q.id });
       toast({ title: "Quiz créé" });
     } catch {
