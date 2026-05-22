@@ -54,7 +54,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [summary, setSummary] = useState(() => buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState("10:00");
-  const [endTime, setEndTime] = useState("11:00");
+  const [endTime, setEndTime] = useState("10:30");
   const [attendeeEmail, setAttendeeEmail] = useState(contactEmail);
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [submitting, setSubmitting] = useState(false);
@@ -104,7 +104,10 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
             description: description.trim(),
             startDateTime: startIso,
             endDateTime: endIso,
-            attendeeEmail: attendeeEmail.trim() || undefined,
+            attendeeEmail: attendeeEmail
+              .split(/[,;\s]+/)
+              .map((e) => e.trim())
+              .filter(Boolean),
           }),
         }
       );
@@ -204,14 +207,14 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cal-attendee">Email du client (invité)</Label>
+              <Label htmlFor="cal-attendee">Emails des invités</Label>
               <Input
                 id="cal-attendee"
-                type="email"
                 value={attendeeEmail}
                 onChange={(e) => setAttendeeEmail(e.target.value)}
-                placeholder="client@exemple.com"
+                placeholder="client@exemple.com, collegue@exemple.com"
               />
+              <p className="text-xs text-muted-foreground">Séparez plusieurs emails par une virgule, un point-virgule ou un espace.</p>
             </div>
 
             <div className="space-y-1.5">
