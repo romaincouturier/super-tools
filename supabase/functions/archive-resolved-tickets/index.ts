@@ -6,11 +6,38 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, wrapEmailHtml } from "../_shared/templates.ts";
 
-const VERSION = "archive-resolved-tickets@2026-05-07.1";
+const VERSION = "archive-resolved-tickets@2026-05-22.1";
+
+function isSundayEveningParis(now = new Date()): boolean {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Paris",
+    weekday: "short",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  return weekday === "Sun" && hour >= 19;
+}
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed", _version: VERSION }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  if (!isSundayEveningParis()) {
+    console.warn(`[${VERSION}] skipped: outside Sunday evening Paris window`);
+    return new Response(
+      JSON.stringify({ success: true, skipped: true, reason: "outside_schedule_window", archived: 0, _version: VERSION }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
   try {
     const supabase = createClient(
