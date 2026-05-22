@@ -211,7 +211,7 @@ export function ApiKeyManager() {
               Clés API
             </CardTitle>
             <CardDescription>
-              Gérez les clés API pour les intégrations externes (Zapier, Make, etc.)
+              Gérez les clés API pour les intégrations externes.
             </CardDescription>
           </div>
           <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -228,7 +228,7 @@ export function ApiKeyManager() {
             <Key className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Aucune clé API créée</p>
             <p className="text-sm mt-2">
-              Créez une clé pour intégrer Zapier ou d'autres outils
+              Créez une clé pour les intégrations externes
             </p>
           </div>
         ) : (
@@ -297,25 +297,6 @@ export function ApiKeyManager() {
           </Table>
         )}
 
-        {/* Documentation */}
-        <div className="mt-6 p-4 bg-muted rounded-lg">
-          <h4 className="font-semibold mb-2">Utilisation avec Zapier</h4>
-          <ol className="text-sm text-muted-foreground space-y-2">
-            <li>1. Créez une nouvelle clé API ci-dessus</li>
-            <li>2. Dans Zapier, utilisez l'action "Webhooks by Zapier" → "POST"</li>
-            <li>
-              3. URL:{" "}
-              <code className="bg-background px-1 rounded">
-                https://[VOTRE_PROJECT].supabase.co/functions/v1/zapier-create-training
-              </code>
-            </li>
-            <li>
-              4. Headers:{" "}
-              <code className="bg-background px-1 rounded">x-api-key: [VOTRE_CLE]</code>
-            </li>
-            <li>5. Body: JSON avec training_name, client_name, start_date, end_date, location</li>
-          </ol>
-        </div>
       </CardContent>
 
       {/* Create Dialog */}
@@ -336,7 +317,7 @@ export function ApiKeyManager() {
                   <Input
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    placeholder="Ex: Zapier Production"
+                    placeholder="Ex: Intégration externe"
                   />
                 </div>
               </div>

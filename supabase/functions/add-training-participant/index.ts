@@ -112,7 +112,7 @@ export interface AddParticipantRequest {
   // Options e-learning (ajout manuel uniquement)
   generateCoupon?: boolean;
   // Origine de l'ajout — utilisé pour le log d'activité et certaines règles
-  source?: "manual" | "woocommerce" | "bulk" | "zapier";
+  source?: "manual" | "woocommerce" | "bulk";
   // Champs WooCommerce pour le log
   woocommerceOrderId?: number | null;
   woocommerceProductId?: number | null;
@@ -554,7 +554,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const actionType =
       source === "woocommerce" ? "participant_added_from_woocommerce"
       : source === "bulk"      ? "participant_added_bulk"
-      : source === "zapier"    ? "participant_added_from_zapier"
       :                          "participant_added";
 
     try {
