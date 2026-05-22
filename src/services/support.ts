@@ -95,7 +95,9 @@ async function resolveTicketScreenshots<T extends { id: string; screenshot_url: 
 }
 
 export async function fetchSupportTickets(): Promise<SupportTicket[]> {
-  const result = await db().from("support_tickets").select("*").is("archived_at", null).order("created_at", { ascending: false });
+  // Note: on n'exclut pas les tickets archivés ici, sinon la colonne "Résolu"
+  // apparaît vide (les tickets résolus sont auto-archivés en arrière-plan).
+  const result = await db().from("support_tickets").select("*").order("created_at", { ascending: false });
   const tickets = (throwIfError(result) || []) as SupportTicket[];
   return resolveTicketScreenshots(tickets);
 }
