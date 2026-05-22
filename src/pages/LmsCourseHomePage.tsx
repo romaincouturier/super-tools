@@ -464,7 +464,290 @@ function ReplayView({ meeting }: { meeting: CourseLiveMeeting }) {
   );
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
+// ── Progress card ─────────────────────────────────────────────────────────────
+
+function ProgressCard({
+  completionPct,
+  completedLessons,
+  totalLessons,
+  completedModules,
+  totalModules,
+  onSeeStats,
+}: {
+  completionPct: number;
+  completedLessons: number;
+  totalLessons: number;
+  completedModules: number;
+  totalModules: number;
+  onSeeStats: () => void;
+}) {
+  return (
+    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Votre progression</p>
+      <div className="flex items-center gap-4">
+        <ProgressCircle pct={completionPct} />
+        <div className="flex flex-col gap-1.5">
+          <div>
+            <p className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{completedModules}/{totalModules} modules</p>
+            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>terminés</p>
+          </div>
+          <div>
+            <p className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{completedLessons}/{totalLessons} séquences</p>
+            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>complétées</p>
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={onSeeStats}
+        className="flex items-center gap-1.5 text-xs font-medium mt-auto"
+        style={{ color: "var(--st-ink-muted)", fontFamily: "inherit", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        Voir mes statistiques <ChevronRight size={12} />
+      </button>
+    </div>
+  );
+}
+
+// ── Live card ─────────────────────────────────────────────────────────────────
+
+function LiveCard({
+  meeting,
+  onViewCalendar,
+}: {
+  meeting: CourseLiveMeeting | null;
+  onViewCalendar: () => void;
+}) {
+  const now = new Date();
+  const isLive = meeting ? (() => {
+    const s = new Date(meeting.scheduled_at);
+    const e = new Date(s.getTime() + meeting.duration_minutes * 60_000);
+    return now >= s && now <= e;
+  })() : false;
+
+  return (
+    <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Prochain live</p>
+      {meeting ? (
+        <>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#FFFBEA" }}>
+              <Calendar size={18} style={{ color: "#101820" }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold leading-snug" style={{ color: "var(--st-ink)" }}>{meeting.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                {isLive ? "En direct maintenant" : (
+                  <>
+                    {new Date(meeting.scheduled_at).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                    <br />{fmtLiveTime(meeting.scheduled_at)} – {fmtLiveTime(new Date(new Date(meeting.scheduled_at).getTime() + meeting.duration_minutes * 60_000).toISOString())} (CET)
+                  </>
+                )}
+              </p>
+              {meeting.description && (
+                <p className="text-xs mt-1 line-clamp-2" style={{ color: "var(--st-ink-muted)" }}>{meeting.description}</p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onViewCalendar}
+            className="flex items-center gap-1.5 text-xs font-medium mt-auto"
+            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Voir l'agenda <ChevronRight size={12} />
+          </button>
+        </>
+      ) : (
+        <div className="flex items-center gap-3 mt-1">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#F2F4F4" }}>
+            <Calendar size={18} style={{ color: "rgba(16,24,32,0.35)" }} />
+          </div>
+          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>Aucun live prévu prochainement.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Community info card ───────────────────────────────────────────────────────
+
+const AVATAR_COLORS = ["#FFD100", "#69C3C4", "#F2A541", "#A8D8A8", "#D4A5A5"];
+
+function CommunityInfoCard({
+  courseId,
+  email,
+}: {
+  courseId: string;
+  email: string;
+}) {
+  const { data: forums = [] } = useCourseForums(courseId);
+  const mainForum = forums[0] ?? null;
+  const { data: allPosts = [] } = useForumPosts(mainForum?.id);
+
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const recentPosts = allPosts.filter((p) => new Date(p.created_at) >= weekAgo);
+  const recentAuthors = [...new Set(recentPosts.map((p) => p.author_email))].slice(0, 5);
+
+  return (
+    <div className="rounded-2xl p-5 flex flex-col gap-3" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+      <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Communauté</p>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#FFFBEA" }}>
+          <Users size={18} style={{ color: "#101820" }} />
+        </div>
+        <p className="text-sm leading-snug" style={{ color: "var(--st-ink-muted)" }}>
+          {recentPosts.length > 0
+            ? `${recentPosts.length} message${recentPosts.length > 1 ? "s" : ""} cette semaine dans la communauté.`
+            : "Échangez, posez vos questions et partagez vos réalisations."}
+        </p>
+      </div>
+      {recentAuthors.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          {recentAuthors.map((a, i) => (
+            <div
+              key={a}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white"
+              style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length], color: "#101820", marginLeft: i > 0 ? -6 : 0 }}
+            >
+              {a.split("@")[0].slice(0, 2).toUpperCase()}
+            </div>
+          ))}
+          {recentPosts.length > recentAuthors.length && (
+            <span className="text-xs ml-1" style={{ color: "var(--st-ink-muted)" }}>+{recentPosts.length - recentAuthors.length}</span>
+          )}
+        </div>
+      )}
+      <button
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold mt-auto transition-all hover:-translate-y-px"
+        style={{ background: "#FFD100", color: "#101820", fontFamily: "inherit", border: "none", cursor: "pointer" }}
+      >
+        Rejoindre
+      </button>
+      <p className="text-xs text-center" style={{ color: "var(--st-ink-muted)" }}>
+        Inspirez-vous des partages, posez vos questions et progressez ensemble !
+      </p>
+    </div>
+  );
+}
+
+// ── Modules list section ──────────────────────────────────────────────────────
+
+function ModulesListSection({
+  modules,
+  moduleStatuses,
+  lessonCountByModule,
+  lessonsDoneByModule,
+  onModuleClick,
+}: {
+  modules: Array<{ id: string; title: string; position: number; description: string | null }>;
+  moduleStatuses: Record<string, ModuleStatus>;
+  lessonCountByModule: Record<string, number>;
+  lessonsDoneByModule: Record<string, number>;
+  onModuleClick: (moduleId: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+      <div className="px-6 py-4 border-b" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+        <p className="text-base font-bold" style={{ color: "var(--st-ink)" }}>Vos modules</p>
+      </div>
+      <div className="divide-y" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+        {modules.map((mod, idx) => {
+          const status = moduleStatuses[mod.id] ?? "not_started";
+          const total = lessonCountByModule[mod.id] ?? 0;
+          const done = lessonsDoneByModule[mod.id] ?? 0;
+          const pct = total > 0 ? (done / total) * 100 : 0;
+          const isCompleted = status === "completed";
+          const isInProgress = status === "in_progress";
+          const btnLabel = isCompleted ? "Revoir" : isInProgress ? "Continuer" : "Commencer";
+          return (
+            <div
+              key={mod.id}
+              className="flex items-center gap-4 px-6 py-4"
+              style={{ borderColor: "rgba(16,24,32,0.06)" }}
+            >
+              {/* Number badge */}
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold"
+                style={{
+                  background: isCompleted ? "#69C3C4" : isInProgress ? "#FFD100" : "#F2F4F4",
+                  color: isCompleted ? "#fff" : "#101820",
+                }}
+              >
+                M{idx + 1}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-snug" style={{ color: "var(--st-ink)" }}>
+                  {idx + 1} {mod.title}
+                </p>
+                {mod.description && (
+                  <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "var(--st-ink-muted)" }}>{mod.description}</p>
+                )}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#EDEDED", maxWidth: 120 }}>
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                  </div>
+                  <p className="text-xs shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total} séquences</p>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <button
+                onClick={() => onModuleClick(mod.id)}
+                className="shrink-0 flex items-center gap-1 px-4 py-1.5 rounded-full text-xs font-semibold transition-all hover:-translate-y-px"
+                style={{
+                  background: isCompleted ? "#F2F4F4" : "#FFD100",
+                  color: "#101820",
+                  fontFamily: "inherit",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {btnLabel} <ChevronRight size={12} />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Tips block ────────────────────────────────────────────────────────────────
+
+const TIPS = [
+  "Ayez toujours une feuille et un feutre à portée de main.",
+  "Progressez petit à petit, l'essentiel est la régularité.",
+  "Testez, osez, pratiquez : il n'y a pas de dessin parfait.",
+  "Participez aux lives et posez vos questions.",
+];
+
+function TipsBlock() {
+  return (
+    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
+      <div className="flex items-center gap-2.5">
+        <Sparkles size={16} style={{ color: "#FFD100" }} />
+        <p className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>Conseils pour bien démarrer</p>
+      </div>
+      <ul className="space-y-2.5">
+        {TIPS.map((tip) => (
+          <li key={tip} className="flex items-start gap-2.5">
+            <CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: "#69C3C4" }} />
+            <p className="text-sm leading-snug" style={{ color: "var(--st-ink-muted)" }}>{tip}</p>
+          </li>
+        ))}
+      </ul>
+      <button
+        className="text-xs font-medium text-left mt-auto flex items-center gap-1"
+        style={{ color: "var(--st-ink-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
+      >
+        Voir tous les conseils <ChevronRight size={11} />
+      </button>
+    </div>
+  );
+}
+
+
 
 interface SidebarProps {
   courseId: string;
@@ -476,6 +759,7 @@ interface SidebarProps {
   modules: Array<{ id: string; title: string; position: number }>;
   moduleStatuses: Record<string, ModuleStatus>;
   lessonCountByModule: Record<string, number>;
+  lessonsDoneByModule: Record<string, number>;
   activeLessonId: string | null;
   communityPreviewCount: number;
   meetings: CourseLiveMeeting[];
@@ -494,6 +778,7 @@ function Sidebar({
   modules,
   moduleStatuses,
   lessonCountByModule,
+  lessonsDoneByModule,
   activeLessonId,
   communityPreviewCount,
   meetings,
@@ -606,12 +891,15 @@ function Sidebar({
       {/* Module list */}
       <div className="p-5 flex-1">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
-          Modules
+          Vos modules
         </p>
         <ul className="space-y-1">
           {modules.map((m, idx) => {
             const status = moduleStatuses[m.id] ?? "not_started";
-            const count = lessonCountByModule[m.id] ?? 0;
+            const total = lessonCountByModule[m.id] ?? 0;
+            const done = lessonsDoneByModule[m.id] ?? 0;
+            const pct = total > 0 ? (done / total) * 100 : 0;
+            const isCompleted = status === "completed";
             return (
               <li key={m.id}>
                 <button
@@ -624,9 +912,12 @@ function Sidebar({
                     <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
                       {m.title}
                     </p>
-                    <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                      {count} séquence{count !== 1 ? "s" : ""}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                      </div>
+                      <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
+                    </div>
                   </div>
                   <ChevronRight size={14} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
                 </button>
@@ -657,7 +948,40 @@ function HeroSection({
 
   return (
     <section className="grid lg:grid-cols-2 gap-8 items-center">
-      {/* Video / cover */}
+      {/* Welcome text — LEFT */}
+      <div className="flex flex-col gap-5">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
+            <span style={{ color: "var(--st-ink)" }}>Bienvenue dans </span>
+            <span style={{ color: "var(--st-yellow)" }}>votre formation</span>
+          </h1>
+          {course.welcome_text && (
+            <p className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
+              {course.welcome_text}
+            </p>
+          )}
+        </div>
+
+        {/* CTA */}
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={onContinue}
+            className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
+            style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
+          >
+            {completionPct > 0 ? "Continuer la formation" : "Commencer la formation"}
+            <ChevronRight size={16} />
+          </button>
+          <button
+            className="flex items-center gap-1 text-sm font-medium"
+            style={{ color: "var(--st-ink-muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+          >
+            Voir le plan de la formation <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Video / cover — RIGHT */}
       <div
         className="relative rounded-2xl overflow-hidden aspect-video bg-black flex items-center justify-center"
         style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
@@ -699,49 +1023,6 @@ function HeroSection({
             <p className="text-white text-sm">Vidéo d'accueil</p>
           </div>
         )}
-      </div>
-
-      {/* Welcome text */}
-      <div className="flex flex-col gap-5">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold leading-tight mb-3" style={{ letterSpacing: "-0.02em" }}>
-            <span style={{ color: "var(--st-ink)" }}>Bienvenue dans </span>
-            <span style={{ color: "var(--st-yellow)" }}>votre formation</span>
-          </h1>
-          {course.welcome_text && (
-            <p className="text-sm leading-relaxed" style={{ color: "var(--st-ink-muted)" }}>
-              {course.welcome_text}
-            </p>
-          )}
-        </div>
-
-        {/* Reminders */}
-        <div className="space-y-2">
-          {[
-            { icon: BookOpen, text: "Commencez par le Module 1 pour poser les bases." },
-            { icon: Calendar, text: "Prochain live : retrouvez-nous pour un échange en direct sur le Module 1." },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-start gap-2.5">
-              <div className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center mt-0.5"
-                style={{ background: "var(--st-yellow)" }}>
-                <Icon size={10} style={{ color: "#101820" }} />
-              </div>
-              <p className="text-sm leading-snug" style={{ color: "var(--st-ink)" }}>{text}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={onContinue}
-            className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0"
-            style={{ background: "var(--st-yellow)", color: "var(--st-ink)", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(255,209,0,0.35)" }}
-          >
-            {completionPct > 0 ? "Continuer la formation" : "Commencer la formation"}
-            <ChevronRight size={16} />
-          </button>
-        </div>
       </div>
     </section>
   );
@@ -1232,6 +1513,17 @@ export default function LmsCourseHomePage() {
     return counts;
   }, [modules, lessonsByModule]);
 
+  const lessonsDoneByModule = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const m of modules) counts[m.id] = (lessonsByModule[m.id] ?? []).filter((l) => completedIds.has(l.id)).length;
+    return counts;
+  }, [modules, lessonsByModule, completedIds]);
+
+  const completedModulesCount = useMemo(
+    () => Object.values(moduleStatuses).filter((s) => s === "completed").length,
+    [moduleStatuses],
+  );
+
   // Learner display name from email
   const learnerName = useMemo(() => {
     if (isPreview) return "Admin";
@@ -1319,6 +1611,7 @@ export default function LmsCourseHomePage() {
             modules={sortedModules}
             moduleStatuses={moduleStatuses}
             lessonCountByModule={lessonCountByModule}
+            lessonsDoneByModule={lessonsDoneByModule}
             activeLessonId={null}
             communityPreviewCount={course.community_preview_count ?? 2}
             meetings={meetings}
@@ -1359,6 +1652,7 @@ export default function LmsCourseHomePage() {
                   modules={sortedModules}
                   moduleStatuses={moduleStatuses}
                   lessonCountByModule={lessonCountByModule}
+                  lessonsDoneByModule={lessonsDoneByModule}
                   activeLessonId={null}
                   communityPreviewCount={course.community_preview_count ?? 2}
                   meetings={meetings}
@@ -1420,12 +1714,31 @@ export default function LmsCourseHomePage() {
                   completionPct={completionPct}
                   onContinue={handleContinue}
                 />
-                {currentOrNextMeeting && (
-                  <LiveBanner
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <ProgressCard
+                    completionPct={completionPct}
+                    completedLessons={completedIds.size}
+                    totalLessons={allLessons.length}
+                    completedModules={completedModulesCount}
+                    totalModules={sortedModules.length}
+                    onSeeStats={() => {}}
+                  />
+                  <LiveCard
                     meeting={currentOrNextMeeting}
                     onViewCalendar={() => setActiveView("calendar")}
                   />
-                )}
+                  <CommunityInfoCard courseId={courseId!} email={email} />
+                </div>
+                <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+                  <ModulesListSection
+                    modules={sortedModules}
+                    moduleStatuses={moduleStatuses}
+                    lessonCountByModule={lessonCountByModule}
+                    lessonsDoneByModule={lessonsDoneByModule}
+                    onModuleClick={handleModuleClick}
+                  />
+                  <TipsBlock />
+                </div>
               </>
             )}
 
