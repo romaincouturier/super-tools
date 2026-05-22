@@ -57,14 +57,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .single();
 
     const lastSyncedAt = (cursorRow as { last_synced_at?: string } | null)?.last_synced_at;
-    const dateFrom = lastSyncedAt
-      ? new Date(lastSyncedAt).toISOString().split("T")[0]
-      : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().split("T")[0]; // 30d default
+    const fromDate = lastSyncedAt
+      ? new Date(lastSyncedAt).toISOString()
+      : new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(); // 30d default
 
     // ── Query Fireflies GraphQL ──────────────────────────────────
     const query = `
-      query($dateFrom: String) {
-        transcripts(date_from: $dateFrom, limit: 20) {
+      query($fromDate: DateTime) {
+        transcripts(fromDate: $fromDate, limit: 20) {
           id
           title
           date
@@ -81,7 +81,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ query, variables: { dateFrom } }),
+      body: JSON.stringify({ query, variables: { fromDate } }),
     });
 
     if (!ffRes.ok) {
