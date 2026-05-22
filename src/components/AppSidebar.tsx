@@ -286,7 +286,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               return info && isActive(info.path);
             });
             const isOpen = openGroups.has(entry.key);
-            const groupAlert = entry.key === "dropshipping" ? routingInboxAlert : undefined;
+            const groupAlert = entry.key === "dropshipping" ? routingInboxAlert
+              : entry.key === "monitoring" ? edgeFunctionsAlert
+              : undefined;
 
             if (!showLabels) {
               return (
