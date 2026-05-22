@@ -12,39 +12,63 @@ export function useCopyToClipboard({
 }: UseCopyToClipboardOptions = {}) {
   const [copied, setCopied] = useState(false);
 
+  const copyWithCopyEvent = useCallback((text: string) => {
+    const onCopy = (event: ClipboardEvent) => {
+      event.clipboardData?.setData("text/plain", text);
+      event.preventDefault();
+    };
+
+    document.addEventListener("copy", onCopy);
+    try {
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      document.removeEventListener("copy", onCopy);
+    }
+  }, []);
+
+  const copyWithTextarea = useCallback((text: string) => {
+    let ta: HTMLTextAreaElement | null = null;
+
+    try {
+      const openDialog = document.querySelector<HTMLElement>(
+        "[role='dialog'][data-state='open']",
+      );
+      const host = openDialog ?? document.body;
+      ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "0";
+      ta.style.width = "1px";
+      ta.style.height = "1px";
+      ta.style.opacity = "0";
+      ta.style.pointerEvents = "none";
+      host.appendChild(ta);
+      ta.focus({ preventScroll: true });
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      ta?.parentNode?.removeChild(ta);
+    }
+  }, []);
+
   const copy = useCallback(
     async (
       text: string,
       options?: { title?: string; description?: string; silent?: boolean },
     ) => {
-      let success = false;
+      let success = copyWithCopyEvent(text) || copyWithTextarea(text);
 
-      try {
-        await navigator.clipboard.writeText(text);
-        success = true;
-      } catch {
+      if (!success && navigator.clipboard?.writeText) {
         try {
-          // Mount the textarea inside the topmost open dialog/sheet when
-          // present, otherwise body. Radix sets `inert`/`aria-hidden` on
-          // siblings of the open dialog, which breaks focus()/select() and
-          // makes execCommand('copy') silently return false.
-          const openDialog = document.querySelector<HTMLElement>(
-            "[role='dialog'][data-state='open']",
-          );
-          const host = openDialog ?? document.body;
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.setAttribute("readonly", "");
-          ta.style.position = "fixed";
-          ta.style.top = "0";
-          ta.style.left = "0";
-          ta.style.opacity = "0";
-          host.appendChild(ta);
-          ta.focus();
-          ta.select();
-          ta.setSelectionRange(0, text.length);
-          success = document.execCommand("copy");
-          host.removeChild(ta);
+          await navigator.clipboard.writeText(text);
+          success = true;
         } catch {
           success = false;
         }
@@ -65,7 +89,7 @@ export function useCopyToClipboard({
 
       return success;
     },
-    [autoResetMs, defaultToastTitle],
+    [autoResetMs, copyWithCopyEvent, copyWithTextarea, defaultToastTitle],
   );
 
   return { copied, copy };
