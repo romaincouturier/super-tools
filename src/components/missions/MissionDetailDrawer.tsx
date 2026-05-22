@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import DetailDrawer from "@/components/shared/DetailDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, ExternalLink, Briefcase, Bot, Maximize2, Minimize2, Bug } from "lucide-react";
+import { X, Clock, FileText, Settings, ImageIcon, Share2, Check, Sparkles, MapPin, FolderOpen, Package, Calendar, CalendarPlus, ExternalLink, Briefcase, Bot, Maximize2, Minimize2, Bug } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FeedbackForm } from "@/components/feedback/FeedbackForm";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
@@ -29,6 +29,8 @@ import { useNextActionScheduling } from "@/hooks/useNextActionScheduling";
 import { getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { todayAsISO } from "@/lib/dateFormatters";
 import { useQuery } from "@tanstack/react-query";
+import { useMissionContacts } from "@/hooks/useMissions";
+import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
@@ -49,6 +51,7 @@ const MissionDetailDrawer = ({
   const { copied, copy } = useCopyToClipboard();
   const { confirm, ConfirmDialog } = useConfirm();
   const [showDeliverables, setShowDeliverables] = useState(false);
+  const [showCreateCalendarEventDialog, setShowCreateCalendarEventDialog] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -107,6 +110,13 @@ const MissionDetailDrawer = ({
     },
     enabled: !!mission?.id,
   });
+
+  // Primary contact email for calendar event pre-fill
+  const { data: missionContacts } = useMissionContacts(mission?.id ?? null);
+  const primaryContactEmail =
+    missionContacts?.find((c) => c.is_primary)?.email ??
+    missionContacts?.[0]?.email ??
+    "";
 
   // Build form values for auto-save (memoized to avoid JSON.stringify on every keystroke)
   const formValues = useMemo(() => ({
@@ -247,6 +257,9 @@ const MissionDetailDrawer = ({
       </Button>
       <Button size="sm" variant="outline" onClick={() => setShowDeliverables(true)} title="Envoyer les livrables">
         <Package className="h-4 w-4" />
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => setShowCreateCalendarEventDialog(true)} title="Créer un RDV Google Calendar">
+        <CalendarPlus className="h-4 w-4" />
       </Button>
       <Button size="sm" variant="outline" onClick={() => setActiveTab("settings")} title="Paramètres">
         <Settings className="h-4 w-4" />
@@ -491,6 +504,13 @@ const MissionDetailDrawer = ({
           missionTitle={mission.title}
           open={showDeliverables}
           onOpenChange={setShowDeliverables}
+        />
+        <CreateCalendarEventDialog
+          open={showCreateCalendarEventDialog}
+          onOpenChange={setShowCreateCalendarEventDialog}
+          opportunityTitle={title}
+          company={clientName}
+          contactEmail={primaryContactEmail}
         />
         <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
           <DialogContent className="w-full sm:max-w-lg p-0 max-h-[85vh] flex flex-col">
