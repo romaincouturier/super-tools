@@ -104,7 +104,10 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
             description: description.trim(),
             startDateTime: startIso,
             endDateTime: endIso,
-            attendeeEmail: attendeeEmail.trim() || undefined,
+            attendeeEmail: attendeeEmail
+              .split(/[,;\s]+/)
+              .map((e) => e.trim())
+              .filter(Boolean),
           }),
         }
       );
