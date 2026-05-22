@@ -2796,7 +2796,9 @@ export default function LearnerPortal() {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.user_metadata?.role === "learner" && session.user.email) {
-        navigate("/espace-apprenant/tableau-de-bord", { replace: true });
+        if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
+          navigate("/espace-apprenant/tableau-de-bord", { replace: true });
+        }
         loadData(session.user.email);
         return;
       }

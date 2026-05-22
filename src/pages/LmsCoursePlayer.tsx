@@ -328,6 +328,7 @@ export default function LmsCoursePlayer() {
                 {/* Lesson content (block-based with legacy fallback) */}
                 <LessonContent
                   lessonId={selectedLesson.id}
+                  courseId={courseId}
                   learnerEmail={learnerEmail}
                   renderQuiz={(quizId) => (
                     <QuizPlayer quizId={quizId} learnerEmail={learnerEmail} onComplete={handleMarkComplete} />
@@ -595,6 +596,7 @@ function LegacyWorkDepositOptIn({
 // ---- Lesson Content (block-based with legacy fallback) ----
 function LessonContent({
   lessonId,
+  courseId,
   learnerEmail,
   renderQuiz,
   renderAssignment,
@@ -602,6 +604,7 @@ function LessonContent({
   legacy,
 }: {
   lessonId: string;
+  courseId?: string | null;
   learnerEmail?: string;
   renderQuiz: (quizId: string, lessonId: string) => React.ReactNode;
   renderAssignment: (lessonId: string) => React.ReactNode;
@@ -619,6 +622,7 @@ function LessonContent({
       renderAssignment={renderAssignment}
       renderWorkDeposit={renderWorkDeposit}
       learnerEmail={learnerEmail}
+      shortcodeCourseId={courseId}
     />
   );
 }
