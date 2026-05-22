@@ -10,6 +10,7 @@ import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
 import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
+import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
@@ -115,6 +116,8 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const routingInboxAlert = useRoutingInboxAlert();
   const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
   const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
+  const edgeFunctionsAlert = useEdgeFunctionsAlert();
+
 
 
   const [expanded, setExpanded] = useState<boolean>(() => {
@@ -283,7 +286,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               return info && isActive(info.path);
             });
             const isOpen = openGroups.has(entry.key);
-            const groupAlert = entry.key === "dropshipping" ? routingInboxAlert : undefined;
+            const groupAlert = entry.key === "dropshipping" ? routingInboxAlert
+              : entry.key === "monitoring" ? edgeFunctionsAlert
+              : undefined;
 
             if (!showLabels) {
               return (

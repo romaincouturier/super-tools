@@ -1,9 +1,10 @@
 /**
- * Check Functions Health — v3 (static list, no pinging)
+ * Check Functions Health — v4 (probes each function via OPTIONS)
  *
- * Returns the static list of known edge functions.
- * Does NOT call/ping any function — zero side effects.
- * Status is based on deployment list, not runtime checks.
+ * Maintains a static list of EXPECTED edge functions. Probes each one
+ * via OPTIONS preflight to determine which are actually deployed.
+ *
+ * Status: "deployed" (responds) | "missing" (404 / not found)
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -14,7 +15,8 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 
-const FUNCTION_NAMES = [
+const EXPECTED_FUNCTIONS = [
+  "add-training-participant",
   "agent-chat",
   "ai-content-assist",
   "alert-form-error",
@@ -26,6 +28,7 @@ const FUNCTION_NAMES = [
   "arena-orchestrate",
   "arena-orchestrator",
   "arena-suggest-experts",
+  "assemblyai-webhook",
   "backup-export",
   "backup-import",
   "business-health-score",
@@ -37,20 +40,25 @@ const FUNCTION_NAMES = [
   "check-login-attempt",
   "cleanup-pending-email-drafts",
   "commercial-challenge",
+  "create-learner-account",
   "create-program-upload-url",
   "create-review-image-upload-url",
   "crm-ai-assist",
+  "crm-elementor-webhook",
   "crm-extract-opportunity",
   "crm-send-email",
   "crm-slack-notify",
   "extract-balance-sheet",
   "extract-objectives-from-pdf",
+  "fireflies-backfill",
+  "fireflies-webhook",
   "force-send-scheduled-email",
   "generate-attendance-pdf",
   "generate-certificates",
   "generate-convention-formation",
   "generate-daily-actions",
   "generate-daily-agenda",
+  "generate-location-contract",
   "generate-micro-devis",
   "generate-mission-8p",
   "generate-mission-summary",
@@ -61,6 +69,8 @@ const FUNCTION_NAMES = [
   "generate-quote-pdf",
   "generate-quote-synthesis",
   "generate-training-program",
+  "generate-transcript-content",
+  "generate-transcript-title",
   "generate-woocommerce-coupon",
   "google-calendar-events",
   "google-drive-auth",
@@ -68,23 +78,34 @@ const FUNCTION_NAMES = [
   "improve-email-content",
   "index-documents",
   "log-login-attempt",
+  "manage-learner-account",
   "media-slack-notify",
   "monitor-indexation-health",
   "network-ai-assistant",
   "network-generate-actions",
+  "notify-learner-lms-message",
   "notify-lms-comment",
   "notify-session-full",
   "notify-watch-tag",
   "okr-ai-assistant",
   "onboard-collaborator",
   "pennylane-proxy",
+  "pictodico-generate-challenges",
+  "pictodico-webhook",
+  "poll-drive-testimonials",
+  "poll-drive-transcripts",
+  "poll-fireflies-transcripts",
+  "poll-woocommerce-orders",
   "process-action-reminders",
   "process-coaching-reminders",
   "process-daily-summary",
   "process-evaluation-submission",
+  "process-event-reminders",
   "process-indexation-queue",
   "process-live-reminders",
   "process-logistics-reminders",
+  "process-mission-audio-transcriptions",
+  "process-mission-scheduled-actions",
   "process-mission-testimonials",
   "process-participant-list-reminders",
   "process-scheduled-emails",
@@ -96,6 +117,8 @@ const FUNCTION_NAMES = [
   "reconcile-support-screenshots",
   "record-db-size",
   "refresh-convention-pdf-url",
+  "refresh-training-convention-url",
+  "request-coached-formula",
   "resend-email-tracking",
   "resend-inbound-webhook",
   "resolve-formulaire",
@@ -120,11 +143,13 @@ const FUNCTION_NAMES = [
   "send-event-share-email",
   "send-event-update-email",
   "send-learner-magic-link",
+  "send-location-contract-email",
   "send-logistics-requirements",
   "send-mission-deliverables",
   "send-mission-email-draft",
   "send-needs-survey",
   "send-needs-survey-reminder",
+  "send-participants-emails-request",
   "send-password-reset",
   "send-prerequis-warning",
   "send-questionnaire-confirmation",
@@ -144,13 +169,39 @@ const FUNCTION_NAMES = [
   "submit-attendance-signature",
   "submit-convention-signature",
   "submit-devis-signature",
+  "submit-drive-transcript",
+  "submit-location-signature",
   "summarize-coaching",
   "summarize-needs-survey",
+  "supertilt-partner-portal",
+  "supertilt-restock-email",
+  "supertilt-send-email",
+  "supertilt-webhook",
   "support-analyze-ticket",
+  "time-tracker-github-import",
   "transcribe-audio",
   "transcribe-audio-long",
+  "upload-admin-document",
+  "upload-balance-sheet",
+  "upload-content-image",
+  "upload-crm-attachment",
+  "upload-crm-image",
+  "upload-event-media",
+  "upload-learner-photo",
+  "upload-lms-content",
+  "upload-media-file",
   "upload-mission-document",
+  "upload-mission-file",
+  "upload-mission-media",
+  "upload-participant-convention",
   "upload-participant-file",
+  "upload-participant-invoice",
+  "upload-support-attachment",
+  "upload-trainer-document",
+  "upload-training-document",
+  "upload-training-document-field",
+  "upload-training-file",
+  "upload-watch-file",
   "verify-attendance-signature",
   "verify-convention-signature",
   "verify-devis-signature",
@@ -162,23 +213,57 @@ const FUNCTION_NAMES = [
   "zapier-create-training",
 ];
 
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const PROBE_TIMEOUT_MS = 5000;
+
+async function probeFunction(name: string): Promise<"deployed" | "missing"> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "OPTIONS",
+      signal: controller.signal,
+      headers: {
+        "Access-Control-Request-Method": "POST",
+        Origin: "https://supertools",
+      },
+    });
+    // Supabase returns 404 (with a specific JSON body) when the function is not deployed.
+    // Any 2xx/3xx/401/405 means the function exists.
+    return res.status === 404 ? "missing" : "deployed";
+  } catch {
+    // Network/timeout — assume missing so it surfaces visibly.
+    return "missing";
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    // Simply return the static list — no HTTP calls, no side effects
-    const functions = FUNCTION_NAMES.map((name) => ({
-      name,
-      status: "deployed",
-      response_time_ms: 0,
-    }));
+    // Probe everything in parallel with a small concurrency limit to avoid bursts.
+    const CONCURRENCY = 30;
+    const results: { name: string; status: "deployed" | "missing" }[] = [];
+    for (let i = 0; i < EXPECTED_FUNCTIONS.length; i += CONCURRENCY) {
+      const batch = EXPECTED_FUNCTIONS.slice(i, i + CONCURRENCY);
+      const settled = await Promise.all(
+        batch.map(async (name) => ({ name, status: await probeFunction(name) })),
+      );
+      results.push(...settled);
+    }
+
+    const deployed = results.filter((r) => r.status === "deployed");
+    const missing = results.filter((r) => r.status === "missing");
 
     return createJsonResponse({
       checked_at: new Date().toISOString(),
-      total: FUNCTION_NAMES.length,
-      deployed: FUNCTION_NAMES.length,
-      functions,
+      total: EXPECTED_FUNCTIONS.length,
+      deployed: deployed.length,
+      missing: missing.length,
+      functions: results.map((r) => ({ ...r, response_time_ms: 0 })),
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
