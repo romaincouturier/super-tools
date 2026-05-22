@@ -35,7 +35,7 @@ const CardDetailToolbar = ({ state, handlers, updatePending }: Props) => {
   } = state;
 
   return (
-    <div className="mt-4 mb-4 flex items-center gap-2">
+    <div className="py-2 flex items-center gap-2 flex-wrap">
       {/* Action menu */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>

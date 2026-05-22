@@ -830,8 +830,10 @@ const CardDetailDrawer = ({
         contentClassName={`flex flex-col overflow-hidden transition-all duration-300 ${isFullScreen ? "sm:max-w-full" : "sm:max-w-[1100px]"}`}
         headerClassName="shrink-0 border-b pb-3"
       >
-        <div className="flex-1 overflow-y-auto">
+        <div className="shrink-0 border-b bg-background">
           <CardDetailToolbar state={state} handlers={handlers} updatePending={updateCard.isPending} />
+        </div>
+        <div className="flex-1 overflow-y-auto">
           <CardDetailTagsBar state={state} handlers={handlers} />
           <CardDetailSchedule state={state} handlers={handlers} updatePending={updateCard.isPending} />
           <CardDetailContact state={state} handlers={handlers} />
