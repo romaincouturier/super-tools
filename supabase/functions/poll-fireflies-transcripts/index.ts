@@ -17,7 +17,7 @@ interface FirefliesTranscript {
   id: string;
   title: string;
   date: number; // epoch ms
-  duration: number; // seconds
+  duration: number; // minutes from Fireflies
   summary?: { overview?: string };
   sentences?: Array<{ speaker_name: string; text: string }>;
 }
@@ -127,7 +127,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
             raw_text: rawText,
             summary: analysis.summary || t.summary?.overview,
             tags: analysis.tags,
-            duration_seconds: t.duration,
+            duration_seconds: Number.isFinite(Number(t.duration))
+              ? Math.round(Number(t.duration) * 60)
+              : null,
             status: "ready",
             metadata: { fireflies_date: new Date(t.date).toISOString() },
           })
