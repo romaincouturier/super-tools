@@ -17,7 +17,7 @@ interface FirefliesTranscript {
   id: string;
   title: string;
   date: number; // epoch ms
-  duration: number; // seconds
+  duration: number; // minutes from Fireflies
   summary?: { overview?: string };
   sentences?: Array<{ speaker_name: string; text: string }>;
 }
@@ -118,7 +118,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           ? await analyzeTranscript(rawText)
           : { summary: t.summary?.overview ?? "", tags: [] };
 
-        const { data: inserted } = await (admin as any)
+        const { data: inserted, error: insertError } = await (admin as any)
           .from("transcripts")
           .insert({
             source: "fireflies",
@@ -127,12 +127,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
             raw_text: rawText,
             summary: analysis.summary || t.summary?.overview,
             tags: analysis.tags,
-            duration_seconds: t.duration,
+            duration_seconds: Number.isFinite(Number(t.duration))
+              ? Math.round(Number(t.duration) * 60)
+              : null,
             status: "ready",
             metadata: { fireflies_date: new Date(t.date).toISOString() },
           })
           .select("id")
           .single();
+
+        if (insertError) {
+          throw new Error(`Transcript insert failed: ${insertError.message}`);
+        }
 
         results.imported++;
 
@@ -156,9 +162,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     await (admin as any).from("polling_cursors").update({
-      last_synced_at: new Date().toISOString(),
+      last_synced_at: transcripts.length > 0 && results.errors === 0
+        ? new Date().toISOString()
+        : fromDate,
       status: "idle",
-      last_error: null,
+      last_error: results.errors > 0 ? `${results.errors} transcript import error(s)` : null,
     }).eq("source", "fireflies");
 
     return new Response(JSON.stringify({ ok: true, ...results }), {
