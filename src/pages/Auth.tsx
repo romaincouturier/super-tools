@@ -110,8 +110,27 @@ const Auth = () => {
         await logAttempt(email, true);
         setShowAttemptFeedback(false);
         
-        // Check if user must change password (from onboarding)
+        // Restrict /auth to SuperTools team members only.
+        // Learners use the dedicated /apprenant flow (magic links).
         if (data.user) {
+          const { data: profileRow } = await supabase
+            .from("profiles")
+            .select("user_id")
+            .eq("user_id", data.user.id)
+            .maybeSingle();
+
+          if (!profileRow) {
+            await supabase.auth.signOut();
+            toast({
+              title: "Accès réservé",
+              description: "Cette connexion est réservée à l'équipe SuperTools. Les apprenants doivent utiliser leur lien d'accès envoyé par email.",
+              variant: "destructive",
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          // Check if user must change password (from onboarding)
           const { data: metadata } = await supabase
             .from("user_security_metadata")
             .select("must_change_password")
