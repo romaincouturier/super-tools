@@ -318,6 +318,8 @@ interface CourseProgressSidebarProps {
   selectedLessonId: string | null;
   onSelectLesson: (id: string) => void;
   isModuleUnlocked: (mod: LmsModule) => boolean;
+  nextLiveAt?: string | null;
+  livesCalendarHref?: string;
 }
 
 export default function CourseProgressSidebar({
@@ -327,6 +329,8 @@ export default function CourseProgressSidebar({
   selectedLessonId,
   onSelectLesson,
   isModuleUnlocked,
+  nextLiveAt = null,
+  livesCalendarHref = "#",
 }: CourseProgressSidebarProps) {
   // Determine which module contains the active lesson
   const activeModuleId = useMemo(() => {
