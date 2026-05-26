@@ -121,6 +121,47 @@ export default function LmsCoursePlayer() {
     ? Math.round((completedRegularCount / orderedLessons.length) * 100)
     : 0;
 
+  // Shared home-sidebar data
+  const navigate = useNavigate();
+  const sidebarModules = useMemo(
+    () => modules.filter((m) => !m.is_special_section).map((m) => ({ id: m.id, title: m.title, position: m.position })),
+    [modules],
+  );
+  const lessonCountByModule = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const m of modules) out[m.id] = (lessonsByModule[m.id] || []).length;
+    return out;
+  }, [modules, lessonsByModule]);
+  const lessonsDoneByModule = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const m of modules) {
+      const lessons = lessonsByModule[m.id] || [];
+      out[m.id] = lessons.filter((l) => completedIds.has(l.id)).length;
+    }
+    return out;
+  }, [modules, lessonsByModule, completedIds]);
+  const moduleStatuses = useMemo<Record<string, ModuleStatus>>(() => {
+    const out: Record<string, ModuleStatus> = {};
+    for (const m of modules) {
+      const total = lessonCountByModule[m.id] ?? 0;
+      const done = lessonsDoneByModule[m.id] ?? 0;
+      out[m.id] = total > 0 && done === total ? "completed" : done > 0 ? "in_progress" : "not_started";
+    }
+    return out;
+  }, [modules, lessonCountByModule, lessonsDoneByModule]);
+  const handleSidebarModuleClick = useCallback((moduleId: string) => {
+    const first = (lessonsByModule[moduleId] || [])[0];
+    if (first) setSelectedLessonId(first.id);
+  }, [lessonsByModule]);
+  const handleSidebarViewChange = useCallback((view: string) => {
+    const qs = new URLSearchParams();
+    if (learnerEmail) qs.set("email", learnerEmail);
+    if (isPreview) qs.set("preview", "admin");
+    qs.set("view", view);
+    navigate(`/lms/${courseId}/home?${qs.toString()}`);
+  }, [courseId, learnerEmail, isPreview, navigate]);
+
+
   // Check if a module is unlocked (all lessons of prerequisite module completed)
   const isModuleUnlocked = (mod: LmsModule) => {
     if (!mod.is_prerequisite_gated || !mod.prerequisite_module_id) return true;
