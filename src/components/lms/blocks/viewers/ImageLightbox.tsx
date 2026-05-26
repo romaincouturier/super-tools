@@ -263,54 +263,72 @@ interface ImageWithLightboxProps {
 export function ImageWithLightbox({ src, alt, className, imgStyle }: ImageWithLightboxProps) {
   const [open, setOpen] = useState(false);
 
+  const handleDownload = async (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = src.split("/").pop()?.split("?")[0] || "image";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(src, "_blank");
+    }
+  };
+
   return (
     <>
-      <div className={`relative group rounded-lg overflow-hidden bg-muted ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Agrandir l'image"
+        className={`relative group inline-block max-w-full rounded-lg overflow-hidden border-0 p-0 bg-transparent cursor-zoom-in align-top ${className ?? ""}`}
+        style={{ fontFamily: "inherit" }}
+      >
         <img
           src={src}
           alt={alt ?? ""}
           style={imgStyle}
-          className="w-full h-auto object-contain block"
+          className="block max-w-full h-auto object-contain"
         />
-        {/* Overlay bar — always visible, more prominent on hover */}
-        <div
-          className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2"
-          style={{ background: "linear-gradient(to top, rgba(16,24,32,0.55) 0%, transparent 100%)" }}
+        {/* Hover overlay — centered call to action */}
+        <span
+          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ background: "rgba(16,24,32,0.32)" }}
         >
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-white transition-opacity"
-            style={{ border: "none", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}
+          <span
+            className="flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-1.5 rounded-full"
+            style={{ background: "rgba(16,24,32,0.82)" }}
           >
             <Maximize2 size={13} />
-            Agrandir
-          </button>
-          <button
-            type="button"
-            onClick={async (e) => {
-              e.stopPropagation();
-              try {
-                const res = await fetch(src);
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = src.split("/").pop()?.split("?")[0] || "image";
-                a.click();
-                URL.revokeObjectURL(url);
-              } catch {
-                window.open(src, "_blank");
-              }
-            }}
-            className="flex items-center gap-1 text-xs text-white/80 transition-opacity hover:text-white"
-            style={{ border: "none", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}
-          >
-            <Download size={11} />
-            Télécharger
-          </button>
-        </div>
-      </div>
+            Cliquer pour agrandir
+          </span>
+        </span>
+        {/* Persistent corner badge — always visible affordance */}
+        <span
+          className="absolute top-2 right-2 flex items-center justify-center w-8 h-8 rounded-full shadow-md transition-transform group-hover:scale-110 pointer-events-none"
+          style={{ background: "rgba(255,255,255,0.92)", color: "#101820" }}
+          aria-hidden
+        >
+          <Maximize2 size={14} />
+        </span>
+        {/* Download — discreet, on hover */}
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => handleDownload(e)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleDownload(e); }}
+          className="absolute bottom-2 right-2 flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ background: "rgba(16,24,32,0.82)", color: "#fff", cursor: "pointer" }}
+          title="Télécharger"
+        >
+          <Download size={11} />
+          Télécharger
+        </span>
+      </button>
       {open && <ImageLightbox src={src} alt={alt} onClose={() => setOpen(false)} />}
     </>
   );
