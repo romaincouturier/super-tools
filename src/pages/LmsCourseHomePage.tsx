@@ -47,6 +47,7 @@ import {
   Bell,
 } from "lucide-react";
 import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
+import LearnerCourseHeader from "@/components/lms/LearnerCourseHeader";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
