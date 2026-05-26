@@ -824,6 +824,120 @@ function getLearnerInitials(email: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+// ---- Learner account menu (avatar + dropdown) ----
+function LearnerAccountMenu({ learnerEmail, isPreview }: { learnerEmail: string; isPreview: boolean }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
+
+  useEffect(() => {
+    const handle = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    const confirmed = await confirm({
+      title: "Se déconnecter",
+      description: "Êtes-vous sûr de vouloir vous déconnecter ?",
+      variant: "destructive",
+    });
+    if (confirmed) {
+      sessionStorage.removeItem("learner_email");
+      await supabase.auth.signOut();
+      navigate("/apprenant/connexion");
+    }
+  };
+
+  const portalItems = [
+    { label: "Mon compte", icon: User, section: "compte" },
+    { label: "Mes formations", icon: BookOpen, section: "formations" },
+    { label: "Mes formations recommandées", icon: Sparkles, section: "recommandees" },
+    { label: "Aide", icon: HelpCircle, section: "aide" },
+  ];
+
+  const initials = getLearnerInitials(learnerEmail);
+  const displayName = learnerEmail ? learnerEmail.split("@")[0] : "Administrateur";
+
+  return (
+    <>
+      <ConfirmDialog />
+      <div ref={ref} className="relative">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 rounded-xl px-2 py-1 transition-all hover:bg-black/[0.04] active:bg-black/[0.07]"
+          style={{ fontFamily: "inherit" }}
+          title={learnerEmail || "Administrateur"}
+        >
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 select-none"
+            style={{ background: "#FFD100", color: "#101820" }}
+          >
+            {initials}
+          </div>
+          <div className="hidden sm:block text-left">
+            <p className="text-[11px] leading-none mb-0.5" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
+            <p className="text-sm font-semibold leading-none truncate max-w-[140px]" style={{ color: "var(--st-ink)" }}>
+              {displayName}
+            </p>
+          </div>
+          <ChevronDown
+            size={14}
+            className="hidden sm:block shrink-0 transition-transform duration-200"
+            style={{
+              color: "var(--st-ink-muted)",
+              transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+          />
+        </button>
+
+        {open && (
+          <div
+            className="absolute right-0 top-full mt-2 z-50"
+            style={{
+              width: 240,
+              background: "#ffffff",
+              border: "1px solid rgba(16,24,32,0.08)",
+              borderRadius: 16,
+              boxShadow: "0 8px 32px rgba(16,24,32,0.12), 0 2px 8px rgba(16,24,32,0.06)",
+              overflow: "hidden",
+            }}
+          >
+            <div className="py-1.5">
+              {portalItems.map(({ label, icon: Icon, section }) => (
+                <button
+                  key={section}
+                  onClick={() => { navigate(`/espace-apprenant?section=${section}`); setOpen(false); }}
+                  className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-black/[0.04]"
+                  style={{ color: "var(--st-ink)", fontFamily: "inherit", padding: "10px 16px" }}
+                >
+                  <Icon size={16} strokeWidth={1.75} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                  {label}
+                </button>
+              ))}
+            </div>
+            {!isPreview && (
+              <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }} className="py-1.5">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-red-50"
+                  style={{ color: "#dc2626", fontFamily: "inherit", padding: "10px 16px" }}
+                >
+                  <LogOut size={16} strokeWidth={1.75} style={{ color: "#dc2626", flexShrink: 0 }} />
+                  Se déconnecter
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
 // ---- Legacy work-deposit opt-in (suppressed when a work_deposit block exists) ----
 function LegacyWorkDepositOptIn({
   lessonId,
