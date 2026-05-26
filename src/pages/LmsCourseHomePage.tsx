@@ -127,6 +127,14 @@ function videoEmbed(url: string): string | null {
   return null;
 }
 
+function videoThumbnail(url: string): string | null {
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return `https://vumbnail.com/${vm[1]}.jpg`;
+  return null;
+}
+
 // ── Calendar view ─────────────────────────────────────────────────────────────
 
 function CalendarView({
@@ -228,33 +236,27 @@ function CalendarView({
                   <button
                     type="button"
                     onClick={() => onReplay(m.id)}
-                    className="block w-full rounded-xl overflow-hidden border text-left"
+                    className="relative block w-full rounded-xl overflow-hidden border text-left aspect-video group"
                     style={{ borderColor: "rgba(16,24,32,0.08)", background: "#000" }}
                     aria-label={`Voir le replay : ${m.title}`}
                   >
                     {(() => {
-                      const embed = videoEmbed(m.replay_url!);
-                      if (embed) {
-                        return (
-                          <iframe
-                            src={embed.replace("autoplay=1", "autoplay=0")}
-                            title={`Replay ${m.title}`}
-                            className="w-full aspect-video"
-                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        );
-                      }
-                      return (
-                        <video
-                          src={m.replay_url!}
-                          controls
-                          preload="metadata"
-                          className="w-full aspect-video"
-                        />
-                      );
+                      const poster = videoThumbnail(m.replay_url!);
+                      return poster ? (
+                        <img src={poster} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      ) : null;
                     })()}
+                    <div className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/40" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div
+                        className="w-14 h-14 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+                        style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+                      >
+                        <Play size={20} style={{ color: "#101820", marginLeft: 3 }} />
+                      </div>
+                    </div>
                   </button>
+
                 )}
               </div>
             </li>
@@ -525,6 +527,7 @@ function HeroSection({
   const [playing, setPlaying] = useState(false);
   const videoUrl = course.welcome_video_url ?? null;
   const embedUrl = videoUrl ? videoEmbed(videoUrl) : null;
+  const videoPoster = videoUrl ? videoThumbnail(videoUrl) : null;
 
   return (
     <section
@@ -587,8 +590,8 @@ function HeroSection({
           )
         ) : videoUrl || course.cover_image_url ? (
           <>
-            {course.cover_image_url && (
-              <img src={course.cover_image_url} alt="" className="w-full h-full object-cover" />
+            {(course.cover_image_url || videoPoster) && (
+              <img src={course.cover_image_url || videoPoster!} alt="" className="w-full h-full object-cover" />
             )}
             {videoUrl && (
               <button
