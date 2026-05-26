@@ -770,7 +770,18 @@ function Sidebar({
   activeView,
   onModuleClick,
   onViewChange,
+  lessonsByModule,
+  onLessonClick,
+  completedLessonIds,
 }: SidebarProps) {
+  const activeModuleId = activeLessonId && lessonsByModule
+    ? modules.find((m) => (lessonsByModule[m.id] || []).some((l) => l.id === activeLessonId))?.id ?? null
+    : null;
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (activeModuleId) setExpanded((prev) => (prev[activeModuleId] ? prev : { ...prev, [activeModuleId]: true }));
+  }, [activeModuleId]);
+  const toggleModule = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   const navigate = useNavigate();
   const playerUrl = isPreview
     ? `/lms/${courseId}/player?preview=admin`
