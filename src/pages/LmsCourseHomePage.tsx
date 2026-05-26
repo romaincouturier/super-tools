@@ -46,6 +46,7 @@ import {
   Flag,
   Paperclip,
   AlertCircle,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
