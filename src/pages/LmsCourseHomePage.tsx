@@ -561,6 +561,8 @@ function CommunityInfoCard({
   courseId: string;
   email: string;
 }) {
+  const navigate = useNavigate();
+  const goToCommunity = () => navigate("/espace-apprenant?section=pratique");
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
   const { data: allPosts = [] } = useForumPosts(mainForum?.id);
@@ -599,10 +601,11 @@ function CommunityInfoCard({
         </div>
       )}
       <button
+        onClick={goToCommunity}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-semibold mt-auto transition-all hover:-translate-y-px"
         style={{ background: "#FFD100", color: "#101820", fontFamily: "inherit", border: "none", cursor: "pointer" }}
       >
-        Rejoindre
+        Aller à la communauté
       </button>
       <p className="text-xs text-center" style={{ color: "var(--st-ink-muted)" }}>
         Inspirez-vous des partages, posez vos questions et progressez ensemble !
