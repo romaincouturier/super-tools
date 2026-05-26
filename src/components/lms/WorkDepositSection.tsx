@@ -107,6 +107,7 @@ export default function WorkDepositSection({
         deposit={deposit}
         config={config}
         saving={updateDeposit.isPending}
+        deleting={deleteDeposit.isPending}
         onUpdate={async (updates) => {
           await updateDeposit.mutateAsync({ id: deposit.id, updates });
         }}
@@ -122,6 +123,15 @@ export default function WorkDepositSection({
             },
           });
           toast({ title: "Fichier remplacé." });
+        }}
+        onDelete={async () => {
+          if (!window.confirm("Supprimer définitivement votre dépôt ? Cette action est irréversible.")) return;
+          try {
+            await deleteDeposit.mutateAsync(deposit.id);
+            toast({ title: "Dépôt supprimé." });
+          } catch (err) {
+            toastError(toast, err instanceof Error ? err : "Erreur de suppression");
+          }
         }}
         onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
       />
