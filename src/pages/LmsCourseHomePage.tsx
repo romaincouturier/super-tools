@@ -264,16 +264,18 @@ function fmtLiveTime(iso: string) {
   return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function googleCalendarUrl(m: CourseLiveMeeting): string {
+function googleCalendarUrl(m: CourseLiveMeeting, trainingName?: string | null): string {
   const start = new Date(m.scheduled_at);
   const end = new Date(start.getTime() + m.duration_minutes * 60_000);
   const fmt = (d: Date) => d.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z";
+  const title = trainingName ? `${trainingName} — ${m.title}` : m.title;
   const params = new URLSearchParams({
     action: "TEMPLATE",
-    text: m.title,
+    text: title,
     dates: `${fmt(start)}/${fmt(end)}`,
     details: m.description ?? m.meeting_url ?? "",
   });
+  if (m.meeting_url) params.set("location", m.meeting_url);
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
