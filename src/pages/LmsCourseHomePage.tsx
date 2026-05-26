@@ -1476,8 +1476,8 @@ function CourseHomeHeader({
         </div>
 
 
-        {/* ── Right zone ── */}
-        <div className="flex items-center gap-1 shrink-0 ml-2">
+        {/* Right cluster */}
+        <div className="flex items-center gap-2 shrink-0">
 
           {/* Admin edit shortcut */}
           {isPreview && courseId && (
@@ -1506,17 +1506,11 @@ function CourseHomeHeader({
             <Bell size={18} style={{ color: "#101820" }} />
           </button>
 
-          {/* Séparateur avant le compte */}
-          <div
-            className="hidden sm:block shrink-0 mx-2"
-            style={{ width: 1, height: 28, background: "rgba(16,24,32,0.1)" }}
-          />
-
           {/* Bloc compte utilisateur */}
           <div ref={ref} className="relative">
             <button
               onClick={() => setOpen((v) => !v)}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all hover:bg-black/[0.04] active:bg-black/[0.07]"
+              className="flex items-center gap-2 rounded-xl px-2 py-1 transition-all hover:bg-black/[0.04] active:bg-black/[0.07]"
               style={{ fontFamily: "inherit" }}
             >
               {/* Avatar */}
