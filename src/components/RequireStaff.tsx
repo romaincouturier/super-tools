@@ -9,11 +9,28 @@ export function RequireStaff() {
   const [status, setStatus] = useState<Status>("loading");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { setStatus("anon"); return; }
-      if (session.user.user_metadata?.role === "learner") { setStatus("learner"); return; }
+
+      // An account can be both staff/admin AND a learner.
+      // We trust the profiles table over user_metadata: if the user has a
+      // profile row (i.e. is staff) or is_admin, treat them as staff.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("is_admin, user_id")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      const isStaff = !!profile;
+      if (isStaff) { setStatus("ok"); return; }
+
+      if (session.user.user_metadata?.role === "learner") {
+        setStatus("learner");
+        return;
+      }
       setStatus("ok");
-    });
+    })();
   }, []);
 
   if (status === "loading") return (
