@@ -202,13 +202,18 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
           ))}
 
           <div className="flex gap-2">
-            <Textarea
-              placeholder="Partagez une question ou un retour avec la communauté..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={2}
-              className="flex-1"
-            />
+            <div className="flex-1 relative">
+              <Textarea
+                placeholder="Partagez une question ou un retour avec la communauté..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={2}
+                className="pr-10"
+              />
+              <div className="absolute bottom-2 right-2">
+                <EmojiInsert onInsert={(e) => setContent((t) => t + e)} />
+              </div>
+            </div>
             <Button
               size="sm"
               onClick={handleSubmit}
