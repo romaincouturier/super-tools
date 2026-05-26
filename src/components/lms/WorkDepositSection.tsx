@@ -338,15 +338,19 @@ function DepositSummary({
   deposit,
   config,
   saving,
+  deleting,
   onUpdate,
   onReplaceFile,
+  onDelete,
   onError,
 }: {
   deposit: WorkDeposit;
   config: Required<WorkDepositConfig>;
   saving: boolean;
+  deleting: boolean;
   onUpdate: (updates: UpdateWorkDepositInput) => Promise<void>;
   onReplaceFile: (file: File) => Promise<void>;
+  onDelete: () => Promise<void>;
   onError: (err: unknown) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
