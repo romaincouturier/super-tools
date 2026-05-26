@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Bell, BookOpen, ChevronDown, HelpCircle, LogOut, Menu, Shield, Sparkles, User,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
+
 
 /**
  * Shared learner header used by both the course home page and the lesson
