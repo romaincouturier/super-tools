@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
 const VERSION = "send-deposit-feedback-notification@2026-04-27.1";
 
