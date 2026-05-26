@@ -810,7 +810,7 @@ function Sidebar({
 
   return (
     <aside
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex flex-col w-full"
       style={{ background: "var(--st-white)" }}
     >
       {/* Live et replays — distinctive style section */}
@@ -1742,7 +1742,7 @@ export default function LmsCourseHomePage() {
 
   return (
     <div
-      className="flex flex-col h-screen overflow-hidden"
+      className="flex flex-col min-h-screen"
       style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "var(--st-white)" }}
     >
       <CourseHomeHeader
@@ -1753,10 +1753,10 @@ export default function LmsCourseHomePage() {
         isPreview={isPreview}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1">
         {/* Desktop sidebar */}
         <div
-          className="hidden lg:flex flex-col shrink-0 border-r overflow-hidden"
+          className="hidden lg:flex flex-col shrink-0 border-r"
           style={{ width: 300, borderColor: "rgba(16,24,32,0.08)" }}
         >
           <Sidebar
@@ -1827,8 +1827,8 @@ export default function LmsCourseHomePage() {
           </>
         )}
 
-        {/* Main scrollable area */}
-        <main className="flex-1 overflow-y-auto" style={{ background: "#F2F4F4" }}>
+        {/* Main content */}
+        <main className="flex-1" style={{ background: "#F2F4F4" }}>
           {/* Mobile progress bar — only on home view */}
           {activeView === "home" && (
             <div
