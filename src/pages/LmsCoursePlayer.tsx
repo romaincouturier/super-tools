@@ -306,26 +306,7 @@ export default function LmsCoursePlayer() {
 
           {/* Right cluster */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Progress — desktop */}
-            <div className="hidden md:flex flex-col items-end gap-1.5 mr-1">
-              <span className="text-[11px] font-medium" style={{ color: "#101820" }}>
-                {completionPct === 100
-                  ? "Formation terminée"
-                  : `Progression : ${completionPct} %`}
-              </span>
-              <div
-                className="w-28 h-[3px] rounded-full overflow-hidden"
-                style={{ background: "#F2F4F4" }}
-              >
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${completionPct}%`,
-                    background: completionPct === 100 ? "#69c3c4" : "#FFD100",
-                  }}
-                />
-              </div>
-            </div>
+            {/* Progression retirée du header — visible dans la sidebar */}
 
             {/* Notification bell */}
             <button
@@ -340,16 +321,6 @@ export default function LmsCoursePlayer() {
           </div>
         </div>
 
-        {/* Mobile progress bar — thin line below the main row */}
-        <div className="md:hidden h-[3px] w-full" style={{ background: "#F2F4F4" }}>
-          <div
-            className="h-full transition-all duration-500"
-            style={{
-              width: `${completionPct}%`,
-              background: completionPct === 100 ? "#69c3c4" : "#FFD100",
-            }}
-          />
-        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
