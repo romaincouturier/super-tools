@@ -381,6 +381,10 @@ export default function LmsCoursePlayer() {
                   activeView="home"
                   onModuleClick={handleSidebarModuleClick}
                   onViewChange={handleSidebarViewChange}
+                  lessonsByModule={lessonsByModule}
+                  activeLessonId={selectedLessonId}
+                  completedLessonIds={completedIds}
+                  onLessonClick={setSelectedLessonId}
                 />
               )}
             </div>
