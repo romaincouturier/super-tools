@@ -111,10 +111,18 @@ export default function LmsCoursePlayer() {
     }
   }, [selectedLessonId, courseId]);
 
-  // Scroll to top of lesson content when navigating
+  // Scroll to top of lesson content when navigating (defer to next frame so
+  // the new lesson content has mounted before we reset scroll positions).
   useEffect(() => {
-    mainRef.current?.scrollTo({ top: 0 });
+    if (!selectedLessonId) return;
+    const raf = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      if (mainRef.current) mainRef.current.scrollTop = 0;
+      document.scrollingElement?.scrollTo({ top: 0 });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [selectedLessonId]);
+
 
   const selectedLesson = orderedLessons.find((l) => l.id === selectedLessonId);
   const currentIndex = orderedLessons.findIndex((l) => l.id === selectedLessonId);
