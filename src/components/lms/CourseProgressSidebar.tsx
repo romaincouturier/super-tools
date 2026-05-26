@@ -355,10 +355,8 @@ export default function CourseProgressSidebar({
         <SpecialModuleBlock
           key={mod.id}
           mod={mod}
-          lessons={(lessonsByModule[mod.id] ?? []).sort((a, b) => a.position - b.position)}
-          selectedLessonId={selectedLessonId}
-          completedIds={completedIds}
-          onSelectLesson={onSelectLesson}
+          nextLiveAt={nextLiveAt}
+          livesCalendarHref={livesCalendarHref}
         />
       ))}
 
