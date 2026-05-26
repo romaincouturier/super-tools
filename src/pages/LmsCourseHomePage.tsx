@@ -480,13 +480,6 @@ function ProgressCard({
           </div>
         </div>
       </div>
-      <button
-        onClick={onSeeStats}
-        className="flex items-center gap-1.5 text-xs font-medium mt-auto"
-        style={{ color: "var(--st-ink-muted)", fontFamily: "inherit", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-      >
-        Voir mes statistiques <ChevronRight size={12} />
-      </button>
     </div>
   );
 }
