@@ -1086,40 +1086,45 @@ export default function LmsCourseHomePage() {
   return (
     <div
       className="flex flex-col min-h-screen"
-      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "var(--st-white)" }}
+      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "#F2F4F4" }}
     >
-      <CourseHomeHeader
+      <LearnerCourseHeader
         courseTitle={liveData?.training?.training_name || course.formation_configs?.formation_name || course.title}
-        learnerName={learnerName}
-        onMobileMenu={() => setSidebarOpen((v) => !v)}
-        courseId={courseId}
+        learnerEmail={email}
         isPreview={isPreview}
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        editHref={isPreview && courseId ? `/lms/${courseId}/home/builder` : undefined}
       />
 
       <div className="flex flex-1">
-        {/* Desktop sidebar */}
-        <div
-          className="hidden lg:flex flex-col shrink-0 border-r"
-          style={{ width: 300, borderColor: "rgba(16,24,32,0.08)" }}
+        {/* Desktop sidebar — white rounded card, toggleable (same as lesson player) */}
+        <aside
+          className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[360px]" : "w-0"}`}
+          aria-hidden={!sidebarOpen}
+          style={{ padding: sidebarOpen ? "1rem" : undefined }}
         >
-          <CourseHomeSidebar
-            courseId={courseId!}
-            email={email}
-            isPreview={isPreview}
-            modules={regularModules}
-            moduleStatuses={moduleStatuses}
-            lessonCountByModule={lessonCountByModule}
-            lessonsDoneByModule={lessonsDoneByModule}
-            lessonsByModule={lessonsByModule}
-            completedLessonIds={completedIds}
-            activeLessonId={null}
-            communityPreviewCount={course.community_preview_count ?? 2}
-            meetings={meetings}
-            activeView={activeView}
-            onModuleClick={handleModuleClick}
-            onViewChange={setActiveView}
-          />
-        </div>
+          {sidebarOpen && (
+            <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
+              <CourseHomeSidebar
+                courseId={courseId!}
+                email={email}
+                isPreview={isPreview}
+                modules={regularModules}
+                moduleStatuses={moduleStatuses}
+                lessonCountByModule={lessonCountByModule}
+                lessonsDoneByModule={lessonsDoneByModule}
+                lessonsByModule={lessonsByModule}
+                completedLessonIds={completedIds}
+                activeLessonId={null}
+                communityPreviewCount={course.community_preview_count ?? 2}
+                meetings={meetings}
+                activeView={activeView}
+                onModuleClick={handleModuleClick}
+                onViewChange={setActiveView}
+              />
+            </div>
+          )}
+        </aside>
 
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
@@ -1129,40 +1134,30 @@ export default function LmsCourseHomePage() {
               onClick={() => setSidebarOpen(false)}
             />
             <div
-              className="lg:hidden fixed left-0 top-0 bottom-0 z-50 border-r shadow-xl"
-              style={{ width: 300, background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}
+              className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
+              style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
             >
-              <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-                <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Navigation</p>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5"
-                >
-                  <X size={16} style={{ color: "var(--st-ink)" }} />
-                </button>
-              </div>
-              <div className="overflow-y-auto h-full">
-                <CourseHomeSidebar
-                  courseId={courseId!}
-                  email={email}
-                  isPreview={isPreview}
-                  modules={regularModules}
-                  moduleStatuses={moduleStatuses}
-                  lessonCountByModule={lessonCountByModule}
-                  lessonsDoneByModule={lessonsDoneByModule}
-                  lessonsByModule={lessonsByModule}
-                  completedLessonIds={completedIds}
-                  activeLessonId={null}
-                  communityPreviewCount={course.community_preview_count ?? 2}
-                  meetings={meetings}
-                  activeView={activeView}
-                  onModuleClick={(id) => { handleModuleClick(id); setSidebarOpen(false); }}
-                  onViewChange={(v) => { setActiveView(v); setSidebarOpen(false); }}
-                />
-              </div>
+              <CourseHomeSidebar
+                courseId={courseId!}
+                email={email}
+                isPreview={isPreview}
+                modules={regularModules}
+                moduleStatuses={moduleStatuses}
+                lessonCountByModule={lessonCountByModule}
+                lessonsDoneByModule={lessonsDoneByModule}
+                lessonsByModule={lessonsByModule}
+                completedLessonIds={completedIds}
+                activeLessonId={null}
+                communityPreviewCount={course.community_preview_count ?? 2}
+                meetings={meetings}
+                activeView={activeView}
+                onModuleClick={(id) => { handleModuleClick(id); setSidebarOpen(false); }}
+                onViewChange={(v) => { setActiveView(v); setSidebarOpen(false); }}
+              />
             </div>
           </>
         )}
+
 
         {/* Main content */}
         <main className="flex-1" style={{ background: "#F2F4F4" }}>
