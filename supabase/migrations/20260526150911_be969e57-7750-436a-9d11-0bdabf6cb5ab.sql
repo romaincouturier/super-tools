@@ -1,0 +1,1 @@
+ALTER TABLE public.lms_work_deposits ADD COLUMN IF NOT EXISTS trainer_notified_at timestamptz;
