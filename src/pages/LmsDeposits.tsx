@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +45,20 @@ export default function LmsDeposits() {
   const [statusFilter, setStatusFilter] = useState<"all" | DepositPedagogicalStatus>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<"all" | "private" | "shared">("all");
   const [selected, setSelected] = useState<AdminDepositRow | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-open a deposit when arriving via ?deposit=<id> (e.g. from trainer email)
+  useEffect(() => {
+    const id = searchParams.get("deposit");
+    if (!id || deposits.length === 0) return;
+    const target = deposits.find((d) => d.id === id);
+    if (target && (!selected || selected.id !== id)) {
+      setSelected(target);
+      const next = new URLSearchParams(searchParams);
+      next.delete("deposit");
+      setSearchParams(next, { replace: true });
+    }
+  }, [deposits, searchParams, selected, setSearchParams]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();

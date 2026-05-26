@@ -4327,6 +4327,7 @@ export type Database = {
           module_id: string | null
           pedagogical_status: string
           publication_status: string
+          trainer_notified_at: string | null
           updated_at: string
           visibility: string
           visibility_changed_at: string | null
@@ -4345,6 +4346,7 @@ export type Database = {
           module_id?: string | null
           pedagogical_status?: string
           publication_status?: string
+          trainer_notified_at?: string | null
           updated_at?: string
           visibility?: string
           visibility_changed_at?: string | null
@@ -4363,6 +4365,7 @@ export type Database = {
           module_id?: string | null
           pedagogical_status?: string
           publication_status?: string
+          trainer_notified_at?: string | null
           updated_at?: string
           visibility?: string
           visibility_changed_at?: string | null
