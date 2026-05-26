@@ -689,7 +689,10 @@ function CommunityWidget({ courseId, learnerEmail }: { courseId: string; learner
         </div>
       )}
       <a
-        href="/espace-apprenant"
+        href="/espace-apprenant/communaute"
+        onClick={() => {
+          if (learnerEmail) sessionStorage.setItem("learner_email", learnerEmail);
+        }}
         style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0.5rem 0", background: "#FFD100", color: "#101820", borderRadius: 12, fontWeight: 700, fontSize: "0.8125rem", textDecoration: "none" }}
       >
         Aller à la communauté <ChevronRight size={14} />

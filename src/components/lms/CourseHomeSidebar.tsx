@@ -49,7 +49,10 @@ function authorInitials(email: string, firstName?: string | null, lastName?: str
 function CommunitySidebarPreview({ email }: { email: string }) {
   const navigate = useNavigate();
   const { data: posts = [] } = usePracticePosts(email || null, 2);
-  const goToCommunity = () => navigate("/espace-apprenant?section=pratique");
+  const goToCommunity = () => {
+    if (email) sessionStorage.setItem("learner_email", email);
+    navigate("/espace-apprenant/communaute");
+  };
 
   return (
     <div className="p-5 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
