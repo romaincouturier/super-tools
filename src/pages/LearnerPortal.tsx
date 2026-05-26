@@ -1680,6 +1680,14 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
                         </p>
                       </div>
                       {pedagogicalStatusBadge(d.pedagogical_status)}
+                      <button
+                        onClick={() => handleDeleteDeposit(d.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
+                        style={{ color: "var(--st-ink-muted)" }}
+                        title="Supprimer ce travail"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
 
                     {/* Image */}
