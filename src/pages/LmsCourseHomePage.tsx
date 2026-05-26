@@ -46,6 +46,7 @@ import {
   Flag,
   Paperclip,
   AlertCircle,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -1489,6 +1490,16 @@ function CourseHomeHeader({
               Éditer
             </a>
           )}
+
+          {/* Notification bell */}
+          <button
+            type="button"
+            title="Vous n'avez pas eu de retour sur vos travaux"
+            aria-label="Notifications"
+            className="hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
+          >
+            <Bell size={18} style={{ color: "#101820" }} />
+          </button>
 
           {/* Séparateur avant le compte */}
           <div
