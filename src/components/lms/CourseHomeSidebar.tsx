@@ -243,29 +243,48 @@ export default function CourseHomeSidebar({
             const isCompleted = status === "completed";
             const isActiveModule = m.id === activeModuleId;
             const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
+            const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
+            const hasLessons = moduleLessons.length > 0;
+            const isOpen = !!expanded[m.id];
             return (
               <li key={m.id}>
-                <button
-                  onClick={() => onModuleClick(m.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-black/5 group"
+                <div
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
                   style={{ fontFamily: "inherit" }}
                 >
-                  <ModuleStatusIcon status={status} num={idx + 1} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
-                      {m.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                  <button
+                    onClick={() => onModuleClick(m.id)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                    style={{ fontFamily: "inherit" }}
+                  >
+                    <ModuleStatusIcon status={status} num={idx + 1} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
+                        {m.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                        </div>
+                        <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                       </div>
-                      <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                     </div>
-                  </div>
-                  <ChevronRight size={14} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
-                </button>
+                  </button>
+                  {hasLessons && (
+                    <button
+                      onClick={() => toggleModule(m.id)}
+                      className="w-6 h-6 flex items-center justify-center rounded-md shrink-0 hover:bg-black/10 transition-colors"
+                      aria-label={isOpen ? "Replier" : "Déplier"}
+                    >
+                      <ChevronDown
+                        size={14}
+                        style={{ color: "var(--st-ink-muted)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+                      />
+                    </button>
+                  )}
+                </div>
 
-                {isActiveModule && moduleLessons.length > 0 && (
+                {isOpen && hasLessons && (
                   <ul className="mt-1 ml-12 space-y-0.5 mb-2">
                     {moduleLessons.map((lesson) => {
                       const isActiveLesson = lesson.id === activeLessonId;
