@@ -202,14 +202,9 @@ function CommunitySidebarPreview({ email }: { courseId: string; email: string; p
         </ul>
       )}
 
-      <button
-        onClick={goToCommunity}
-        className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px"
-        style={{ background: "#FFD100", color: "#101820", fontFamily: "inherit", border: "none", cursor: "pointer" }}
-      >
-        <Users size={14} />
-        Aller à la communauté
-      </button>
+      <div className="mt-3">
+        <CommunityCtaButton email={email} />
+      </div>
     </div>
   );
 }
@@ -599,14 +594,9 @@ function CommunityInfoCard({
           )}
         </div>
       )}
-      <button
-        onClick={goToCommunity}
-        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold mt-auto transition-all hover:-translate-y-px"
-        style={{ background: "#FFD100", color: "#101820", fontFamily: "inherit", border: "none", cursor: "pointer" }}
-      >
-        <Users size={14} />
-        Aller à la communauté
-      </button>
+      <div className="mt-auto">
+        <CommunityCtaButton email={email} />
+      </div>
       <p className="text-xs text-center" style={{ color: "var(--st-ink-muted)" }}>
         Inspirez-vous des partages, posez vos questions et progressez ensemble !
       </p>
