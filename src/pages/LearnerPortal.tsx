@@ -62,6 +62,8 @@ interface NextEvent {
   scheduled_at: string;
   meeting_url: string | null;
   meeting_type: string;
+  duration_minutes?: number | null;
+  description?: string | null;
 }
 
 interface Training {
@@ -1032,14 +1034,17 @@ function DashboardView({
     return lmsTrainings.reduce((s, t) => s + (t.lms_completion ?? 0), 0) / lmsTrainings.length;
   }, [lmsTrainings]);
 
-  const nextEvent = useMemo(() => {
+  const nextEventCtx = useMemo(() => {
     const now = new Date();
-    return data.trainings
+    const t = data.trainings
       .filter((t) => t.next_event && !t.is_permanent && new Date(t.next_event.scheduled_at) > now)
       .sort((a, b) =>
         new Date(a.next_event!.scheduled_at).getTime() - new Date(b.next_event!.scheduled_at).getTime()
-      )[0]?.next_event ?? null;
+      )[0];
+    return t ? { event: t.next_event!, trainingName: t.training_name } : null;
   }, [data.trainings]);
+  const nextEvent = nextEventCtx?.event ?? null;
+
 
   const courseIds = useMemo(
     () => data.trainings.filter((t) => t.lms_course_id).map((t) => t.lms_course_id!),
@@ -1129,10 +1134,11 @@ function DashboardView({
               </a>
             )}
             <AddToCalendarButton
-              title={nextEvent.title || "Live formation"}
+              title={nextEventCtx?.trainingName ? `${nextEventCtx.trainingName} — ${nextEvent.title || "Live"}` : (nextEvent.title || "Live formation")}
               startAt={nextEvent.scheduled_at}
-              durationMinutes={60}
-              description={nextEvent.meeting_url ? `Lien de la réunion : ${nextEvent.meeting_url}` : ""}
+              durationMinutes={nextEvent.duration_minutes || 60}
+              description={nextEvent.description || (nextEvent.meeting_url ? `Lien de la réunion : ${nextEvent.meeting_url}` : "")}
+              location={nextEvent.meeting_url || undefined}
               url={nextEvent.meeting_url || undefined}
               style={{
                 background: isClosing ? "#e11d48" : "var(--st-yellow)",
