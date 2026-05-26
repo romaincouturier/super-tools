@@ -9714,6 +9714,10 @@ export type Database = {
       }
       get_learner_email: { Args: never; Returns: string }
       get_learner_portal_data: { Args: { p_email: string }; Returns: Json }
+      get_learner_portal_training_details: {
+        Args: { p_email: string }
+        Returns: Json
+      }
       get_location_signature_by_token: {
         Args: { p_token: string }
         Returns: Json
