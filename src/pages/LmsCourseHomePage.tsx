@@ -127,6 +127,14 @@ function videoEmbed(url: string): string | null {
   return null;
 }
 
+function videoThumbnail(url: string): string | null {
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+  const vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vm) return `https://vumbnail.com/${vm[1]}.jpg`;
+  return null;
+}
+
 // ── Calendar view ─────────────────────────────────────────────────────────────
 
 function CalendarView({
