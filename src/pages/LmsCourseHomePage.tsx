@@ -666,7 +666,7 @@ function ModulesListSection({
             >
               {/* Number badge */}
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold"
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-base font-bold"
                 style={{
                   background: isCompleted ? "#69C3C4" : isInProgress ? "#FFD100" : "#F2F4F4",
                   color: isCompleted ? "#fff" : "#101820",
@@ -678,7 +678,7 @@ function ModulesListSection({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold leading-snug" style={{ color: "var(--st-ink)" }}>
-                  {idx + 1} {mod.title}
+                  {mod.title}
                 </p>
                 {mod.description && (
                   <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "var(--st-ink-muted)" }}>{mod.description}</p>

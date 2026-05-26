@@ -165,6 +165,11 @@ export default function ButtonBlockEditor({ content, onChange, slim }: Props) {
           onChange={(e) => onChange({ ...content, url: e.target.value })}
           placeholder="https://…"
         />
+        {!content.url && (
+          <p className="text-xs text-destructive mt-1">
+            URL manquante : le bouton s'affichera côté apprenant mais ne sera pas cliquable.
+          </p>
+        )}
       </div>
       <div>
         <Label>Alignement</Label>
