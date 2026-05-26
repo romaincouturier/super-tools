@@ -596,8 +596,8 @@ function HeroSection({
           )
         ) : videoUrl || course.cover_image_url ? (
           <>
-            {course.cover_image_url && (
-              <img src={course.cover_image_url} alt="" className="w-full h-full object-cover" />
+            {(course.cover_image_url || videoPoster) && (
+              <img src={course.cover_image_url || videoPoster!} alt="" className="w-full h-full object-cover" />
             )}
             {videoUrl && (
               <button
