@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import ActionBlockShell from "./ActionBlockShell";
 import { ImageWithLightbox } from "./ImageLightbox";
+import LessonVideoPlayer from "./LessonVideoPlayer";
 
 interface Props {
   content: ExerciseBlockContent;
