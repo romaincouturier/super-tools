@@ -24,6 +24,7 @@ import {
   useVisibleDeposits,
   useCreateDeposit,
   useUpdateDeposit,
+  useDeleteDeposit,
   uploadDepositFile,
 } from "@/hooks/useLmsWorkDeposit";
 import DepositCommentList from "@/components/lms/DepositCommentList";
