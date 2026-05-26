@@ -12,9 +12,10 @@ import {
   useForumPosts,
   useCreateForumPost,
   useCourseLiveMeetings,
+  useCourseTrainingSessionsAdmin,
   uploadForumAttachment,
 } from "@/hooks/useLms";
-import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig } from "@/hooks/useLmsQueries";
+import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig, CourseTrainingSession } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   CheckCircle2,
