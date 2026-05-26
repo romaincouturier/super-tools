@@ -1884,13 +1884,7 @@ export default function LmsCourseHomePage() {
                   <CommunityInfoCard courseId={courseId!} email={email} />
                 </div>
                 <div className="grid lg:grid-cols-[1fr_300px] gap-7 items-start">
-                  <ModulesListSection
-                    modules={regularModules}
-                    moduleStatuses={moduleStatuses}
-                    lessonCountByModule={lessonCountByModule}
-                    lessonsDoneByModule={lessonsDoneByModule}
-                    onModuleClick={handleModuleClick}
-                  />
+                  <div />
                   <TipsBlock />
                 </div>
                 <InfoCardsGrid config={course.home_config} />
