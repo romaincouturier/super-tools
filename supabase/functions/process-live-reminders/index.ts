@@ -162,6 +162,14 @@ serve(async (req) => {
           continue;
         }
 
+        // Respect learner preference
+        const liveEnabled = await learnerHasNotifEnabled(supabase, p.email, "email_notif_live");
+        if (!liveEnabled) {
+          console.log(`[process-live-reminders] skipped (pref off): ${p.email}`);
+          continue;
+        }
+
+
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 400));
         }
