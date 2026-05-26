@@ -20,8 +20,8 @@ export function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: n
   if (status === "completed") {
     return <CheckCircle2 size={36} style={{ color: "#69C3C4", flexShrink: 0 }} />;
   }
-  const borderColor = status === "in_progress" ? "#FFD100" : "#CCCCCC";
-  const bg = status === "in_progress" ? "#FFD100" : "transparent";
+  const borderColor = status === "in_progress" ? "#101820" : "#CCCCCC";
+  const bg = "transparent";
   const textColor = status === "in_progress" ? "#101820" : "#AAAAAA";
   return (
     <div
