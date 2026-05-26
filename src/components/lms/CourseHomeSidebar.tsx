@@ -172,6 +172,12 @@ export default function CourseHomeSidebar({
     ? modules.find((m) => (lessonsByModule[m.id] || []).some((l) => l.id === activeLessonId))?.id ?? null
     : null;
 
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (activeModuleId) setExpanded((prev) => (prev[activeModuleId] ? prev : { ...prev, [activeModuleId]: true }));
+  }, [activeModuleId]);
+  const toggleModule = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+
   return (
     <aside
       className="flex flex-col h-full overflow-y-auto"
