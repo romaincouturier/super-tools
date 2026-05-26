@@ -23,6 +23,9 @@ export interface CourseHomeInstructor {
 
 /** Editable content of the course-home "Infos pratiques" section. */
 export interface CourseHomeConfig {
+  welcome_title_1?: string | null;
+  welcome_title_2?: string | null;
+  tips?: string[];
   plan_url?: string | null;
   period_start?: string | null;
   period_end?: string | null;
