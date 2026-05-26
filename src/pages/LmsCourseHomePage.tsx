@@ -1560,7 +1560,8 @@ export default function LmsCourseHomePage() {
   const meetings = liveData?.meetings ?? [];
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<string>("home");
+  const initialView = searchParams.get("view") || "home";
+  const [activeView, setActiveView] = useState<string>(initialView);
 
   // Completed lesson IDs
   const completedIds = useMemo(
