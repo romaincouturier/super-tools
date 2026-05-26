@@ -38,7 +38,9 @@ import {
   usePracticeDeposits,
   useLearnerReceivedComments,
   useCoursePageViews,
+  useToggleDepositReaction,
 } from "@/hooks/useLearnerPortalData";
+import { useDepositComments, useCreateDepositComment } from "@/hooks/useLmsWorkDeposit";
 import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
