@@ -3057,7 +3057,8 @@ export default function LearnerPortal() {
 
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.user_metadata?.role === "learner" && session.user.email) {
+      // Any authenticated user (learner OR staff/admin) can access the learner portal using their email.
+      if (session?.user?.email) {
         if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
           navigate("/espace-apprenant/tableau-de-bord", { replace: true });
         }
