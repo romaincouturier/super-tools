@@ -404,16 +404,22 @@ export default function LmsCoursePlayer() {
                 isPreview={isPreview}
                 onClick={() => setSidebarOpen(false)}
               />
-              <CourseProgressSidebar
-                modules={modules}
-                lessonsByModule={lessonsByModule}
-                completedIds={completedIds}
-                selectedLessonId={selectedLessonId}
-                onSelectLesson={(id) => { setSelectedLessonId(id); setSidebarOpen(false); }}
-                isModuleUnlocked={isModuleUnlocked}
-                nextLiveAt={nextLiveAt}
-                livesCalendarHref={livesCalendarHref}
-              />
+              {courseId && (
+                <CourseHomeSidebar
+                  courseId={courseId}
+                  email={learnerEmail}
+                  isPreview={isPreview}
+                  modules={sidebarModules}
+                  moduleStatuses={moduleStatuses}
+                  lessonCountByModule={lessonCountByModule}
+                  lessonsDoneByModule={lessonsDoneByModule}
+                  communityPreviewCount={course.community_preview_count ?? 2}
+                  meetings={liveData?.meetings ?? []}
+                  activeView="home"
+                  onModuleClick={(id) => { handleSidebarModuleClick(id); setSidebarOpen(false); }}
+                  onViewChange={(v) => { handleSidebarViewChange(v); setSidebarOpen(false); }}
+                />
+              )}
             </div>
           </>
         )}
