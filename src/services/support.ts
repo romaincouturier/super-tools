@@ -35,7 +35,7 @@ function moduleLabelFromPageUrl(pageUrl: string | null | undefined): string | nu
     "medias": "medias",
     "events": "events",
     "monitoring": "monitoring",
-    "screenshots": "screenshots",
+    "screenshots": "monitoring",
     "catalogue": "catalogue",
     "lms": "lms",
     "certificates": "certificates",
