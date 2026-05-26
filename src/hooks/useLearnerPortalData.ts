@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { uploadDepositFile, createDeposit } from "@/services/lms-work-deposit";
 
 // Dépôts de travaux de l'apprenant
@@ -8,7 +8,8 @@ export function useLearnerWorkDeposits(email: string | null) {
     queryKey: ["learner_work_deposits", email],
     queryFn: async () => {
       if (!email) return [];
-      const { data, error } = await (supabase as any)
+      const c = createLearnerClient(email) as any;
+      const { data, error } = await c
         .from("lms_work_deposits")
         .select(`
           id, lesson_id, course_id, file_name, file_url, file_mime,
@@ -66,7 +67,8 @@ export function usePracticeDeposits(courseIds: string[], learnerEmail?: string |
     queryKey: ["practice_deposits", courseIds, learnerEmail ?? null],
     queryFn: async () => {
       if (!courseIds.length) return [];
-      const { data, error } = await (supabase as any)
+      const c = (learnerEmail ? createLearnerClient(learnerEmail) : supabase) as any;
+      const { data, error } = await c
         .from("lms_work_deposits")
         .select("id, lesson_id, course_id, learner_email, file_name, file_url, file_mime, comment, created_at")
         .in("course_id", courseIds)
