@@ -307,11 +307,6 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
               {sequenceNumber != null && ` · Séquence ${sequenceNumber}`}
             </Chip>
           )}
-          {lesson.estimated_minutes > 0 && (
-            <Chip icon={<Clock size={11} />}>
-              ~{lesson.estimated_minutes} min de lecture
-            </Chip>
-          )}
         </div>
 
         {/* H1 — input matching design lesson-h1 */}
