@@ -45,9 +45,26 @@ export default function LmsCoursePlayer() {
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, learnerEmail || undefined);
   const { data: badges = [] } = useLearnerBadges(learnerEmail || undefined);
+  const { data: liveData } = useCourseLiveMeetings(courseId);
   const markComplete = useMarkLessonComplete();
   const trackView = useTrackPageView();
   const { toast } = useToast();
+
+  const nextLiveAt = useMemo(() => {
+    const now = Date.now();
+    const upcoming = (liveData?.meetings ?? [])
+      .filter((m) => new Date(m.scheduled_at).getTime() >= now)
+      .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+    return upcoming[0]?.scheduled_at ?? null;
+  }, [liveData]);
+
+  const livesCalendarHref = useMemo(() => {
+    const qs = new URLSearchParams();
+    if (learnerEmail) qs.set("email", learnerEmail);
+    if (isPreview) qs.set("preview", "admin");
+    qs.set("view", "calendar");
+    return `/lms/${courseId}/home?${qs.toString()}`;
+  }, [courseId, learnerEmail, isPreview]);
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
