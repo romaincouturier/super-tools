@@ -1827,8 +1827,8 @@ export default function LmsCourseHomePage() {
           </>
         )}
 
-        {/* Main scrollable area */}
-        <main className="flex-1 overflow-y-auto" style={{ background: "#F2F4F4" }}>
+        {/* Main content */}
+        <main className="flex-1" style={{ background: "#F2F4F4" }}>
           {/* Mobile progress bar — only on home view */}
           {activeView === "home" && (
             <div
