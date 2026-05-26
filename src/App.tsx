@@ -82,7 +82,6 @@ const LearnerOnboarding = lazy(() => import("./pages/LearnerOnboarding"));
 const LearnerResetPassword = lazy(() => import("./pages/LearnerResetPassword"));
 const AiTools = lazy(() => import("./pages/AiTools"));
 const LmsCourses = lazy(() => import("./pages/LmsCourses"));
-const LmsCourseBuilder = lazy(() => import("./pages/LmsCourseBuilder"));
 const LmsCourseEntry = lazy(() => import("./pages/LmsCourseEntry"));
 const LmsMessages = lazy(() => import("./pages/LmsMessages"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
