@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye } from "lucide-react";
+import { Menu, ArrowLeft, Eye, Settings, Home } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
 
 interface Props {
@@ -94,6 +94,38 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           Brouillon
         </span>
 
+        {/* Course homepage */}
+        <a
+          href={`/lms/${courseId}/home`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
+          style={{
+            color: "var(--st-ink)",
+            borderColor: "rgba(16,24,32,0.2)",
+            fontFamily: "inherit",
+            textDecoration: "none",
+          }}
+          title="Voir la page d'accueil du cours"
+        >
+          <Home size={14} />
+          Page d'accueil
+        </a>
+
+        {/* Course settings (incl. homepage editor) */}
+        <button
+          onClick={() => navigate(`/lms/${courseId}/edit`)}
+          className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full border transition-all hover:bg-black/5"
+          style={{
+            color: "var(--st-ink)",
+            borderColor: "rgba(16,24,32,0.2)",
+          }}
+          title="Paramètres du cours"
+          aria-label="Paramètres du cours"
+        >
+          <Settings size={15} />
+        </button>
+
         {/* Preview */}
         <a
           href={`/lms/${courseId}/player?preview=admin&lesson=${lesson.id}`}
@@ -110,6 +142,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           <Eye size={14} />
           Aperçu
         </a>
+
 
       </div>
     </header>
