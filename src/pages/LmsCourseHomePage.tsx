@@ -209,8 +209,6 @@ function CommunitySidebarPreview({ email }: { courseId: string; email: string; p
   );
 }
 
-// ── Live helpers ──────────────────────────────────────────────────────────────
-
 function fmtLive(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
