@@ -1,23 +1,16 @@
-import { useRef, useState } from "react";
-import DOMPurify from "dompurify";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
   Calendar,
   Play,
   Video,
-  Send,
-  Paperclip,
-  AlertCircle,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  useCourseForums,
-  useForumPosts,
-  useCreateForumPost,
-  uploadForumAttachment,
-} from "@/hooks/useLms";
+import { usePracticePosts } from "@/hooks/usePracticeFeed";
 import type { CourseLiveMeeting } from "@/hooks/useLmsQueries";
 
 export type ModuleStatus = "completed" | "in_progress" | "not_started";
