@@ -533,6 +533,7 @@ function HeroSection({
   const [playing, setPlaying] = useState(false);
   const videoUrl = course.welcome_video_url ?? null;
   const embedUrl = videoUrl ? videoEmbed(videoUrl) : null;
+  const videoPoster = videoUrl ? videoThumbnail(videoUrl) : null;
 
   return (
     <section
