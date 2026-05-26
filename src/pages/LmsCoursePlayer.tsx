@@ -307,6 +307,7 @@ export default function LmsCoursePlayer() {
         >
           {sidebarOpen && (
             <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
+              <HomeMenuLink courseId={courseId} learnerEmail={learnerEmail} isPreview={isPreview} />
               <CourseProgressSidebar
                 modules={modules}
                 lessonsByModule={lessonsByModule}
