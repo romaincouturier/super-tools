@@ -1886,7 +1886,7 @@ export default function LmsCourseHomePage() {
                     onViewCalendar={() => setActiveView("calendar")}
                   />
                   <CommunityInfoCard courseId={courseId!} email={email} />
-                  <TipsBlock />
+                  <TipsBlock tips={course.home_config?.tips} />
                 </div>
                 <InfoCardsGrid config={course.home_config} />
               </>
