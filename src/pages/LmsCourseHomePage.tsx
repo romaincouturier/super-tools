@@ -941,7 +941,7 @@ export default function LmsCourseHomePage() {
   const { data: liveData } = useCourseLiveMeetings(courseId);
   const meetings = liveData?.meetings ?? [];
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const initialView = searchParams.get("view") || "home";
   const [activeView, setActiveView] = useState<string>(initialView);
 
