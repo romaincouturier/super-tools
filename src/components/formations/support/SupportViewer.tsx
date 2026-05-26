@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import DOMPurify from "dompurify";
 import { Loader2, BookOpen, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -348,7 +349,7 @@ const LazySection = ({
         <div
           className="prose prose-sm dark:prose-invert max-w-none"
           style={c ? { color: c.onSurface } : undefined}
-          dangerouslySetInnerHTML={{ __html: section.content }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(section.content || "", { ADD_ATTR: ["target"] }) }}
         />
       )}
     </section>
