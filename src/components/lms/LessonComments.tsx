@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Send, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,7 +109,7 @@ function PostThread({
                     onClick={async () => {
                       if (!window.confirm("Supprimer ce commentaire ?")) return;
                       try { await deleteComment.mutateAsync({ commentId: c.id, postId: post.id }); }
-                      catch { toast({ title: "Erreur", variant: "destructive" }); }
+                      catch { toastError(toast, "Impossible de supprimer le commentaire."); }
                     }}
                     className="opacity-70 hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 text-muted-foreground shrink-0"
                   >
@@ -182,7 +183,7 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
   const handleDeletePost = async (id: string) => {
     if (!window.confirm("Supprimer ce message ?")) return;
     try { await deletePost.mutateAsync(id); }
-    catch { toast({ title: "Erreur", variant: "destructive" }); }
+    catch { toastError(toast, "Impossible de supprimer le message."); }
   };
 
   return (

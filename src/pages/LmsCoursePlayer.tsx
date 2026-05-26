@@ -600,7 +600,7 @@ function ModuleProgressWidget({
 // ── Right panel: community ────────────────────────────────────────────────────
 const COMMUNITY_AVATAR_COLORS = ["#FFD100", "#69C3C4", "#F2A541", "#A8D8A8", "#D4A5A5"];
 
-function CommunityWidget({ courseId, learnerEmail }: { courseId: string; learnerEmail: string }) {
+function CommunityWidget({ courseId, learnerEmail, lessonId }: { courseId: string; learnerEmail: string; lessonId?: string | null }) {
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
   const { data: allPosts = [] } = useForumPosts(mainForum?.id);
@@ -631,7 +631,7 @@ function CommunityWidget({ courseId, learnerEmail }: { courseId: string; learner
           ))}
         </div>
       )}
-      <CommunityCtaButton email={learnerEmail} />
+      <CommunityCtaButton email={learnerEmail} courseId={courseId} lessonId={lessonId} />
       {recentPosts.length > 0 && (
         <p className="text-[11px] text-center mt-2" style={{ color: "rgba(16,24,32,0.45)" }}>
           {recentPosts.length} apprenant{recentPosts.length > 1 ? "s ont" : " a"} déposé {recentPosts.length > 1 ? "leur" : "son"} exercice cette semaine.
