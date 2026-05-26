@@ -1970,7 +1970,7 @@ function PracticePostCard({
           {comments.map((c) => {
             const cName = authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
             const cInitials = authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
-            const cIsOwn = c.author_email === currentEmail;
+            const cIsOwn = (c.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
             const cCanDelete = cIsOwn || isAdmin;
             const handleDeleteComment = async () => {
               if (!window.confirm("Supprimer ce commentaire ?")) return;
@@ -1994,7 +1994,7 @@ function PracticePostCard({
                     {cCanDelete && (
                       <button
                         onClick={handleDeleteComment}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 shrink-0"
+                        className="p-1 rounded hover:bg-black/5 shrink-0 opacity-60 hover:opacity-100"
                         style={{ color: "var(--st-ink-muted)" }}
                         title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
                       >
