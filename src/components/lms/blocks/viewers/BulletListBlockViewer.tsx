@@ -35,7 +35,7 @@ export default function BulletListBlockViewer({ content }: Props) {
             >
               {bulletChar}
             </span>
-            <span className="flex-1 min-w-0 break-words leading-relaxed">{item}</span>
+            <span className="flex-1 min-w-0 break-words leading-[1.7]">{item}</span>
           </li>
         ))}
       </ul>
