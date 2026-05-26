@@ -1994,7 +1994,7 @@ function PracticePostCard({
                     {cCanDelete && (
                       <button
                         onClick={handleDeleteComment}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 shrink-0"
+                        className="p-1 rounded hover:bg-black/5 shrink-0 opacity-60 hover:opacity-100"
                         style={{ color: "var(--st-ink-muted)" }}
                         title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
                       >
