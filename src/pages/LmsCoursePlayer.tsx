@@ -333,6 +333,8 @@ export default function LmsCoursePlayer() {
                 selectedLessonId={selectedLessonId}
                 onSelectLesson={setSelectedLessonId}
                 isModuleUnlocked={isModuleUnlocked}
+                nextLiveAt={nextLiveAt}
+                livesCalendarHref={livesCalendarHref}
               />
             </div>
           )}
