@@ -1,16 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye, Settings, Home } from "lucide-react";
+import { Menu, ArrowLeft, Eye, Settings } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
 
 interface Props {
-  lesson: LmsLesson;
+  lesson?: LmsLesson;
   courseId: string;
   titleValue: string;
   onTitleChange: (value: string) => void;
   onMenuToggle: () => void;
+  isHome?: boolean;
 }
 
-export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleChange, onMenuToggle }: Props) {
+export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleChange, onMenuToggle, isHome = false }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -48,6 +49,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         <input
           value={titleValue}
           onChange={(e) => onTitleChange(e.target.value)}
+          readOnly={isHome}
           className="w-full max-w-md text-center outline-none truncate"
           style={{
             color: "var(--st-ink)",
@@ -76,7 +78,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
             (e.currentTarget as HTMLElement).style.background = "transparent";
             (e.currentTarget as HTMLElement).style.borderColor = "transparent";
           }}
-          aria-label="Titre de la leçon"
+          aria-label={isHome ? "Page d'accueil" : "Titre de la leçon"}
         />
       </div>
 
@@ -94,24 +96,6 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           Brouillon
         </span>
 
-        {/* Course homepage */}
-        <a
-          href={`/lms/${courseId}/home`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
-          style={{
-            color: "var(--st-ink)",
-            borderColor: "rgba(16,24,32,0.2)",
-            fontFamily: "inherit",
-            textDecoration: "none",
-          }}
-          title="Voir la page d'accueil du cours"
-        >
-          <Home size={14} />
-          Page d'accueil
-        </a>
-
         {/* Course settings (incl. homepage editor) */}
         <button
           onClick={() => navigate(`/lms/${courseId}/edit`)}
@@ -128,7 +112,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
 
         {/* Preview */}
         <a
-          href={`/lms/${courseId}/player?preview=admin&lesson=${lesson.id}`}
+          href={lesson ? `/lms/${courseId}/player?preview=admin&lesson=${lesson.id}` : `/lms/${courseId}/home?preview=admin`}
           target="_blank"
           rel="noopener noreferrer"
           className="hidden sm:flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
