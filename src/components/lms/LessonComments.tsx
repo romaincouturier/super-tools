@@ -121,15 +121,18 @@ function PostThread({
         </div>
       )}
 
-      <div className="flex gap-2 pl-10">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder="Répondre..."
-          className="flex-1 text-sm bg-background border rounded-full px-3 py-1.5 outline-none"
-        />
+      <div className="flex items-center gap-2 pl-10">
+        <div className="flex-1 flex items-center gap-1 bg-background border rounded-full px-3 py-1.5">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+            placeholder="Répondre..."
+            className="flex-1 text-sm bg-transparent outline-none"
+          />
+          <EmojiInsert onInsert={(e) => setText((t) => t + e)} size={14} />
+        </div>
         <Button size="sm" onClick={handleSend} disabled={!text.trim() || createComment.isPending}>
           <Send className="w-3 h-3" />
         </Button>
