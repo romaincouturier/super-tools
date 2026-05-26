@@ -742,12 +742,15 @@ interface SidebarProps {
   moduleStatuses: Record<string, ModuleStatus>;
   lessonCountByModule: Record<string, number>;
   lessonsDoneByModule: Record<string, number>;
+  lessonsByModule?: Record<string, Array<{ id: string; title: string }>>;
   activeLessonId: string | null;
   communityPreviewCount: number;
   meetings: CourseLiveMeeting[];
   activeView: string;
   onModuleClick: (moduleId: string) => void;
   onViewChange: (view: string) => void;
+  onLessonClick?: (lessonId: string) => void;
+  completedLessonIds?: Set<string>;
 }
 
 function Sidebar({
