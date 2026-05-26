@@ -846,63 +846,48 @@ function Sidebar({
       style={{ background: "var(--st-white)" }}
     >
       {/* Live et replays — distinctive style section */}
-      {meetings.length > 0 && (
-        <div className="p-3 pb-3 border-b" style={{ borderColor: "rgba(16,24,32,0.06)", background: "#101820" }}>
-          <p className="text-xs font-semibold uppercase tracking-wider mb-2 px-2" style={{ color: "rgba(255,209,0,0.7)", letterSpacing: ".06em" }}>
-            Live &amp; Replays
-          </p>
-          <ul className="space-y-0.5">
-            <li>
-              <button
-                onClick={() => onViewChange("calendar")}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-sm"
-                style={{
-                  fontFamily: "inherit",
-                  background: activeView === "calendar" ? "#FFD100" : "rgba(255,209,0,0.1)",
-                  color: activeView === "calendar" ? "#101820" : "#FFD100",
-                  fontWeight: activeView === "calendar" ? 600 : 500,
-                }}
-                onMouseEnter={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.2)"; }}
-                onMouseLeave={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
-              >
-                <Calendar size={15} style={{ flexShrink: 0 }} />
-                <span className="truncate leading-snug">Calendrier des lives</span>
-              </button>
-            </li>
-            {meetings.map((m) => {
-              const vk = `replay:${m.id}`;
-              const isActive = activeView === vk;
-              const hasReplay = !!m.replay_url;
-              return (
-                <li key={m.id}>
-                  <button
-                    onClick={() => onViewChange(vk)}
-                    className="w-full flex items-center gap-2.5 pl-7 pr-3 py-2 rounded-xl text-left transition-colors text-xs"
-                    style={{
-                      fontFamily: "inherit",
-                      background: isActive ? "#FFD100" : "transparent",
-                      color: isActive ? "#101820" : hasReplay ? "#FFD100" : "rgba(255,209,0,0.5)",
-                      fontWeight: isActive ? 600 : 400,
-                    }}
-                    onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
-                    onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                  >
-                    {hasReplay
-                      ? <Play size={13} style={{ flexShrink: 0 }} />
-                      : <Video size={13} style={{ flexShrink: 0 }} />}
-                    <span className="truncate leading-snug">{m.title}</span>
-                    {!hasReplay && (
-                      <span className="ml-auto shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded" style={{ background: "rgba(255,209,0,0.2)", color: "rgba(255,209,0,0.6)" }}>
-                        À venir
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {meetings.length > 0 && (() => {
+        const now = Date.now();
+        const next = [...meetings]
+          .filter((m) => new Date(m.scheduled_at).getTime() >= now)
+          .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+        const nextLabel = next
+          ? new Date(next.scheduled_at).toLocaleString("fr-FR", {
+              weekday: "short", day: "numeric", month: "short",
+              hour: "2-digit", minute: "2-digit",
+            })
+          : "Aucun live à venir";
+        return (
+          <div className="p-3 pb-3 border-b" style={{ borderColor: "rgba(16,24,32,0.06)", background: "#101820" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1 px-2" style={{ color: "rgba(255,209,0,0.7)", letterSpacing: ".06em" }}>
+              Live &amp; Replays
+            </p>
+            <p className="text-xs px-2 mb-2 flex items-center gap-1.5" style={{ color: "#FFD100" }}>
+              <Video size={12} style={{ flexShrink: 0 }} />
+              <span className="truncate">Prochain live · {nextLabel}</span>
+            </p>
+            <ul className="space-y-0.5">
+              <li>
+                <button
+                  onClick={() => onViewChange("calendar")}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors text-sm"
+                  style={{
+                    fontFamily: "inherit",
+                    background: activeView === "calendar" ? "#FFD100" : "rgba(255,209,0,0.1)",
+                    color: activeView === "calendar" ? "#101820" : "#FFD100",
+                    fontWeight: activeView === "calendar" ? 600 : 500,
+                  }}
+                  onMouseEnter={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.2)"; }}
+                  onMouseLeave={(e) => { if (activeView !== "calendar") (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
+                >
+                  <Calendar size={15} style={{ flexShrink: 0 }} />
+                  <span className="truncate leading-snug">Calendrier des lives</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* Community — above modules */}
       {!isPreview && (
