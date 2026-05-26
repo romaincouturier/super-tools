@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye } from "lucide-react";
+import { Menu, ArrowLeft, Eye, Settings, Home } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
 
 interface Props {
