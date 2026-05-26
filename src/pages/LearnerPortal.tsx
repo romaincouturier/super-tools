@@ -3076,10 +3076,7 @@ export default function LearnerPortal() {
 
   const handleLogout = async () => {
     sessionStorage.removeItem("learner_email");
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user?.user_metadata?.role === "learner") {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
     navigate("/apprenant/connexion");
   };
 
