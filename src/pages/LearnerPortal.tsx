@@ -2240,7 +2240,16 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
                 onDelete={handleDelete}
               />
             ) : (
-              <DepositFeedCard key={item.key} deposit={item.deposit} />
+              <DepositFeedCard
+                key={item.key}
+                deposit={item.deposit}
+                currentEmail={email}
+                onReact={(depositId, iReacted) =>
+                  toggleDepositReaction.mutateAsync({ depositId, iReacted }).catch(() =>
+                    toastError(toast, "Impossible de réagir."),
+                  )
+                }
+              />
             )
           )}
         </div>
