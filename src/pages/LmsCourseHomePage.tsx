@@ -1879,7 +1879,7 @@ export default function LmsCourseHomePage() {
                   completionPct={completionPct}
                   onContinue={handleContinue}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                   <ProgressCard
                     completionPct={completionPct}
                     completedLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id) && completedIds.has(l.id)).length}
@@ -1893,8 +1893,8 @@ export default function LmsCourseHomePage() {
                     onViewCalendar={() => setActiveView("calendar")}
                   />
                   <CommunityInfoCard courseId={courseId!} email={email} />
+                  <TipsBlock />
                 </div>
-                <TipsBlock />
                 <InfoCardsGrid config={course.home_config} />
               </>
             )}
