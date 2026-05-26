@@ -24,6 +24,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
 import LearnerLmsMessaging from "@/components/learner/LearnerLmsMessaging";
+import AddToCalendarButton from "@/components/learner/AddToCalendarButton";
 import { cn } from "@/lib/utils";
 import { resolveContentType } from "@/lib/file-utils";
 import {
@@ -1126,12 +1127,18 @@ function DashboardView({
                 Rejoindre
               </a>
             )}
-            <button
-              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-full transition-all hover:-translate-y-px"
-              style={{ background: isClosing ? "#e11d48" : "var(--st-yellow)", color: isClosing ? "#fff" : "#101820", fontFamily: "inherit" }}>
-              <CalendarPlus size={14} />
-              Ajouter au calendrier
-            </button>
+            <AddToCalendarButton
+              title={nextEvent.title || "Live formation"}
+              startAt={nextEvent.scheduled_at}
+              durationMinutes={60}
+              description={nextEvent.meeting_url ? `Lien de la réunion : ${nextEvent.meeting_url}` : ""}
+              url={nextEvent.meeting_url || undefined}
+              style={{
+                background: isClosing ? "#e11d48" : "var(--st-yellow)",
+                color: isClosing ? "#fff" : "#101820",
+                fontFamily: "inherit",
+              }}
+            />
           </div>
         </div>
       )}
