@@ -321,16 +321,6 @@ export default function LmsCoursePlayer() {
           </div>
         </div>
 
-        {/* Mobile progress bar — thin line below the main row */}
-        <div className="md:hidden h-[3px] w-full" style={{ background: "#F2F4F4" }}>
-          <div
-            className="h-full transition-all duration-500"
-            style={{
-              width: `${completionPct}%`,
-              background: completionPct === 100 ? "#69c3c4" : "#FFD100",
-            }}
-          />
-        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
