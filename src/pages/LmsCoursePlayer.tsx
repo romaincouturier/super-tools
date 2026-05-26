@@ -331,6 +331,12 @@ export default function LmsCoursePlayer() {
               className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
               style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
             >
+              <HomeMenuLink
+                courseId={courseId}
+                learnerEmail={learnerEmail}
+                isPreview={isPreview}
+                onClick={() => setSidebarOpen(false)}
+              />
               <CourseProgressSidebar
                 modules={modules}
                 lessonsByModule={lessonsByModule}
