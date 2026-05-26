@@ -810,7 +810,7 @@ function Sidebar({
 
   return (
     <aside
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex flex-col w-full"
       style={{ background: "var(--st-white)" }}
     >
       {/* Live et replays — distinctive style section */}
