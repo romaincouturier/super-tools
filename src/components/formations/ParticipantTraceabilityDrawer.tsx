@@ -263,7 +263,7 @@ const ParticipantTraceabilityDrawer = ({
                             <div className="border-t px-4 py-3">
                               <div
                                 className="prose prose-sm max-w-none text-sm [&_img]:max-w-full [&_table]:text-xs"
-                                dangerouslySetInnerHTML={{ __html: email.html_content }}
+                                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_content || "", { ADD_ATTR: ["target"] }) }}
                               />
                             </div>
                           )}

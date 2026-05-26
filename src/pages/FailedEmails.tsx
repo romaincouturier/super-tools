@@ -300,7 +300,7 @@ const FailedEmails = () => {
               <div className="border rounded-lg p-4 bg-white dark:bg-gray-900">
                 <div
                   className="prose prose-sm max-w-none dark:prose-invert"
-                  dangerouslySetInnerHTML={{ __html: previewEmail.html_content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewEmail.html_content || "", { ADD_ATTR: ["target"] }) }}
                 />
               </div>
             </div>
