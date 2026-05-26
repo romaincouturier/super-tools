@@ -1482,7 +1482,7 @@ function CourseHomeHeader({
           {/* Admin edit shortcut */}
           {isPreview && courseId && (
             <a
-              href={`/lms/${courseId}/edit`}
+              href={`/lms/${courseId}/home/builder`}
               className="mr-2"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
