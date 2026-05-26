@@ -50,6 +50,7 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
   usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
   usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
+  useDeletePracticeComment,
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
 
