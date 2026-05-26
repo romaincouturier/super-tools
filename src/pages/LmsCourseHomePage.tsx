@@ -1432,13 +1432,8 @@ function CourseHomeHeader({
     <>
       <ConfirmDialog />
       <header
-        className="sticky top-0 z-30 flex items-center gap-3 px-4 lg:px-8 border-b"
-        style={{
-          background: "#ffffff",
-          borderColor: "rgba(16,24,32,0.08)",
-          height: 72,
-          boxShadow: "0 1px 3px rgba(16,24,32,0.06)",
-        }}
+        className="sticky top-0 z-30 flex items-center gap-3 h-16 px-6 bg-white shrink-0"
+        style={{ borderBottom: "1px solid #EDEDED" }}
       >
         {/* Mobile menu toggle */}
         <button
@@ -1446,31 +1441,40 @@ function CourseHomeHeader({
           className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:bg-black/5 shrink-0"
           aria-label="Menu"
         >
-          <Menu size={20} style={{ color: "var(--st-ink)" }} />
+          <Menu size={18} style={{ color: "#101820" }} />
         </button>
 
-        {/* ── Left zone: logo + separator + course title ── */}
-        <div className="flex items-center gap-4 min-w-0 flex-1">
-          {/* Logo — nettement plus grand pour une vraie présence de marque */}
-          <div className="shrink-0" style={{ height: 44 }}>
-            <SupertiltLogo className="h-11" />
-          </div>
+        {/* Logo */}
+        <a
+          href="/espace-apprenant"
+          className="shrink-0 flex items-center"
+          title="Retour aux formations"
+        >
+          <SupertiltLogo className="h-8" />
+        </a>
 
+        {/* Vertical divider — desktop only */}
+        <div
+          className="hidden lg:block w-px h-7 shrink-0"
+          style={{ background: "#EDEDED" }}
+        />
 
-          {/* Séparateur vertical */}
-          <div
-            className="hidden sm:block shrink-0"
-            style={{ width: 1, height: 28, background: "rgba(16,24,32,0.12)" }}
-          />
-
-          {/* Titre de la formation — contexte de navigation, pas titre principal */}
+        {/* Breadcrumb + course title */}
+        <div className="flex-1 min-w-0">
           <p
-            className="hidden sm:block truncate min-w-0 text-sm"
-            style={{ color: "var(--st-ink-muted)", fontWeight: 450, letterSpacing: "-0.01em" }}
+            className="text-[11px] font-medium leading-none mb-0.5 hidden lg:block"
+            style={{ color: "#9CA3AF" }}
+          >
+            Mes formations
+          </p>
+          <p
+            className="text-sm font-semibold truncate leading-tight"
+            style={{ color: "#101820" }}
           >
             {courseTitle}
           </p>
         </div>
+
 
         {/* ── Right zone ── */}
         <div className="flex items-center gap-1 shrink-0 ml-2">
