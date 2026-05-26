@@ -475,6 +475,16 @@ function DepositSummary({
           <RefreshCw className="h-3.5 w-3.5 mr-2" />
           Remplacer le fichier
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleting}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5 mr-2" />
+          Supprimer mon dépôt
+        </Button>
       </div>
 
       <input
