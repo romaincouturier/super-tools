@@ -1756,7 +1756,7 @@ export default function LmsCourseHomePage() {
       <div className="flex flex-1">
         {/* Desktop sidebar */}
         <div
-          className="hidden lg:flex flex-col shrink-0 border-r sticky self-start top-0 max-h-screen overflow-y-auto"
+          className="hidden lg:flex flex-col shrink-0 border-r"
           style={{ width: 300, borderColor: "rgba(16,24,32,0.08)" }}
         >
           <Sidebar
