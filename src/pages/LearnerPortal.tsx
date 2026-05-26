@@ -1637,7 +1637,7 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
                 const courseTitle = d.lms_courses?.title ?? null;
                 const lessonTitle = d.lms_lessons?.title ?? null;
                 const lessonLink = d.lesson_id && d.course_id
-                  ? `/lms/${d.course_id}/player`
+                  ? `/lms/${d.course_id}/player?email=${encodeURIComponent(email)}&lesson=${d.lesson_id}`
                   : null;
                 return (
                   <div key={d.id} className="rounded-2xl border overflow-hidden"
