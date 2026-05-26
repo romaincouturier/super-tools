@@ -1762,6 +1762,8 @@ export default function LmsCourseHomePage() {
             moduleStatuses={moduleStatuses}
             lessonCountByModule={lessonCountByModule}
             lessonsDoneByModule={lessonsDoneByModule}
+            lessonsByModule={lessonsByModule}
+            completedLessonIds={completedIds}
             activeLessonId={null}
             communityPreviewCount={course.community_preview_count ?? 2}
             meetings={meetings}
