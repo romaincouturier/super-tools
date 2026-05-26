@@ -223,7 +223,7 @@ const App = () => (
                 <Route path="/lms/messages" element={<LmsMessages />} />
                 <Route path="/lms/faq" element={<LmsFaq />} />
                 <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
-                <Route path="/lms/:courseId/edit" element={<Navigate to="../home/builder" replace />} />
+                <Route path="/lms/:courseId/edit" element={<LmsCourseHomeBuilderPage />} />
                 <Route path="/lms/:courseId/home/builder" element={<LmsCourseHomeBuilderPage />} />
                 <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
                 <Route path="/arena" element={<ArenaSetup />} />
