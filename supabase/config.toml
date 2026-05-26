@@ -390,6 +390,9 @@ verify_jwt = false
 [functions.send-deposit-feedback-notification]
 verify_jwt = false
 
+[functions.send-deposit-trainer-notification]
+verify_jwt = false
+
 [functions.watch-process-item]
 verify_jwt = false
 
