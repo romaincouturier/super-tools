@@ -66,24 +66,8 @@ export default function ExerciseBlockViewer({ content }: Props) {
         </a>
       )}
       {videoUrl && (
-        <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted mb-3">
-          {isYouTube ? (
-            <iframe
-              src={videoUrl.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : isVimeo ? (
-            <iframe
-              src={videoUrl.replace("vimeo.com/", "player.vimeo.com/video/")}
-              className="w-full h-full"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-            />
-          ) : (
-            <video src={videoUrl} controls className="w-full h-full" />
-          )}
+        <div className="mb-3">
+          <LessonVideoPlayer url={videoUrl} radius={8} />
         </div>
       )}
       {content.prompt_html && (
