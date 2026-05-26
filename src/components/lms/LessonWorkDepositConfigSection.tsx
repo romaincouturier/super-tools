@@ -169,6 +169,17 @@ export default function LessonWorkDepositConfigSection({
               <Label htmlFor="deposit-feedback" className="text-sm">Retours SuperTilt</Label>
             </div>
           </div>
+
+          <div className="flex items-center gap-2 pt-2 border-t">
+            <Switch
+              id="deposit-require-complete"
+              checked={config.require_deposit_to_complete}
+              onCheckedChange={(v) => setConfig({ ...config, require_deposit_to_complete: v })}
+            />
+            <Label htmlFor="deposit-require-complete" className="text-sm">
+              Exiger un dépôt pour marquer la leçon comme terminée
+            </Label>
+          </div>
         </div>
       )}
 

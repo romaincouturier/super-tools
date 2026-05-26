@@ -26,6 +26,7 @@ export default function WorkDepositBlockEditor({ content, onChange, slim }: Prop
   const sharingAllowed = content.sharing_allowed !== false;
   const commentsEnabled = content.comments_enabled !== false;
   const feedbackEnabled = content.feedback_enabled !== false;
+  const requireToComplete = content.require_deposit_to_complete !== false;
 
   const toggleFormat = (fmt: string) => {
     const next = formats.includes(fmt) ? formats.filter((f) => f !== fmt) : [...formats, fmt];
@@ -155,6 +156,17 @@ export default function WorkDepositBlockEditor({ content, onChange, slim }: Prop
           />
           <Label htmlFor="block-feedback" className="text-sm">Retours SuperTilt</Label>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-2 border-t">
+        <Switch
+          id="block-require-complete"
+          checked={requireToComplete}
+          onCheckedChange={(v) => onChange({ ...content, require_deposit_to_complete: v })}
+        />
+        <Label htmlFor="block-require-complete" className="text-sm">
+          Exiger un dépôt pour marquer la leçon comme terminée
+        </Label>
       </div>
     </div>
   );
