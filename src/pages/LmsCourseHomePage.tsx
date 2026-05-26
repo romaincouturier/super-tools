@@ -371,7 +371,7 @@ function CalendarView({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href={googleCalendarUrl(m)}
+                    href={googleCalendarUrl(m, training?.training_name)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-all hover:bg-black/5"
@@ -380,16 +380,7 @@ function CalendarView({
                     <CalendarPlus size={12} />
                     Ajouter au calendrier
                   </a>
-                  {hasReplay ? (
-                    <button
-                      onClick={() => onReplay(m.id)}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all hover:-translate-y-px"
-                      style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
-                    >
-                      <Play size={11} />
-                      Voir le replay
-                    </button>
-                  ) : (
+                  {!hasReplay && (
                     <span
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full"
                       style={{ color: "var(--st-ink-muted)", background: "rgba(16,24,32,0.04)" }}
@@ -399,6 +390,38 @@ function CalendarView({
                     </span>
                   )}
                 </div>
+                {hasReplay && (
+                  <button
+                    type="button"
+                    onClick={() => onReplay(m.id)}
+                    className="block w-full rounded-xl overflow-hidden border text-left"
+                    style={{ borderColor: "rgba(16,24,32,0.08)", background: "#000" }}
+                    aria-label={`Voir le replay : ${m.title}`}
+                  >
+                    {(() => {
+                      const embed = videoEmbed(m.replay_url!);
+                      if (embed) {
+                        return (
+                          <iframe
+                            src={embed.replace("autoplay=1", "autoplay=0")}
+                            title={`Replay ${m.title}`}
+                            className="w-full aspect-video"
+                            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        );
+                      }
+                      return (
+                        <video
+                          src={m.replay_url!}
+                          controls
+                          preload="metadata"
+                          className="w-full aspect-video"
+                        />
+                      );
+                    })()}
+                  </button>
+                )}
               </div>
             </li>
           );
