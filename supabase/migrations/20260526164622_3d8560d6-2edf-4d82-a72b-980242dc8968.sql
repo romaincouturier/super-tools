@@ -1,0 +1,1 @@
+DELETE FROM lms_lesson_comments; DELETE FROM lms_forum_posts; DELETE FROM lms_messages;
