@@ -22,13 +22,14 @@ import type { CourseHomeConfig } from "@/hooks/useLmsQueries";
 import {
   Plus, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
   FileText, Trash2, Save,
-  Eye, Users, Settings, BookOpen, ExternalLink, BarChart3,
+  Eye, Users, Settings, BookOpen, ExternalLink, BarChart3, Home,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import LmsAnalyticsTab from "@/components/lms/AnalyticsTab";
 import LmsForumSection from "@/components/lms/ForumSection";
 import LmsEnrollmentManager from "@/components/lms/EnrollmentManager";
+import HomePageEditor from "@/components/lms/HomePageEditor";
 
 function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: { mod: LmsModule; courseId: string; onMoveUp: () => void; onMoveDown: () => void; isFirst: boolean; isLast: boolean }) {
   const [expanded, setExpanded] = useState(true);
