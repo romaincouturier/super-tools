@@ -15,6 +15,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { processTemplate, wrapEmailHtml } from "../_shared/templates.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -35,6 +36,14 @@ function formatAddress(addr: Record<string, string> | null): string {
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
+
+  const authedUser = await verifyAuth(req.headers.get("Authorization"));
+  if (!authedUser) {
+    return new Response(JSON.stringify({ error: "Non autorisé" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
