@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
-import { CheckCircle2, ChevronDown, ChevronRight, Lock, Play, Video } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Lock, Play, Video, Calendar } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 
