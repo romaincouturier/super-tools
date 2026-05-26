@@ -199,8 +199,8 @@ function CommunitySidebarPreview({ email }: { courseId: string; email: string; p
 
       <button
         onClick={goToCommunity}
-        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
-        style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", fontFamily: "inherit" }}
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px"
+        style={{ background: "#FFD100", color: "#101820", fontFamily: "inherit", border: "none", cursor: "pointer" }}
       >
         <Users size={13} />
         Aller à la communauté
