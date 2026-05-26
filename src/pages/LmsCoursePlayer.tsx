@@ -206,9 +206,7 @@ export default function LmsCoursePlayer() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "auto" });
-    document.querySelectorAll<HTMLElement>("[data-lms-scroll]").forEach((el) => {
-      el.scrollTop = 0;
-    });
+    if (mainRef.current) mainRef.current.scrollTop = 0;
   };
 
   const goNext = () => {
