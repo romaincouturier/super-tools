@@ -49,7 +49,7 @@ import {
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CommunityCtaButton } from "@/components/lms/CourseHomeSidebar";
+import CourseHomeSidebar, { CommunityCtaButton } from "@/components/lms/CourseHomeSidebar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
