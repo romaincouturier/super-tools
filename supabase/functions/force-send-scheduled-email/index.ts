@@ -681,7 +681,10 @@ Règles :
 
             if (aiResponse.ok) {
               const aiResult = await aiResponse.json();
-              followUpBody = aiResult.choices?.[0]?.message?.content || "";
+              followUpBody = (aiResult.choices?.[0]?.message?.content || "")
+                .replace(/^\s*```(?:html?)?\s*\n?/i, "")
+                .replace(/\n?```\s*$/i, "")
+                .trim();
             }
           } catch (aiErr) {
             console.warn("AI generation failed for follow-up, using default:", aiErr);
