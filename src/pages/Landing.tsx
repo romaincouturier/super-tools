@@ -95,7 +95,7 @@ export default function Landing() {
             <a href="#audience" className="hover:text-primary transition-colors">Pour qui</a>
           </div>
           <Button variant="ghost" className="text-secondary hover:text-primary" asChild>
-            <Link to="/auth">Connexion</Link>
+            <Link to="/apprenant">Connexion</Link>
           </Button>
         </div>
       </nav>
