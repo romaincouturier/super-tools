@@ -13,6 +13,7 @@ import {
   useSubmitAssignment, useLearnerSubmissions, uploadAssignmentFile,
   useLearnerBadges, useTrackPageView,
   useCourseForums, useForumPosts,
+  useCourseLiveMeetings,
   LmsLesson, LmsModule,
 } from "@/hooks/useLms";
 import QuizPlayer from "@/components/lms/QuizPlayer";
