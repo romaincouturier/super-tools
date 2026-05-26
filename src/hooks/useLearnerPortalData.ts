@@ -8,7 +8,8 @@ export function useLearnerWorkDeposits(email: string | null) {
     queryKey: ["learner_work_deposits", email],
     queryFn: async () => {
       if (!email) return [];
-      const { data, error } = await (supabase as any)
+      const c = createLearnerClient(email) as any;
+      const { data, error } = await c
         .from("lms_work_deposits")
         .select(`
           id, lesson_id, course_id, file_name, file_url, file_mime,
