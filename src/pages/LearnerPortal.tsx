@@ -62,6 +62,8 @@ interface NextEvent {
   scheduled_at: string;
   meeting_url: string | null;
   meeting_type: string;
+  duration_minutes?: number | null;
+  description?: string | null;
 }
 
 interface Training {
