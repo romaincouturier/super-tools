@@ -2150,9 +2150,10 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
 }) {
   const { isAdmin } = useModuleAccess();
   const { data: posts = [], isLoading } = usePracticePosts(email);
-  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(courseIds);
+  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(courseIds, email);
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
+  const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, isAdmin);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
