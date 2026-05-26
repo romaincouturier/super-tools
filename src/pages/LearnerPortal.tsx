@@ -1836,7 +1836,7 @@ function PracticePostCard({
 
   const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
   const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
-  const isOwn = post.author_email === currentEmail;
+  const isOwn = (post.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
   const canDelete = isOwn || isAdmin;
 
   const handleComment = async () => {
