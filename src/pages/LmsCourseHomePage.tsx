@@ -875,7 +875,8 @@ const COMMUNITY_THUMBNAILS = [
   { bg: "#FFF7ED", emoji: "🖊️" },
 ];
 
-function CommunitySection() {
+function CommunitySection({ email }: { email?: string }) {
+  const navigate = useNavigate();
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-6 px-6 py-5"
@@ -909,8 +910,9 @@ function CommunitySection() {
           ))}
         </div>
         <button
+          onClick={() => { if (email) sessionStorage.setItem("learner_email", email); navigate("/espace-apprenant/communaute"); }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:-translate-y-px"
-          style={{ background: "var(--st-ink)", color: "#fff", fontFamily: "inherit" }}
+          style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
         >
           Accéder à l'espace de partage
           <ChevronRight size={14} />

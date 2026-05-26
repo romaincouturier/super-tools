@@ -56,8 +56,8 @@ export function CommunityCtaButton({ email }: { email: string }) {
   return (
     <button
       onClick={goToCommunity}
-      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
-      style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", fontFamily: "inherit" }}
+      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px"
+      style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
     >
       <Users size={13} />
       Aller à la communauté
