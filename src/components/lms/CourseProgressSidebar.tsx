@@ -266,69 +266,45 @@ function ModuleBlock({
 
 function SpecialModuleBlock({
   mod,
-  lessons,
-  selectedLessonId,
-  completedIds,
-  onSelectLesson,
+  nextLiveAt,
+  livesCalendarHref,
 }: {
   mod: LmsModule;
-  lessons: LmsLesson[];
-  selectedLessonId: string | null;
-  completedIds: Set<string>;
-  onSelectLesson: (id: string) => void;
+  nextLiveAt: string | null;
+  livesCalendarHref: string;
 }) {
-  const hasActive = lessons.some((l) => l.id === selectedLessonId);
-  const [open, setOpen] = useState(hasActive);
-
-  useEffect(() => {
-    if (lessons.some((l) => l.id === selectedLessonId)) setOpen(true);
-  }, [selectedLessonId]);
+  const headerLabel = nextLiveAt
+    ? `Prochain live · ${format(parseISO(nextLiveAt), "EEE d MMM 'à' HH'h'mm", { locale: fr })}`
+    : mod.title;
 
   return (
     <div style={{ background: "#101820" }}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left"
-        style={{ fontFamily: "inherit", background: "transparent" }}
-      >
+      <div className="w-full flex items-center gap-2 px-4 py-3">
         <Video size={13} style={{ color: "rgba(255,209,0,0.8)", flexShrink: 0 }} />
-        <span className="flex-1 text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(255,209,0,0.8)", letterSpacing: ".06em" }}>
-          {mod.title}
+        <span
+          className="flex-1 text-xs font-semibold uppercase tracking-wider truncate"
+          style={{ color: "rgba(255,209,0,0.8)", letterSpacing: ".06em" }}
+        >
+          {headerLabel}
         </span>
-        {open
-          ? <ChevronDown size={12} style={{ color: "rgba(255,209,0,0.5)" }} />
-          : <ChevronRight size={12} style={{ color: "rgba(255,209,0,0.5)" }} />}
-      </button>
-      {open && (
-        <div className="pb-2">
-          {lessons.map((lesson) => {
-            const isActive = lesson.id === selectedLessonId;
-            const isCompleted = completedIds.has(lesson.id);
-            return (
-              <button
-                key={lesson.id}
-                type="button"
-                onClick={() => onSelectLesson(lesson.id)}
-                className="w-full flex items-center gap-2.5 pl-7 pr-3 py-2 text-left text-xs transition-colors"
-                style={{
-                  fontFamily: "inherit",
-                  background: isActive ? "#FFD100" : "transparent",
-                  color: isActive ? "#101820" : isCompleted ? "rgba(255,209,0,0.5)" : "#FFD100",
-                  fontWeight: isActive ? 600 : 400,
-                }}
-                onMouseEnter={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
-                onMouseLeave={(e) => { if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-              >
-                {isCompleted
-                  ? <CheckCircle2 size={12} style={{ flexShrink: 0, color: isActive ? "#101820" : "#69C3C4" }} />
-                  : <Play size={11} style={{ flexShrink: 0, marginLeft: 1 }} />}
-                <span className="truncate">{lesson.title}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      </div>
+      <div className="pb-2">
+        <a
+          href={livesCalendarHref}
+          className="w-full flex items-center gap-2.5 pl-7 pr-3 py-2 text-left text-xs transition-colors"
+          style={{
+            fontFamily: "inherit",
+            background: "transparent",
+            color: "#FFD100",
+            fontWeight: 500,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,209,0,0.1)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+        >
+          <Calendar size={12} style={{ flexShrink: 0 }} />
+          <span className="truncate">Calendrier des lives</span>
+        </a>
+      </div>
     </div>
   );
 }
