@@ -335,14 +335,8 @@ export default function LmsCoursePlayer() {
               <Bell size={18} style={{ color: "#101820" }} />
             </button>
 
-            {/* Avatar with initials */}
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 select-none cursor-default"
-              style={{ background: "#FFD100", color: "#101820" }}
-              title={learnerEmail || "Administrateur"}
-            >
-              {getLearnerInitials(learnerEmail)}
-            </div>
+            {/* Account menu (avatar + dropdown) */}
+            <LearnerAccountMenu learnerEmail={learnerEmail} isPreview={isPreview} />
           </div>
         </div>
 
