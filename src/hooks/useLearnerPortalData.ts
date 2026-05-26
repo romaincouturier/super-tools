@@ -81,17 +81,29 @@ export function usePracticeDeposits(courseIds: string[], learnerEmail?: string |
       if (!deposits.length) return deposits;
 
       const ids = deposits.map((d) => d.id);
-      const [reactionsRes, commentsRes] = await Promise.all([
+      const lessonIds = Array.from(new Set(deposits.map((d) => d.lesson_id).filter(Boolean)));
+      const courseIdsForTitles = Array.from(new Set(deposits.map((d) => d.course_id).filter(Boolean)));
+      const [reactionsRes, commentsRes, lessonsRes, coursesRes] = await Promise.all([
         (supabase as any).from("lms_deposit_reactions").select("deposit_id, author_email").in("deposit_id", ids),
         (supabase as any).from("lms_deposit_comments").select("id, deposit_id, status").in("deposit_id", ids),
+        lessonIds.length
+          ? (supabase as any).from("lms_lessons").select("id, title").in("id", lessonIds)
+          : Promise.resolve({ data: [] }),
+        courseIdsForTitles.length
+          ? (supabase as any).from("lms_courses").select("id, title").in("id", courseIdsForTitles)
+          : Promise.resolve({ data: [] }),
       ]);
       const reactions: any[] = reactionsRes.data || [];
       const comments: any[] = (commentsRes.data || []).filter((c: any) => c.status === "published");
+      const lessonsById = new Map<string, string>((lessonsRes.data || []).map((l: any) => [l.id, l.title]));
+      const coursesById = new Map<string, string>((coursesRes.data || []).map((co: any) => [co.id, co.title]));
       const email = (learnerEmail || "").toLowerCase();
       return deposits.map((d) => {
         const dr = reactions.filter((r) => r.deposit_id === d.id);
         return {
           ...d,
+          lesson_title: d.lesson_id ? lessonsById.get(d.lesson_id) ?? null : null,
+          course_title: d.course_id ? coursesById.get(d.course_id) ?? null : null,
           reaction_count: dr.length,
           i_reacted: email ? dr.some((r) => (r.author_email || "").toLowerCase() === email) : false,
           comment_count: comments.filter((c) => c.deposit_id === d.id).length,

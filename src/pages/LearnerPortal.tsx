@@ -2249,6 +2249,16 @@ function DepositFeedCard({
         </a>
       ))}
 
+      {(deposit.lesson_title || deposit.course_title) && deposit.lesson_id && deposit.course_id && (
+        <Link
+          to={`/lms/${deposit.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${deposit.lesson_id}`}
+          className="block px-4 py-2.5 border-t text-xs hover:bg-black/5"
+          style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}
+        >
+          Depuis la leçon · <span className="font-medium" style={{ color: "var(--st-ink)" }}>{deposit.lesson_title ?? deposit.course_title}</span>
+        </Link>
+      )}
+
       {(reactionCount > 0 || commentCount > 0) && (
         <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
           {reactionCount > 0 && <span>{reactionCount} J'aime</span>}
