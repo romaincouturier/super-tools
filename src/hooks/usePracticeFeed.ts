@@ -12,12 +12,16 @@ export interface PracticePost {
   file_name: string | null;
   file_mime: string | null;
   file_size: number | null;
+  course_id: string | null;
+  lesson_id: string | null;
   created_at: string;
   updated_at: string;
   // enriched client-side
   author_first_name?: string | null;
   author_last_name?: string | null;
   author_photo_url?: string | null;
+  lesson_title?: string | null;
+  course_title?: string | null;
   reaction_count: number;
   i_reacted: boolean;
   comment_count: number;
@@ -43,15 +47,23 @@ function clientFor(email?: string | null) {
 
 // ── Posts ────────────────────────────────────────────────────────────────────
 
-export function usePracticePosts(learnerEmail: string | null, limit = 50) {
+export function usePracticePosts(
+  learnerEmail: string | null,
+  limit = 50,
+  options?: { lessonId?: string | null },
+) {
+  const lessonFilter = options?.lessonId ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientFor(learnerEmail) as any;
 
+      let postsQuery = c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit);
+      if (lessonFilter) postsQuery = postsQuery.eq("lesson_id", lessonFilter);
+
       const [postsRes, reactionsRes, commentsRes, profilesRes] = await Promise.all([
-        c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit),
+        postsQuery,
         c.from("practice_post_reactions").select("post_id, author_email"),
         c.from("practice_post_comments").select("id, post_id"),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
@@ -66,6 +78,20 @@ export function usePracticePosts(learnerEmail: string | null, limit = 50) {
 
       const profileMap = new Map(profiles.map((p: any) => [p.email, p]));
 
+      // Enrich with lesson/course titles when present
+      const lessonIds = Array.from(new Set(posts.map((p: any) => p.lesson_id).filter(Boolean)));
+      const courseIds = Array.from(new Set(posts.map((p: any) => p.course_id).filter(Boolean)));
+      const [lessonsRes, coursesRes] = await Promise.all([
+        lessonIds.length
+          ? (supabase as any).from("lms_lessons").select("id, title").in("id", lessonIds)
+          : Promise.resolve({ data: [] }),
+        courseIds.length
+          ? (supabase as any).from("lms_courses").select("id, title").in("id", courseIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const lessonMap = new Map((lessonsRes.data || []).map((l: any) => [l.id, l.title]));
+      const courseMap = new Map((coursesRes.data || []).map((c: any) => [c.id, c.title]));
+
       return posts.map((post: any) => {
         const postReactions = reactions.filter((r: any) => r.post_id === post.id);
         const postComments = comments.filter((c: any) => c.post_id === post.id);
@@ -75,6 +101,8 @@ export function usePracticePosts(learnerEmail: string | null, limit = 50) {
           author_first_name: profile?.first_name ?? null,
           author_last_name: profile?.last_name ?? null,
           author_photo_url: profile?.photo_url ?? null,
+          lesson_title: post.lesson_id ? (lessonMap.get(post.lesson_id) ?? null) : null,
+          course_title: post.course_id ? (courseMap.get(post.course_id) ?? null) : null,
           reaction_count: postReactions.length,
           i_reacted: postReactions.some((r: any) => r.author_email === learnerEmail),
           comment_count: postComments.length,
@@ -133,7 +161,7 @@ async function uploadPracticeFile(file: File, learnerEmail: string) {
 export function useCreatePracticePost(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, file }: { content: string; file: File | null }) => {
+    mutationFn: async ({ content, file, courseId, lessonId }: { content: string; file: File | null; courseId?: string | null; lessonId?: string | null }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
       const c = clientFor(learnerEmail) as any;
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
@@ -145,6 +173,8 @@ export function useCreatePracticePost(learnerEmail: string | null) {
         file_name: fileData?.name ?? null,
         file_mime: fileData?.mime ?? null,
         file_size: fileData?.size ?? null,
+        course_id: courseId ?? null,
+        lesson_id: lessonId ?? null,
       });
       if (error) throw error;
     },

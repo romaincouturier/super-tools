@@ -6296,34 +6296,40 @@ export type Database = {
         Row: {
           author_email: string
           content: string | null
+          course_id: string | null
           created_at: string
           file_mime: string | null
           file_name: string | null
           file_size: number | null
           file_url: string | null
           id: string
+          lesson_id: string | null
           updated_at: string
         }
         Insert: {
           author_email: string
           content?: string | null
+          course_id?: string | null
           created_at?: string
           file_mime?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string | null
           id?: string
+          lesson_id?: string | null
           updated_at?: string
         }
         Update: {
           author_email?: string
           content?: string | null
+          course_id?: string | null
           created_at?: string
           file_mime?: string | null
           file_name?: string | null
           file_size?: number | null
           file_url?: string | null
           id?: string
+          lesson_id?: string | null
           updated_at?: string
         }
         Relationships: []
