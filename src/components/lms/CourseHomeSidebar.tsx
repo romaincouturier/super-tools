@@ -232,6 +232,28 @@ export default function CourseHomeSidebar({
       {!isPreview && <CommunitySidebarPreview email={email} />}
 
       <div className="p-5 flex-1">
+        <ul className="space-y-1 mb-4">
+          <li>
+            <button
+              onClick={() => onViewChange("home")}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
+              style={{
+                fontFamily: "inherit",
+                background: activeView === "home" ? "#FFD100" : "transparent",
+                color: activeView === "home" ? "#101820" : "var(--st-ink)",
+                fontWeight: activeView === "home" ? 600 : 500,
+              }}
+            >
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                style={{ background: activeView === "home" ? "#101820" : "rgba(16,24,32,0.06)" }}
+              >
+                <Home size={16} style={{ color: activeView === "home" ? "#FFD100" : "#101820" }} />
+              </div>
+              <span className="text-sm leading-snug">Accueil</span>
+            </button>
+          </li>
+        </ul>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
           Vos modules
         </p>
