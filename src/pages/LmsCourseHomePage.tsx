@@ -1748,13 +1748,10 @@ export default function LmsCourseHomePage() {
           className="hidden lg:flex flex-col shrink-0 border-r"
           style={{ width: 300, borderColor: "rgba(16,24,32,0.08)" }}
         >
-          <Sidebar
+          <CourseHomeSidebar
             courseId={courseId!}
             email={email}
             isPreview={isPreview}
-            completionPct={completionPct}
-            lastLessonTitle={lastLesson?.title ?? null}
-            lastActivityDate={lastProgress?.completed_at ?? null}
             modules={regularModules}
             moduleStatuses={moduleStatuses}
             lessonCountByModule={lessonCountByModule}
@@ -1791,13 +1788,10 @@ export default function LmsCourseHomePage() {
                 </button>
               </div>
               <div className="overflow-y-auto h-full">
-                <Sidebar
+                <CourseHomeSidebar
                   courseId={courseId!}
                   email={email}
                   isPreview={isPreview}
-                  completionPct={completionPct}
-                  lastLessonTitle={lastLesson?.title ?? null}
-                  lastActivityDate={lastProgress?.completed_at ?? null}
                   modules={regularModules}
                   moduleStatuses={moduleStatuses}
                   lessonCountByModule={lessonCountByModule}
