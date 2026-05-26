@@ -85,7 +85,13 @@ export async function createDeposit(input: CreateWorkDepositInput): Promise<Work
   const c = clientFor(input.learner_email);
   const { data, error } = await deposits(c).insert(input).select().single();
   if (error) throw error;
-  return data as WorkDeposit;
+  const created = data as WorkDeposit;
+  if (created.visibility === "shared" && created.publication_status === "published") {
+    notifyTrainerOfCommunityPost(created.id).catch((err) =>
+      console.warn("notifyTrainerOfCommunityPost (create) failed:", err),
+    );
+  }
+  return created;
 }
 
 export async function updateDeposit(
@@ -96,7 +102,13 @@ export async function updateDeposit(
   const c = clientFor(learnerEmail);
   const { data, error } = await deposits(c).update(updates).eq("id", id).select().single();
   if (error) throw error;
-  return data as WorkDeposit;
+  const updated = data as WorkDeposit;
+  if (updated.visibility === "shared" && updated.publication_status === "published") {
+    notifyTrainerOfCommunityPost(updated.id).catch((err) =>
+      console.warn("notifyTrainerOfCommunityPost (update) failed:", err),
+    );
+  }
+  return updated;
 }
 
 export async function deleteDeposit(id: string, learnerEmail: string): Promise<void> {
