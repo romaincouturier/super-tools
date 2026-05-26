@@ -48,7 +48,7 @@ function PostThread({
   const deleteComment = useDeletePracticeComment(learnerEmail, false);
   const [text, setText] = useState("");
   const { toast } = useToast();
-  const isOwn = post.author_email === learnerEmail;
+  const isOwn = (post.author_email || "").toLowerCase() === (learnerEmail || "").toLowerCase();
 
   const handleSend = async () => {
     if (!text.trim()) return;
@@ -83,7 +83,7 @@ function PostThread({
         {isOwn && (
           <button
             onClick={() => onDelete(post.id)}
-            className="p-1 rounded hover:bg-black/5 text-muted-foreground"
+            className="p-1 rounded hover:bg-black/5 text-muted-foreground opacity-70 hover:opacity-100"
             title="Supprimer mon message"
           >
             <Trash2 size={12} />
@@ -94,7 +94,7 @@ function PostThread({
       {comments.length > 0 && (
         <div className="space-y-2 pl-10">
           {comments.map((c) => {
-            const cOwn = c.author_email === learnerEmail;
+            const cOwn = (c.author_email || "").toLowerCase() === (learnerEmail || "").toLowerCase();
             return (
               <div key={c.id} className="bg-background rounded-md px-3 py-2 flex items-start justify-between gap-2 group">
                 <div className="min-w-0">
@@ -110,7 +110,7 @@ function PostThread({
                       try { await deleteComment.mutateAsync({ commentId: c.id, postId: post.id }); }
                       catch { toast({ title: "Erreur", variant: "destructive" }); }
                     }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 text-muted-foreground shrink-0"
+                    className="opacity-70 hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 text-muted-foreground shrink-0"
                   >
                     <Trash2 size={10} />
                   </button>
