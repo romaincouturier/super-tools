@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import EmojiInsert from "@/components/ui/emoji-insert";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
@@ -1992,6 +1993,7 @@ function PracticePostCard({
                 className="flex-1 text-sm bg-transparent outline-none"
                 style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
               />
+              <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
             </div>
             <button
               onClick={handleComment}
@@ -2100,14 +2102,19 @@ function PostCreationBox({
                 {firstName && lastName ? `${firstName} ${lastName}` : email.split("@")[0]}
               </p>
             </div>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Partagez votre travail, une réflexion, une question..."
-              rows={5}
-              className="w-full resize-none rounded-xl border px-3 py-2.5 text-sm outline-none"
-              style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
-            />
+            <div className="relative">
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Partagez votre travail, une réflexion, une question..."
+                rows={5}
+                className="w-full resize-none rounded-xl border px-3 py-2.5 pr-10 text-sm outline-none"
+                style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
+              />
+              <div className="absolute bottom-2 right-2">
+                <EmojiInsert onInsert={(e) => setContent((t) => t + e)} />
+              </div>
+            </div>
             {/* Image preview */}
             {preview && (
               <div className="relative">
@@ -2275,6 +2282,7 @@ function DepositFeedCard({
                 className="flex-1 text-sm bg-transparent outline-none"
                 style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
               />
+              <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
             </div>
             <button
               onClick={handleComment}

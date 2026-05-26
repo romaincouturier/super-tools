@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import EmojiInsert from "@/components/ui/emoji-insert";
 
 interface Props {
   courseId: string;
@@ -120,15 +121,18 @@ function PostThread({
         </div>
       )}
 
-      <div className="flex gap-2 pl-10">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-          placeholder="Répondre..."
-          className="flex-1 text-sm bg-background border rounded-full px-3 py-1.5 outline-none"
-        />
+      <div className="flex items-center gap-2 pl-10">
+        <div className="flex-1 flex items-center gap-1 bg-background border rounded-full px-3 py-1.5">
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+            placeholder="Répondre..."
+            className="flex-1 text-sm bg-transparent outline-none"
+          />
+          <EmojiInsert onInsert={(e) => setText((t) => t + e)} size={14} />
+        </div>
         <Button size="sm" onClick={handleSend} disabled={!text.trim() || createComment.isPending}>
           <Send className="w-3 h-3" />
         </Button>
@@ -198,13 +202,18 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
           ))}
 
           <div className="flex gap-2">
-            <Textarea
-              placeholder="Partagez une question ou un retour avec la communauté..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={2}
-              className="flex-1"
-            />
+            <div className="flex-1 relative">
+              <Textarea
+                placeholder="Partagez une question ou un retour avec la communauté..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={2}
+                className="pr-10"
+              />
+              <div className="absolute bottom-2 right-2">
+                <EmojiInsert onInsert={(e) => setContent((t) => t + e)} />
+              </div>
+            </div>
             <Button
               size="sm"
               onClick={handleSubmit}
