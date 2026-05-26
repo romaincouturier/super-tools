@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Bell, BookOpen, ChevronDown, HelpCircle, LogOut, Menu, Sparkles, User,
+  Bell, BookOpen, ChevronDown, HelpCircle, LogOut, Menu, Shield, Sparkles, User,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -65,6 +65,8 @@ export default function LearnerCourseHeader({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
+        <AdminBackLink />
+
         {isPreview && editHref && (
           <a
             href={editHref}
@@ -92,6 +94,41 @@ export default function LearnerCourseHeader({
         <LearnerAccountMenu learnerEmail={learnerEmail} isPreview={isPreview} />
       </div>
     </header>
+  );
+}
+
+export function AdminBackLink() {
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled && data) setIsAdmin(true);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  if (!isAdmin) return null;
+  return (
+    <a
+      href="/dashboard"
+      className="hidden md:inline-flex items-center gap-1.5 mr-2"
+      style={{
+        padding: "6px 12px", borderRadius: 10,
+        background: "rgba(16,24,32,0.06)", color: "#101820",
+        fontWeight: 600, fontSize: "0.8125rem",
+        textDecoration: "none", flexShrink: 0,
+      }}
+      title="Revenir à l'administration"
+    >
+      <Shield size={14} />
+      Revenir à l'administration
+    </a>
   );
 }
 
