@@ -43,6 +43,7 @@ import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
   usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
   usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
@@ -1799,11 +1800,13 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
 function PracticePostCard({
   post,
   currentEmail,
+  isAdmin,
   onReact,
   onDelete,
 }: {
   post: PracticePost;
   currentEmail: string;
+  isAdmin: boolean;
   onReact: (postId: string, iReacted: boolean) => void;
   onDelete: (postId: string) => void;
 }) {
@@ -1816,6 +1819,7 @@ function PracticePostCard({
   const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
   const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
   const isOwn = post.author_email === currentEmail;
+  const canDelete = isOwn || isAdmin;
 
   const handleComment = async () => {
     if (!commentText.trim()) return;
@@ -1844,11 +1848,12 @@ function PracticePostCard({
             {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
           </p>
         </div>
-        {isOwn && (
+        {canDelete && (
           <button
             onClick={() => onDelete(post.id)}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
             style={{ color: "var(--st-ink-muted)" }}
+            title={isOwn ? "Supprimer mon message" : "Supprimer (admin)"}
           >
             <Trash2 size={14} />
           </button>
@@ -2094,6 +2099,44 @@ function PostCreationBox({
   );
 }
 
+// ── Deposit feed card (shared work deposit surfaced in the community) ──────────
+function DepositFeedCard({ deposit }: { deposit: any }) {
+  const displayName = authorDisplayName(deposit.learner_email);
+  const initials = authorInitialsFromPost(deposit.learner_email);
+  const isImage = deposit.file_mime?.startsWith("image/");
+  return (
+    <div className="rounded-2xl border overflow-hidden"
+      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+      <div className="flex items-start gap-3 p-4">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+          style={{ background: "var(--st-yellow)", color: "#101820" }}>
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{displayName}</p>
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+            A partagé un travail · {formatDistanceToNow(new Date(deposit.created_at), { locale: fr, addSuffix: true })}
+          </p>
+        </div>
+      </div>
+      {deposit.comment && (
+        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
+          {deposit.comment}
+        </p>
+      )}
+      {deposit.file_url && (isImage ? (
+        <img src={deposit.file_url} alt={deposit.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+      ) : (
+        <a href={deposit.file_url} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-2 px-4 py-3 border-t text-sm font-medium hover:bg-black/5"
+          style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink)" }}>
+          <FileText size={16} /> {deposit.file_name ?? "Voir le fichier"}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
 function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
@@ -2103,12 +2146,27 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
   lastName: string;
   photoUrl: string | null;
 }) {
+  const { isAdmin } = useModuleAccess();
   const { data: posts = [], isLoading } = usePracticePosts(email);
+  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(courseIds);
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
-  const deletePost = useDeletePracticePost(email);
+  const deletePost = useDeletePracticePost(email, isAdmin);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+
+  // Merge community posts and shared work deposits into one feed, newest first.
+  const feed = useMemo(() => {
+    const items: Array<
+      | { kind: "post"; key: string; created_at: string; post: PracticePost }
+      | { kind: "deposit"; key: string; created_at: string; deposit: any }
+    > = [
+      ...posts.map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
+      ...(deposits as any[]).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
+    ];
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return items;
+  }, [posts, deposits]);
 
   const handleCreate = async (content: string, file: File | null) => {
     await createPost.mutateAsync({ content, file });
@@ -2155,11 +2213,11 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
         onCreate={handleCreate}
       />
 
-      {isLoading ? (
+      {isLoading || depositsLoading ? (
         <div className="flex items-center justify-center py-16">
           <Spinner size="lg" />
         </div>
-      ) : posts.length === 0 ? (
+      ) : feed.length === 0 ? (
         <div className="rounded-2xl border p-10 text-center space-y-3"
           style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
           <Palette size={32} className="mx-auto" style={{ color: "var(--st-ink-muted)" }} />
@@ -2168,15 +2226,20 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
         </div>
       ) : (
         <div className="space-y-4">
-          {posts.map((post) => (
-            <PracticePostCard
-              key={post.id}
-              post={post}
-              currentEmail={email}
-              onReact={handleReact}
-              onDelete={handleDelete}
-            />
-          ))}
+          {feed.map((item) =>
+            item.kind === "post" ? (
+              <PracticePostCard
+                key={item.key}
+                post={item.post}
+                currentEmail={email}
+                isAdmin={isAdmin}
+                onReact={handleReact}
+                onDelete={handleDelete}
+              />
+            ) : (
+              <DepositFeedCard key={item.key} deposit={item.deposit} />
+            )
+          )}
         </div>
       )}
     </div>

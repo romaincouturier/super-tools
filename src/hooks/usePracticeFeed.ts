@@ -195,12 +195,14 @@ export function useCreatePracticeComment(learnerEmail: string | null) {
 
 // ── Delete post ───────────────────────────────────────────────────────────────
 
-export function useDeletePracticePost(learnerEmail: string | null) {
+export function useDeletePracticePost(learnerEmail: string | null, isAdmin = false) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (postId: string) => {
-      if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail) as any;
+      // Admins delete via the authenticated client (auth_manage_practice_posts);
+      // learners delete their own via the learner client.
+      if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
+      const c = (isAdmin ? supabase : clientFor(learnerEmail)) as any;
       const { error } = await c.from("practice_posts").delete().eq("id", postId);
       if (error) throw error;
     },
