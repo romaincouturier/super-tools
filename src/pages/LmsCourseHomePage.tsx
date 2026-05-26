@@ -938,7 +938,7 @@ function HeroSection({
   completionPct,
   onContinue,
 }: {
-  course: { cover_image_url: string | null; welcome_video_url?: string | null; welcome_text?: string | null };
+  course: { cover_image_url: string | null; welcome_video_url?: string | null; welcome_text?: string | null; home_config?: CourseHomeConfig | null };
   completionPct: number;
   onContinue: () => void;
 }) {
@@ -1408,9 +1408,10 @@ function CourseHomeHeader({
         {/* ── Left zone: logo + separator + course title ── */}
         <div className="flex items-center gap-4 min-w-0 flex-1">
           {/* Logo — nettement plus grand pour une vraie présence de marque */}
-          <div className="shrink-0">
-            <SupertiltLogo style={{ height: 44 }} />
+          <div className="shrink-0" style={{ height: 44 }}>
+            <SupertiltLogo className="h-11" />
           </div>
+
 
           {/* Séparateur vertical */}
           <div

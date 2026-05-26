@@ -117,8 +117,8 @@ export function useParticipantData(
         setParticipantsWithAccount(new Set());
         return;
       }
-      const { data, error } = await (supabase as ReturnType<typeof supabase.rpc>)
-        .rpc("learner_accounts_for_emails" as never, { p_emails: emails } as never);
+      const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: unknown) => Promise<{ data: string[] | null; error: unknown }> })
+        .rpc("learner_accounts_for_emails", { p_emails: emails });
       if (!error && data) {
         const have = new Set((data as string[]).map((e) => e.toLowerCase()));
         const ids = new Set<string>();
