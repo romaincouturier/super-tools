@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History } from "lucide-react";
+import { Loader2, Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History, KeyRound } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +43,7 @@ const ParticipantActions = ({
   availableFormulas,
   sendingId,
   remindingId,
+  sendingMagicLinkId,
   deletingId,
   generatingConventionId,
   downloadingConventionId,
@@ -53,8 +54,10 @@ const ParticipantActions = ({
   certificatesByParticipant,
   evaluationsByParticipant,
   participantsWithSignatures,
+  participantsWithAccount,
   onSendSurvey,
   onSendReminder,
+  onSendMagicLink,
   onDelete,
   onGenerateConvention,
   onDownloadConvention,
@@ -156,6 +159,30 @@ const ParticipantActions = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+        );
+      })()}
+
+      {/* 1b. Statut compte e-learning + renvoi du lien magique - e-learning uniquement */}
+      {formatFormation === "e_learning" && (() => {
+        const hasAccount = participantsWithAccount.has(participant.id);
+        const isSending = sendingMagicLinkId === participant.id;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${hasAccount ? "text-green-600 hover:text-green-700" : "text-destructive hover:text-destructive"}`}
+                onClick={() => onSendMagicLink(participant)}
+                disabled={isSending}
+              >
+                {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{hasAccount ? "Compte e-learning créé — renvoyer le lien magique" : "Compte non créé — renvoyer le lien magique"}</p>
+            </TooltipContent>
+          </Tooltip>
         );
       })()}
 

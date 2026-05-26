@@ -84,6 +84,7 @@ export interface ParticipantActionsProps {
   // Loading states
   sendingId: string | null;
   remindingId: string | null;
+  sendingMagicLinkId: string | null;
   deletingId: string | null;
   generatingConventionId: string | null;
   downloadingConventionId: string | null;
@@ -95,9 +96,11 @@ export interface ParticipantActionsProps {
   certificatesByParticipant: Map<string, CertInfo>;
   evaluationsByParticipant: Map<string, EvaluationInfo>;
   participantsWithSignatures: Set<string>;
+  participantsWithAccount: Set<string>;
   // Handlers
   onSendSurvey: (participant: Participant) => void;
   onSendReminder: (participant: Participant) => void;
+  onSendMagicLink: (participant: Participant) => void;
   onDelete: (participant: Participant) => void;
   onGenerateConvention: (participant: Participant) => void;
   onDownloadConvention: (participant: Participant) => void;
