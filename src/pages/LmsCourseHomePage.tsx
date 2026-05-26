@@ -695,14 +695,15 @@ function ModulesListSection({
 
 // ── Tips block ────────────────────────────────────────────────────────────────
 
-const TIPS = [
+const DEFAULT_TIPS = [
   "Ayez toujours une feuille et un feutre à portée de main.",
   "Progressez petit à petit, l'essentiel est la régularité.",
   "Testez, osez, pratiquez : il n'y a pas de dessin parfait.",
   "Participez aux lives et posez vos questions.",
 ];
 
-function TipsBlock() {
+function TipsBlock({ tips }: { tips?: string[] }) {
+  const list = (tips && tips.length > 0 ? tips : DEFAULT_TIPS).filter((t) => t && t.trim().length > 0);
   return (
     <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: "#fff", boxShadow: "0 2px 8px rgba(16,24,32,0.06)", border: "1px solid rgba(16,24,32,0.06)" }}>
       <div className="flex items-center gap-2.5">
@@ -710,19 +711,13 @@ function TipsBlock() {
         <p className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>Conseils pour bien démarrer</p>
       </div>
       <ul className="space-y-2.5">
-        {TIPS.map((tip) => (
-          <li key={tip} className="flex items-start gap-2.5">
+        {list.map((tip, i) => (
+          <li key={i} className="flex items-start gap-2.5">
             <CheckCircle2 size={15} className="shrink-0 mt-0.5" style={{ color: "#69C3C4" }} />
             <p className="text-sm leading-snug" style={{ color: "var(--st-ink-muted)" }}>{tip}</p>
           </li>
         ))}
       </ul>
-      <button
-        className="text-xs font-medium text-left mt-auto flex items-center gap-1"
-        style={{ color: "var(--st-ink-muted)", background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}
-      >
-        Voir tous les conseils <ChevronRight size={11} />
-      </button>
     </div>
   );
 }
