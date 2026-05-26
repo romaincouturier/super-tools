@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 
 export interface LearnerProfile {
   email: string;
@@ -19,7 +19,8 @@ export function useLearnerProfile(email: string | null) {
     queryKey: ["learner_profile", email?.toLowerCase()],
     queryFn: async () => {
       if (!email) return null;
-      const { data, error } = await supabase
+      const client = createLearnerClient(email);
+      const { data, error } = await client
         .from("learner_profiles")
         .select("*")
         .eq("email", email.toLowerCase())
@@ -45,7 +46,8 @@ export function useUpsertLearnerProfile() {
       email_notif_live?: boolean;
       email_notif_important?: boolean;
     }) => {
-      const { error } = await supabase
+      const client = createLearnerClient(profile.email);
+      const { error } = await client
         .from("learner_profiles")
         .upsert(
           { ...profile, email: profile.email.toLowerCase(), updated_at: new Date().toISOString() },

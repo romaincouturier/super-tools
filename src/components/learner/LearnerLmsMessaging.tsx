@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +32,8 @@ export default function LearnerLmsMessaging({ courseId, learnerEmail, isAdmin = 
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await (supabase as any)
+      const client = isAdmin ? (supabase as any) : (createLearnerClient(learnerEmail) as any);
+      const { data } = await client
         .from("lms_messages")
         .select("*")
         .eq("course_id", courseId)
@@ -74,7 +75,8 @@ export default function LearnerLmsMessaging({ courseId, learnerEmail, isAdmin = 
       (m) => !m.is_read && m.sender_role !== (isAdmin ? "admin" : "learner")
     );
     if (unread.length > 0) {
-      (supabase as any)
+      const client = isAdmin ? (supabase as any) : (createLearnerClient(learnerEmail) as any);
+      client
         .from("lms_messages")
         .update({ is_read: true } as any)
         .in("id", unread.map((m) => m.id))
@@ -86,7 +88,8 @@ export default function LearnerLmsMessaging({ courseId, learnerEmail, isAdmin = 
     if (!input.trim()) return;
     const senderRole = isAdmin ? "admin" : "learner";
 
-    await (supabase as any).from("lms_messages").insert({
+    const client = isAdmin ? (supabase as any) : (createLearnerClient(learnerEmail) as any);
+    await client.from("lms_messages").insert({
       course_id: courseId,
       learner_email: learnerEmail.toLowerCase(),
       sender_role: senderRole,
