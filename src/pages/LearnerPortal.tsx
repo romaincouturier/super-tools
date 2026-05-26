@@ -3022,7 +3022,7 @@ export default function LearnerPortal() {
     if (session?.user?.user_metadata?.role === "learner") {
       await supabase.auth.signOut();
     }
-    navigate("/apprenant");
+    navigate("/apprenant/connexion");
   };
 
   const handleRequestCoach = async (training: Training) => {
