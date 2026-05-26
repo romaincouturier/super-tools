@@ -938,7 +938,7 @@ function HeroSection({
   completionPct,
   onContinue,
 }: {
-  course: { cover_image_url: string | null; welcome_video_url?: string | null; welcome_text?: string | null };
+  course: { cover_image_url: string | null; welcome_video_url?: string | null; welcome_text?: string | null; home_config?: CourseHomeConfig | null };
   completionPct: number;
   onContinue: () => void;
 }) {
