@@ -270,6 +270,7 @@ export default function LmsCourseBuilder() {
           </TabsList>
 
           <TabsContent value="content" className="space-y-4 mt-4">
+            <HomeBlock course={course} />
             {modules.map((mod, index) => (
               <ModuleBlock
                 key={mod.id}
