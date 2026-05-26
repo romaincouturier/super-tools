@@ -1970,7 +1970,7 @@ function PracticePostCard({
           {comments.map((c) => {
             const cName = authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
             const cInitials = authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
-            const cIsOwn = c.author_email === currentEmail;
+            const cIsOwn = (c.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
             const cCanDelete = cIsOwn || isAdmin;
             const handleDeleteComment = async () => {
               if (!window.confirm("Supprimer ce commentaire ?")) return;
