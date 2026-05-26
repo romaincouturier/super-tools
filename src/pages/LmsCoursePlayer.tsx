@@ -20,6 +20,7 @@ import QuizPlayer from "@/components/lms/QuizPlayer";
 import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
 import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
+import LearnerCourseHeader from "@/components/lms/LearnerCourseHeader";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
