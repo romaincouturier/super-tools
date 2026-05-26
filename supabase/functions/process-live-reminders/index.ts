@@ -6,6 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
+import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -160,6 +161,14 @@ serve(async (req) => {
           skippedAlreadySent++;
           continue;
         }
+
+        // Respect learner preference
+        const liveEnabled = await learnerHasNotifEnabled(supabase, p.email, "email_notif_live");
+        if (!liveEnabled) {
+          console.log(`[process-live-reminders] skipped (pref off): ${p.email}`);
+          continue;
+        }
+
 
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 400));

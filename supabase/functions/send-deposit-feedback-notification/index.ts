@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
 const VERSION = "send-deposit-feedback-notification@2026-04-27.1";
 
@@ -45,6 +46,17 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Deposit not found", _version: VERSION }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Respect learner notification preference (email_notif_work_reply)
+    const enabled = await learnerHasNotifEnabled(supabase, deposit.learner_email, "email_notif_work_reply");
+    if (!enabled) {
+      console.log(`[send-deposit-feedback-notification] skipped (pref off): ${deposit.learner_email}`);
+      await supabase.from("lms_deposit_feedback").update({ email_sent: true }).eq("id", feedbackId);
+      return new Response(
+        JSON.stringify({ success: true, skipped: "learner_pref_off", _version: VERSION }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

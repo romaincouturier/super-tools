@@ -212,9 +212,18 @@ export function useCreatePracticeComment(learnerEmail: string | null) {
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
       const c = clientFor(learnerEmail) as any;
-      const { error } = await c.from("practice_post_comments")
-        .insert({ post_id: postId, author_email: learnerEmail, content });
+      const { data: inserted, error } = await c.from("practice_post_comments")
+        .insert({ post_id: postId, author_email: learnerEmail, content })
+        .select("id")
+        .single();
       if (error) throw error;
+
+      // Fire-and-forget: notify the post author (respects email_notif_work_comment)
+      supabase.functions
+        .invoke("notify-practice-comment", {
+          body: { postId, commentId: inserted?.id, commenterEmail: learnerEmail },
+        })
+        .catch((err) => console.warn("notify-practice-comment failed:", err));
     },
     onSuccess: (_, { postId }) => {
       qc.invalidateQueries({ queryKey: POSTS_KEY });
@@ -222,6 +231,7 @@ export function useCreatePracticeComment(learnerEmail: string | null) {
     },
   });
 }
+
 
 // ── Delete post ───────────────────────────────────────────────────────────────
 
