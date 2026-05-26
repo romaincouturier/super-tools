@@ -200,10 +200,10 @@ function CommunitySidebarPreview({ email }: { courseId: string; email: string; p
 
       <button
         onClick={goToCommunity}
-        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px"
+        className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px"
         style={{ background: "#FFD100", color: "#101820", fontFamily: "inherit", border: "none", cursor: "pointer" }}
       >
-        <Users size={13} />
+        <Users size={14} />
         Aller à la communauté
       </button>
     </div>
