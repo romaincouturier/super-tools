@@ -1572,6 +1572,7 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog />
       {/* CTA banner */}
       <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
         style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1.5px solid var(--st-yellow, #FFD100)" }}>
