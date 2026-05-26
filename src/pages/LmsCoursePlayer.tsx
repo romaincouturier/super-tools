@@ -19,7 +19,7 @@ import {
 import QuizPlayer from "@/components/lms/QuizPlayer";
 import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
-import CourseProgressSidebar from "@/components/lms/CourseProgressSidebar";
+import CourseHomeSidebar, { type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
