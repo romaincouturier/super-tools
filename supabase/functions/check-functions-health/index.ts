@@ -32,7 +32,6 @@ const EXPECTED_FUNCTIONS = [
   "backup-export",
   "backup-import",
   "business-health-score",
-  "capture-screenshots",
   "chatbot-query",
   "check-convention-status",
   "check-daily-actions-completion",

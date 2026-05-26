@@ -24,7 +24,6 @@ export type AppModule =
   | "support"
   | "reseau"
   | "lms"
-  | "screenshots"
   | "veille"
   | "supertilt"
   | "catalogue"
@@ -61,7 +60,6 @@ export const ALL_MODULES: AppModule[] = [
   "support",
   "reseau",
   "lms",
-  "screenshots",
   "veille",
   "supertilt",
   "catalogue",
@@ -99,7 +97,6 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   support: "Support",
   reseau: "Réseau professionnel",
   lms: "E-learning",
-  screenshots: "Screenshots",
   veille: "Veille",
   supertilt: "Supertilt",
   catalogue: "Catalogue",
