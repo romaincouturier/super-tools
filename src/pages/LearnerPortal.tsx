@@ -2282,6 +2282,7 @@ function DepositFeedCard({
                 className="flex-1 text-sm bg-transparent outline-none"
                 style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
               />
+              <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
             </div>
             <button
               onClick={handleComment}
