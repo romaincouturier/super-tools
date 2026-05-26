@@ -293,11 +293,18 @@ export default function CourseHomeSidebar({
             const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
             const hasLessons = moduleLessons.length > 0;
             const isOpen = !!expanded[m.id];
+            const isActiveModule = activeModuleId === m.id;
             return (
               <li key={m.id}>
                 <div
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
-                  style={{ fontFamily: "inherit" }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    !isActiveModule && "hover:bg-black/5",
+                  )}
+                  style={{
+                    fontFamily: "inherit",
+                    background: isActiveModule ? "#FFD100" : "transparent",
+                  }}
                 >
                   <button
                     onClick={() => onModuleClick(m.id)}
@@ -306,17 +313,21 @@ export default function CourseHomeSidebar({
                   >
                     <ModuleStatusIcon status={status} num={idx + 1} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
+                      <p
+                        className="text-sm leading-snug truncate"
+                        style={{ color: "#101820", fontWeight: isActiveModule ? 600 : 500 }}
+                      >
                         {m.title}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: isActiveModule ? "rgba(16,24,32,0.15)" : "#EDEDED" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : isActiveModule ? "#101820" : "#FFD100" }} />
                         </div>
-                        <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
+                        <p className="text-[10px] shrink-0" style={{ color: isActiveModule ? "#101820" : "var(--st-ink-muted)" }}>{done}/{total}</p>
                       </div>
                     </div>
                   </button>
+
                   {hasLessons && (
                     <button
                       onClick={() => toggleModule(m.id)}
