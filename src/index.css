@@ -355,3 +355,19 @@ All colors MUST be HSL.
 .lms-lesson-content .prose li {
   line-height: 1.7;
 }
+
+/* Tiptap wrappe le contenu des <li> dans des <p> : on supprime les marges
+   pour éviter un interlignage absurde entre puces. */
+.lms-lesson-content .prose li > p,
+.builder-layout .ProseMirror li > p,
+.ProseMirror li > p,
+.prose li > p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.lms-lesson-content .prose li,
+.prose li {
+  margin-top: 0.15em;
+  margin-bottom: 0.15em;
+}
