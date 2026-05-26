@@ -24,7 +24,7 @@ import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
-  Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles,
+  Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles, Home,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
@@ -307,6 +307,7 @@ export default function LmsCoursePlayer() {
         >
           {sidebarOpen && (
             <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
+              <HomeMenuLink courseId={courseId} learnerEmail={learnerEmail} isPreview={isPreview} />
               <CourseProgressSidebar
                 modules={modules}
                 lessonsByModule={lessonsByModule}
@@ -330,6 +331,12 @@ export default function LmsCoursePlayer() {
               className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
               style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
             >
+              <HomeMenuLink
+                courseId={courseId}
+                learnerEmail={learnerEmail}
+                isPreview={isPreview}
+                onClick={() => setSidebarOpen(false)}
+              />
               <CourseProgressSidebar
                 modules={modules}
                 lessonsByModule={lessonsByModule}
@@ -890,5 +897,53 @@ function AssignmentSubmitter({ lessonId, learnerEmail }: { lessonId: string; lea
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function HomeMenuLink({
+  courseId,
+  learnerEmail,
+  isPreview,
+  onClick,
+}: {
+  courseId: string | undefined;
+  learnerEmail: string;
+  isPreview: boolean;
+  onClick?: () => void;
+}) {
+  if (!courseId) return null;
+  const params = new URLSearchParams();
+  if (learnerEmail) params.set("email", learnerEmail);
+  if (isPreview) params.set("preview", "admin");
+  const qs = params.toString();
+  const href = `/lms/${courseId}/home${qs ? `?${qs}` : ""}`;
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors hover:bg-black/5"
+      style={{
+        color: "#101820",
+        borderBottom: "1px solid rgba(16,24,32,0.07)",
+        fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif",
+        textDecoration: "none",
+      }}
+    >
+      <span
+        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+        style={{ background: "#FFD100" }}
+      >
+        <Home size={13} style={{ color: "#101820" }} />
+      </span>
+      Accueil
+      {isPreview && (
+        <span
+          className="ml-auto text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+          style={{ background: "rgba(16,24,32,0.08)", color: "rgba(16,24,32,0.55)" }}
+        >
+          Éditable
+        </span>
+      )}
+    </a>
   );
 }
