@@ -1134,10 +1134,11 @@ function DashboardView({
               </a>
             )}
             <AddToCalendarButton
-              title={nextEvent.title || "Live formation"}
+              title={nextEventCtx?.trainingName ? `${nextEventCtx.trainingName} — ${nextEvent.title || "Live"}` : (nextEvent.title || "Live formation")}
               startAt={nextEvent.scheduled_at}
-              durationMinutes={60}
-              description={nextEvent.meeting_url ? `Lien de la réunion : ${nextEvent.meeting_url}` : ""}
+              durationMinutes={nextEvent.duration_minutes || 60}
+              description={nextEvent.description || (nextEvent.meeting_url ? `Lien de la réunion : ${nextEvent.meeting_url}` : "")}
+              location={nextEvent.meeting_url || undefined}
               url={nextEvent.meeting_url || undefined}
               style={{
                 background: isClosing ? "#e11d48" : "var(--st-yellow)",
