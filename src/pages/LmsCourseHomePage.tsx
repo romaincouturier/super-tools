@@ -942,7 +942,16 @@ export default function LmsCourseHomePage() {
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, email || undefined);
   const { data: liveData } = useCourseLiveMeetings(courseId);
-  const meetings = liveData?.meetings ?? [];
+  const { data: adminSessions = [] } = useCourseTrainingSessionsAdmin(courseId, isPreview);
+  const meetings = useMemo(() => {
+    if (isPreview && adminSessions.length > 0) {
+      const all = adminSessions.flatMap((s) => s.meetings);
+      // dedupe by id
+      const seen = new Set<string>();
+      return all.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)));
+    }
+    return liveData?.meetings ?? [];
+  }, [isPreview, adminSessions, liveData]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const initialView = searchParams.get("view") || "home";
