@@ -93,17 +93,17 @@ type ModuleStatus = "completed" | "in_progress" | "not_started";
 
 function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: number }) {
   if (status === "completed") {
-    return <CheckCircle2 size={18} style={{ color: "#69C3C4", flexShrink: 0 }} />;
+    return <CheckCircle2 size={36} style={{ color: "#69C3C4", flexShrink: 0 }} />;
   }
   const borderColor = status === "in_progress" ? "#FFD100" : "#CCCCCC";
   const bg = status === "in_progress" ? "#FFD100" : "transparent";
   const textColor = status === "in_progress" ? "#101820" : "#AAAAAA";
   return (
     <div
-      className="w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0"
+      className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0"
       style={{ borderColor, background: bg }}
     >
-      <span style={{ fontSize: 6, fontWeight: 700, color: textColor, lineHeight: 1, letterSpacing: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: textColor, lineHeight: 1, letterSpacing: 0 }}>
         M{num}
       </span>
     </div>
