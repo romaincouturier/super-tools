@@ -46,6 +46,25 @@ function authorInitials(email: string, firstName?: string | null, lastName?: str
   return email.slice(0, 2).toUpperCase();
 }
 
+export function CommunityCtaButton({ email }: { email: string }) {
+  const navigate = useNavigate();
+  const goToCommunity = () => {
+    if (email) sessionStorage.setItem("learner_email", email);
+    navigate("/espace-apprenant/communaute");
+  };
+
+  return (
+    <button
+      onClick={goToCommunity}
+      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
+      style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", fontFamily: "inherit" }}
+    >
+      <Users size={13} />
+      Aller à la communauté
+    </button>
+  );
+}
+
 function CommunitySidebarPreview({ email }: { email: string }) {
   const navigate = useNavigate();
   const { data: posts = [] } = usePracticePosts(email || null, 2);
@@ -122,14 +141,9 @@ function CommunitySidebarPreview({ email }: { email: string }) {
         </ul>
       )}
 
-      <button
-        onClick={goToCommunity}
-        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
-        style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", fontFamily: "inherit" }}
-      >
-        <Users size={13} />
-        Aller à la communauté
-      </button>
+      <div className="mt-3">
+        <CommunityCtaButton email={email} />
+      </div>
     </div>
   );
 }
@@ -184,7 +198,7 @@ export default function CourseHomeSidebar({
 
   return (
     <aside
-      className="flex flex-col h-full overflow-y-auto"
+      className="flex flex-col w-full"
       style={{ background: "var(--st-white)" }}
     >
       {/* Live et replays */}
