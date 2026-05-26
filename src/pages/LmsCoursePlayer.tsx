@@ -335,7 +335,7 @@ export default function LmsCoursePlayer() {
         >
           {sidebarOpen && (
             <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
-              <HomeMenuLink courseId={courseId} learnerEmail={learnerEmail} isPreview={isPreview} />
+              
               {courseId && (
                 <CourseHomeSidebar
                   courseId={courseId}
@@ -371,12 +371,6 @@ export default function LmsCoursePlayer() {
               className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
               style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
             >
-              <HomeMenuLink
-                courseId={courseId}
-                learnerEmail={learnerEmail}
-                isPreview={isPreview}
-                onClick={() => setSidebarOpen(false)}
-              />
               {courseId && (
                 <CourseHomeSidebar
                   courseId={courseId}
