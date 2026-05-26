@@ -5,7 +5,7 @@ export const EXPECTED_FUNCTIONS = [
   "analyze-admin-document","analyze-evaluations","analyze-needs-survey","analyze-voice-review",
   "archive-resolved-tickets","arena-orchestrate","arena-orchestrator","arena-suggest-experts",
   "assemblyai-webhook","backup-export","backup-import","business-health-score",
-  "capture-screenshots","chatbot-query","check-convention-status","check-daily-actions-completion",
+  "chatbot-query","check-convention-status","check-daily-actions-completion",
   "check-functions-health","check-login-attempt","cleanup-pending-email-drafts","commercial-challenge",
   "create-learner-account","create-program-upload-url","create-review-image-upload-url","crm-ai-assist",
   "crm-elementor-webhook","crm-extract-opportunity","crm-send-email","crm-slack-notify",

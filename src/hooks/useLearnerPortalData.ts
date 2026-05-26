@@ -71,6 +71,7 @@ export function usePracticeDeposits(courseIds: string[]) {
         .select("id, lesson_id, course_id, learner_email, file_name, file_url, file_mime, comment, created_at")
         .in("course_id", courseIds)
         .eq("publication_status", "published")
+        .eq("visibility", "shared")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;

@@ -34,6 +34,8 @@ export interface WorkDepositConfig {
   sharing_allowed?: boolean;
   comments_enabled?: boolean;
   feedback_enabled?: boolean;
+  /** When true, the lesson can only be marked complete once a deposit exists. */
+  require_deposit_to_complete?: boolean;
 }
 
 /** Defaults applied client-side when a config field is missing. */
@@ -46,6 +48,7 @@ export const DEFAULT_WORK_DEPOSIT_CONFIG: Required<WorkDepositConfig> = {
   sharing_allowed: true,
   comments_enabled: true,
   feedback_enabled: true,
+  require_deposit_to_complete: true,
 };
 
 export function withDepositDefaults(config: WorkDepositConfig | null | undefined): Required<WorkDepositConfig> {

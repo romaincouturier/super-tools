@@ -61,7 +61,6 @@ const EventCreate = lazy(() => import("./pages/EventCreate"));
 const EventDetail = lazy(() => import("./pages/EventDetail"));
 const EventEdit = lazy(() => import("./pages/EventEdit"));
 const Monitoring = lazy(() => import("./pages/Monitoring"));
-const Screenshots = lazy(() => import("./pages/Screenshots"));
 const FailedEmails = lazy(() => import("./pages/FailedEmails"));
 const ArenaSetup = lazy(() => import("./pages/ArenaSetup"));
 const ArenaDiscussion = lazy(() => import("./pages/ArenaDiscussion"));
@@ -216,7 +215,6 @@ const App = () => (
                 <Route path="/events/:id" element={<EventDetail />} />
                 <Route path="/events/:id/edit" element={<EventEdit />} />
                 <Route path="/monitoring" element={<Monitoring />} />
-                <Route path="/screenshots" element={<Screenshots />} />
                 <Route path="/catalogue" element={<Catalogue />} />
                 <Route path="/ia" element={<AiTools />} />
                 <Route path="/lms" element={<LmsCourses />} />

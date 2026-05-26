@@ -349,3 +349,9 @@ All colors MUST be HSL.
   border-radius: 2px;
   padding: 0 2px;
 }
+
+/* Lesson content (learner front) — interligne uniforme, identique au builder */
+.lms-lesson-content .prose p,
+.lms-lesson-content .prose li {
+  line-height: 1.7;
+}

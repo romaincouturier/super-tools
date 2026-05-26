@@ -6,6 +6,33 @@ type Tables = Database["public"]["Tables"];
 
 // ---- Exported types ----
 
+export interface CourseHomeDocument {
+  label: string;
+  url: string;
+}
+
+export interface CourseHomeInstructor {
+  name?: string | null;
+  subtitle?: string | null;
+  photo_url?: string | null;
+  note?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  cv_url?: string | null;
+}
+
+/** Editable content of the course-home "Infos pratiques" section. */
+export interface CourseHomeConfig {
+  plan_url?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  period_note?: string | null;
+  objectives?: string[];
+  prerequisites?: string | null;
+  documents?: CourseHomeDocument[];
+  instructor?: CourseHomeInstructor | null;
+}
+
 export interface LmsCourse {
   id: string;
   org_id: string | null;
@@ -24,6 +51,7 @@ export interface LmsCourse {
   community_preview_count: number;
   welcome_video_url?: string | null;
   welcome_text?: string | null;
+  home_config?: CourseHomeConfig | null;
 }
 
 export interface LmsModule {

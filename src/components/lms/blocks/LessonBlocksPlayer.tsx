@@ -89,7 +89,7 @@ export default function LessonBlocksPlayer({ blocks, renderQuiz, renderAssignmen
   const tree = buildBlockTree(blocks).filter((n) => !n.block.hidden);
   if (tree.length === 0) return null;
   return (
-    <div className="space-y-6">
+    <div className="lms-lesson-content space-y-6">
       {tree.map((node) => (
         <NodeRenderer
           key={node.block.id}

@@ -14,7 +14,7 @@ import {
   useCourseLiveMeetings,
   uploadForumAttachment,
 } from "@/hooks/useLms";
-import type { CourseLiveMeeting, CourseLiveData } from "@/hooks/useLmsQueries";
+import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   CheckCircle2,
@@ -666,7 +666,7 @@ function ModulesListSection({
             >
               {/* Number badge */}
               <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold"
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-base font-bold"
                 style={{
                   background: isCompleted ? "#69C3C4" : isInProgress ? "#FFD100" : "#F2F4F4",
                   color: isCompleted ? "#fff" : "#101820",
@@ -678,7 +678,7 @@ function ModulesListSection({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold leading-snug" style={{ color: "var(--st-ink)" }}>
-                  {idx + 1} {mod.title}
+                  {mod.title}
                 </p>
                 {mod.description && (
                   <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "var(--st-ink-muted)" }}>{mod.description}</p>
@@ -972,12 +972,17 @@ function HeroSection({
             {completionPct > 0 ? "Continuer la formation" : "Commencer la formation"}
             <ChevronRight size={16} />
           </button>
-          <button
-            className="flex items-center gap-1 text-sm font-medium"
-            style={{ color: "var(--st-ink-muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
-          >
-            Voir le plan de la formation <ChevronRight size={14} />
-          </button>
+          {course.home_config?.plan_url && (
+            <a
+              href={course.home_config.plan_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-sm font-medium"
+              style={{ color: "var(--st-ink-muted)", textDecoration: "none", fontFamily: "inherit" }}
+            >
+              Voir le plan de la formation <ChevronRight size={14} />
+            </a>
+          )}
         </div>
       </div>
 
@@ -1141,95 +1146,134 @@ function InfoCard({ icon: Icon, title, children }: { icon: React.ElementType; ti
   );
 }
 
-function InfoCardsGrid() {
+function formatHomeDate(value?: string | null): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function InfoCardsGrid({ config }: { config?: CourseHomeConfig | null }) {
+  const c = config ?? {};
+  const periodStart = formatHomeDate(c.period_start);
+  const periodEnd = formatHomeDate(c.period_end);
+  const hasPeriod = !!(periodStart || periodEnd || c.period_note);
+  const objectives = (c.objectives ?? []).filter((o) => o.trim());
+  const prerequisites = c.prerequisites?.trim();
+  const documents = (c.documents ?? []).filter((d) => d.url?.trim());
+  const instructor = c.instructor ?? null;
+  const hasInstructor = !!(
+    instructor &&
+    (instructor.name || instructor.email || instructor.phone || instructor.cv_url || instructor.note || instructor.photo_url)
+  );
+  const hasAny = hasPeriod || objectives.length > 0 || !!prerequisites || documents.length > 0 || hasInstructor;
+  if (!hasAny) return null;
+
+  const instructorInitials =
+    (instructor?.name || "")
+      .split(" ")
+      .map((w) => w[0])
+      .filter(Boolean)
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?";
+
+  const linkStyle = { borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)", textDecoration: "none" } as const;
+
   return (
     <section>
       <h2 className="text-base font-semibold mb-4" style={{ color: "var(--st-ink)" }}>Infos pratiques</h2>
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {/* Période */}
-        <InfoCard icon={Calendar} title="Période de formation">
-          <p className="font-semibold text-base mb-1" style={{ color: "var(--st-ink)" }}>
-            Du 27 mai 2026<br />au 1 juillet 2026
-          </p>
-          <p>Formation en e-learning accessible à votre rythme pendant cette période.</p>
-        </InfoCard>
+        {hasPeriod && (
+          <InfoCard icon={Calendar} title="Période de formation">
+            {(periodStart || periodEnd) && (
+              <p className="font-semibold text-base mb-1" style={{ color: "var(--st-ink)" }}>
+                {periodStart && <>Du {periodStart}</>}
+                {periodStart && periodEnd && <br />}
+                {periodEnd && <>au {periodEnd}</>}
+              </p>
+            )}
+            {c.period_note && <p>{c.period_note}</p>}
+          </InfoCard>
+        )}
 
-        {/* Objectifs */}
-        <InfoCard icon={Target} title="Objectifs de la formation">
-          <ul className="space-y-1.5">
-            {[
-              "Comprendre les principes de la facilitation graphique.",
-              "Développer votre vocabulaire visuel et vos techniques de dessin.",
-              "Structurer et clarifier vos idées visuellement.",
-              "Animer avec le visuel et favoriser l'intelligence collective.",
-              "Gagner en confiance et en impact dans vos communications.",
-            ].map((obj) => (
-              <li key={obj} className="flex items-start gap-1.5">
-                <span style={{ color: "var(--st-yellow)", fontWeight: 700, marginTop: 1 }}>✓</span>
-                <span>{obj}</span>
-              </li>
-            ))}
-          </ul>
-        </InfoCard>
+        {objectives.length > 0 && (
+          <InfoCard icon={Target} title="Objectifs de la formation">
+            <ul className="space-y-1.5">
+              {objectives.map((obj) => (
+                <li key={obj} className="flex items-start gap-1.5">
+                  <span style={{ color: "var(--st-yellow)", fontWeight: 700, marginTop: 1 }}>✓</span>
+                  <span>{obj}</span>
+                </li>
+              ))}
+            </ul>
+          </InfoCard>
+        )}
 
-        {/* Prérequis */}
-        <InfoCard icon={BookOpen} title="Prérequis">
-          <p>Il n'est pas nécessaire de savoir dessiner pour suivre la formation.</p>
-        </InfoCard>
+        {prerequisites && (
+          <InfoCard icon={BookOpen} title="Prérequis">
+            <p>{prerequisites}</p>
+          </InfoCard>
+        )}
 
-        {/* Documents */}
-        <InfoCard icon={FileText} title="Documents utiles">
-          <div className="space-y-2">
-            {[
-              { label: "Consulter le programme", icon: ExternalLink },
-              { label: "Règlement intérieur", icon: FileText },
-            ].map(({ label, icon: Icon }) => (
-              <button
-                key={label}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all hover:bg-black/5 text-left"
-                style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)", fontFamily: "inherit" }}
-              >
-                <Icon size={13} style={{ color: "var(--st-ink-muted)" }} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </InfoCard>
-
-        {/* Formateur */}
-        <InfoCard icon={User} title="Votre formateur">
-          <div className="flex items-center gap-3 mb-3">
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-sm font-bold"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}
-            >
-              RC
+        {documents.length > 0 && (
+          <InfoCard icon={FileText} title="Documents utiles">
+            <div className="space-y-2">
+              {documents.map((doc) => (
+                <a
+                  key={doc.url}
+                  href={doc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all hover:bg-black/5 text-left"
+                  style={linkStyle}
+                >
+                  <ExternalLink size={13} style={{ color: "var(--st-ink-muted)" }} />
+                  {doc.label || "Document"}
+                </a>
+              ))}
             </div>
-            <div>
-              <p className="font-semibold text-sm" style={{ color: "var(--st-ink)" }}>Romain Couturier</p>
-              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Votre formateur</p>
-            </div>
-          </div>
-          <p className="text-xs mb-3" style={{ color: "var(--st-ink-muted)" }}>
-            En cas de besoin, n'hésitez pas à le contacter directement.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: "Email", icon: Mail },
-              { label: "Téléphone", icon: Phone },
-              { label: "CV", icon: FileText },
-            ].map(({ label, icon: Icon }) => (
-              <button
-                key={label}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)", fontFamily: "inherit" }}
+          </InfoCard>
+        )}
+
+        {hasInstructor && instructor && (
+          <InfoCard icon={User} title="Votre formateur">
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center shrink-0 text-sm font-bold"
+                style={{ background: "var(--st-yellow)", color: "#101820" }}
               >
-                <Icon size={11} />
-                {label}
-              </button>
-            ))}
-          </div>
-        </InfoCard>
+                {instructor.photo_url
+                  ? <img src={instructor.photo_url} alt={instructor.name || ""} className="w-full h-full object-cover" />
+                  : instructorInitials}
+              </div>
+              <div>
+                <p className="font-semibold text-sm" style={{ color: "var(--st-ink)" }}>{instructor.name || "Votre formateur"}</p>
+                {instructor.subtitle && <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>{instructor.subtitle}</p>}
+              </div>
+            </div>
+            {instructor.note && (
+              <p className="text-xs mb-3" style={{ color: "var(--st-ink-muted)" }}>{instructor.note}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {instructor.email && (
+                <a href={`mailto:${instructor.email}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:bg-black/5" style={linkStyle}>
+                  <Mail size={11} /> Email
+                </a>
+              )}
+              {instructor.phone && (
+                <a href={`tel:${instructor.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:bg-black/5" style={linkStyle}>
+                  <Phone size={11} /> Téléphone
+                </a>
+              )}
+              {instructor.cv_url && (
+                <a href={instructor.cv_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:bg-black/5" style={linkStyle}>
+                  <FileText size={11} /> CV
+                </a>
+              )}
+            </div>
+          </InfoCard>
+        )}
       </div>
     </section>
   );
@@ -1755,6 +1799,7 @@ export default function LmsCourseHomePage() {
                   />
                   <TipsBlock />
                 </div>
+                <InfoCardsGrid config={course.home_config} />
               </>
             )}
 

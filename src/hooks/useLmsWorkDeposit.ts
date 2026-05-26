@@ -52,13 +52,21 @@ export function useVisibleDeposits(lessonId: string | undefined, learnerEmail: s
   });
 }
 
+/** Invalidate every feed that may surface a deposit: the lesson peer view,
+ *  the cross-course community feed, and the learner's "Mes travaux". */
+function invalidateDepositFeeds(qc: ReturnType<typeof useQueryClient>, lessonId: string) {
+  qc.invalidateQueries({ queryKey: ["visible-deposits", lessonId] });
+  qc.invalidateQueries({ queryKey: ["practice_deposits"] });
+  qc.invalidateQueries({ queryKey: ["learner_work_deposits"] });
+}
+
 export function useCreateDeposit(lessonId: string, learnerEmail: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateWorkDepositInput) => createDeposit(input),
     onSuccess: (data: WorkDeposit) => {
       qc.setQueryData(KEYS.myDeposit(lessonId, learnerEmail), data);
-      qc.invalidateQueries({ queryKey: KEYS.visibleDeposits(lessonId, learnerEmail) });
+      invalidateDepositFeeds(qc, lessonId);
     },
   });
 }
@@ -70,7 +78,7 @@ export function useUpdateDeposit(lessonId: string, learnerEmail: string) {
       updateDeposit(id, updates, learnerEmail),
     onSuccess: (data: WorkDeposit) => {
       qc.setQueryData(KEYS.myDeposit(lessonId, learnerEmail), data);
-      qc.invalidateQueries({ queryKey: KEYS.visibleDeposits(lessonId, learnerEmail) });
+      invalidateDepositFeeds(qc, lessonId);
     },
   });
 }
@@ -81,7 +89,7 @@ export function useDeleteDeposit(lessonId: string, learnerEmail: string) {
     mutationFn: (id: string) => deleteDeposit(id, learnerEmail),
     onSuccess: () => {
       qc.removeQueries({ queryKey: KEYS.myDeposit(lessonId, learnerEmail) });
-      qc.invalidateQueries({ queryKey: KEYS.visibleDeposits(lessonId, learnerEmail) });
+      invalidateDepositFeeds(qc, lessonId);
     },
   });
 }

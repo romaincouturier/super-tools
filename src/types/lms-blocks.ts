@@ -235,6 +235,8 @@ export interface WorkDepositBlockContent {
   sharing_allowed?: boolean;
   comments_enabled?: boolean;
   feedback_enabled?: boolean;
+  /** When not false, the lesson can only be completed once a deposit exists. */
+  require_deposit_to_complete?: boolean;
 }
 
 // ── Timeline block ──────────────────────────────────────────────────

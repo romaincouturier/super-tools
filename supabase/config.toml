@@ -420,9 +420,6 @@ verify_jwt = false
 [functions.reconcile-support-screenshots]
 verify_jwt = false
 
-[functions.capture-screenshots]
-verify_jwt = false
-
 [functions.media-slack-notify]
 verify_jwt = false
 

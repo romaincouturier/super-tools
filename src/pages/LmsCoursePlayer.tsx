@@ -20,6 +20,8 @@ import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
 import CourseProgressSidebar from "@/components/lms/CourseProgressSidebar";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
+import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
+import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
   Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles,
@@ -44,10 +46,17 @@ export default function LmsCoursePlayer() {
   const { data: badges = [] } = useLearnerBadges(learnerEmail || undefined);
   const markComplete = useMarkLessonComplete();
   const trackView = useTrackPageView();
+  const { toast } = useToast();
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const mainRef = useRef<HTMLElement>(null);
+
+  const { data: lessonBlocks = [] } = useLessonBlocks(selectedLessonId);
+  const { data: myDeposit, isLoading: myDepositLoading } = useMyDeposit(
+    selectedLessonId || undefined,
+    learnerEmail || undefined,
+  );
 
   // Group lessons by module
   const lessonsByModule = useMemo(() => {
@@ -101,8 +110,30 @@ export default function LmsCoursePlayer() {
     return prereqLessons.every((l) => completedIds.has(l.id));
   };
 
+  // Does the current lesson require a submitted deposit before completion?
+  const requiresDeposit = useMemo(() => {
+    return lessonBlocks.some((b) => {
+      if (b.hidden) return false;
+      if (b.type === "work_deposit") {
+        return (b.content as WorkDepositBlockContent).require_deposit_to_complete !== false;
+      }
+      if (b.type === "exercise") {
+        const c = b.content as ExerciseBlockContent;
+        return !!(c.work_deposit_enabled && c.work_deposit && c.work_deposit.require_deposit_to_complete !== false);
+      }
+      return false;
+    });
+  }, [lessonBlocks]);
+
   const handleMarkComplete = async () => {
     if (!selectedLesson || !courseId || !learnerEmail) return;
+    if (requiresDeposit && !myDepositLoading && !myDeposit) {
+      toast({
+        title: "Déposez d'abord votre travail",
+        description: "Cette leçon ne peut être marquée comme terminée qu'après le dépôt de votre travail.",
+      });
+      return;
+    }
     await markComplete.mutateAsync({
       course_id: courseId,
       lesson_id: selectedLesson.id,
