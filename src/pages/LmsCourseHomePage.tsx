@@ -14,6 +14,7 @@ import {
   useCourseLiveMeetings,
   uploadForumAttachment,
 } from "@/hooks/useLms";
+import { usePracticePosts } from "@/hooks/usePracticeFeed";
 import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
@@ -112,142 +113,98 @@ function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: number }
 
 // ── Community sidebar preview ─────────────────────────────────────────────────
 
-function CommunitySidebarPreview({
-  courseId,
-  email,
-  previewCount,
-}: {
-  courseId: string;
-  email: string;
-  previewCount: number;
-}) {
-  const [content, setContent] = useState("");
-  const [attachment, setAttachment] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+function _sidebarAuthorName(email: string, firstName?: string | null, lastName?: string | null): string {
+  if (firstName && lastName) return `${firstName} ${lastName}`;
+  if (firstName) return firstName;
+  return email.split("@")[0];
+}
+function _sidebarAuthorInitials(email: string, firstName?: string | null, lastName?: string | null): string {
+  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  if (firstName) return firstName.slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase();
+}
 
-  const { data: forums = [] } = useCourseForums(courseId);
-  const mainForum = forums[0] ?? null;
-  const { data: allPosts = [] } = useForumPosts(mainForum?.id);
-  const createPost = useCreateForumPost();
-
-  const recentPosts = [...allPosts].reverse().slice(0, previewCount);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!content.trim() && !attachment) || !mainForum || !email) return;
-    setError(null);
-    setUploading(true);
-    try {
-      let fileUrl: string | null = null;
-      let fileName: string | null = null;
-      if (attachment) {
-        const uploaded = await uploadForumAttachment(attachment, courseId, email);
-        fileUrl = uploaded.url;
-        fileName = uploaded.name;
-      }
-      await createPost.mutateAsync({
-        forum_id: mainForum.id,
-        author_email: email,
-        content_html: content.trim() ? `<p>${content.trim()}</p>` : "",
-        file_url: fileUrl,
-        file_name: fileName,
-      });
-      setContent("");
-      setAttachment(null);
-      if (fileRef.current) fileRef.current.value = "";
-    } catch (err) {
-      setError("Impossible d'envoyer le message. Réessayez.");
-    } finally {
-      setUploading(false);
-    }
-  };
+function CommunitySidebarPreview({ email }: { courseId: string; email: string; previewCount: number }) {
+  const navigate = useNavigate();
+  const { data: posts = [] } = usePracticePosts(email || null, 2);
+  const goToCommunity = () => navigate("/espace-apprenant?section=pratique");
 
   return (
     <div className="p-5 border-b" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-      <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
-        Communauté
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--st-ink-muted)" }}>
+          Communauté
+        </p>
+        <button
+          onClick={goToCommunity}
+          className="text-[10px] font-semibold uppercase tracking-wider hover:underline"
+          style={{ color: "var(--st-ink-muted)" }}
+        >
+          Voir tout
+        </button>
+      </div>
 
-      {/* Mini post form */}
-      <form onSubmit={handleSubmit} className="mb-3 space-y-1.5">
-        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Une question ?</p>
-        <div className="flex gap-1.5">
-          <input
-            type="text"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Écrire un message…"
-            className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border outline-none min-w-0"
-            style={{ borderColor: "rgba(16,24,32,0.15)", fontFamily: "inherit", color: "var(--st-ink)", background: "transparent" }}
-          />
-          {/* Attachment button */}
+      {posts.length === 0 ? (
+        <div className="py-2">
+          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Aucun post pour l'instant.</p>
           <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all hover:bg-black/5"
-            style={{ color: attachment ? "var(--st-yellow)" : "var(--st-ink-muted)" }}
-            title="Joindre un fichier"
+            onClick={goToCommunity}
+            className="mt-2 text-xs font-semibold underline"
+            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
           >
-            <Paperclip size={12} />
-          </button>
-          <input ref={fileRef} type="file" className="hidden" onChange={(e) => setAttachment(e.target.files?.[0] ?? null)} />
-          {/* Send button */}
-          <button
-            type="submit"
-            disabled={(!content.trim() && !attachment) || uploading || createPost.isPending}
-            className="w-7 h-7 flex items-center justify-center rounded-lg shrink-0 transition-all disabled:opacity-40"
-            style={{ background: "var(--st-yellow)", color: "#101820" }}
-          >
-            <Send size={12} />
+            Soyez le premier à publier →
           </button>
         </div>
-        {attachment && (
-          <p className="text-[10px] truncate" style={{ color: "var(--st-ink-muted)" }}>
-            📎 {attachment.name}
-          </p>
-        )}
-        {error && (
-          <p className="text-[10px] flex items-center gap-1" style={{ color: "#ef4444" }}>
-            <AlertCircle size={10} /> {error}
-          </p>
-        )}
-      </form>
-
-      {/* Recent posts */}
-      {recentPosts.length > 0 ? (
-        <ul className="space-y-2.5">
-          {recentPosts.map((post) => {
-            const initials = post.author_email.split("@")[0].slice(0, 2).toUpperCase();
-            const date = new Date(post.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+      ) : (
+        <ul className="space-y-3">
+          {posts.map((post) => {
+            const name = _sidebarAuthorName(post.author_email, post.author_first_name, post.author_last_name);
+            const initials = _sidebarAuthorInitials(post.author_email, post.author_first_name, post.author_last_name);
             return (
-              <li key={post.id} className="flex gap-2 items-start">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5"
-                  style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                  {initials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  {post.content_html && (
-                    <div className="text-xs leading-snug line-clamp-2 [&>*]:inline" style={{ color: "var(--st-ink)" }}
-                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content_html) }} />
-                  )}
-                  {post.file_url && (
-                    <a href={post.file_url} target="_blank" rel="noopener noreferrer"
-                      className="text-[10px] flex items-center gap-1 mt-0.5 hover:underline truncate"
-                      style={{ color: "var(--st-ink-muted)" }}>
-                      <Paperclip size={9} /> {post.file_name ?? "Fichier joint"}
-                    </a>
-                  )}
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{date}</p>
-                </div>
+              <li key={post.id}>
+                <button
+                  onClick={goToCommunity}
+                  className="w-full flex items-start gap-2.5 text-left rounded-lg p-1 -m-1 transition-colors hover:bg-black/[0.03]"
+                >
+                  <div
+                    className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0"
+                    style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}
+                  >
+                    {post.author_photo_url
+                      ? <img src={post.author_photo_url} alt={name} className="w-full h-full object-cover" />
+                      : initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{name}</p>
+                    {post.content && (
+                      <p className="text-xs line-clamp-2 mt-0.5" style={{ color: "var(--st-ink-muted)" }}>
+                        {post.content}
+                      </p>
+                    )}
+                    {!post.content && post.file_url && (
+                      <p className="text-xs mt-0.5 italic" style={{ color: "var(--st-ink-muted)" }}>A partagé une photo</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1 text-[10px]" style={{ color: "var(--st-ink-muted)" }}>
+                      <span>{post.reaction_count} j'aime</span>
+                      <span>·</span>
+                      <span>{post.comment_count} comm.</span>
+                    </div>
+                  </div>
+                </button>
               </li>
             );
           })}
         </ul>
-      ) : (
-        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Pas encore de message. Soyez le premier !</p>
       )}
+
+      <button
+        onClick={goToCommunity}
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-colors hover:bg-black/5"
+        style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", fontFamily: "inherit" }}
+      >
+        <Users size={13} />
+        Aller à la communauté
+      </button>
     </div>
   );
 }
@@ -785,12 +742,15 @@ interface SidebarProps {
   moduleStatuses: Record<string, ModuleStatus>;
   lessonCountByModule: Record<string, number>;
   lessonsDoneByModule: Record<string, number>;
+  lessonsByModule?: Record<string, Array<{ id: string; title: string }>>;
   activeLessonId: string | null;
   communityPreviewCount: number;
   meetings: CourseLiveMeeting[];
   activeView: string;
   onModuleClick: (moduleId: string) => void;
   onViewChange: (view: string) => void;
+  onLessonClick?: (lessonId: string) => void;
+  completedLessonIds?: Set<string>;
 }
 
 function Sidebar({
@@ -810,7 +770,18 @@ function Sidebar({
   activeView,
   onModuleClick,
   onViewChange,
+  lessonsByModule,
+  onLessonClick,
+  completedLessonIds,
 }: SidebarProps) {
+  const activeModuleId = activeLessonId && lessonsByModule
+    ? modules.find((m) => (lessonsByModule[m.id] || []).some((l) => l.id === activeLessonId))?.id ?? null
+    : null;
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (activeModuleId) setExpanded((prev) => (prev[activeModuleId] ? prev : { ...prev, [activeModuleId]: true }));
+  }, [activeModuleId]);
+  const toggleModule = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   const navigate = useNavigate();
   const playerUrl = isPreview
     ? `/lms/${courseId}/player?preview=admin`
@@ -910,27 +881,77 @@ function Sidebar({
             const done = lessonsDoneByModule[m.id] ?? 0;
             const pct = total > 0 ? (done / total) * 100 : 0;
             const isCompleted = status === "completed";
+            const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
+            const hasLessons = moduleLessons.length > 0;
+            const isOpen = !!expanded[m.id];
             return (
               <li key={m.id}>
-                <button
-                  onClick={() => onModuleClick(m.id)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-black/5 group"
+                <div
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
                   style={{ fontFamily: "inherit" }}
                 >
-                  <ModuleStatusIcon status={status} num={idx + 1} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
-                      {m.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                  <button
+                    onClick={() => onModuleClick(m.id)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                    style={{ fontFamily: "inherit" }}
+                  >
+                    <ModuleStatusIcon status={status} num={idx + 1} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
+                        {m.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                        </div>
+                        <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                       </div>
-                      <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                     </div>
-                  </div>
-                  <ChevronRight size={14} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
-                </button>
+                  </button>
+                  {hasLessons && (
+                    <button
+                      onClick={() => toggleModule(m.id)}
+                      className="w-6 h-6 flex items-center justify-center rounded-md shrink-0 hover:bg-black/10 transition-colors"
+                      aria-label={isOpen ? "Replier" : "Déplier"}
+                    >
+                      <ChevronDown
+                        size={14}
+                        style={{ color: "var(--st-ink-muted)", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {isOpen && hasLessons && (
+                  <ul className="mt-1 ml-12 space-y-0.5 mb-2">
+                    {moduleLessons.map((lesson) => {
+                      const isActiveLesson = lesson.id === activeLessonId;
+                      const isDone = completedLessonIds?.has(lesson.id) ?? false;
+                      return (
+                        <li key={lesson.id}>
+                          <button
+                            onClick={() => onLessonClick?.(lesson.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors text-xs",
+                              !isActiveLesson && "hover:bg-black/5",
+                            )}
+                            style={{
+                              fontFamily: "inherit",
+                              background: isActiveLesson ? "#FFD100" : "transparent",
+                              color: isActiveLesson ? "#101820" : "var(--st-ink-muted)",
+                              fontWeight: isActiveLesson ? 600 : 400,
+                            }}
+                          >
+                            {isDone
+                              ? <CheckCircle2 size={12} style={{ color: "#69C3C4", flexShrink: 0 }} />
+                              : <Play size={11} style={{ flexShrink: 0, opacity: isActiveLesson ? 1 : 0.5 }} />}
+                            <span className="truncate leading-snug">{lesson.title}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
@@ -1741,6 +1762,8 @@ export default function LmsCourseHomePage() {
             moduleStatuses={moduleStatuses}
             lessonCountByModule={lessonCountByModule}
             lessonsDoneByModule={lessonsDoneByModule}
+            lessonsByModule={lessonsByModule}
+            completedLessonIds={completedIds}
             activeLessonId={null}
             communityPreviewCount={course.community_preview_count ?? 2}
             meetings={meetings}
@@ -1782,6 +1805,8 @@ export default function LmsCourseHomePage() {
                   moduleStatuses={moduleStatuses}
                   lessonCountByModule={lessonCountByModule}
                   lessonsDoneByModule={lessonsDoneByModule}
+                  lessonsByModule={lessonsByModule}
+                  completedLessonIds={completedIds}
                   activeLessonId={null}
                   communityPreviewCount={course.community_preview_count ?? 2}
                   meetings={meetings}
