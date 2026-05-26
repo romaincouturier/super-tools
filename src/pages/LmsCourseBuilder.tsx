@@ -171,6 +171,35 @@ function ModuleBlock({ mod, courseId, onMoveUp, onMoveDown, isFirst, isLast }: {
   );
 }
 
+function HomeBlock({ course }: { course: { id: string; welcome_video_url?: string | null; welcome_text?: string | null; home_config?: CourseHomeConfig | null } }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <Card className="border-l-4 border-l-[#FFD100]">
+      <Collapsible open={expanded} onOpenChange={setExpanded}>
+        <CardHeader className="py-3">
+          <div className="flex items-center gap-2">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style={{ background: "#FFD100" }}>
+              <Home className="w-3.5 h-3.5" style={{ color: "#101820" }} />
+            </span>
+            <CardTitle className="text-sm font-semibold flex-1">Accueil</CardTitle>
+            <Badge variant="outline" className="text-xs">Page d'accueil</Badge>
+          </div>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="pt-0">
+            <HomePageEditor course={course} />
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
+
 export default function LmsCourseBuilder() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
