@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History } from "lucide-react";
+import { Loader2, Send, Clock, RefreshCw, Receipt, Scroll, Award, Download, Forward, UserCheck, RotateCw, FileSignature, BellRing, Trash2, ClipboardCheck, History, KeyRound } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +43,7 @@ const ParticipantActions = ({
   availableFormulas,
   sendingId,
   remindingId,
+  sendingMagicLinkId,
   deletingId,
   generatingConventionId,
   downloadingConventionId,
@@ -55,6 +56,7 @@ const ParticipantActions = ({
   participantsWithSignatures,
   onSendSurvey,
   onSendReminder,
+  onSendMagicLink,
   onDelete,
   onGenerateConvention,
   onDownloadConvention,
@@ -158,6 +160,18 @@ const ParticipantActions = ({
           </DropdownMenu>
         );
       })()}
+
+      {/* 1b. Renvoyer le lien magique - e-learning uniquement */}
+      {formatFormation === "e_learning" && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onSendMagicLink(participant)} disabled={sendingMagicLinkId === participant.id}>
+              {sendingMagicLinkId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>Renvoyer le lien magique d'accès</p></TooltipContent>
+        </Tooltip>
+      )}
 
       {/* 2. Questionnaire des besoins */}
       {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (

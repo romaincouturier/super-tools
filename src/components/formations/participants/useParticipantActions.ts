@@ -40,6 +40,7 @@ export function useParticipantActions({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [sendingMagicLinkId, setSendingMagicLinkId] = useState<string | null>(null);
   const { invoke: invokeSendSurvey } = useEdgeFunction(
     "send-needs-survey",
     { errorMessage: "Erreur" },
@@ -47,6 +48,10 @@ export function useParticipantActions({
   const { invoke: invokeSendReminder } = useEdgeFunction(
     "send-needs-survey-reminder",
     { errorMessage: "Erreur" },
+  );
+  const { invoke: invokeSendMagicLink } = useEdgeFunction(
+    "send-learner-magic-link",
+    { errorMessage: "Erreur lors de l'envoi du lien magique" },
   );
 
   const documentActions = useDocumentActions({
@@ -134,6 +139,25 @@ export function useParticipantActions({
     }
   };
 
+  const handleSendMagicLink = async (participant: Participant) => {
+    setSendingMagicLinkId(participant.id);
+    try {
+      const result = await invokeSendMagicLink({
+        email: participant.email,
+        trainingId,
+        participantId: participant.id,
+      });
+      if (result !== null) {
+        toast({
+          title: "Lien magique envoyé",
+          description: `Un lien d'accès à la formation a été renvoyé à ${participant.email}.`,
+        });
+      }
+    } finally {
+      setSendingMagicLinkId(null);
+    }
+  };
+
   const handleToggleCoachingSession = async (participant: Participant) => {
     const current = participant.coaching_sessions_completed || 0;
     const total = participant.coaching_sessions_total || 0;
@@ -183,10 +207,12 @@ export function useParticipantActions({
     deletingId,
     sendingId,
     remindingId,
+    sendingMagicLinkId,
     ...documentActions,
     handleDelete,
     handleSendSurvey,
     handleSendReminder,
+    handleSendMagicLink,
     handleToggleCoachingSession,
     handleUncheckCoachingSession,
     handleCopyEmail,
