@@ -406,7 +406,7 @@ export default function LmsCoursePlayer() {
         <main ref={mainRef} className="flex-1 overflow-auto">
           {selectedLesson ? (
             <div className="p-4 sm:p-6">
-              <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
+              <div className="flex flex-col gap-6 items-start">
 
                 {/* ── Center column ──────────────────────────────────────── */}
                 <div className="space-y-4">
