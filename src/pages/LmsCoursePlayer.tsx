@@ -381,6 +381,10 @@ export default function LmsCoursePlayer() {
                   activeView="home"
                   onModuleClick={handleSidebarModuleClick}
                   onViewChange={handleSidebarViewChange}
+                  lessonsByModule={lessonsByModule}
+                  activeLessonId={selectedLessonId}
+                  completedLessonIds={completedIds}
+                  onLessonClick={setSelectedLessonId}
                 />
               )}
             </div>
@@ -418,6 +422,10 @@ export default function LmsCoursePlayer() {
                   activeView="home"
                   onModuleClick={(id) => { handleSidebarModuleClick(id); setSidebarOpen(false); }}
                   onViewChange={(v) => { handleSidebarViewChange(v); setSidebarOpen(false); }}
+                  lessonsByModule={lessonsByModule}
+                  activeLessonId={selectedLessonId}
+                  completedLessonIds={completedIds}
+                  onLessonClick={(id) => { setSelectedLessonId(id); setSidebarOpen(false); }}
                 />
               )}
             </div>

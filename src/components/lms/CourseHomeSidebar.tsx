@@ -189,6 +189,11 @@ export interface CourseHomeSidebarProps {
   activeView: string;
   onModuleClick: (moduleId: string) => void;
   onViewChange: (view: string) => void;
+  // Optional: when provided, the module containing activeLessonId expands with its lessons listed.
+  lessonsByModule?: Record<string, Array<{ id: string; title: string }>>;
+  activeLessonId?: string | null;
+  completedLessonIds?: Set<string>;
+  onLessonClick?: (lessonId: string) => void;
 }
 
 export default function CourseHomeSidebar({
@@ -204,7 +209,15 @@ export default function CourseHomeSidebar({
   activeView,
   onModuleClick,
   onViewChange,
+  lessonsByModule,
+  activeLessonId,
+  completedLessonIds,
+  onLessonClick,
 }: CourseHomeSidebarProps) {
+  const activeModuleId = activeLessonId && lessonsByModule
+    ? modules.find((m) => (lessonsByModule[m.id] || []).some((l) => l.id === activeLessonId))?.id ?? null
+    : null;
+
   return (
     <aside
       className="flex flex-col h-full overflow-y-auto"
@@ -274,6 +287,8 @@ export default function CourseHomeSidebar({
             const done = lessonsDoneByModule[m.id] ?? 0;
             const pct = total > 0 ? (done / total) * 100 : 0;
             const isCompleted = status === "completed";
+            const isActiveModule = m.id === activeModuleId;
+            const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
             return (
               <li key={m.id}>
                 <button
@@ -295,6 +310,37 @@ export default function CourseHomeSidebar({
                   </div>
                   <ChevronRight size={14} className="shrink-0 opacity-0 group-hover:opacity-40 transition-opacity" />
                 </button>
+
+                {isActiveModule && moduleLessons.length > 0 && (
+                  <ul className="mt-1 ml-12 space-y-0.5 mb-2">
+                    {moduleLessons.map((lesson) => {
+                      const isActiveLesson = lesson.id === activeLessonId;
+                      const isDone = completedLessonIds?.has(lesson.id) ?? false;
+                      return (
+                        <li key={lesson.id}>
+                          <button
+                            onClick={() => onLessonClick?.(lesson.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left transition-colors text-xs",
+                              !isActiveLesson && "hover:bg-black/5",
+                            )}
+                            style={{
+                              fontFamily: "inherit",
+                              background: isActiveLesson ? "#FFD100" : "transparent",
+                              color: isActiveLesson ? "#101820" : "var(--st-ink-muted)",
+                              fontWeight: isActiveLesson ? 600 : 400,
+                            }}
+                          >
+                            {isDone
+                              ? <CheckCircle2 size={12} style={{ color: "#69C3C4", flexShrink: 0 }} />
+                              : <Play size={11} style={{ flexShrink: 0, opacity: isActiveLesson ? 1 : 0.5 }} />}
+                            <span className="truncate leading-snug">{lesson.title}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
