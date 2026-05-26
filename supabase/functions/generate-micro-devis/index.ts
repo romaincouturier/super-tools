@@ -6,7 +6,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { guessMimeType } from "../_shared/mime-types.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 
 interface RequestBody {
   nomClient: string;
@@ -556,6 +556,14 @@ serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const authedUser = await verifyAuth(req.headers.get("Authorization"));
+  if (!authedUser) {
+    return new Response(JSON.stringify({ error: "Non autorisé" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body: RequestBody = await req.json();

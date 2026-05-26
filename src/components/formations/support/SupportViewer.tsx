@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, useEffect, useCallback } from "react";
+import DOMPurify from "dompurify";
 import { Loader2, BookOpen, Download, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";

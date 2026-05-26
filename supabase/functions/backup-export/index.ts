@@ -198,9 +198,26 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    // Require authenticated admin caller
+    const authedUser = await verifyAuth(req.headers.get("Authorization"));
+    if (!authedUser) {
+      return new Response(JSON.stringify({ error: "Non autorisé" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const { data: isAdminRow } = await supabase.rpc("is_admin", { _user_id: authedUser.id });
+    if (!isAdminRow) {
+      return new Response(JSON.stringify({ error: "Réservé aux administrateurs" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Get optional parameters
     const { uploadToGDrive = false, userId } = await req.json().catch(() => ({}));
