@@ -251,26 +251,35 @@ export default function CourseHomeSidebar({
       <div className="p-5 flex-1">
         <ul className="space-y-1 mb-4">
           <li>
-            <button
-              onClick={() => onViewChange("home")}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
-              style={{
-                fontFamily: "inherit",
-                background: "transparent",
-                color: "var(--st-ink)",
-                fontWeight: activeView === "home" ? 600 : 500,
-              }}
-            >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "rgba(16,24,32,0.06)" }}
-              >
-                <Home size={16} style={{ color: "#101820" }} />
-              </div>
-              <span className="text-sm leading-snug">Accueil</span>
-            </button>
+            {(() => {
+              const isHomeActive = activeView === "home" && !activeLessonId;
+              return (
+                <button
+                  onClick={() => onViewChange("home")}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    !isHomeActive && "hover:bg-black/5",
+                  )}
+                  style={{
+                    fontFamily: "inherit",
+                    background: isHomeActive ? "#FFD100" : "transparent",
+                    color: "#101820",
+                    fontWeight: isHomeActive ? 600 : 500,
+                  }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: isHomeActive ? "rgba(16,24,32,0.08)" : "rgba(16,24,32,0.06)" }}
+                  >
+                    <Home size={16} style={{ color: "#101820" }} />
+                  </div>
+                  <span className="text-sm leading-snug">Accueil</span>
+                </button>
+              );
+            })()}
           </li>
         </ul>
+
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
           Vos modules
         </p>
