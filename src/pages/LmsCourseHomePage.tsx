@@ -46,7 +46,7 @@ import {
   AlertCircle,
   Bell,
 } from "lucide-react";
-import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
+import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import LearnerCourseHeader from "@/components/lms/LearnerCourseHeader";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -435,7 +435,7 @@ function CommunityInfoCard({
   const navigate = useNavigate();
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate("/espace-apprenant/communaute");
+    navigate(communityUrlWithContext(courseId));
   };
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;

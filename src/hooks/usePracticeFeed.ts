@@ -4,6 +4,19 @@ import { resolveContentType } from "@/lib/file-utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export interface PracticePollOption {
+  id: string;
+  label: string;
+  vote_count: number;
+}
+
+export interface PracticePoll {
+  id: string;
+  options: PracticePollOption[];
+  total_votes: number;
+  my_option_id: string | null;
+}
+
 export interface PracticePost {
   id: string;
   author_email: string;
@@ -25,6 +38,12 @@ export interface PracticePost {
   reaction_count: number;
   i_reacted: boolean;
   comment_count: number;
+  hashtags: string[];
+  poll: PracticePoll | null;
+}
+
+export interface NewPoll {
+  options: string[];
 }
 
 export interface PracticeComment {
@@ -47,26 +66,60 @@ function clientFor(email?: string | null) {
 
 // ── Posts ────────────────────────────────────────────────────────────────────
 
+export interface PracticePostsFilter {
+  lessonId?: string | null;
+  /** Only posts authored by this email (Mes publications). */
+  authorEmail?: string | null;
+  /** Only posts the given email reacted to (Mes likes). */
+  likedBy?: string | null;
+  /** Only posts carrying this hashtag. */
+  tag?: string | null;
+}
+
 export function usePracticePosts(
   learnerEmail: string | null,
   limit = 50,
-  options?: { lessonId?: string | null },
+  options?: PracticePostsFilter,
 ) {
   const lessonFilter = options?.lessonId ?? null;
+  const authorFilter = options?.authorEmail ?? null;
+  const likedByFilter = options?.likedBy ?? null;
+  const tagFilter = options?.tag ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, authorFilter, likedByFilter, tagFilter],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientFor(learnerEmail) as any;
 
+      // Resolve post-id restrictions from like / tag filters first.
+      let restrictIds: string[] | null = null;
+      const intersect = (ids: string[]) => {
+        restrictIds = restrictIds === null ? ids : restrictIds.filter((id) => ids.includes(id));
+      };
+      if (likedByFilter) {
+        const { data } = await c.from("practice_post_reactions").select("post_id").eq("author_email", likedByFilter);
+        intersect(Array.from(new Set((data || []).map((r: any) => r.post_id))));
+      }
+      if (tagFilter) {
+        const { data } = await c.from("practice_post_hashtags").select("post_id").eq("tag", tagFilter);
+        intersect(Array.from(new Set((data || []).map((r: any) => r.post_id))));
+      }
+      if (restrictIds !== null && restrictIds.length === 0) return [];
+
       let postsQuery = c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit);
       if (lessonFilter) postsQuery = postsQuery.eq("lesson_id", lessonFilter);
+      if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
+      if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
-      const [postsRes, reactionsRes, commentsRes, profilesRes] = await Promise.all([
+      const [postsRes, reactionsRes, commentsRes, profilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
         postsQuery,
         c.from("practice_post_reactions").select("post_id, author_email"),
         c.from("practice_post_comments").select("id, post_id"),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
+        c.from("practice_post_hashtags").select("post_id, tag"),
+        c.from("practice_polls").select("id, post_id"),
+        c.from("practice_poll_options").select("id, poll_id, label, position"),
+        c.from("practice_poll_votes").select("poll_id, option_id, author_email"),
       ]);
 
       if (postsRes.error) throw postsRes.error;
@@ -75,8 +128,13 @@ export function usePracticePosts(
       const reactions: any[] = reactionsRes.data || [];
       const comments: any[] = commentsRes.data || [];
       const profiles: any[] = profilesRes.data || [];
+      const hashtags: any[] = hashtagsRes.data || [];
+      const polls: any[] = pollsRes.data || [];
+      const pollOptions: any[] = optionsRes.data || [];
+      const votes: any[] = votesRes.data || [];
 
       const profileMap = new Map(profiles.map((p: any) => [p.email, p]));
+      const pollByPost = new Map(polls.map((p: any) => [p.post_id, p]));
 
       // Enrich with lesson/course titles when present
       const lessonIds = Array.from(new Set(posts.map((p: any) => p.lesson_id).filter(Boolean)));
@@ -92,6 +150,26 @@ export function usePracticePosts(
       const lessonMap = new Map((lessonsRes.data || []).map((l: any) => [l.id, l.title]));
       const courseMap = new Map((coursesRes.data || []).map((c: any) => [c.id, c.title]));
 
+      const buildPoll = (postId: string): PracticePoll | null => {
+        const poll = pollByPost.get(postId);
+        if (!poll) return null;
+        const opts = pollOptions
+          .filter((o: any) => o.poll_id === poll.id)
+          .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
+        const pollVotes = votes.filter((v: any) => v.poll_id === poll.id);
+        const myVote = pollVotes.find((v: any) => v.author_email === learnerEmail);
+        return {
+          id: poll.id,
+          total_votes: pollVotes.length,
+          my_option_id: myVote?.option_id ?? null,
+          options: opts.map((o: any) => ({
+            id: o.id,
+            label: o.label,
+            vote_count: pollVotes.filter((v: any) => v.option_id === o.id).length,
+          })),
+        };
+      };
+
       return posts.map((post: any) => {
         const postReactions = reactions.filter((r: any) => r.post_id === post.id);
         const postComments = comments.filter((c: any) => c.post_id === post.id);
@@ -106,6 +184,8 @@ export function usePracticePosts(
           reaction_count: postReactions.length,
           i_reacted: postReactions.some((r: any) => r.author_email === learnerEmail),
           comment_count: postComments.length,
+          hashtags: hashtags.filter((h: any) => h.post_id === post.id).map((h: any) => h.tag),
+          poll: buildPoll(post.id),
         };
       });
     },
@@ -142,6 +222,78 @@ export function usePracticeComments(postId: string | null, learnerEmail: string 
   });
 }
 
+// ── Lesson title (for the "return to formation" card) ──────────────────────────
+
+export function useLessonTitle(learnerEmail: string | null, lessonId: string | null) {
+  return useQuery({
+    queryKey: ["practice_lesson_title", lessonId],
+    queryFn: async (): Promise<string | null> => {
+      if (!lessonId) return null;
+      const c = clientFor(learnerEmail) as any;
+      const { data } = await c.from("lms_lessons").select("title").eq("id", lessonId).maybeSingle();
+      return (data as { title?: string } | null)?.title ?? null;
+    },
+    enabled: !!lessonId,
+  });
+}
+
+export function useCourseTitle(learnerEmail: string | null, courseId: string | null) {
+  return useQuery({
+    queryKey: ["practice_course_title", courseId],
+    queryFn: async (): Promise<string | null> => {
+      if (!courseId) return null;
+      const c = clientFor(learnerEmail) as any;
+      const { data } = await c.from("lms_courses").select("title").eq("id", courseId).maybeSingle();
+      return (data as { title?: string } | null)?.title ?? null;
+    },
+    enabled: !!courseId,
+  });
+}
+
+// ── My comments (author-scoped) ────────────────────────────────────────────────
+
+export interface MyPracticeComment {
+  id: string;
+  post_id: string;
+  content: string;
+  created_at: string;
+  post_excerpt: string | null;
+  post_author_email: string;
+}
+
+export function useMyPracticeComments(learnerEmail: string | null) {
+  return useQuery({
+    queryKey: ["practice_my_comments", learnerEmail],
+    queryFn: async (): Promise<MyPracticeComment[]> => {
+      if (!learnerEmail) return [];
+      const c = clientFor(learnerEmail) as any;
+      const { data: comments, error } = await c.from("practice_post_comments")
+        .select("id, post_id, content, created_at")
+        .eq("author_email", learnerEmail)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const list: any[] = comments || [];
+      const postIds = Array.from(new Set(list.map((x) => x.post_id)));
+      const postsRes = postIds.length
+        ? await c.from("practice_posts").select("id, content, author_email").in("id", postIds)
+        : { data: [] };
+      const postMap = new Map((postsRes.data || []).map((p: any) => [p.id, p]));
+      return list.map((cm) => {
+        const post = postMap.get(cm.post_id);
+        return {
+          id: cm.id,
+          post_id: cm.post_id,
+          content: cm.content,
+          created_at: cm.created_at,
+          post_excerpt: post?.content ?? null,
+          post_author_email: post?.author_email ?? "",
+        };
+      });
+    },
+    enabled: !!learnerEmail,
+  });
+}
+
 // ── Upload + Create post ──────────────────────────────────────────────────────
 
 async function uploadPracticeFile(file: File, learnerEmail: string) {
@@ -158,15 +310,38 @@ async function uploadPracticeFile(file: File, learnerEmail: string) {
   return { url: publicUrl, name: file.name, size: file.size, mime };
 }
 
+async function generateHashtags(content: string): Promise<string[]> {
+  const text = content.trim();
+  if (!text) return [];
+  try {
+    const { data } = await supabase.functions.invoke("generate-practice-hashtags", { body: { content: text } });
+    const tags = (data as { hashtags?: unknown } | null)?.hashtags;
+    return Array.isArray(tags) ? tags.filter((t): t is string => typeof t === "string").slice(0, 3) : [];
+  } catch (err) {
+    console.warn("generate-practice-hashtags failed:", err);
+    return [];
+  }
+}
+
 export function useCreatePracticePost(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, file, courseId, lessonId }: { content: string; file: File | null; courseId?: string | null; lessonId?: string | null }) => {
+    mutationFn: async ({ content, file, courseId, lessonId, poll }: {
+      content: string;
+      file: File | null;
+      courseId?: string | null;
+      lessonId?: string | null;
+      poll?: NewPoll | null;
+    }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
       const c = clientFor(learnerEmail) as any;
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
       if (file) fileData = await uploadPracticeFile(file, learnerEmail);
-      const { error } = await c.from("practice_posts").insert({
+
+      // Synchronous AI hashtags at publish (1-3 tags, never blocks on failure).
+      const hashtags = await generateHashtags(content);
+
+      const { data: inserted, error } = await c.from("practice_posts").insert({
         author_email: learnerEmail,
         content: content.trim() || null,
         file_url: fileData?.url ?? null,
@@ -175,10 +350,73 @@ export function useCreatePracticePost(learnerEmail: string | null) {
         file_size: fileData?.size ?? null,
         course_id: courseId ?? null,
         lesson_id: lessonId ?? null,
-      });
+      }).select("id").single();
       if (error) throw error;
+      const postId = (inserted as { id: string }).id;
+
+      if (hashtags.length) {
+        await c.from("practice_post_hashtags").insert(hashtags.map((tag) => ({ post_id: postId, tag })));
+      }
+
+      const pollOptions = (poll?.options ?? []).map((o) => o.trim()).filter(Boolean);
+      if (pollOptions.length >= 2) {
+        const { data: pollRow, error: pollErr } = await c.from("practice_polls")
+          .insert({ post_id: postId }).select("id").single();
+        if (pollErr) throw pollErr;
+        const pollId = (pollRow as { id: string }).id;
+        await c.from("practice_poll_options").insert(
+          pollOptions.map((label, position) => ({ poll_id: pollId, label, position })),
+        );
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
+  });
+}
+
+// ── Poll vote ──────────────────────────────────────────────────────────────────
+
+export function useVotePracticePoll(learnerEmail: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ pollId, optionId, currentOptionId }: { pollId: string; optionId: string; currentOptionId: string | null }) => {
+      if (!learnerEmail) throw new Error("Not authenticated");
+      const c = clientFor(learnerEmail) as any;
+      if (currentOptionId === optionId) {
+        // Toggle off: remove the vote.
+        const { error } = await c.from("practice_poll_votes")
+          .delete().eq("poll_id", pollId).eq("author_email", learnerEmail);
+        if (error) throw error;
+        return;
+      }
+      if (currentOptionId) {
+        const { error } = await c.from("practice_poll_votes")
+          .update({ option_id: optionId }).eq("poll_id", pollId).eq("author_email", learnerEmail);
+        if (error) throw error;
+      } else {
+        const { error } = await c.from("practice_poll_votes")
+          .insert({ poll_id: pollId, option_id: optionId, author_email: learnerEmail });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
+  });
+}
+
+// ── Popular hashtags ─────────────────────────────────────────────────────────
+
+export interface PopularHashtag { tag: string; post_count: number }
+
+export function usePracticePopularHashtags(learnerEmail: string | null, limit = 5) {
+  return useQuery({
+    queryKey: ["practice_popular_hashtags", learnerEmail, limit],
+    queryFn: async (): Promise<PopularHashtag[]> => {
+      if (!learnerEmail) return [];
+      const c = clientFor(learnerEmail) as any;
+      const { data, error } = await c.rpc("practice_popular_hashtags", { p_limit: limit });
+      if (error) throw error;
+      return (data || []).map((r: any) => ({ tag: r.tag, post_count: Number(r.post_count) }));
+    },
+    enabled: !!learnerEmail,
   });
 }
 

@@ -16,11 +16,15 @@ import {
   Palette, HelpCircle, LogOut, Bell, ArrowRight,
   CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
   FileImage, Award, RefreshCw, BookmarkCheck, User2, Upload,
-  ThumbsUp, Send, ImageIcon, Trash2,
+  ThumbsUp, Send, Trash2,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import EmojiInsert from "@/components/ui/emoji-insert";
+import PostComposer from "@/components/learner/community/PostComposer";
+import PollDisplay from "@/components/learner/community/PollDisplay";
+import PopularTopics from "@/components/learner/community/PopularTopics";
+import ReturnToFormationCard from "@/components/learner/community/ReturnToFormationCard";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
@@ -51,8 +55,9 @@ import { useModuleAccess } from "@/hooks/useModuleAccess";
 import {
   usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
   usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
-  useDeletePracticeComment,
-  type PracticePost,
+  useDeletePracticeComment, useVotePracticePoll, usePracticePopularHashtags,
+  useMyPracticeComments, useLessonTitle, useCourseTitle,
+  type PracticePost, type NewPoll,
 } from "@/hooks/usePracticeFeed";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -111,7 +116,10 @@ interface LearnerData {
   evaluations: Questionnaire[];
 }
 
-type NavSection = "dashboard" | "formations" | "recommandees" | "travaux" | "pratique" | "aide" | "compte";
+type NavSection =
+  | "dashboard" | "formations" | "recommandees" | "travaux"
+  | "pratique" | "pratique_publications" | "pratique_commentaires" | "pratique_likes"
+  | "aide" | "compte";
 
 const SECTION_SLUGS: Record<NavSection, string | null> = {
   dashboard:    "tableau-de-bord",
@@ -119,6 +127,9 @@ const SECTION_SLUGS: Record<NavSection, string | null> = {
   recommandees: "formations-recommandees",
   travaux:      "mes-travaux",
   pratique:     "communaute",
+  pratique_publications:  "communaute-mes-publications",
+  pratique_commentaires:  "communaute-mes-commentaires",
+  pratique_likes:         "communaute-mes-likes",
   aide:         "aide",
   compte:       null,
 };
@@ -129,8 +140,13 @@ const SLUG_TO_SECTION: Record<string, NavSection> = {
   "formations-recommandees": "recommandees",
   "mes-travaux":            "travaux",
   "communaute":             "pratique",
+  "communaute-mes-publications": "pratique_publications",
+  "communaute-mes-commentaires": "pratique_commentaires",
+  "communaute-mes-likes":        "pratique_likes",
   "aide":                   "aide",
 };
+
+const PRATIQUE_SECTIONS: NavSection[] = ["pratique", "pratique_publications", "pratique_commentaires", "pratique_likes"];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -526,12 +542,19 @@ function Sidebar({
   mobile?: boolean;
   onClose?: () => void;
 }) {
-  const navItems: Array<{ id: NavSection; label: string; icon: React.ElementType }> = [
+  const navItems: Array<{ id: NavSection; label: string; icon: React.ElementType; subItems?: Array<{ id: NavSection; label: string; icon: React.ElementType }> }> = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "formations", label: "Mes formations", icon: BookOpen },
     { id: "recommandees", label: "Mes formations recommandées", icon: Sparkles },
     { id: "travaux", label: "Mes travaux", icon: FileText },
-    { id: "pratique", label: "Communauté", icon: Palette },
+    {
+      id: "pratique", label: "Communauté", icon: Palette,
+      subItems: [
+        { id: "pratique_publications", label: "Mes publications", icon: FileText },
+        { id: "pratique_commentaires", label: "Mes commentaires", icon: MessageSquare },
+        { id: "pratique_likes", label: "Mes likes", icon: ThumbsUp },
+      ],
+    },
     { id: "aide", label: "Aide", icon: HelpCircle },
   ];
 
@@ -553,22 +576,42 @@ function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => { onNav(id); onClose?.(); }}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left",
-              active === id
-                ? "text-[#101820]"
-                : "hover:bg-black/5",
-            )}
-            style={active === id ? { background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" } : { fontFamily: "inherit", color: "var(--st-ink-muted)" }}
-          >
-            <Icon size={17} />
-            {label}
-          </button>
-        ))}
+        {navItems.map(({ id, label, icon: Icon, subItems }) => {
+          const subExpanded = subItems && PRATIQUE_SECTIONS.includes(active);
+          return (
+            <div key={id}>
+              <button
+                onClick={() => { onNav(id); onClose?.(); }}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left",
+                  active === id ? "text-[#101820]" : "hover:bg-black/5",
+                )}
+                style={active === id ? { background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" } : { fontFamily: "inherit", color: "var(--st-ink-muted)" }}
+              >
+                <Icon size={17} />
+                {label}
+              </button>
+              {subExpanded && (
+                <div className="mt-0.5 ml-4 pl-3 space-y-0.5 border-l" style={{ borderColor: "rgba(16,24,32,0.1)" }}>
+                  {subItems!.map(({ id: sid, label: slabel, icon: SIcon }) => (
+                    <button
+                      key={sid}
+                      onClick={() => { onNav(sid); onClose?.(); }}
+                      className={cn(
+                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
+                        active === sid ? "font-semibold" : "hover:bg-black/5",
+                      )}
+                      style={active === sid ? { color: "#101820", background: "rgba(255,209,0,0.18)", fontFamily: "inherit" } : { fontFamily: "inherit", color: "var(--st-ink-muted)" }}
+                    >
+                      <SIcon size={15} />
+                      {slabel}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* User block */}
@@ -1847,12 +1890,16 @@ function PracticePostCard({
   isAdmin,
   onReact,
   onDelete,
+  onVote,
+  onSelectTag,
 }: {
   post: PracticePost;
   currentEmail: string;
   isAdmin: boolean;
   onReact: (postId: string, iReacted: boolean) => void;
   onDelete: (postId: string) => void;
+  onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
+  onSelectTag: (tag: string) => void;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -1925,9 +1972,38 @@ function PracticePostCard({
         </p>
       )}
 
-      {/* Image */}
-      {post.file_url && post.file_mime?.startsWith("image/") && (
-        <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+      {/* Media: image / video / file */}
+      {post.file_url && (
+        post.file_mime?.startsWith("image/") ? (
+          <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+        ) : post.file_mime?.startsWith("video/") ? (
+          <video src={post.file_url} controls className="w-full" style={{ maxHeight: 480 }} />
+        ) : (
+          <a href={post.file_url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 mx-4 mb-3 px-3 py-2.5 rounded-xl border text-sm font-medium hover:bg-black/5"
+            style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)" }}>
+            <FileText size={16} /> {post.file_name ?? "Voir le fichier"}
+          </a>
+        )
+      )}
+
+      {/* Poll */}
+      {post.poll && <PollDisplay poll={post.poll} onVote={onVote} />}
+
+      {/* Hashtags */}
+      {post.hashtags.length > 0 && (
+        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+          {post.hashtags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => onSelectTag(tag)}
+              className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors hover:bg-black/5"
+              style={{ background: "rgba(16,24,32,0.05)", color: "var(--st-ink-muted)" }}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* Reaction bar */}
@@ -2034,154 +2110,6 @@ function PracticePostCard({
         </div>
       )}
     </div>
-  );
-}
-
-// ── Post creation box ─────────────────────────────────────────────────────────
-
-function PostCreationBox({
-  email,
-  firstName,
-  lastName,
-  photoUrl,
-  onCreate,
-}: {
-  email: string;
-  firstName: string;
-  lastName: string;
-  photoUrl: string | null;
-  onCreate: (content: string, file: File | null) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [content, setContent] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [posting, setPosting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-
-  const initials = getInitials(firstName, lastName) || email.slice(0, 2).toUpperCase();
-
-  const handleFile = (f: File) => {
-    setFile(f);
-    const url = URL.createObjectURL(f);
-    setPreview(url);
-  };
-
-  const handlePost = async () => {
-    if (!content.trim() && !file) return;
-    setPosting(true);
-    try {
-      await onCreate(content, file);
-      setContent("");
-      setFile(null);
-      setPreview(null);
-      setOpen(false);
-    } catch {
-      toastError(toast, "Impossible de publier.");
-    } finally {
-      setPosting(false);
-    }
-  };
-
-  return (
-    <>
-      {/* Trigger box */}
-      <div className="rounded-2xl border p-4"
-        style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
-            {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
-          </div>
-          <button
-            onClick={() => setOpen(true)}
-            className="flex-1 text-left rounded-full border px-4 py-2.5 text-sm transition-colors hover:bg-black/5"
-            style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-          >
-            Partagez votre travail ou une réflexion...
-          </button>
-        </div>
-        <div className="flex items-center gap-1 pt-3 mt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
-          <button
-            onClick={() => { setOpen(true); setTimeout(() => fileRef.current?.click(), 100); }}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors hover:bg-black/5"
-            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-          >
-            <ImageIcon size={16} /> Photo
-          </button>
-        </div>
-      </div>
-
-      {/* Post creation dialog */}
-      <Dialog open={open} onOpenChange={(v) => { if (!v) { setOpen(false); setFile(null); setPreview(null); setContent(""); } }}>
-        <DialogContent className="w-full max-w-lg" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
-          <DialogHeader>
-            <DialogTitle>Créer un post</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
-                {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
-              </div>
-              <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>
-                {firstName && lastName ? `${firstName} ${lastName}` : email.split("@")[0]}
-              </p>
-            </div>
-            <div className="relative">
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Partagez votre travail, une réflexion, une question..."
-                rows={5}
-                className="w-full resize-none rounded-xl border px-3 py-2.5 pr-10 text-sm outline-none"
-                style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
-              />
-              <div className="absolute bottom-2 right-2">
-                <EmojiInsert onInsert={(e) => setContent((t) => t + e)} />
-              </div>
-            </div>
-            {/* Image preview */}
-            {preview && (
-              <div className="relative">
-                <img src={preview} alt="Aperçu" className="w-full rounded-xl object-cover" style={{ maxHeight: 240 }} />
-                <button
-                  onClick={() => { setFile(null); setPreview(null); }}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-            {/* Upload area */}
-            {!preview && (
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="w-full rounded-xl border-2 border-dashed py-6 flex flex-col items-center gap-2 transition-colors hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-              >
-                <ImageIcon size={24} />
-                <span className="text-sm">Ajouter une photo</span>
-              </button>
-            )}
-            <input
-              ref={fileRef} type="file" accept="image/*" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
-            />
-            <button
-              onClick={handlePost}
-              disabled={(!content.trim() && !file) || posting}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
-              style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
-            >
-              {posting ? "Publication..." : "Publier"}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
 
@@ -2338,46 +2266,85 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
+function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
+  mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
   firstName: string;
   lastName: string;
   photoUrl: string | null;
+  onNav: (s: NavSection) => void;
 }) {
   const { isAdmin } = useModuleAccess();
-  const { data: posts = [], isLoading } = usePracticePosts(email);
-  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(courseIds, email);
+  const [searchParams] = useSearchParams();
+  const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
+  const [allTagsOpen, setAllTagsOpen] = useState(false);
+
+  // Return-to-formation card: only when arriving from a formation/lesson link.
+  const fromCourse = searchParams.get("fromCourse");
+  const fromLesson = searchParams.get("fromLesson");
+  const { data: fromLessonTitle } = useLessonTitle(email, fromLesson);
+  const { data: fromCourseTitle } = useCourseTitle(email, fromCourse);
+  const resumeTitle = fromLessonTitle ?? fromCourseTitle ?? null;
+  const resumeHref = fromCourse
+    ? (fromLesson
+        ? `/lms/${fromCourse}/player?email=${encodeURIComponent(email)}&lesson=${fromLesson}`
+        : `/lms/${fromCourse}/home?email=${encodeURIComponent(email)}`)
+    : null;
+
+  const isFeed = mode === "feed";
+
+  const postsFilter = useMemo(() => {
+    if (selectedTag) return { tag: selectedTag };
+    if (mode === "mine") return { authorEmail: email };
+    if (mode === "likes") return { likedBy: email };
+    return undefined;
+  }, [mode, selectedTag, email]);
+
+  const showDeposits = isFeed && !selectedTag;
+  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter);
+  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(showDeposits ? courseIds : [], email);
+  const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
+  const { data: allTopics = [] } = usePracticePopularHashtags(email, 200);
+  const { data: myComments = [] } = useMyPracticeComments(mode === "comments" ? email : null);
+
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, isAdmin);
+  const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
 
-  // Merge community posts and shared work deposits into one feed, newest first.
   const feed = useMemo(() => {
     const items: Array<
       | { kind: "post"; key: string; created_at: string; post: PracticePost }
       | { kind: "deposit"; key: string; created_at: string; deposit: any }
     > = [
       ...posts.map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
-      ...(deposits as any[]).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
+      ...(showDeposits ? (deposits as any[]) : []).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
     ];
     items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return items;
-  }, [posts, deposits]);
+  }, [posts, deposits, showDeposits]);
 
-  const handleCreate = async (content: string, file: File | null) => {
-    await createPost.mutateAsync({ content, file });
+  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null) => {
+    await createPost.mutateAsync({ content, file, poll });
   };
 
   const handleReact = async (postId: string, iReacted: boolean) => {
-    try {
-      await toggleReaction.mutateAsync({ postId, iReacted });
-    } catch {
-      toastError(toast, "Impossible de réagir.");
-    }
+    try { await toggleReaction.mutateAsync({ postId, iReacted }); }
+    catch { toastError(toast, "Impossible de réagir."); }
+  };
+
+  const handleVote = (pollId: string, optionId: string, currentOptionId: string | null) => {
+    votePoll.mutateAsync({ pollId, optionId, currentOptionId }).catch(() => toastError(toast, "Impossible de voter."));
+  };
+
+  const handleSelectTag = (tag: string) => {
+    setAllTagsOpen(false);
+    setSelectedTag(tag);
+    if (mode !== "feed") onNav("pratique");
   };
 
   const handleDelete = async (postId: string) => {
@@ -2388,69 +2355,134 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
       variant: "destructive",
     });
     if (!ok) return;
-    try {
-      await deletePost.mutateAsync(postId);
-    } catch {
-      toastError(toast, "Impossible de supprimer.");
-    }
+    try { await deletePost.mutateAsync(postId); }
+    catch { toastError(toast, "Impossible de supprimer."); }
   };
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <ConfirmDialog />
-      <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: "var(--st-ink)" }}>Communauté</h2>
-        <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-          Partagez vos travaux et réagissez à ceux des autres participants.
-        </p>
+  const loading = isLoading || (showDeposits && depositsLoading);
+
+  const emptyState = (label: string) => (
+    <div className="rounded-2xl border p-10 text-center space-y-3"
+      style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+      <Palette size={32} className="mx-auto" style={{ color: "var(--st-ink-muted)" }} />
+      <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>{label}</p>
+    </div>
+  );
+
+  const renderPostList = (emptyLabel: string) => (
+    loading ? (
+      <div className="flex items-center justify-center py-16"><Spinner size="lg" /></div>
+    ) : feed.length === 0 ? (
+      emptyState(emptyLabel)
+    ) : (
+      <div className="space-y-4">
+        {feed.map((item) =>
+          item.kind === "post" ? (
+            <PracticePostCard
+              key={item.key}
+              post={item.post}
+              currentEmail={email}
+              isAdmin={isAdmin}
+              onReact={handleReact}
+              onDelete={handleDelete}
+              onVote={handleVote}
+              onSelectTag={handleSelectTag}
+            />
+          ) : (
+            <DepositFeedCard
+              key={item.key}
+              deposit={item.deposit}
+              currentEmail={email}
+              onReact={(depositId, iReacted) =>
+                toggleDepositReaction.mutateAsync({ depositId, iReacted }).catch(() =>
+                  toastError(toast, "Impossible de réagir."),
+                )
+              }
+            />
+          )
+        )}
       </div>
+    )
+  );
 
-      <PostCreationBox
-        email={email}
-        firstName={firstName}
-        lastName={lastName}
-        photoUrl={photoUrl}
-        onCreate={handleCreate}
-      />
+  // ── Left column ──────────────────────────────────────────────────────────
+  let leftContent: React.ReactNode;
+  if (allTagsOpen) {
+    leftContent = (
+      <div className="space-y-3">
+        <button onClick={() => setAllTagsOpen(false)} className="text-sm hover:underline" style={{ color: "var(--st-ink-muted)" }}>
+          ← Retour au fil
+        </button>
+        <h2 className="text-lg font-bold" style={{ color: "var(--st-ink)" }}>Tous les sujets</h2>
+        {allTopics.length === 0 ? emptyState("Aucun sujet pour l'instant.") : (
+          <div className="rounded-2xl border divide-y" style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            {allTopics.map((t) => (
+              <button key={t.tag} onClick={() => handleSelectTag(t.tag)}
+                className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-black/5 text-left">
+                <span className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>#{t.tag}</span>
+                <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>{t.post_count} publication{t.post_count > 1 ? "s" : ""}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  } else if (selectedTag) {
+    leftContent = (
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setSelectedTag(null)} className="text-sm hover:underline" style={{ color: "var(--st-ink-muted)" }}>
+            ← Retour au fil
+          </button>
+          <h2 className="text-lg font-bold" style={{ color: "var(--st-ink)" }}>#{selectedTag}</h2>
+        </div>
+        {renderPostList("Aucune publication avec ce sujet.")}
+      </div>
+    );
+  } else if (mode === "comments") {
+    leftContent = myComments.length === 0 ? emptyState("Vous n'avez pas encore commenté.") : (
+      <div className="space-y-3">
+        {myComments.map((cm) => (
+          <div key={cm.id} className="rounded-2xl border p-4 space-y-2" style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
+            <p className="text-sm" style={{ color: "var(--st-ink)" }}>{cm.content}</p>
+            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+              {formatDistanceToNow(new Date(cm.created_at), { locale: fr, addSuffix: true })}
+              {cm.post_excerpt ? ` · sur « ${cm.post_excerpt.slice(0, 80)}${cm.post_excerpt.length > 80 ? "…" : ""} »` : ""}
+            </p>
+          </div>
+        ))}
+      </div>
+    );
+  } else if (mode === "mine") {
+    leftContent = renderPostList("Vous n'avez encore rien publié.");
+  } else if (mode === "likes") {
+    leftContent = renderPostList("Vous n'avez encore aimé aucune publication.");
+  } else {
+    leftContent = (
+      <>
+        <PostComposer email={email} firstName={firstName} lastName={lastName} photoUrl={photoUrl} onCreate={handleCreate} />
+        {renderPostList("Aucun post pour l'instant. Soyez le premier à partager !")}
+      </>
+    );
+  }
 
-      {isLoading || depositsLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Spinner size="lg" />
-        </div>
-      ) : feed.length === 0 ? (
-        <div className="rounded-2xl border p-10 text-center space-y-3"
-          style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}>
-          <Palette size={32} className="mx-auto" style={{ color: "var(--st-ink-muted)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun post pour l'instant</p>
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Soyez le premier à partager votre travail !</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {feed.map((item) =>
-            item.kind === "post" ? (
-              <PracticePostCard
-                key={item.key}
-                post={item.post}
-                currentEmail={email}
-                isAdmin={isAdmin}
-                onReact={handleReact}
-                onDelete={handleDelete}
-              />
-            ) : (
-              <DepositFeedCard
-                key={item.key}
-                deposit={item.deposit}
-                currentEmail={email}
-                onReact={(depositId, iReacted) =>
-                  toggleDepositReaction.mutateAsync({ depositId, iReacted }).catch(() =>
-                    toastError(toast, "Impossible de réagir."),
-                  )
-                }
-              />
-            )
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <ConfirmDialog />
+      <div className="min-w-0 space-y-4">{leftContent}</div>
+      <div className="hidden lg:block">
+        <div className="space-y-4 sticky top-4">
+          {resumeHref && resumeTitle && (
+            <ReturnToFormationCard lessonTitle={resumeTitle} resumeHref={resumeHref} />
           )}
+          <PopularTopics
+            topics={popularTopics}
+            activeTag={selectedTag}
+            onSelectTag={handleSelectTag}
+            onSeeAll={() => { setSelectedTag(null); setAllTagsOpen(true); }}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -3186,6 +3218,9 @@ export default function LearnerPortal() {
     recommandees: "Mes formations recommandées",
     travaux: "Mes travaux",
     pratique: "Communauté",
+    pratique_publications: "Mes publications",
+    pratique_commentaires: "Mes commentaires",
+    pratique_likes: "Mes likes",
     aide: "Aide",
     compte: "Mon compte",
   };
@@ -3195,6 +3230,9 @@ export default function LearnerPortal() {
     recommandees: "Formations sélectionnées pour votre profil.",
     travaux: "Tous vos travaux déposés dans vos cours.",
     pratique: "Découvrez les travaux partagés par la communauté.",
+    pratique_publications: "Vos messages publiés dans la communauté.",
+    pratique_commentaires: "Tous les commentaires que vous avez laissés.",
+    pratique_likes: "Les publications que vous avez aimées.",
     aide: "Ressources et contact.",
     compte: "Gérez vos informations personnelles et vos préférences.",
   };
@@ -3319,13 +3357,20 @@ export default function LearnerPortal() {
             {activeSection === "travaux" && (
               <TravauxView email={data.email} trainings={data.trainings} />
             )}
-            {activeSection === "pratique" && (
+            {PRATIQUE_SECTIONS.includes(activeSection) && (
               <PratiqueView
+                mode={
+                  activeSection === "pratique_publications" ? "mine"
+                  : activeSection === "pratique_commentaires" ? "comments"
+                  : activeSection === "pratique_likes" ? "likes"
+                  : "feed"
+                }
                 email={data.email}
                 courseIds={courseIds}
                 firstName={firstName}
                 lastName={lastName}
                 photoUrl={photoUrl}
+                onNav={handleNav}
               />
             )}
             {activeSection === "aide" && (

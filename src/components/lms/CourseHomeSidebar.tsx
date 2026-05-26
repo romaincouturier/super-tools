@@ -46,11 +46,19 @@ function authorInitials(email: string, firstName?: string | null, lastName?: str
   return email.slice(0, 2).toUpperCase();
 }
 
-export function CommunityCtaButton({ email }: { email: string }) {
+export function communityUrlWithContext(courseId?: string | null, lessonId?: string | null): string {
+  const params = new URLSearchParams();
+  if (courseId) params.set("fromCourse", courseId);
+  if (lessonId) params.set("fromLesson", lessonId);
+  const qs = params.toString();
+  return `/espace-apprenant/communaute${qs ? `?${qs}` : ""}`;
+}
+
+export function CommunityCtaButton({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
   const navigate = useNavigate();
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate("/espace-apprenant/communaute");
+    navigate(communityUrlWithContext(courseId, lessonId));
   };
 
   return (
@@ -65,12 +73,12 @@ export function CommunityCtaButton({ email }: { email: string }) {
   );
 }
 
-function CommunitySidebarPreview({ email }: { email: string }) {
+function CommunitySidebarPreview({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
   const navigate = useNavigate();
   const { data: posts = [] } = usePracticePosts(email || null, 2);
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate("/espace-apprenant/communaute");
+    navigate(communityUrlWithContext(courseId, lessonId));
   };
 
   return (
@@ -142,7 +150,7 @@ function CommunitySidebarPreview({ email }: { email: string }) {
       )}
 
       <div className="mt-3">
-        <CommunityCtaButton email={email} />
+        <CommunityCtaButton email={email} courseId={courseId} lessonId={lessonId} />
       </div>
     </div>
   );
@@ -246,7 +254,7 @@ export default function CourseHomeSidebar({
       })()}
 
 
-      {!isPreview && <CommunitySidebarPreview email={email} />}
+      {!isPreview && <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} />}
 
       <div className="p-5 flex-1">
         <ul className="space-y-1 mb-4">
