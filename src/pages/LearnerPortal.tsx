@@ -1034,14 +1034,17 @@ function DashboardView({
     return lmsTrainings.reduce((s, t) => s + (t.lms_completion ?? 0), 0) / lmsTrainings.length;
   }, [lmsTrainings]);
 
-  const nextEvent = useMemo(() => {
+  const nextEventCtx = useMemo(() => {
     const now = new Date();
-    return data.trainings
+    const t = data.trainings
       .filter((t) => t.next_event && !t.is_permanent && new Date(t.next_event.scheduled_at) > now)
       .sort((a, b) =>
         new Date(a.next_event!.scheduled_at).getTime() - new Date(b.next_event!.scheduled_at).getTime()
-      )[0]?.next_event ?? null;
+      )[0];
+    return t ? { event: t.next_event!, trainingName: t.training_name } : null;
   }, [data.trainings]);
+  const nextEvent = nextEventCtx?.event ?? null;
+
 
   const courseIds = useMemo(
     () => data.trainings.filter((t) => t.lms_course_id).map((t) => t.lms_course_id!),
