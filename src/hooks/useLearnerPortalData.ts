@@ -67,7 +67,8 @@ export function usePracticeDeposits(courseIds: string[], learnerEmail?: string |
     queryKey: ["practice_deposits", courseIds, learnerEmail ?? null],
     queryFn: async () => {
       if (!courseIds.length) return [];
-      const { data, error } = await (supabase as any)
+      const c = (learnerEmail ? createLearnerClient(learnerEmail) : supabase) as any;
+      const { data, error } = await c
         .from("lms_work_deposits")
         .select("id, lesson_id, course_id, learner_email, file_name, file_url, file_mime, comment, created_at")
         .in("course_id", courseIds)
