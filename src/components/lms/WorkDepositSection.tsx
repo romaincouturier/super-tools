@@ -65,6 +65,7 @@ export default function WorkDepositSection({
   const { data: deposit, isLoading } = useMyDeposit(lessonId, learnerEmail);
   const createDeposit = useCreateDeposit(lessonId, learnerEmail);
   const updateDeposit = useUpdateDeposit(lessonId, learnerEmail);
+  const deleteDeposit = useDeleteDeposit(lessonId, learnerEmail);
 
   if (isLoading) {
     return (
