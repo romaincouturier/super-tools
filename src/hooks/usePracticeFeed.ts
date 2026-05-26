@@ -12,12 +12,16 @@ export interface PracticePost {
   file_name: string | null;
   file_mime: string | null;
   file_size: number | null;
+  course_id: string | null;
+  lesson_id: string | null;
   created_at: string;
   updated_at: string;
   // enriched client-side
   author_first_name?: string | null;
   author_last_name?: string | null;
   author_photo_url?: string | null;
+  lesson_title?: string | null;
+  course_title?: string | null;
   reaction_count: number;
   i_reacted: boolean;
   comment_count: number;
