@@ -364,6 +364,8 @@ export default function LmsCoursePlayer() {
                 selectedLessonId={selectedLessonId}
                 onSelectLesson={(id) => { setSelectedLessonId(id); setSidebarOpen(false); }}
                 isModuleUnlocked={isModuleUnlocked}
+                nextLiveAt={nextLiveAt}
+                livesCalendarHref={livesCalendarHref}
               />
             </div>
           </>
