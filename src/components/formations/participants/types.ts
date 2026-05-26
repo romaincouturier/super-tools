@@ -96,6 +96,7 @@ export interface ParticipantActionsProps {
   certificatesByParticipant: Map<string, CertInfo>;
   evaluationsByParticipant: Map<string, EvaluationInfo>;
   participantsWithSignatures: Set<string>;
+  participantsWithAccount: Set<string>;
   // Handlers
   onSendSurvey: (participant: Participant) => void;
   onSendReminder: (participant: Participant) => void;

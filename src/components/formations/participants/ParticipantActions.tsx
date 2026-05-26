@@ -54,6 +54,7 @@ const ParticipantActions = ({
   certificatesByParticipant,
   evaluationsByParticipant,
   participantsWithSignatures,
+  participantsWithAccount,
   onSendSurvey,
   onSendReminder,
   onSendMagicLink,
@@ -161,17 +162,29 @@ const ParticipantActions = ({
         );
       })()}
 
-      {/* 1b. Renvoyer le lien magique - e-learning uniquement */}
-      {formatFormation === "e_learning" && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onSendMagicLink(participant)} disabled={sendingMagicLinkId === participant.id}>
-              {sendingMagicLinkId === participant.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Renvoyer le lien magique d'accès</p></TooltipContent>
-        </Tooltip>
-      )}
+      {/* 1b. Statut compte e-learning + renvoi du lien magique - e-learning uniquement */}
+      {formatFormation === "e_learning" && (() => {
+        const hasAccount = participantsWithAccount.has(participant.id);
+        const isSending = sendingMagicLinkId === participant.id;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${hasAccount ? "text-green-600 hover:text-green-700" : "text-destructive hover:text-destructive"}`}
+                onClick={() => onSendMagicLink(participant)}
+                disabled={isSending}
+              >
+                {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{hasAccount ? "Compte e-learning créé — renvoyer le lien magique" : "Compte non créé — renvoyer le lien magique"}</p>
+            </TooltipContent>
+          </Tooltip>
+        );
+      })()}
 
       {/* 2. Questionnaire des besoins */}
       {(participant.needs_survey_status === "complete" || participant.needs_survey_status === "valide_formateur") && (

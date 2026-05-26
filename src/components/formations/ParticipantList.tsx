@@ -30,7 +30,7 @@ const ParticipantList = ({
   const daysUntilTraining = trainingStartDate ? differenceInDays(parseISO(trainingStartDate), new Date()) : null;
   const canSendManually = daysUntilTraining === null || daysUntilTraining <= 2;
 
-  const data = useParticipantData(trainingId, participants, isIndividualConvention);
+  const data = useParticipantData(trainingId, participants, isIndividualConvention, formatFormation === "e_learning");
   const actions = useParticipantActions({
     trainingId, trainingName, trainingStartDate, trainingEndDate, clientName, trainingDuree,
     certificatesByParticipant: data.certificatesByParticipant, conventionSignatures: data.conventionSignatures,
@@ -88,6 +88,7 @@ const ParticipantList = ({
     certificatesByParticipant: data.certificatesByParticipant,
     evaluationsByParticipant: data.evaluationsByParticipant,
     participantsWithSignatures: data.participantsWithSignatures,
+    participantsWithAccount: data.participantsWithAccount,
     onSendSurvey: actions.handleSendSurvey, onSendReminder: actions.handleSendReminder,
     onSendMagicLink: actions.handleSendMagicLink,
     onDelete: actions.handleDelete, onGenerateConvention: actions.handleGenerateConvention,

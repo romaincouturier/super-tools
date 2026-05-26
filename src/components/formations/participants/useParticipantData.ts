@@ -12,17 +12,20 @@ interface UseParticipantDataResult {
   evaluationsByParticipant: Map<string, EvaluationInfo>;
   participantsWithSignatures: Set<string>;
   conventionSignatures: Map<string, ConventionSignatureInfo>;
+  participantsWithAccount: Set<string>;
 }
 
 export function useParticipantData(
   trainingId: string,
   participants: Participant[],
   isIndividualConvention: boolean,
+  isElearning = false,
 ): UseParticipantDataResult {
   const [certificatesByParticipant, setCertificatesByParticipant] = useState<Map<string, CertInfo>>(new Map());
   const [evaluationsByParticipant, setEvaluationsByParticipant] = useState<Map<string, EvaluationInfo>>(new Map());
   const [participantsWithSignatures, setParticipantsWithSignatures] = useState<Set<string>>(new Set());
   const [conventionSignatures, setConventionSignatures] = useState<Map<string, ConventionSignatureInfo>>(new Map());
+  const [participantsWithAccount, setParticipantsWithAccount] = useState<Set<string>>(new Set());
 
   // Fetch all evaluations (certificates + status) for all participants
   useEffect(() => {
@@ -102,10 +105,37 @@ export function useParticipantData(
     fetchConventionSignatures();
   }, [trainingId, participants, isIndividualConvention]);
 
+  // Fetch e-learning account status: which participants created their account
+  useEffect(() => {
+    if (!isElearning) {
+      setParticipantsWithAccount(new Set());
+      return;
+    }
+    const fetchAccounts = async () => {
+      const emails = participants.map((p) => p.email).filter(Boolean);
+      if (emails.length === 0) {
+        setParticipantsWithAccount(new Set());
+        return;
+      }
+      const { data, error } = await (supabase as ReturnType<typeof supabase.rpc>)
+        .rpc("learner_accounts_for_emails" as never, { p_emails: emails } as never);
+      if (!error && data) {
+        const have = new Set((data as string[]).map((e) => e.toLowerCase()));
+        const ids = new Set<string>();
+        for (const p of participants) {
+          if (have.has(p.email.toLowerCase())) ids.add(p.id);
+        }
+        setParticipantsWithAccount(ids);
+      }
+    };
+    fetchAccounts();
+  }, [trainingId, participants, isElearning]);
+
   return {
     certificatesByParticipant,
     evaluationsByParticipant,
     participantsWithSignatures,
     conventionSignatures,
+    participantsWithAccount,
   };
 }
