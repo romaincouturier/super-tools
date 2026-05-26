@@ -534,6 +534,30 @@ export function useCourseLiveMeetings(courseId: string | undefined) {
   });
 }
 
+export interface CourseTrainingSession {
+  training: {
+    id: string;
+    start_date: string | null;
+    end_date: string | null;
+    training_name: string;
+  };
+  meetings: CourseLiveMeeting[];
+}
+
+export function useCourseTrainingSessionsAdmin(courseId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["course-training-sessions-admin", courseId],
+    enabled: !!courseId && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_course_training_sessions_admin" as any, {
+        p_course_id: courseId!,
+      });
+      if (error) throw error;
+      return (data as CourseTrainingSession[]) ?? [];
+    },
+  });
+}
+
 // ---- Page views ----
 
 export function useLessonViewStats(courseId: string | undefined) {

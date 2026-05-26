@@ -33,6 +33,7 @@ export {
   useLessonComments,
   useAllCourseComments,
   useCourseLiveMeetings,
+  useCourseTrainingSessionsAdmin,
 } from "./useLmsQueries";
 
 export {

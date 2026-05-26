@@ -12,9 +12,10 @@ import {
   useForumPosts,
   useCreateForumPost,
   useCourseLiveMeetings,
+  useCourseTrainingSessionsAdmin,
   uploadForumAttachment,
 } from "@/hooks/useLms";
-import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig } from "@/hooks/useLmsQueries";
+import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig, CourseTrainingSession } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
   CheckCircle2,
@@ -941,7 +942,16 @@ export default function LmsCourseHomePage() {
   const { data: allLessons = [] } = useCourseLessons(courseId);
   const { data: progress = [] } = useLearnerProgress(courseId, email || undefined);
   const { data: liveData } = useCourseLiveMeetings(courseId);
-  const meetings = liveData?.meetings ?? [];
+  const { data: adminSessions = [] } = useCourseTrainingSessionsAdmin(courseId, isPreview);
+  const meetings = useMemo(() => {
+    if (isPreview && adminSessions.length > 0) {
+      const all = adminSessions.flatMap((s) => s.meetings);
+      // dedupe by id
+      const seen = new Set<string>();
+      return all.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)));
+    }
+    return liveData?.meetings ?? [];
+  }, [isPreview, adminSessions, liveData]);
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const initialView = searchParams.get("view") || "home";
@@ -1230,11 +1240,39 @@ export default function LmsCourseHomePage() {
               </>
             )}
 
-            {activeView === "calendar" && liveData && (
-              <CalendarView
-                liveData={liveData}
-                onReplay={(id) => setActiveView(`replay:${id}`)}
-              />
+            {activeView === "calendar" && (
+              isPreview && adminSessions.length > 0 ? (
+                <div className="space-y-10">
+                  <div className="rounded-xl border border-dashed p-3 text-xs" style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink-muted)", background: "rgba(255,209,0,0.08)" }}>
+                    Vue admin · {adminSessions.length} session{adminSessions.length > 1 ? "s" : ""} de formation en cours ou à venir liée{adminSessions.length > 1 ? "s" : ""} à cet e-learning.
+                  </div>
+                  {adminSessions.map((s) => (
+                    <div key={s.training.id} className="space-y-3">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <h3 className="text-base font-bold" style={{ color: "var(--st-ink)" }}>{s.training.training_name}</h3>
+                        <a
+                          href={`/formations/${s.training.id}`}
+                          className="text-xs underline"
+                          style={{ color: "var(--st-ink-muted)" }}
+                        >
+                          Ouvrir la formation
+                        </a>
+                      </div>
+                      <CalendarView
+                        liveData={{ training: s.training, meetings: s.meetings }}
+                        onReplay={(id) => setActiveView(`replay:${id}`)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                liveData && (
+                  <CalendarView
+                    liveData={liveData}
+                    onReplay={(id) => setActiveView(`replay:${id}`)}
+                  />
+                )
+              )
             )}
 
             {replayMeeting && (

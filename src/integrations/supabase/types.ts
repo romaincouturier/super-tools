@@ -9797,6 +9797,10 @@ export type Database = {
         Returns: Json
       }
       get_course_live_meetings: { Args: { p_course_id: string }; Returns: Json }
+      get_course_training_sessions_admin: {
+        Args: { p_course_id: string }
+        Returns: Json
+      }
       get_cron_status: { Args: never; Returns: Json }
       get_db_size: { Args: never; Returns: Json }
       get_devis_signature_by_token: { Args: { p_token: string }; Returns: Json }
