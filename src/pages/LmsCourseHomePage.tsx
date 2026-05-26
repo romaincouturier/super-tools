@@ -1877,7 +1877,7 @@ export default function LmsCourseHomePage() {
                     totalLessons={allLessons.filter((l) => regularModuleIds.has(l.module_id)).length}
                     completedModules={completedModulesCount}
                     totalModules={regularModules.length}
-                    onSeeStats={() => {}}
+                    
                   />
                   <LiveCard
                     meeting={currentOrNextMeeting}
