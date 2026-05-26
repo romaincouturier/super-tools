@@ -1883,10 +1883,7 @@ export default function LmsCourseHomePage() {
                   />
                   <CommunityInfoCard courseId={courseId!} email={email} />
                 </div>
-                <div className="grid lg:grid-cols-[1fr_300px] gap-7 items-start">
-                  <div />
-                  <TipsBlock />
-                </div>
+                <TipsBlock />
                 <InfoCardsGrid config={course.home_config} />
               </>
             )}
