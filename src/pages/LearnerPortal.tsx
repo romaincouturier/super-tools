@@ -1877,6 +1877,19 @@ function PracticePostCard({
         )}
       </div>
 
+      {/* Lesson origin badge */}
+      {post.lesson_id && post.course_id && (
+        <a
+          href={`/lms/${post.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${post.lesson_id}`}
+          className="mx-4 mb-3 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full hover:underline w-fit"
+          style={{ background: "rgba(255,209,0,0.15)", color: "var(--st-ink)" }}
+          title="Voir la leçon d'origine"
+        >
+          <BookOpen size={12} />
+          <span>Depuis la leçon : <strong>{post.lesson_title ?? "voir"}</strong></span>
+        </a>
+      )}
+
       {/* Content */}
       {post.content && (
         <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
