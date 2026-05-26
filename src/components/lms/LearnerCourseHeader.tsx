@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Bell, BookOpen, ChevronDown, HelpCircle, LogOut, Menu, Shield, Sparkles, User,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useConfirm } from "@/hooks/useConfirm";
 import { supabase } from "@/integrations/supabase/client";
+
 
 /**
  * Shared learner header used by both the course home page and the lesson
@@ -99,6 +100,7 @@ export default function LearnerCourseHeader({
 
 export function AdminBackLink() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const { courseId, lessonId } = useParams<{ courseId?: string; lessonId?: string }>();
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -114,9 +116,14 @@ export function AdminBackLink() {
     return () => { cancelled = true; };
   }, []);
   if (!isAdmin) return null;
+  const href = courseId
+    ? (lessonId
+        ? `/lms/${courseId}/lesson/${lessonId}/builder`
+        : `/lms/${courseId}/home/builder`)
+    : "/dashboard";
   return (
     <a
-      href="/dashboard"
+      href={href}
       className="hidden md:inline-flex items-center gap-1.5 mr-2"
       style={{
         padding: "6px 12px", borderRadius: 10,
@@ -124,13 +131,14 @@ export function AdminBackLink() {
         fontWeight: 600, fontSize: "0.8125rem",
         textDecoration: "none", flexShrink: 0,
       }}
-      title="Revenir à l'administration"
+      title="Revenir à l'édition du e-learning"
     >
       <Shield size={14} />
-      Revenir à l'administration
+      Revenir à l'édition
     </a>
   );
 }
+
 
 function getLearnerInitials(email: string): string {
   if (!email) return "?";

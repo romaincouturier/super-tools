@@ -6228,6 +6228,103 @@ export type Database = {
           },
         ]
       }
+      practice_poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          poll_id: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          poll_id: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          poll_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "practice_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_poll_votes: {
+        Row: {
+          author_email: string
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+        }
+        Insert: {
+          author_email: string
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+        }
+        Update: {
+          author_email?: string
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "practice_poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "practice_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_polls: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_polls_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_post_comments: {
         Row: {
           author_email: string
@@ -6256,6 +6353,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "practice_post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_post_hashtags: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          tag: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          tag: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_post_hashtags_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "practice_posts"
@@ -9929,6 +10055,13 @@ export type Database = {
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
+      practice_popular_hashtags: {
+        Args: { p_limit?: number }
+        Returns: {
+          post_count: number
+          tag: string
+        }[]
+      }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }

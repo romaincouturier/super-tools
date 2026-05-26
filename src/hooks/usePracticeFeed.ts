@@ -277,7 +277,7 @@ export function useMyPracticeComments(learnerEmail: string | null) {
       const postsRes = postIds.length
         ? await c.from("practice_posts").select("id, content, author_email").in("id", postIds)
         : { data: [] };
-      const postMap = new Map((postsRes.data || []).map((p: any) => [p.id, p]));
+      const postMap = new Map<string, any>(((postsRes.data || []) as any[]).map((p: any) => [p.id, p]));
       return list.map((cm) => {
         const post = postMap.get(cm.post_id);
         return {
