@@ -367,16 +367,22 @@ export default function LmsCoursePlayer() {
           {sidebarOpen && (
             <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
               <HomeMenuLink courseId={courseId} learnerEmail={learnerEmail} isPreview={isPreview} />
-              <CourseProgressSidebar
-                modules={modules}
-                lessonsByModule={lessonsByModule}
-                completedIds={completedIds}
-                selectedLessonId={selectedLessonId}
-                onSelectLesson={setSelectedLessonId}
-                isModuleUnlocked={isModuleUnlocked}
-                nextLiveAt={nextLiveAt}
-                livesCalendarHref={livesCalendarHref}
-              />
+              {courseId && (
+                <CourseHomeSidebar
+                  courseId={courseId}
+                  email={learnerEmail}
+                  isPreview={isPreview}
+                  modules={sidebarModules}
+                  moduleStatuses={moduleStatuses}
+                  lessonCountByModule={lessonCountByModule}
+                  lessonsDoneByModule={lessonsDoneByModule}
+                  communityPreviewCount={course.community_preview_count ?? 2}
+                  meetings={liveData?.meetings ?? []}
+                  activeView="home"
+                  onModuleClick={handleSidebarModuleClick}
+                  onViewChange={handleSidebarViewChange}
+                />
+              )}
             </div>
           )}
         </aside>
