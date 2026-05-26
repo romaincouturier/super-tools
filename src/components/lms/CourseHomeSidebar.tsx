@@ -228,13 +228,7 @@ export default function CourseHomeSidebar({
       })()}
 
 
-      {!isPreview && (
-        <CommunitySidebarPreview
-          courseId={courseId}
-          email={email}
-          previewCount={communityPreviewCount}
-        />
-      )}
+      {!isPreview && <CommunitySidebarPreview email={email} />}
 
       <div className="p-5 flex-1">
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
