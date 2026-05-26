@@ -241,8 +241,6 @@ export default function CourseHomeSidebar({
             const done = lessonsDoneByModule[m.id] ?? 0;
             const pct = total > 0 ? (done / total) * 100 : 0;
             const isCompleted = status === "completed";
-            const isActiveModule = m.id === activeModuleId;
-            const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
             const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
             const hasLessons = moduleLessons.length > 0;
             const isOpen = !!expanded[m.id];
