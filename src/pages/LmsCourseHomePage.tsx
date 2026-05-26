@@ -1388,95 +1388,152 @@ function CourseHomeHeader({
     <>
       <ConfirmDialog />
       <header
-        className="sticky top-0 z-30 flex items-center gap-4 px-5 h-16 border-b"
-        style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}
+        className="sticky top-0 z-30 flex items-center gap-3 px-4 lg:px-8 border-b"
+        style={{
+          background: "#ffffff",
+          borderColor: "rgba(16,24,32,0.08)",
+          height: 72,
+          boxShadow: "0 1px 3px rgba(16,24,32,0.06)",
+        }}
       >
-        {/* Mobile menu */}
+        {/* Mobile menu toggle */}
         <button
           onClick={onMobileMenu}
-          className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
+          className="lg:hidden flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:bg-black/5 shrink-0"
           aria-label="Menu"
         >
-          <Menu size={18} style={{ color: "var(--st-ink)" }} />
+          <Menu size={20} style={{ color: "var(--st-ink)" }} />
         </button>
 
-        {/* Logo */}
-        <div className="shrink-0">
-          <SupertiltLogo className="h-9" />
+        {/* ── Left zone: logo + separator + course title ── */}
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          {/* Logo — nettement plus grand pour une vraie présence de marque */}
+          <div className="shrink-0">
+            <SupertiltLogo style={{ height: 44 }} />
+          </div>
+
+          {/* Séparateur vertical */}
+          <div
+            className="hidden sm:block shrink-0"
+            style={{ width: 1, height: 28, background: "rgba(16,24,32,0.12)" }}
+          />
+
+          {/* Titre de la formation — contexte de navigation, pas titre principal */}
+          <p
+            className="hidden sm:block truncate min-w-0 text-sm"
+            style={{ color: "var(--st-ink-muted)", fontWeight: 450, letterSpacing: "-0.01em" }}
+          >
+            {courseTitle}
+          </p>
         </div>
 
-        {/* Course title */}
-        <div className="hidden sm:block h-5 w-px shrink-0" style={{ background: "rgba(16,24,32,0.1)" }} />
-        <p className="hidden sm:block flex-1 text-sm font-medium truncate min-w-0" style={{ color: "var(--st-ink)" }}>
-          {courseTitle}
-        </p>
+        {/* ── Right zone ── */}
+        <div className="flex items-center gap-1 shrink-0 ml-2">
 
-        {/* Admin edit shortcut */}
-        {isPreview && courseId && (
-          <a
-            href={`/lms/${courseId}/edit`}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "6px 14px", borderRadius: 10,
-              background: "#FFD100", color: "#101820",
-              fontWeight: 700, fontSize: "0.8125rem",
-              textDecoration: "none", flexShrink: 0,
-            }}
-          >
-            Éditer
-          </a>
-        )}
-
-        {/* Greeting dropdown */}
-        <div ref={ref} className="ml-auto relative shrink-0">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all hover:bg-black/5"
-            style={{ fontFamily: "inherit" }}
-          >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}
+          {/* Admin edit shortcut */}
+          {isPreview && courseId && (
+            <a
+              href={`/lms/${courseId}/edit`}
+              className="mr-2"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "6px 14px", borderRadius: 10,
+                background: "#FFD100", color: "#101820",
+                fontWeight: 700, fontSize: "0.8125rem",
+                textDecoration: "none", flexShrink: 0,
+              }}
             >
-              {initial}
-            </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
-              <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>
-                {learnerName || "Apprenant"}
-              </p>
-            </div>
-            <ChevronDown size={13} className="hidden sm:block shrink-0 opacity-50" style={{ color: "var(--st-ink-muted)" }} />
-          </button>
-
-          {open && (
-            <div
-              className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border shadow-lg overflow-hidden z-50"
-              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
-            >
-              {portalItems.map(({ label, icon: Icon, section }) => (
-                <button
-                  key={section}
-                  onClick={() => { navigate(`/espace-apprenant?section=${section}`); setOpen(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-black/5"
-                  style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
-                >
-                  <Icon size={15} style={{ color: "var(--st-ink-muted)" }} />
-                  {label}
-                </button>
-              ))}
-              <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }}>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-red-50"
-                  style={{ color: "#ef4444", fontFamily: "inherit" }}
-                >
-                  <LogOut size={15} />
-                  Se déconnecter
-                </button>
-              </div>
-            </div>
+              Éditer
+            </a>
           )}
+
+          {/* Séparateur avant le compte */}
+          <div
+            className="hidden sm:block shrink-0 mx-2"
+            style={{ width: 1, height: 28, background: "rgba(16,24,32,0.1)" }}
+          />
+
+          {/* Bloc compte utilisateur */}
+          <div ref={ref} className="relative">
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all hover:bg-black/[0.04] active:bg-black/[0.07]"
+              style={{ fontFamily: "inherit" }}
+            >
+              {/* Avatar */}
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                style={{ background: "#FFD100", color: "#101820", fontSize: "0.9375rem" }}
+              >
+                {initial}
+              </div>
+
+              {/* Name block */}
+              <div className="hidden sm:block text-left">
+                <p className="text-[11px] leading-none mb-0.5" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
+                <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>
+                  {learnerName || "Apprenant"}
+                </p>
+              </div>
+
+              <ChevronDown
+                size={14}
+                className="hidden sm:block shrink-0 transition-transform duration-200"
+                style={{
+                  color: "var(--st-ink-muted)",
+                  transform: open ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              />
+            </button>
+
+            {/* Dropdown menu */}
+            {open && (
+              <div
+                className="absolute right-0 top-full mt-2 z-50"
+                style={{
+                  width: 240,
+                  background: "#ffffff",
+                  border: "1px solid rgba(16,24,32,0.08)",
+                  borderRadius: 16,
+                  boxShadow: "0 8px 32px rgba(16,24,32,0.12), 0 2px 8px rgba(16,24,32,0.06)",
+                  overflow: "hidden",
+                }}
+              >
+                <div className="py-1.5">
+                  {portalItems.map(({ label, icon: Icon, section }) => (
+                    <button
+                      key={section}
+                      onClick={() => { navigate(`/espace-apprenant?section=${section}`); setOpen(false); }}
+                      className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-black/[0.04]"
+                      style={{
+                        color: "var(--st-ink)",
+                        fontFamily: "inherit",
+                        padding: "10px 16px",
+                      }}
+                    >
+                      <Icon size={16} strokeWidth={1.75} style={{ color: "var(--st-ink-muted)", flexShrink: 0 }} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }} className="py-1.5">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-red-50"
+                    style={{
+                      color: "#dc2626",
+                      fontFamily: "inherit",
+                      padding: "10px 16px",
+                    }}
+                  >
+                    <LogOut size={16} strokeWidth={1.75} style={{ color: "#dc2626", flexShrink: 0 }} />
+                    Se déconnecter
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
     </>
