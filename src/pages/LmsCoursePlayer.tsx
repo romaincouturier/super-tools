@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -19,7 +19,7 @@ import {
 import QuizPlayer from "@/components/lms/QuizPlayer";
 import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
-import CourseProgressSidebar from "@/components/lms/CourseProgressSidebar";
+import CourseHomeSidebar, { type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
@@ -120,6 +120,47 @@ export default function LmsCoursePlayer() {
   const completionPct = orderedLessons.length > 0
     ? Math.round((completedRegularCount / orderedLessons.length) * 100)
     : 0;
+
+  // Shared home-sidebar data
+  const navigate = useNavigate();
+  const sidebarModules = useMemo(
+    () => modules.filter((m) => !m.is_special_section).map((m) => ({ id: m.id, title: m.title, position: m.position })),
+    [modules],
+  );
+  const lessonCountByModule = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const m of modules) out[m.id] = (lessonsByModule[m.id] || []).length;
+    return out;
+  }, [modules, lessonsByModule]);
+  const lessonsDoneByModule = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const m of modules) {
+      const lessons = lessonsByModule[m.id] || [];
+      out[m.id] = lessons.filter((l) => completedIds.has(l.id)).length;
+    }
+    return out;
+  }, [modules, lessonsByModule, completedIds]);
+  const moduleStatuses = useMemo<Record<string, ModuleStatus>>(() => {
+    const out: Record<string, ModuleStatus> = {};
+    for (const m of modules) {
+      const total = lessonCountByModule[m.id] ?? 0;
+      const done = lessonsDoneByModule[m.id] ?? 0;
+      out[m.id] = total > 0 && done === total ? "completed" : done > 0 ? "in_progress" : "not_started";
+    }
+    return out;
+  }, [modules, lessonCountByModule, lessonsDoneByModule]);
+  const handleSidebarModuleClick = useCallback((moduleId: string) => {
+    const first = (lessonsByModule[moduleId] || [])[0];
+    if (first) setSelectedLessonId(first.id);
+  }, [lessonsByModule]);
+  const handleSidebarViewChange = useCallback((view: string) => {
+    const qs = new URLSearchParams();
+    if (learnerEmail) qs.set("email", learnerEmail);
+    if (isPreview) qs.set("preview", "admin");
+    qs.set("view", view);
+    navigate(`/lms/${courseId}/home?${qs.toString()}`);
+  }, [courseId, learnerEmail, isPreview, navigate]);
+
 
   // Check if a module is unlocked (all lessons of prerequisite module completed)
   const isModuleUnlocked = (mod: LmsModule) => {
@@ -326,16 +367,22 @@ export default function LmsCoursePlayer() {
           {sidebarOpen && (
             <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
               <HomeMenuLink courseId={courseId} learnerEmail={learnerEmail} isPreview={isPreview} />
-              <CourseProgressSidebar
-                modules={modules}
-                lessonsByModule={lessonsByModule}
-                completedIds={completedIds}
-                selectedLessonId={selectedLessonId}
-                onSelectLesson={setSelectedLessonId}
-                isModuleUnlocked={isModuleUnlocked}
-                nextLiveAt={nextLiveAt}
-                livesCalendarHref={livesCalendarHref}
-              />
+              {courseId && (
+                <CourseHomeSidebar
+                  courseId={courseId}
+                  email={learnerEmail}
+                  isPreview={isPreview}
+                  modules={sidebarModules}
+                  moduleStatuses={moduleStatuses}
+                  lessonCountByModule={lessonCountByModule}
+                  lessonsDoneByModule={lessonsDoneByModule}
+                  communityPreviewCount={course.community_preview_count ?? 2}
+                  meetings={liveData?.meetings ?? []}
+                  activeView="home"
+                  onModuleClick={handleSidebarModuleClick}
+                  onViewChange={handleSidebarViewChange}
+                />
+              )}
             </div>
           )}
         </aside>
@@ -357,16 +404,22 @@ export default function LmsCoursePlayer() {
                 isPreview={isPreview}
                 onClick={() => setSidebarOpen(false)}
               />
-              <CourseProgressSidebar
-                modules={modules}
-                lessonsByModule={lessonsByModule}
-                completedIds={completedIds}
-                selectedLessonId={selectedLessonId}
-                onSelectLesson={(id) => { setSelectedLessonId(id); setSidebarOpen(false); }}
-                isModuleUnlocked={isModuleUnlocked}
-                nextLiveAt={nextLiveAt}
-                livesCalendarHref={livesCalendarHref}
-              />
+              {courseId && (
+                <CourseHomeSidebar
+                  courseId={courseId}
+                  email={learnerEmail}
+                  isPreview={isPreview}
+                  modules={sidebarModules}
+                  moduleStatuses={moduleStatuses}
+                  lessonCountByModule={lessonCountByModule}
+                  lessonsDoneByModule={lessonsDoneByModule}
+                  communityPreviewCount={course.community_preview_count ?? 2}
+                  meetings={liveData?.meetings ?? []}
+                  activeView="home"
+                  onModuleClick={(id) => { handleSidebarModuleClick(id); setSidebarOpen(false); }}
+                  onViewChange={(v) => { handleSidebarViewChange(v); setSidebarOpen(false); }}
+                />
+              )}
             </div>
           </>
         )}
