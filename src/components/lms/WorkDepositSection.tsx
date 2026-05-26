@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Pencil,
   RefreshCw,
+  Trash2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ import {
   useVisibleDeposits,
   useCreateDeposit,
   useUpdateDeposit,
+  useDeleteDeposit,
   uploadDepositFile,
 } from "@/hooks/useLmsWorkDeposit";
 import DepositCommentList from "@/components/lms/DepositCommentList";
@@ -63,6 +65,7 @@ export default function WorkDepositSection({
   const { data: deposit, isLoading } = useMyDeposit(lessonId, learnerEmail);
   const createDeposit = useCreateDeposit(lessonId, learnerEmail);
   const updateDeposit = useUpdateDeposit(lessonId, learnerEmail);
+  const deleteDeposit = useDeleteDeposit(lessonId, learnerEmail);
 
   if (isLoading) {
     return (
@@ -104,6 +107,7 @@ export default function WorkDepositSection({
         deposit={deposit}
         config={config}
         saving={updateDeposit.isPending}
+        deleting={deleteDeposit.isPending}
         onUpdate={async (updates) => {
           await updateDeposit.mutateAsync({ id: deposit.id, updates });
         }}
@@ -119,6 +123,15 @@ export default function WorkDepositSection({
             },
           });
           toast({ title: "Fichier remplacé." });
+        }}
+        onDelete={async () => {
+          if (!window.confirm("Supprimer définitivement votre dépôt ? Cette action est irréversible.")) return;
+          try {
+            await deleteDeposit.mutateAsync(deposit.id);
+            toast({ title: "Dépôt supprimé." });
+          } catch (err) {
+            toastError(toast, err instanceof Error ? err : "Erreur de suppression");
+          }
         }}
         onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
       />
@@ -325,15 +338,19 @@ function DepositSummary({
   deposit,
   config,
   saving,
+  deleting,
   onUpdate,
   onReplaceFile,
+  onDelete,
   onError,
 }: {
   deposit: WorkDeposit;
   config: Required<WorkDepositConfig>;
   saving: boolean;
+  deleting: boolean;
   onUpdate: (updates: UpdateWorkDepositInput) => Promise<void>;
   onReplaceFile: (file: File) => Promise<void>;
+  onDelete: () => Promise<void>;
   onError: (err: unknown) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -457,6 +474,16 @@ function DepositSummary({
         >
           <RefreshCw className="h-3.5 w-3.5 mr-2" />
           Remplacer le fichier
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDelete}
+          disabled={deleting}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5 mr-2" />
+          Supprimer mon dépôt
         </Button>
       </div>
 
