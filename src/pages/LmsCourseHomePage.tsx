@@ -14,6 +14,7 @@ import {
   useCourseLiveMeetings,
   uploadForumAttachment,
 } from "@/hooks/useLms";
+import { usePracticePosts } from "@/hooks/usePracticeFeed";
 import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
@@ -46,7 +47,8 @@ import {
   AlertCircle,
   Bell,
 } from "lucide-react";
-import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
+import { cn } from "@/lib/utils";
+import CourseHomeSidebar, { CommunityCtaButton } from "@/components/lms/CourseHomeSidebar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
