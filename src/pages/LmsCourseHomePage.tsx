@@ -875,7 +875,8 @@ const COMMUNITY_THUMBNAILS = [
   { bg: "#FFF7ED", emoji: "🖊️" },
 ];
 
-function CommunitySection() {
+function CommunitySection({ email }: { email?: string }) {
+  const navigate = useNavigate();
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-6 px-6 py-5"
