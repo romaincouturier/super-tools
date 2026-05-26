@@ -365,14 +365,6 @@ export default function LmsCoursePlayer() {
                   >
                     {selectedLesson.title}
                   </h1>
-                  {selectedLesson.estimated_minutes > 0 && (
-                    <span
-                      className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
-                      style={{ background: "#F2F4F4", color: "rgba(16,24,32,0.55)" }}
-                    >
-                      <Clock className="w-3 h-3" /> {selectedLesson.estimated_minutes} min
-                    </span>
-                  )}
                 </div>
                 <LessonContent
                   lessonId={selectedLesson.id}
