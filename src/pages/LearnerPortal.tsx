@@ -1483,7 +1483,25 @@ function pedagogicalStatusBadge(status: string) {
 function TravauxView({ email, trainings }: { email: string; trainings: Training[] }) {
   const { data: deposits = [], isLoading } = useLearnerWorkDeposits(email);
   const createDeposit = useCreatePortfolioDeposit();
+  const deleteDeposit = useDeleteDeposit("", email);
+  const { confirm, ConfirmDialog } = useConfirm();
   const { toast } = useToast();
+
+  const handleDeleteDeposit = async (id: string) => {
+    const ok = await confirm({
+      title: "Supprimer ce travail ?",
+      description: "Cette action est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deleteDeposit.mutateAsync(id);
+      toast({ title: "Travail supprimé" });
+    } catch {
+      toastError(toast, "Impossible de supprimer ce travail.");
+    }
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
