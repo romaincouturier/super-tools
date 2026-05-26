@@ -47,10 +47,6 @@ function clientFor(email?: string | null) {
 
 // ── Posts ────────────────────────────────────────────────────────────────────
 
-export function usePracticePosts(learnerEmail: string | null, limit = 50) {
-  return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit],
-    queryFn: async (): Promise<PracticePost[]> => {
 export function usePracticePosts(
   learnerEmail: string | null,
   limit = 50,
