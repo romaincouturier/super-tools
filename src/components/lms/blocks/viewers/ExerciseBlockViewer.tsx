@@ -30,8 +30,6 @@ export default function ExerciseBlockViewer({ content }: Props) {
     setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const videoUrl = content.video_url;
-  const isYouTube = videoUrl && (videoUrl.includes("youtube") || videoUrl.includes("youtu.be"));
-  const isVimeo = videoUrl && videoUrl.includes("vimeo");
 
   return (
     <ActionBlockShell icon={Pencil} label={content.title || "Exercice"}>
