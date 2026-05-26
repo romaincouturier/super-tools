@@ -161,7 +161,7 @@ async function uploadPracticeFile(file: File, learnerEmail: string) {
 export function useCreatePracticePost(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, file }: { content: string; file: File | null }) => {
+    mutationFn: async ({ content, file, courseId, lessonId }: { content: string; file: File | null; courseId?: string | null; lessonId?: string | null }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
       const c = clientFor(learnerEmail) as any;
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
@@ -173,6 +173,8 @@ export function useCreatePracticePost(learnerEmail: string | null) {
         file_name: fileData?.name ?? null,
         file_mime: fileData?.mime ?? null,
         file_size: fileData?.size ?? null,
+        course_id: courseId ?? null,
+        lesson_id: lessonId ?? null,
       });
       if (error) throw error;
     },
