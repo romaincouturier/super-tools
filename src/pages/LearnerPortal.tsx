@@ -42,7 +42,7 @@ import {
   useCoursePageViews,
   useToggleDepositReaction,
 } from "@/hooks/useLearnerPortalData";
-import { useDepositComments, useCreateDepositComment } from "@/hooks/useLmsWorkDeposit";
+import { useDepositComments, useCreateDepositComment, useDeleteDeposit } from "@/hooks/useLmsWorkDeposit";
 import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
@@ -1483,7 +1483,25 @@ function pedagogicalStatusBadge(status: string) {
 function TravauxView({ email, trainings }: { email: string; trainings: Training[] }) {
   const { data: deposits = [], isLoading } = useLearnerWorkDeposits(email);
   const createDeposit = useCreatePortfolioDeposit();
+  const deleteDeposit = useDeleteDeposit("", email);
+  const { confirm, ConfirmDialog } = useConfirm();
   const { toast } = useToast();
+
+  const handleDeleteDeposit = async (id: string) => {
+    const ok = await confirm({
+      title: "Supprimer ce travail ?",
+      description: "Cette action est irréversible.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deleteDeposit.mutateAsync(id);
+      toast({ title: "Travail supprimé" });
+    } catch {
+      toastError(toast, "Impossible de supprimer ce travail.");
+    }
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -1554,6 +1572,7 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog />
       {/* CTA banner */}
       <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
         style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1.5px solid var(--st-yellow, #FFD100)" }}>
@@ -1662,6 +1681,14 @@ function TravauxView({ email, trainings }: { email: string; trainings: Training[
                         </p>
                       </div>
                       {pedagogicalStatusBadge(d.pedagogical_status)}
+                      <button
+                        onClick={() => handleDeleteDeposit(d.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
+                        style={{ color: "var(--st-ink-muted)" }}
+                        title="Supprimer ce travail"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
 
                     {/* Image */}
