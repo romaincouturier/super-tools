@@ -3381,6 +3381,7 @@ export type Database = {
           difficulty_level: string | null
           estimated_duration_minutes: number | null
           formation_config_id: string | null
+          home_config: Json
           id: string
           org_id: string | null
           status: string
@@ -3399,6 +3400,7 @@ export type Database = {
           difficulty_level?: string | null
           estimated_duration_minutes?: number | null
           formation_config_id?: string | null
+          home_config?: Json
           id?: string
           org_id?: string | null
           status?: string
@@ -3417,6 +3419,7 @@ export type Database = {
           difficulty_level?: string | null
           estimated_duration_minutes?: number | null
           formation_config_id?: string | null
+          home_config?: Json
           id?: string
           org_id?: string | null
           status?: string
