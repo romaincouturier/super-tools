@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Pencil,
   RefreshCw,
+  Trash2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
