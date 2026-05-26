@@ -209,3 +209,21 @@ export function useDeletePracticePost(learnerEmail: string | null, isAdmin = fal
     onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
   });
 }
+
+// ── Delete comment ────────────────────────────────────────────────────────────
+
+export function useDeletePracticeComment(learnerEmail: string | null, isAdmin = false) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ commentId }: { commentId: string; postId: string }) => {
+      if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
+      const c = (isAdmin ? supabase : clientFor(learnerEmail)) as any;
+      const { error } = await c.from("practice_post_comments").delete().eq("id", commentId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { postId }) => {
+      qc.invalidateQueries({ queryKey: POSTS_KEY });
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+    },
+  });
+}
