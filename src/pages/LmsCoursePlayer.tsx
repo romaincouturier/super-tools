@@ -260,70 +260,13 @@ export default function LmsCoursePlayer() {
         </div>
       )}
       {/* Top bar */}
-      <header
-        className="sticky top-0 z-30 flex flex-col bg-white shrink-0"
-        style={{ borderBottom: "1px solid #EDEDED" }}
-      >
-        <div className="flex items-center gap-3 h-16 px-6">
-          {/* Sidebar toggle */}
-          <button
-            onClick={() => setSidebarOpen((v) => !v)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg transition-colors hover:bg-black/5 shrink-0"
-            aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu de parcours"}
-          >
-            <Menu size={18} style={{ color: "#101820" }} />
-          </button>
+      <LearnerCourseHeader
+        courseTitle={course.title}
+        learnerEmail={learnerEmail}
+        isPreview={isPreview}
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+      />
 
-          {/* Logo — learners go to their portal, admins/trainers go to the back-office LMS */}
-          <a
-            href={learnerEmail && !isPreview ? "/espace-apprenant" : "/lms"}
-            className="shrink-0 flex items-center"
-            title="Retour aux formations"
-          >
-            <SupertiltLogo className="h-8" />
-          </a>
-
-          {/* Vertical divider — desktop only */}
-          <div
-            className="hidden lg:block w-px h-7 shrink-0"
-            style={{ background: "#EDEDED" }}
-          />
-
-          {/* Breadcrumb + course title */}
-          <div className="flex-1 min-w-0">
-            <p
-              className="text-[11px] font-medium leading-none mb-0.5 hidden lg:block"
-              style={{ color: "#9CA3AF" }}
-            >
-              Mes formations
-            </p>
-            <p
-              className="text-sm font-semibold truncate leading-tight"
-              style={{ color: "#101820" }}
-            >
-              {course.title}
-            </p>
-          </div>
-
-          {/* Right cluster */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Progression retirée du header — visible dans la sidebar */}
-
-            {/* Notification bell */}
-            <button
-              className="hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
-              aria-label="Notifications"
-              title="Vous n'avez pas eu de retour sur vos travaux"
-            >
-              <Bell size={18} style={{ color: "#101820" }} />
-            </button>
-
-            {/* Account menu (avatar + dropdown) */}
-            <LearnerAccountMenu learnerEmail={learnerEmail} isPreview={isPreview} />
-          </div>
-        </div>
-
-      </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar — desktop: fixed left, mobile: overlay */}
