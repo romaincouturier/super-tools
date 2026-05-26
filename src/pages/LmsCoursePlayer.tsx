@@ -24,7 +24,7 @@ import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
-  Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles,
+  Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles, Home,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
