@@ -937,6 +937,9 @@ function LearnerAccountMenu({ learnerEmail, isPreview }: { learnerEmail: string;
       </div>
     </>
   );
+}
+
+
 
 // ---- Legacy work-deposit opt-in (suppressed when a work_deposit block exists) ----
 function LegacyWorkDepositOptIn({
