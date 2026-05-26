@@ -19,7 +19,7 @@ import {
 import QuizPlayer from "@/components/lms/QuizPlayer";
 import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
-import CourseHomeSidebar, { type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
+import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
@@ -688,15 +688,7 @@ function CommunityWidget({ courseId, learnerEmail }: { courseId: string; learner
           ))}
         </div>
       )}
-      <a
-        href="/espace-apprenant/communaute"
-        onClick={() => {
-          if (learnerEmail) sessionStorage.setItem("learner_email", learnerEmail);
-        }}
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "0.5rem 0", background: "#FFD100", color: "#101820", borderRadius: 12, fontWeight: 700, fontSize: "0.8125rem", textDecoration: "none" }}
-      >
-        Aller à la communauté <ChevronRight size={14} />
-      </a>
+      <CommunityCtaButton email={learnerEmail} />
       {recentPosts.length > 0 && (
         <p className="text-[11px] text-center mt-2" style={{ color: "rgba(16,24,32,0.45)" }}>
           {recentPosts.length} apprenant{recentPosts.length > 1 ? "s ont" : " a"} déposé {recentPosts.length > 1 ? "leur" : "son"} exercice cette semaine.
