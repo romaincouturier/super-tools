@@ -351,10 +351,10 @@ export default function LmsCoursePlayer() {
         <main ref={mainRef} className="flex-1 overflow-auto">
           {selectedLesson ? (
             <div className="p-4 sm:p-6">
-              <div className="flex flex-col gap-6 items-start">
+              <div className="flex flex-col gap-6 items-stretch">
 
                 {/* ── Center column ──────────────────────────────────────── */}
-                <div className="space-y-4">
+                <div className="space-y-4 w-full">
 
               {/* ── Card 1 : titre + contenu pédagogique ─────────────────── */}
               <div style={{ background: "#ffffff", borderRadius: 20, padding: "1.75rem", boxShadow: "0 2px 8px rgba(16,24,32,0.05)" }}>
