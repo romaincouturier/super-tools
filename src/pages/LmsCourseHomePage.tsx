@@ -14,6 +14,7 @@ import {
   useCourseLiveMeetings,
   uploadForumAttachment,
 } from "@/hooks/useLms";
+import { usePracticePosts } from "@/hooks/usePracticeFeed";
 import type { CourseLiveMeeting, CourseLiveData, CourseHomeConfig } from "@/hooks/useLmsQueries";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import {
