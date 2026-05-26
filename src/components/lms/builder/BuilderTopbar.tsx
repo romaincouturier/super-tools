@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye, Settings } from "lucide-react";
+import { Menu, ArrowLeft, Eye } from "lucide-react";
 import { LmsLesson } from "@/hooks/useLms";
 
 interface Props {
@@ -95,20 +95,6 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--st-ink-muted)" }} />
           Brouillon
         </span>
-
-        {/* Course settings (incl. homepage editor) */}
-        <button
-          onClick={() => navigate(`/lms/${courseId}/edit`)}
-          className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full border transition-all hover:bg-black/5"
-          style={{
-            color: "var(--st-ink)",
-            borderColor: "rgba(16,24,32,0.2)",
-          }}
-          title="Paramètres du cours"
-          aria-label="Paramètres du cours"
-        >
-          <Settings size={15} />
-        </button>
 
         {/* Preview */}
         <a
