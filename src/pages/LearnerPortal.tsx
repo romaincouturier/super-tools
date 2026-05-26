@@ -2102,14 +2102,19 @@ function PostCreationBox({
                 {firstName && lastName ? `${firstName} ${lastName}` : email.split("@")[0]}
               </p>
             </div>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Partagez votre travail, une réflexion, une question..."
-              rows={5}
-              className="w-full resize-none rounded-xl border px-3 py-2.5 text-sm outline-none"
-              style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
-            />
+            <div className="relative">
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Partagez votre travail, une réflexion, une question..."
+                rows={5}
+                className="w-full resize-none rounded-xl border px-3 py-2.5 pr-10 text-sm outline-none"
+                style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
+              />
+              <div className="absolute bottom-2 right-2">
+                <EmojiInsert onInsert={(e) => setContent((t) => t + e)} />
+              </div>
+            </div>
             {/* Image preview */}
             {preview && (
               <div className="relative">
