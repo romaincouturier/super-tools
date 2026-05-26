@@ -204,15 +204,24 @@ export default function LmsCoursePlayer() {
     });
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    document.querySelectorAll<HTMLElement>("[data-lms-scroll]").forEach((el) => {
+      el.scrollTop = 0;
+    });
+  };
+
   const goNext = () => {
     if (currentIndex < orderedLessons.length - 1) {
       setSelectedLessonId(orderedLessons[currentIndex + 1].id);
+      scrollToTop();
     }
   };
 
   const goPrev = () => {
     if (currentIndex > 0) {
       setSelectedLessonId(orderedLessons[currentIndex - 1].id);
+      scrollToTop();
     }
   };
 
