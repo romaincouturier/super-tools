@@ -1824,6 +1824,7 @@ function PracticePostCard({
   const [commentText, setCommentText] = useState("");
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail);
   const createComment = useCreatePracticeComment(currentEmail);
+  const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
   const { toast } = useToast();
 
   const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
