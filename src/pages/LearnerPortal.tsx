@@ -1923,8 +1923,18 @@ function PracticePostCard({
           {comments.map((c) => {
             const cName = authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
             const cInitials = authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
+            const cIsOwn = c.author_email === currentEmail;
+            const cCanDelete = cIsOwn || isAdmin;
+            const handleDeleteComment = async () => {
+              if (!window.confirm("Supprimer ce commentaire ?")) return;
+              try {
+                await deleteComment.mutateAsync({ commentId: c.id, postId: post.id });
+              } catch {
+                toastError(toast, "Impossible de supprimer le commentaire.");
+              }
+            };
             return (
-              <div key={c.id} className="flex items-start gap-2">
+              <div key={c.id} className="flex items-start gap-2 group">
                 <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
                   style={{ background: c.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
                   {c.author_photo_url
@@ -1932,7 +1942,19 @@ function PracticePostCard({
                     : cInitials}
                 </div>
                 <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
-                  <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
+                    {cCanDelete && (
+                      <button
+                        onClick={handleDeleteComment}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 shrink-0"
+                        style={{ color: "var(--st-ink-muted)" }}
+                        title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
                   <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
                 </div>
               </div>
