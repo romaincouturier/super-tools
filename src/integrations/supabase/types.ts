@@ -3522,6 +3522,35 @@ export type Database = {
           },
         ]
       }
+      lms_deposit_reactions: {
+        Row: {
+          author_email: string
+          created_at: string
+          deposit_id: string
+          id: string
+        }
+        Insert: {
+          author_email: string
+          created_at?: string
+          deposit_id: string
+          id?: string
+        }
+        Update: {
+          author_email?: string
+          created_at?: string
+          deposit_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_deposit_reactions_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "lms_work_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_enrollments: {
         Row: {
           completed_at: string | null

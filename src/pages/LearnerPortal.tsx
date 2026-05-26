@@ -38,7 +38,9 @@ import {
   usePracticeDeposits,
   useLearnerReceivedComments,
   useCoursePageViews,
+  useToggleDepositReaction,
 } from "@/hooks/useLearnerPortalData";
+import { useDepositComments, useCreateDepositComment } from "@/hooks/useLmsWorkDeposit";
 import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
@@ -2100,10 +2102,39 @@ function PostCreationBox({
 }
 
 // ── Deposit feed card (shared work deposit surfaced in the community) ──────────
-function DepositFeedCard({ deposit }: { deposit: any }) {
+function DepositFeedCard({
+  deposit,
+  currentEmail,
+  onReact,
+}: {
+  deposit: any;
+  currentEmail: string;
+  onReact: (depositId: string, iReacted: boolean) => void;
+}) {
   const displayName = authorDisplayName(deposit.learner_email);
   const initials = authorInitialsFromPost(deposit.learner_email);
   const isImage = deposit.file_mime?.startsWith("image/");
+
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const { data: comments = [] } = useDepositComments(showComments ? deposit.id : undefined, currentEmail);
+  const createComment = useCreateDepositComment(deposit.id, currentEmail);
+  const { toast } = useToast();
+
+  const reactionCount = deposit.reaction_count ?? 0;
+  const iReacted = !!deposit.i_reacted;
+  const commentCount = deposit.comment_count ?? 0;
+
+  const handleComment = async () => {
+    if (!commentText.trim()) return;
+    try {
+      await createComment.mutateAsync(commentText.trim());
+      setCommentText("");
+    } catch {
+      toastError(toast, "Impossible d'envoyer le commentaire.");
+    }
+  };
+
   return (
     <div className="rounded-2xl border overflow-hidden"
       style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
@@ -2133,6 +2164,79 @@ function DepositFeedCard({ deposit }: { deposit: any }) {
           <FileText size={16} /> {deposit.file_name ?? "Voir le fichier"}
         </a>
       ))}
+
+      {(reactionCount > 0 || commentCount > 0) && (
+        <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+          {reactionCount > 0 && <span>{reactionCount} J'aime</span>}
+          {commentCount > 0 && (
+            <button onClick={() => setShowComments((v) => !v)} className="hover:underline ml-auto">
+              {commentCount} commentaire{commentCount > 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="flex border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+        <button
+          onClick={() => onReact(deposit.id, iReacted)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
+          style={{ color: iReacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
+        >
+          <ThumbsUp size={16} fill={iReacted ? "currentColor" : "none"} />
+          J'aime
+        </button>
+        <button
+          onClick={() => setShowComments((v) => !v)}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
+          style={{ color: "var(--st-ink-muted)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
+        >
+          <MessageSquare size={16} />
+          Commenter
+        </button>
+      </div>
+
+      {showComments && (
+        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "var(--st-surface, #F2F4F4)" }}>
+          {comments.map((c: any) => {
+            const cName = authorDisplayName(c.author_email);
+            const cInitials = authorInitialsFromPost(c.author_email);
+            return (
+              <div key={c.id} className="flex items-start gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  style={{ background: "var(--st-yellow)", color: "#101820" }}>
+                  {cInitials}
+                </div>
+                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
+                  <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
+                  <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 rounded-full border px-3 py-1.5"
+              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
+                placeholder="Ajouter un commentaire..."
+                className="flex-1 text-sm bg-transparent outline-none"
+                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+              />
+            </div>
+            <button
+              onClick={handleComment}
+              disabled={!commentText.trim() || createComment.isPending}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
+              style={{ background: "var(--st-yellow)", color: "#101820" }}
+            >
+              <Send size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2148,9 +2252,10 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
 }) {
   const { isAdmin } = useModuleAccess();
   const { data: posts = [], isLoading } = usePracticePosts(email);
-  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(courseIds);
+  const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(courseIds, email);
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
+  const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, isAdmin);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -2237,7 +2342,16 @@ function PratiqueView({ email, courseIds, firstName, lastName, photoUrl }: {
                 onDelete={handleDelete}
               />
             ) : (
-              <DepositFeedCard key={item.key} deposit={item.deposit} />
+              <DepositFeedCard
+                key={item.key}
+                deposit={item.deposit}
+                currentEmail={email}
+                onReact={(depositId, iReacted) =>
+                  toggleDepositReaction.mutateAsync({ depositId, iReacted }).catch(() =>
+                    toastError(toast, "Impossible de réagir."),
+                  )
+                }
+              />
             )
           )}
         </div>

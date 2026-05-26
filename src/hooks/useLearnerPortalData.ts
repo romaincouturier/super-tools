@@ -61,9 +61,9 @@ export function useCreatePortfolioDeposit() {
 }
 
 // Dépôts partagés des autres apprenants (Espace de pratique)
-export function usePracticeDeposits(courseIds: string[]) {
+export function usePracticeDeposits(courseIds: string[], learnerEmail?: string | null) {
   return useQuery({
-    queryKey: ["practice_deposits", courseIds],
+    queryKey: ["practice_deposits", courseIds, learnerEmail ?? null],
     queryFn: async () => {
       if (!courseIds.length) return [];
       const { data, error } = await (supabase as any)
@@ -75,9 +75,50 @@ export function usePracticeDeposits(courseIds: string[]) {
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data || [];
+      const deposits = (data || []) as any[];
+      if (!deposits.length) return deposits;
+
+      const ids = deposits.map((d) => d.id);
+      const [reactionsRes, commentsRes] = await Promise.all([
+        (supabase as any).from("lms_deposit_reactions").select("deposit_id, author_email").in("deposit_id", ids),
+        (supabase as any).from("lms_deposit_comments").select("id, deposit_id, status").in("deposit_id", ids),
+      ]);
+      const reactions: any[] = reactionsRes.data || [];
+      const comments: any[] = (commentsRes.data || []).filter((c: any) => c.status === "published");
+      const email = (learnerEmail || "").toLowerCase();
+      return deposits.map((d) => {
+        const dr = reactions.filter((r) => r.deposit_id === d.id);
+        return {
+          ...d,
+          reaction_count: dr.length,
+          i_reacted: email ? dr.some((r) => (r.author_email || "").toLowerCase() === email) : false,
+          comment_count: comments.filter((c) => c.deposit_id === d.id).length,
+        };
+      });
     },
     enabled: courseIds.length > 0,
+  });
+}
+
+// Toggle like on a shared deposit (learner)
+export function useToggleDepositReaction(learnerEmail: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ depositId, iReacted }: { depositId: string; iReacted: boolean }) => {
+      if (!learnerEmail) throw new Error("Not authenticated");
+      const { createLearnerClient } = await import("@/integrations/supabase/client");
+      const c = createLearnerClient(learnerEmail) as any;
+      if (iReacted) {
+        const { error } = await c.from("lms_deposit_reactions")
+          .delete().eq("deposit_id", depositId).eq("author_email", learnerEmail);
+        if (error) throw error;
+      } else {
+        const { error } = await c.from("lms_deposit_reactions")
+          .insert({ deposit_id: depositId, author_email: learnerEmail });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["practice_deposits"] }),
   });
 }
 
