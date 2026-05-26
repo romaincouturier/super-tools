@@ -48,7 +48,7 @@ function PostThread({
   const deleteComment = useDeletePracticeComment(learnerEmail, false);
   const [text, setText] = useState("");
   const { toast } = useToast();
-  const isOwn = post.author_email === learnerEmail;
+  const isOwn = (post.author_email || "").toLowerCase() === (learnerEmail || "").toLowerCase();
 
   const handleSend = async () => {
     if (!text.trim()) return;
