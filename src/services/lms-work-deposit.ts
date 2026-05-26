@@ -236,6 +236,13 @@ async function notifyFeedbackPublished(depositId: string, feedbackId: string): P
   if (error) throw error;
 }
 
+async function notifyTrainerOfCommunityPost(depositId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("send-deposit-trainer-notification", {
+    body: { depositId },
+  });
+  if (error) throw error;
+}
+
 // ── Admin (BO) helpers — Stage 4 ───────────────────────────────────
 
 /** Joined row used by the admin list page. */
