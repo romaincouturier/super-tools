@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Copy, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft, Layers } from "lucide-react";
+import { ChevronRight, Copy, FileText, Plus, ChevronUp, ChevronDown, Pencil, Trash2, ArrowRightLeft, Layers, Home } from "lucide-react";
 import {
   useCourseModules,
   useModuleLessons,
@@ -24,12 +24,14 @@ interface Props {
   courseId: string;
   activeLessonId: string;
   courseTitle: string;
+  activeHome?: boolean;
 }
 
-export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }: Props) {
+export default function BuilderSidebar({ courseId, activeLessonId, courseTitle, activeHome = false }: Props) {
   const { data: modules = [] } = useCourseModules(courseId);
   const createModule = useCreateModule();
   const reorderModules = useReorderModules();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleAddModule = async () => {
@@ -77,6 +79,36 @@ export default function BuilderSidebar({ courseId, activeLessonId, courseTitle }
 
       {/* Module list */}
       <nav className="flex-1">
+        <button
+          type="button"
+          onClick={() => navigate(`/lms/${courseId}/home/builder`)}
+          className="group flex items-center gap-2 w-full text-left"
+          style={{
+            padding: activeHome ? ".5rem .5rem .5rem .625rem" : ".5rem .75rem",
+            marginBottom: ".375rem",
+            fontSize: ".875rem",
+            fontWeight: activeHome ? 700 : 600,
+            color: "var(--st-ink)",
+            borderRadius: 8,
+            borderLeft: activeHome ? "3px solid var(--st-yellow)" : "3px solid transparent",
+            background: activeHome ? "var(--st-yellow-soft)" : "transparent",
+            transition: "background 120ms ease",
+          }}
+          onMouseEnter={(e) => {
+            if (!activeHome) (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.04)";
+          }}
+          onMouseLeave={(e) => {
+            if (!activeHome) (e.currentTarget as HTMLElement).style.background = "transparent";
+          }}
+        >
+          <span className="flex items-center justify-center shrink-0" style={{ width: 18, height: 18, color: "var(--st-ink)" }}>
+            <Home size={16} />
+          </span>
+          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            Accueil
+          </span>
+        </button>
+
         {modules.map((mod, idx) => (
           <ModuleItem
             key={mod.id}
