@@ -254,7 +254,7 @@ export default function CourseHomeSidebar({
       })()}
 
 
-      {!isPreview && <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} />}
+      <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} />
 
       <div className="p-5 flex-1">
         <ul className="space-y-1 mb-4">
