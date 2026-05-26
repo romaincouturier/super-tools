@@ -9829,6 +9829,10 @@ export type Database = {
       is_feature_enabled: { Args: { _flag: string }; Returns: boolean }
       is_signup_allowed: { Args: { p_email: string }; Returns: boolean }
       is_staff_user: { Args: never; Returns: boolean }
+      learner_accounts_for_emails: {
+        Args: { p_emails: string[] }
+        Returns: string[]
+      }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }
         Returns: boolean
