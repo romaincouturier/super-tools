@@ -251,26 +251,35 @@ export default function CourseHomeSidebar({
       <div className="p-5 flex-1">
         <ul className="space-y-1 mb-4">
           <li>
-            <button
-              onClick={() => onViewChange("home")}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
-              style={{
-                fontFamily: "inherit",
-                background: "transparent",
-                color: "var(--st-ink)",
-                fontWeight: activeView === "home" ? 600 : 500,
-              }}
-            >
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{ background: "rgba(16,24,32,0.06)" }}
-              >
-                <Home size={16} style={{ color: "#101820" }} />
-              </div>
-              <span className="text-sm leading-snug">Accueil</span>
-            </button>
+            {(() => {
+              const isHomeActive = activeView === "home" && !activeLessonId;
+              return (
+                <button
+                  onClick={() => onViewChange("home")}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    !isHomeActive && "hover:bg-black/5",
+                  )}
+                  style={{
+                    fontFamily: "inherit",
+                    background: isHomeActive ? "#FFD100" : "transparent",
+                    color: "#101820",
+                    fontWeight: isHomeActive ? 600 : 500,
+                  }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                    style={{ background: isHomeActive ? "rgba(16,24,32,0.08)" : "rgba(16,24,32,0.06)" }}
+                  >
+                    <Home size={16} style={{ color: "#101820" }} />
+                  </div>
+                  <span className="text-sm leading-snug">Accueil</span>
+                </button>
+              );
+            })()}
           </li>
         </ul>
+
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--st-ink-muted)" }}>
           Vos modules
         </p>
@@ -284,11 +293,18 @@ export default function CourseHomeSidebar({
             const moduleLessons = (lessonsByModule?.[m.id]) ?? [];
             const hasLessons = moduleLessons.length > 0;
             const isOpen = !!expanded[m.id];
+            const isActiveModule = activeModuleId === m.id;
             return (
               <li key={m.id}>
                 <div
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-black/5"
-                  style={{ fontFamily: "inherit" }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                    !isActiveModule && "hover:bg-black/5",
+                  )}
+                  style={{
+                    fontFamily: "inherit",
+                    background: isActiveModule ? "#FFD100" : "transparent",
+                  }}
                 >
                   <button
                     onClick={() => onModuleClick(m.id)}
@@ -297,17 +313,21 @@ export default function CourseHomeSidebar({
                   >
                     <ModuleStatusIcon status={status} num={idx + 1} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium leading-snug truncate" style={{ color: "var(--st-ink)" }}>
+                      <p
+                        className="text-sm leading-snug truncate"
+                        style={{ color: "#101820", fontWeight: isActiveModule ? 600 : 500 }}
+                      >
                         {m.title}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
+                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: isActiveModule ? "rgba(16,24,32,0.15)" : "#EDEDED" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : isActiveModule ? "#101820" : "#FFD100" }} />
                         </div>
-                        <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
+                        <p className="text-[10px] shrink-0" style={{ color: isActiveModule ? "#101820" : "var(--st-ink-muted)" }}>{done}/{total}</p>
                       </div>
                     </div>
                   </button>
+
                   {hasLessons && (
                     <button
                       onClick={() => toggleModule(m.id)}
