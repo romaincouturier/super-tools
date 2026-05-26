@@ -24,14 +24,17 @@ import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
 import {
-  BookOpen, CheckCircle2, ChevronRight, ChevronLeft,
+  BookOpen, CheckCircle2, ChevronRight, ChevronLeft, ChevronDown,
   Clock, Paperclip, Download, Menu, Bell, MessageSquare, Sparkles, Home,
+  User, HelpCircle, LogOut,
 } from "lucide-react";
 import SupertiltLogo from "@/components/SupertiltLogo";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import WorkDepositSection from "@/components/lms/WorkDepositSection";
 import type { WorkDepositConfig } from "@/types/lms-work-deposit";
+import { useConfirm } from "@/hooks/useConfirm";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
