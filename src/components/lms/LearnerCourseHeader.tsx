@@ -68,21 +68,6 @@ export default function LearnerCourseHeader({
       <div className="flex items-center gap-2 shrink-0">
         <AdminBackLink />
 
-        {isPreview && editHref && (
-          <a
-            href={editHref}
-            className="mr-2"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "6px 14px", borderRadius: 10,
-              background: "#FFD100", color: "#101820",
-              fontWeight: 700, fontSize: "0.8125rem",
-              textDecoration: "none", flexShrink: 0,
-            }}
-          >
-            Éditer
-          </a>
-        )}
 
         <button
           className="hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors hover:bg-black/5"
