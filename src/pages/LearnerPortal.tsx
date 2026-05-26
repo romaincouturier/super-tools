@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import SupertiltLogo from "@/components/SupertiltLogo";
+import EmojiInsert from "@/components/ui/emoji-insert";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import LearnerMessaging from "@/components/learner/LearnerMessaging";
