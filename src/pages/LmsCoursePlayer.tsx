@@ -593,20 +593,6 @@ export default function LmsCoursePlayer() {
 
                 </div>{/* end center column */}
 
-                {/* ── Right panel ────────────────────────────────────────── */}
-                <div className="hidden lg:flex flex-col gap-4 sticky top-6">
-                  <ModuleProgressWidget
-                    selectedLesson={selectedLesson}
-                    modules={modules}
-                    lessonsByModule={lessonsByModule}
-                    completedIds={completedIds}
-                  />
-                  {courseId && (
-                    <CommunityWidget courseId={courseId} learnerEmail={learnerEmail} />
-                  )}
-                  <TipWidget />
-                </div>
-
               </div>{/* end grid */}
             </div>
           ) : (
