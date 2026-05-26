@@ -978,7 +978,15 @@ function HeroSection({
   const embedUrl = videoUrl ? videoEmbed(videoUrl) : null;
 
   return (
-    <section className="grid lg:grid-cols-2 gap-8 items-center">
+    <section
+      className="grid lg:grid-cols-2 gap-8 items-center p-6 lg:p-8"
+      style={{
+        background: "#fff",
+        borderRadius: 20,
+        boxShadow: "0 2px 8px rgba(16,24,32,0.06)",
+        border: "1px solid rgba(16,24,32,0.06)",
+      }}
+    >
       {/* Welcome text — LEFT */}
       <div className="flex flex-col gap-5">
         <div>
