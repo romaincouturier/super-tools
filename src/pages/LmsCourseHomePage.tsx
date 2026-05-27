@@ -1044,10 +1044,20 @@ export default function LmsCourseHomePage() {
     return local.charAt(0).toUpperCase() + local.slice(1);
   }, [email, isPreview]);
 
-  // Navigate to player at first incomplete lesson (or initial lesson)
+  // Navigate to player: "Commencer" → first lesson of first regular module,
+  // "Continuer" → first incomplete lesson.
   const handleContinue = () => {
-    const firstIncomplete = allLessons.find((l) => !completedIds.has(l.id));
-    const targetLesson = initialLessonId || firstIncomplete?.id || allLessons[0]?.id || "";
+    const firstRegularModule = modules.find((m) => !m.is_special_section);
+    const firstLessonOfFirstModule = firstRegularModule
+      ? (lessonsByModule[firstRegularModule.id] ?? [])[0]?.id
+      : undefined;
+    const firstIncomplete = allLessons.find(
+      (l) => regularModuleIds.has(l.module_id) && !completedIds.has(l.id),
+    );
+    const targetLesson =
+      completionPct > 0
+        ? firstIncomplete?.id || firstLessonOfFirstModule || allLessons[0]?.id || ""
+        : firstLessonOfFirstModule || allLessons[0]?.id || "";
     const base = isPreview
       ? `/lms/${courseId}/player?preview=admin`
       : `/lms/${courseId}/player?email=${encodeURIComponent(email)}`;
