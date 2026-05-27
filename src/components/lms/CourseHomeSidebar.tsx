@@ -76,11 +76,10 @@ export function CommunityCtaButton({ email, courseId, lessonId }: { email: strin
 }
 
 function CommunitySidebarPreview({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
-  const navigate = useNavigate();
   const { data: posts = [] } = usePracticePosts(email || null, 2);
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate(communityUrlWithContext(courseId, lessonId));
+    window.location.href = communityUrlWithContext(courseId, lessonId);
   };
 
   return (
