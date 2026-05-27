@@ -11,9 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle } from "lucide-react";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useCommunityUnreadCount } from "@/hooks/useCommunityUnread";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -34,6 +35,7 @@ export default function LmsCourses() {
   const deleteCourse = useDeleteCourse();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { data: unreadCount = 0 } = useCommunityUnreadCount();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ title: "", description: "", difficulty_level: "beginner" });
@@ -124,6 +126,15 @@ export default function LmsCourses() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/lms/apprenants")}>
               <Users className="w-4 h-4 mr-2" /> Apprenants
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/lms/communaute")} className="relative">
+              <MessageSquare className="w-4 h-4 mr-2" /> Communauté
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold px-1"
+                  style={{ background: "var(--st-yellow, #FFD100)", color: "#101820" }}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Button>
             <Button variant="outline" onClick={() => navigate("/lms/faq")}>
               <HelpCircle className="w-4 h-4 mr-2" /> FAQ

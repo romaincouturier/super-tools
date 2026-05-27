@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useAutoSaveForm, type AutoSaveFormValues } from "@/hooks/useAutoSaveForm";
 
 export interface UseEntityAutoSaveOptions<T extends { id: string }> {
@@ -73,6 +73,13 @@ export function useEntityAutoSave<T extends { id: string }>({
     debounceMs,
   });
 
+  const flushRef = useRef(flushAndGetPending);
+  flushRef.current = flushAndGetPending;
+  const entityRef = useRef(entity);
+  entityRef.current = entity;
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
   // Hydrate from entity on entity change.
   const entityId = entity?.id;
   useEffect(() => {
@@ -85,11 +92,11 @@ export function useEntityAutoSave<T extends { id: string }>({
 
   // Flush pending save when drawer closes.
   useEffect(() => {
-    if (!open && entity) {
-      const pending = flushAndGetPending();
+    if (!open && entityRef.current) {
+      const pending = flushRef.current();
       if (pending) {
         // Best-effort: don't await, the drawer is closing anyway.
-        void onSave(entity.id, pending);
+        void onSaveRef.current(entityRef.current.id, pending);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

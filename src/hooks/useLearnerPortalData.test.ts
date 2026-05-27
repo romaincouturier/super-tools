@@ -45,6 +45,7 @@ const { mockFrom, setNextResult } = vi.hoisted(() => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
+  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -103,7 +104,7 @@ describe("usePracticeDeposits", () => {
     expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it("queries lms_work_deposits and returns results", async () => {
+  it("queries lms_work_deposits and returns enriched results", async () => {
     const deposits = [{ id: "x", publication_status: "published" }];
     setNextResult({ data: deposits, error: null });
 
@@ -111,7 +112,10 @@ describe("usePracticeDeposits", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(mockFrom).toHaveBeenCalledWith("lms_work_deposits");
-    expect(result.current.data).toEqual(deposits);
+    // Hook enriches each deposit with reaction/comment counts and titles
+    expect(result.current.data).toEqual([
+      expect.objectContaining({ id: "x", publication_status: "published", reaction_count: 0, i_reacted: false, comment_count: 0 }),
+    ]);
   });
 
   it("returns empty array when queryFn receives null data", async () => {

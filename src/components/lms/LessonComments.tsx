@@ -57,7 +57,7 @@ function PostThread({
       await createComment.mutateAsync({ postId: post.id, content: text.trim() });
       setText("");
     } catch {
-      toast({ title: "Erreur lors de l'envoi", variant: "destructive" });
+      toastError(toast, "Erreur lors de l'envoi");
     }
   };
 
@@ -176,7 +176,7 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
         console.warn("Failed to notify admin:", e);
       }
     } catch {
-      toast({ title: "Erreur lors de l'envoi", variant: "destructive" });
+      toastError(toast, "Erreur lors de l'envoi");
     }
   };
 
@@ -193,7 +193,7 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <MessageCircle className="w-4 h-4" />
-        {posts.length > 0 ? `${posts.length} message(s) de la communauté` : "Laisser un commentaire"}
+        {posts.length > 0 ? `${posts.length} message(s) de la communauté` : "Posez une question au formateur et à la communauté"}
       </button>
 
       {open && (

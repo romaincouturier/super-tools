@@ -50,6 +50,7 @@ const { mockFrom, setNextResult, mockUpsert } = vi.hoisted(() => {
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: mockFrom },
+  createLearnerClient: vi.fn(() => ({ from: mockFrom })),
 }));
 
 function wrapper({ children }: { children: React.ReactNode }) {

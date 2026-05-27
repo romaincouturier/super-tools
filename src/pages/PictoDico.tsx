@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -125,7 +126,7 @@ function WordsTab() {
       toast({ title: "Mot supprimé" });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+      toastError(toast, "Erreur lors de la suppression");
     },
   });
 
@@ -140,7 +141,7 @@ function WordsTab() {
       toast({ title: "Tous les mots supprimés" });
     },
     onError: () => {
-      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+      toastError(toast, "Erreur lors de la suppression");
     },
   });
 
@@ -311,7 +312,7 @@ function ImportTab() {
       toast({ title: `${parsedWords.length} mot${parsedWords.length !== 1 ? "s" : ""} importé${parsedWords.length !== 1 ? "s" : ""}` });
     },
     onError: (err: Error) => {
-      toast({ title: err.message || "Erreur lors de l'import", variant: "destructive" });
+      toastError(toast, err.message || "Erreur lors de l'import");
     },
   });
 
@@ -626,7 +627,7 @@ function ChallengesTab() {
       toast({ title: `${mapped.length} challenge${mapped.length !== 1 ? "s" : ""} générés` });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de la génération";
-      toast({ title: message, variant: "destructive" });
+      toastError(toast, message);
     } finally {
       setIsGenerating(false);
     }
@@ -673,7 +674,7 @@ function ChallengesTab() {
       toast({ title: "Challenge sauvegardé" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de la sauvegarde";
-      toast({ title: message, variant: "destructive" });
+      toastError(toast, message);
     } finally {
       setSavingId(null);
     }
@@ -715,7 +716,7 @@ function ChallengesTab() {
       toast({ title: "Événement créé avec succès" });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de la création de l'événement";
-      toast({ title: message, variant: "destructive" });
+      toastError(toast, message);
     } finally {
       setCreatingEventId(null);
     }
@@ -821,7 +822,7 @@ function ConfigTab() {
       setNewSecret("");
       toast({ title: "Secret mis à jour" });
     } catch {
-      toast({ title: "Erreur lors de la mise à jour du secret", variant: "destructive" });
+      toastError(toast, "Erreur lors de la mise à jour du secret");
     } finally {
       setIsSavingSecret(false);
     }

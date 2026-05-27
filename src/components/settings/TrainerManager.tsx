@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getInitials } from "@/lib/stringUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -324,9 +325,6 @@ export default function TrainerManager() {
     }
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
 
   const getDocTypeLabel = (type: string) => {
     const labels: Record<string, string> = { cv: "CV", diplome: "Diplôme", certification: "Certification", autre: "Autre" };

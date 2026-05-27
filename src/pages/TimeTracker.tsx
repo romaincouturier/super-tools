@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { todayAsISO } from "@/lib/dateFormatters";
@@ -160,7 +161,7 @@ function NewEntryTab() {
       toast({ title: "Entrée ajoutée" });
     },
     onError: (err: Error) => {
-      toast({ title: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 
@@ -373,7 +374,7 @@ function HistoryTab() {
     setDeletingId(id);
     const { error } = await supabase.from("time_entries").delete().eq("id", id);
     if (error) {
-      toast({ title: "Erreur lors de la suppression", variant: "destructive" });
+      toastError(toast, "Erreur lors de la suppression");
     } else {
       queryClient.invalidateQueries({ queryKey: ["time_entries"] });
       toast({ title: "Entrée supprimée" });
@@ -388,7 +389,7 @@ function HistoryTab() {
     setUpdatingId(id);
     const { error } = await supabase.from("time_entries").update(patch).eq("id", id);
     if (error) {
-      toast({ title: "Erreur lors de la mise à jour", variant: "destructive" });
+      toastError(toast, "Erreur lors de la mise à jour");
     } else {
       queryClient.invalidateQueries({ queryKey: ["time_entries"] });
     }
@@ -510,7 +511,7 @@ function GitHubImportTab() {
         { onConflict: "setting_key" }
       );
     if (error) {
-      toast({ title: "Erreur lors de la sauvegarde", variant: "destructive" });
+      toastError(toast, "Erreur lors de la sauvegarde");
     } else {
       queryClient.invalidateQueries({ queryKey: ["app_settings", "github_personal_token"] });
       setToken("");
@@ -536,7 +537,7 @@ function GitHubImportTab() {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de l'analyse";
-      toast({ title: message, variant: "destructive" });
+      toastError(toast, message);
     } finally {
       setIsAnalyzing(false);
     }
@@ -562,7 +563,7 @@ function GitHubImportTab() {
       toast({ title: `${toImport.length} entrée${toImport.length > 1 ? "s" : ""} importée${toImport.length > 1 ? "s" : ""}` });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de l'import";
-      toast({ title: message, variant: "destructive" });
+      toastError(toast, message);
     } finally {
       setIsImporting(false);
     }

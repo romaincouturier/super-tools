@@ -84,6 +84,7 @@ const AiTools = lazy(() => import("./pages/AiTools"));
 const LmsCourses = lazy(() => import("./pages/LmsCourses"));
 const LmsCourseEntry = lazy(() => import("./pages/LmsCourseEntry"));
 const LmsMessages = lazy(() => import("./pages/LmsMessages"));
+const LmsCommunity = lazy(() => import("./pages/LmsCommunity"));
 const LmsCoursePlayer = lazy(() => import("./pages/LmsCoursePlayer"));
 const LmsCourseHomePage = lazy(() => import("./pages/LmsCourseHomePage"));
 const LmsCourseHomeBuilderPage = lazy(() => import("./pages/LmsCourseHomeBuilderPage"));
@@ -221,9 +222,9 @@ const App = () => (
                 <Route path="/lms/deposits" element={<LmsDeposits />} />
                 <Route path="/lms/apprenants" element={<LmsLearners />} />
                 <Route path="/lms/messages" element={<LmsMessages />} />
+                <Route path="/lms/communaute" element={<LmsCommunity />} />
                 <Route path="/lms/faq" element={<LmsFaq />} />
                 <Route path="/lms/:courseId" element={<LmsCourseEntry />} />
-                <Route path="/lms/:courseId/edit" element={<LmsCourseHomeBuilderPage />} />
                 <Route path="/lms/:courseId/home/builder" element={<LmsCourseHomeBuilderPage />} />
                 <Route path="/lms/:courseId/lesson/:lessonId/builder" element={<LessonBuilderPage />} />
                 <Route path="/arena" element={<ArenaSetup />} />

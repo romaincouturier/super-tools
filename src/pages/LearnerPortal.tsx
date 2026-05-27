@@ -1,37 +1,28 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
-  GraduationCap, FileText, ClipboardCheck, Calendar,
-  Download, ExternalLink, BookOpen, CheckCircle2, Clock,
-  AlertCircle, MessageSquare, Video, Play, RotateCcw,
-  Lock, ChevronRight, ChevronDown, LayoutDashboard,
-  Palette, HelpCircle, LogOut, Bell, ArrowRight,
-  CalendarPlus, Sparkles, Menu, X, Pencil, Camera,
-  FileImage, Award, RefreshCw, BookmarkCheck, User2, Upload,
+  GraduationCap, FileText, Calendar,
+  BookOpen, CheckCircle2,
+  AlertCircle, MessageSquare, Play, RotateCcw,
+  ChevronRight, ChevronDown,
+  Palette, HelpCircle, LogOut, Bell,
+  Sparkles, Menu, Camera,
+  FileImage, BookmarkCheck, User2,
   ThumbsUp, Send, Trash2,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import SupertiltLogo from "@/components/SupertiltLogo";
 import EmojiInsert from "@/components/ui/emoji-insert";
 import PostComposer from "@/components/learner/community/PostComposer";
-import PollDisplay from "@/components/learner/community/PollDisplay";
+import PracticePostCard from "@/components/learner/community/PracticePostCard";
+import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
 import PopularTopics from "@/components/learner/community/PopularTopics";
 import ReturnToFormationCard from "@/components/learner/community/ReturnToFormationCard";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import LearnerMessaging from "@/components/learner/LearnerMessaging";
-import LearnerLmsMessaging from "@/components/learner/LearnerLmsMessaging";
 import AddToCalendarButton from "@/components/learner/AddToCalendarButton";
-import { cn } from "@/lib/utils";
-import { resolveContentType } from "@/lib/file-utils";
 import {
   useLearnerProfile,
   useUpsertLearnerProfile,
@@ -47,7 +38,6 @@ import {
   useToggleDepositReaction,
 } from "@/hooks/useLearnerPortalData";
 import { useDepositComments, useCreateDepositComment, useDeleteDeposit } from "@/hooks/useLmsWorkDeposit";
-import { PEDAGOGICAL_STATUS_LABELS } from "@/types/lms-work-deposit";
 import { useFaqItems } from "@/hooks/useFaq";
 import { useCreateSupportTicket } from "@/hooks/useSupport";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -56,1030 +46,25 @@ import {
   usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
   usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
   useDeletePracticeComment, useVotePracticePoll, usePracticePopularHashtags,
-  useMyPracticeComments, useLessonTitle, useCourseTitle,
+  useMyPracticeComments, useLessonTitle, useCourseTitle, usePinPracticePost,
   type PracticePost, type NewPoll,
 } from "@/hooks/usePracticeFeed";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Extracted components ──────────────────────────────────────────────────────
+import {
+  type Training, type LearnerData, type NavSection,
+  SECTION_SLUGS, SLUG_TO_SECTION, PRATIQUE_SECTIONS, eventTypeLabel,
+} from "@/types/learner-portal";
+import { LearnerGreetingDropdown } from "@/components/learner/portal/LearnerGreetingDropdown";
+import { LearnerEditProfileModal } from "@/components/learner/portal/LearnerEditProfileModal";
+import { LearnerSidebar } from "@/components/learner/portal/LearnerSidebar";
+import {
+  progressMessage, ProgressCircle,
+  FormationItem,
+} from "@/components/learner/portal/LearnerTrainingCard";
+import { TravauxView } from "@/components/learner/portal/TravauxView";
+import { DashCard } from "@/components/learner/portal/DashCard";
 
-interface NextEvent {
-  id: string;
-  title: string;
-  scheduled_at: string;
-  meeting_url: string | null;
-  meeting_type: string;
-  duration_minutes?: number | null;
-  description?: string | null;
-}
-
-interface Training {
-  training_id: string;
-  training_name: string;
-  start_date: string | null;
-  end_date: string | null;
-  location: string | null;
-  format: string | null;
-  participant_id: string;
-  first_name: string;
-  last_name: string;
-  needs_survey_status: string | null;
-  evaluation_status: string | null;
-  program_file_url?: string | null;
-  supports_url?: string | null;
-  lms_course_id?: string | null;
-  lms_course_title?: string | null;
-  lms_completion?: number | null;
-  last_lesson_id?: string | null;
-  next_event?: NextEvent | null;
-  is_coached?: boolean;
-  is_permanent?: boolean;
-  coaching_sessions_completed?: number;
-  coaching_sessions_total?: number;
-  trainer_booking_url?: string | null;
-  objectives?: string[];
-  prerequisites?: string[];
-  reglement_interieur_url?: string | null;
-  trainer_name?: string | null;
-  trainer_photo_url?: string | null;
-}
-
-interface Questionnaire {
-  token: string;
-  training_id: string;
-  etat: string;
-}
-
-interface LearnerData {
-  email: string;
-  trainings: Training[];
-  questionnaires: Questionnaire[];
-  evaluations: Questionnaire[];
-}
-
-type NavSection =
-  | "dashboard" | "formations" | "recommandees" | "travaux"
-  | "pratique" | "pratique_publications" | "pratique_commentaires" | "pratique_likes"
-  | "aide" | "compte";
-
-const SECTION_SLUGS: Record<NavSection, string | null> = {
-  dashboard:    "tableau-de-bord",
-  formations:   "mes-formations",
-  recommandees: "formations-recommandees",
-  travaux:      "mes-travaux",
-  pratique:     "communaute",
-  pratique_publications:  "communaute-mes-publications",
-  pratique_commentaires:  "communaute-mes-commentaires",
-  pratique_likes:         "communaute-mes-likes",
-  aide:         "aide",
-  compte:       "mon-compte",
-};
-
-const SLUG_TO_SECTION: Record<string, NavSection> = {
-  "tableau-de-bord":        "dashboard",
-  "mes-formations":         "formations",
-  "formations-recommandees": "recommandees",
-  "mes-travaux":            "travaux",
-  "communaute":             "pratique",
-  "communaute-mes-publications": "pratique_publications",
-  "communaute-mes-commentaires": "pratique_commentaires",
-  "communaute-mes-likes":        "pratique_likes",
-  "aide":                   "aide",
-  "mon-compte":             "compte",
-};
-
-const PRATIQUE_SECTIONS: NavSection[] = ["pratique", "pratique_publications", "pratique_commentaires", "pratique_likes"];
-const ADMIN_PREVIEW_EMAILS = new Set(["romain@supertilt.fr", "emmanuelle@supertilt.fr"]);
-
-async function resolveCoursePreviewEmail(courseId: string, fallbackEmail?: string | null): Promise<string> {
-  const { data: latestPost } = await (supabase as any)
-    .from("practice_posts")
-    .select("author_email")
-    .eq("course_id", courseId)
-    .not("author_email", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (latestPost?.author_email) return latestPost.author_email;
-
-  const { data: participant } = await (supabase as any)
-    .from("training_participants")
-    .select("email, trainings!inner(supports_lms_course_id)")
-    .eq("trainings.supports_lms_course_id", courseId)
-    .not("email", "is", null)
-    .order("added_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return participant?.email ?? fallbackEmail ?? "admin-preview@supertilt.fr";
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const eventTypeLabel: Record<string, string> = {
-  launch: "Lancement",
-  live: "Live",
-  closing: "Dernière séance",
-};
-
-function statusBadge(status: string | null) {
-  switch (status) {
-    case "complete":
-    case "soumis":
-      return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-          style={{ background: "#dcfce7", color: "#15803d" }}>
-          <CheckCircle2 size={10} /> Complété
-        </span>
-      );
-    case "en_cours":
-      return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-          style={{ background: "#f1f5f9", color: "#475569" }}>
-          <Clock size={10} /> En cours
-        </span>
-      );
-    case "non_envoye":
-    case "envoye":
-      return (
-        <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
-          style={{ background: "#fef9c3", color: "#854d0e" }}>
-          <AlertCircle size={10} /> À compléter
-        </span>
-      );
-    default:
-      return null;
-  }
-}
-
-function getInitials(firstName: string, lastName: string) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
-}
-
-// ── Learner greeting dropdown ─────────────────────────────────────────────────
-
-function LearnerGreetingDropdown({
-  firstName,
-  lastName,
-  photoUrl,
-  onNav,
-  onLogout,
-}: {
-  firstName: string;
-  lastName: string;
-  photoUrl: string | null;
-  onNav: (s: NavSection) => void;
-  onLogout: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { confirm, ConfirmDialog } = useConfirm();
-
-  useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, []);
-
-  const handleLogout = async () => {
-    setOpen(false);
-    const confirmed = await confirm({
-      title: "Se déconnecter",
-      description: "Êtes-vous sûr de vouloir vous déconnecter ?",
-      variant: "destructive",
-    });
-    if (confirmed) onLogout();
-  };
-
-  const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Apprenant";
-  const initials = getInitials(firstName, lastName);
-
-  const items: { label: string; icon: React.ElementType; section: NavSection }[] = [
-    { label: "Mon compte", icon: User2, section: "compte" },
-    { label: "Mes formations", icon: GraduationCap, section: "formations" },
-    { label: "Mes formations recommandées", icon: Sparkles, section: "recommandees" },
-    { label: "Aide", icon: HelpCircle, section: "aide" },
-  ];
-
-  return (
-    <>
-      <ConfirmDialog />
-      <div ref={ref} className="relative">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-all hover:bg-black/5"
-          style={{ fontFamily: "inherit" }}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820", overflow: "hidden" }}
-          >
-            {photoUrl ? <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" /> : initials}
-          </div>
-          <div className="hidden sm:block text-left">
-            <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Bonjour</p>
-            <p className="text-sm font-semibold leading-none" style={{ color: "var(--st-ink)" }}>{displayName}</p>
-          </div>
-          <ChevronDown size={13} className="hidden sm:block shrink-0 opacity-50" style={{ color: "var(--st-ink-muted)" }} />
-        </button>
-
-        {open && (
-          <div
-            className="absolute right-0 top-full mt-1.5 w-60 rounded-2xl border shadow-lg overflow-hidden z-50"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
-          >
-            {items.map(({ label, icon: Icon, section }) => (
-              <button
-                key={section + label}
-                onClick={() => { onNav(section); setOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-black/5"
-                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
-              >
-                <Icon size={15} style={{ color: "var(--st-ink-muted)" }} />
-                {label}
-              </button>
-            ))}
-            <div style={{ borderTop: "1px solid rgba(16,24,32,0.08)" }}>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors hover:bg-red-50"
-                style={{ color: "#ef4444", fontFamily: "inherit" }}
-              >
-                <LogOut size={15} />
-                Se déconnecter
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-function progressMessage(pct: number) {
-  if (pct === 0) return "C'est parti ! Commencez votre premier module.";
-  if (pct < 30) return "Bon début ! Continuez à ce rythme.";
-  if (pct < 60) return "Belle progression ! Vous êtes sur la bonne voie.";
-  if (pct < 90) return "Excellent travail ! La fin approche.";
-  return "Félicitations ! Formation presque terminée.";
-}
-
-// ── Progress circle ───────────────────────────────────────────────────────────
-
-function ProgressCircle({ pct, size = 80 }: { pct: number; size?: number }) {
-  const r = size / 2 - 7;
-  const circ = 2 * Math.PI * r;
-  const dash = circ * Math.min(pct, 100) / 100;
-  return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#EDEDED" strokeWidth={7} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#FFD100" strokeWidth={7}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-          style={{ transition: "stroke-dasharray 1s ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-bold leading-none" style={{ fontSize: size * 0.22, color: "var(--st-ink)" }}>
-          {Math.round(pct)}%
-        </span>
-        <span style={{ fontSize: size * 0.11, color: "var(--st-ink-muted)" }}>terminé</span>
-      </div>
-    </div>
-  );
-}
-
-// ── Coaching circles ──────────────────────────────────────────────────────────
-
-function CoachingCircles({ completed, total }: { completed: number; total: number }) {
-  if (total <= 0) return null;
-  return (
-    <div className="flex items-center gap-1.5 mt-2">
-      {Array.from({ length: total }).map((_, i) => {
-        const isDone = i < completed;
-        return (
-          <div
-            key={i}
-            className="h-5 w-5 rounded-full border-2 flex items-center justify-center"
-            style={{
-              background: isDone ? "#FFD100" : "transparent",
-              borderColor: isDone ? "#FFD100" : "rgba(16,24,32,0.25)",
-            }}
-          >
-            {isDone && <CheckCircle2 size={10} style={{ color: "#101820" }} />}
-          </div>
-        );
-      })}
-      <span className="text-xs ml-1" style={{ color: "var(--st-ink-muted)" }}>
-        {completed}/{total} séances
-      </span>
-    </div>
-  );
-}
-
-// ── Edit profile modal ────────────────────────────────────────────────────────
-
-function EditProfileModal({
-  open,
-  onClose,
-  email,
-  profile,
-}: {
-  open: boolean;
-  onClose: () => void;
-  email: string;
-  profile: LearnerProfile | null | undefined;
-}) {
-  const { toast } = useToast();
-  const upsert = useUpsertLearnerProfile();
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const [firstName, setFirstName] = useState(profile?.first_name ?? "");
-  const [lastName, setLastName] = useState(profile?.last_name ?? "");
-  const [fonction, setFonction] = useState(profile?.fonction ?? "");
-  const [photoUrl, setPhotoUrl] = useState(profile?.photo_url ?? "");
-  const [uploading, setUploading] = useState(false);
-
-  // Reset fields when profile loads or modal re-opens
-  useEffect(() => {
-    if (open) {
-      setFirstName(profile?.first_name ?? "");
-      setLastName(profile?.last_name ?? "");
-      setFonction(profile?.fonction ?? "");
-      setPhotoUrl(profile?.photo_url ?? "");
-    }
-  }, [open, profile]);
-
-  const handlePhotoFile = async (file: File) => {
-    setUploading(true);
-    try {
-      const url = await uploadLearnerPhoto(file, email);
-      setPhotoUrl(url);
-    } catch (err) {
-      toastError(toast, err instanceof Error ? err : "Erreur lors de l'upload de la photo");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      await upsert.mutateAsync({
-        email,
-        first_name: firstName.trim() || null,
-        last_name: lastName.trim() || null,
-        fonction: fonction.trim() || null,
-        photo_url: photoUrl || null,
-      });
-      toast({ title: "Profil mis à jour" });
-      onClose();
-    } catch (err) {
-      toastError(toast, err instanceof Error ? err : "Erreur lors de la sauvegarde");
-    }
-  };
-
-  const initials = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm w-full" style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
-        <DialogHeader>
-          <DialogTitle>Mon profil</DialogTitle>
-        </DialogHeader>
-
-        {/* Avatar */}
-        <div className="flex flex-col items-center gap-2 py-2">
-          <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
-            <div
-              className="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold select-none"
-              style={{ background: photoUrl ? "transparent" : "#FFD100", color: "#101820" }}
-            >
-              {photoUrl ? (
-                <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                initials
-              )}
-            </div>
-            <div
-              className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ background: "rgba(16,24,32,0.45)" }}
-            >
-              {uploading ? (
-                <Spinner className="text-white h-5 w-5" />
-              ) : (
-                <Camera size={20} className="text-white" />
-              )}
-            </div>
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handlePhotoFile(f);
-              e.target.value = "";
-            }}
-          />
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            Cliquez pour changer la photo
-          </p>
-        </div>
-
-        {/* Fields */}
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="ep-firstname">Prénom</Label>
-              <Input
-                id="ep-firstname"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Prénom"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="ep-lastname">Nom</Label>
-              <Input
-                id="ep-lastname"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                placeholder="Nom"
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="ep-fonction">Fonction</Label>
-            <Input
-              id="ep-fonction"
-              value={fonction}
-              onChange={(e) => setFonction(e.target.value)}
-              placeholder="Ex: Directeur artistique, Manager…"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2 pt-1">
-          <Button variant="outline" className="flex-1" onClick={onClose}>
-            Annuler
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={handleSave}
-            disabled={upsert.isPending || uploading}
-          >
-            {upsert.isPending ? <Spinner className="mr-2 h-4 w-4" /> : null}
-            Enregistrer
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-
-function Sidebar({
-  active,
-  onNav,
-  firstName,
-  lastName,
-  fonction,
-  photoUrl,
-  email,
-  onLogout,
-  onEditProfile,
-  mobile,
-  onClose,
-}: {
-  active: NavSection;
-  onNav: (s: NavSection) => void;
-  firstName: string;
-  lastName: string;
-  fonction?: string | null;
-  photoUrl?: string | null;
-  email: string;
-  onLogout: () => void;
-  onEditProfile: () => void;
-  mobile?: boolean;
-  onClose?: () => void;
-}) {
-  const navItems: Array<{ id: NavSection; label: string; icon: React.ElementType; subItems?: Array<{ id: NavSection; label: string; icon: React.ElementType }> }> = [
-    { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-    { id: "formations", label: "Mes formations", icon: BookOpen },
-    { id: "recommandees", label: "Mes formations recommandées", icon: Sparkles },
-    { id: "travaux", label: "Mes travaux", icon: FileText },
-    {
-      id: "pratique", label: "Communauté", icon: Palette,
-      subItems: [
-        { id: "pratique_publications", label: "Mes publications", icon: FileText },
-        { id: "pratique_commentaires", label: "Mes commentaires", icon: MessageSquare },
-        { id: "pratique_likes", label: "Mes likes", icon: ThumbsUp },
-      ],
-    },
-    { id: "aide", label: "Aide", icon: HelpCircle },
-  ];
-
-  return (
-    <aside
-      className="flex flex-col h-full"
-      style={{ background: "var(--st-white)", borderRight: "1px solid rgba(16,24,32,0.08)" }}
-    >
-      {/* Logo */}
-      <div className="flex items-center justify-between px-5 h-16 border-b shrink-0"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <SupertiltLogo className="h-9" />
-        {mobile && onClose && (
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5">
-            <X size={16} style={{ color: "var(--st-ink)" }} />
-          </button>
-        )}
-      </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ id, label, icon: Icon, subItems }) => {
-          const subExpanded = subItems && PRATIQUE_SECTIONS.includes(active);
-          return (
-            <div key={id}>
-              <button
-                onClick={() => { onNav(id); onClose?.(); }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left",
-                  active === id ? "text-[#101820]" : "hover:bg-black/5",
-                )}
-                style={active === id ? { background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" } : { fontFamily: "inherit", color: "var(--st-ink-muted)" }}
-              >
-                <Icon size={17} />
-                {label}
-              </button>
-              {subExpanded && (
-                <div className="mt-0.5 ml-4 pl-3 space-y-0.5 border-l" style={{ borderColor: "rgba(16,24,32,0.1)" }}>
-                  {subItems!.map(({ id: sid, label: slabel, icon: SIcon }) => (
-                    <button
-                      key={sid}
-                      onClick={() => { onNav(sid); onClose?.(); }}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left",
-                        active === sid ? "font-semibold" : "hover:bg-black/5",
-                      )}
-                      style={active === sid ? { color: "#101820", background: "rgba(255,209,0,0.18)", fontFamily: "inherit" } : { fontFamily: "inherit", color: "var(--st-ink-muted)" }}
-                    >
-                      <SIcon size={15} />
-                      {slabel}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </nav>
-
-      {/* User block */}
-      <div className="px-3 pb-5 pt-3 border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <button
-          onClick={onEditProfile}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all hover:bg-black/5 text-left"
-          style={{ fontFamily: "inherit" }}
-          title="Mon compte"
-        >
-          <div
-            className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-            style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
-          >
-            {photoUrl ? (
-              <img src={photoUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              getInitials(firstName, lastName)
-            )}
-          </div>
-        </button>
-      </div>
-    </aside>
-  );
-}
-
-// ── Training detail (documents / coaching) ────────────────────────────────────
-
-function TrainingDetail({
-  training,
-  email,
-  questionnaire,
-  evaluation,
-  onRequestCoach,
-  requestingCoach,
-}: {
-  training: Training;
-  email: string;
-  questionnaire: Questionnaire | undefined;
-  evaluation: Questionnaire | undefined;
-  onRequestCoach: (t: Training) => void;
-  requestingCoach: string | null;
-}) {
-  const hasDocuments = !!(
-    training.program_file_url || training.supports_url || questionnaire || evaluation
-  );
-
-  const coachingCompleted = training.coaching_sessions_completed ?? 0;
-  const coachingTotal = training.coaching_sessions_total ?? 0;
-  const remainingSessions = coachingTotal - coachingCompleted;
-
-  return (
-    <Tabs defaultValue="details" className="mt-4">
-      <TabsList className="mb-3 bg-transparent gap-1 p-0 h-auto">
-        {[
-          { value: "details", label: "Formation", icon: GraduationCap },
-          { value: "documents", label: "Documents", icon: FileText },
-          { value: "coaching", label: "Coaching", icon: Video },
-        ].map(({ value, label, icon: Icon }) => (
-          <TabsTrigger
-            key={value}
-            value={value}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg data-[state=active]:shadow-none data-[state=active]:font-semibold"
-            style={{ fontFamily: "inherit" }}
-          >
-            <Icon size={12} />
-            {label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-
-      <TabsContent value="details">
-        <div className="space-y-4">
-          {/* Objectifs */}
-          {(training.objectives?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Objectifs</p>
-              <ul className="space-y-1">
-                {training.objectives!.map((obj, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "#FFD100" }} />
-                    {obj}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Prérequis */}
-          {(training.prerequisites?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Prérequis</p>
-              <ul className="space-y-1">
-                {training.prerequisites!.map((req, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm" style={{ color: "var(--st-ink)" }}>
-                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "rgba(16,24,32,0.25)" }} />
-                    {req}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Programme + Règlement intérieur */}
-          {(training.program_file_url || training.reglement_interieur_url) && (
-            <div className="grid sm:grid-cols-2 gap-2">
-              {training.program_file_url && (
-                <a href={training.program_file_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                  <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                  Programme
-                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
-                </a>
-              )}
-              {training.reglement_interieur_url && (
-                <a href={training.reglement_interieur_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                  <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                  Règlement intérieur
-                  <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Formateur */}
-          {training.trainer_name && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: "var(--st-ink-muted)" }}>Votre formateur</p>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-sm font-bold"
-                  style={{ background: training.trainer_photo_url ? "transparent" : "#EDEDED", color: "#101820" }}>
-                  {training.trainer_photo_url
-                    ? <img src={training.trainer_photo_url} alt={training.trainer_name} className="w-full h-full object-cover" />
-                    : training.trainer_name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                </div>
-                <span className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>{training.trainer_name}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Empty state */}
-          {(training.objectives?.length ?? 0) === 0 &&
-            (training.prerequisites?.length ?? 0) === 0 &&
-            !training.program_file_url &&
-            !training.reglement_interieur_url &&
-            !training.trainer_name && (
-            <p className="text-sm py-3" style={{ color: "var(--st-ink-muted)" }}>Aucun détail disponible.</p>
-          )}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="documents">
-        {!hasDocuments ? (
-          <p className="text-sm py-3" style={{ color: "var(--st-ink-muted)" }}>Aucun document disponible.</p>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-2">
-            {training.program_file_url && (
-              <a href={training.program_file_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                <Download size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                Programme de formation
-                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
-              </a>
-            )}
-            {training.supports_url && (
-              <a href={training.supports_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                <FileText size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                Supports de formation
-                <ExternalLink size={11} className="ml-auto shrink-0" style={{ color: "var(--st-ink-muted)" }} />
-              </a>
-            )}
-            {questionnaire && (
-              <Link to={`/questionnaire/${questionnaire.token}`}
-                className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                <ClipboardCheck size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                Questionnaire des besoins
-                <span className="ml-auto">{statusBadge(questionnaire.etat)}</span>
-              </Link>
-            )}
-            {evaluation && (
-              <Link to={`/evaluation/${evaluation.token}`}
-                className="flex items-center gap-2 p-3 rounded-xl border text-sm transition-all hover:bg-black/5"
-                style={{ borderColor: "rgba(16,24,32,0.1)", color: "var(--st-ink)" }}>
-                <ClipboardCheck size={14} style={{ color: "#FFD100", flexShrink: 0 }} />
-                Évaluation à chaud
-                <span className="ml-auto">{statusBadge(evaluation.etat)}</span>
-              </Link>
-            )}
-          </div>
-        )}
-      </TabsContent>
-
-      <TabsContent value="coaching">
-        {training.is_coached ? (
-          <div className="space-y-4">
-            {coachingTotal > 0 && (
-              <div>
-                <p className="text-sm font-medium mb-2" style={{ color: "var(--st-ink)" }}>
-                  Séances de coaching
-                </p>
-                <CoachingCircles completed={coachingCompleted} total={coachingTotal} />
-                <p className="text-xs mt-2" style={{ color: "var(--st-ink-muted)" }}>
-                  {remainingSessions > 0
-                    ? `${remainingSessions} séance${remainingSessions > 1 ? "s" : ""} restante${remainingSessions > 1 ? "s" : ""}`
-                    : "Toutes les séances ont été réalisées"}
-                </p>
-              </div>
-            )}
-            {remainingSessions > 0 && training.trainer_booking_url ? (
-              <a
-                href={training.trainer_booking_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full transition-all hover:-translate-y-0.5"
-                style={{ background: "var(--st-yellow)", color: "#101820" }}
-              >
-                <CalendarPlus size={14} />
-                Prendre rendez-vous →
-              </a>
-            ) : remainingSessions > 0 ? (
-              <p className="text-sm p-3 rounded-xl" style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
-                Contactez votre formateur pour planifier votre séance.
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed p-6 text-center space-y-4"
-            style={{ borderColor: "rgba(16,24,32,0.12)", background: "rgba(16,24,32,0.02)" }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto"
-              style={{ background: "#EDEDED" }}>
-              <Lock size={16} style={{ color: "var(--st-ink-muted)" }} />
-            </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Coaching individuel non inclus</p>
-              <p className="text-xs mt-1" style={{ color: "var(--st-ink-muted)" }}>
-                Votre formule actuelle ne comprend pas de sessions de coaching.
-              </p>
-            </div>
-            <button
-              disabled={requestingCoach === training.training_id}
-              onClick={() => onRequestCoach(training)}
-              className="inline-flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-              style={{ borderColor: "rgba(16,24,32,0.2)", color: "var(--st-ink)", fontFamily: "inherit" }}
-            >
-              {requestingCoach === training.training_id ? (
-                <Spinner className="mr-1" />
-              ) : (
-                <Video size={13} />
-              )}
-              Demander une formule coachée
-            </button>
-          </div>
-        )}
-      </TabsContent>
-    </Tabs>
-  );
-}
-
-// ── Formation card item ───────────────────────────────────────────────────────
-
-function FormationItem({
-  training,
-  email,
-  questionnaire,
-  evaluation,
-  onRequestCoach,
-  requestingCoach,
-  primary,
-}: {
-  training: Training;
-  email: string;
-  questionnaire: Questionnaire | undefined;
-  evaluation: Questionnaire | undefined;
-  onRequestCoach: (t: Training) => void;
-  requestingCoach: string | null;
-  primary: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const completion = training.lms_completion ?? 0;
-  const hasStarted = !!training.last_lesson_id || completion > 0;
-  const hasElearning = !!training.lms_course_id;
-
-  const continueUrl = hasElearning
-    ? `/lms/${training.lms_course_id}/home?email=${encodeURIComponent(email)}${training.last_lesson_id ? `&lesson=${training.last_lesson_id}` : ""}`
-    : null;
-
-  if (!primary) {
-    return (
-      <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:bg-black/5"
-        style={{ borderColor: "rgba(16,24,32,0.08)" }}
-      >
-        <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center"
-          style={{ background: "var(--st-surface, #F2F4F4)" }}>
-          <GraduationCap size={14} style={{ color: "var(--st-ink-muted)" }} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate" style={{ color: "var(--st-ink)" }}>
-            {training.lms_course_title || training.training_name}
-          </p>
-          {hasElearning && (
-            <div className="flex items-center gap-2 mt-1">
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                <div className="h-full rounded-full" style={{ width: `${completion}%`, background: "#FFD100" }} />
-              </div>
-              <span className="text-xs font-medium shrink-0" style={{ color: "var(--st-ink-muted)" }}>{Math.round(completion)}%</span>
-            </div>
-          )}
-        </div>
-        {continueUrl && (
-          <Link to={continueUrl}
-            className="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full transition-all hover:-translate-y-px"
-            style={{ background: "var(--st-ink)", color: "#fff" }}>
-            Continuer
-          </Link>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-      {/* Main info */}
-      <div className="p-5">
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center"
-            style={{ background: "var(--st-yellow-soft, #FFFBEA)" }}>
-            <BookOpen size={20} style={{ color: "#101820" }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-2 justify-between">
-              <p className="text-sm font-bold leading-snug" style={{ color: "var(--st-ink)" }}>
-                {training.lms_course_title || training.training_name}
-              </p>
-              <span className="text-xs px-2 py-0.5 rounded-full shrink-0 font-medium"
-                style={{ background: completion === 100 ? "#dcfce7" : "#fffbea", color: completion === 100 ? "#15803d" : "#854d0e" }}>
-                {completion === 100 ? "Terminée" : hasStarted ? "En cours" : "Non commencée"}
-              </span>
-            </div>
-            {hasElearning && (
-              <div className="mt-3 space-y-1">
-                <div className="flex justify-between text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                  <span>Progression</span>
-                  <span className="font-semibold" style={{ color: "var(--st-ink)" }}>{Math.round(completion)}%</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
-                  <div className="h-full rounded-full transition-all"
-                    style={{ width: `${completion}%`, background: "#FFD100" }} />
-                </div>
-              </div>
-            )}
-            {training.is_coached && (training.coaching_sessions_total ?? 0) > 0 && (
-              <CoachingCircles
-                completed={training.coaching_sessions_completed ?? 0}
-                total={training.coaching_sessions_total ?? 0}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        {hasElearning && continueUrl && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {completion === 100 ? (
-              <>
-                <a
-                  href="#"
-                  className="flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
-                  style={{ background: "var(--st-yellow)", color: "#101820" }}
-                >
-                  <Award size={13} /> Télécharger mon certificat
-                </a>
-                <Link to={continueUrl}
-                  className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
-                  <RefreshCw size={13} /> Refaire la formation
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to={continueUrl}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-5 py-2 rounded-full transition-all hover:-translate-y-0.5"
-                  style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                  {hasStarted ? <><RotateCcw size={13} /> Reprendre</> : <><Play size={13} /> Commencer</>}
-                </Link>
-                <Link to={`/lms/${training.lms_course_id}/home?email=${encodeURIComponent(email)}`}
-                  className="flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-full border transition-all hover:bg-black/5"
-                  style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
-                  Accueil du cours
-                </Link>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Expand docs/coaching */}
-      <div className="border-t" style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="w-full flex items-center gap-2 px-5 py-3 text-sm transition-all hover:bg-black/5 text-left"
-          style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-        >
-          <span className="flex-1">Formation · Documents · Coaching</span>
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-        {expanded && (
-          <div className="px-5 pb-5">
-            <TrainingDetail
-              training={training}
-              email={email}
-              questionnaire={questionnaire}
-              evaluation={evaluation}
-              onRequestCoach={onRequestCoach}
-              requestingCoach={requestingCoach}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── Practice feed helpers ─────────────────────────────────────────────────────
-
-function authorDisplayName(email: string, firstName?: string | null, lastName?: string | null): string {
-  if (firstName && lastName) return `${firstName} ${lastName}`;
-  if (firstName) return firstName;
-  return email.split("@")[0];
-}
-
-function authorInitialsFromPost(email: string, firstName?: string | null, lastName?: string | null): string {
-  if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase();
-  if (firstName) return firstName.slice(0, 2).toUpperCase();
-  return email.slice(0, 2).toUpperCase();
-}
 
 // ── Dashboard view ────────────────────────────────────────────────────────────
 
@@ -1531,613 +516,6 @@ function FormationsView({
   );
 }
 
-// ── Travaux view ──────────────────────────────────────────────────────────────
-
-function pedagogicalStatusBadge(status: string) {
-  let bg = "#f1f5f9";
-  let color = "#475569";
-  if (status === "feedback_received") { bg = "#dcfce7"; color = "#15803d"; }
-  else if (status === "needs_completion") { bg = "#fef3c7"; color = "#92400e"; }
-  else if (status === "validated") { bg = "#dbeafe"; color = "#1d4ed8"; }
-  const label = PEDAGOGICAL_STATUS_LABELS[status as keyof typeof PEDAGOGICAL_STATUS_LABELS] ?? status;
-  return (
-    <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-      style={{ background: bg, color }}>
-      {label}
-    </span>
-  );
-}
-
-function TravauxView({ email, trainings }: { email: string; trainings: Training[] }) {
-  const { data: deposits = [], isLoading } = useLearnerWorkDeposits(email);
-  const createDeposit = useCreatePortfolioDeposit();
-  const deleteDeposit = useDeleteDeposit("", email);
-  const { confirm, ConfirmDialog } = useConfirm();
-  const { toast } = useToast();
-
-  const handleDeleteDeposit = async (id: string) => {
-    const ok = await confirm({
-      title: "Supprimer ce travail ?",
-      description: "Cette action est irréversible.",
-      confirmText: "Supprimer",
-      variant: "destructive",
-    });
-    if (!ok) return;
-    try {
-      await deleteDeposit.mutateAsync(id);
-      toast({ title: "Travail supprimé" });
-    } catch {
-      toastError(toast, "Impossible de supprimer ce travail.");
-    }
-  };
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [caption, setCaption] = useState("");
-  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
-  const [filterCourseId, setFilterCourseId] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Only trainings with an LMS course
-  const lmsTrainings = trainings.filter((t) => !!t.lms_course_id);
-
-  // Stats
-  const totalDeposits = deposits.length;
-  const retours = deposits.filter(
-    (d: any) => d.pedagogical_status === "feedback_received" || d.pedagogical_status === "validated",
-  ).length;
-  const aCompleter = deposits.filter((d: any) => d.pedagogical_status === "needs_completion").length;
-
-  // Filtered feed
-  const filteredDeposits = filterCourseId
-    ? deposits.filter((d: any) => d.course_id === filterCourseId)
-    : deposits;
-
-  // Learner initials from email
-  const learnerInitials = email
-    .split("@")[0]
-    .split(/[._-]/)
-    .map((w: string) => w[0] ?? "")
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "?";
-
-  const handleFileSelect = (file: File) => {
-    setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file && resolveContentType(file).startsWith("image/")) handleFileSelect(file);
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      toast({ title: "Veuillez sélectionner une image", variant: "destructive" });
-      return;
-    }
-    try {
-      await createDeposit.mutateAsync({
-        file: selectedFile,
-        caption,
-        courseId: selectedCourseId || null,
-        learnerEmail: email,
-      });
-      toast({ title: "Travail publié !" });
-      setDialogOpen(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setCaption("");
-      setSelectedCourseId("");
-    } catch (err) {
-      toastError(toast, err instanceof Error ? err : "Erreur lors du dépôt");
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <ConfirmDialog />
-      {/* CTA banner */}
-      <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4"
-        style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1.5px solid var(--st-yellow, #FFD100)" }}>
-        <div className="flex-1 space-y-1">
-          <p className="font-bold text-base" style={{ color: "var(--st-ink)", fontFamily: "inherit" }}>
-            Et si votre travail aidait quelqu'un d'autre ?
-          </p>
-          <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-            Par votre travail, vous aidez tous les autres participants. Voir les travaux des autres aide à oser et à se lancer. En partageant un travail même imparfait, nous progressons tous ensemble.
-          </p>
-        </div>
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="shrink-0 px-4 py-2.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80"
-          style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)", fontFamily: "inherit" }}>
-          Déposer un nouveau travail
-        </button>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Stats sidebar */}
-        <div className="lg:w-48 shrink-0 space-y-3">
-          <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{totalDeposits}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>déposés</p>
-          </div>
-          <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{retours}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>retours</p>
-          </div>
-          <div className="rounded-2xl border p-4 text-center"
-            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-            <p className="text-2xl font-bold" style={{ color: "var(--st-ink)" }}>{aCompleter}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>à compléter</p>
-          </div>
-        </div>
-
-        {/* Main feed */}
-        <div className="flex-1 min-w-0 space-y-4">
-          {/* Formation filter */}
-          {lmsTrainings.length > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <select
-                  value={filterCourseId}
-                  onChange={(e) => setFilterCourseId(e.target.value)}
-                  className="appearance-none rounded-xl border pl-3 pr-8 py-2 text-sm font-medium focus:outline-none"
-                  style={{
-                    background: "var(--st-white)",
-                    borderColor: "rgba(16,24,32,0.12)",
-                    color: "var(--st-ink)",
-                    fontFamily: "inherit",
-                  }}>
-                  <option value="">Toutes les formations</option>
-                  {lmsTrainings.map((t) => (
-                    <option key={t.lms_course_id} value={t.lms_course_id!}>
-                      {t.lms_course_title ?? t.training_name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "var(--st-ink-muted)" }} />
-              </div>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner size="lg" />
-            </div>
-          ) : filteredDeposits.length === 0 ? (
-            <div className="rounded-2xl border p-10 text-center space-y-3"
-              style={{ borderColor: "rgba(16,24,32,0.08)" }}>
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto"
-                style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                <FileText size={22} style={{ color: "var(--st-ink-muted)" }} />
-              </div>
-              <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>Aucun travail déposé</p>
-              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                Cliquez sur "Déposer un nouveau travail" pour partager votre premier travail.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredDeposits.map((d: any) => {
-                const courseTitle = d.lms_courses?.title ?? null;
-                const lessonTitle = d.lms_lessons?.title ?? null;
-                const lessonLink = d.lesson_id && d.course_id
-                  ? `/lms/${d.course_id}/player?email=${encodeURIComponent(email)}&lesson=${d.lesson_id}`
-                  : null;
-                return (
-                  <div key={d.id} className="rounded-2xl border overflow-hidden"
-                    style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-                    {/* Post header */}
-                    <div className="flex items-center gap-3 px-5 pt-4 pb-2">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
-                        style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)" }}>
-                        {learnerInitials}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: "var(--st-ink)" }}>Mon travail</p>
-                        <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-                          {format(new Date(d.created_at), "d MMM yyyy", { locale: fr })}
-                        </p>
-                      </div>
-                      {pedagogicalStatusBadge(d.pedagogical_status)}
-                      <button
-                        onClick={() => handleDeleteDeposit(d.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
-                        style={{ color: "var(--st-ink-muted)" }}
-                        title="Supprimer ce travail"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-
-                    {/* Image */}
-                    {d.file_url && d.file_mime?.startsWith("image/") && (
-                      <img src={d.file_url} alt={d.file_name ?? "travail"} className="w-full object-cover" style={{ maxHeight: 420 }} />
-                    )}
-                    {d.file_url && !d.file_mime?.startsWith("image/") && (
-                      <div className="mx-5 mb-3 rounded-xl flex items-center gap-3 p-3"
-                        style={{ background: "var(--st-surface, #F2F4F4)" }}>
-                        <FileImage size={20} style={{ color: "var(--st-ink-muted)" }} />
-                        <span className="text-sm truncate" style={{ color: "var(--st-ink)" }}>{d.file_name}</span>
-                      </div>
-                    )}
-
-                    {/* Caption */}
-                    {d.comment && (
-                      <p className="px-5 py-2 text-sm" style={{ color: "var(--st-ink)" }}>{d.comment}</p>
-                    )}
-
-                    {/* Metadata */}
-                    {(courseTitle || lessonTitle || lessonLink) && (
-                      <div className="px-5 pb-4 pt-1 flex flex-wrap items-center gap-2">
-                        {courseTitle && (
-                          <span className="text-xs px-2 py-0.5 rounded-lg"
-                            style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
-                            {courseTitle}
-                          </span>
-                        )}
-                        {lessonTitle && (
-                          <span className="text-xs px-2 py-0.5 rounded-lg"
-                            style={{ background: "var(--st-surface, #F2F4F4)", color: "var(--st-ink-muted)" }}>
-                            {lessonTitle}
-                          </span>
-                        )}
-                        {lessonLink && (
-                          <a href={lessonLink} target="_blank" rel="noopener noreferrer"
-                            className="text-xs font-medium ml-auto flex items-center gap-1 hover:opacity-70 transition-opacity"
-                            style={{ color: "var(--st-ink)" }}>
-                            Voir la leçon <ArrowRight size={12} />
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {!courseTitle && !lessonTitle && !lessonLink && <div className="pb-4" />}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Deposit dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg w-full">
-          <DialogHeader>
-            <DialogTitle style={{ fontFamily: "inherit" }}>Déposer un travail</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-1">
-            {/* Image upload area */}
-            <div
-              className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors hover:border-yellow-400"
-              style={{
-                borderColor: previewUrl ? "var(--st-yellow, #FFD100)" : "rgba(16,24,32,0.15)",
-                background: "var(--st-surface, #F2F4F4)",
-                minHeight: 180,
-              }}
-              onClick={() => fileInputRef.current?.click()}
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}>
-              {previewUrl ? (
-                <img src={previewUrl} alt="aperçu" className="w-full rounded-xl object-cover" style={{ maxHeight: 240 }} />
-              ) : (
-                <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
-                  <Upload size={28} style={{ color: "var(--st-ink-muted)" }} />
-                  <p className="text-sm font-medium" style={{ color: "var(--st-ink)" }}>
-                    Cliquez ou glissez une image
-                  </p>
-                  <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>PNG, JPG</p>
-                </div>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFileSelect(file);
-              }}
-            />
-
-            {/* Caption */}
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Ajoutez un commentaire sur ce travail…"
-              rows={3}
-              className="w-full rounded-xl border px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2"
-              style={{
-                borderColor: "rgba(16,24,32,0.12)",
-                fontFamily: "inherit",
-                color: "var(--st-ink)",
-                background: "var(--st-white)",
-              }}
-            />
-
-            {/* Formation selector */}
-            {lmsTrainings.length > 0 && (
-              <div className="relative">
-                <select
-                  value={selectedCourseId}
-                  onChange={(e) => setSelectedCourseId(e.target.value)}
-                  className="w-full appearance-none rounded-xl border pl-3 pr-8 py-2.5 text-sm focus:outline-none"
-                  style={{
-                    borderColor: "rgba(16,24,32,0.12)",
-                    fontFamily: "inherit",
-                    color: "var(--st-ink)",
-                    background: "var(--st-white)",
-                  }}>
-                  <option value="">Formation (optionnel)</option>
-                  {lmsTrainings.map((t) => (
-                    <option key={t.lms_course_id} value={t.lms_course_id!}>
-                      {t.lms_course_title ?? t.training_name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: "var(--st-ink-muted)" }} />
-              </div>
-            )}
-
-            {/* Submit */}
-            <button
-              onClick={handleSubmit}
-              disabled={createDeposit.isPending || !selectedFile}
-              className="w-full py-2.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: "var(--st-yellow, #FFD100)", color: "var(--st-ink)", fontFamily: "inherit" }}>
-              {createDeposit.isPending ? "Publication…" : "Publier"}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// ── Pratique view ─────────────────────────────────────────────────────────────
-
-// ── Post card ─────────────────────────────────────────────────────────────────
-
-function PracticePostCard({
-  post,
-  currentEmail,
-  isAdmin,
-  onReact,
-  onDelete,
-  onVote,
-  onSelectTag,
-}: {
-  post: PracticePost;
-  currentEmail: string;
-  isAdmin: boolean;
-  onReact: (postId: string, iReacted: boolean) => void;
-  onDelete: (postId: string) => void;
-  onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
-  onSelectTag: (tag: string) => void;
-}) {
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
-  const createComment = useCreatePracticeComment(currentEmail);
-  const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
-  const { toast } = useToast();
-
-  const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
-  const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
-  const isOwn = (post.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
-  const canDelete = isOwn || isAdmin;
-
-  const handleComment = async () => {
-    if (!commentText.trim()) return;
-    try {
-      await createComment.mutateAsync({ postId: post.id, content: commentText.trim() });
-      setCommentText("");
-    } catch {
-      toastError(toast, "Impossible d'envoyer le commentaire.");
-    }
-  };
-
-  return (
-    <div className="rounded-2xl border space-y-0 overflow-hidden"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-      {/* Header */}
-      <div className="flex items-start gap-3 p-4">
-        <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
-          style={{ background: post.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
-          {post.author_photo_url
-            ? <img src={post.author_photo_url} alt={displayName} className="w-full h-full object-cover" />
-            : initials}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{displayName}</p>
-          <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
-          </p>
-        </div>
-        {canDelete && (
-          <button
-            onClick={() => onDelete(post.id)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
-            style={{ color: "var(--st-ink-muted)" }}
-            title={isOwn ? "Supprimer mon message" : "Supprimer (admin)"}
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
-      </div>
-
-      {/* Lesson origin badge */}
-      {post.lesson_id && post.course_id && (
-        <a
-          href={`/lms/${post.course_id}/player?email=${encodeURIComponent(currentEmail)}&lesson=${post.lesson_id}`}
-          className="mx-4 mb-3 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full hover:underline w-fit"
-          style={{ background: "rgba(255,209,0,0.15)", color: "var(--st-ink)" }}
-          title="Voir la leçon d'origine"
-        >
-          <BookOpen size={12} />
-          <span>Depuis la leçon : <strong>{post.lesson_title ?? "voir"}</strong></span>
-        </a>
-      )}
-
-      {/* Content */}
-      {post.content && (
-        <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
-          {post.content}
-        </p>
-      )}
-
-      {/* Media: image / video / file */}
-      {post.file_url && (
-        post.file_mime?.startsWith("image/") ? (
-          <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
-        ) : post.file_mime?.startsWith("video/") ? (
-          <video src={post.file_url} controls className="w-full" style={{ maxHeight: 480 }} />
-        ) : (
-          <a href={post.file_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 mx-4 mb-3 px-3 py-2.5 rounded-xl border text-sm font-medium hover:bg-black/5"
-            style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)" }}>
-            <FileText size={16} /> {post.file_name ?? "Voir le fichier"}
-          </a>
-        )
-      )}
-
-      {/* Poll */}
-      {post.poll && <PollDisplay poll={post.poll} onVote={onVote} />}
-
-      {/* Hashtags */}
-      {post.hashtags.length > 0 && (
-        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-          {post.hashtags.map((tag) => (
-            <button
-              key={tag}
-              onClick={() => onSelectTag(tag)}
-              className="text-xs px-2 py-0.5 rounded-full font-medium transition-colors hover:bg-black/5"
-              style={{ background: "rgba(16,24,32,0.05)", color: "var(--st-ink-muted)" }}
-            >
-              #{tag}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Reaction bar */}
-      {(post.reaction_count > 0 || post.comment_count > 0) && (
-        <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
-          {post.reaction_count > 0 && (
-            <span>{post.reaction_count} J'aime</span>
-          )}
-          {post.comment_count > 0 && (
-            <button onClick={() => setShowComments(v => !v)} className="hover:underline ml-auto" style={{ fontFamily: "inherit" }}>
-              {post.comment_count} commentaire{post.comment_count > 1 ? "s" : ""}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
-        <button
-          onClick={() => onReact(post.id, post.i_reacted)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
-          style={{ color: post.i_reacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
-        >
-          <ThumbsUp size={16} fill={post.i_reacted ? "currentColor" : "none"} />
-          J'aime
-        </button>
-        <button
-          onClick={() => setShowComments(v => !v)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5 border-l"
-          style={{ color: "var(--st-ink-muted)", borderColor: "rgba(16,24,32,0.06)", fontFamily: "inherit" }}
-        >
-          <MessageSquare size={16} />
-          Commenter
-        </button>
-      </div>
-
-      {/* Comments section */}
-      {showComments && (
-        <div className="border-t px-4 py-3 space-y-3" style={{ borderColor: "rgba(16,24,32,0.06)", background: "var(--st-surface, #F2F4F4)" }}>
-          {comments.map((c) => {
-            const cName = authorDisplayName(c.author_email, c.author_first_name, c.author_last_name);
-            const cInitials = authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
-            const cIsOwn = (c.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
-            const cCanDelete = cIsOwn || isAdmin;
-            const handleDeleteComment = async () => {
-              if (!window.confirm("Supprimer ce commentaire ?")) return;
-              try {
-                await deleteComment.mutateAsync({ commentId: c.id, postId: post.id });
-              } catch {
-                toastError(toast, "Impossible de supprimer le commentaire.");
-              }
-            };
-            return (
-              <div key={c.id} className="flex items-start gap-2 group">
-                <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: c.author_photo_url ? "transparent" : "var(--st-yellow)", color: "#101820" }}>
-                  {c.author_photo_url
-                    ? <img src={c.author_photo_url} alt={cName} className="w-full h-full object-cover" />
-                    : cInitials}
-                </div>
-                <div className="flex-1 rounded-xl px-3 py-2" style={{ background: "var(--st-white)" }}>
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>{cName}</p>
-                    {cCanDelete && (
-                      <button
-                        onClick={handleDeleteComment}
-                        className="p-1 rounded hover:bg-black/5 shrink-0 opacity-60 hover:opacity-100"
-                        style={{ color: "var(--st-ink-muted)" }}
-                        title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
-                </div>
-              </div>
-            );
-          })}
-          {/* Comment input */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 rounded-full border px-3 py-1.5"
-              style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
-                placeholder="Ajouter un commentaire..."
-                className="flex-1 text-sm bg-transparent outline-none"
-                style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
-              />
-              <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
-            </div>
-            <button
-              onClick={handleComment}
-              disabled={!commentText.trim() || createComment.isPending}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
-              style={{ background: "var(--st-yellow)", color: "#101820" }}
-            >
-              <Send size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Deposit feed card (shared work deposit surfaced in the community) ──────────
 function DepositFeedCard({
   deposit,
@@ -2291,7 +669,7 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav, isAdminPreview }: {
+function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
@@ -2299,10 +677,9 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   lastName: string;
   photoUrl: string | null;
   onNav: (s: NavSection) => void;
-  isAdminPreview?: boolean;
 }) {
   const { isAdmin } = useModuleAccess();
-  const canManageCommunity = isAdmin || !!isAdminPreview;
+  const canManageCommunity = isAdmin;
   const [searchParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
   const [allTagsOpen, setAllTagsOpen] = useState(false);
@@ -2340,6 +717,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, canManageCommunity);
+  const pinPost = usePinPracticePost();
   const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -2352,12 +730,17 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
       ...posts.map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
       ...(showDeposits ? (deposits as any[]) : []).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
     ];
-    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    items.sort((a, b) => {
+      const aPin = a.kind === "post" && a.post.is_pinned ? 1 : 0;
+      const bPin = b.kind === "post" && b.post.is_pinned ? 1 : 0;
+      if (bPin !== aPin) return bPin - aPin;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
     return items;
   }, [posts, deposits, showDeposits]);
 
-  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null) => {
-    await createPost.mutateAsync({ content, file, poll });
+  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => {
+    await createPost.mutateAsync({ content, file, poll, gifUrl });
   };
 
   const handleReact = async (postId: string, iReacted: boolean) => {
@@ -2415,6 +798,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
               onDelete={handleDelete}
               onVote={handleVote}
               onSelectTag={handleSelectTag}
+              onPin={canManageCommunity ? (postId, pin) => pinPost.mutateAsync({ postId, pin }).catch(() => toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler.")) : undefined}
             />
           ) : (
             <DepositFeedCard
@@ -3061,41 +1445,6 @@ function AideView({
   );
 }
 
-// ── Generic card shell ────────────────────────────────────────────────────────
-
-function DashCard({
-  title,
-  icon: Icon,
-  action,
-  children,
-}: {
-  title: string;
-  icon: React.ElementType;
-  action?: { label: string; onClick: () => void };
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-2xl border p-5 transition-shadow hover:shadow-sm"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ background: "var(--st-surface, #F2F4F4)" }}>
-          <Icon size={14} style={{ color: "var(--st-ink-muted)" }} />
-        </div>
-        <p className="text-sm font-semibold flex-1" style={{ color: "var(--st-ink)" }}>{title}</p>
-        {action && (
-          <button onClick={action.onClick}
-            className="text-xs font-medium transition-colors hover:opacity-70"
-            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}>
-            {action.label} →
-          </button>
-        )}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function LearnerPortal() {
@@ -3105,12 +1454,6 @@ export default function LearnerPortal() {
   const { toast } = useToast();
 
   const sectionFromUrl: NavSection = (sectionSlug ? SLUG_TO_SECTION[sectionSlug] : undefined) ?? "dashboard";
-  const isAdminCoursePreview = !!searchParams.get("fromCourse") && (
-    searchParams.get("preview") === "admin" ||
-    window.location.hostname.includes("lovableproject.com") ||
-    window.location.hostname.startsWith("id-preview--")
-  );
-
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -3130,41 +1473,32 @@ export default function LearnerPortal() {
   useEffect(() => {
     const token = searchParams.get("token");
     const previewEmail = searchParams.get("preview_email");
-    const fromCourse = searchParams.get("fromCourse");
-    const isLovablePreviewHost = window.location.hostname.includes("lovableproject.com") || window.location.hostname.startsWith("id-preview--");
-    const isAdminPreview = isLovablePreviewHost && (searchParams.get("preview") === "admin" || !!fromCourse);
 
     let cancelled = false;
 
-    const isStaff = async (userId: string, email?: string | null) => {
+    const isStaff = async (userId: string) => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("user_id, is_admin")
+        .select("user_id")
         .eq("user_id", userId)
         .maybeSingle();
-      return !!profile || ADMIN_PREVIEW_EMAILS.has((email ?? "").toLowerCase());
+      return !!profile;
     };
 
     const proceedWithSession = async (
       session: { user: { id: string; email?: string | null } } | null
     ): Promise<boolean> => {
       if (!session?.user?.email) return false;
-      const staff = await isStaff(session.user.id, session.user.email);
+      const staff = await isStaff(session.user.id);
       // Staff/admin can preview as any learner via ?preview_email=
-      const emailToLoad = staff && fromCourse
-        ? await resolveCoursePreviewEmail(fromCourse, previewEmail)
-        : (staff && previewEmail ? previewEmail : session.user.email);
+      const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
       if (cancelled) return true;
       if (staff) sessionStorage.setItem("learner_email", emailToLoad);
       if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
-        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : (isAdminPreview ? "?preview=admin" : "");
+        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
         navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
       }
-      if (staff && fromCourse) {
-        loadAdminPreviewData(emailToLoad, fromCourse);
-      } else {
-        loadData(emailToLoad);
-      }
+      loadData(emailToLoad);
       return true;
     };
 
@@ -3174,13 +1508,6 @@ export default function LearnerPortal() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (await proceedWithSession(user ? { user } : null)) return;
-
-      if (isAdminPreview && fromCourse) {
-        const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
-        sessionStorage.setItem("learner_email", emailToLoad);
-        loadAdminPreviewData(emailToLoad, fromCourse);
-        return;
-      }
 
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
@@ -3212,12 +1539,6 @@ export default function LearnerPortal() {
             const { data: { user: u2 } } = await supabase.auth.getUser();
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
-          if (!ok && isAdminPreview && fromCourse) {
-            const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
-            sessionStorage.setItem("learner_email", emailToLoad);
-            loadAdminPreviewData(emailToLoad, fromCourse);
-            return;
-          }
           if (!ok) navigate("/apprenant");
         });
       }, 2500);
@@ -3233,41 +1554,6 @@ export default function LearnerPortal() {
       const { data: result, error } = await supabase.rpc("get_learner_portal_data", { p_email: email });
       if (error) throw error;
       setData(result as unknown as LearnerData);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAdminPreviewData = async (email: string, courseId: string) => {
-    try {
-      const { data: course } = await supabase
-        .from("lms_courses")
-        .select("title")
-        .eq("id", courseId)
-        .maybeSingle();
-      setData({
-        email,
-        trainings: [{
-          training_id: courseId,
-          training_name: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
-          start_date: null,
-          end_date: null,
-          location: null,
-          format: "E-learning",
-          participant_id: "admin-preview",
-          first_name: "Admin",
-          last_name: "",
-          needs_survey_status: null,
-          evaluation_status: null,
-          lms_course_id: courseId,
-          lms_course_title: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
-        }],
-        questionnaires: [],
-        evaluations: [],
-      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
       setError(msg);
@@ -3394,7 +1680,7 @@ export default function LearnerPortal() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex flex-col shrink-0" style={{ width: 240 }}>
-        <Sidebar
+        <LearnerSidebar
           active={activeSection}
           onNav={handleNav}
           firstName={firstName}
@@ -3412,7 +1698,7 @@ export default function LearnerPortal() {
         <>
           <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setSidebarOpen(false)} />
           <div className="lg:hidden fixed left-0 top-0 bottom-0 z-50" style={{ width: 260 }}>
-            <Sidebar
+            <LearnerSidebar
               active={activeSection}
               onNav={(s) => { setSidebarOpen(false); handleNav(s); }}
               firstName={firstName}
@@ -3429,7 +1715,7 @@ export default function LearnerPortal() {
         </>
       )}
 
-      <EditProfileModal
+      <LearnerEditProfileModal
         open={profileModalOpen}
         onClose={() => setProfileModalOpen(false)}
         email={data.email}
@@ -3518,7 +1804,7 @@ export default function LearnerPortal() {
                 lastName={lastName}
                 photoUrl={photoUrl}
                 onNav={handleNav}
-                isAdminPreview={isAdminCoursePreview}
+
               />
             )}
             {activeSection === "aide" && (

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { Users, Copy, Check, Clock, Heart, Send, CheckCircle2, AlertTriangle, Megaphone, MailQuestion } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -59,6 +61,7 @@ const FormationDetailParticipants = ({
   fetchParticipants,
   bpfNeedsAttention,
 }: Props) => {
+  const { toast } = useToast();
   const [hasSupportRecord, setHasSupportRecord] = useState(false);
   const [requestingEmails, setRequestingEmails] = useState(false);
   const [emailsRequestedAt, setEmailsRequestedAt] = useState<string | null>(null);
@@ -81,7 +84,7 @@ const FormationDetailParticipants = ({
       if (error) throw error;
       setEmailsRequestedAt(new Date().toISOString());
     } catch (e) {
-      console.error("Error requesting participants emails:", e);
+      toastError(toast, e);
     } finally {
       setRequestingEmails(false);
     }

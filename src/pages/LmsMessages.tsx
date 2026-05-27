@@ -124,7 +124,7 @@ export default function LmsMessages() {
       setReply("");
       queryClient.invalidateQueries({ queryKey: ["lms-messages-admin"] });
     } catch (err) {
-      toastError(err, "Impossible d'envoyer la réponse.");
+      toastError(toast, err);
     } finally {
       setSending(false);
     }

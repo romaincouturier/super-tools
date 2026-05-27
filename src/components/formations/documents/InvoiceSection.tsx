@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { formatSentDateTime } from "@/lib/dateFormatters";
 import { resolveContentType } from "@/lib/file-utils";
 import {
@@ -84,12 +85,7 @@ const InvoiceSection = ({
         description: "La facture a été ajoutée à la formation.",
       });
     } catch (error: unknown) {
-      console.error("Upload error:", error);
-      toast({
-        title: "Erreur d'upload",
-        description: error instanceof Error ? error.message : "Une erreur est survenue.",
-        variant: "destructive",
-      });
+      toastError(toast, error);
     } finally {
       setUploadingInvoice(false);
     }

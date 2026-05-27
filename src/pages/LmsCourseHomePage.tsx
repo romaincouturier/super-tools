@@ -48,7 +48,7 @@ import {
   Bell,
 } from "lucide-react";
 import CourseHomeSidebar, { CommunityCtaButton, communityUrlWithContext, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
-import LearnerCourseHeader from "@/components/lms/LearnerCourseHeader";
+import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -957,7 +957,6 @@ export default function LmsCourseHomePage() {
     return liveData?.meetings ?? [];
   }, [isPreview, adminSessions, liveData]);
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const initialView = searchParams.get("view") || "home";
   const [activeView, setActiveView] = useState<string>(initialView);
 
@@ -1110,83 +1109,31 @@ export default function LmsCourseHomePage() {
   const replayMeeting = replayMeetingId ? meetings.find((m) => m.id === replayMeetingId) ?? null : null;
 
   return (
-    <div
-      className="flex flex-col min-h-screen"
-      style={{ fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif", background: "#F2F4F4" }}
+    <LmsCourseLayout
+      courseTitle={liveData?.training?.training_name || course.formation_configs?.formation_name || course.title}
+      learnerEmail={email}
+      isPreview={isPreview}
+      editHref={isPreview && courseId ? `/lms/${courseId}/home/builder` : undefined}
+      sidebar={(closeSidebar) => (
+        <CourseHomeSidebar
+          courseId={courseId!}
+          email={email}
+          isPreview={isPreview}
+          modules={regularModules}
+          moduleStatuses={moduleStatuses}
+          lessonCountByModule={lessonCountByModule}
+          lessonsDoneByModule={lessonsDoneByModule}
+          lessonsByModule={lessonsByModule}
+          completedLessonIds={completedIds}
+          activeLessonId={null}
+          communityPreviewCount={course.community_preview_count ?? 2}
+          meetings={meetings}
+          activeView={activeView}
+          onModuleClick={(id) => { handleModuleClick(id); closeSidebar(); }}
+          onViewChange={(v) => { setActiveView(v); closeSidebar(); }}
+        />
+      )}
     >
-      <LearnerCourseHeader
-        courseTitle={liveData?.training?.training_name || course.formation_configs?.formation_name || course.title}
-        learnerEmail={email}
-        isPreview={isPreview}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
-        editHref={isPreview && courseId ? `/lms/${courseId}/home/builder` : undefined}
-      />
-
-      <div className="flex flex-1">
-        {/* Desktop sidebar — white rounded card, toggleable (same as lesson player) */}
-        <aside
-          className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[360px]" : "w-0"}`}
-          aria-hidden={!sidebarOpen}
-          style={{ padding: sidebarOpen ? "1rem" : undefined }}
-        >
-          {sidebarOpen && (
-            <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
-              <CourseHomeSidebar
-                courseId={courseId!}
-                email={email}
-                isPreview={isPreview}
-                modules={regularModules}
-                moduleStatuses={moduleStatuses}
-                lessonCountByModule={lessonCountByModule}
-                lessonsDoneByModule={lessonsDoneByModule}
-                lessonsByModule={lessonsByModule}
-                completedLessonIds={completedIds}
-                activeLessonId={null}
-                communityPreviewCount={course.community_preview_count ?? 2}
-                meetings={meetings}
-                activeView={activeView}
-                onModuleClick={handleModuleClick}
-                onViewChange={setActiveView}
-              />
-            </div>
-          )}
-        </aside>
-
-        {/* Mobile sidebar overlay */}
-        {sidebarOpen && (
-          <>
-            <div
-              className="lg:hidden fixed inset-0 z-40 bg-black/30"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <div
-              className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
-              style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
-            >
-              <CourseHomeSidebar
-                courseId={courseId!}
-                email={email}
-                isPreview={isPreview}
-                modules={regularModules}
-                moduleStatuses={moduleStatuses}
-                lessonCountByModule={lessonCountByModule}
-                lessonsDoneByModule={lessonsDoneByModule}
-                lessonsByModule={lessonsByModule}
-                completedLessonIds={completedIds}
-                activeLessonId={null}
-                communityPreviewCount={course.community_preview_count ?? 2}
-                meetings={meetings}
-                activeView={activeView}
-                onModuleClick={(id) => { handleModuleClick(id); setSidebarOpen(false); }}
-                onViewChange={(v) => { setActiveView(v); setSidebarOpen(false); }}
-              />
-            </div>
-          </>
-        )}
-
-
-        {/* Main content */}
-        <main className="flex-1" style={{ background: "#F2F4F4" }}>
           {/* Mobile progress bar — only on home view */}
           {activeView === "home" && (
             <div
@@ -1293,8 +1240,6 @@ export default function LmsCourseHomePage() {
               <ReplayView meeting={replayMeeting} />
             )}
           </div>
-        </main>
-      </div>
-    </div>
+    </LmsCourseLayout>
   );
 }

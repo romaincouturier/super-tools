@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { resolveContentType } from "@/lib/file-utils";
 import { supabase } from "@/integrations/supabase/client";
 import PageTemplateManager from "@/components/missions/PageTemplateManager";
@@ -239,7 +240,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
                       toast({ title: "Fichier uploadé" });
                     } catch (error: unknown) {
                       console.error("Upload error:", error);
-                      toast({ title: "Erreur d'upload", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+                      toastError(toast, error);
                     } finally {
                       setUploadingReglement(false);
                       e.target.value = "";
@@ -298,7 +299,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
                       toast({ title: "Tampon uploadé" });
                     } catch (error: unknown) {
                       console.error("Upload error:", error);
-                      toast({ title: "Erreur d'upload", description: error instanceof Error ? error.message : "Erreur inconnue", variant: "destructive" });
+                      toastError(toast, error);
                     } finally {
                       setUploadingStamp(false);
                       e.target.value = "";

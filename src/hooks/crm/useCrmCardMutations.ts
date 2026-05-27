@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { logCrmActivity } from "@/services/crmActivity";
 import type { OpportunityExtraction } from "@/types/crm";
 import { useCrmMutation, CRM_QUERY_KEY } from "./useCrmMutation";
@@ -71,7 +72,7 @@ export const useExtractOpportunity = () => {
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : "Erreur inconnue";
-      toast({ title: "Erreur d'extraction", description: message, variant: "destructive" });
+      toastError(toast, message);
     },
   });
 };

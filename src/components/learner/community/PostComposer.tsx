@@ -1,16 +1,13 @@
 import { useRef, useState, type ElementType } from "react";
 import { Image as ImageIcon, Video, Paperclip, BarChart3, X, Plus } from "lucide-react";
 import EmojiInsert from "@/components/ui/emoji-insert";
+import GifPicker from "@/components/learner/community/GifPicker";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import type { NewPoll } from "@/hooks/usePracticeFeed";
+import { getInitials } from "@/lib/stringUtils";
 
 const PLACEHOLDER = "Partagez votre travail, posez une question, inspirez la communauté.";
-
-function getInitials(firstName: string, lastName: string, email: string) {
-  const i = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
-  return i || email.slice(0, 2).toUpperCase();
-}
 
 export default function PostComposer({
   email,
@@ -23,23 +20,27 @@ export default function PostComposer({
   firstName: string;
   lastName: string;
   photoUrl: string | null;
-  onCreate: (content: string, file: File | null, poll: NewPoll | null) => Promise<void>;
+  onCreate: (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
   const [posting, setPosting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const initials = getInitials(firstName, lastName, email);
+  const initials = getInitials(firstName, lastName, email.slice(0, 2).toUpperCase());
 
   const reset = () => {
     setContent("");
     setFile(null);
     setPreview(null);
+    setGifUrl(null);
+    setShowGifPicker(false);
     setPollOptions(null);
     setExpanded(false);
   };
@@ -52,12 +53,20 @@ export default function PostComposer({
   };
 
   const handleFile = (f: File) => {
+    setGifUrl(null);
     setFile(f);
     setPreview(f.type.startsWith("image/") ? URL.createObjectURL(f) : null);
   };
 
+  const handleSelectGif = (url: string) => {
+    setFile(null);
+    setPreview(null);
+    setGifUrl(url);
+    setShowGifPicker(false);
+  };
+
   const pollValid = !pollOptions || pollOptions.map((o) => o.trim()).filter(Boolean).length >= 2;
-  const canPublish = (content.trim() !== "" || file !== null || (pollOptions !== null && pollValid)) && pollValid;
+  const canPublish = (content.trim() !== "" || file !== null || gifUrl !== null || (pollOptions !== null && pollValid)) && pollValid;
 
   const handlePublish = async () => {
     if (!canPublish) return;
@@ -66,7 +75,7 @@ export default function PostComposer({
       const poll = pollOptions && pollOptions.map((o) => o.trim()).filter(Boolean).length >= 2
         ? { options: pollOptions }
         : null;
-      await onCreate(content, file, poll);
+      await onCreate(content, file, poll, gifUrl);
       reset();
     } catch {
       toastError(toast, "Impossible de publier.");
@@ -109,22 +118,31 @@ export default function PostComposer({
             </div>
 
             {/* Attachment preview */}
-            {file && (
+            {(file || gifUrl) && (
               <div className="relative rounded-xl border p-2" style={{ borderColor: "rgba(16,24,32,0.12)" }}>
-                {preview ? (
+                {gifUrl ? (
+                  <img src={gifUrl} alt="GIF" className="w-full rounded-lg object-cover" style={{ maxHeight: 240 }} />
+                ) : preview ? (
                   <img src={preview} alt="Aperçu" className="w-full rounded-lg object-cover" style={{ maxHeight: 240 }} />
                 ) : (
                   <div className="flex items-center gap-2 text-sm px-1 py-2" style={{ color: "var(--st-ink)" }}>
-                    <Paperclip size={16} /> {file.name}
+                    <Paperclip size={16} /> {file!.name}
                   </div>
                 )}
                 <button
-                  onClick={() => { setFile(null); setPreview(null); }}
+                  onClick={() => { setFile(null); setPreview(null); setGifUrl(null); }}
                   className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
                   style={{ background: "rgba(16,24,32,0.6)", color: "#fff" }}
                 >
                   <X size={14} />
                 </button>
+              </div>
+            )}
+
+            {/* GIF picker popover */}
+            {showGifPicker && (
+              <div className="relative z-10">
+                <GifPicker onSelect={handleSelectGif} onClose={() => setShowGifPicker(false)} />
               </div>
             )}
 
@@ -166,9 +184,13 @@ export default function PostComposer({
 
             {/* Toolbar */}
             <div className="flex items-center gap-1 flex-wrap">
-              <ToolbarButton icon={ImageIcon} label="Photo" onClick={() => openPicker("image/*")} />
-              <ToolbarButton icon={Video} label="Vidéo" onClick={() => openPicker("video/*")} />
-              <ToolbarButton icon={Paperclip} label="Fichier" onClick={() => openPicker("*/*")} />
+              <ToolbarButton icon={ImageIcon} label="Photo" onClick={() => { setGifUrl(null); openPicker("image/*"); }} />
+              <ToolbarButton icon={Video} label="Vidéo" onClick={() => { setGifUrl(null); openPicker("video/*"); }} />
+              <ToolbarButton icon={Paperclip} label="Fichier" onClick={() => { setGifUrl(null); openPicker("*/*"); }} />
+              <GifToolbarButton
+                active={showGifPicker || !!gifUrl}
+                onClick={() => setShowGifPicker((v) => !v)}
+              />
               <ToolbarButton
                 icon={BarChart3}
                 label="Sondage"
@@ -216,6 +238,18 @@ function ToolbarButton({ icon: Icon, label, onClick, active }: {
       style={{ color: active ? "#101820" : "var(--st-ink-muted)", background: active ? "rgba(255,209,0,0.2)" : "transparent", fontFamily: "inherit" }}
     >
       <Icon size={16} /> {label}
+    </button>
+  );
+}
+
+function GifToolbarButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors hover:bg-black/5 font-bold"
+      style={{ color: active ? "#101820" : "var(--st-ink-muted)", background: active ? "rgba(255,209,0,0.2)" : "transparent", fontFamily: "inherit", letterSpacing: "0.04em" }}
+    >
+      GIF
     </button>
   );
 }
