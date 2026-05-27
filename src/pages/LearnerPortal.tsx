@@ -3096,17 +3096,39 @@ export default function LearnerPortal() {
 
   useEffect(() => {
     const token = searchParams.get("token");
+    const previewEmail = searchParams.get("preview_email");
+
+    let cancelled = false;
+
+    const isStaff = async (userId: string) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      return !!profile;
+    };
+
+    const proceedWithSession = async (
+      session: { user: { id: string; email?: string | null } } | null
+    ): Promise<boolean> => {
+      if (!session?.user?.email) return false;
+      const staff = await isStaff(session.user.id);
+      // Staff/admin can preview as any learner via ?preview_email=
+      const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
+      if (cancelled) return true;
+      if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
+        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
+        navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
+      }
+      loadData(emailToLoad);
+      return true;
+    };
 
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      // Any authenticated user (learner OR staff/admin) can access the learner portal using their email.
-      if (session?.user?.email) {
-        if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
-          navigate("/espace-apprenant/tableau-de-bord", { replace: true });
-        }
-        loadData(session.user.email);
-        return;
-      }
+      if (await proceedWithSession(session)) return;
+
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
@@ -3116,11 +3138,32 @@ export default function LearnerPortal() {
         loadData(savedEmail);
         return;
       }
-      navigate("/apprenant");
+
+      // No session yet: give Supabase a brief window to hydrate (e.g. new tab
+      // opened from "Aperçu" where getSession races storage). If a session
+      // arrives, treat staff/admin as a valid viewer instead of bouncing to /apprenant.
+      const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
+        if (cancelled) return;
+        if (s?.user) {
+          await proceedWithSession(s);
+        }
+      });
+
+      setTimeout(() => {
+        if (cancelled) return;
+        sub.subscription.unsubscribe();
+        supabase.auth.getSession().then(async ({ data: { session: s2 } }) => {
+          if (cancelled) return;
+          const ok = await proceedWithSession(s2);
+          if (!ok) navigate("/apprenant");
+        });
+      }, 2500);
     };
 
     init();
-  }, [searchParams, navigate]);
+
+    return () => { cancelled = true; };
+  }, [searchParams, navigate, sectionSlug]);
 
   const loadData = async (email: string) => {
     try {
