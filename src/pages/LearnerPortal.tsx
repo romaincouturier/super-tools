@@ -739,8 +739,8 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
     return items;
   }, [posts, deposits, showDeposits]);
 
-  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null) => {
-    await createPost.mutateAsync({ content, file, poll });
+  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => {
+    await createPost.mutateAsync({ content, file, poll, gifUrl });
   };
 
   const handleReact = async (postId: string, iReacted: boolean) => {

@@ -343,17 +343,22 @@ async function generateHashtags(content: string): Promise<string[]> {
 export function useCreatePracticePost(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, file, courseId, lessonId, poll }: {
+    mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl }: {
       content: string;
       file: File | null;
       courseId?: string | null;
       lessonId?: string | null;
       poll?: NewPoll | null;
+      gifUrl?: string | null;
     }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
       const c = clientFor(learnerEmail) as any;
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
-      if (file) fileData = await uploadPracticeFile(file, learnerEmail);
+      if (gifUrl) {
+        fileData = { url: gifUrl, name: "gif", size: 0, mime: "image/gif" };
+      } else if (file) {
+        fileData = await uploadPracticeFile(file, learnerEmail);
+      }
 
       // Synchronous AI hashtags at publish (1-3 tags, never blocks on failure).
       const hashtags = await generateHashtags(content);
