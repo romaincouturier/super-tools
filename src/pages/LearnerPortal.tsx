@@ -2291,7 +2291,7 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
+function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav, isAdminPreview }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
@@ -2299,8 +2299,10 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   lastName: string;
   photoUrl: string | null;
   onNav: (s: NavSection) => void;
+  isAdminPreview?: boolean;
 }) {
   const { isAdmin } = useModuleAccess();
+  const canManageCommunity = isAdmin || !!isAdminPreview;
   const [searchParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
   const [allTagsOpen, setAllTagsOpen] = useState(false);
@@ -2328,7 +2330,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   }, [mode, selectedTag, email, fromCourse]);
 
   const showDeposits = isFeed && !selectedTag;
-  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, isAdmin);
+  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
   const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(showDeposits ? courseIds : [], email);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
   const { data: allTopics = [] } = usePracticePopularHashtags(email, 200);
@@ -2337,7 +2339,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
-  const deletePost = useDeletePracticePost(email, isAdmin);
+  const deletePost = useDeletePracticePost(email, canManageCommunity);
   const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -3103,6 +3105,11 @@ export default function LearnerPortal() {
   const { toast } = useToast();
 
   const sectionFromUrl: NavSection = (sectionSlug ? SLUG_TO_SECTION[sectionSlug] : undefined) ?? "dashboard";
+  const isAdminCoursePreview = !!searchParams.get("fromCourse") && (
+    searchParams.get("preview") === "admin" ||
+    window.location.hostname.includes("lovableproject.com") ||
+    window.location.hostname.startsWith("id-preview--")
+  );
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
@@ -3144,14 +3151,20 @@ export default function LearnerPortal() {
       if (!session?.user?.email) return false;
       const staff = await isStaff(session.user.id, session.user.email);
       // Staff/admin can preview as any learner via ?preview_email=
-      const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
+      const emailToLoad = staff && fromCourse
+        ? await resolveCoursePreviewEmail(fromCourse, previewEmail)
+        : (staff && previewEmail ? previewEmail : session.user.email);
       if (cancelled) return true;
       if (staff) sessionStorage.setItem("learner_email", emailToLoad);
       if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
         const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : (isAdminPreview ? "?preview=admin" : "");
         navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
       }
-      loadData(emailToLoad);
+      if (staff && fromCourse) {
+        loadAdminPreviewData(emailToLoad, fromCourse);
+      } else {
+        loadData(emailToLoad);
+      }
       return true;
     };
 
@@ -3505,6 +3518,7 @@ export default function LearnerPortal() {
                 lastName={lastName}
                 photoUrl={photoUrl}
                 onNav={handleNav}
+                isAdminPreview={isAdminCoursePreview}
               />
             )}
             {activeSection === "aide" && (
