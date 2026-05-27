@@ -1905,7 +1905,7 @@ function PracticePostCard({
 }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail);
+  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
   const { toast } = useToast();
@@ -2305,7 +2305,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   }, [mode, selectedTag, email, fromCourse]);
 
   const showDeposits = isFeed && !selectedTag;
-  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter);
+  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, isAdmin);
   const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(showDeposits ? courseIds : [], email);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
   const { data: allTopics = [] } = usePracticePopularHashtags(email, 200);
