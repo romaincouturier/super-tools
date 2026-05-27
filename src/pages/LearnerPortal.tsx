@@ -3182,7 +3182,9 @@ export default function LearnerPortal() {
   const handleNav = (s: NavSection) => {
     const slug = SECTION_SLUGS[s];
     if (slug) {
-      navigate(`/espace-apprenant/${slug}`);
+      const previewEmail = searchParams.get("preview_email");
+      const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
+      navigate(`/espace-apprenant/${slug}${qs}`);
     } else {
       setActiveSection(s);
     }
