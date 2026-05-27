@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { usePracticePosts } from "@/hooks/usePracticeFeed";
 import type { CourseLiveMeeting } from "@/hooks/useLmsQueries";
+import { supabase } from "@/integrations/supabase/client";
 
 export type ModuleStatus = "completed" | "in_progress" | "not_started";
 
@@ -46,21 +47,26 @@ function authorInitials(email: string, firstName?: string | null, lastName?: str
   return email.slice(0, 2).toUpperCase();
 }
 
-export function communityUrlWithContext(courseId?: string | null, lessonId?: string | null): string {
+export function communityUrlWithContext(courseId?: string | null, lessonId?: string | null, previewEmail?: string | null): string {
   const params = new URLSearchParams();
   if (courseId) params.set("fromCourse", courseId);
   if (lessonId) params.set("fromLesson", lessonId);
+  if (previewEmail) params.set("preview_email", previewEmail);
   const qs = params.toString();
   return `/espace-apprenant/communaute${qs ? `?${qs}` : ""}`;
 }
 
-export function CommunityCtaButton({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
-  const goToCommunity = () => {
-    if (email) sessionStorage.setItem("learner_email", email);
-    // Full-page navigation (not SPA): avoids a race where LearnerPortal mounts
-    // before Supabase hydrates the session from localStorage in a freshly-opened tab
-    // (e.g. tab opened from the LMS builder "Aperçu" button).
-    window.location.href = communityUrlWithContext(courseId, lessonId);
+async function resolvePreviewEmail(email: string): Promise<string> {
+  if (email) return email;
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.email ?? "";
+}
+
+export function CommunityCtaButton({ email, courseId, lessonId, isPreview = false }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview?: boolean }) {
+  const goToCommunity = async () => {
+    const resolvedEmail = await resolvePreviewEmail(email);
+    if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
+    window.location.href = communityUrlWithContext(courseId, lessonId, isPreview ? resolvedEmail : null);
   };
 
   return (
@@ -75,11 +81,12 @@ export function CommunityCtaButton({ email, courseId, lessonId }: { email: strin
   );
 }
 
-function CommunitySidebarPreview({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
+function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
   const { data: posts = [] } = usePracticePosts(email || null, 2);
-  const goToCommunity = () => {
-    if (email) sessionStorage.setItem("learner_email", email);
-    window.location.href = communityUrlWithContext(courseId, lessonId);
+  const goToCommunity = async () => {
+    const resolvedEmail = await resolvePreviewEmail(email);
+    if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
+    window.location.href = communityUrlWithContext(courseId, lessonId, isPreview ? resolvedEmail : null);
   };
 
   return (
@@ -151,7 +158,7 @@ function CommunitySidebarPreview({ email, courseId, lessonId }: { email: string;
       )}
 
       <div className="mt-3">
-        <CommunityCtaButton email={email} courseId={courseId} lessonId={lessonId} />
+        <CommunityCtaButton email={email} courseId={courseId} lessonId={lessonId} isPreview={isPreview} />
       </div>
     </div>
   );
