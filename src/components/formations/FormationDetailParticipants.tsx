@@ -126,7 +126,7 @@ const FormationDetailParticipants = ({
                     entries.push(name ? `"${name.replace(/"/g, "")}" <${email}>` : email);
                   }
                   if (entries.length === 0) {
-                    copy("", { title: "Aucun email à copier", silent: true });
+                    copy("Aucun email participant renseigné", { title: "Aucun email à copier" });
                     return;
                   }
                   const emailList = entries.join(", ");
