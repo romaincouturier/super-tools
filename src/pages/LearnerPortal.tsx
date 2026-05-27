@@ -3099,7 +3099,8 @@ export default function LearnerPortal() {
   useEffect(() => {
     const token = searchParams.get("token");
     const previewEmail = searchParams.get("preview_email");
-    const isAdminPreview = searchParams.get("preview") === "admin" || !!searchParams.get("fromCourse");
+    const fromCourse = searchParams.get("fromCourse");
+    const isAdminPreview = searchParams.get("preview") === "admin" || !!fromCourse;
 
     let cancelled = false;
 
@@ -3136,6 +3137,13 @@ export default function LearnerPortal() {
       const { data: { user } } = await supabase.auth.getUser();
       if (await proceedWithSession(user ? { user } : null)) return;
 
+      if (isAdminPreview && fromCourse) {
+        const emailToLoad = previewEmail || "admin-preview@supertilt.fr";
+        sessionStorage.setItem("learner_email", emailToLoad);
+        loadAdminPreviewData(emailToLoad, fromCourse);
+        return;
+      }
+
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
@@ -3166,6 +3174,12 @@ export default function LearnerPortal() {
             const { data: { user: u2 } } = await supabase.auth.getUser();
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
+          if (!ok && isAdminPreview && fromCourse) {
+            const emailToLoad = previewEmail || "admin-preview@supertilt.fr";
+            sessionStorage.setItem("learner_email", emailToLoad);
+            loadAdminPreviewData(emailToLoad, fromCourse);
+            return;
+          }
           if (!ok) navigate("/apprenant");
         });
       }, 2500);
@@ -3189,11 +3203,50 @@ export default function LearnerPortal() {
     }
   };
 
+  const loadAdminPreviewData = async (email: string, courseId: string) => {
+    try {
+      const { data: course } = await supabase
+        .from("lms_courses")
+        .select("title")
+        .eq("id", courseId)
+        .maybeSingle();
+      setData({
+        email,
+        trainings: [{
+          training_id: courseId,
+          training_name: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
+          start_date: null,
+          end_date: null,
+          location: null,
+          format: "E-learning",
+          participant_id: "admin-preview",
+          first_name: "Admin",
+          last_name: "",
+          needs_survey_status: null,
+          evaluation_status: null,
+          lms_course_id: courseId,
+          lms_course_title: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
+        }],
+        questionnaires: [],
+        evaluations: [],
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNav = (s: NavSection) => {
     const slug = SECTION_SLUGS[s];
     if (slug) {
       const previewEmail = searchParams.get("preview_email");
-      const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
+      const fromCourse = searchParams.get("fromCourse");
+      const params = new URLSearchParams();
+      if (previewEmail) params.set("preview_email", previewEmail);
+      if (fromCourse) params.set("fromCourse", fromCourse);
+      const qs = params.toString() ? `?${params.toString()}` : "";
       navigate(`/espace-apprenant/${slug}${qs}`);
     } else {
       setActiveSection(s);
