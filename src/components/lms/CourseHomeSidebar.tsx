@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import {
   CheckCircle2,
   ChevronRight,
@@ -55,10 +55,12 @@ export function communityUrlWithContext(courseId?: string | null, lessonId?: str
 }
 
 export function CommunityCtaButton({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
-  const navigate = useNavigate();
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate(communityUrlWithContext(courseId, lessonId));
+    // Full-page navigation (not SPA): avoids a race where LearnerPortal mounts
+    // before Supabase hydrates the session from localStorage in a freshly-opened tab
+    // (e.g. tab opened from the LMS builder "Aperçu" button).
+    window.location.href = communityUrlWithContext(courseId, lessonId);
   };
 
   return (
@@ -74,11 +76,10 @@ export function CommunityCtaButton({ email, courseId, lessonId }: { email: strin
 }
 
 function CommunitySidebarPreview({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
-  const navigate = useNavigate();
   const { data: posts = [] } = usePracticePosts(email || null, 2);
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate(communityUrlWithContext(courseId, lessonId));
+    window.location.href = communityUrlWithContext(courseId, lessonId);
   };
 
   return (
