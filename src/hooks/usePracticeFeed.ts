@@ -60,9 +60,11 @@ export interface PracticeComment {
 const POSTS_KEY = ["practice_posts"];
 const COMMENTS_KEY = (postId: string) => ["practice_comments", postId];
 
-function clientFor(email?: string | null) {
+function clientFor(email?: string | null, asAdmin = false) {
+  if (asAdmin) return supabase;
   return email ? createLearnerClient(email) : supabase;
 }
+
 
 // ── Posts ────────────────────────────────────────────────────────────────────
 
@@ -82,6 +84,7 @@ export function usePracticePosts(
   learnerEmail: string | null,
   limit = 50,
   options?: PracticePostsFilter,
+  isAdmin = false,
 ) {
   const lessonFilter = options?.lessonId ?? null;
   const courseFilter = options?.courseId ?? null;
@@ -89,10 +92,11 @@ export function usePracticePosts(
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, authorFilter, likedByFilter, tagFilter],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, authorFilter, likedByFilter, tagFilter, isAdmin],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
+
 
       // Resolve post-id restrictions from like / tag filters first.
       let restrictIds: string[] | null = null;
@@ -199,16 +203,17 @@ export function usePracticePosts(
 
 // ── Comments ─────────────────────────────────────────────────────────────────
 
-export function usePracticeComments(postId: string | null, learnerEmail: string | null) {
+export function usePracticeComments(postId: string | null, learnerEmail: string | null, isAdmin = false) {
   return useQuery({
-    queryKey: COMMENTS_KEY(postId ?? ""),
+    queryKey: [...COMMENTS_KEY(postId ?? ""), isAdmin],
     queryFn: async (): Promise<PracticeComment[]> => {
       if (!postId || !learnerEmail) return [];
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
       const [commentsRes, profilesRes] = await Promise.all([
         c.from("practice_post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
       ]);
+
       if (commentsRes.error) throw commentsRes.error;
       const profiles: any[] = profilesRes.data || [];
       const profileMap = new Map(profiles.map((p: any) => [p.email, p]));
