@@ -435,15 +435,6 @@ function CommunityInfoCard({
   email: string;
   isPreview: boolean;
 }) {
-  const goToCommunity = async () => {
-    let resolvedEmail = email;
-    if (!resolvedEmail) {
-      const { data: { user } } = await supabase.auth.getUser();
-      resolvedEmail = user?.email ?? "";
-    }
-    if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
-    window.location.href = communityUrlWithContext(courseId, null, isPreview ? resolvedEmail : null);
-  };
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
   const { data: allPosts = [] } = useForumPosts(mainForum?.id);
