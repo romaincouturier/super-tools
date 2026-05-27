@@ -8,6 +8,7 @@ import { toastError } from "@/lib/toastError";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { supabase } from "@/integrations/supabase/client";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
+import { useMarkCommunityRead } from "@/hooks/useCommunityUnread";
 import {
   useAdminCommunityCourses,
   usePracticePosts,
@@ -22,6 +23,12 @@ export default function LmsCommunity() {
   const { userEmail } = useModuleAccess();
   const [adminName, setAdminName] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string>("");
+  const markRead = useMarkCommunityRead();
+
+  useEffect(() => {
+    markRead.mutate();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: courses = [], isLoading: coursesLoading } = useAdminCommunityCourses();
   const courseIds = useMemo(() => courses.map((c) => c.courseId), [courses]);
