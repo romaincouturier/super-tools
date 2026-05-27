@@ -429,14 +429,20 @@ const AVATAR_COLORS = ["#FFD100", "#69C3C4", "#F2A541", "#A8D8A8", "#D4A5A5"];
 function CommunityInfoCard({
   courseId,
   email,
+  isPreview,
 }: {
   courseId: string;
   email: string;
+  isPreview: boolean;
 }) {
-  const navigate = useNavigate();
-  const goToCommunity = () => {
-    if (email) sessionStorage.setItem("learner_email", email);
-    navigate(communityUrlWithContext(courseId));
+  const goToCommunity = async () => {
+    let resolvedEmail = email;
+    if (!resolvedEmail) {
+      const { data: { user } } = await supabase.auth.getUser();
+      resolvedEmail = user?.email ?? "";
+    }
+    if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
+    window.location.href = communityUrlWithContext(courseId, null, isPreview ? resolvedEmail : null);
   };
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
@@ -476,7 +482,7 @@ function CommunityInfoCard({
         </div>
       )}
       <div className="mt-auto">
-        <CommunityCtaButton email={email} />
+        <CommunityCtaButton email={email} courseId={courseId} isPreview={isPreview} />
       </div>
       <p className="text-xs text-center" style={{ color: "var(--st-ink-muted)" }}>
         Inspirez-vous des partages, posez vos questions et progressez ensemble !
@@ -876,8 +882,7 @@ const COMMUNITY_THUMBNAILS = [
   { bg: "#FFF7ED", emoji: "🖊️" },
 ];
 
-function CommunitySection({ email }: { email?: string }) {
-  const navigate = useNavigate();
+function CommunitySection({ email, isPreview = false }: { email?: string; isPreview?: boolean }) {
   return (
     <section
       className="rounded-2xl flex flex-wrap items-center gap-6 px-6 py-5"
@@ -911,7 +916,15 @@ function CommunitySection({ email }: { email?: string }) {
           ))}
         </div>
         <button
-          onClick={() => { if (email) sessionStorage.setItem("learner_email", email); window.location.href = "/espace-apprenant/communaute"; }}
+          onClick={async () => {
+            let resolvedEmail = email ?? "";
+            if (!resolvedEmail) {
+              const { data: { user } } = await supabase.auth.getUser();
+              resolvedEmail = user?.email ?? "";
+            }
+            if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
+            window.location.href = communityUrlWithContext(null, null, isPreview ? resolvedEmail : null);
+          }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:-translate-y-px"
           style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
         >
@@ -1243,7 +1256,7 @@ export default function LmsCourseHomePage() {
                     meeting={currentOrNextMeeting}
                     onViewCalendar={() => setActiveView("calendar")}
                   />
-                  <CommunityInfoCard courseId={courseId!} email={email} />
+                  <CommunityInfoCard courseId={courseId!} email={email} isPreview={isPreview} />
                   <TipsBlock tips={course.home_config?.tips} />
                 </div>
                 <InfoCardsGrid config={course.home_config} />
