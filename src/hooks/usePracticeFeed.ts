@@ -68,6 +68,8 @@ function clientFor(email?: string | null) {
 
 export interface PracticePostsFilter {
   lessonId?: string | null;
+  /** Only posts attached to this course. */
+  courseId?: string | null;
   /** Only posts authored by this email (Mes publications). */
   authorEmail?: string | null;
   /** Only posts the given email reacted to (Mes likes). */
@@ -82,11 +84,12 @@ export function usePracticePosts(
   options?: PracticePostsFilter,
 ) {
   const lessonFilter = options?.lessonId ?? null;
+  const courseFilter = options?.courseId ?? null;
   const authorFilter = options?.authorEmail ?? null;
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, authorFilter, likedByFilter, tagFilter],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, authorFilter, likedByFilter, tagFilter],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientFor(learnerEmail) as any;
@@ -108,6 +111,7 @@ export function usePracticePosts(
 
       let postsQuery = c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit);
       if (lessonFilter) postsQuery = postsQuery.eq("lesson_id", lessonFilter);
+      if (courseFilter) postsQuery = postsQuery.eq("course_id", courseFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 

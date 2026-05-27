@@ -2297,11 +2297,12 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const isFeed = mode === "feed";
 
   const postsFilter = useMemo(() => {
-    if (selectedTag) return { tag: selectedTag };
-    if (mode === "mine") return { authorEmail: email };
-    if (mode === "likes") return { likedBy: email };
+    if (selectedTag) return fromCourse ? { tag: selectedTag, courseId: fromCourse } : { tag: selectedTag };
+    if (mode === "mine") return fromCourse ? { authorEmail: email, courseId: fromCourse } : { authorEmail: email };
+    if (mode === "likes") return fromCourse ? { likedBy: email, courseId: fromCourse } : { likedBy: email };
+    if (fromCourse) return { courseId: fromCourse };
     return undefined;
-  }, [mode, selectedTag, email]);
+  }, [mode, selectedTag, email, fromCourse]);
 
   const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter);
