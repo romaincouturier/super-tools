@@ -691,6 +691,42 @@ Bonne formation !`,
     },
     variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
   },
+  elearning_magic_link: {
+    name: "Email d'accès e-learning (lien magique)",
+    timing: "manual",
+    sendingInfo: "✋ Envoyé automatiquement à l'inscription d'un participant à une formation e-learning lorsque le mode d'accès est \"magic_link\", ou manuellement depuis la fiche participant (bouton \"Renvoyer le lien d'accès\"). Contient un lien magique vers l'espace apprenant.",
+    subject: {
+      tu: "Ton accès à la formation e-learning \"{{training_name}}\"",
+      vous: "Votre accès à la formation e-learning \"{{training_name}}\"",
+    },
+    content: {
+      tu: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Tu es inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
+
+Tu peux accéder à ton espace apprenant en cliquant sur le bouton ci-dessous :
+<p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à ma formation</a></p>
+
+La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+
+Si tu as la moindre question, n'hésite pas à me contacter.
+
+Bonne formation !`,
+      vous: `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+Vous êtes inscrit(e) à la formation e-learning "<strong>{{training_name}}</strong>".
+
+Vous pouvez accéder à votre espace apprenant en cliquant sur le bouton ci-dessous :
+<p style="margin: 20px 0;"><a href="{{access_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">🎓 Accéder à ma formation</a></p>
+
+La formation est accessible du <strong>{{start_date}}</strong> au <strong>{{end_date}}</strong>.
+
+Si vous avez la moindre question, n'hésitez pas à me contacter.
+
+Bonne formation !`,
+    },
+    variables: ["first_name", "training_name", "access_link", "start_date", "end_date"],
+  },
   convention_reminder: {
     name: "Relance convention de formation",
     timing: "before",
