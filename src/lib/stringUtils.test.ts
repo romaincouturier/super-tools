@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { capitalizeName, normalizeEmail } from "./stringUtils";
+import { capitalizeName, normalizeEmail, getInitials } from "./stringUtils";
 
 describe("capitalizeName", () => {
   it("capitalizes a simple lowercase name", () => {
@@ -33,6 +33,29 @@ describe("capitalizeName", () => {
     expect(capitalizeName(undefined)).toBeNull();
     expect(capitalizeName("")).toBeNull();
     expect(capitalizeName("   ")).toBeNull();
+  });
+});
+
+describe("getInitials", () => {
+  it("returns uppercase first chars of first and last name", () => {
+    expect(getInitials("Alice", "Martin")).toBe("AM");
+  });
+
+  it("handles null/undefined gracefully, returns fallback", () => {
+    expect(getInitials(null, null)).toBe("?");
+    expect(getInitials(undefined, undefined, "AB")).toBe("AB");
+  });
+
+  it("returns single initial when only first name is set", () => {
+    expect(getInitials("Alice", null)).toBe("A");
+  });
+
+  it("uses provided fallback when both names are empty", () => {
+    expect(getInitials("", "", "XY")).toBe("XY");
+  });
+
+  it("uses custom fallback (email prefix) for community avatars", () => {
+    expect(getInitials(null, null, "al")).toBe("al");
   });
 });
 

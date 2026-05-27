@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getInitials } from "@/lib/stringUtils";
 import { useParams } from "react-router-dom";
 import { rpc } from "@/lib/supabase-rpc";
 
@@ -327,9 +328,6 @@ END:VCALENDAR`;
     return `https://wa.me/${cleanPhone}`;
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
 
   const scrollTo = (ref: React.RefObject<HTMLElement | null>, navId: string) => {
     setActiveNav(navId);

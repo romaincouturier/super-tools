@@ -4,13 +4,9 @@ import EmojiInsert from "@/components/ui/emoji-insert";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import type { NewPoll } from "@/hooks/usePracticeFeed";
+import { getInitials } from "@/lib/stringUtils";
 
 const PLACEHOLDER = "Partagez votre travail, posez une question, inspirez la communauté.";
-
-function getInitials(firstName: string, lastName: string, email: string) {
-  const i = `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase();
-  return i || email.slice(0, 2).toUpperCase();
-}
 
 export default function PostComposer({
   email,
@@ -34,7 +30,7 @@ export default function PostComposer({
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const initials = getInitials(firstName, lastName, email);
+  const initials = getInitials(firstName, lastName, email.slice(0, 2).toUpperCase());
 
   const reset = () => {
     setContent("");

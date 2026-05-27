@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getInitials } from "@/lib/stringUtils";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -70,9 +71,6 @@ export default function TrainerSelector({
     onTrainerSelect?.(trainer);
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
 
   if (loading) {
     return (

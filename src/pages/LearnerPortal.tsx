@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { getInitials } from "@/lib/stringUtils";
 import {
   GraduationCap, FileText, ClipboardCheck, Calendar,
   Download, ExternalLink, BookOpen, CheckCircle2, Clock,
@@ -186,9 +187,6 @@ function statusBadge(status: string | null) {
   }
 }
 
-function getInitials(firstName: string, lastName: string) {
-  return `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "?";
-}
 
 // ── Learner greeting dropdown ─────────────────────────────────────────────────
 
