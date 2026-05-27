@@ -55,10 +55,12 @@ export function communityUrlWithContext(courseId?: string | null, lessonId?: str
 }
 
 export function CommunityCtaButton({ email, courseId, lessonId }: { email: string; courseId?: string | null; lessonId?: string | null }) {
-  const navigate = useNavigate();
   const goToCommunity = () => {
     if (email) sessionStorage.setItem("learner_email", email);
-    navigate(communityUrlWithContext(courseId, lessonId));
+    // Full-page navigation (not SPA): avoids a race where LearnerPortal mounts
+    // before Supabase hydrates the session from localStorage in a freshly-opened tab
+    // (e.g. tab opened from the LMS builder "Aperçu" button).
+    window.location.href = communityUrlWithContext(courseId, lessonId);
   };
 
   return (
