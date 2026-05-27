@@ -114,8 +114,23 @@ const FormationDetailParticipants = ({
               {participants.length} participant{participants.length !== 1 ? "s" : ""} inscrit{participants.length !== 1 ? "s" : ""}
               {participants.length > 0 && (
                 <button type="button" className="p-0.5 rounded hover:bg-muted transition-colors" title="Copier tous les emails" onClick={() => {
-                  const emailList = participants.map((p) => { const name = [p.first_name, p.last_name].filter(Boolean).join(" "); return name ? `${name} <${p.email}>` : p.email; }).join(", ");
-                  copy(emailList, { title: "Emails copiés", description: `${participants.length} adresse${participants.length > 1 ? "s" : ""} copiée${participants.length > 1 ? "s" : ""} pour Gmail.` });
+                  const seen = new Set<string>();
+                  const entries: string[] = [];
+                  for (const p of participants) {
+                    const email = (p.email || "").trim();
+                    if (!email) continue;
+                    const key = email.toLowerCase();
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    const name = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+                    entries.push(name ? `"${name.replace(/"/g, "")}" <${email}>` : email);
+                  }
+                  if (entries.length === 0) {
+                    copy("", { title: "Aucun email à copier", silent: true });
+                    return;
+                  }
+                  const emailList = entries.join(", ");
+                  copy(emailList, { title: "Emails copiés", description: `${entries.length} adresse${entries.length > 1 ? "s" : ""} copiée${entries.length > 1 ? "s" : ""} pour Gmail.` });
                 }}>
                   {copiedParticipantEmails ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />}
                 </button>
