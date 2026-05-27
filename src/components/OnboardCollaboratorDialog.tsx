@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { AppModule, MODULE_LABELS } from "@/hooks/useModuleAccess";
@@ -109,11 +110,7 @@ const OnboardCollaboratorDialog = ({ isAdmin }: OnboardCollaboratorDialogProps) 
       setSelectedModules([]);
       setIsOpen(false);
     } catch (error: unknown) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue",
-        variant: "destructive",
-      });
+      toastError(toast, error);
     } finally {
       setIsLoading(false);
     }

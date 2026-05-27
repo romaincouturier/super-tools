@@ -24,6 +24,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
 import type { Event } from "@/types/events";
 
@@ -126,12 +127,7 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
       setSelectedProfile(null);
       setOpen(false);
     } catch (err: unknown) {
-      console.error("Share error:", err);
-      toast({
-        title: "Erreur d'envoi",
-        description: err instanceof Error ? err.message : "Impossible d'envoyer l'email.",
-        variant: "destructive",
-      });
+      toastError(toast, err);
     } finally {
       setSending(false);
     }

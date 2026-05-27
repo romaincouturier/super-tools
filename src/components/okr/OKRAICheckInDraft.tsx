@@ -3,6 +3,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface OKRAICheckInDraftProps {
   objectiveId: string;
@@ -59,11 +60,7 @@ const OKRAICheckInDraft = ({ objectiveId, year, onDraftReady }: OKRAICheckInDraf
 
       toast({ title: "Brouillon IA généré", description: "Les valeurs ont été pré-remplies" });
     } catch (error: unknown) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de générer le brouillon",
-        variant: "destructive",
-      });
+      toastError(toast, error);
     } finally {
       setIsLoading(false);
     }

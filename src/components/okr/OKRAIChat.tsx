@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -91,11 +92,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
         { role: "assistant", content: data.answer, mode: data.mode },
       ]);
     } catch (error: unknown) {
-      toast({
-        title: "Erreur IA",
-        description: error instanceof Error ? error.message : "Impossible de contacter l'assistant",
-        variant: "destructive",
-      });
+      toastError(toast, error, { title: "Erreur IA" });
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "Désolé, une erreur est survenue. Réessayez." },
