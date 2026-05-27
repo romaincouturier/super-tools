@@ -106,6 +106,12 @@ export function useFormationDetail() {
     lastName?: string;
     email?: string;
     company?: string;
+    companyAddress?: string;
+    companyZip?: string;
+    companyCity?: string;
+    sponsorFirstName?: string;
+    sponsorLastName?: string;
+    sponsorEmail?: string;
     soldPriceHt?: string;
   } | null>(null);
   const [notes, setNotes] = useState("");
@@ -127,6 +133,12 @@ export function useFormationDetail() {
     const pLastName = searchParams.get("addParticipantLastName") || undefined;
     const pEmail = searchParams.get("addParticipantEmail") || undefined;
     const pCompany = searchParams.get("addParticipantCompany") || undefined;
+    const pCompanyAddress = searchParams.get("addParticipantCompanyAddress") || undefined;
+    const pCompanyZip = searchParams.get("addParticipantCompanyZip") || undefined;
+    const pCompanyCity = searchParams.get("addParticipantCompanyCity") || undefined;
+    const pSponsorFirstName = searchParams.get("addParticipantSponsorFirstName") || undefined;
+    const pSponsorLastName = searchParams.get("addParticipantSponsorLastName") || undefined;
+    const pSponsorEmail = searchParams.get("addParticipantSponsorEmail") || undefined;
     const pSoldPriceHt = searchParams.get("addParticipantSoldPriceHt") || undefined;
     const hasParams = !!(pFirstName || pLastName || pEmail);
 
@@ -136,6 +148,12 @@ export function useFormationDetail() {
         lastName: pLastName,
         email: pEmail,
         company: pCompany,
+        companyAddress: pCompanyAddress,
+        companyZip: pCompanyZip,
+        companyCity: pCompanyCity,
+        sponsorFirstName: pSponsorFirstName,
+        sponsorLastName: pSponsorLastName,
+        sponsorEmail: pSponsorEmail,
         soldPriceHt: pSoldPriceHt,
       });
       setAutoAddParticipantOpen(true);
@@ -144,6 +162,12 @@ export function useFormationDetail() {
       newParams.delete("addParticipantLastName");
       newParams.delete("addParticipantEmail");
       newParams.delete("addParticipantCompany");
+      newParams.delete("addParticipantCompanyAddress");
+      newParams.delete("addParticipantCompanyZip");
+      newParams.delete("addParticipantCompanyCity");
+      newParams.delete("addParticipantSponsorFirstName");
+      newParams.delete("addParticipantSponsorLastName");
+      newParams.delete("addParticipantSponsorEmail");
       newParams.delete("addParticipantSoldPriceHt");
       newParams.delete("fromCrmCardId");
       setSearchParams(newParams, { replace: true });
