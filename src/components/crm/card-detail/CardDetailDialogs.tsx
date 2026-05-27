@@ -139,14 +139,81 @@ const CardDetailDialogs = (props: Props) => {
     handleConfirmCreateMission();
   };
 
-  const handleAttachToTraining = (trainingId: string) => {
+  const handleAttachToTraining = async (trainingId: string) => {
     setShowWinChoiceDialog(false);
     onOpenChange(false);
+
+    // Fetch full card (address) + latest quote (participant from micro-devis)
+    let cardAddress: string | null = null;
+    let cardZip: string | null = null;
+    let cardCity: string | null = null;
+    let participantFirstName: string | undefined;
+    let participantLastName: string | undefined;
+    let participantEmail: string | undefined;
+
+    if (cardId) {
+      const { data: cardRow } = await supabase
+        .from("crm_cards")
+        .select("address, postal_code, city")
+        .eq("id", cardId)
+        .maybeSingle();
+      if (cardRow) {
+        cardAddress = cardRow.address;
+        cardZip = cardRow.postal_code;
+        cardCity = cardRow.city;
+      }
+
+      const { data: quoteRow } = await supabase
+        .from("quotes")
+        .select("line_items, client_address, client_zip, client_city")
+        .eq("crm_card_id", cardId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (quoteRow) {
+        if (!cardAddress && quoteRow.client_address) cardAddress = quoteRow.client_address;
+        if (!cardZip && quoteRow.client_zip) cardZip = quoteRow.client_zip;
+        if (!cardCity && quoteRow.client_city) cardCity = quoteRow.client_city;
+
+        // Extract first participant from line_items[0].participant_name
+        const lineItems = (quoteRow.line_items ?? []) as Array<{ participant_name?: string[] }>;
+        const firstLine = lineItems[0];
+        const firstParticipantRaw = firstLine?.participant_name?.[0];
+        if (firstParticipantRaw && typeof firstParticipantRaw === "string") {
+          const emailMatch = firstParticipantRaw.match(/[\w.-]+@[\w.-]+\.\w+/);
+          if (emailMatch) {
+            participantEmail = emailMatch[0].toLowerCase();
+            const beforeEmail = firstParticipantRaw.replace(emailMatch[0], "").trim();
+            const parts = beforeEmail.split(/\s+/).filter(Boolean);
+            if (parts.length >= 1) participantFirstName = parts[0];
+            if (parts.length >= 2) participantLastName = parts.slice(1).join(" ");
+          }
+        }
+      }
+    }
+
     const params = new URLSearchParams();
-    if (firstName) params.set("addParticipantFirstName", firstName);
-    if (lastName) params.set("addParticipantLastName", lastName);
-    if (email) params.set("addParticipantEmail", email);
+
+    // Participant = micro-devis participant if present, else card contact
+    const pFirstName = participantFirstName || firstName;
+    const pLastName = participantLastName || lastName;
+    const pEmail = participantEmail || email;
+    if (pFirstName) params.set("addParticipantFirstName", pFirstName);
+    if (pLastName) params.set("addParticipantLastName", pLastName);
+    if (pEmail) params.set("addParticipantEmail", pEmail);
     if (company) params.set("addParticipantCompany", company);
+    if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
+    if (cardZip) params.set("addParticipantCompanyZip", cardZip);
+    if (cardCity) params.set("addParticipantCompanyCity", cardCity);
+
+    // Sponsor = card contact (only forwarded if a distinct participant came from micro-devis)
+    if (participantEmail && email && participantEmail !== email.toLowerCase()) {
+      if (firstName) params.set("addParticipantSponsorFirstName", firstName);
+      if (lastName) params.set("addParticipantSponsorLastName", lastName);
+      if (email) params.set("addParticipantSponsorEmail", email);
+    }
+
     if (estimatedValue && parseFloat(estimatedValue) > 0) {
       params.set("addParticipantSoldPriceHt", estimatedValue);
     }

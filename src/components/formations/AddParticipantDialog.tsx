@@ -59,12 +59,18 @@ interface AddParticipantDialogProps {
   initialLastName?: string;
   initialEmail?: string;
   initialCompany?: string;
+  initialCompanyAddress?: string;
+  initialCompanyZip?: string;
+  initialCompanyCity?: string;
+  initialSponsorFirstName?: string;
+  initialSponsorLastName?: string;
+  initialSponsorEmail?: string;
   initialSoldPriceHt?: string;
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -145,9 +151,25 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
         // For intra trainings, prefill company with the training's client name
         setCompany(clientName);
       }
+      if (initialCompanyAddress) setCompanyAddress(initialCompanyAddress);
+      if (initialCompanyZip) setCompanyZip(initialCompanyZip);
+      if (initialCompanyCity) setCompanyCity(initialCompanyCity);
       if (initialSoldPriceHt) setSoldPriceHt(initialSoldPriceHt);
+
+      // Prefill sponsor fields if provided (from CRM micro-devis flow)
+      if (initialSponsorEmail || initialSponsorFirstName || initialSponsorLastName) {
+        const participantEmail = (initialEmail || "").toLowerCase().trim();
+        const sponsorEmailNorm = (initialSponsorEmail || "").toLowerCase().trim();
+        const same = !!sponsorEmailNorm && sponsorEmailNorm === participantEmail;
+        setSponsorSameAsParticipant(same);
+        if (!same) {
+          if (initialSponsorFirstName) setSponsorFirstName(initialSponsorFirstName);
+          if (initialSponsorLastName) setSponsorLastName(initialSponsorLastName);
+          if (initialSponsorEmail) setSponsorEmail(initialSponsorEmail);
+        }
+      }
     }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialSoldPriceHt, clientName, isInterEntreprise]);
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, clientName, isInterEntreprise]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
