@@ -65,30 +65,6 @@ import {
 import { TravauxView } from "@/components/learner/portal/TravauxView";
 import { DashCard } from "@/components/learner/portal/DashCard";
 
-const ADMIN_PREVIEW_EMAILS = new Set(["romain@supertilt.fr", "emmanuelle@supertilt.fr"]);
-
-async function resolveCoursePreviewEmail(courseId: string, fallbackEmail?: string | null): Promise<string> {
-  const { data: latestPost } = await (supabase as any)
-    .from("practice_posts")
-    .select("author_email")
-    .eq("course_id", courseId)
-    .not("author_email", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (latestPost?.author_email) return latestPost.author_email;
-
-  const { data: participant } = await (supabase as any)
-    .from("training_participants")
-    .select("email, trainings!inner(supports_lms_course_id)")
-    .eq("trainings.supports_lms_course_id", courseId)
-    .not("email", "is", null)
-    .order("added_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  return participant?.email ?? fallbackEmail ?? "admin-preview@supertilt.fr";
-}
 
 // ── Dashboard view ────────────────────────────────────────────────────────────
 
@@ -693,7 +669,7 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav, isAdminPreview }: {
+function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
@@ -701,10 +677,9 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   lastName: string;
   photoUrl: string | null;
   onNav: (s: NavSection) => void;
-  isAdminPreview?: boolean;
 }) {
   const { isAdmin } = useModuleAccess();
-  const canManageCommunity = isAdmin || !!isAdminPreview;
+  const canManageCommunity = isAdmin;
   const [searchParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
   const [allTagsOpen, setAllTagsOpen] = useState(false);
@@ -1472,12 +1447,6 @@ export default function LearnerPortal() {
   const { toast } = useToast();
 
   const sectionFromUrl: NavSection = (sectionSlug ? SLUG_TO_SECTION[sectionSlug] : undefined) ?? "dashboard";
-  const isAdminCoursePreview = !!searchParams.get("fromCourse") && (
-    searchParams.get("preview") === "admin" ||
-    window.location.hostname.includes("lovableproject.com") ||
-    window.location.hostname.startsWith("id-preview--")
-  );
-
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -1497,41 +1466,32 @@ export default function LearnerPortal() {
   useEffect(() => {
     const token = searchParams.get("token");
     const previewEmail = searchParams.get("preview_email");
-    const fromCourse = searchParams.get("fromCourse");
-    const isLovablePreviewHost = window.location.hostname.includes("lovableproject.com") || window.location.hostname.startsWith("id-preview--");
-    const isAdminPreview = isLovablePreviewHost && (searchParams.get("preview") === "admin" || !!fromCourse);
 
     let cancelled = false;
 
-    const isStaff = async (userId: string, email?: string | null) => {
+    const isStaff = async (userId: string) => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("user_id, is_admin")
+        .select("user_id")
         .eq("user_id", userId)
         .maybeSingle();
-      return !!profile || ADMIN_PREVIEW_EMAILS.has((email ?? "").toLowerCase());
+      return !!profile;
     };
 
     const proceedWithSession = async (
       session: { user: { id: string; email?: string | null } } | null
     ): Promise<boolean> => {
       if (!session?.user?.email) return false;
-      const staff = await isStaff(session.user.id, session.user.email);
+      const staff = await isStaff(session.user.id);
       // Staff/admin can preview as any learner via ?preview_email=
-      const emailToLoad = staff && fromCourse
-        ? await resolveCoursePreviewEmail(fromCourse, previewEmail)
-        : (staff && previewEmail ? previewEmail : session.user.email);
+      const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
       if (cancelled) return true;
       if (staff) sessionStorage.setItem("learner_email", emailToLoad);
       if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
-        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : (isAdminPreview ? "?preview=admin" : "");
+        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
         navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
       }
-      if (staff && fromCourse) {
-        loadAdminPreviewData(emailToLoad, fromCourse);
-      } else {
-        loadData(emailToLoad);
-      }
+      loadData(emailToLoad);
       return true;
     };
 
@@ -1541,13 +1501,6 @@ export default function LearnerPortal() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (await proceedWithSession(user ? { user } : null)) return;
-
-      if (isAdminPreview && fromCourse) {
-        const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
-        sessionStorage.setItem("learner_email", emailToLoad);
-        loadAdminPreviewData(emailToLoad, fromCourse);
-        return;
-      }
 
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
@@ -1579,12 +1532,6 @@ export default function LearnerPortal() {
             const { data: { user: u2 } } = await supabase.auth.getUser();
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
-          if (!ok && isAdminPreview && fromCourse) {
-            const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
-            sessionStorage.setItem("learner_email", emailToLoad);
-            loadAdminPreviewData(emailToLoad, fromCourse);
-            return;
-          }
           if (!ok) navigate("/apprenant");
         });
       }, 2500);
@@ -1600,41 +1547,6 @@ export default function LearnerPortal() {
       const { data: result, error } = await supabase.rpc("get_learner_portal_data", { p_email: email });
       if (error) throw error;
       setData(result as unknown as LearnerData);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadAdminPreviewData = async (email: string, courseId: string) => {
-    try {
-      const { data: course } = await supabase
-        .from("lms_courses")
-        .select("title")
-        .eq("id", courseId)
-        .maybeSingle();
-      setData({
-        email,
-        trainings: [{
-          training_id: courseId,
-          training_name: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
-          start_date: null,
-          end_date: null,
-          location: null,
-          format: "E-learning",
-          participant_id: "admin-preview",
-          first_name: "Admin",
-          last_name: "",
-          needs_survey_status: null,
-          evaluation_status: null,
-          lms_course_id: courseId,
-          lms_course_title: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
-        }],
-        questionnaires: [],
-        evaluations: [],
-      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
       setError(msg);
@@ -1885,7 +1797,7 @@ export default function LearnerPortal() {
                 lastName={lastName}
                 photoUrl={photoUrl}
                 onNav={handleNav}
-                isAdminPreview={isAdminCoursePreview}
+
               />
             )}
             {activeSection === "aide" && (
