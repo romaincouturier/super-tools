@@ -57,7 +57,7 @@ function PostThread({
       await createComment.mutateAsync({ postId: post.id, content: text.trim() });
       setText("");
     } catch {
-      toast({ title: "Erreur lors de l'envoi", variant: "destructive" });
+      toastError(toast, "Erreur lors de l'envoi");
     }
   };
 
@@ -176,7 +176,7 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
         console.warn("Failed to notify admin:", e);
       }
     } catch {
-      toast({ title: "Erreur lors de l'envoi", variant: "destructive" });
+      toastError(toast, "Erreur lors de l'envoi");
     }
   };
 

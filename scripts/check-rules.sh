@@ -135,8 +135,8 @@ if [ "$STAGED_MODE" = "true" ]; then
     "echo \"$STAGED_FILES\" | xargs grep -n 'navigator\\.clipboard\\.writeText' 2>/dev/null | grep -v 'hooks/useCopyToClipboard.ts'"
 
   # [019] Toast d'erreur — toujours via toastError()
-  check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur\",...destructive})" \
-    "echo \"$STAGED_FILES\" | xargs grep -nE 'toast\\(\\{[^}]*title:\\s*\"Erreur\"' 2>/dev/null | grep -v 'lib/toastError.ts'"
+  check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur...\",...destructive})" \
+    "echo \"$STAGED_FILES\" | xargs grep -nE 'toast\\(\\{[^}]*title:\\s*\"Erreur' 2>/dev/null | grep -v 'lib/toastError.ts'"
 
   # [020] Edge functions — préférer useEdgeFunction() pour les nouveaux composants/hooks
   # (services et hooks React Query sont exemptés ; à vérifier manuellement si flagué)
@@ -244,9 +244,9 @@ else
   check "018" "Utiliser useCopyToClipboard au lieu de navigator.clipboard.writeText" \
     "grep -rn 'navigator\\.clipboard\\.writeText' src/ --include='*.tsx' --include='*.ts' | grep -v 'hooks/useCopyToClipboard.ts'"
 
-  # [019] Toast d'erreur — toujours via toastError() (full migration faite)
-  check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur\",...destructive})" \
-    "grep -rEn 'toast\\(\\{[^}]*title:\\s*\"Erreur\"' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/toastError.ts'"
+  # [019] Toast d'erreur — toujours via toastError() (capture tous les titres "Erreur...")
+  check "019" "Utiliser toastError() au lieu de toast({title:\"Erreur...\",...destructive})" \
+    "grep -rEn 'toast\\(\\{[^}]*title:\\s*\"Erreur' src/ --include='*.tsx' --include='*.ts' | grep -v 'lib/toastError.ts'"
 
   # [021] Confirmation — ne pas utiliser window.confirm() natif
   check "021" "Utiliser useConfirm() au lieu de window.confirm()" \
