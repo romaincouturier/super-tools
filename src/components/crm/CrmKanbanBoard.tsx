@@ -22,6 +22,7 @@ import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import type { KanbanColumnDef, KanbanCardDef, KanbanDropResult, KanbanStatsItem } from "@/types/kanban";
+import { supabase } from "@/integrations/supabase/client";
 
 type CrmKanbanCard = CrmCard & KanbanCardDef;
 type CrmKanbanColumn = CrmColumnType & KanbanColumnDef;
@@ -399,18 +400,67 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     }
   };
 
-  const handleConfirmAddParticipant = (trainingId: string) => {
-    if (pendingTrainingCard) {
-      const params = new URLSearchParams();
-      if (pendingTrainingCard.first_name) params.set("addParticipantFirstName", pendingTrainingCard.first_name);
-      if (pendingTrainingCard.last_name) params.set("addParticipantLastName", pendingTrainingCard.last_name);
-      if (pendingTrainingCard.email) params.set("addParticipantEmail", pendingTrainingCard.email);
-      if (pendingTrainingCard.company) params.set("addParticipantCompany", pendingTrainingCard.company);
-      params.set("fromCrmCardId", pendingTrainingCard.id);
-      setShowCreateTrainingDialog(false);
-      navigate(`/formations/${trainingId}?${params.toString()}`);
-      setPendingTrainingCard(null);
+  const handleConfirmAddParticipant = async (trainingId: string) => {
+    if (!pendingTrainingCard) return;
+
+    const card = pendingTrainingCard;
+    let cardAddress: string | null = card.address ?? null;
+    let cardZip: string | null = card.postal_code ?? null;
+    let cardCity: string | null = card.city ?? null;
+    let participantFirstName: string | undefined;
+    let participantLastName: string | undefined;
+    let participantEmail: string | undefined;
+
+    // Pull participant from latest micro-devis (and fall back address from quote)
+    const { data: quoteRow } = await supabase
+      .from("quotes")
+      .select("line_items, client_address, client_zip, client_city")
+      .eq("crm_card_id", card.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (quoteRow) {
+      if (!cardAddress && quoteRow.client_address) cardAddress = quoteRow.client_address;
+      if (!cardZip && quoteRow.client_zip) cardZip = quoteRow.client_zip;
+      if (!cardCity && quoteRow.client_city) cardCity = quoteRow.client_city;
+
+      const lineItems = (quoteRow.line_items ?? []) as Array<{ participant_name?: string[] }>;
+      const firstParticipantRaw = lineItems[0]?.participant_name?.[0];
+      if (firstParticipantRaw && typeof firstParticipantRaw === "string") {
+        const emailMatch = firstParticipantRaw.match(/[\w.-]+@[\w.-]+\.\w+/);
+        if (emailMatch) {
+          participantEmail = emailMatch[0].toLowerCase();
+          const beforeEmail = firstParticipantRaw.replace(emailMatch[0], "").trim();
+          const parts = beforeEmail.split(/\s+/).filter(Boolean);
+          if (parts.length >= 1) participantFirstName = parts[0];
+          if (parts.length >= 2) participantLastName = parts.slice(1).join(" ");
+        }
+      }
     }
+
+    const params = new URLSearchParams();
+    const pFirstName = participantFirstName || card.first_name;
+    const pLastName = participantLastName || card.last_name;
+    const pEmail = participantEmail || card.email;
+    if (pFirstName) params.set("addParticipantFirstName", pFirstName);
+    if (pLastName) params.set("addParticipantLastName", pLastName);
+    if (pEmail) params.set("addParticipantEmail", pEmail);
+    if (card.company) params.set("addParticipantCompany", card.company);
+    if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
+    if (cardZip) params.set("addParticipantCompanyZip", cardZip);
+    if (cardCity) params.set("addParticipantCompanyCity", cardCity);
+
+    if (participantEmail && card.email && participantEmail !== card.email.toLowerCase()) {
+      if (card.first_name) params.set("addParticipantSponsorFirstName", card.first_name);
+      if (card.last_name) params.set("addParticipantSponsorLastName", card.last_name);
+      if (card.email) params.set("addParticipantSponsorEmail", card.email);
+    }
+
+    params.set("fromCrmCardId", card.id);
+    setShowCreateTrainingDialog(false);
+    navigate(`/formations/${trainingId}?${params.toString()}`);
+    setPendingTrainingCard(null);
   };
 
   const handleAddColumn = async (name: string) => {
