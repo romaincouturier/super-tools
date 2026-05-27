@@ -68,6 +68,8 @@ function clientFor(email?: string | null) {
 
 export interface PracticePostsFilter {
   lessonId?: string | null;
+  /** Only posts attached to this course. */
+  courseId?: string | null;
   /** Only posts authored by this email (Mes publications). */
   authorEmail?: string | null;
   /** Only posts the given email reacted to (Mes likes). */
