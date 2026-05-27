@@ -150,6 +150,29 @@ const SLUG_TO_SECTION: Record<string, NavSection> = {
 const PRATIQUE_SECTIONS: NavSection[] = ["pratique", "pratique_publications", "pratique_commentaires", "pratique_likes"];
 const ADMIN_PREVIEW_EMAILS = new Set(["romain@supertilt.fr", "emmanuelle@supertilt.fr"]);
 
+async function resolveCoursePreviewEmail(courseId: string, fallbackEmail?: string | null): Promise<string> {
+  const { data: latestPost } = await (supabase as any)
+    .from("practice_posts")
+    .select("author_email")
+    .eq("course_id", courseId)
+    .not("author_email", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestPost?.author_email) return latestPost.author_email;
+
+  const { data: participant } = await (supabase as any)
+    .from("training_participants")
+    .select("email, trainings!inner(supports_lms_course_id)")
+    .eq("trainings.supports_lms_course_id", courseId)
+    .not("email", "is", null)
+    .order("added_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return participant?.email ?? fallbackEmail ?? "admin-preview@supertilt.fr";
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const eventTypeLabel: Record<string, string> = {
@@ -3140,7 +3163,7 @@ export default function LearnerPortal() {
       if (await proceedWithSession(user ? { user } : null)) return;
 
       if (isAdminPreview && fromCourse) {
-        const emailToLoad = previewEmail || "admin-preview@supertilt.fr";
+        const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
         sessionStorage.setItem("learner_email", emailToLoad);
         loadAdminPreviewData(emailToLoad, fromCourse);
         return;
@@ -3177,7 +3200,7 @@ export default function LearnerPortal() {
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
           if (!ok && isAdminPreview && fromCourse) {
-            const emailToLoad = previewEmail || "admin-preview@supertilt.fr";
+            const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
             sessionStorage.setItem("learner_email", emailToLoad);
             loadAdminPreviewData(emailToLoad, fromCourse);
             return;
