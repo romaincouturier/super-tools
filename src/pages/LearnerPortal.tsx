@@ -131,7 +131,7 @@ const SECTION_SLUGS: Record<NavSection, string | null> = {
   pratique_commentaires:  "communaute-mes-commentaires",
   pratique_likes:         "communaute-mes-likes",
   aide:         "aide",
-  compte:       null,
+  compte:       "mon-compte",
 };
 
 const SLUG_TO_SECTION: Record<string, NavSection> = {
@@ -144,6 +144,7 @@ const SLUG_TO_SECTION: Record<string, NavSection> = {
   "communaute-mes-commentaires": "pratique_commentaires",
   "communaute-mes-likes":        "pratique_likes",
   "aide":                   "aide",
+  "mon-compte":             "compte",
 };
 
 const PRATIQUE_SECTIONS: NavSection[] = ["pratique", "pratique_publications", "pratique_commentaires", "pratique_likes"];
@@ -3181,7 +3182,9 @@ export default function LearnerPortal() {
   const handleNav = (s: NavSection) => {
     const slug = SECTION_SLUGS[s];
     if (slug) {
-      navigate(`/espace-apprenant/${slug}`);
+      const previewEmail = searchParams.get("preview_email");
+      const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
+      navigate(`/espace-apprenant/${slug}${qs}`);
     } else {
       setActiveSection(s);
     }
