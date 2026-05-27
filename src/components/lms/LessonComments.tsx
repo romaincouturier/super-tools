@@ -193,7 +193,7 @@ export default function LessonComments({ courseId, lessonId, learnerEmail }: Pro
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <MessageCircle className="w-4 h-4" />
-        {posts.length > 0 ? `${posts.length} message(s) de la communauté` : "Laisser un commentaire"}
+        {posts.length > 0 ? `${posts.length} message(s) de la communauté` : "Posez une question au formateur et à la communauté"}
       </button>
 
       {open && (
