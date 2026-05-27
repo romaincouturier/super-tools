@@ -148,6 +148,7 @@ const SLUG_TO_SECTION: Record<string, NavSection> = {
 };
 
 const PRATIQUE_SECTIONS: NavSection[] = ["pratique", "pratique_publications", "pratique_commentaires", "pratique_likes"];
+const ADMIN_PREVIEW_EMAILS = new Set(["romain@supertilt.fr", "emmanuelle@supertilt.fr"]);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -3098,28 +3099,30 @@ export default function LearnerPortal() {
   useEffect(() => {
     const token = searchParams.get("token");
     const previewEmail = searchParams.get("preview_email");
+    const isAdminPreview = searchParams.get("preview") === "admin" || !!searchParams.get("fromCourse");
 
     let cancelled = false;
 
-    const isStaff = async (userId: string) => {
+    const isStaff = async (userId: string, email?: string | null) => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("user_id")
+        .select("user_id, is_admin")
         .eq("user_id", userId)
         .maybeSingle();
-      return !!profile;
+      return !!profile || ADMIN_PREVIEW_EMAILS.has((email ?? "").toLowerCase());
     };
 
     const proceedWithSession = async (
       session: { user: { id: string; email?: string | null } } | null
     ): Promise<boolean> => {
       if (!session?.user?.email) return false;
-      const staff = await isStaff(session.user.id);
+      const staff = await isStaff(session.user.id, session.user.email);
       // Staff/admin can preview as any learner via ?preview_email=
       const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
       if (cancelled) return true;
+      if (staff) sessionStorage.setItem("learner_email", emailToLoad);
       if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
-        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
+        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : (isAdminPreview ? "?preview=admin" : "");
         navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
       }
       loadData(emailToLoad);
@@ -3129,6 +3132,9 @@ export default function LearnerPortal() {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (await proceedWithSession(session)) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (await proceedWithSession(user ? { user } : null)) return;
 
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
@@ -3155,7 +3161,11 @@ export default function LearnerPortal() {
         sub.subscription.unsubscribe();
         supabase.auth.getSession().then(async ({ data: { session: s2 } }) => {
           if (cancelled) return;
-          const ok = await proceedWithSession(s2);
+          let ok = await proceedWithSession(s2);
+          if (!ok) {
+            const { data: { user: u2 } } = await supabase.auth.getUser();
+            ok = await proceedWithSession(u2 ? { user: u2 } : null);
+          }
           if (!ok) navigate("/apprenant");
         });
       }, 2500);
