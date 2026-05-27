@@ -28,6 +28,7 @@ export interface PracticePost {
   file_size: number | null;
   course_id: string | null;
   lesson_id: string | null;
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
   // enriched client-side
@@ -119,7 +120,7 @@ export function usePracticePosts(
       }
       if (restrictIds !== null && restrictIds.length === 0) return [];
 
-      let postsQuery = c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit);
+      let postsQuery = c.from("practice_posts").select("*").order("is_pinned", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
       if (lessonFilter) postsQuery = postsQuery.eq("lesson_id", lessonFilter);
       if (courseFilter) postsQuery = postsQuery.eq("course_id", courseFilter);
       if (courseIdsFilter && courseIdsFilter.length > 0) postsQuery = postsQuery.in("course_id", courseIdsFilter);
@@ -496,6 +497,24 @@ export function useCreatePracticeComment(
   });
 }
 
+
+// ── Pin / unpin post (admin only) ─────────────────────────────────────────────
+
+export function usePinPracticePost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId, pin }: { postId: string; pin: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("practice_posts")
+        .update({ is_pinned: pin })
+        .eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: POSTS_KEY });
+    },
+  });
+}
 
 // ── Delete post ───────────────────────────────────────────────────────────────
 

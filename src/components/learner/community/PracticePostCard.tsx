@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Trash2, BookOpen, FileText, ThumbsUp, MessageSquare, Send } from "lucide-react";
+import { Trash2, BookOpen, FileText, ThumbsUp, MessageSquare, Send, Pin, PinOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import PollDisplay from "@/components/learner/community/PollDisplay";
@@ -34,6 +34,7 @@ export default function PracticePostCard({
   onDelete,
   onVote,
   onSelectTag,
+  onPin,
 }: {
   post: PracticePost;
   currentEmail: string;
@@ -44,6 +45,7 @@ export default function PracticePostCard({
   onDelete: (postId: string) => void;
   onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
   onSelectTag: (tag: string) => void;
+  onPin?: (postId: string, pin: boolean) => void;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
@@ -69,7 +71,15 @@ export default function PracticePostCard({
 
   return (
     <div className="rounded-2xl border space-y-0 overflow-hidden"
-      style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+      style={{ background: "var(--st-white)", borderColor: post.is_pinned ? "rgba(255,209,0,0.6)" : "rgba(16,24,32,0.08)" }}>
+      {/* Pinned banner */}
+      {post.is_pinned && (
+        <div className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold"
+          style={{ background: "rgba(255,209,0,0.15)", color: "var(--st-ink)" }}>
+          <Pin size={12} />
+          Épinglé
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-start gap-3 p-4">
         <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center text-sm font-bold shrink-0"
@@ -84,6 +94,16 @@ export default function PracticePostCard({
             {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
           </p>
         </div>
+        {isAdmin && onPin && (
+          <button
+            onClick={() => onPin(post.id, !post.is_pinned)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
+            style={{ color: post.is_pinned ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)" }}
+            title={post.is_pinned ? "Désépingler" : "Épingler"}
+          >
+            {post.is_pinned ? <PinOff size={14} /> : <Pin size={14} />}
+          </button>
+        )}
         {canDelete && (
           <button
             onClick={() => onDelete(post.id)}

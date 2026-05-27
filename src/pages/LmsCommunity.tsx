@@ -14,6 +14,7 @@ import {
   useTogglePracticeReaction,
   useVotePracticePoll,
   useDeletePracticePost,
+  usePinPracticePost,
 } from "@/hooks/usePracticeFeed";
 
 export default function LmsCommunity() {
@@ -52,6 +53,7 @@ export default function LmsCommunity() {
   const toggleReaction = useTogglePracticeReaction(userEmail);
   const votePoll = useVotePracticePoll(userEmail);
   const deletePost = useDeletePracticePost(userEmail, true);
+  const pinPost = usePinPracticePost();
 
   const handleReact = (postId: string, iReacted: boolean) =>
     toggleReaction.mutateAsync({ postId, iReacted }).catch(() => toastError(toast, "Action impossible."));
@@ -65,6 +67,8 @@ export default function LmsCommunity() {
       toastError(toast, "Impossible de supprimer ce message.");
     }
   };
+  const handlePin = (postId: string, pin: boolean) =>
+    pinPost.mutateAsync({ postId, pin }).catch(() => toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler."));
 
   const noSessions = !coursesLoading && courses.length === 0;
 
@@ -119,6 +123,7 @@ export default function LmsCommunity() {
                 onReact={handleReact}
                 onDelete={handleDelete}
                 onVote={handleVote}
+                onPin={handlePin}
                 onSelectTag={() => {}}
               />
             ))}

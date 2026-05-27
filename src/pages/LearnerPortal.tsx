@@ -46,7 +46,7 @@ import {
   usePracticePosts, useCreatePracticePost, useTogglePracticeReaction,
   usePracticeComments, useCreatePracticeComment, useDeletePracticePost,
   useDeletePracticeComment, useVotePracticePoll, usePracticePopularHashtags,
-  useMyPracticeComments, useLessonTitle, useCourseTitle,
+  useMyPracticeComments, useLessonTitle, useCourseTitle, usePinPracticePost,
   type PracticePost, type NewPoll,
 } from "@/hooks/usePracticeFeed";
 
@@ -717,6 +717,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, canManageCommunity);
+  const pinPost = usePinPracticePost();
   const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -729,7 +730,12 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
       ...posts.map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
       ...(showDeposits ? (deposits as any[]) : []).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
     ];
-    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    items.sort((a, b) => {
+      const aPin = a.kind === "post" && a.post.is_pinned ? 1 : 0;
+      const bPin = b.kind === "post" && b.post.is_pinned ? 1 : 0;
+      if (bPin !== aPin) return bPin - aPin;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
     return items;
   }, [posts, deposits, showDeposits]);
 
@@ -792,6 +798,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
               onDelete={handleDelete}
               onVote={handleVote}
               onSelectTag={handleSelectTag}
+              onPin={canManageCommunity ? (postId, pin) => pinPost.mutateAsync({ postId, pin }).catch(() => toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler.")) : undefined}
             />
           ) : (
             <DepositFeedCard
