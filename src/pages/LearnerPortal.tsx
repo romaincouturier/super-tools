@@ -3146,14 +3146,20 @@ export default function LearnerPortal() {
       if (!session?.user?.email) return false;
       const staff = await isStaff(session.user.id, session.user.email);
       // Staff/admin can preview as any learner via ?preview_email=
-      const emailToLoad = staff && previewEmail ? previewEmail : session.user.email;
+      const emailToLoad = staff && fromCourse
+        ? await resolveCoursePreviewEmail(fromCourse, previewEmail)
+        : (staff && previewEmail ? previewEmail : session.user.email);
       if (cancelled) return true;
       if (staff) sessionStorage.setItem("learner_email", emailToLoad);
       if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
         const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : (isAdminPreview ? "?preview=admin" : "");
         navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
       }
-      loadData(emailToLoad);
+      if (staff && fromCourse) {
+        loadAdminPreviewData(emailToLoad, fromCourse);
+      } else {
+        loadData(emailToLoad);
+      }
       return true;
     };
 
