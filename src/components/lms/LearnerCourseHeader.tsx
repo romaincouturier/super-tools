@@ -193,6 +193,7 @@ export function LearnerAccountMenu({
       const { data: { user } } = await supabase.auth.getUser();
       previewEmail = user?.email ?? "";
     }
+    if (previewEmail) sessionStorage.setItem("learner_email", previewEmail);
     const qs = isPreview && previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
     window.location.href = `/espace-apprenant/${slug}${qs}`;
   };
