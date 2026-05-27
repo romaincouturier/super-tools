@@ -3100,7 +3100,8 @@ export default function LearnerPortal() {
     const token = searchParams.get("token");
     const previewEmail = searchParams.get("preview_email");
     const fromCourse = searchParams.get("fromCourse");
-    const isAdminPreview = searchParams.get("preview") === "admin" || !!fromCourse;
+    const isLovablePreviewHost = window.location.hostname.includes("lovableproject.com") || window.location.hostname.startsWith("id-preview--");
+    const isAdminPreview = isLovablePreviewHost && (searchParams.get("preview") === "admin" || !!fromCourse);
 
     let cancelled = false;
 

@@ -149,6 +149,7 @@ export function LearnerAccountMenu({
   isPreview: boolean;
 }) {
   const navigate = useNavigate();
+  const { courseId } = useParams<{ courseId?: string }>();
   const [searchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -194,7 +195,11 @@ export function LearnerAccountMenu({
       previewEmail = user?.email ?? "";
     }
     if (previewEmail) sessionStorage.setItem("learner_email", previewEmail);
-    const qs = isPreview && previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : "";
+    const params = new URLSearchParams();
+    if (isPreview) params.set("preview", "admin");
+    if (isPreview && courseId) params.set("fromCourse", courseId);
+    if (isPreview && previewEmail) params.set("preview_email", previewEmail);
+    const qs = params.toString() ? `?${params.toString()}` : "";
     window.location.href = `/espace-apprenant/${slug}${qs}`;
   };
 
