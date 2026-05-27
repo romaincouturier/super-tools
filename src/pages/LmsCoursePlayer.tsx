@@ -608,7 +608,7 @@ function ModuleProgressWidget({
 // ── Right panel: community ────────────────────────────────────────────────────
 const COMMUNITY_AVATAR_COLORS = ["#FFD100", "#69C3C4", "#F2A541", "#A8D8A8", "#D4A5A5"];
 
-function CommunityWidget({ courseId, learnerEmail, lessonId }: { courseId: string; learnerEmail: string; lessonId?: string | null }) {
+function CommunityWidget({ courseId, learnerEmail, lessonId, isPreview = false }: { courseId: string; learnerEmail: string; lessonId?: string | null; isPreview?: boolean }) {
   const { data: forums = [] } = useCourseForums(courseId);
   const mainForum = forums[0] ?? null;
   const { data: allPosts = [] } = useForumPosts(mainForum?.id);
