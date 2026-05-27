@@ -99,7 +99,7 @@ export default function PostComposer({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder={PLACEHOLDER}
-                rows={4}
+                rows={9}
                 className="w-full resize-none rounded-xl border px-3 py-2.5 pr-10 text-sm outline-none"
                 style={{ borderColor: "rgba(16,24,32,0.12)", background: "transparent", color: "var(--st-ink)", fontFamily: "inherit" }}
               />
