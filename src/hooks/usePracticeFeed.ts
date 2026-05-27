@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, createLearnerClient } from "@/integrations/supabase/client";
 import { resolveContentType } from "@/lib/file-utils";
+import { todayAsISO } from "@/lib/dateFormatters";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,8 @@ export interface PracticeComment {
   author_first_name?: string | null;
   author_last_name?: string | null;
   author_photo_url?: string | null;
+  author_display_name?: string | null;
+  is_staff_reply?: boolean;
 }
 
 const POSTS_KEY = ["practice_posts"];
@@ -72,6 +75,8 @@ export interface PracticePostsFilter {
   lessonId?: string | null;
   /** Only posts attached to this course. */
   courseId?: string | null;
+  /** Only posts attached to one of these courses (admin cross-session view). */
+  courseIds?: string[] | null;
   /** Only posts authored by this email (Mes publications). */
   authorEmail?: string | null;
   /** Only posts the given email reacted to (Mes likes). */
@@ -88,11 +93,12 @@ export function usePracticePosts(
 ) {
   const lessonFilter = options?.lessonId ?? null;
   const courseFilter = options?.courseId ?? null;
+  const courseIdsFilter = options?.courseIds ?? null;
   const authorFilter = options?.authorEmail ?? null;
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, authorFilter, likedByFilter, tagFilter, isAdmin],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, isAdmin],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
       const c = clientFor(learnerEmail, isAdmin) as any;
@@ -116,6 +122,7 @@ export function usePracticePosts(
       let postsQuery = c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit);
       if (lessonFilter) postsQuery = postsQuery.eq("lesson_id", lessonFilter);
       if (courseFilter) postsQuery = postsQuery.eq("course_id", courseFilter);
+      if (courseIdsFilter && courseIdsFilter.length > 0) postsQuery = postsQuery.in("course_id", courseIdsFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
@@ -453,14 +460,24 @@ export function useTogglePracticeReaction(learnerEmail: string | null) {
 
 // ── Create comment ────────────────────────────────────────────────────────────
 
-export function useCreatePracticeComment(learnerEmail: string | null) {
+export function useCreatePracticeComment(
+  learnerEmail: string | null,
+  isAdmin = false,
+  authorDisplayName?: string | null,
+) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
       const { data: inserted, error } = await c.from("practice_post_comments")
-        .insert({ post_id: postId, author_email: learnerEmail, content })
+        .insert({
+          post_id: postId,
+          author_email: learnerEmail,
+          content,
+          is_staff_reply: isAdmin,
+          author_display_name: isAdmin ? (authorDisplayName ?? null) : null,
+        })
         .select("id")
         .single();
       if (error) throw error;
@@ -511,6 +528,44 @@ export function useDeletePracticeComment(learnerEmail: string | null, isAdmin = 
     onSuccess: (_, { postId }) => {
       qc.invalidateQueries({ queryKey: POSTS_KEY });
       qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+    },
+  });
+}
+
+// ── Admin community: current & upcoming training sessions (cross-session view) ──
+
+export interface AdminCommunityCourse {
+  courseId: string;
+  title: string;
+}
+
+export function useAdminCommunityCourses() {
+  return useQuery({
+    queryKey: ["admin_community_courses"],
+    queryFn: async (): Promise<AdminCommunityCourse[]> => {
+      const today = todayAsISO();
+      const { data: trainings, error } = await supabase
+        .from("trainings")
+        .select("supports_lms_course_id, training_name, start_date, end_date")
+        .not("supports_lms_course_id", "is", null)
+        .or(`end_date.gte.${today},and(end_date.is.null,start_date.gte.${today})`);
+      if (error) throw error;
+
+      const courseIds = Array.from(
+        new Set((trainings || []).map((t: any) => t.supports_lms_course_id).filter(Boolean)),
+      );
+      if (courseIds.length === 0) return [];
+
+      const { data: courses } = await supabase
+        .from("lms_courses")
+        .select("id, title")
+        .in("id", courseIds);
+      const titleMap = new Map((courses || []).map((c: any) => [c.id, c.title]));
+
+      return courseIds.map((id) => ({
+        courseId: id as string,
+        title: (titleMap.get(id) as string) ?? "Cours sans titre",
+      }));
     },
   });
 }

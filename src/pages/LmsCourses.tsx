@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle } from "lucide-react";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
 
@@ -124,6 +124,9 @@ export default function LmsCourses() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/lms/apprenants")}>
               <Users className="w-4 h-4 mr-2" /> Apprenants
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/lms/communaute")}>
+              <MessageSquare className="w-4 h-4 mr-2" /> Communauté
             </Button>
             <Button variant="outline" onClick={() => navigate("/lms/faq")}>
               <HelpCircle className="w-4 h-4 mr-2" /> FAQ
