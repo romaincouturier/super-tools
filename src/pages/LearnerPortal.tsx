@@ -2291,7 +2291,7 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
+function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav, isAdminPreview }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
@@ -2299,8 +2299,10 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   lastName: string;
   photoUrl: string | null;
   onNav: (s: NavSection) => void;
+  isAdminPreview?: boolean;
 }) {
   const { isAdmin } = useModuleAccess();
+  const canManageCommunity = isAdmin || !!isAdminPreview;
   const [searchParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
   const [allTagsOpen, setAllTagsOpen] = useState(false);
@@ -2328,7 +2330,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   }, [mode, selectedTag, email, fromCourse]);
 
   const showDeposits = isFeed && !selectedTag;
-  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, isAdmin);
+  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
   const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(showDeposits ? courseIds : [], email);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
   const { data: allTopics = [] } = usePracticePopularHashtags(email, 200);
@@ -2337,7 +2339,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
-  const deletePost = useDeletePracticePost(email, isAdmin);
+  const deletePost = useDeletePracticePost(email, canManageCommunity);
   const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
