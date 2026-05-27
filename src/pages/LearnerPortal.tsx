@@ -3105,6 +3105,11 @@ export default function LearnerPortal() {
   const { toast } = useToast();
 
   const sectionFromUrl: NavSection = (sectionSlug ? SLUG_TO_SECTION[sectionSlug] : undefined) ?? "dashboard";
+  const isAdminCoursePreview = !!searchParams.get("fromCourse") && (
+    searchParams.get("preview") === "admin" ||
+    window.location.hostname.includes("lovableproject.com") ||
+    window.location.hostname.startsWith("id-preview--")
+  );
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
@@ -3513,6 +3518,7 @@ export default function LearnerPortal() {
                 lastName={lastName}
                 photoUrl={photoUrl}
                 onNav={handleNav}
+                isAdminPreview={isAdminCoursePreview}
               />
             )}
             {activeSection === "aide" && (
