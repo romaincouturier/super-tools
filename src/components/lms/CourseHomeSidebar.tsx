@@ -262,7 +262,7 @@ export default function CourseHomeSidebar({
       })()}
 
 
-      <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} />
+      <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} isPreview={isPreview} />
 
       <div className="p-5 flex-1">
         <ul className="space-y-1 mb-4">
