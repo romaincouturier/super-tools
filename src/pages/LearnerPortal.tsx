@@ -3163,7 +3163,7 @@ export default function LearnerPortal() {
       if (await proceedWithSession(user ? { user } : null)) return;
 
       if (isAdminPreview && fromCourse) {
-        const emailToLoad = previewEmail || "admin-preview@supertilt.fr";
+        const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
         sessionStorage.setItem("learner_email", emailToLoad);
         loadAdminPreviewData(emailToLoad, fromCourse);
         return;
@@ -3200,7 +3200,7 @@ export default function LearnerPortal() {
             ok = await proceedWithSession(u2 ? { user: u2 } : null);
           }
           if (!ok && isAdminPreview && fromCourse) {
-            const emailToLoad = previewEmail || "admin-preview@supertilt.fr";
+            const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
             sessionStorage.setItem("learner_email", emailToLoad);
             loadAdminPreviewData(emailToLoad, fromCourse);
             return;
