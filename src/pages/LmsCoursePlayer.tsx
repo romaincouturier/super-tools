@@ -20,7 +20,7 @@ import QuizPlayer from "@/components/lms/QuizPlayer";
 import LessonComments from "@/components/lms/LessonComments";
 import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
 import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
-import LearnerCourseHeader from "@/components/lms/LearnerCourseHeader";
+import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
 import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
@@ -71,7 +71,6 @@ export default function LmsCoursePlayer() {
   }, [courseId, learnerEmail, isPreview]);
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const mainRef = useRef<HTMLElement>(null);
 
   const { data: lessonBlocks = [] } = useLessonBlocks(selectedLessonId);
@@ -268,95 +267,38 @@ export default function LmsCoursePlayer() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#F2F4F4", fontFamily: "'Lexend', ui-sans-serif, system-ui, sans-serif" }}>
-      {isPreview && (
+    <LmsCourseLayout
+      courseTitle={course.title}
+      learnerEmail={learnerEmail}
+      isPreview={isPreview}
+      mainRef={mainRef}
+      scrollable
+      previewBanner={isPreview && (
         <div className="bg-amber-500 text-white text-center text-sm py-1 font-medium">
           🔍 Mode prévisualisation admin — les progressions ne sont pas enregistrées
         </div>
       )}
-      {/* Top bar */}
-      <LearnerCourseHeader
-        courseTitle={course.title}
-        learnerEmail={learnerEmail}
-        isPreview={isPreview}
-        onToggleSidebar={() => setSidebarOpen((v) => !v)}
-      />
-
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — desktop: fixed left, mobile: overlay */}
-
-        {/* Desktop sidebar */}
-        <aside
-          className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 overflow-hidden ${sidebarOpen ? "w-[360px]" : "w-0"}`}
-          aria-hidden={!sidebarOpen}
-          style={{ padding: sidebarOpen ? "1rem" : undefined }}
-        >
-          {sidebarOpen && (
-            <div style={{ background: "#ffffff", borderRadius: 20, boxShadow: "0 2px 12px rgba(16,24,32,0.06)", overflow: "hidden", display: "flex", flexDirection: "column", flex: 1 }}>
-              
-              {courseId && (
-                <CourseHomeSidebar
-                  courseId={courseId}
-                  email={learnerEmail}
-                  isPreview={isPreview}
-                  modules={sidebarModules}
-                  moduleStatuses={moduleStatuses}
-                  lessonCountByModule={lessonCountByModule}
-                  lessonsDoneByModule={lessonsDoneByModule}
-                  communityPreviewCount={course.community_preview_count ?? 2}
-                  meetings={liveData?.meetings ?? []}
-                  activeView="home"
-                  onModuleClick={handleSidebarModuleClick}
-                  onViewChange={handleSidebarViewChange}
-                  lessonsByModule={lessonsByModule}
-                  activeLessonId={selectedLessonId}
-                  completedLessonIds={completedIds}
-                  onLessonClick={setSelectedLessonId}
-                />
-              )}
-            </div>
-          )}
-        </aside>
-
-        {/* Mobile sidebar overlay */}
-        {sidebarOpen && (
-          <>
-            <div
-              className="lg:hidden fixed inset-0 z-40 bg-black/30"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <div
-              className="lg:hidden fixed left-0 top-16 bottom-0 z-50 w-[300px] overflow-hidden"
-              style={{ background: "#ffffff", boxShadow: "4px 0 20px rgba(16,24,32,0.1)" }}
-            >
-              {courseId && (
-                <CourseHomeSidebar
-                  courseId={courseId}
-                  email={learnerEmail}
-                  isPreview={isPreview}
-                  modules={sidebarModules}
-                  moduleStatuses={moduleStatuses}
-                  lessonCountByModule={lessonCountByModule}
-                  lessonsDoneByModule={lessonsDoneByModule}
-                  communityPreviewCount={course.community_preview_count ?? 2}
-                  meetings={liveData?.meetings ?? []}
-                  activeView="home"
-                  onModuleClick={(id) => { handleSidebarModuleClick(id); setSidebarOpen(false); }}
-                  onViewChange={(v) => { handleSidebarViewChange(v); setSidebarOpen(false); }}
-                  lessonsByModule={lessonsByModule}
-                  activeLessonId={selectedLessonId}
-                  completedLessonIds={completedIds}
-                  onLessonClick={(id) => { setSelectedLessonId(id); setSidebarOpen(false); }}
-                />
-              )}
-            </div>
-          </>
-        )}
-
-
-        {/* Main content */}
-        <main ref={mainRef} className="flex-1 overflow-auto">
+      sidebar={(closeSidebar) => courseId ? (
+        <CourseHomeSidebar
+          courseId={courseId}
+          email={learnerEmail}
+          isPreview={isPreview}
+          modules={sidebarModules}
+          moduleStatuses={moduleStatuses}
+          lessonCountByModule={lessonCountByModule}
+          lessonsDoneByModule={lessonsDoneByModule}
+          communityPreviewCount={course.community_preview_count ?? 2}
+          meetings={liveData?.meetings ?? []}
+          activeView="home"
+          onModuleClick={(id) => { handleSidebarModuleClick(id); closeSidebar(); }}
+          onViewChange={(v) => { handleSidebarViewChange(v); closeSidebar(); }}
+          lessonsByModule={lessonsByModule}
+          activeLessonId={selectedLessonId}
+          completedLessonIds={completedIds}
+          onLessonClick={(id) => { setSelectedLessonId(id); closeSidebar(); }}
+        />
+      ) : null}
+    >
           {selectedLesson ? (
             <div className="p-4 sm:p-6">
               <div className="flex flex-col gap-6 items-stretch">
@@ -545,9 +487,7 @@ export default function LmsCoursePlayer() {
               Sélectionnez une leçon pour commencer
             </div>
           )}
-        </main>
-      </div>
-    </div>
+    </LmsCourseLayout>
   );
 }
 
