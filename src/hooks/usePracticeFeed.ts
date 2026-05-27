@@ -60,14 +60,18 @@ export interface PracticeComment {
 const POSTS_KEY = ["practice_posts"];
 const COMMENTS_KEY = (postId: string) => ["practice_comments", postId];
 
-function clientFor(email?: string | null) {
+function clientFor(email?: string | null, asAdmin = false) {
+  if (asAdmin) return supabase;
   return email ? createLearnerClient(email) : supabase;
 }
+
 
 // ── Posts ────────────────────────────────────────────────────────────────────
 
 export interface PracticePostsFilter {
   lessonId?: string | null;
+  /** Only posts attached to this course. */
+  courseId?: string | null;
   /** Only posts authored by this email (Mes publications). */
   authorEmail?: string | null;
   /** Only posts the given email reacted to (Mes likes). */
@@ -80,16 +84,19 @@ export function usePracticePosts(
   learnerEmail: string | null,
   limit = 50,
   options?: PracticePostsFilter,
+  isAdmin = false,
 ) {
   const lessonFilter = options?.lessonId ?? null;
+  const courseFilter = options?.courseId ?? null;
   const authorFilter = options?.authorEmail ?? null;
   const likedByFilter = options?.likedBy ?? null;
   const tagFilter = options?.tag ?? null;
   return useQuery({
-    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, authorFilter, likedByFilter, tagFilter],
+    queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, authorFilter, likedByFilter, tagFilter, isAdmin],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
+
 
       // Resolve post-id restrictions from like / tag filters first.
       let restrictIds: string[] | null = null;
@@ -108,6 +115,7 @@ export function usePracticePosts(
 
       let postsQuery = c.from("practice_posts").select("*").order("created_at", { ascending: false }).limit(limit);
       if (lessonFilter) postsQuery = postsQuery.eq("lesson_id", lessonFilter);
+      if (courseFilter) postsQuery = postsQuery.eq("course_id", courseFilter);
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
@@ -195,16 +203,17 @@ export function usePracticePosts(
 
 // ── Comments ─────────────────────────────────────────────────────────────────
 
-export function usePracticeComments(postId: string | null, learnerEmail: string | null) {
+export function usePracticeComments(postId: string | null, learnerEmail: string | null, isAdmin = false) {
   return useQuery({
-    queryKey: COMMENTS_KEY(postId ?? ""),
+    queryKey: [...COMMENTS_KEY(postId ?? ""), isAdmin],
     queryFn: async (): Promise<PracticeComment[]> => {
       if (!postId || !learnerEmail) return [];
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
       const [commentsRes, profilesRes] = await Promise.all([
         c.from("practice_post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
       ]);
+
       if (commentsRes.error) throw commentsRes.error;
       const profiles: any[] = profilesRes.data || [];
       const profileMap = new Map(profiles.map((p: any) => [p.email, p]));

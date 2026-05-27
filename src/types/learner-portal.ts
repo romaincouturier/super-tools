@@ -69,7 +69,7 @@ export const SECTION_SLUGS: Record<NavSection, string | null> = {
   pratique_commentaires:  "communaute-mes-commentaires",
   pratique_likes:         "communaute-mes-likes",
   aide:         "aide",
-  compte:       null,
+  compte:       "mon-compte",
 };
 
 export const SLUG_TO_SECTION: Record<string, NavSection> = {
@@ -82,6 +82,7 @@ export const SLUG_TO_SECTION: Record<string, NavSection> = {
   "communaute-mes-commentaires": "pratique_commentaires",
   "communaute-mes-likes":        "pratique_likes",
   "aide":                   "aide",
+  "mon-compte":             "compte",
 };
 
 export const PRATIQUE_SECTIONS: NavSection[] = ["pratique", "pratique_publications", "pratique_commentaires", "pratique_likes"];

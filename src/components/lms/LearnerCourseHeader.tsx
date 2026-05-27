@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Bell, BookOpen, ChevronDown, HelpCircle, LogOut, Menu, Shield, Sparkles, User,
 } from "lucide-react";
@@ -134,6 +134,13 @@ function getLearnerInitials(email: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
+const PORTAL_SECTION_SLUGS: Record<string, string> = {
+  compte: "mon-compte",
+  formations: "mes-formations",
+  recommandees: "formations-recommandees",
+  aide: "aide",
+};
+
 export function LearnerAccountMenu({
   learnerEmail,
   isPreview,
@@ -142,6 +149,8 @@ export function LearnerAccountMenu({
   isPreview: boolean;
 }) {
   const navigate = useNavigate();
+  const { courseId } = useParams<{ courseId?: string }>();
+  const [searchParams] = useSearchParams();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { confirm, ConfirmDialog } = useConfirm();
@@ -177,6 +186,22 @@ export function LearnerAccountMenu({
 
   const initials = getLearnerInitials(learnerEmail);
   const displayName = learnerEmail ? learnerEmail.split("@")[0] : "Administrateur";
+
+  const goToPortalSection = async (section: string) => {
+    const slug = PORTAL_SECTION_SLUGS[section] ?? "tableau-de-bord";
+    let previewEmail = searchParams.get("preview_email") || learnerEmail;
+    if (isPreview && !previewEmail) {
+      const { data: { user } } = await supabase.auth.getUser();
+      previewEmail = user?.email ?? "";
+    }
+    if (previewEmail) sessionStorage.setItem("learner_email", previewEmail);
+    const params = new URLSearchParams();
+    if (isPreview) params.set("preview", "admin");
+    if (isPreview && courseId) params.set("fromCourse", courseId);
+    if (isPreview && previewEmail) params.set("preview_email", previewEmail);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    window.location.href = `/espace-apprenant/${slug}${qs}`;
+  };
 
   return (
     <>
@@ -226,7 +251,7 @@ export function LearnerAccountMenu({
               {portalItems.map(({ label, icon: Icon, section }) => (
                 <button
                   key={section}
-                  onClick={() => { navigate(`/espace-apprenant?section=${section}`); setOpen(false); }}
+                  onClick={() => { setOpen(false); void goToPortalSection(section); }}
                   className="w-full flex items-center gap-3 text-sm text-left transition-colors hover:bg-black/[0.04]"
                   style={{ color: "var(--st-ink)", fontFamily: "inherit", padding: "10px 16px" }}
                 >

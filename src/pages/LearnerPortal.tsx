@@ -64,6 +64,31 @@ import {
 import { TravauxView } from "@/components/learner/portal/TravauxView";
 import { DashCard } from "@/components/learner/portal/DashCard";
 
+const ADMIN_PREVIEW_EMAILS = new Set(["romain@supertilt.fr", "emmanuelle@supertilt.fr"]);
+
+async function resolveCoursePreviewEmail(courseId: string, fallbackEmail?: string | null): Promise<string> {
+  const { data: latestPost } = await (supabase as any)
+    .from("practice_posts")
+    .select("author_email")
+    .eq("course_id", courseId)
+    .not("author_email", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestPost?.author_email) return latestPost.author_email;
+
+  const { data: participant } = await (supabase as any)
+    .from("training_participants")
+    .select("email, trainings!inner(supports_lms_course_id)")
+    .eq("trainings.supports_lms_course_id", courseId)
+    .not("email", "is", null)
+    .order("added_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return participant?.email ?? fallbackEmail ?? "admin-preview@supertilt.fr";
+}
+
 // ── Practice feed helpers ─────────────────────────────────────────────────────
 
 function authorDisplayName(email: string, firstName?: string | null, lastName?: string | null): string {
@@ -549,7 +574,7 @@ function PracticePostCard({
 }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
-  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail);
+  const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
   const { toast } = useToast();
@@ -912,7 +937,7 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
+function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav, isAdminPreview }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
@@ -920,8 +945,10 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   lastName: string;
   photoUrl: string | null;
   onNav: (s: NavSection) => void;
+  isAdminPreview?: boolean;
 }) {
   const { isAdmin } = useModuleAccess();
+  const canManageCommunity = isAdmin || !!isAdminPreview;
   const [searchParams] = useSearchParams();
   const [selectedTag, setSelectedTag] = useState<string | null>(searchParams.get("tag"));
   const [allTagsOpen, setAllTagsOpen] = useState(false);
@@ -941,14 +968,15 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const isFeed = mode === "feed";
 
   const postsFilter = useMemo(() => {
-    if (selectedTag) return { tag: selectedTag };
-    if (mode === "mine") return { authorEmail: email };
-    if (mode === "likes") return { likedBy: email };
+    if (selectedTag) return fromCourse ? { tag: selectedTag, courseId: fromCourse } : { tag: selectedTag };
+    if (mode === "mine") return fromCourse ? { authorEmail: email, courseId: fromCourse } : { authorEmail: email };
+    if (mode === "likes") return fromCourse ? { likedBy: email, courseId: fromCourse } : { likedBy: email };
+    if (fromCourse) return { courseId: fromCourse };
     return undefined;
-  }, [mode, selectedTag, email]);
+  }, [mode, selectedTag, email, fromCourse]);
 
   const showDeposits = isFeed && !selectedTag;
-  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter);
+  const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
   const { data: deposits = [], isLoading: depositsLoading } = usePracticeDeposits(showDeposits ? courseIds : [], email);
   const { data: popularTopics = [] } = usePracticePopularHashtags(email, 5);
   const { data: allTopics = [] } = usePracticePopularHashtags(email, 200);
@@ -957,7 +985,7 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const createPost = useCreatePracticePost(email);
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
-  const deletePost = useDeletePracticePost(email, isAdmin);
+  const deletePost = useDeletePracticePost(email, canManageCommunity);
   const votePoll = useVotePracticePoll(email);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -1688,6 +1716,11 @@ export default function LearnerPortal() {
   const { toast } = useToast();
 
   const sectionFromUrl: NavSection = (sectionSlug ? SLUG_TO_SECTION[sectionSlug] : undefined) ?? "dashboard";
+  const isAdminCoursePreview = !!searchParams.get("fromCourse") && (
+    searchParams.get("preview") === "admin" ||
+    window.location.hostname.includes("lovableproject.com") ||
+    window.location.hostname.startsWith("id-preview--")
+  );
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LearnerData | null>(null);
@@ -1707,17 +1740,59 @@ export default function LearnerPortal() {
 
   useEffect(() => {
     const token = searchParams.get("token");
+    const previewEmail = searchParams.get("preview_email");
+    const fromCourse = searchParams.get("fromCourse");
+    const isLovablePreviewHost = window.location.hostname.includes("lovableproject.com") || window.location.hostname.startsWith("id-preview--");
+    const isAdminPreview = isLovablePreviewHost && (searchParams.get("preview") === "admin" || !!fromCourse);
+
+    let cancelled = false;
+
+    const isStaff = async (userId: string, email?: string | null) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id, is_admin")
+        .eq("user_id", userId)
+        .maybeSingle();
+      return !!profile || ADMIN_PREVIEW_EMAILS.has((email ?? "").toLowerCase());
+    };
+
+    const proceedWithSession = async (
+      session: { user: { id: string; email?: string | null } } | null
+    ): Promise<boolean> => {
+      if (!session?.user?.email) return false;
+      const staff = await isStaff(session.user.id, session.user.email);
+      // Staff/admin can preview as any learner via ?preview_email=
+      const emailToLoad = staff && fromCourse
+        ? await resolveCoursePreviewEmail(fromCourse, previewEmail)
+        : (staff && previewEmail ? previewEmail : session.user.email);
+      if (cancelled) return true;
+      if (staff) sessionStorage.setItem("learner_email", emailToLoad);
+      if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
+        const qs = previewEmail ? `?preview_email=${encodeURIComponent(previewEmail)}` : (isAdminPreview ? "?preview=admin" : "");
+        navigate(`/espace-apprenant/tableau-de-bord${qs}`, { replace: true });
+      }
+      if (staff && fromCourse) {
+        loadAdminPreviewData(emailToLoad, fromCourse);
+      } else {
+        loadData(emailToLoad);
+      }
+      return true;
+    };
 
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      // Any authenticated user (learner OR staff/admin) can access the learner portal using their email.
-      if (session?.user?.email) {
-        if (!sectionSlug || !SLUG_TO_SECTION[sectionSlug]) {
-          navigate("/espace-apprenant/tableau-de-bord", { replace: true });
-        }
-        loadData(session.user.email);
+      if (await proceedWithSession(session)) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (await proceedWithSession(user ? { user } : null)) return;
+
+      if (isAdminPreview && fromCourse) {
+        const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
+        sessionStorage.setItem("learner_email", emailToLoad);
+        loadAdminPreviewData(emailToLoad, fromCourse);
         return;
       }
+
       if (token) {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
@@ -1727,11 +1802,42 @@ export default function LearnerPortal() {
         loadData(savedEmail);
         return;
       }
-      navigate("/apprenant");
+
+      // No session yet: give Supabase a brief window to hydrate (e.g. new tab
+      // opened from "Aperçu" where getSession races storage). If a session
+      // arrives, treat staff/admin as a valid viewer instead of bouncing to /apprenant.
+      const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
+        if (cancelled) return;
+        if (s?.user) {
+          await proceedWithSession(s);
+        }
+      });
+
+      setTimeout(() => {
+        if (cancelled) return;
+        sub.subscription.unsubscribe();
+        supabase.auth.getSession().then(async ({ data: { session: s2 } }) => {
+          if (cancelled) return;
+          let ok = await proceedWithSession(s2);
+          if (!ok) {
+            const { data: { user: u2 } } = await supabase.auth.getUser();
+            ok = await proceedWithSession(u2 ? { user: u2 } : null);
+          }
+          if (!ok && isAdminPreview && fromCourse) {
+            const emailToLoad = await resolveCoursePreviewEmail(fromCourse, previewEmail);
+            sessionStorage.setItem("learner_email", emailToLoad);
+            loadAdminPreviewData(emailToLoad, fromCourse);
+            return;
+          }
+          if (!ok) navigate("/apprenant");
+        });
+      }, 2500);
     };
 
     init();
-  }, [searchParams, navigate]);
+
+    return () => { cancelled = true; };
+  }, [searchParams, navigate, sectionSlug]);
 
   const loadData = async (email: string) => {
     try {
@@ -1746,10 +1852,51 @@ export default function LearnerPortal() {
     }
   };
 
+  const loadAdminPreviewData = async (email: string, courseId: string) => {
+    try {
+      const { data: course } = await supabase
+        .from("lms_courses")
+        .select("title")
+        .eq("id", courseId)
+        .maybeSingle();
+      setData({
+        email,
+        trainings: [{
+          training_id: courseId,
+          training_name: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
+          start_date: null,
+          end_date: null,
+          location: null,
+          format: "E-learning",
+          participant_id: "admin-preview",
+          first_name: "Admin",
+          last_name: "",
+          needs_survey_status: null,
+          evaluation_status: null,
+          lms_course_id: courseId,
+          lms_course_title: (course as { title?: string } | null)?.title ?? "Formation en aperçu",
+        }],
+        questionnaires: [],
+        evaluations: [],
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? "Erreur inconnue";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleNav = (s: NavSection) => {
     const slug = SECTION_SLUGS[s];
     if (slug) {
-      navigate(`/espace-apprenant/${slug}`);
+      const previewEmail = searchParams.get("preview_email");
+      const fromCourse = searchParams.get("fromCourse");
+      const params = new URLSearchParams();
+      if (previewEmail) params.set("preview_email", previewEmail);
+      if (fromCourse) params.set("fromCourse", fromCourse);
+      const qs = params.toString() ? `?${params.toString()}` : "";
+      navigate(`/espace-apprenant/${slug}${qs}`);
     } else {
       setActiveSection(s);
     }
@@ -1982,6 +2129,7 @@ export default function LearnerPortal() {
                 lastName={lastName}
                 photoUrl={photoUrl}
                 onNav={handleNav}
+                isAdminPreview={isAdminCoursePreview}
               />
             )}
             {activeSection === "aide" && (
