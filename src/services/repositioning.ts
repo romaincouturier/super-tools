@@ -112,28 +112,44 @@ export async function repositionParticipant(
         })()
       : null;
 
-  const inserted = await createParticipant({
-    trainingId: target.id,
-    firstName: source.first_name || "",
-    lastName: source.last_name || "",
-    email: source.email,
-    company: source.company || "",
-    token,
-    status,
-    formulaId: source.formula_id || "",
-    formulaName: source.formula || "",
-    coachingTotal,
-    coachingDeadline,
-    isInterEntreprise: isInter,
-    sponsorFirstName: source.sponsor_first_name || "",
-    sponsorLastName: source.sponsor_last_name || "",
-    sponsorEmail: source.sponsor_email || "",
-    financeurSameAsSponsor: source.financeur_same_as_sponsor ?? true,
-    financeurName: source.financeur_name || "",
-    financeurUrl: source.financeur_url || "",
-    paymentMode: (source.payment_mode === "online" ? "online" : "invoice"),
-    soldPriceHt: source.sold_price_ht != null ? String(source.sold_price_ht) : "",
-  });
+  // Check if participant already exists in target session (avoid unique violation)
+  const { data: existing } = await supabase
+    .from("training_participants")
+    .select("id")
+    .eq("training_id", target.id)
+    .eq("email", source.email)
+    .maybeSingle();
+
+  let inserted: { id: string } | null = null;
+  let reusedExisting = false;
+
+  if (existing?.id) {
+    inserted = { id: existing.id };
+    reusedExisting = true;
+  } else {
+    inserted = await createParticipant({
+      trainingId: target.id,
+      firstName: source.first_name || "",
+      lastName: source.last_name || "",
+      email: source.email,
+      company: source.company || "",
+      token,
+      status,
+      formulaId: source.formula_id || "",
+      formulaName: source.formula || "",
+      coachingTotal,
+      coachingDeadline,
+      isInterEntreprise: isInter,
+      sponsorFirstName: source.sponsor_first_name || "",
+      sponsorLastName: source.sponsor_last_name || "",
+      sponsorEmail: source.sponsor_email || "",
+      financeurSameAsSponsor: source.financeur_same_as_sponsor ?? true,
+      financeurName: source.financeur_name || "",
+      financeurUrl: source.financeur_url || "",
+      paymentMode: (source.payment_mode === "online" ? "online" : "invoice"),
+      soldPriceHt: source.sold_price_ht != null ? String(source.sold_price_ht) : "",
+    });
+  }
 
   if (!inserted) throw new Error("Échec de création du participant cible");
 
