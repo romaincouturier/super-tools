@@ -1,4 +1,4 @@
-import { Send, Clock, Linkedin } from "lucide-react";
+import { Send, Clock, Linkedin, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusConfig } from "./statusConfig";
 import ParticipantActions from "./ParticipantActions";
