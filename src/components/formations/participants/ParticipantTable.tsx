@@ -1,4 +1,4 @@
-import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Linkedin } from "lucide-react";
+import { Mail, CheckCircle, StickyNote, ArrowUpDown, ArrowUp, ArrowDown, Linkedin, ArrowRightLeft } from "lucide-react";
 import {
   Table,
   TableBody,
