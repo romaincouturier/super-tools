@@ -88,7 +88,7 @@ const FormationDetailHeader = ({
       toast({ title: "Formation supprimée" });
       navigate("/formations");
     } catch {
-      toast({ title: "Erreur", description: "Erreur lors de la suppression", variant: "destructive" });
+      toastError(toast, "Erreur lors de la suppression.");
     } finally {
       setDeleting(false);
     }
