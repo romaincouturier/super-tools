@@ -952,6 +952,21 @@ export type Database = {
         }
         Relationships: []
       }
+      community_read_state: {
+        Row: {
+          last_seen_at: string
+          user_id: string
+        }
+        Insert: {
+          last_seen_at?: string
+          user_id: string
+        }
+        Update: {
+          last_seen_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_cards: {
         Row: {
           card_type: string
@@ -6327,26 +6342,32 @@ export type Database = {
       }
       practice_post_comments: {
         Row: {
+          author_display_name: string | null
           author_email: string
           content: string
           created_at: string
           id: string
+          is_staff_reply: boolean
           post_id: string
           updated_at: string
         }
         Insert: {
+          author_display_name?: string | null
           author_email: string
           content: string
           created_at?: string
           id?: string
+          is_staff_reply?: boolean
           post_id: string
           updated_at?: string
         }
         Update: {
+          author_display_name?: string | null
           author_email?: string
           content?: string
           created_at?: string
           id?: string
+          is_staff_reply?: boolean
           post_id?: string
           updated_at?: string
         }
@@ -6429,6 +6450,7 @@ export type Database = {
           file_size: number | null
           file_url: string | null
           id: string
+          is_pinned: boolean
           lesson_id: string | null
           updated_at: string
         }
@@ -6442,6 +6464,7 @@ export type Database = {
           file_size?: number | null
           file_url?: string | null
           id?: string
+          is_pinned?: boolean
           lesson_id?: string | null
           updated_at?: string
         }
@@ -6455,6 +6478,7 @@ export type Database = {
           file_size?: number | null
           file_url?: string | null
           id?: string
+          is_pinned?: boolean
           lesson_id?: string | null
           updated_at?: string
         }
