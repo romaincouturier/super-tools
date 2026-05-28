@@ -106,7 +106,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
         </div>
       )}
 
-      {content.answer_html && (
+      {(content.answer_html || content.answer_video_url || content.answer_image_urls?.length) && (
         <div className="border-t pt-3 mt-3">
           <Button
             variant="ghost"
@@ -118,10 +118,27 @@ export default function ExerciseBlockViewer({ content }: Props) {
             {revealed ? "Masquer le corrigé" : "Voir le corrigé"}
           </Button>
           {revealed && (
-            <div
-              className="prose prose-base sm:prose-lg max-w-none mt-2 break-words"
-              dangerouslySetInnerHTML={{ __html: content.answer_html }}
-            />
+            <div className="mt-2 space-y-3">
+              {content.answer_video_url && (
+                <LessonVideoPlayer url={content.answer_video_url} radius={8} />
+              )}
+              {content.answer_image_urls && content.answer_image_urls.length === 1 && (
+                <ImageWithLightbox src={content.answer_image_urls[0]} alt="Image du corrigé" imgStyle={{ maxHeight: 480 }} />
+              )}
+              {content.answer_image_urls && content.answer_image_urls.length > 1 && (
+                <div className={`grid gap-2 ${content.answer_image_urls.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+                  {content.answer_image_urls.map((url, i) => (
+                    <ImageWithLightbox key={i} src={url} alt={`Image du corrigé ${i + 1}`} imgStyle={{ maxHeight: 280 }} />
+                  ))}
+                </div>
+              )}
+              {content.answer_html && (
+                <div
+                  className="prose prose-base sm:prose-lg max-w-none break-words"
+                  dangerouslySetInnerHTML={{ __html: content.answer_html }}
+                />
+              )}
+            </div>
           )}
         </div>
       )}

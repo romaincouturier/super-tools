@@ -11,6 +11,7 @@ import {
   FolderOpen,
   ExternalLink,
   CheckCircle,
+  Layers,
 } from "lucide-react";
 import type { LessonBlockType } from "./lms-blocks";
 
@@ -222,6 +223,20 @@ export const LESSON_TEMPLATES: LessonTemplate[] = [
         type: "button",
         content: { label: "Accéder à la ressource", url: "", variant: "primary", open_in_new_tab: true },
       },
+    ],
+  },
+  {
+    id: "procreate-concepts",
+    label: "Comparatif Procreate / Concepts",
+    description: "Structure en 6 blocs : intro + vidéo + exercice pour Procreate, puis Concepts.",
+    icon: Layers,
+    blocks: [
+      { type: "text", content: { html: "<h2>Procreate</h2>" } },
+      { type: "video" },
+      { type: "exercise", content: { prompt_html: "<p><strong>Exercice :</strong> Entraînez-vous sur Procreate.</p>", answer_html: "" } },
+      { type: "text", content: { html: "<h2>Concepts</h2>" } },
+      { type: "video" },
+      { type: "exercise", content: { prompt_html: "<p><strong>Exercice :</strong> Entraînez-vous sur Concepts.</p>", answer_html: "" } },
     ],
   },
   {

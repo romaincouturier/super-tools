@@ -181,6 +181,8 @@ export interface ExerciseBlockContent {
   title?: string | null;
   prompt_html: string;
   answer_html?: string | null;
+  answer_video_url?: string | null;
+  answer_image_urls?: string[] | null;
   checklist_title?: string | null;
   checklist_items?: ChecklistItem[] | null;
   video_url?: string | null;
