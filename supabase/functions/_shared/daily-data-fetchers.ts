@@ -385,6 +385,36 @@ export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: 
     }));
 }
 
+export interface SupertiltActionItem {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  deadline: string | null;
+  isOverdue: boolean;
+  missionId: string | null;
+}
+
+export async function fetchSupertiltActions(supabase: SupabaseClient, today: string): Promise<SupertiltActionItem[]> {
+  const { data } = await supabase
+    .from("supertilt_actions")
+    .select("id, user_id, title, description, deadline, mission_id")
+    .eq("is_completed", false)
+    .not("deadline", "is", null)
+    .lte("deadline", today);
+
+  if (!data) return [];
+  return data.map((a: any) => ({
+    id: a.id,
+    userId: a.user_id,
+    title: a.title,
+    description: a.description,
+    deadline: a.deadline,
+    isOverdue: a.deadline < today,
+    missionId: a.mission_id,
+  }));
+}
+
 export async function fetchCrmAlerts(supabase: SupabaseClient, today: string): Promise<CrmCardItem[]> {
   const { data: crmColumns } = await supabase
     .from("crm_columns")
