@@ -186,7 +186,7 @@ export async function repositionParticipant(
     }
   }
 
-  if (formatFormation === "e_learning" && source.payment_mode !== "online") {
+  if (!reusedExisting && formatFormation === "e_learning" && source.payment_mode !== "online") {
     let couponCode: string | undefined;
     try {
       const r = await generateWoocommerceCoupon(inserted.id, target.id);
