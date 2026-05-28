@@ -258,7 +258,8 @@ export async function fetchMissionActions(supabase: SupabaseClient, today: strin
     .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text")
     .not("waiting_next_action_text", "is", null)
     .lte("waiting_next_action_date", today)
-    .in("status", ["not_started", "in_progress", "pending"]);
+    .in("status", ["not_started", "in_progress", "pending"])
+    .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   return data
@@ -298,7 +299,8 @@ export async function fetchMissionsToInvoice(supabase: SupabaseClient, today: st
   const { data } = await supabase
     .from("missions")
     .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
-    .in("status", ["in_progress", "completed"]);
+    .in("status", ["in_progress", "completed"])
+    .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   const results: MissionInvoiceItem[] = [];
@@ -340,8 +342,9 @@ export async function fetchUnbilledActivities(supabase: SupabaseClient, today: s
   const missionIds = [...byMission.keys()];
   const { data: missions } = await supabase
     .from("missions")
-    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
-    .in("id", missionIds);
+    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, archived")
+    .in("id", missionIds)
+    .or("archived.is.null,archived.eq.false");
 
   if (!missions) return [];
   const results: UnbilledActivityItem[] = [];
@@ -367,7 +370,8 @@ export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: 
     .from("missions")
     .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
     .in("status", ["not_started", "in_progress"])
-    .is("start_date", null);
+    .is("start_date", null)
+    .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   return data
