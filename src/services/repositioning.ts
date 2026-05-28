@@ -237,5 +237,6 @@ export async function repositionParticipant(
     attendanceCatchUpSlots,
     status,
     ongoing,
+    reusedExisting,
   };
 }
