@@ -43,6 +43,7 @@ export interface SupportTicket {
   ai_analysis: TicketAiAnalysis | null;
   learner_category: string | null;
   discussion_requested_at: string | null;
+  branch_url: string | null;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;
