@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Users, ChevronDown } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -31,7 +31,6 @@ export default function LmsCommunity() {
   }, []);
 
   const { data: courses = [], isLoading: coursesLoading } = useAdminCommunityCourses();
-  const courseIds = useMemo(() => courses.map((c) => c.courseId), [courses]);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,11 +48,13 @@ export default function LmsCommunity() {
     return () => { cancelled = true; };
   }, []);
 
-  const filterCourseIds = selectedCourseId ? [selectedCourseId] : courseIds;
+  // When a specific course is selected, filter by it; otherwise show all posts
+  // (no courseIds filter) so posts with null course_id are included too.
+  const postsFilter = selectedCourseId ? { courseIds: [selectedCourseId] } : {};
   const { data: posts = [], isLoading: postsLoading } = usePracticePosts(
     userEmail,
     100,
-    { courseIds: filterCourseIds },
+    postsFilter,
     true,
   );
 

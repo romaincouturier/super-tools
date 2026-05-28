@@ -80,6 +80,7 @@ interface ParticipantRow {
   type_stagiaire_bpf: TypeStagiaire | null;
   sold_price_ht: number | null;
   source_financement_bpf: SourceFinancement | null;
+  repositioned_to_training_id: string | null;
 }
 
 function toParticipantRow(row: Record<string, unknown>): ParticipantRow {
@@ -89,6 +90,7 @@ function toParticipantRow(row: Record<string, unknown>): ParticipantRow {
     type_stagiaire_bpf: (row.type_stagiaire_bpf as TypeStagiaire | null) ?? null,
     sold_price_ht: typeof row.sold_price_ht === "number" ? row.sold_price_ht : null,
     source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,
+    repositioned_to_training_id: typeof row.repositioned_to_training_id === "string" ? row.repositioned_to_training_id : null,
   };
 }
 
@@ -322,7 +324,11 @@ export default function BPFReport() {
           .in("training_id", trainingIds);
 
         if (pErr) throw pErr;
-        participants = ((pData ?? []) as unknown as Record<string, unknown>[]).map(toParticipantRow);
+        // Exclure les participants repositionnés vers une autre session : seule
+        // la session de destination (où repositioned_to_training_id est null) est comptabilisée.
+        participants = ((pData ?? []) as unknown as Record<string, unknown>[])
+          .map(toParticipantRow)
+          .filter((p) => !p.repositioned_to_training_id);
 
         // Build participantsWithTraining en enrichissant depuis le tableau trainings déjà chargé
         participantsWithTraining = participants.map((p) => {
