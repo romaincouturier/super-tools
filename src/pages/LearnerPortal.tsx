@@ -699,12 +699,14 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const isFeed = mode === "feed";
 
   const postsFilter = useMemo(() => {
-    if (selectedTag) return fromCourse ? { tag: selectedTag, courseId: fromCourse } : { tag: selectedTag };
-    if (mode === "mine") return fromCourse ? { authorEmail: email, courseId: fromCourse } : { authorEmail: email };
-    if (mode === "likes") return fromCourse ? { likedBy: email, courseId: fromCourse } : { likedBy: email };
-    if (fromCourse) return { courseId: fromCourse };
+    // Admins see all posts regardless of fromCourse context.
+    const courseIdForFilter = canManageCommunity ? undefined : fromCourse;
+    if (selectedTag) return courseIdForFilter ? { tag: selectedTag, courseId: courseIdForFilter } : { tag: selectedTag };
+    if (mode === "mine") return courseIdForFilter ? { authorEmail: email, courseId: courseIdForFilter } : { authorEmail: email };
+    if (mode === "likes") return courseIdForFilter ? { likedBy: email, courseId: courseIdForFilter } : { likedBy: email };
+    if (courseIdForFilter) return { courseId: courseIdForFilter };
     return undefined;
-  }, [mode, selectedTag, email, fromCourse]);
+  }, [mode, selectedTag, email, fromCourse, canManageCommunity]);
 
   const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
