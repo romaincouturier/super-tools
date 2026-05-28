@@ -89,6 +89,19 @@ const ParticipantTable = ({
                           {participant.formula}
                         </Badge>
                       )}
+                      {participant.repositioned_to_training_id && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                              <ArrowRightLeft className="h-2.5 w-2.5" />
+                              Repositionné
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Repositionné vers une autre session{participant.repositioned_at ? ` le ${new Date(participant.repositioned_at).toLocaleDateString("fr-FR")}` : ""}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {(() => {
                         const missingType = !participant.type_stagiaire_bpf;
                         const missingSource =
