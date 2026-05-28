@@ -177,7 +177,7 @@ export async function repositionParticipant(
   }
 
   let attendanceCatchUpSlots = 0;
-  if (ongoing && formatFormation !== "e_learning") {
+  if (!reusedExisting && ongoing && formatFormation !== "e_learning") {
     try {
       const r = await catchUpAttendanceSignaturesForParticipant(target.id, inserted.id);
       attendanceCatchUpSlots = r?.sentSlots || 0;
