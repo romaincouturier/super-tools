@@ -1,4 +1,4 @@
-import { Send, Clock, Linkedin } from "lucide-react";
+import { Send, Clock, Linkedin, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusConfig } from "./statusConfig";
 import ParticipantActions from "./ParticipantActions";
@@ -51,6 +51,12 @@ const ParticipantMobileCard = ({
                 {participant.formula && (
                   <Badge variant="outline" className="text-[10px] px-1.5 py-0 mt-0.5 w-fit">
                     {participant.formula}
+                  </Badge>
+                )}
+                {participant.repositioned_to_training_id && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 mt-0.5 w-fit gap-1" title={`Repositionné vers une autre session${participant.repositioned_at ? ` le ${new Date(participant.repositioned_at).toLocaleDateString("fr-FR")}` : ""}`}>
+                    <ArrowRightLeft className="h-2.5 w-2.5" />
+                    Repositionné
                   </Badge>
                 )}
                 {(() => {
