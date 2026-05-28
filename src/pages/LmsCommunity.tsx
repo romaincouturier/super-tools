@@ -63,8 +63,8 @@ export default function LmsCommunity() {
   const deletePost = useDeletePracticePost(userEmail, true);
   const pinPost = usePinPracticePost();
 
-  const handleReact = (postId: string, iReacted: boolean) =>
-    toggleReaction.mutateAsync({ postId, iReacted }).catch(() => toastError(toast, "Action impossible."));
+  const handleReact = (postId: string, emoji: string, iReacted: boolean) =>
+    toggleReaction.mutateAsync({ postId, emoji, iReacted }).catch(() => toastError(toast, "Action impossible."));
   const handleVote = (pollId: string, optionId: string, currentOptionId: string | null) =>
     votePoll.mutateAsync({ pollId, optionId, currentOptionId }).catch(() => toastError(toast, "Vote impossible."));
   const handleDelete = async (postId: string) => {

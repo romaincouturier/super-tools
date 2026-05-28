@@ -745,8 +745,8 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
     await createPost.mutateAsync({ content, file, poll, gifUrl });
   };
 
-  const handleReact = async (postId: string, iReacted: boolean) => {
-    try { await toggleReaction.mutateAsync({ postId, iReacted }); }
+  const handleReact = async (postId: string, emoji: string, iReacted: boolean) => {
+    try { await toggleReaction.mutateAsync({ postId, emoji, iReacted }); }
     catch { toastError(toast, "Impossible de réagir."); }
   };
 

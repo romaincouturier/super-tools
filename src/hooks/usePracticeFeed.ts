@@ -39,6 +39,8 @@ export interface PracticePost {
   course_title?: string | null;
   reaction_count: number;
   i_reacted: boolean;
+  reactions_by_type: Record<string, number>;
+  my_reaction_types: string[];
   comment_count: number;
   hashtags: string[];
   poll: PracticePoll | null;
@@ -129,7 +131,7 @@ export function usePracticePosts(
 
       const [postsRes, reactionsRes, commentsRes, profilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
         postsQuery,
-        c.from("practice_post_reactions").select("post_id, author_email"),
+        c.from("practice_post_reactions").select("post_id, author_email, reaction_type"),
         c.from("practice_post_comments").select("id, post_id"),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
         c.from("practice_post_hashtags").select("post_id, tag"),
@@ -199,6 +201,14 @@ export function usePracticePosts(
           course_title: post.course_id ? (courseMap.get(post.course_id) ?? null) : null,
           reaction_count: postReactions.length,
           i_reacted: postReactions.some((r: any) => r.author_email === learnerEmail),
+          reactions_by_type: postReactions.reduce((acc: Record<string, number>, r: any) => {
+            const t = r.reaction_type ?? '👍';
+            acc[t] = (acc[t] ?? 0) + 1;
+            return acc;
+          }, {}),
+          my_reaction_types: postReactions
+            .filter((r: any) => r.author_email === learnerEmail)
+            .map((r: any) => r.reaction_type ?? '👍'),
           comment_count: postComments.length,
           hashtags: hashtags.filter((h: any) => h.post_id === post.id).map((h: any) => h.tag),
           poll: buildPoll(post.id),
@@ -447,16 +457,16 @@ export function usePracticePopularHashtags(learnerEmail: string | null, limit = 
 export function useTogglePracticeReaction(learnerEmail: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ postId, iReacted }: { postId: string; iReacted: boolean }) => {
+    mutationFn: async ({ postId, emoji, iReacted }: { postId: string; emoji: string; iReacted: boolean }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
       const c = clientFor(learnerEmail) as any;
       if (iReacted) {
         const { error } = await c.from("practice_post_reactions")
-          .delete().eq("post_id", postId).eq("author_email", learnerEmail);
+          .delete().eq("post_id", postId).eq("author_email", learnerEmail).eq("reaction_type", emoji);
         if (error) throw error;
       } else {
         const { error } = await c.from("practice_post_reactions")
-          .insert({ post_id: postId, author_email: learnerEmail });
+          .insert({ post_id: postId, author_email: learnerEmail, reaction_type: emoji });
         if (error) throw error;
       }
     },

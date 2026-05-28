@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Trash2, BookOpen, FileText, ThumbsUp, MessageSquare, Send, Pin, PinOff } from "lucide-react";
+import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import PollDisplay from "@/components/learner/community/PollDisplay";
@@ -13,6 +13,14 @@ import {
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
+
+const REACTION_EMOJIS = [
+  { emoji: "👍", label: "J'aime" },
+  { emoji: "❤️", label: "J'adore" },
+  { emoji: "😂", label: "Hilarant" },
+  { emoji: "🤲", label: "Soutien" },
+  { emoji: "👏", label: "Bravo" },
+];
 
 function StaffBadge() {
   return (
@@ -41,13 +49,26 @@ export default function PracticePostCard({
   isAdmin: boolean;
   /** Display name stored on the reply when an admin/trainer comments. */
   currentUserName?: string | null;
-  onReact: (postId: string, iReacted: boolean) => void;
+  onReact: (postId: string, emoji: string, iReacted: boolean) => void;
   onDelete: (postId: string) => void;
   onVote: (pollId: string, optionId: string, currentOptionId: string | null) => void;
   onSelectTag: (tag: string) => void;
   onPin?: (postId: string, pin: boolean) => void;
 }) {
   const [showComments, setShowComments] = useState(post.comment_count > 0);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const handle = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [showEmojiPicker]);
   const [commentText, setCommentText] = useState("");
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
@@ -170,12 +191,21 @@ export default function PracticePostCard({
         </div>
       )}
 
-      {/* Reaction bar */}
+      {/* Reaction bar — per-emoji counts + comment count */}
       {(post.reaction_count > 0 || post.comment_count > 0) && (
-        <div className="px-4 py-2 flex items-center gap-3 text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
-          {post.reaction_count > 0 && (
-            <span>{post.reaction_count} J'aime</span>
-          )}
+        <div className="px-4 py-2 flex items-center gap-2 flex-wrap text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+          {REACTION_EMOJIS.filter((e) => (post.reactions_by_type?.[e.emoji] ?? 0) > 0).map((e) => (
+            <span
+              key={e.emoji}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
+              style={{
+                background: post.my_reaction_types?.includes(e.emoji) ? "rgba(255,209,0,0.18)" : "rgba(16,24,32,0.05)",
+                fontWeight: post.my_reaction_types?.includes(e.emoji) ? 600 : 400,
+              }}
+            >
+              {e.emoji} {post.reactions_by_type[e.emoji]}
+            </span>
+          ))}
           {post.comment_count > 0 && (
             <button onClick={() => setShowComments(v => !v)} className="hover:underline ml-auto" style={{ fontFamily: "inherit" }}>
               {post.comment_count} commentaire{post.comment_count > 1 ? "s" : ""}
@@ -185,14 +215,41 @@ export default function PracticePostCard({
       )}
 
       {/* Action buttons */}
-      <div className="flex border-t" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+      <div className="flex border-t relative" style={{ borderColor: "rgba(16,24,32,0.06)" }}>
+        {/* Emoji picker popup */}
+        {showEmojiPicker && (
+          <div
+            ref={emojiPickerRef}
+            className="absolute bottom-full left-0 mb-2 flex items-center gap-1 px-2 py-1.5 rounded-2xl shadow-lg border z-10"
+            style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.1)" }}
+          >
+            {REACTION_EMOJIS.map((e) => {
+              const already = post.my_reaction_types?.includes(e.emoji);
+              return (
+                <button
+                  key={e.emoji}
+                  onClick={() => { onReact(post.id, e.emoji, already); setShowEmojiPicker(false); }}
+                  title={e.label}
+                  className="text-xl leading-none transition-transform hover:scale-125 px-1"
+                  style={{
+                    fontFamily: "inherit",
+                    background: already ? "rgba(255,209,0,0.2)" : "transparent",
+                    borderRadius: 8,
+                  }}
+                >
+                  {e.emoji}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <button
-          onClick={() => onReact(post.id, post.i_reacted)}
+          onClick={() => setShowEmojiPicker(v => !v)}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors hover:bg-black/5"
           style={{ color: post.i_reacted ? "var(--st-yellow, #FFD100)" : "var(--st-ink-muted)", fontFamily: "inherit" }}
         >
-          <ThumbsUp size={16} fill={post.i_reacted ? "currentColor" : "none"} />
-          J'aime
+          <Smile size={16} />
+          Réagir
         </button>
         <button
           onClick={() => setShowComments(v => !v)}
