@@ -1256,6 +1256,7 @@ export interface DailyData {
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
   supertiltAlerts: SupertiltAlertItem[];
+  supertiltActions: SupertiltActionItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
