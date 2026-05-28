@@ -258,7 +258,8 @@ export async function fetchMissionActions(supabase: SupabaseClient, today: strin
     .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text")
     .not("waiting_next_action_text", "is", null)
     .lte("waiting_next_action_date", today)
-    .in("status", ["not_started", "in_progress", "pending"]);
+    .in("status", ["not_started", "in_progress", "pending"])
+    .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   return data
