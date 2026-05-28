@@ -299,7 +299,8 @@ export async function fetchMissionsToInvoice(supabase: SupabaseClient, today: st
   const { data } = await supabase
     .from("missions")
     .select("id, title, client_name, consumed_amount, billed_amount, emoji, assigned_to, waiting_next_action_date")
-    .in("status", ["in_progress", "completed"]);
+    .in("status", ["in_progress", "completed"])
+    .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   const results: MissionInvoiceItem[] = [];
