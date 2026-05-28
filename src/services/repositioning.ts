@@ -78,6 +78,7 @@ interface RepositionResult {
   attendanceCatchUpSlots: number;
   status: string;
   ongoing: boolean;
+  reusedExisting: boolean;
 }
 
 /**
@@ -112,28 +113,44 @@ export async function repositionParticipant(
         })()
       : null;
 
-  const inserted = await createParticipant({
-    trainingId: target.id,
-    firstName: source.first_name || "",
-    lastName: source.last_name || "",
-    email: source.email,
-    company: source.company || "",
-    token,
-    status,
-    formulaId: source.formula_id || "",
-    formulaName: source.formula || "",
-    coachingTotal,
-    coachingDeadline,
-    isInterEntreprise: isInter,
-    sponsorFirstName: source.sponsor_first_name || "",
-    sponsorLastName: source.sponsor_last_name || "",
-    sponsorEmail: source.sponsor_email || "",
-    financeurSameAsSponsor: source.financeur_same_as_sponsor ?? true,
-    financeurName: source.financeur_name || "",
-    financeurUrl: source.financeur_url || "",
-    paymentMode: (source.payment_mode === "online" ? "online" : "invoice"),
-    soldPriceHt: source.sold_price_ht != null ? String(source.sold_price_ht) : "",
-  });
+  // Check if participant already exists in target session (avoid unique violation)
+  const { data: existing } = await supabase
+    .from("training_participants")
+    .select("id")
+    .eq("training_id", target.id)
+    .eq("email", source.email)
+    .maybeSingle();
+
+  let inserted: { id: string } | null = null;
+  let reusedExisting = false;
+
+  if (existing?.id) {
+    inserted = { id: existing.id };
+    reusedExisting = true;
+  } else {
+    inserted = await createParticipant({
+      trainingId: target.id,
+      firstName: source.first_name || "",
+      lastName: source.last_name || "",
+      email: source.email,
+      company: source.company || "",
+      token,
+      status,
+      formulaId: source.formula_id || "",
+      formulaName: source.formula || "",
+      coachingTotal,
+      coachingDeadline,
+      isInterEntreprise: isInter,
+      sponsorFirstName: source.sponsor_first_name || "",
+      sponsorLastName: source.sponsor_last_name || "",
+      sponsorEmail: source.sponsor_email || "",
+      financeurSameAsSponsor: source.financeur_same_as_sponsor ?? true,
+      financeurName: source.financeur_name || "",
+      financeurUrl: source.financeur_url || "",
+      paymentMode: (source.payment_mode === "online" ? "online" : "invoice"),
+      soldPriceHt: source.sold_price_ht != null ? String(source.sold_price_ht) : "",
+    });
+  }
 
   if (!inserted) throw new Error("Échec de création du participant cible");
 
@@ -146,8 +163,9 @@ export async function repositionParticipant(
     } as never)
     .eq("id", source.id);
 
-  // ---- Mirror useAddParticipant onboarding flow ----
+  // ---- Mirror useAddParticipant onboarding flow (skip if reusing existing inscription) ----
   const shouldSendWelcome =
+    !reusedExisting &&
     formatFormation !== "e_learning" && (status !== "non_envoye" || ongoing);
   let welcomeFailed = false;
   if (shouldSendWelcome) {
@@ -160,7 +178,7 @@ export async function repositionParticipant(
   }
 
   let attendanceCatchUpSlots = 0;
-  if (ongoing && formatFormation !== "e_learning") {
+  if (!reusedExisting && ongoing && formatFormation !== "e_learning") {
     try {
       const r = await catchUpAttendanceSignaturesForParticipant(target.id, inserted.id);
       attendanceCatchUpSlots = r?.sentSlots || 0;
@@ -169,7 +187,7 @@ export async function repositionParticipant(
     }
   }
 
-  if (formatFormation === "e_learning" && source.payment_mode !== "online") {
+  if (!reusedExisting && formatFormation === "e_learning" && source.payment_mode !== "online") {
     let couponCode: string | undefined;
     try {
       const r = await generateWoocommerceCoupon(inserted.id, target.id);
@@ -186,7 +204,7 @@ export async function repositionParticipant(
 
   let needsSurveySkipped = false;
   const trainingInFuture = status !== "non_envoye" && !ongoing;
-  if (trainingInFuture && target.start_date && formatFormation !== "e_learning") {
+  if (!reusedExisting && trainingInFuture && target.start_date && formatFormation !== "e_learning") {
     try {
       const ok = await scheduleParticipantEmail(target.id, inserted.id, target.start_date);
       needsSurveySkipped = !ok;
@@ -219,5 +237,6 @@ export async function repositionParticipant(
     attendanceCatchUpSlots,
     status,
     ongoing,
+    reusedExisting,
   };
 }

@@ -46,6 +46,7 @@ const RepositionParticipantDialog = ({ participant, trainingId, onRepositioned, 
     try {
       const r = await repositionParticipant(participant, target);
       const parts: string[] = [];
+      if (r.reusedExisting) parts.push("inscription cible déjà existante réutilisée");
       if (r.welcomeSent) parts.push("mail d'accueil envoyé");
       else if (r.welcomeFailed) parts.push("⚠️ mail d'accueil en erreur");
       if (r.attendanceCatchUpSlots > 0) {
