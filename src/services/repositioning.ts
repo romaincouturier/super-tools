@@ -78,6 +78,7 @@ interface RepositionResult {
   attendanceCatchUpSlots: number;
   status: string;
   ongoing: boolean;
+  reusedExisting: boolean;
 }
 
 /**
