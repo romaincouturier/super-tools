@@ -370,7 +370,8 @@ export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: 
     .from("missions")
     .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
     .in("status", ["not_started", "in_progress"])
-    .is("start_date", null);
+    .is("start_date", null)
+    .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   return data
