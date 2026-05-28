@@ -699,14 +699,16 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const isFeed = mode === "feed";
 
   const postsFilter = useMemo(() => {
-    // Admins see all posts regardless of fromCourse context.
-    const courseIdForFilter = canManageCommunity ? undefined : fromCourse;
+    // When entering from the player (fromCourse is set), both learners and admins
+    // see the course-scoped community. Admins act as "super learners" in this context.
+    // Without fromCourse (e.g. standalone community access), no course filter is applied.
+    const courseIdForFilter = fromCourse ?? undefined;
     if (selectedTag) return courseIdForFilter ? { tag: selectedTag, courseId: courseIdForFilter } : { tag: selectedTag };
     if (mode === "mine") return courseIdForFilter ? { authorEmail: email, courseId: courseIdForFilter } : { authorEmail: email };
     if (mode === "likes") return courseIdForFilter ? { likedBy: email, courseId: courseIdForFilter } : { likedBy: email };
     if (courseIdForFilter) return { courseId: courseIdForFilter };
     return undefined;
-  }, [mode, selectedTag, email, fromCourse, canManageCommunity]);
+  }, [mode, selectedTag, email, fromCourse]);
 
   const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
