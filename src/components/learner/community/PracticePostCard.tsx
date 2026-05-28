@@ -47,7 +47,7 @@ export default function PracticePostCard({
   onSelectTag: (tag: string) => void;
   onPin?: (postId: string, pin: boolean) => void;
 }) {
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(post.comment_count > 0);
   const [commentText, setCommentText] = useState("");
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
