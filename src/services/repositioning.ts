@@ -203,7 +203,7 @@ export async function repositionParticipant(
 
   let needsSurveySkipped = false;
   const trainingInFuture = status !== "non_envoye" && !ongoing;
-  if (trainingInFuture && target.start_date && formatFormation !== "e_learning") {
+  if (!reusedExisting && trainingInFuture && target.start_date && formatFormation !== "e_learning") {
     try {
       const ok = await scheduleParticipantEmail(target.id, inserted.id, target.start_date);
       needsSurveySkipped = !ok;
