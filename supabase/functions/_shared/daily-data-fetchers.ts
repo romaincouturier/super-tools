@@ -342,8 +342,9 @@ export async function fetchUnbilledActivities(supabase: SupabaseClient, today: s
   const missionIds = [...byMission.keys()];
   const { data: missions } = await supabase
     .from("missions")
-    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
-    .in("id", missionIds);
+    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, archived")
+    .in("id", missionIds)
+    .or("archived.is.null,archived.eq.false");
 
   if (!missions) return [];
   const results: UnbilledActivityItem[] = [];
