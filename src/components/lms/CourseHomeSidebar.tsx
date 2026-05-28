@@ -64,9 +64,15 @@ async function resolvePreviewEmail(email: string): Promise<string> {
 
 export function CommunityCtaButton({ email, courseId, lessonId, isPreview = false }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview?: boolean }) {
   const goToCommunity = async () => {
+    if (!isPreview) {
+      // Admin non-preview : vue admin dédiée
+      const qs = courseId ? `?fromCourse=${courseId}` : "";
+      window.location.href = `/lms/communaute${qs}`;
+      return;
+    }
     const resolvedEmail = await resolvePreviewEmail(email);
     if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
-    window.location.href = communityUrlWithContext(courseId, lessonId, isPreview ? resolvedEmail : null);
+    window.location.href = communityUrlWithContext(courseId, lessonId, resolvedEmail);
   };
 
   return (
@@ -82,11 +88,17 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
 }
 
 function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
-  const { data: posts = [] } = usePracticePosts(email || null, 2);
+  const postsFilter = courseId ? { courseId } : undefined;
+  const { data: posts = [] } = usePracticePosts(email || null, 2, postsFilter);
   const goToCommunity = async () => {
+    if (!isPreview) {
+      const qs = courseId ? `?fromCourse=${courseId}` : "";
+      window.location.href = `/lms/communaute${qs}`;
+      return;
+    }
     const resolvedEmail = await resolvePreviewEmail(email);
     if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
-    window.location.href = communityUrlWithContext(courseId, lessonId, isPreview ? resolvedEmail : null);
+    window.location.href = communityUrlWithContext(courseId, lessonId, resolvedEmail);
   };
 
   return (

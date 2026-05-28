@@ -1515,18 +1515,20 @@ export default function LearnerPortal() {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
       }
-      const savedEmail = sessionStorage.getItem("learner_email");
-      if (savedEmail) {
-        loadData(savedEmail);
-        return;
-      }
-
       // No session yet: give Supabase a brief window to hydrate (e.g. new tab
       // opened from "Aperçu" where getSession races storage). If a session
       // arrives, treat staff/admin as a valid viewer instead of bouncing to /apprenant.
+      // The savedEmail is only used as a hint when the arriving session confirms staff status.
+      const savedEmail = sessionStorage.getItem("learner_email");
       const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
         if (cancelled) return;
         if (s?.user) {
+          // Pass savedEmail as a hint: proceedWithSession will use it only if
+          // the user is staff AND no ?preview_email param is present.
+          if (savedEmail && !previewEmail) {
+            const staff = await isStaff(s.user.id);
+            if (staff) { loadData(savedEmail); return; }
+          }
           await proceedWithSession(s);
         }
       });
