@@ -1,0 +1,53 @@
+name: Process Support Ticket
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticket_number:
+        description: "Numéro de ticket (ex: ST-2026-0186)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup git
+        run: |
+          git config --global user.name "Claude Code"
+          git config --global user.email "claude-code[bot]@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Process ticket with Claude Code
+        uses: anthropic/claude-code-action@beta
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep,Agent"
+          prompt: |
+            Traite le ticket support ${{ inputs.ticket_number }} du kanban supertools.
+
+            Suis exactement les instructions dans .claude/skills/process-ticket/SKILL.md.
+            Le numéro de ticket est : ${{ inputs.ticket_number }}
+
+            Variables d'environnement disponibles dans ce contexte :
+            - SUPABASE_URL : URL du projet Supabase
+            - SUPABASE_SERVICE_ROLE_KEY : clé service role pour l'API REST Supabase
+            - GH_TOKEN : GitHub token pour créer des PRs via `gh pr create`
+
+            Pour créer la PR, utilise `gh pr create` via Bash (ne pas utiliser les outils MCP GitHub).
+            La branche de base est `main`.
