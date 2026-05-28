@@ -424,6 +424,23 @@ serve(async (req) => {
       });
     }
 
+    // 18. SuperTilt — actions personnelles (deadline aujourd'hui ou en retard)
+    for (const a of data.supertiltActions) {
+      const dateLabel = a.deadline === today
+        ? "Aujourd'hui"
+        : `En retard (${new Date(a.deadline!).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })})`;
+      actions.push({
+        category: "supertilt",
+        title: `⚡ ${a.title}`,
+        description: a.isOverdue
+          ? `⚠️ ${dateLabel}${a.description ? ` — ${a.description}` : ""}`
+          : (a.description ?? dateLabel),
+        link: `${appUrl}/supertilt`,
+        entityType: "supertilt_action", entityId: a.id,
+        assignedTo: a.userId, scope: "strictAssigned",
+      });
+    }
+
     const STRICT_ASSIGNED_CATEGORIES = ["articles_relire", "commentaires_contenu"];
 
     for (const recipient of recipients) {
