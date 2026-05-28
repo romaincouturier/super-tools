@@ -162,8 +162,9 @@ export async function repositionParticipant(
     } as never)
     .eq("id", source.id);
 
-  // ---- Mirror useAddParticipant onboarding flow ----
+  // ---- Mirror useAddParticipant onboarding flow (skip if reusing existing inscription) ----
   const shouldSendWelcome =
+    !reusedExisting &&
     formatFormation !== "e_learning" && (status !== "non_envoye" || ongoing);
   let welcomeFailed = false;
   if (shouldSendWelcome) {
