@@ -894,7 +894,13 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   } else {
     leftContent = (
       <>
-        <PostComposer email={email} firstName={firstName} lastName={lastName} photoUrl={photoUrl} onCreate={handleCreate} />
+        {canManageCommunity ? (
+          <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)", color: "var(--st-ink-muted)" }}>
+            En tant qu'admin, publie depuis <a href="/lms/communaute" className="underline font-medium" style={{ color: "var(--st-ink)" }}>/lms/communaute</a> pour rattacher le message à une communauté.
+          </div>
+        ) : (
+          <PostComposer email={email} firstName={firstName} lastName={lastName} photoUrl={photoUrl} onCreate={handleCreate} />
+        )}
         {renderPostList("Aucun post pour l'instant. Soyez le premier à partager !")}
       </>
     );
