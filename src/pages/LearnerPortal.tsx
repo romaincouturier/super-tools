@@ -748,7 +748,10 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   }, [posts, deposits, showDeposits]);
 
   const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => {
-    await createPost.mutateAsync({ content, file, poll, gifUrl });
+    // Rattache le post au cours courant si on poste depuis un contexte formation,
+    // sinon au seul cours suivi par l'apprenant si pertinent.
+    const courseId = fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
+    await createPost.mutateAsync({ content, file, poll, gifUrl, courseId });
   };
 
   const handleReact = async (postId: string, emoji: string, iReacted: boolean) => {
