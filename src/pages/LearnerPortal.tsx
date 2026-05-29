@@ -669,10 +669,11 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
+function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, photoUrl, onNav }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
+  courses: { id: string; name: string }[];
   firstName: string;
   lastName: string;
   photoUrl: string | null;
@@ -698,21 +699,32 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
 
   const isFeed = mode === "feed";
 
+  // Communauté active: identifie le cours dans lequel on lit/publie.
+  // - Admin: peut choisir une communauté précise ou voir tout ("all").
+  // - Apprenant: choisit parmi ses cours; verrouillé sur fromCourse si présent.
+  const defaultCourseId = fromCourse ?? courses[0]?.id ?? null;
+  const [activeCourseId, setActiveCourseId] = useState<string | null>(defaultCourseId);
+  useEffect(() => {
+    if (fromCourse) setActiveCourseId(fromCourse);
+  }, [fromCourse]);
+  const activeCourse = courses.find((c) => c.id === activeCourseId) ?? null;
+  const showCommunitySelector = !fromCourse && (courses.length > 1 || canManageCommunity);
+
   const postsFilter = useMemo(() => {
-    // Communauté scopée par formation :
-    // - Si on arrive depuis un cours (fromCourse), on ne voit que ses posts.
-    // - Sinon, on voit les posts des cours auxquels l'apprenant est inscrit.
-    // - Les admins (canManageCommunity) voient tout, sans restriction de cours.
     const base: { courseId?: string; courseIds?: string[] } = {};
-    if (!canManageCommunity) {
-      if (fromCourse) base.courseId = fromCourse;
+    if (canManageCommunity) {
+      // Admin: si une communauté est sélectionnée, on filtre dessus; sinon tout.
+      if (activeCourseId) base.courseId = activeCourseId;
+    } else {
+      // Apprenant: toujours scopé sur la communauté active, fallback sur ses cours.
+      if (activeCourseId) base.courseId = activeCourseId;
       else if (courseIds.length > 0) base.courseIds = courseIds;
     }
     if (selectedTag) return { ...base, tag: selectedTag };
     if (mode === "mine") return { ...base, authorEmail: email };
     if (mode === "likes") return { ...base, likedBy: email };
     return Object.keys(base).length ? base : undefined;
-  }, [mode, selectedTag, email, fromCourse, courseIds, canManageCommunity]);
+  }, [mode, selectedTag, email, activeCourseId, courseIds, canManageCommunity]);
 
   const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
@@ -748,9 +760,8 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   }, [posts, deposits, showDeposits]);
 
   const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => {
-    // Rattache le post au cours courant si on poste depuis un contexte formation,
-    // sinon au seul cours suivi par l'apprenant si pertinent.
-    const courseId = fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
+    // Le post est rattaché à la communauté active (cours sélectionné).
+    const courseId = activeCourseId ?? fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
     await createPost.mutateAsync({ content, file, poll, gifUrl, courseId });
   };
 
@@ -889,10 +900,46 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
     );
   }
 
+  const communityBanner = (
+    <div
+      className="rounded-2xl border px-4 py-3 flex items-center justify-between gap-3"
+      style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
+    >
+      <div className="min-w-0">
+        <p className="text-xs uppercase tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+          Communauté
+        </p>
+        <p className="text-sm font-semibold truncate" style={{ color: "var(--st-ink)" }}>
+          {activeCourse?.name ?? (canManageCommunity ? "Toutes les communautés" : "—")}
+        </p>
+      </div>
+      {showCommunitySelector ? (
+        <select
+          value={activeCourseId ?? ""}
+          onChange={(e) => setActiveCourseId(e.target.value || null)}
+          className="text-sm rounded-lg border px-2 py-1.5 bg-white shrink-0 max-w-[55%]"
+          style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)" }}
+        >
+          {canManageCommunity && <option value="">Toutes les communautés</option>}
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      ) : fromCourse ? (
+        <span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+          depuis votre formation
+        </span>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <ConfirmDialog />
-      <div className="min-w-0 space-y-4">{leftContent}</div>
+      <div className="min-w-0 space-y-4">
+        {communityBanner}
+        {leftContent}
+      </div>
       <div className="hidden lg:block">
         <div className="space-y-4 sticky top-4">
           {resumeHref && resumeTitle && (
@@ -1686,6 +1733,16 @@ export default function LearnerPortal() {
   const courseIds = data.trainings
     .filter((t) => t.lms_course_id)
     .map((t) => t.lms_course_id!);
+  const courses = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { id: string; name: string }[] = [];
+    for (const t of data.trainings) {
+      if (!t.lms_course_id || seen.has(t.lms_course_id)) continue;
+      seen.add(t.lms_course_id);
+      out.push({ id: t.lms_course_id, name: t.training_name });
+    }
+    return out;
+  }, [data.trainings]);
 
   return (
     <div className="flex h-screen overflow-hidden"
@@ -1813,6 +1870,7 @@ export default function LearnerPortal() {
                 }
                 email={data.email}
                 courseIds={courseIds}
+                courses={courses}
                 firstName={firstName}
                 lastName={lastName}
                 photoUrl={photoUrl}
