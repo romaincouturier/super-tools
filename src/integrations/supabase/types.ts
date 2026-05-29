@@ -6448,6 +6448,7 @@ export type Database = {
           content: string | null
           course_id: string | null
           created_at: string
+          deposit_id: string | null
           file_mime: string | null
           file_name: string | null
           file_size: number | null
@@ -6462,6 +6463,7 @@ export type Database = {
           content?: string | null
           course_id?: string | null
           created_at?: string
+          deposit_id?: string | null
           file_mime?: string | null
           file_name?: string | null
           file_size?: number | null
@@ -6476,6 +6478,7 @@ export type Database = {
           content?: string | null
           course_id?: string | null
           created_at?: string
+          deposit_id?: string | null
           file_mime?: string | null
           file_name?: string | null
           file_size?: number | null
@@ -6485,7 +6488,15 @@ export type Database = {
           lesson_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "practice_posts_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: true
+            referencedRelation: "lms_work_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
