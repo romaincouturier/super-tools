@@ -900,10 +900,46 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     );
   }
 
+  const communityBanner = (
+    <div
+      className="rounded-2xl border px-4 py-3 flex items-center justify-between gap-3"
+      style={{ borderColor: "rgba(16,24,32,0.08)", background: "var(--st-white)" }}
+    >
+      <div className="min-w-0">
+        <p className="text-xs uppercase tracking-wide" style={{ color: "var(--st-ink-muted)" }}>
+          Communauté
+        </p>
+        <p className="text-sm font-semibold truncate" style={{ color: "var(--st-ink)" }}>
+          {activeCourse?.name ?? (canManageCommunity ? "Toutes les communautés" : "—")}
+        </p>
+      </div>
+      {showCommunitySelector ? (
+        <select
+          value={activeCourseId ?? ""}
+          onChange={(e) => setActiveCourseId(e.target.value || null)}
+          className="text-sm rounded-lg border px-2 py-1.5 bg-white shrink-0 max-w-[55%]"
+          style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)" }}
+        >
+          {canManageCommunity && <option value="">Toutes les communautés</option>}
+          {courses.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      ) : fromCourse ? (
+        <span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
+          depuis votre formation
+        </span>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <ConfirmDialog />
-      <div className="min-w-0 space-y-4">{leftContent}</div>
+      <div className="min-w-0 space-y-4">
+        {communityBanner}
+        {leftContent}
+      </div>
       <div className="hidden lg:block">
         <div className="space-y-4 sticky top-4">
           {resumeHref && resumeTitle && (
