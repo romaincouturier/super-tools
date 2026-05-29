@@ -67,7 +67,48 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const results = { checked: 0, completed: 0, submitted: 0, errors: 0, backfilled: 0 };
+    const results = { checked: 0, completed: 0, submitted: 0, errors: 0, backfilled: 0, rerouted: 0 };
+
+    // Filename matches our testimonial convention ("Témoignage" prefix).
+    // Anything else found in the testimonials folder is treated as a regular
+    // video recording and rerouted to the transcripts pipeline.
+    const isTestimonialName = (name: string) =>
+      /^\s*t[eé]moignage(\s+vid[eé]o)?\s*-/i.test(name ?? "");
+
+    const enqueueTranscript = async (fileId: string, fileName: string) => {
+      const { data: existingTranscript } = await (admin as any)
+        .from("transcripts")
+        .select("id")
+        .eq("source", "google_drive")
+        .eq("external_id", fileId)
+        .maybeSingle();
+
+      let transcriptId = (existingTranscript as { id?: string } | null)?.id ?? null;
+      if (!transcriptId) {
+        const { data: inserted, error } = await (admin as any)
+          .from("transcripts")
+          .insert({ source: "google_drive", external_id: fileId, title: fileName, status: "processing" })
+          .select("id")
+          .single();
+        if (error || !inserted) {
+          console.error(`[poll-drive-testimonials] reroute insert failed for ${fileName}:`, error);
+          return false;
+        }
+        transcriptId = (inserted as { id: string }).id;
+      } else {
+        await (admin as any)
+          .from("transcripts")
+          .update({ title: fileName, status: "processing", error_message: null, assemblyai_id: null })
+          .eq("id", transcriptId);
+      }
+
+      fetch(`${SUPABASE_URL}/functions/v1/submit-drive-transcript`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript_id: transcriptId, drive_file_id: fileId }),
+      }).catch((e) => console.warn("[poll-drive-testimonials] submit-drive-transcript failed", e));
+      return true;
+    };
 
     // ── Pass 0: backfill drive_file_name + parsed fields for legacy rows ──
     {
@@ -206,6 +247,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const processSerially = async () => {
       for (const file of toProcess) {
         try {
+          // Reroute non-testimonial recordings to the transcripts pipeline.
+          if (!isTestimonialName(file.name)) {
+            const ok = await enqueueTranscript(file.id, file.name);
+            if (ok) results.rerouted++;
+            else results.errors++;
+            continue;
+          }
+
           const fromName = parseTestimonialFilename(file.name);
           const { data: inserted, error: insertErr } = await (admin as any)
             .from("testimonials")
