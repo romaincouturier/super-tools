@@ -1686,6 +1686,16 @@ export default function LearnerPortal() {
   const courseIds = data.trainings
     .filter((t) => t.lms_course_id)
     .map((t) => t.lms_course_id!);
+  const courses = useMemo(() => {
+    const seen = new Set<string>();
+    const out: { id: string; name: string }[] = [];
+    for (const t of data.trainings) {
+      if (!t.lms_course_id || seen.has(t.lms_course_id)) continue;
+      seen.add(t.lms_course_id);
+      out.push({ id: t.lms_course_id, name: t.training_name });
+    }
+    return out;
+  }, [data.trainings]);
 
   return (
     <div className="flex h-screen overflow-hidden"
