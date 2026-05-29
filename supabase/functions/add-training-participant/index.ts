@@ -457,12 +457,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // ── 10. Accès e-learning ──────────────────────────────────────────────────
-    // Envoyé si : format e_learning ET (source WooCommerce OU paiement non-online).
-    // Cas exclu : ajout manuel d'un participant ayant déjà payé via WooCommerce
-    // (paymentMode "online") — il a reçu son accès côté WooCommerce.
+    // Envoyé si : format e_learning ET (source WooCommerce OU ajout manuel OU paiement non-online).
+    // Cas exclu : webhook WooCommerce sur un paiement online déjà traité côté boutique.
     let elearningAccessSent = false;
     let couponGenerated = false;
-    const shouldSendElearningAccess = isElearning && (source === "woocommerce" || paymentMode !== "online");
+    const shouldSendElearningAccess =
+      isElearning && (source !== "woocommerce" || paymentMode !== "online");
+
 
     if (shouldSendElearningAccess) {
       if (elearningAccessMode === "magic_link") {
