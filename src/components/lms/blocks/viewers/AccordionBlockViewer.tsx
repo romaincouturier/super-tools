@@ -12,7 +12,7 @@ export default function AccordionBlockViewer({ content }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <div className="max-w-2xl mx-auto w-full space-y-2">
+    <div className="max-w-[800px] w-full space-y-2">
       {content.title && (
         <p className="font-bold text-base mb-3" style={{ color: "#101820" }}>{content.title}</p>
       )}
