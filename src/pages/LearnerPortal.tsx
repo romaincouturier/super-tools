@@ -229,13 +229,7 @@ function RecommendedCoursesBlock({
                   style={{ background: "var(--st-ink)", color: "#fff" }}>
                   S'inscrire <ChevronRight size={14} />
                 </a>
-              ) : (
-                <Link to={`/lms/${c.id}/home`}
-                  className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold border"
-                  style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
-                  Découvrir <ChevronRight size={14} />
-                </Link>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
