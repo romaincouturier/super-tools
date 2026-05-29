@@ -256,7 +256,7 @@ function ValidateItemDialog({
   games: GameFull[];
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<"link" | "create" | "refuse">("link");
+  const [mode, setMode] = useState<"link" | "create" | "refuse">(item.game_id ? "link" : "create");
   const [gameId, setGameId] = useState(item.game_id ?? "");
 
   // Create-new state
