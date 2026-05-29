@@ -23,7 +23,7 @@ export default function ChecklistBlockViewer({ content }: Props) {
     <div className="rounded-xl border bg-card px-5 py-4">
       {content.title && <p className="text-lg font-bold mb-3 break-words">{content.title}</p>}
       <ul className="space-y-2">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <li key={item.id} className="flex items-start gap-2">
             <Checkbox
               id={`checklist-${item.id}`}
@@ -38,7 +38,7 @@ export default function ChecklistBlockViewer({ content }: Props) {
                 checked[item.id] && "line-through text-muted-foreground",
               )}
             >
-              {item.label}
+              <span className="font-medium mr-1">{index + 1}.</span>{item.label}
             </label>
           </li>
         ))}
