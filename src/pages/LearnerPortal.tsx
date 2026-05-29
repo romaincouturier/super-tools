@@ -1823,6 +1823,7 @@ export default function LearnerPortal() {
                 }
                 email={data.email}
                 courseIds={courseIds}
+                courses={courses}
                 firstName={firstName}
                 lastName={lastName}
                 photoUrl={photoUrl}
