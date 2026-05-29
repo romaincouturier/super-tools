@@ -66,6 +66,188 @@ import { TravauxView } from "@/components/learner/portal/TravauxView";
 import { DashCard } from "@/components/learner/portal/DashCard";
 
 
+// ── Recommended courses (other published e-learnings not yet enrolled) ────────
+
+type RecoCourse = {
+  id: string;
+  title: string;
+  description: string | null;
+  cover_image_url: string | null;
+  estimated_duration_minutes: number | null;
+  boutique_url: string | null;
+  prix: number | null;
+};
+
+function useRecommendedCourses(excludedCourseIds: string[]) {
+  const [courses, setCourses] = useState<RecoCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const excludedKey = excludedCourseIds.slice().sort().join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [coursesRes, configsRes] = await Promise.all([
+        (supabase as any)
+          .from("lms_courses")
+          .select("id, title, description, cover_image_url, estimated_duration_minutes")
+          .eq("status", "published")
+          .order("created_at", { ascending: true }),
+        (supabase as any)
+          .from("formation_configs")
+          .select("formation_name, supertilt_link, prix")
+          .not("supertilt_link", "is", null),
+      ]);
+      if (cancelled) return;
+      const configs: Array<{ formation_name: string; supertilt_link: string | null; prix: number | null }> =
+        configsRes.data || [];
+      const matchConfig = (title: string) => {
+        const t = (title || "").toLowerCase();
+        return configs.find((c) => {
+          const n = (c.formation_name || "").toLowerCase();
+          if (!n) return false;
+          return n.includes(t) || t.includes(n) ||
+            n.split(" ").filter((w) => w.length > 4).some((w) => t.includes(w));
+        });
+      };
+      const excludedSet = new Set(excludedCourseIds);
+      const all: RecoCourse[] = (coursesRes.data || [])
+        .filter((c: any) => !excludedSet.has(c.id))
+        .map((c: any) => {
+          const cfg = matchConfig(c.title);
+          return {
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            cover_image_url: c.cover_image_url,
+            estimated_duration_minutes: c.estimated_duration_minutes,
+            boutique_url: cfg?.supertilt_link ?? null,
+            prix: cfg?.prix ?? null,
+          };
+        });
+      setCourses(all);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [excludedKey]);
+
+  return { courses, loading };
+}
+
+function RecommendedCoursesBlock({
+  excludedCourseIds,
+  variant,
+}: {
+  excludedCourseIds: string[];
+  variant: "compact" | "full";
+}) {
+  const { courses, loading } = useRecommendedCourses(excludedCourseIds);
+
+  if (loading) {
+    return (
+      <div className="py-6 flex justify-center">
+        <Spinner size="sm" />
+      </div>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <p className="text-sm py-3 text-center" style={{ color: "var(--st-ink-muted)" }}>
+        Aucune autre formation à découvrir pour l'instant.
+      </p>
+    );
+  }
+
+  if (variant === "compact") {
+    return (
+      <div className="space-y-2">
+        {courses.slice(0, 3).map((c) => (
+          <a
+            key={c.id}
+            href={c.boutique_url ?? `/lms/${c.id}/home`}
+            target={c.boutique_url ? "_blank" : undefined}
+            rel={c.boutique_url ? "noreferrer" : undefined}
+            className="flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-black/5"
+          >
+            {c.cover_image_url ? (
+              <img src={c.cover_image_url} alt={c.title}
+                className="w-10 h-10 rounded-lg object-cover shrink-0" />
+            ) : (
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "var(--st-surface, #F2F4F4)" }}>
+                <Sparkles size={16} style={{ color: "var(--st-ink-muted)" }} />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate" style={{ color: "var(--st-ink)" }}>{c.title}</p>
+              <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                {c.prix === 0 ? "Gratuit" : c.prix != null ? `${c.prix.toLocaleString("fr-FR")} €` : "Découvrir"}
+              </p>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--st-ink-muted)" }} />
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {courses.map((c) => (
+        <div key={c.id} className="rounded-2xl border overflow-hidden flex flex-col"
+          style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
+          {c.cover_image_url ? (
+            <img src={c.cover_image_url} alt={c.title} className="w-full h-40 object-cover" />
+          ) : (
+            <div className="w-full h-40 flex items-center justify-center"
+              style={{ background: "var(--st-surface, #F2F4F4)" }}>
+              <Sparkles size={32} style={{ color: "var(--st-ink-muted)" }} />
+            </div>
+          )}
+          <div className="p-4 flex-1 flex flex-col gap-3">
+            <h3 className="text-base font-bold leading-tight" style={{ color: "var(--st-ink)" }}>{c.title}</h3>
+            {c.description && (
+              <p className="text-sm line-clamp-3" style={{ color: "var(--st-ink-muted)" }}>{c.description}</p>
+            )}
+            <div className="mt-auto pt-2 flex items-end justify-between gap-3">
+              <div>
+                {c.prix != null && (
+                  <p className="text-lg font-black" style={{ color: "var(--st-ink)" }}>
+                    {c.prix === 0 ? "Gratuit" : `${c.prix.toLocaleString("fr-FR")} €`}
+                  </p>
+                )}
+                {c.estimated_duration_minutes ? (
+                  <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
+                    {Math.round(c.estimated_duration_minutes / 60)}h de contenu
+                  </p>
+                ) : null}
+              </div>
+              {c.boutique_url ? (
+                <a href={c.boutique_url} target="_blank" rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold"
+                  style={{ background: "var(--st-ink)", color: "#fff" }}>
+                  S'inscrire <ChevronRight size={14} />
+                </a>
+              ) : (
+                <Link to={`/lms/${c.id}/home`}
+                  className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold border"
+                  style={{ borderColor: "rgba(16,24,32,0.15)", color: "var(--st-ink)" }}>
+                  Découvrir <ChevronRight size={14} />
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+
+
+
 // ── Dashboard view ────────────────────────────────────────────────────────────
 
 function DashboardView({
