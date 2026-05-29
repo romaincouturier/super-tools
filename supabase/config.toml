@@ -596,3 +596,6 @@ verify_jwt = false
 
 [functions.upload-content-image]
 verify_jwt = false
+
+[functions.supertilt-confirm-shipped]
+verify_jwt = false
