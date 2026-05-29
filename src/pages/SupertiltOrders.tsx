@@ -670,7 +670,8 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         </Button>
         {item.kanban_status === "to_validate" && (
           <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-green-700" onClick={() => setShowValidate(true)}>
-            <CheckCircle className="h-3 w-3 mr-1" />Valider
+            <CheckCircle className="h-3 w-3 mr-1" />
+            {item.game_id ? "Valider" : "Ajouter au catalogue"}
           </Button>
         )}
         {item.kanban_status !== "processed" && item.kanban_status !== "blocked" && item.game_id && (
