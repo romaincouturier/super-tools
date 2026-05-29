@@ -164,10 +164,18 @@ export default function PracticePostCard({
         ) : post.file_mime?.startsWith("video/") ? (
           <video src={post.file_url} controls className="w-full" style={{ maxHeight: 480 }} />
         ) : (
-          <a href={post.file_url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-2 mx-4 mb-3 px-3 py-2.5 rounded-xl border text-sm font-medium hover:bg-black/5"
-            style={{ borderColor: "rgba(16,24,32,0.12)", color: "var(--st-ink)" }}>
-            <FileText size={16} /> {post.file_name ?? "Voir le fichier"}
+          <a
+            href={post.file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
+            style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", minHeight: 220 }}
+            title={post.file_name ?? "Voir le fichier"}
+          >
+            <FileText size={48} style={{ color: "var(--st-ink-muted)" }} />
+            <span className="text-sm font-medium text-center break-all px-4">
+              {post.file_name ?? "Voir le fichier"}
+            </span>
           </a>
         )
       )}
