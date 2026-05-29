@@ -7663,6 +7663,7 @@ export type Database = {
           ai_analysis: Json | null
           archived_at: string | null
           assigned_to: string | null
+          branch_url: string | null
           created_at: string
           description: string
           discussion_requested_at: string | null
@@ -7686,6 +7687,7 @@ export type Database = {
           ai_analysis?: Json | null
           archived_at?: string | null
           assigned_to?: string | null
+          branch_url?: string | null
           created_at?: string
           description: string
           discussion_requested_at?: string | null
@@ -7709,6 +7711,7 @@ export type Database = {
           ai_analysis?: Json | null
           archived_at?: string | null
           assigned_to?: string | null
+          branch_url?: string | null
           created_at?: string
           description?: string
           discussion_requested_at?: string | null

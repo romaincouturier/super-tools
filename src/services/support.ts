@@ -176,12 +176,23 @@ export async function createSupportTicket(
     }
   }
 
-  // Notify admin of new ticket and send a confirmation copy to the submitter
-  // (both fire-and-forget; failures are logged, ticket creation succeeds either way)
+  // Fire-and-forget: notify admin, send confirmation copy, trigger Claude Code processing
   notifyNewTicket(data);
   notifyNewTicketCopy(data);
+  triggerTicketProcessing(data.ticket_number);
 
   return data;
+}
+
+/** Best-effort: dispatch the GitHub Actions workflow that runs Claude Code on this ticket. */
+async function triggerTicketProcessing(ticketNumber: string): Promise<void> {
+  try {
+    await supabase.functions.invoke("trigger-ticket-processing", {
+      body: { ticket_number: ticketNumber },
+    });
+  } catch (err) {
+    console.error("[triggerTicketProcessing] failed:", err);
+  }
 }
 
 /** Best-effort email to admin when a new ticket is submitted. */

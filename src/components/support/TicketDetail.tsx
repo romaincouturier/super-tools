@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Bug, Lightbulb, Sparkles, Copy, Check, Bot } from "lucide-react";
+import { Bug, Lightbulb, Sparkles, Copy, Check, Bot, GitBranch } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -292,6 +292,22 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
             {reanalyzing ? <Spinner /> : <Sparkles className="h-4 w-4" />}
             Lancer l'analyse IA
           </Button>
+        )}
+
+        {/* Branch URL (set by /process-ticket skill) */}
+        {ticket.branch_url && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Branche GitHub</Label>
+            <a
+              href={ticket.branch_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-mono break-all"
+            >
+              <GitBranch className="h-4 w-4 shrink-0" />
+              {ticket.branch_url}
+            </a>
+          </div>
         )}
 
         {/* Info read-only */}

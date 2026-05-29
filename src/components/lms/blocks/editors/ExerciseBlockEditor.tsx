@@ -432,13 +432,58 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
         )}
       </div>
 
-      <div>
-        <Label>Corrigé (optionnel)</Label>
+      <div className="rounded-lg border p-3 space-y-3">
+        <Label className="text-sm">Corrigé (optionnel)</Label>
         <RichTextEditor
           content={content.answer_html || ""}
           onChange={(answer_html) => onChange({ ...content, answer_html })}
           placeholder="Le corrigé est masqué par défaut, l'apprenant le révèle d'un clic."
         />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Video className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-xs">Vidéo du corrigé (optionnel)</Label>
+          </div>
+          <Input
+            value={content.answer_video_url || ""}
+            onChange={(e) => onChange({ ...content, answer_video_url: e.target.value || null })}
+            placeholder="URL YouTube, Vimeo ou lien direct…"
+            type="url"
+          />
+          {content.answer_video_url && <VideoPreview url={content.answer_video_url} />}
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-xs">
+              Images du corrigé (optionnel{(content.answer_image_urls?.length ?? 0) > 0 ? ` — ${content.answer_image_urls!.length}/${MAX_IMAGES}` : ""})
+            </Label>
+          </div>
+          {(content.answer_image_urls ?? []).map((url, idx) => (
+            <ImageUploader
+              key={idx}
+              lessonId={lessonId}
+              imageUrl={url}
+              onUpload={(newUrl) => {
+                const updated = [...(content.answer_image_urls ?? [])];
+                updated[idx] = newUrl;
+                onChange({ ...content, answer_image_urls: updated });
+              }}
+              onRemove={() => {
+                const updated = (content.answer_image_urls ?? []).filter((_, i) => i !== idx);
+                onChange({ ...content, answer_image_urls: updated.length ? updated : null });
+              }}
+            />
+          ))}
+          {(content.answer_image_urls?.length ?? 0) < MAX_IMAGES && (
+            <ImageUploader
+              lessonId={lessonId}
+              imageUrl={null}
+              onUpload={(url) => onChange({ ...content, answer_image_urls: [...(content.answer_image_urls ?? []), url] })}
+              onRemove={() => {}}
+            />
+          )}
+        </div>
       </div>
 
       {/* Work deposit toggle (ST-2026-0138) */}

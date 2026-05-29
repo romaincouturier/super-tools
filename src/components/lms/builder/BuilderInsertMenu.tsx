@@ -3,6 +3,7 @@ import { Search, Plus } from "lucide-react";
 import { LAYOUT_BLOCKS, CONTENT_BLOCKS } from "@/components/lms/blocks/registry";
 import type { BlockTypeMeta } from "@/components/lms/blocks/registry";
 import type { LessonBlockType } from "@/types/lms-blocks";
+import { LESSON_TEMPLATES } from "@/types/lms-templates";
 
 // Description and shortcut hints per block type (matching design catalog)
 const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }>> = {
@@ -53,12 +54,13 @@ const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [
 
 interface Props {
   onInsert: (type: LessonBlockType) => void;
+  onInsertTemplate?: (templateId: string) => void;
   onClose: () => void;
   anchorRef: React.RefObject<HTMLElement>;
   placement?: "top" | "bottom";
 }
 
-export default function BuilderInsertMenu({ onInsert, onClose, anchorRef, placement = "bottom" }: Props) {
+export default function BuilderInsertMenu({ onInsert, onInsertTemplate, onClose, anchorRef, placement = "bottom" }: Props) {
   const [search, setSearch] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +99,10 @@ export default function BuilderInsertMenu({ onInsert, onClose, anchorRef, placem
   const filteredLayout = LAYOUT_BLOCKS.filter(
     (b) => !q || b.label.toLowerCase().includes(q) || BLOCK_META[b.type]?.desc?.toLowerCase().includes(q)
   ).map((b) => ({ ...b, active: ACTIVE_LAYOUT_TYPES.includes(b.type) }));
+
+  const filteredTemplates = onInsertTemplate
+    ? LESSON_TEMPLATES.filter((t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
+    : [];
 
   return (
     <div
@@ -138,17 +144,60 @@ export default function BuilderInsertMenu({ onInsert, onClose, anchorRef, placem
         />
       </div>
 
+      {filteredTemplates.length > 0 && (
+        <TemplateSection items={filteredTemplates} onInsertTemplate={onInsertTemplate!} onClose={onClose} />
+      )}
       {filteredContent.length > 0 && (
         <Section title="Contenu" items={filteredContent} onInsert={onInsert} onClose={onClose} />
       )}
       {filteredLayout.length > 0 && (
         <Section title="Mise en page" items={filteredLayout} onInsert={onInsert} onClose={onClose} />
       )}
-      {filteredContent.length === 0 && filteredLayout.length === 0 && (
+      {filteredTemplates.length === 0 && filteredContent.length === 0 && filteredLayout.length === 0 && (
         <p className="text-xs text-center py-6" style={{ color: "var(--st-ink-50)" }}>
           Aucun bloc trouvé
         </p>
       )}
+    </div>
+  );
+}
+
+function TemplateSection({
+  items,
+  onInsertTemplate,
+  onClose,
+}: {
+  items: typeof LESSON_TEMPLATES;
+  onInsertTemplate: (id: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div>
+      <div style={{ fontWeight: 700, fontSize: ".6875rem", letterSpacing: ".05em", color: "var(--st-ink-50)", padding: ".625rem .875rem .375rem", textTransform: "uppercase" }}>
+        Modèles
+      </div>
+      {items.map((tpl) => {
+        const Icon = tpl.icon;
+        return (
+          <button
+            key={tpl.id}
+            role="menuitem"
+            onClick={() => { onInsertTemplate(tpl.id); onClose(); }}
+            className="w-full flex items-center gap-3 text-left"
+            style={{ padding: ".625rem .875rem", borderRadius: 12, color: "var(--st-ink)", fontFamily: "inherit", transition: "background 120ms" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "var(--st-yellow-soft)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          >
+            <span className="flex items-center justify-center shrink-0" style={{ width: 32, height: 32, borderRadius: 8, background: "var(--st-surface)", color: "var(--st-ink)" }}>
+              <Icon size={18} />
+            </span>
+            <span className="flex-1 min-w-0">
+              <div style={{ fontWeight: 500, fontSize: ".875rem", color: "var(--st-ink)", lineHeight: 1.2 }}>{tpl.label}</div>
+              <div style={{ fontSize: ".75rem", color: "var(--st-ink-60)", marginTop: ".125rem", lineHeight: 1.3 }}>{tpl.description}</div>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

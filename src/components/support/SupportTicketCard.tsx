@@ -1,4 +1,4 @@
-import { Bug, Lightbulb } from "lucide-react";
+import { Bug, Lightbulb, GitBranch } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSortableCard } from "@/hooks/useSortableCard";
 import {
@@ -59,6 +59,19 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
             className="w-full rounded border object-contain max-h-48 bg-muted"
             draggable={false}
           />
+        </a>
+      )}
+      {t.branch_url && (
+        <a
+          href={t.branch_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline"
+        >
+          <GitBranch className="h-3 w-3 shrink-0" />
+          Voir la branche
         </a>
       )}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">

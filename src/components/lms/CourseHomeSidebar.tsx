@@ -66,7 +66,9 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
   const goToCommunity = async () => {
     const resolvedEmail = await resolvePreviewEmail(email);
     if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
-    window.location.href = communityUrlWithContext(courseId, lessonId, isPreview ? resolvedEmail : null);
+    // Always pass preview_email so LearnerPortal loads with the correct learner
+    // context regardless of whether the ?preview=admin flag was set in the player URL.
+    window.location.href = communityUrlWithContext(courseId, lessonId, resolvedEmail || null);
   };
 
   return (
@@ -81,12 +83,13 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
   );
 }
 
-function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
-  const { data: posts = [] } = usePracticePosts(email || null, 2);
+function CommunitySidebarPreview({ email, courseId, lessonId, isPreview: _isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
+  const postsFilter = courseId ? { courseId } : undefined;
+  const { data: posts = [] } = usePracticePosts(email || null, 2, postsFilter);
   const goToCommunity = async () => {
     const resolvedEmail = await resolvePreviewEmail(email);
     if (resolvedEmail) sessionStorage.setItem("learner_email", resolvedEmail);
-    window.location.href = communityUrlWithContext(courseId, lessonId, isPreview ? resolvedEmail : null);
+    window.location.href = communityUrlWithContext(courseId, lessonId, resolvedEmail || null);
   };
 
   return (

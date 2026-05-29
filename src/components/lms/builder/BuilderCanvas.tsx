@@ -7,7 +7,9 @@ import {
   useDeleteLessonBlock,
   useReorderLessonBlocks,
   useDuplicateLessonBlock,
+  useInsertLessonTemplate,
 } from "@/hooks/useLmsBlocks";
+import { LESSON_TEMPLATES } from "@/types/lms-templates";
 import { buildBlockTree } from "@/services/lms-blocks";
 import type { BlockTreeNode } from "@/services/lms-blocks";
 import type { LessonBlockType, LessonBlockContent, RowBlockContent } from "@/types/lms-blocks";
@@ -91,7 +93,7 @@ function TiltArcBottomLeft() {
 }
 
 // Empty state
-function EmptyState({ onInsert }: { onInsert: (type: LessonBlockType) => void }) {
+function EmptyState({ onInsert, onInsertTemplate }: { onInsert: (type: LessonBlockType) => void; onInsertTemplate?: (id: string) => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -129,6 +131,7 @@ function EmptyState({ onInsert }: { onInsert: (type: LessonBlockType) => void })
           <BuilderInsertMenu
             anchorRef={btnRef as React.RefObject<HTMLElement>}
             onInsert={onInsert}
+            onInsertTemplate={onInsertTemplate}
             onClose={() => setMenuOpen(false)}
           />
         )}
@@ -154,6 +157,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   const deleteBlock = useDeleteLessonBlock(lesson.id);
   const reorderBlocks = useReorderLessonBlocks(lesson.id);
   const duplicateBlock = useDuplicateLessonBlock(lesson.id);
+  const insertTemplate = useInsertLessonTemplate(lesson.id);
   const { toast } = useToast();
 
   const tree = useMemo(() => buildBlockTree(blocks), [blocks]);
@@ -186,6 +190,18 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
       );
     },
     [createBlock, toast],
+  );
+
+  const handleInsertTemplate = useCallback(
+    (templateId: string) => {
+      const tpl = LESSON_TEMPLATES.find((t) => t.id === templateId);
+      if (!tpl) return;
+      insertTemplate.mutate(tpl.blocks, {
+        onSuccess: () => toast({ title: `Modèle « ${tpl.label} » inséré` }),
+        onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur lors de l'insertion du modèle"),
+      });
+    },
+    [insertTemplate, toast],
   );
 
   const handleUpdateContent = useCallback(
@@ -335,7 +351,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
             Chargement…
           </div>
         ) : tree.length === 0 ? (
-          <EmptyState onInsert={(type) => handleAdd(type, null)} />
+          <EmptyState onInsert={(type) => handleAdd(type, null)} onInsertTemplate={handleInsertTemplate} />
         ) : (
           <>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -363,7 +379,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                 </SortableContext>
               </RootDropzone>
             </DndContext>
-            <AddAtEndButton onInsert={(type) => handleAdd(type, null)} />
+            <AddAtEndButton onInsert={(type) => handleAdd(type, null)} onInsertTemplate={handleInsertTemplate} />
           </>
         )}
       </div>
@@ -493,7 +509,7 @@ function SortableBuilderBlock({
   );
 }
 
-function AddAtEndButton({ onInsert }: { onInsert: (type: LessonBlockType) => void }) {
+function AddAtEndButton({ onInsert, onInsertTemplate }: { onInsert: (type: LessonBlockType) => void; onInsertTemplate?: (id: string) => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -524,6 +540,7 @@ function AddAtEndButton({ onInsert }: { onInsert: (type: LessonBlockType) => voi
         <BuilderInsertMenu
           anchorRef={btnRef as React.RefObject<HTMLElement>}
           onInsert={onInsert}
+          onInsertTemplate={onInsertTemplate}
           onClose={() => setMenuOpen(false)}
           placement="top"
         />

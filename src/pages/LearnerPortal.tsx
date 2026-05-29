@@ -699,10 +699,14 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const isFeed = mode === "feed";
 
   const postsFilter = useMemo(() => {
-    if (selectedTag) return fromCourse ? { tag: selectedTag, courseId: fromCourse } : { tag: selectedTag };
-    if (mode === "mine") return fromCourse ? { authorEmail: email, courseId: fromCourse } : { authorEmail: email };
-    if (mode === "likes") return fromCourse ? { likedBy: email, courseId: fromCourse } : { likedBy: email };
-    if (fromCourse) return { courseId: fromCourse };
+    // When entering from the player (fromCourse is set), both learners and admins
+    // see the course-scoped community. Admins act as "super learners" in this context.
+    // Without fromCourse (e.g. standalone community access), no course filter is applied.
+    const courseIdForFilter = fromCourse ?? undefined;
+    if (selectedTag) return courseIdForFilter ? { tag: selectedTag, courseId: courseIdForFilter } : { tag: selectedTag };
+    if (mode === "mine") return courseIdForFilter ? { authorEmail: email, courseId: courseIdForFilter } : { authorEmail: email };
+    if (mode === "likes") return courseIdForFilter ? { likedBy: email, courseId: courseIdForFilter } : { likedBy: email };
+    if (courseIdForFilter) return { courseId: courseIdForFilter };
     return undefined;
   }, [mode, selectedTag, email, fromCourse]);
 
@@ -743,8 +747,8 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
     await createPost.mutateAsync({ content, file, poll, gifUrl });
   };
 
-  const handleReact = async (postId: string, iReacted: boolean) => {
-    try { await toggleReaction.mutateAsync({ postId, iReacted }); }
+  const handleReact = async (postId: string, emoji: string, iReacted: boolean) => {
+    try { await toggleReaction.mutateAsync({ postId, emoji, iReacted }); }
     catch { toastError(toast, "Impossible de réagir."); }
   };
 
@@ -1513,18 +1517,20 @@ export default function LearnerPortal() {
         navigate(`/apprenant/connexion?token=${encodeURIComponent(token)}`, { replace: true });
         return;
       }
-      const savedEmail = sessionStorage.getItem("learner_email");
-      if (savedEmail) {
-        loadData(savedEmail);
-        return;
-      }
-
       // No session yet: give Supabase a brief window to hydrate (e.g. new tab
       // opened from "Aperçu" where getSession races storage). If a session
       // arrives, treat staff/admin as a valid viewer instead of bouncing to /apprenant.
+      // The savedEmail is only used as a hint when the arriving session confirms staff status.
+      const savedEmail = sessionStorage.getItem("learner_email");
       const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
         if (cancelled) return;
         if (s?.user) {
+          // Pass savedEmail as a hint: proceedWithSession will use it only if
+          // the user is staff AND no ?preview_email param is present.
+          if (savedEmail && !previewEmail) {
+            const staff = await isStaff(s.user.id);
+            if (staff) { loadData(savedEmail); return; }
+          }
           await proceedWithSession(s);
         }
       });

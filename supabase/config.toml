@@ -384,6 +384,9 @@ verify_jwt = false
 [functions.support-analyze-ticket]
 verify_jwt = false
 
+[functions.trigger-ticket-processing]
+verify_jwt = true
+
 [functions.send-mission-email-draft]
 verify_jwt = false
 
