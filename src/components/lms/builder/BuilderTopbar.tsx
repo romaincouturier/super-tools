@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Menu, ArrowLeft, Eye } from "lucide-react";
-import { LmsLesson } from "@/hooks/useLms";
+import { LmsLesson, useCourse, useUpdateCourse } from "@/hooks/useLms";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   lesson?: LmsLesson;
@@ -13,6 +14,34 @@ interface Props {
 
 export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleChange, onMenuToggle, isHome = false }: Props) {
   const navigate = useNavigate();
+  const { data: course } = useCourse(courseId);
+  const updateCourse = useUpdateCourse();
+  const { toast } = useToast();
+
+  const status = course?.status ?? "draft";
+  const isPublished = status === "published";
+  const isArchived = status === "archived";
+  const statusLabel = isPublished ? "Publié" : isArchived ? "Archivé" : "Brouillon";
+  const statusColor = isPublished
+    ? { dot: "rgb(16,185,129)", text: "rgb(4,120,87)", border: "rgba(16,185,129,0.35)" }
+    : isArchived
+      ? { dot: "rgb(249,115,22)", text: "rgb(194,65,12)", border: "rgba(249,115,22,0.35)" }
+      : { dot: "var(--st-ink-muted)", text: "var(--st-ink-muted)", border: "rgba(16,24,32,0.15)" };
+
+  const togglePublish = async () => {
+    const next = isPublished ? "draft" : "published";
+    try {
+      await updateCourse.mutateAsync({ id: courseId, status: next });
+      toast({ title: next === "published" ? "Formation publiée" : "Formation repassée en brouillon" });
+    } catch (err) {
+      toast({
+        title: "Action impossible",
+        description: err instanceof Error ? err.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <header
