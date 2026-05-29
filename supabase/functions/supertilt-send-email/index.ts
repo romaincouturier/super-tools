@@ -202,6 +202,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
     vars.contrat_url = (game as any).location_contract_url ?? "";
     vars.partenaire_nom = game.partner_name ?? "";
 
+    // ── Signed confirm-shipped link (dropshipping only) ─────────
+    {
+      const keyData = new TextEncoder().encode(SUPABASE_SERVICE_ROLE_KEY);
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw",
+        keyData,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
+      const sigBuf = await crypto.subtle.sign(
+        "HMAC",
+        cryptoKey,
+        new TextEncoder().encode(`shipped:${order_item_id}`),
+      );
+      const sigHex = Array.from(new Uint8Array(sigBuf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      vars.lien_confirmation = `${SUPABASE_URL}/functions/v1/supertilt-confirm-shipped?id=${order_item_id}&sig=${sigHex}`;
+    }
+
+
     // ── Determine template key and recipients ────────────────────
     let templateKey = "internal_notif";
     let toEmails: string[] = [];
