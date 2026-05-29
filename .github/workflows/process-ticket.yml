@@ -30,14 +30,16 @@ jobs:
         run: npm ci
 
       - name: Process ticket with Claude Code
-        uses: anthropic/claude-code-action@beta
+        uses: anthropic/claude-code-action@v1
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep,Agent"
+          claude_args: |
+            --model claude-opus-4-8
+            --allowedTools Bash,Read,Write,Edit,Glob,Grep,Agent
           prompt: |
             Traite le ticket support ${{ inputs.ticket_number }} du kanban supertools.
 
