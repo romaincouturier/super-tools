@@ -1,0 +1,532 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare, Pin, PinOff, Trash2, Send } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import PracticePostCard from "@/components/learner/community/PracticePostCard";
+import {
+  usePracticePosts,
+  usePracticeComments,
+  useCreatePracticeComment,
+  useDeletePracticePost,
+  usePinPracticePost,
+  useTogglePracticeReaction,
+  useVotePracticePoll,
+  type PracticePost,
+} from "@/hooks/usePracticeFeed";
+
+// ── Course info hook ──────────────────────────────────────────────────────────
+
+function useCourseInfo(courseId: string) {
+  return useQuery({
+    queryKey: ["lms_course_info", courseId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("lms_courses")
+        .select("id, title, community_preview_count")
+        .eq("id", courseId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; title: string; community_preview_count: number | null } | null;
+    },
+    enabled: !!courseId,
+  });
+}
+
+function useCourseEnrollments(courseId: string) {
+  return useQuery({
+    queryKey: ["lms_enrollments_admin", courseId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("lms_enrollments")
+        .select("id, learner_email, status, enrolled_at, completion_percentage")
+        .eq("course_id", courseId)
+        .order("enrolled_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string;
+        learner_email: string;
+        status: string;
+        enrolled_at: string;
+        completion_percentage: number | null;
+      }>;
+    },
+    enabled: !!courseId,
+  });
+}
+
+// ── "À traiter" tab — posts without staff reply ───────────────────────────────
+
+function PendingReplyTab({
+  posts,
+  userEmail,
+  adminName,
+}: {
+  posts: PracticePost[];
+  userEmail: string | null;
+  adminName: string | null;
+}) {
+  const { toast } = useToast();
+  const [replyMap, setReplyMap] = useState<Record<string, string>>({});
+  const [openReplyId, setOpenReplyId] = useState<string | null>(null);
+  const createComment = useCreatePracticeComment(userEmail, true, adminName);
+  const { data: allComments } = useQuery({
+    queryKey: ["practice_comments_all_posts", posts.map((p) => p.id).join(",")],
+    queryFn: async () => {
+      if (posts.length === 0) return [];
+      const postIds = posts.map((p) => p.id);
+      const { data } = await (supabase as any)
+        .from("practice_post_comments")
+        .select("post_id, is_staff_reply")
+        .in("post_id", postIds);
+      return (data ?? []) as Array<{ post_id: string; is_staff_reply: boolean }>;
+    },
+    enabled: posts.length > 0,
+  });
+
+  const postsWithoutStaffReply = posts.filter((p) => {
+    const comments = (allComments ?? []).filter((c) => c.post_id === p.id);
+    return !comments.some((c) => c.is_staff_reply);
+  });
+
+  const handleSubmitReply = async (postId: string) => {
+    const content = (replyMap[postId] ?? "").trim();
+    if (!content) return;
+    try {
+      await createComment.mutateAsync({ postId, content });
+      setReplyMap((prev) => ({ ...prev, [postId]: "" }));
+      setOpenReplyId(null);
+      toast({ title: "Réponse envoyée" });
+    } catch {
+      toastError(toast, "Impossible d'envoyer la réponse.");
+    }
+  };
+
+  if (postsWithoutStaffReply.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+        Aucun message en attente de retour.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {postsWithoutStaffReply.map((post) => (
+        <Card key={post.id}>
+          <CardContent className="pt-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-sm space-y-1 flex-1">
+                <p className="font-medium text-muted-foreground text-xs">{post.author_email}</p>
+                {post.content && <p className="text-sm">{post.content}</p>}
+                {post.file_url && (
+                  <a href={post.file_url} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">
+                    Voir le fichier joint
+                  </a>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpenReplyId(openReplyId === post.id ? null : post.id)}
+              >
+                Répondre
+              </Button>
+            </div>
+            {openReplyId === post.id && (
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Votre réponse en tant que formateur..."
+                  value={replyMap[post.id] ?? ""}
+                  onChange={(e) => setReplyMap((prev) => ({ ...prev, [post.id]: e.target.value }))}
+                  className="text-sm"
+                  rows={3}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => handleSubmitReply(post.id)}
+                  disabled={createComment.isPending || !(replyMap[post.id] ?? "").trim()}
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ── Shared PostsFeed used in Publications + Travaux tabs ──────────────────────
+
+function PostsFeed({
+  posts,
+  isLoading,
+  userEmail,
+  adminName,
+  emptyLabel,
+}: {
+  posts: PracticePost[];
+  isLoading: boolean;
+  userEmail: string | null;
+  adminName: string | null;
+  emptyLabel: string;
+}) {
+  const { toast } = useToast();
+  const deletePost = useDeletePracticePost(userEmail, true);
+  const pinPost = usePinPracticePost();
+  const toggleReaction = useTogglePracticeReaction(userEmail);
+  const votePoll = useVotePracticePoll(userEmail);
+
+  const handleDelete = async (postId: string) => {
+    if (!window.confirm("Supprimer ce message ?")) return;
+    try {
+      await deletePost.mutateAsync(postId);
+    } catch {
+      toastError(toast, "Impossible de supprimer ce message.");
+    }
+  };
+
+  const handlePin = (postId: string, pin: boolean) =>
+    pinPost.mutateAsync({ postId, pin }).catch(() =>
+      toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler.")
+    );
+
+  const handleReact = (postId: string, emoji: string, iReacted: boolean) =>
+    toggleReaction.mutateAsync({ postId, emoji, iReacted }).catch(() =>
+      toastError(toast, "Action impossible.")
+    );
+
+  const handleVote = (pollId: string, optionId: string, currentOptionId: string | null) =>
+    votePoll.mutateAsync({ pollId, optionId, currentOptionId }).catch(() =>
+      toastError(toast, "Vote impossible.")
+    );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (posts.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+        {emptyLabel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {posts.map((post) => (
+        <PracticePostCard
+          key={post.id}
+          post={post}
+          currentEmail={userEmail ?? ""}
+          isAdmin
+          currentUserName={adminName}
+          onReact={handleReact}
+          onDelete={handleDelete}
+          onVote={handleVote}
+          onPin={handlePin}
+          onSelectTag={() => {}}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Membres tab ───────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  enrolled: "Inscrit",
+  in_progress: "En cours",
+  completed: "Terminé",
+};
+
+const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
+  enrolled: "outline",
+  in_progress: "secondary",
+  completed: "default",
+};
+
+function MembersTab({ courseId }: { courseId: string }) {
+  const { data: enrollments = [], isLoading } = useCourseEnrollments(courseId);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (enrollments.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+        Aucun membre inscrit.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className="text-left px-4 py-3 font-medium">Email</th>
+            <th className="text-left px-4 py-3 font-medium">Statut</th>
+            <th className="text-left px-4 py-3 font-medium">Inscription</th>
+            <th className="text-right px-4 py-3 font-medium">Progression</th>
+          </tr>
+        </thead>
+        <tbody>
+          {enrollments.map((e, i) => (
+            <tr key={e.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+              <td className="px-4 py-3">{e.learner_email}</td>
+              <td className="px-4 py-3">
+                <Badge variant={STATUS_VARIANTS[e.status] ?? "outline"}>
+                  {STATUS_LABELS[e.status] ?? e.status}
+                </Badge>
+              </td>
+              <td className="px-4 py-3 text-muted-foreground">
+                {new Date(e.enrolled_at).toLocaleDateString("fr-FR")}
+              </td>
+              <td className="px-4 py-3 text-right">
+                {e.completion_percentage != null ? `${Math.round(e.completion_percentage)}%` : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ── Paramètres tab ────────────────────────────────────────────────────────────
+
+function SettingsTab({ courseId }: { courseId: string }) {
+  const { toast } = useToast();
+  const { data: course, refetch } = useCourseInfo(courseId);
+  const [previewCount, setPreviewCount] = useState<number>(3);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (course?.community_preview_count != null) {
+      setPreviewCount(course.community_preview_count);
+    }
+  }, [course]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("lms_courses")
+        .update({ community_preview_count: previewCount })
+        .eq("id", courseId);
+      if (error) throw error;
+      await refetch();
+      toast({ title: "Paramètres sauvegardés" });
+    } catch {
+      toastError(toast, "Impossible de sauvegarder.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="max-w-sm">
+      <CardHeader>
+        <CardTitle className="text-base">Aperçu communauté</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <Label>Nombre de publications affichées dans la sidebar du cours</Label>
+          <Input
+            type="number"
+            min={0}
+            max={20}
+            value={previewCount}
+            onChange={(e) => setPreviewCount(Number(e.target.value))}
+            className="w-24"
+          />
+        </div>
+        <Button onClick={handleSave} disabled={saving} size="sm">
+          {saving ? <Spinner size="sm" /> : "Sauvegarder"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
+export default function LmsCommunityAdmin() {
+  const { courseId = "" } = useParams<{ courseId: string }>();
+  const { userEmail } = useModuleAccess();
+  const [adminName, setAdminName] = useState<string | null>(null);
+
+  const { data: course, isLoading: courseLoading } = useCourseInfo(courseId);
+  const { data: posts = [], isLoading: postsLoading } = usePracticePosts(
+    userEmail,
+    200,
+    { courseId },
+    true,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user || cancelled) return;
+      const { data: profile } = await (supabase as any)
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ").trim();
+      setAdminName(name || (user.email ? user.email.split("@")[0] : null));
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const sharedPosts = posts.filter((p) => p.file_url != null);
+
+  return (
+    <ModuleLayout>
+      <div className="container py-6 space-y-6 max-w-4xl">
+        <PageHeader
+          icon={Users}
+          title={courseLoading ? "Communauté" : (course?.title ?? "Communauté")}
+          subtitle="Administration de la communauté"
+          backTo="/lms/communautes"
+        />
+
+        <Tabs defaultValue="pending">
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="pending" className="gap-1.5">
+              <CheckSquare className="w-4 h-4" />
+              À traiter
+              {!postsLoading && posts.length > 0 && (
+                <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
+                  {posts.filter((p) => p.comment_count === 0).length || ""}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="posts" className="gap-1.5">
+              <MessageSquare className="w-4 h-4" />
+              Publications
+            </TabsTrigger>
+            <TabsTrigger value="shared" className="gap-1.5">
+              <FileText className="w-4 h-4" />
+              Travaux partagés
+              {sharedPosts.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">{sharedPosts.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="members" className="gap-1.5">
+              <Users className="w-4 h-4" />
+              Membres
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-1.5">
+              <Settings className="w-4 h-4" />
+              Paramètres
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="gap-1.5">
+              <Eye className="w-4 h-4" />
+              Aperçu apprenant
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="mt-6">
+            <TabsContent value="pending">
+              {postsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Spinner size="lg" />
+                </div>
+              ) : (
+                <PendingReplyTab posts={posts} userEmail={userEmail} adminName={adminName} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="posts">
+              <PostsFeed
+                posts={posts}
+                isLoading={postsLoading}
+                userEmail={userEmail}
+                adminName={adminName}
+                emptyLabel="Aucune publication dans cette communauté."
+              />
+            </TabsContent>
+
+            <TabsContent value="shared">
+              <PostsFeed
+                posts={sharedPosts}
+                isLoading={postsLoading}
+                userEmail={userEmail}
+                adminName={adminName}
+                emptyLabel="Aucun travail partagé dans cette communauté."
+              />
+            </TabsContent>
+
+            <TabsContent value="members">
+              <MembersTab courseId={courseId} />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <SettingsTab courseId={courseId} />
+            </TabsContent>
+
+            <TabsContent value="preview">
+              <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-sm text-primary font-medium mb-4">
+                Mode aperçu — vue apprenant (lecture seule)
+              </div>
+              {postsLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Spinner size="lg" />
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+                  Aucune publication dans cette communauté.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {posts.map((post) => (
+                    <PracticePostCard
+                      key={post.id}
+                      post={post}
+                      currentEmail=""
+                      isAdmin={false}
+                      currentUserName={null}
+                      onReact={() => Promise.resolve()}
+                      onDelete={() => Promise.resolve()}
+                      onVote={() => Promise.resolve()}
+                      onPin={() => Promise.resolve()}
+                      onSelectTag={() => {}}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </ModuleLayout>
+  );
+}
