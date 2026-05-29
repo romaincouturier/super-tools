@@ -11,7 +11,7 @@ vi.mock("./ChatbotWidget", () => ({
 }));
 
 const mockGetSession = vi.fn();
-const mockOnAuthStateChange = vi.fn(() => ({
+const mockOnAuthStateChange = vi.fn((_cb?: (event: string, session: unknown) => void) => ({
   data: { subscription: { unsubscribe: vi.fn() } },
 }));
 
