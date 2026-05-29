@@ -56,6 +56,7 @@ const EntityMediaManager = ({
   const uploadMissionMedia = useUploadMissionMedia();
 
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
@@ -92,59 +93,83 @@ const EntityMediaManager = ({
       return;
     }
 
+    // Warn early if batch is large — gives user a chance to cancel
+    const BATCH_SIZE = 5;
+    const LARGE_UPLOAD_THRESHOLD = 30;
+    if (validFiles.length > LARGE_UPLOAD_THRESHOLD) {
+      toast.info(
+        `${validFiles.length} fichiers sélectionnés — upload par lots de ${BATCH_SIZE} pour éviter les coupures réseau.`
+      );
+    }
+
     setUploading(true);
+    setUploadProgress({ done: 0, total: validFiles.length });
     let successCount = 0;
     let routedAudioToDocs = 0;
+    let doneCount = 0;
 
     try {
       const uploadedAudioItems: MediaItem[] = [];
 
-      for (const file of validFiles) {
-        try {
-          const fileType = getFileType(file)!;
+      // Process in small batches to avoid saturating memory on mobile Safari.
+      // Each batch runs sequentially; a short pause between batches lets the
+      // browser garbage-collect FormData objects from the previous batch.
+      for (let batchStart = 0; batchStart < validFiles.length; batchStart += BATCH_SIZE) {
+        const batch = validFiles.slice(batchStart, batchStart + BATCH_SIZE);
 
-          // Audio on missions → route through the documents pipeline so the
-          // file shows in the "Documents" tab AND a transcript page is auto-
-          // created with the language detected by AssemblyAI.
-          if (fileType === "audio" && sourceType === "mission") {
-            await uploadEntityDocument(file, "mission", sourceId);
-            queryClient.invalidateQueries({ queryKey: ["mission-documents", sourceId] });
-            successCount++;
-            routedAudioToDocs++;
-            continue;
+        for (const file of batch) {
+          try {
+            const fileType = getFileType(file)!;
+
+            // Audio on missions → route through the documents pipeline so the
+            // file shows in the "Documents" tab AND a transcript page is auto-
+            // created with the language detected by AssemblyAI.
+            if (fileType === "audio" && sourceType === "mission") {
+              await uploadEntityDocument(file, "mission", sourceId);
+              queryClient.invalidateQueries({ queryKey: ["mission-documents", sourceId] });
+              successCount++;
+              routedAudioToDocs++;
+            } else {
+              const result = sourceType === "event"
+                ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId })
+                : sourceType === "mission"
+                ? await uploadMissionMedia.mutateAsync({ file, missionId: sourceId })
+                : await addMedia.mutateAsync({
+                    file_url: await uploadMediaFile(file, sourceType, sourceId),
+                    file_name: file.name,
+                    file_type: fileType,
+                    mime_type: resolveContentType(file),
+                    file_size: file.size,
+                    position: 0,
+                    source_type: sourceType,
+                    source_id: sourceId,
+                  });
+
+              successCount++;
+
+              if (fileType === "audio" && result) {
+                uploadedAudioItems.push({
+                  ...result,
+                  source_label: "",
+                  source_emoji: null,
+                  source_color: null,
+                  source_tags: [],
+                } as MediaItem);
+              }
+            }
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : JSON.stringify(err);
+            console.error("Upload error for file:", file.name, "type:", file.type, "size:", file.size, "resolved:", resolveContentType(file), "error:", errMsg);
+            toast.error(`Erreur : ${file.name}`);
           }
 
-          const result = sourceType === "event"
-            ? await uploadEventMedia.mutateAsync({ file, eventId: sourceId })
-            : sourceType === "mission"
-            ? await uploadMissionMedia.mutateAsync({ file, missionId: sourceId })
-            : await addMedia.mutateAsync({
-                file_url: await uploadMediaFile(file, sourceType, sourceId),
-                file_name: file.name,
-                file_type: fileType,
-                mime_type: resolveContentType(file),
-                file_size: file.size,
-                position: 0,
-                source_type: sourceType,
-                source_id: sourceId,
-              });
+          doneCount++;
+          setUploadProgress({ done: doneCount, total: validFiles.length });
+        }
 
-          successCount++;
-
-          // Collect audio items for auto-transcription (non-mission entities)
-          if (fileType === "audio" && result) {
-            uploadedAudioItems.push({
-              ...result,
-              source_label: "",
-              source_emoji: null,
-              source_color: null,
-              source_tags: [],
-            } as MediaItem);
-          }
-        } catch (err: unknown) {
-          const errMsg = err instanceof Error ? err.message : JSON.stringify(err);
-          console.error("Upload error for file:", file.name, "type:", file.type, "size:", file.size, "resolved:", resolveContentType(file), "error:", errMsg);
-          toast.error(`Erreur lors de l'upload de ${file.name}: ${errMsg}`);
+        // Pause between batches — lets Safari GC collect FormData objects
+        if (batchStart + BATCH_SIZE < validFiles.length) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
         }
       }
 
@@ -169,6 +194,7 @@ const EntityMediaManager = ({
       }
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient]);
 
@@ -351,7 +377,11 @@ const EntityMediaManager = ({
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
               <Spinner size="lg" className="text-primary" />
-              <p className="text-sm text-muted-foreground">Upload en cours...</p>
+              <p className="text-sm text-muted-foreground">
+                {uploadProgress && uploadProgress.total > 1
+                  ? `Upload en cours... ${uploadProgress.done}/${uploadProgress.total}`
+                  : "Upload en cours..."}
+              </p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
