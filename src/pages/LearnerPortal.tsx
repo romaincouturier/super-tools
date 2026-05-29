@@ -747,7 +747,8 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
       | { kind: "post"; key: string; created_at: string; post: PracticePost }
       | { kind: "deposit"; key: string; created_at: string; deposit: any }
     > = [
-      ...posts.map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
+      // Exclude posts auto-synced from deposits to avoid duplicates with the deposit cards below
+      ...posts.filter((p) => !(p as any).deposit_id).map((p) => ({ kind: "post" as const, key: `post_${p.id}`, created_at: p.created_at, post: p })),
       ...(showDeposits ? (deposits as any[]) : []).map((d) => ({ kind: "deposit" as const, key: `deposit_${d.id}`, created_at: d.created_at, deposit: d })),
     ];
     items.sort((a, b) => {
