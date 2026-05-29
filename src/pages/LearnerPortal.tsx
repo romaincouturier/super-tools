@@ -669,10 +669,11 @@ function DepositFeedCard({
 
 // ── PratiqueView ──────────────────────────────────────────────────────────────
 
-function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, onNav }: {
+function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, photoUrl, onNav }: {
   mode: "feed" | "mine" | "comments" | "likes";
   email: string;
   courseIds: string[];
+  courses: { id: string; name: string }[];
   firstName: string;
   lastName: string;
   photoUrl: string | null;
