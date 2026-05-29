@@ -113,17 +113,22 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
 
       {/* Status + actions */}
       <div className="flex items-center gap-2 shrink-0">
-        <span
-          className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border"
+        <button
+          type="button"
+          onClick={togglePublish}
+          disabled={updateCourse.isPending}
+          title={isPublished ? "Repasser en brouillon" : "Publier la formation"}
+          className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border transition-all hover:bg-black/5 disabled:opacity-60"
           style={{
-            color: "var(--st-ink-muted)",
-            borderColor: "rgba(16,24,32,0.15)",
+            color: statusColor.text,
+            borderColor: statusColor.border,
             fontFamily: "inherit",
           }}
         >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--st-ink-muted)" }} />
-          Brouillon
-        </span>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusColor.dot }} />
+          {statusLabel}
+        </button>
+
 
         {/* Preview */}
         <a
