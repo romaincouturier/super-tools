@@ -90,15 +90,34 @@ export default function BuilderInsertMenu({ onInsert, onInsertTemplate, onClose,
     };
   }, [onClose, anchorRef]);
 
-  const q = search.toLowerCase();
+  // Strip leading "/" and whitespace so shortcuts like "/e" or "/ exercice" work naturally.
+  const q = search.replace(/^\/\s*/, "").toLowerCase().trim();
 
-  const filteredContent = CONTENT_BLOCKS.filter(
-    (b) => !q || b.label.toLowerCase().includes(q) || BLOCK_META[b.type]?.desc?.toLowerCase().includes(q)
-  ).map((b) => ({ ...b, active: ACTIVE_CONTENT_TYPES.includes(b.type) }));
+  const blockScore = (b: BlockTypeMeta): number => {
+    if (!q) return 0;
+    const label = b.label.toLowerCase();
+    // kbd field stores "/ keyword" — extract keyword only
+    const kbd = (BLOCK_META[b.type as LessonBlockType]?.kbd ?? "").replace(/^\/\s*/, "").toLowerCase();
+    const desc = (BLOCK_META[b.type as LessonBlockType]?.desc ?? "").toLowerCase();
+    if (kbd === q || label === q) return 4;
+    if (kbd.startsWith(q)) return 3;
+    if (label.startsWith(q)) return 2;
+    if (kbd.includes(q) || label.includes(q)) return 1;
+    if (desc.includes(q)) return 0;
+    return -1;
+  };
 
-  const filteredLayout = LAYOUT_BLOCKS.filter(
-    (b) => !q || b.label.toLowerCase().includes(q) || BLOCK_META[b.type]?.desc?.toLowerCase().includes(q)
-  ).map((b) => ({ ...b, active: ACTIVE_LAYOUT_TYPES.includes(b.type) }));
+  const filterAndSort = (blocks: BlockTypeMeta[]) =>
+    blocks
+      .map((b) => ({ ...b, _score: blockScore(b) }))
+      .filter((b) => !q || b._score >= 0)
+      .sort((a, b) => b._score - a._score);
+
+  const filteredContent = filterAndSort(CONTENT_BLOCKS)
+    .map((b) => ({ ...b, active: ACTIVE_CONTENT_TYPES.includes(b.type) }));
+
+  const filteredLayout = filterAndSort(LAYOUT_BLOCKS)
+    .map((b) => ({ ...b, active: ACTIVE_LAYOUT_TYPES.includes(b.type) }));
 
   const filteredTemplates = onInsertTemplate
     ? LESSON_TEMPLATES.filter((t) => !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
