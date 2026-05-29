@@ -11,7 +11,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { question, context_type } = await req.json();
+    const { question } = await req.json();
 
     if (!question) {
       return new Response(JSON.stringify({ error: "Question requise" }), {
@@ -23,7 +23,33 @@ serve(async (req) => {
     // Build context from multiple sources
     const supabase = getSupabaseClient();
 
-    // Gather knowledge from chatbot_knowledge_base
+    // Security: require authentication and block learners.
+    // This chatbot exposes Super Tools platform data — learners must never access it.
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Authentification requise" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: callerUser } } = await supabase.auth.getUser(token);
+    if (!callerUser) {
+      return new Response(JSON.stringify({ error: "Token invalide" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (callerUser.user_metadata?.role === "learner") {
+      return new Response(JSON.stringify({ error: "Accès refusé" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Gather knowledge from chatbot_knowledge_base only.
+    // trainings, formation_configs, and improvements are intentionally excluded:
+    // they contain client business data that must never be exposed via this endpoint.
     const { data: knowledge } = await supabase
       .from("chatbot_knowledge_base")
       .select("title, content, category")
@@ -31,54 +57,12 @@ serve(async (req) => {
       .order("priority", { ascending: false })
       .limit(20);
 
-    // Gather recent training data for context
-    const { data: trainings } = await supabase
-      .from("trainings")
-      .select("nom_formation, format_formation, objectives, prerequisites")
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    // Gather formation configs (catalogue)
-    const { data: catalogue } = await supabase
-      .from("formation_configs")
-      .select("formation_name, description, objectives, prerequisites, duree_heures, prix")
-      .eq("is_active", true)
-      .limit(20);
-
-    // Gather recent improvements for quality context
-    const { data: improvements } = await supabase
-      .from("improvements")
-      .select("title, description, status, category")
-      .order("created_at", { ascending: false })
-      .limit(10);
-
     // Build RAG context
     const contextParts: string[] = [];
 
     if (knowledge?.length) {
       contextParts.push("## Base de connaissances\n" +
         knowledge.map((k) => `### ${k.title} (${k.category})\n${k.content}`).join("\n\n")
-      );
-    }
-
-    if (catalogue?.length) {
-      contextParts.push("## Catalogue de formations\n" +
-        catalogue.map((c) =>
-          `- **${c.formation_name}**: ${c.description || ""} | ${c.duree_heures}h | ${c.prix}€` +
-          (c.objectives?.length ? ` | Objectifs: ${c.objectives.join(", ")}` : "")
-        ).join("\n")
-      );
-    }
-
-    if (trainings?.length) {
-      contextParts.push("## Formations récentes\n" +
-        trainings.map((t) => `- ${t.nom_formation} (${t.format_formation || ""})`).join("\n")
-      );
-    }
-
-    if (improvements?.length) {
-      contextParts.push("## Améliorations en cours\n" +
-        improvements.map((i) => `- [${i.status}] ${i.title}: ${i.description}`).join("\n")
       );
     }
 
@@ -147,7 +131,7 @@ Règles :
       question,
       answer,
       user_id: userId,
-      sources: contextParts.length > 0 ? ["knowledge_base", "catalogue", "trainings", "improvements"] : [],
+      sources: contextParts.length > 0 ? ["knowledge_base"] : [],
     });
 
     return new Response(JSON.stringify({ answer, sources_used: contextParts.length }), {

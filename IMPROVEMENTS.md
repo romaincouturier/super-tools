@@ -227,6 +227,44 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
+### [031] Isolation données apprenants — toutes les tables staff protégées en SELECT + edge functions critiques bloquées
+
+- **Constat** : La migration `20260521140000_learner_write_guard.sql` bloquait les écritures (INSERT/UPDATE/DELETE) des apprenants sur les tables staff, mais contenait le commentaire erroné *"read-only leak is low-risk"*. En réalité, un apprenant authentifié pouvait lire : toutes les opportunités CRM, tous les devis, toutes les missions, toute la veille concurrentielle. De plus, la edge function `agent-chat` (qui a accès à toutes les données via service role) n'avait aucun blocage apprenant — un apprenant pouvait invoquer l'agent pour extraire n'importe quelle table. La fonction `notify-lms-comment` n'avait aucune authentification, permettant le spam et l'usurpation d'identité.
+- **Règle** :
+  1. **SELECT RESTRICTIVE sur les tables staff** : toute table contenant des données métier (CRM, missions, quotes, watch, improvements, newsletters, email_templates, training_supports, coaching_summaries, agent_schema_registry…) doit avoir une policy `AS RESTRICTIVE FOR SELECT TO authenticated USING (public.is_staff_user())`. La liste canonique est dans `20260529100000_staff_select_guard.sql`.
+  2. **agent-chat** : bloquer les apprenants immédiatement après `verifyAuth` (décodage JWT local, pas de round-trip réseau). L'agent utilise la service role key — sans ce check, un apprenant peut requêter n'importe quelle table via l'outil `query_database`.
+  3. **Policies `FOR ALL TO authenticated USING (true)`** : interdit sur les tables sensibles. Les tables LMS accessibles aux apprenants doivent avoir des policies scoped (`learner_email = auth.jwt() ->> 'email'`), pas un accès global.
+  4. **Policies `FOR ALL TO anon`** : interdit sauf pour les formulaires publics token-based (émargement, évaluation). Toute autre policy `anon` est une violation.
+  5. **Edge functions sans auth** : toute fonction callable depuis le frontend doit appeler `verifyAuth`. Si la fonction est légitime pour les apprenants (ex: notify-lms-comment), vérifier que le payload correspond au JWT appelant (anti-usurpation).
+- **Vérification** :
+  - `grep -rn "FOR ALL TO authenticated USING (true)" supabase/migrations/` — les seuls résultats acceptables sont les tables LMS publiques avec politique de scoping apprenant.
+  - `grep -rn "FOR ALL TO anon" supabase/migrations/` — seuls les formulaires token-based sont acceptés.
+  - `grep -n "learner" supabase/functions/agent-chat/index.ts` — doit retourner le bloc 403.
+  - `grep -n "verifyAuth" supabase/functions/notify-lms-comment/index.ts` — doit être présent.
+- **Fichiers de référence** : `supabase/migrations/20260529100000_staff_select_guard.sql`, `supabase/migrations/20260529110000_fix_open_authenticated_policies.sql`, `supabase/functions/agent-chat/index.ts`, `supabase/functions/notify-lms-comment/index.ts`
+- **Origine** : audit de sécurité — apprenant pouvait lire CRM/missions/devis via RLS `USING (true)` + extraire toutes les données via agent-chat (service role key sans guard rôle)
+- **Date** : 2026-05-29
+
+---
+
+### [030] Isolation chatbot apprenant — double blocage UI + edge function, zéro donnée Super Tools
+
+- **Constat** : Le `ChatbotProvider` affichait le widget à tout utilisateur authentifié, apprenants inclus. Les edge functions `rag-chatbot` et `chatbot-query` injectaient dans le contexte des données métier internes (`trainings`, `formation_configs`, `improvements`) via la service role key, sans aucune vérification du rôle appelant. Un apprenant authentifié pouvait interroger le chatbot et obtenir des informations sur la plateforme Super Tools, le catalogue complet, et les formations d'autres clients.
+- **Règle** : Le chatbot Super Tools (plateforme) et le chatbot apprenant (formation) sont deux produits distincts avec des bases de connaissance et des audiences isolées. Invariants :
+  1. **UI** : `ChatbotProvider` ne doit jamais rendre le widget si `session.user.user_metadata?.role === "learner"`.
+  2. **Edge functions** (`rag-chatbot`, `chatbot-query`) : authentification obligatoire (401 si absent) + blocage explicite si `user_metadata.role === "learner"` (403). La couche serveur ne doit pas dépendre de la couche UI.
+  3. **Contexte RAG** : seule la table `chatbot_knowledge_base` est injectée dans le contexte. Les tables `trainings`, `formation_configs`, `improvements` sont interdites — elles contiennent des données métier clients.
+  4. **Chatbot apprenant futur** : s'il est créé, il doit utiliser une edge function dédiée, n'accédant qu'aux données d'inscription de l'apprenant appelant (vérifiées via son JWT), et ne jamais connaître les fonctionnalités Super Tools.
+- **Vérification** :
+  - `grep -n "isAuthenticated\|setIsAuthenticated" src/components/chatbot/ChatbotProvider.tsx` — ne doit pas exister. La garde doit utiliser `user_metadata?.role !== "learner"`.
+  - `grep -n "learner" supabase/functions/rag-chatbot/index.ts supabase/functions/chatbot-query/index.ts` — doit retourner les blocs 403.
+  - `grep -n "trainings\|formation_configs\|improvements" supabase/functions/rag-chatbot/index.ts` — ne doit retourner aucun appel `.from(`.
+- **Fichiers de référence** : `src/components/chatbot/ChatbotProvider.tsx`, `supabase/functions/rag-chatbot/index.ts`, `supabase/functions/chatbot-query/index.ts`
+- **Origine** : faille de sécurité — apprenant pouvait interroger le chatbot plateforme et accéder aux données métier internes via service role key
+- **Date** : 2026-05-29
+
+---
+
 ### [027] Check admin — toujours lire `profiles.is_admin`, jamais un email hardcodé
 - **Constat** : Lovable a remplacé le check `profiles.is_admin` par un RPC `is_admin()` vérifiant uniquement l'email `romain@supertilt.fr`. En production, tous les utilisateurs avec `is_admin = true` en base sont devenus non-admins du jour au lendemain. N'ayant pas de records dans `user_module_access`, ils ont vu une sidebar entièrement vide — bug critique bloquant l'app pour tous les utilisateurs.
 - **Règle** : La détection du statut admin dans `useModuleAccess` doit toujours passer par `supabase.from("profiles").select("is_admin").eq("user_id", user.id).single()`. Ne jamais remplacer ce check par une vérification d'email hardcodé (que ce soit dans le frontend ou dans un RPC). Le champ `profiles.is_admin` est la source de vérité et supporte plusieurs admins.

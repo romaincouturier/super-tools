@@ -143,6 +143,16 @@ if [ "$STAGED_MODE" = "true" ]; then
   check "020" "Préférer useEdgeFunction() au lieu de supabase.functions.invoke() inline" \
     "echo \"$STAGED_FILES\" | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'src/hooks/useEdgeFunction.ts' | xargs grep -n 'supabase\\.functions\\.invoke' 2>/dev/null"
 
+  # [030] Chatbot — isolation apprenant (staged)
+  if echo "$STAGED_FILES" | grep -q 'ChatbotProvider'; then
+    check "030a" "ChatbotProvider n'utilise pas isAuthenticated (doit vérifier user_metadata.role)" \
+      "echo \"$STAGED_FILES\" | xargs grep -n 'isAuthenticated\|setIsAuthenticated' 2>/dev/null | grep 'ChatbotProvider'"
+  fi
+  if echo "$STAGED_FILES" | grep -q 'rag-chatbot\|chatbot-query'; then
+    check "030b" "rag-chatbot/chatbot-query bloquent les apprenants" \
+      "echo \"$STAGED_FILES\" | xargs grep -l 'rag-chatbot\|chatbot-query' 2>/dev/null | xargs grep -L 'learner' 2>/dev/null"
+  fi
+
   # [021] Confirmation — ne pas utiliser window.confirm() natif (staged)
   check "021" "Utiliser useConfirm() au lieu de window.confirm()" \
     "echo \"$STAGED_FILES\" | xargs grep -n 'if (confirm(' 2>/dev/null | grep -v 'hooks/useConfirm.tsx'"
@@ -308,6 +318,43 @@ else
        | grep -v 'useMedia\.ts' | grep -v 'useTrainingSupport\.ts' \
        | xargs grep -l '\.upload(' 2>/dev/null \
        | while read f; do echo \"VIOLATION: \$f appelle storage.upload() directement — passer par une edge function\"; done; true"
+
+  # [031] Isolation données apprenants — tables staff protégées en SELECT + edge functions bloquées
+  # Tables légitimement ouvertes aux apprenants (LMS lecture + write guard suffisant) sont exclues.
+  # Les fichiers legacy listés ci-dessous ont des policies remplacées par 20260529100000/110000.
+  # On vérifie que les NOUVELLES migrations (post-2026-05-29) n'introduisent pas de nouvelles failles.
+  check "031a" "Pas de FOR ALL TO authenticated USING (true) sur les tables sensibles dans les nouvelles migrations" \
+    "find supabase/migrations/ -name '*.sql' -newer supabase/migrations/20260529100000_staff_select_guard.sql | xargs grep -En 'FOR ALL TO authenticated USING .true.' 2>/dev/null | grep -E 'crm_|missions|quotes|watch_|improvements|newsletters|email_templates|training_supports|coaching_summaries|agent_schema_registry'"
+
+  check "031b" "Pas de FOR ALL TO anon USING (true) sauf formulaires token-based" \
+    "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ | grep -v '20260308225436\|fix_rls_anon\|20260321130000\|20260308224610'"
+
+  check "031c" "agent-chat bloque les apprenants (403 si role=learner)" \
+    "grep -n 'learner' supabase/functions/agent-chat/index.ts" \
+    "false"
+
+  check "031d" "notify-lms-comment a une authentification (verifyAuth)" \
+    "grep -n 'verifyAuth' supabase/functions/notify-lms-comment/index.ts" \
+    "false"
+
+  check "031e" "Migration staff_select_guard existe" \
+    "test -f supabase/migrations/20260529100000_staff_select_guard.sql && echo 'found'" \
+    "false"
+
+  # [030] Chatbot — double blocage UI + edge function, zéro donnée Super Tools exposée aux apprenants
+  check "030a" "ChatbotProvider n'utilise pas isAuthenticated (doit vérifier user_metadata.role)" \
+    "grep -n 'isAuthenticated\|setIsAuthenticated' src/components/chatbot/ChatbotProvider.tsx"
+
+  check "030b" "rag-chatbot bloque les apprenants (403 si role=learner)" \
+    "grep -n 'learner' supabase/functions/rag-chatbot/index.ts" \
+    "false"
+
+  check "030c" "chatbot-query bloque les apprenants (403 si role=learner)" \
+    "grep -n 'learner' supabase/functions/chatbot-query/index.ts" \
+    "false"
+
+  check "030d" "rag-chatbot n'expose pas trainings/formation_configs/improvements" \
+    "grep -n '\.from(\"trainings\"\|\.from(\"formation_configs\"\|\.from(\"improvements\"' supabase/functions/rag-chatbot/index.ts"
 
   # [027] Le check admin doit lire profiles.is_admin, pas un RPC ou email hardcodé
   check "027" "Check admin dans useModuleAccess utilise profiles.is_admin (pas un RPC email-hardcodé)" \
