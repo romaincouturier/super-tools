@@ -146,15 +146,21 @@ serve(async (req) => {
 
     const supabase = getSupabaseClient();
 
-    // Get user from auth header if available
+    // Security: require authentication and block learners.
+    // This chatbot exposes Super Tools platform knowledge — learners must never access it.
     const authHeader = req.headers.get("Authorization");
-    let userId: string | null = null;
-
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
+    if (!authHeader) {
+      return createErrorResponse("Authentification requise", 401);
     }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: callerUser } } = await supabase.auth.getUser(token);
+    if (!callerUser) {
+      return createErrorResponse("Token invalide", 401);
+    }
+    if (callerUser.user_metadata?.role === "learner") {
+      return createErrorResponse("Accès refusé", 403);
+    }
+    const userId = callerUser.id;
 
     console.log("Processing chatbot question:", question.substring(0, 100));
 

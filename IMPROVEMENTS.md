@@ -227,6 +227,24 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Sécurité
 
+### [030] Isolation chatbot apprenant — double blocage UI + edge function, zéro donnée Super Tools
+
+- **Constat** : Le `ChatbotProvider` affichait le widget à tout utilisateur authentifié, apprenants inclus. Les edge functions `rag-chatbot` et `chatbot-query` injectaient dans le contexte des données métier internes (`trainings`, `formation_configs`, `improvements`) via la service role key, sans aucune vérification du rôle appelant. Un apprenant authentifié pouvait interroger le chatbot et obtenir des informations sur la plateforme Super Tools, le catalogue complet, et les formations d'autres clients.
+- **Règle** : Le chatbot Super Tools (plateforme) et le chatbot apprenant (formation) sont deux produits distincts avec des bases de connaissance et des audiences isolées. Invariants :
+  1. **UI** : `ChatbotProvider` ne doit jamais rendre le widget si `session.user.user_metadata?.role === "learner"`.
+  2. **Edge functions** (`rag-chatbot`, `chatbot-query`) : authentification obligatoire (401 si absent) + blocage explicite si `user_metadata.role === "learner"` (403). La couche serveur ne doit pas dépendre de la couche UI.
+  3. **Contexte RAG** : seule la table `chatbot_knowledge_base` est injectée dans le contexte. Les tables `trainings`, `formation_configs`, `improvements` sont interdites — elles contiennent des données métier clients.
+  4. **Chatbot apprenant futur** : s'il est créé, il doit utiliser une edge function dédiée, n'accédant qu'aux données d'inscription de l'apprenant appelant (vérifiées via son JWT), et ne jamais connaître les fonctionnalités Super Tools.
+- **Vérification** :
+  - `grep -n "isAuthenticated\|setIsAuthenticated" src/components/chatbot/ChatbotProvider.tsx` — ne doit pas exister. La garde doit utiliser `user_metadata?.role !== "learner"`.
+  - `grep -n "learner" supabase/functions/rag-chatbot/index.ts supabase/functions/chatbot-query/index.ts` — doit retourner les blocs 403.
+  - `grep -n "trainings\|formation_configs\|improvements" supabase/functions/rag-chatbot/index.ts` — ne doit retourner aucun appel `.from(`.
+- **Fichiers de référence** : `src/components/chatbot/ChatbotProvider.tsx`, `supabase/functions/rag-chatbot/index.ts`, `supabase/functions/chatbot-query/index.ts`
+- **Origine** : faille de sécurité — apprenant pouvait interroger le chatbot plateforme et accéder aux données métier internes via service role key
+- **Date** : 2026-05-29
+
+---
+
 ### [027] Check admin — toujours lire `profiles.is_admin`, jamais un email hardcodé
 - **Constat** : Lovable a remplacé le check `profiles.is_admin` par un RPC `is_admin()` vérifiant uniquement l'email `romain@supertilt.fr`. En production, tous les utilisateurs avec `is_admin = true` en base sont devenus non-admins du jour au lendemain. N'ayant pas de records dans `user_module_access`, ils ont vu une sidebar entièrement vide — bug critique bloquant l'app pour tous les utilisateurs.
 - **Règle** : La détection du statut admin dans `useModuleAccess` doit toujours passer par `supabase.from("profiles").select("is_admin").eq("user_id", user.id).single()`. Ne jamais remplacer ce check par une vérification d'email hardcodé (que ce soit dans le frontend ou dans un RPC). Le champ `profiles.is_admin` est la source de vérité et supporte plusieurs admins.
