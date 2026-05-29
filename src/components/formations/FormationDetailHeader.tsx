@@ -32,7 +32,7 @@ import type { Training, Schedule } from "@/hooks/useFormationDetail";
 import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 import { openExternalLink } from "@/lib/utils";
-import { toastError } from "@/lib/toastError";
+
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 
 interface Props {
