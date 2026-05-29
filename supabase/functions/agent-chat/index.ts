@@ -766,6 +766,18 @@ serve(async (req) => {
     const authResult = await verifyAuth(req.headers.get("Authorization"));
     if (!authResult) return createErrorResponse("Non autorisé", 401);
 
+    // Block learners: agent-chat has access to all SuperTools data via service role.
+    // Decode JWT locally (signature already verified by verifyAuth above).
+    const rawToken = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    try {
+      const payload = JSON.parse(atob(rawToken.split(".")[1]));
+      if (payload?.user_metadata?.role === "learner") {
+        return createErrorResponse("Accès refusé", 403);
+      }
+    } catch {
+      return createErrorResponse("Token invalide", 401);
+    }
+
     const { message, conversation_id, attachments } = await req.json();
 
     if (!message || typeof message !== "string") {

@@ -319,6 +319,28 @@ else
        | xargs grep -l '\.upload(' 2>/dev/null \
        | while read f; do echo \"VIOLATION: \$f appelle storage.upload() directement — passer par une edge function\"; done; true"
 
+  # [031] Isolation données apprenants — tables staff protégées en SELECT + edge functions bloquées
+  # Tables légitimement ouvertes aux apprenants (LMS lecture + write guard suffisant) sont exclues.
+  # Les fichiers legacy listés ci-dessous ont des policies remplacées par 20260529100000/110000.
+  # On vérifie que les NOUVELLES migrations (post-2026-05-29) n'introduisent pas de nouvelles failles.
+  check "031a" "Pas de FOR ALL TO authenticated USING (true) sur les tables sensibles dans les nouvelles migrations" \
+    "find supabase/migrations/ -name '*.sql' -newer supabase/migrations/20260529100000_staff_select_guard.sql | xargs grep -En 'FOR ALL TO authenticated USING .true.' 2>/dev/null | grep -E 'crm_|missions|quotes|watch_|improvements|newsletters|email_templates|training_supports|coaching_summaries|agent_schema_registry'"
+
+  check "031b" "Pas de FOR ALL TO anon USING (true) sauf formulaires token-based" \
+    "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ | grep -v '20260308225436\|fix_rls_anon\|20260321130000\|20260308224610'"
+
+  check "031c" "agent-chat bloque les apprenants (403 si role=learner)" \
+    "grep -n 'learner' supabase/functions/agent-chat/index.ts" \
+    "false"
+
+  check "031d" "notify-lms-comment a une authentification (verifyAuth)" \
+    "grep -n 'verifyAuth' supabase/functions/notify-lms-comment/index.ts" \
+    "false"
+
+  check "031e" "Migration staff_select_guard existe" \
+    "test -f supabase/migrations/20260529100000_staff_select_guard.sql && echo 'found'" \
+    "false"
+
   # [030] Chatbot — double blocage UI + edge function, zéro donnée Super Tools exposée aux apprenants
   check "030a" "ChatbotProvider n'utilise pas isAuthenticated (doit vérifier user_metadata.role)" \
     "grep -n 'isAuthenticated\|setIsAuthenticated' src/components/chatbot/ChatbotProvider.tsx"
