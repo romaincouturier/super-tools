@@ -3,6 +3,9 @@ project_id = "yewffntzgrdgztrwtava"
 [functions.generate-practice-hashtags]
 verify_jwt = false
 
+[functions.backfill-practice-hashtags]
+verify_jwt = false
+
 [functions.add-training-participant]
 verify_jwt = false
 
