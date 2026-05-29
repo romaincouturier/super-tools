@@ -6416,18 +6416,21 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
+          reaction_type: string
         }
         Insert: {
           author_email: string
           created_at?: string
           id?: string
           post_id: string
+          reaction_type?: string
         }
         Update: {
           author_email?: string
           created_at?: string
           id?: string
           post_id?: string
+          reaction_type?: string
         }
         Relationships: [
           {
