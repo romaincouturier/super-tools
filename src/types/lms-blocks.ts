@@ -495,7 +495,7 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
     case "key_points":
       return { title: "À retenir", items: [""] };
     case "checklist":
-      return { title: null, items: [{ id: cryptoRandomId(), label: "" }] };
+      return { title: "Les étapes à suivre :", items: [{ id: cryptoRandomId(), label: "" }] };
     case "bullet_list":
       return { title: null, items: [""], bullet_style: "round", bullet_color: null, text_color: null, item_spacing: "normal" };
     case "button":

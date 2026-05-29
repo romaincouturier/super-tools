@@ -64,6 +64,7 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
                   flexShrink: 0,
                 }}
               />
+              <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--st-ink)", flexShrink: 0 }}>{i + 1}.</span>
               <InlineEdit
                 value={item.label}
                 onChange={(v) => setLabel(item.id, v)}
@@ -119,8 +120,9 @@ export default function ChecklistBlockEditor({ content, onChange, slim }: Props)
       </div>
       <div className="space-y-2">
         <Label>Éléments à cocher</Label>
-        {items.map((item) => (
+        {items.map((item, i) => (
           <div key={item.id} className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground w-6 shrink-0">{i + 1}.</span>
             <Input
               value={item.label}
               onChange={(e) => setLabel(item.id, e.target.value)}
