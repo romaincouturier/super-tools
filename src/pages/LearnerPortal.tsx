@@ -2045,12 +2045,11 @@ export default function LearnerPortal() {
               />
             )}
             {activeSection === "recommandees" && (
-              <div className="py-4">
-                <p className="text-sm" style={{ color: "var(--st-ink-muted)" }}>
-                  Ici vous retrouverez toutes les formations recommandées pour votre profil.
-                </p>
+              <div className="py-2">
+                <RecommendedCoursesBlock excludedCourseIds={courseIds} variant="full" />
               </div>
             )}
+
             {activeSection === "travaux" && (
               <TravauxView email={data.email} trainings={data.trainings} />
             )}
