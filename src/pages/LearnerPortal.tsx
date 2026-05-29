@@ -699,13 +699,20 @@ function PratiqueView({ mode, email, courseIds, firstName, lastName, photoUrl, o
   const isFeed = mode === "feed";
 
   const postsFilter = useMemo(() => {
-    // La communauté est globale pour les apprenants : tous les messages sont visibles,
-    // peu importe le point d'entrée (lien direct, depuis un cours, etc.).
-    if (selectedTag) return { tag: selectedTag };
-    if (mode === "mine") return { authorEmail: email };
-    if (mode === "likes") return { likedBy: email };
-    return undefined;
-  }, [mode, selectedTag, email]);
+    // Communauté scopée par formation :
+    // - Si on arrive depuis un cours (fromCourse), on ne voit que ses posts.
+    // - Sinon, on voit les posts des cours auxquels l'apprenant est inscrit.
+    // - Les admins (canManageCommunity) voient tout, sans restriction de cours.
+    const base: { courseId?: string; courseIds?: string[] } = {};
+    if (!canManageCommunity) {
+      if (fromCourse) base.courseId = fromCourse;
+      else if (courseIds.length > 0) base.courseIds = courseIds;
+    }
+    if (selectedTag) return { ...base, tag: selectedTag };
+    if (mode === "mine") return { ...base, authorEmail: email };
+    if (mode === "likes") return { ...base, likedBy: email };
+    return Object.keys(base).length ? base : undefined;
+  }, [mode, selectedTag, email, fromCourse, courseIds, canManageCommunity]);
 
   const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
