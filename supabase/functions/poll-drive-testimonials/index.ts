@@ -247,6 +247,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const processSerially = async () => {
       for (const file of toProcess) {
         try {
+          // Reroute non-testimonial recordings to the transcripts pipeline.
+          if (!isTestimonialName(file.name)) {
+            const ok = await enqueueTranscript(file.id, file.name);
+            if (ok) results.rerouted++;
+            else results.errors++;
+            continue;
+          }
+
           const fromName = parseTestimonialFilename(file.name);
           const { data: inserted, error: insertErr } = await (admin as any)
             .from("testimonials")
