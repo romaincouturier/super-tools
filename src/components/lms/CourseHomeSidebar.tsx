@@ -83,7 +83,7 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
   );
 }
 
-function CommunitySidebarPreview({ email, courseId, lessonId, isPreview: _isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
+function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { email: string; courseId?: string | null; lessonId?: string | null; isPreview: boolean }) {
   const postsFilter = courseId ? { courseId } : undefined;
   const { data: posts = [] } = usePracticePosts(email || null, 2, postsFilter);
   const goToCommunity = async () => {
