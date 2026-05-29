@@ -699,21 +699,32 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
 
   const isFeed = mode === "feed";
 
+  // Communauté active: identifie le cours dans lequel on lit/publie.
+  // - Admin: peut choisir une communauté précise ou voir tout ("all").
+  // - Apprenant: choisit parmi ses cours; verrouillé sur fromCourse si présent.
+  const defaultCourseId = fromCourse ?? courses[0]?.id ?? null;
+  const [activeCourseId, setActiveCourseId] = useState<string | null>(defaultCourseId);
+  useEffect(() => {
+    if (fromCourse) setActiveCourseId(fromCourse);
+  }, [fromCourse]);
+  const activeCourse = courses.find((c) => c.id === activeCourseId) ?? null;
+  const showCommunitySelector = !fromCourse && (courses.length > 1 || canManageCommunity);
+
   const postsFilter = useMemo(() => {
-    // Communauté scopée par formation :
-    // - Si on arrive depuis un cours (fromCourse), on ne voit que ses posts.
-    // - Sinon, on voit les posts des cours auxquels l'apprenant est inscrit.
-    // - Les admins (canManageCommunity) voient tout, sans restriction de cours.
     const base: { courseId?: string; courseIds?: string[] } = {};
-    if (!canManageCommunity) {
-      if (fromCourse) base.courseId = fromCourse;
+    if (canManageCommunity) {
+      // Admin: si une communauté est sélectionnée, on filtre dessus; sinon tout.
+      if (activeCourseId) base.courseId = activeCourseId;
+    } else {
+      // Apprenant: toujours scopé sur la communauté active, fallback sur ses cours.
+      if (activeCourseId) base.courseId = activeCourseId;
       else if (courseIds.length > 0) base.courseIds = courseIds;
     }
     if (selectedTag) return { ...base, tag: selectedTag };
     if (mode === "mine") return { ...base, authorEmail: email };
     if (mode === "likes") return { ...base, likedBy: email };
     return Object.keys(base).length ? base : undefined;
-  }, [mode, selectedTag, email, fromCourse, courseIds, canManageCommunity]);
+  }, [mode, selectedTag, email, activeCourseId, courseIds, canManageCommunity]);
 
   const showDeposits = isFeed && !selectedTag;
   const { data: posts = [], isLoading } = usePracticePosts(email, 50, postsFilter, canManageCommunity);
