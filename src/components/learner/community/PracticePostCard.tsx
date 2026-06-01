@@ -184,7 +184,7 @@ export default function PracticePostCard({
       {/* Content */}
       {post.content && (
         <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
-          {post.content}
+          {asciiToEmoji(post.content)}
         </p>
       )}
 
