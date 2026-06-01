@@ -18,7 +18,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-import { fetchWorkingDays, subtractWorkingDays } from "../_shared/working-days.ts";
+import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -209,7 +209,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         "elearning_access_mode",
         "working_days",
         "delay_needs_survey_days",
+        "delay_needs_survey_reminder_days",
         "delay_trainer_summary_days",
+        "delay_reminder_days",
       ]);
 
     const getSetting = (k: string): string =>
@@ -220,7 +222,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (getSetting("elearning_access_mode") as "magic_link" | "woocommerce") || "magic_link";
     const workingDaysArr = await fetchWorkingDays(admin);
     const needsSurveyDelay = parseInt(getSetting("delay_needs_survey_days") || "7", 10) || 7;
+    const needsSurveyReminderDelay = parseInt(getSetting("delay_needs_survey_reminder_days") || "3", 10) || 3;
     const trainerSummaryDelay = parseInt(getSetting("delay_trainer_summary_days") || "1", 10) || 1;
+    const reminderDelay = parseInt(getSetting("delay_reminder_days") || "7", 10) || 7;
 
     // ── 2. Mode email ────────────────────────────────────────────────────────
     const { status: emailStatus, sendWelcomeNow, ongoing } = computeEmailMode(
@@ -336,6 +340,51 @@ Deno.serve(async (req: Request): Promise<Response> => {
           needsSurveyScheduled = true;
         } catch (err) {
           console.error("[add-training-participant] schedule needs_survey:", err);
+        }
+      }
+
+      // Relance recueil des besoins : programmée pour toutes les formations
+      // si la date de relance est encore future. La case force-send vérifiera
+      // l'état du questionnaire avant envoi (skip si déjà complété).
+      if (emailStatus !== "non_envoye" && !ongoing) {
+        try {
+          const now = new Date();
+          const baseDate = (isElearning || !trainingStartDate)
+            ? now
+            : subtractWorkingDays(new Date(`${trainingStartDate}T00:00:00`), needsSurveyDelay, workingDaysArr);
+          const reminderDate = addWorkingDays(baseDate, needsSurveyReminderDelay, workingDaysArr);
+          if (reminderDate > now) {
+            await admin.from("scheduled_emails").insert({
+              training_id: trainingId,
+              participant_id: participantId,
+              email_type: "needs_survey_reminder",
+              scheduled_for: `${reminderDate.toISOString().split("T")[0]}T09:00:00`,
+              status: "pending",
+            });
+          }
+        } catch (err) {
+          console.error("[add-training-participant] schedule needs_survey_reminder:", err);
+        }
+      }
+
+      // Rappel "votre formation approche" : programmé pour toutes les formations
+      // (y compris e-learning) à J-delay_reminder_days jours ouvrés, si la date
+      // est encore future.
+      if (trainingStartDate) {
+        try {
+          const startDate = new Date(`${trainingStartDate}T00:00:00`);
+          const approachDate = subtractWorkingDays(startDate, reminderDelay, workingDaysArr);
+          if (approachDate > new Date()) {
+            await admin.from("scheduled_emails").insert({
+              training_id: trainingId,
+              participant_id: participantId,
+              email_type: "reminder",
+              scheduled_for: `${approachDate.toISOString().split("T")[0]}T09:00:00`,
+              status: "pending",
+            });
+          }
+        } catch (err) {
+          console.error("[add-training-participant] schedule reminder:", err);
         }
       }
 

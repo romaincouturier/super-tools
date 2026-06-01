@@ -22,6 +22,24 @@ export function subtractWorkingDays(
 }
 
 /**
+ * Returns a new date obtained by adding `daysToAdd` working days
+ * to `fromDate`, using the provided working-day mask.
+ */
+export function addWorkingDays(
+  fromDate: Date,
+  daysToAdd: number,
+  workingDays: boolean[] = DEFAULT_WORKING_DAYS,
+): Date {
+  const result = new Date(fromDate);
+  let remaining = daysToAdd;
+  while (remaining > 0) {
+    result.setDate(result.getDate() + 1);
+    if (workingDays[result.getDay()]) remaining--;
+  }
+  return result;
+}
+
+/**
  * Fetches the working_days configuration from app_settings.
  * Returns an array of 7 booleans [Sun, Mon, Tue, Wed, Thu, Fri, Sat].
  */

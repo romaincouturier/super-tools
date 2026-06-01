@@ -45,25 +45,39 @@ serve(async (req) => {
       throw schedulesError;
     }
 
-    if (!todaySchedules || todaySchedules.length === 0) {
-      console.log("[process-today-reminders] No sessions scheduled today");
-      return new Response(
-        JSON.stringify({ success: true, message: "No sessions scheduled today" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Group schedules by training_id
+    // Group schedules by training_id (may be empty if no sessions today)
     const schedulesByTraining = new Map<string, Array<{ start_time: string; end_time: string }>>();
-    for (const s of todaySchedules) {
+    for (const s of (todaySchedules || [])) {
       if (!schedulesByTraining.has(s.training_id)) {
         schedulesByTraining.set(s.training_id, []);
       }
       schedulesByTraining.get(s.training_id)!.push({ start_time: s.start_time, end_time: s.end_time });
     }
 
+    // Also include trainings whose start_date == today (e.g. e-learning) even
+    // if they have no training_schedules entries. They will be sent without
+    // horaire ("no schedule text").
+    const { data: startingToday } = await supabase
+      .from("trainings")
+      .select("id")
+      .eq("start_date", today);
+    for (const t of (startingToday || [])) {
+      if (!schedulesByTraining.has(t.id)) {
+        schedulesByTraining.set(t.id, []);
+      }
+    }
+
     const trainingIds = Array.from(schedulesByTraining.keys());
-    console.log(`[process-today-reminders] Found ${trainingIds.length} training(s) with sessions today`);
+    console.log(`[process-today-reminders] Found ${trainingIds.length} training(s) starting or with sessions today`);
+
+    if (trainingIds.length === 0) {
+      console.log("[process-today-reminders] Nothing to process today");
+      return new Response(
+        JSON.stringify({ success: true, message: "Nothing to process today" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
 
     // Fetch training details for all relevant trainings
     const { data: trainings, error: trainingsError } = await supabase
@@ -239,7 +253,7 @@ serve(async (req) => {
           first_name: p.first_name || "",
           training_name: training.training_name,
           location: training.location || "",
-          schedule: scheduleText || "Horaires à confirmer",
+          schedule: isElearning ? "" : (scheduleText || "Horaires à confirmer"),
           is_presentiel: isPresentiel ? "1" : undefined,
           is_classe_virtuelle: isClasseVirtuelle ? "1" : undefined,
           is_elearning: isElearning ? "1" : undefined,
