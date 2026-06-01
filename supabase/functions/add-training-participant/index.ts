@@ -229,9 +229,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
 
     // Envoie la convocation si la formation n'est pas passée OU si elle est
-    // en cours (mid-session add) — sauf pour l'e-learning qui a son propre flux.
+    // en cours (mid-session add). Pour l'e-learning : envoi immédiat à l'inscription.
     const shouldSendWelcome =
-      !isElearning && (emailStatus !== "non_envoye" || ongoing);
+      isElearning || emailStatus !== "non_envoye" || ongoing;
 
     // ── 3. Participant existant ? ────────────────────────────────────────────
     const { data: existing } = await admin
@@ -310,18 +310,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
         console.warn("[add-training-participant] questionnaire_besoins:", qErr);
       }
 
-      // ── 6. Programmation des emails pour les formations futures ────────────
-      // Recueil des besoins : non-e-learning, futur, pas en cours
-      if (trainingStartDate && !isElearning && emailStatus !== "non_envoye" && !ongoing) {
+      // ── 6. Programmation des emails ────────────────────────────────────────
+      // Recueil des besoins : envoyé pour toutes les formations (y compris e-learning).
+      // Pour e-learning ou sans date : envoi immédiat. Sinon : J-needsSurveyDelay.
+      if (emailStatus !== "non_envoye" && !ongoing) {
         try {
-          const startDate = new Date(`${trainingStartDate}T00:00:00`);
-          const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
           const now = new Date();
-          // Si la fenêtre optimale est déjà passée mais la formation n'a pas
-          // encore commencé, on envoie immédiatement plutôt que de ne pas envoyer.
-          const scheduledFor = surveyDate > now
-            ? `${surveyDate.toISOString().split("T")[0]}T09:00:00`
-            : now.toISOString();
+          let scheduledFor: string;
+          if (isElearning || !trainingStartDate) {
+            scheduledFor = now.toISOString();
+          } else {
+            const startDate = new Date(`${trainingStartDate}T00:00:00`);
+            const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
+            scheduledFor = surveyDate > now
+              ? `${surveyDate.toISOString().split("T")[0]}T09:00:00`
+              : now.toISOString();
+          }
           await admin.from("scheduled_emails").insert({
             training_id: trainingId,
             participant_id: participantId,
@@ -388,7 +392,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── 8. Convocation immédiate (formations J-2 à J-7 ou en cours) ───────────
     let welcomeSent = false;
     let welcomeFailed = false;
-    if (shouldSendWelcome && sendWelcomeNow) {
+    const sendWelcomeImmediately =
+      shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
+    if (sendWelcomeImmediately) {
       try {
         await admin.functions.invoke("send-welcome-email", {
           body: { participantId, trainingId },
@@ -396,19 +402,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
         welcomeSent = true;
       } catch (err) {
         console.error("[add-training-participant] send-welcome-email:", err);
-        welcomeFailed = true;
-      }
-    } else if (shouldSendWelcome && ongoing) {
-      // Ajout mid-session : la convocation classique n'a pas encore été envoyée
-      // (status === "non_envoye") mais on envoie quand même car la formation
-      // est encore en cours.
-      try {
-        await admin.functions.invoke("send-welcome-email", {
-          body: { participantId, trainingId },
-        });
-        welcomeSent = true;
-      } catch (err) {
-        console.error("[add-training-participant] send-welcome-email (ongoing):", err);
         welcomeFailed = true;
       }
     }
