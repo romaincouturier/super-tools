@@ -129,8 +129,13 @@ export default function LmsCourses() {
             <Button variant="outline" onClick={() => navigate("/lms/apprenants")}>
               <Users className="w-4 h-4 mr-2" /> Apprenants
             </Button>
-            <Button variant="outline" onClick={() => navigate("/lms/communautes")}>
+            <Button variant="outline" onClick={() => navigate("/lms/communautes")} className="relative">
               <MessageSquare className="w-4 h-4 mr-2" /> Communautés
+              {pendingTotal > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 min-w-[18px]">
+                  {pendingTotal}
+                </span>
+              )}
             </Button>
             <Button variant="outline" onClick={() => navigate("/lms/faq")}>
               <HelpCircle className="w-4 h-4 mr-2" /> FAQ
