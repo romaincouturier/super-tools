@@ -241,14 +241,22 @@ export function usePracticeComments(postId: string | null, learnerEmail: string 
     queryFn: async (): Promise<PracticeComment[]> => {
       if (!postId || !learnerEmail) return [];
       const c = clientFor(learnerEmail, isAdmin) as any;
-      const [commentsRes, profilesRes] = await Promise.all([
+      const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
         c.from("practice_post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
+        (supabase as any).from("profiles").select("email, first_name, last_name, photo_url"),
       ]);
 
       if (commentsRes.error) throw commentsRes.error;
-      const profiles: any[] = profilesRes.data || [];
-      const profileMap = new Map(profiles.map((p: any) => [p.email, p]));
+      const learnerProfiles: any[] = learnerProfilesRes.data || [];
+      const staffProfiles: any[] = staffProfilesRes.data || [];
+      const staffEmailSet = new Set(staffProfiles.map((p: any) => p.email));
+      // Staff profile takes precedence so a staff member's real name and avatar
+      // are used instead of any legacy learner_profile with the same email.
+      const profileMap = new Map<string, any>([
+        ...learnerProfiles.filter((lp: any) => !staffEmailSet.has(lp.email)).map((p: any) => [p.email, p] as [string, any]),
+        ...staffProfiles.map((p: any) => [p.email, p] as [string, any]),
+      ]);
       return (commentsRes.data || []).map((c: any) => {
         const profile = profileMap.get(c.author_email);
         return {
