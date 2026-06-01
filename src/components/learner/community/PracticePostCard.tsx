@@ -364,12 +364,35 @@ export default function PracticePostCard({
               : authorInitialsFromPost(c.author_email, c.author_first_name, c.author_last_name);
             const cIsOwn = (c.author_email || "").toLowerCase() === (currentEmail || "").toLowerCase();
             const cCanDelete = cIsOwn || isAdmin;
+            const cCanEdit = cIsOwn || isAdmin;
+            const isEditing = editingCommentId === c.id;
             const handleDeleteComment = async () => {
               if (!window.confirm("Supprimer ce commentaire ?")) return;
               try {
                 await deleteComment.mutateAsync({ commentId: c.id, postId: post.id });
               } catch {
                 toastError(toast, "Impossible de supprimer le commentaire.");
+              }
+            };
+            const startEdit = () => {
+              setEditingCommentId(c.id);
+              setEditingText(c.content);
+            };
+            const cancelEdit = () => {
+              setEditingCommentId(null);
+              setEditingText("");
+            };
+            const saveEdit = async () => {
+              const trimmed = editingText.trim();
+              if (!trimmed || trimmed === c.content) {
+                cancelEdit();
+                return;
+              }
+              try {
+                await updateComment.mutateAsync({ commentId: c.id, postId: post.id, content: trimmed });
+                cancelEdit();
+              } catch {
+                toastError(toast, "Impossible de modifier le commentaire.");
               }
             };
             return (
@@ -386,18 +409,66 @@ export default function PracticePostCard({
                       <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{cName}</p>
                       {c.is_staff_reply && <StaffBadge />}
                     </div>
-                    {cCanDelete && (
-                      <button
-                        onClick={handleDeleteComment}
-                        className="p-1 rounded hover:bg-black/5 shrink-0 opacity-60 hover:opacity-100"
-                        style={{ color: "var(--st-ink-muted)" }}
-                        title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                    {!isEditing && (
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {cCanEdit && (
+                          <button
+                            onClick={startEdit}
+                            className="p-1 rounded hover:bg-black/5 opacity-60 hover:opacity-100"
+                            style={{ color: "var(--st-ink-muted)" }}
+                            title="Modifier mon commentaire"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                        )}
+                        {cCanDelete && (
+                          <button
+                            onClick={handleDeleteComment}
+                            className="p-1 rounded hover:bg-black/5 opacity-60 hover:opacity-100"
+                            style={{ color: "var(--st-ink-muted)" }}
+                            title={cIsOwn ? "Supprimer mon commentaire" : "Supprimer (admin)"}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <p className="text-sm mt-0.5" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                  {isEditing ? (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        className="flex-1 text-sm bg-transparent outline-none border-b"
+                        style={{ color: "var(--st-ink)", borderColor: "rgba(16,24,32,0.2)", fontFamily: "inherit" }}
+                      />
+                      <button
+                        onClick={saveEdit}
+                        disabled={updateComment.isPending || !editingText.trim()}
+                        className="p-1 rounded hover:bg-black/5 disabled:opacity-40"
+                        style={{ color: "var(--st-ink)" }}
+                        title="Enregistrer"
+                      >
+                        <Check size={14} />
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="p-1 rounded hover:bg-black/5"
+                        style={{ color: "var(--st-ink-muted)" }}
+                        title="Annuler"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                  )}
                 </div>
               </div>
             );
