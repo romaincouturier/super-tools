@@ -90,17 +90,19 @@ serve(async (req) => {
     console.log("Using template mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
     // Check if questionnaire already exists
-    const { data: existingQuestionnaire, error: fetchError } = await supabase
+    const { data: existingRows, error: fetchError } = await supabase
       .from("questionnaire_besoins")
       .select("*")
       .eq("participant_id", participantId)
       .eq("training_id", trainingId)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-    if (fetchError && fetchError.code !== "PGRST116") {
+    if (fetchError) {
       console.error("Error fetching existing questionnaire:", fetchError);
     }
 
+    const existingQuestionnaire = existingRows && existingRows.length > 0 ? existingRows[0] : null;
     let token: string;
 
     if (existingQuestionnaire) {
@@ -127,17 +129,34 @@ serve(async (req) => {
         .single();
 
       if (insertError) {
-        console.error("Error creating questionnaire:", insertError);
-        throw new Error("Failed to create questionnaire");
-      }
-
-      if (!insertedData) {
+        // Race / duplicate: re-fetch the existing one and reuse its token
+        if ((insertError as any).code === "23505") {
+          console.warn("Duplicate questionnaire detected, re-fetching existing row");
+          const { data: dup } = await supabase
+            .from("questionnaire_besoins")
+            .select("*")
+            .eq("participant_id", participantId)
+            .eq("training_id", trainingId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          if (dup && dup.length > 0) {
+            token = dup[0].token;
+          } else {
+            console.error("Error creating questionnaire:", insertError);
+            throw new Error("Failed to create questionnaire");
+          }
+        } else {
+          console.error("Error creating questionnaire:", insertError);
+          throw new Error("Failed to create questionnaire");
+        }
+      } else if (!insertedData) {
         console.error("Questionnaire insert returned no data - possible RLS issue");
         throw new Error("Failed to create questionnaire - no data returned");
+      } else {
+        console.log("Successfully created questionnaire:", insertedData.id);
       }
-
-      console.log("Successfully created questionnaire:", insertedData.id);
     }
+
 
     // Update participant status
     const { error: participantUpdateError } = await supabase
