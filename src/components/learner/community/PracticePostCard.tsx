@@ -10,6 +10,7 @@ import {
   usePracticeComments,
   useCreatePracticeComment,
   useDeletePracticeComment,
+  useUpdatePracticeComment,
   useRotatePracticePostImage,
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
