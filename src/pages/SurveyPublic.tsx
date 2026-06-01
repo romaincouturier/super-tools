@@ -171,6 +171,7 @@ function IntroStep({
   intro,
   name,
   email,
+  requireIdentity,
   onNameChange,
   onEmailChange,
   onStart,
@@ -179,10 +180,12 @@ function IntroStep({
   intro: string | null;
   name: string;
   email: string;
+  requireIdentity: boolean;
   onNameChange: (v: string) => void;
   onEmailChange: (v: string) => void;
   onStart: () => void;
 }) {
+  const canStart = !requireIdentity || (name.trim() !== "" && email.trim() !== "");
   return (
     <div className="space-y-8 animate-in fade-in-0 duration-300">
       <div className="space-y-3">
@@ -191,20 +194,21 @@ function IntroStep({
       </div>
       <div className="space-y-4 max-w-sm">
         <div className="space-y-1.5">
-          <Label>Votre prénom et nom (optionnel)</Label>
+          <Label>Votre prénom et nom {requireIdentity ? <span className="text-destructive">*</span> : "(optionnel)"}</Label>
           <Input value={name} onChange={(e) => onNameChange(e.target.value)} placeholder="Jean Dupont" />
         </div>
         <div className="space-y-1.5">
-          <Label>Votre email (optionnel)</Label>
+          <Label>Votre email {requireIdentity ? <span className="text-destructive">*</span> : "(optionnel)"}</Label>
           <Input type="email" value={email} onChange={(e) => onEmailChange(e.target.value)} placeholder="jean@example.com" />
         </div>
       </div>
-      <Button size="lg" onClick={onStart} className="gap-2">
+      <Button size="lg" onClick={onStart} disabled={!canStart} className="gap-2">
         Commencer <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
   );
 }
+
 
 // ── Thank you step ────────────────────────────────────────────────────
 
@@ -325,6 +329,7 @@ export default function SurveyPublic() {
             <IntroStep
               title={survey.title || "Sondage"}
               intro={survey.intro_message}
+              requireIdentity={!!survey.require_identity}
               name={name}
               email={email}
               onNameChange={setName}

@@ -250,6 +250,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
   const [localTitle, setLocalTitle] = useState("");
   const [localIntro, setLocalIntro] = useState("");
   const [localThanks, setLocalThanks] = useState("");
+  const [localRequireIdentity, setLocalRequireIdentity] = useState(false);
   const [localQuestions, setLocalQuestions] = useState<SurveyQuestion[]>([]);
 
   useEffect(() => {
@@ -257,6 +258,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
       setLocalTitle(survey.title);
       setLocalIntro(survey.intro_message ?? "");
       setLocalThanks(survey.thank_you_message);
+      setLocalRequireIdentity(!!survey.require_identity);
     }
   }, [survey?.id]);
 
@@ -327,9 +329,20 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
           title: localTitle || page.title || "Sondage",
           intro_message: localIntro || null,
           thank_you_message: localThanks || "Merci pour vos réponses !",
+          require_identity: localRequireIdentity,
         },
       });
       toast({ title: "Sondage sauvegardé" });
+    } catch (e) {
+      toastError(toast, e instanceof Error ? e : "Erreur");
+    }
+  };
+
+  const toggleRequireIdentity = async (val: boolean) => {
+    setLocalRequireIdentity(val);
+    try {
+      const s = await ensureSurvey();
+      await updateSurvey.mutateAsync({ id: s.id, updates: { require_identity: val } });
     } catch (e) {
       toastError(toast, e instanceof Error ? e : "Erreur");
     }
@@ -400,7 +413,17 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
                 rows={2}
               />
             </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm">Identité obligatoire</Label>
+                <p className="text-xs text-muted-foreground">
+                  Si activé, le nom et l'email du répondant sont requis. Sinon, ils restent optionnels (les champs sont toujours affichés).
+                </p>
+              </div>
+              <Switch checked={localRequireIdentity} onCheckedChange={toggleRequireIdentity} />
+            </div>
           </div>
+
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
