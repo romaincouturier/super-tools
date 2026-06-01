@@ -36,6 +36,7 @@ export interface PracticePost {
   author_first_name?: string | null;
   author_last_name?: string | null;
   author_photo_url?: string | null;
+  author_is_staff?: boolean;
   lesson_title?: string | null;
   course_title?: string | null;
   reaction_count: number;
