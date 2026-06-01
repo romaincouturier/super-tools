@@ -392,7 +392,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── 8. Convocation immédiate (formations J-2 à J-7 ou en cours) ───────────
     let welcomeSent = false;
     let welcomeFailed = false;
-    if (shouldSendWelcome && sendWelcomeNow) {
+    let welcomeSent = false;
+    let welcomeFailed = false;
+    const sendWelcomeImmediately =
+      shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
+    if (sendWelcomeImmediately) {
       try {
         await admin.functions.invoke("send-welcome-email", {
           body: { participantId, trainingId },
@@ -400,19 +404,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
         welcomeSent = true;
       } catch (err) {
         console.error("[add-training-participant] send-welcome-email:", err);
-        welcomeFailed = true;
-      }
-    } else if (shouldSendWelcome && ongoing) {
-      // Ajout mid-session : la convocation classique n'a pas encore été envoyée
-      // (status === "non_envoye") mais on envoie quand même car la formation
-      // est encore en cours.
-      try {
-        await admin.functions.invoke("send-welcome-email", {
-          body: { participantId, trainingId },
-        });
-        welcomeSent = true;
-      } catch (err) {
-        console.error("[add-training-participant] send-welcome-email (ongoing):", err);
         welcomeFailed = true;
       }
     }
