@@ -140,14 +140,27 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
             <Separator />
 
             {/* Raw transcript */}
-            {testimonial.raw_transcript && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Transcript</p>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transcript</p>
+                {!testimonial.raw_transcript && (
+                  <Button size="sm" variant="outline" onClick={retryTranscript} disabled={retrying}>
+                    {retrying ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
+                    Générer le transcript
+                  </Button>
+                )}
+              </div>
+              {testimonial.raw_transcript ? (
                 <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed text-foreground/70 bg-muted/40 rounded-md p-3 max-h-60 overflow-y-auto">
                   {testimonial.raw_transcript}
                 </pre>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-muted-foreground italic bg-muted/40 rounded-md p-3">
+                  Transcription non disponible. Cliquez sur "Générer le transcript" pour relancer la transcription AssemblyAI à partir de la vidéo Drive.
+                </p>
+              )}
+            </div>
+
           </div>
         </ScrollArea>
 
