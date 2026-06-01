@@ -253,7 +253,7 @@ serve(async (req) => {
           first_name: p.first_name || "",
           training_name: training.training_name,
           location: training.location || "",
-          schedule: scheduleText || "Horaires à confirmer",
+          schedule: isElearning ? "" : (scheduleText || "Horaires à confirmer"),
           is_presentiel: isPresentiel ? "1" : undefined,
           is_classe_virtuelle: isClasseVirtuelle ? "1" : undefined,
           is_elearning: isElearning ? "1" : undefined,
