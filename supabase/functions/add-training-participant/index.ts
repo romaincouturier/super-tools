@@ -209,7 +209,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         "elearning_access_mode",
         "working_days",
         "delay_needs_survey_days",
+        "delay_needs_survey_reminder_days",
         "delay_trainer_summary_days",
+        "delay_reminder_days",
       ]);
 
     const getSetting = (k: string): string =>
@@ -220,7 +222,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (getSetting("elearning_access_mode") as "magic_link" | "woocommerce") || "magic_link";
     const workingDaysArr = await fetchWorkingDays(admin);
     const needsSurveyDelay = parseInt(getSetting("delay_needs_survey_days") || "7", 10) || 7;
+    const needsSurveyReminderDelay = parseInt(getSetting("delay_needs_survey_reminder_days") || "3", 10) || 3;
     const trainerSummaryDelay = parseInt(getSetting("delay_trainer_summary_days") || "1", 10) || 1;
+    const reminderDelay = parseInt(getSetting("delay_reminder_days") || "7", 10) || 7;
 
     // ── 2. Mode email ────────────────────────────────────────────────────────
     const { status: emailStatus, sendWelcomeNow, ongoing } = computeEmailMode(
