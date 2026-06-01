@@ -190,7 +190,7 @@ export const useMissionPages = (missionId: string | null) =>
 export const useCreateMissionPage = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string }) =>
+    mutationFn: (input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string; page_type?: string }) =>
       missionService.createPage(input),
     onSuccess: (data) => qc.invalidateQueries({ queryKey: [MISSION_PAGES_QUERY_KEY, data.mission_id] }),
   });

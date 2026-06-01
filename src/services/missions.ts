@@ -172,7 +172,7 @@ export async function fetchPages(missionId: string): Promise<MissionPage[]> {
   return (throwIfError(result) || []) as MissionPage[];
 }
 
-export async function createPage(input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string }): Promise<MissionPage> {
+export async function createPage(input: { mission_id: string; parent_page_id?: string | null; title?: string; content?: string; activity_id?: string | null; icon?: string; page_type?: string }): Promise<MissionPage> {
   const maxPos = await getMaxPosition("mission_pages", {
     mission_id: input.mission_id,
     parent_page_id: input.parent_page_id || null,
@@ -188,7 +188,8 @@ export async function createPage(input: { mission_id: string; parent_page_id?: s
       activity_id: input.activity_id || null,
       icon: input.icon || pickRandomEmoji(),
       position: maxPos + 1,
-    })
+      ...(input.page_type ? { page_type: input.page_type } : {}),
+    } as any)
     .select()
     .single();
 
