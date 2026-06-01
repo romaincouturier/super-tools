@@ -5249,6 +5249,7 @@ export type Database = {
           mission_page_id: string
           public_token: string
           recipient_emails: Json
+          require_identity: boolean
           thank_you_message: string
           title: string
           updated_at: string
@@ -5263,6 +5264,7 @@ export type Database = {
           mission_page_id: string
           public_token?: string
           recipient_emails?: Json
+          require_identity?: boolean
           thank_you_message?: string
           title?: string
           updated_at?: string
@@ -5277,6 +5279,7 @@ export type Database = {
           mission_page_id?: string
           public_token?: string
           recipient_emails?: Json
+          require_identity?: boolean
           thank_you_message?: string
           title?: string
           updated_at?: string
