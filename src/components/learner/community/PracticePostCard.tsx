@@ -371,8 +371,8 @@ export default function PracticePostCard({
             return (
               <div key={c.id} className="flex items-start gap-2 group">
                 <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold shrink-0"
-                  style={{ background: c.is_staff_reply ? "var(--st-ink)" : (c.author_photo_url ? "transparent" : "var(--st-yellow)"), color: c.is_staff_reply ? "#fff" : "#101820" }}>
-                  {!c.is_staff_reply && c.author_photo_url
+                  style={{ background: c.author_photo_url ? "transparent" : (c.is_staff_reply ? "var(--st-ink)" : "var(--st-yellow)"), color: c.is_staff_reply ? "#fff" : "#101820" }}>
+                  {c.author_photo_url
                     ? <img src={c.author_photo_url} alt={cName} className="w-full h-full object-cover" />
                     : cInitials}
                 </div>
