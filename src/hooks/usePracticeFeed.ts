@@ -244,7 +244,7 @@ export function usePracticeComments(postId: string | null, learnerEmail: string 
       const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
         c.from("practice_post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        (supabase as any).from("profiles").select("email, first_name, last_name, photo_url"),
+        (supabase as any).rpc("get_staff_public_profiles"),
       ]);
 
       if (commentsRes.error) throw commentsRes.error;
