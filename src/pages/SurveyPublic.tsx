@@ -329,6 +329,7 @@ export default function SurveyPublic() {
             <IntroStep
               title={survey.title || "Sondage"}
               intro={survey.intro_message}
+              requireIdentity={!!survey.require_identity}
               name={name}
               email={email}
               onNameChange={setName}
