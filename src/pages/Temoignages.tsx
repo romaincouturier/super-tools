@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download } from "lucide-react";
+import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2 } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useTestimonials,
   useTestimonialCounts,
