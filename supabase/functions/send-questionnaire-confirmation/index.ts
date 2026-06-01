@@ -237,9 +237,13 @@ serve(async (req) => {
     const summaryUrl = `${urls.app_url}/formation-info/${trainingId}`;
 
     // Generate calendar links for schedule days
-    const calendarDays = generatePerDayCalendarLinks(
-      trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined, summaryUrl
-    );
+    // For e-learning / online formats, the start_date is only a launch marker
+    // (no live event scheduled), so we skip it and only expose live meetings.
+    const calendarDays = isOnline
+      ? []
+      : generatePerDayCalendarLinks(
+          trainingName, location, startDate, endDate, schedules, senderEmail, trainingMeetingUrl || undefined, summaryUrl
+        );
 
     // Generate calendar links for live meetings
     const liveCalendarDays = generateLiveMeetingCalendarLinks(liveMeetings, senderEmail, summaryUrl);
