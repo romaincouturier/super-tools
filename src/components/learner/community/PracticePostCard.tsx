@@ -223,7 +223,7 @@ export default function PracticePostCard({
               }}
             />
             {lightboxOpen && (
-              <ImageLightbox src={fileHref} alt={post.file_name ?? undefined} onClose={() => setLightboxOpen(false)} />
+              <ImageLightbox src={fileHref} alt={post.file_name ?? undefined} rotation={rotation} onClose={() => setLightboxOpen(false)} />
             )}
             {isAdmin && (
               <div className="absolute bottom-2 right-2 flex gap-1 z-10">
