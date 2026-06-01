@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, RotateCcw, RotateCw } from "lucide-react";
+import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, RotateCcw, RotateCw, Pencil, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import PollDisplay from "@/components/learner/community/PollDisplay";
