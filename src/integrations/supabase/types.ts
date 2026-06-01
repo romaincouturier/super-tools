@@ -6586,6 +6586,7 @@ export type Database = {
           deposit_id: string | null
           file_mime: string | null
           file_name: string | null
+          file_rotation: number
           file_size: number | null
           file_url: string | null
           id: string
@@ -6602,6 +6603,7 @@ export type Database = {
           deposit_id?: string | null
           file_mime?: string | null
           file_name?: string | null
+          file_rotation?: number
           file_size?: number | null
           file_url?: string | null
           id?: string
@@ -6618,6 +6620,7 @@ export type Database = {
           deposit_id?: string | null
           file_mime?: string | null
           file_name?: string | null
+          file_rotation?: number
           file_size?: number | null
           file_url?: string | null
           id?: string

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff } from "lucide-react";
+import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, RotateCcw, RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import PollDisplay from "@/components/learner/community/PollDisplay";
@@ -10,6 +10,7 @@ import {
   usePracticeComments,
   useCreatePracticeComment,
   useDeletePracticeComment,
+  useRotatePracticePostImage,
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
@@ -92,6 +93,7 @@ export default function PracticePostCard({
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
   const { toast } = useToast();
+  const rotateImage = useRotatePracticePostImage();
 
   const displayName = authorDisplayName(post.author_email, post.author_first_name, post.author_last_name);
   const initials = authorInitialsFromPost(post.author_email, post.author_first_name, post.author_last_name);
@@ -182,7 +184,37 @@ export default function PracticePostCard({
       {post.file_url && (() => {
         const fileHref = safeFileUrl(post.file_url);
         return post.file_mime?.startsWith("image/") ? (
-          <img src={fileHref} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+          <div className="relative">
+            <img
+              src={fileHref}
+              alt={post.file_name ?? ""}
+              className="w-full"
+              style={{
+                maxHeight: 480,
+                objectFit: "cover",
+                transform: post.file_rotation ? `rotate(${post.file_rotation}deg)` : undefined,
+                transition: "transform 0.3s ease",
+              }}
+            />
+            {isAdmin && (
+              <div className="absolute bottom-2 right-2 flex gap-1">
+                <button
+                  onClick={() => rotateImage.mutate({ postId: post.id, rotation: (post.file_rotation ?? 0) - 90 })}
+                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 transition-colors"
+                  title="Tourner à gauche"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => rotateImage.mutate({ postId: post.id, rotation: (post.file_rotation ?? 0) + 90 })}
+                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 transition-colors"
+                  title="Tourner à droite"
+                >
+                  <RotateCw className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </div>
         ) : post.file_mime?.startsWith("video/") ? (
           <video src={fileHref} controls className="w-full" style={{ maxHeight: 480 }} />
         ) : (
