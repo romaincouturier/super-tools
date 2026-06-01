@@ -91,6 +91,7 @@ export default function PracticePostCard({
   }, [showEmojiPicker]);
   const [commentText, setCommentText] = useState("");
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
