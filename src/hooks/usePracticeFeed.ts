@@ -511,6 +511,18 @@ export function useCreatePracticeComment(
         .single();
       if (error) throw error;
 
+      // Staff comment counts as treatment: auto-mark the post as treated so
+      // it disappears from the "À traiter" filter without an extra click.
+      if (isAdmin) {
+        (supabase as any)
+          .from("practice_posts")
+          .update({ is_staff_treated: true })
+          .eq("id", postId)
+          .then(({ error: e }: { error: unknown }) => {
+            if (e) console.warn("auto mark treated failed:", e);
+          });
+      }
+
       // Fire-and-forget: notify the post author (respects email_notif_work_comment)
       supabase.functions
         .invoke("notify-practice-comment", {
