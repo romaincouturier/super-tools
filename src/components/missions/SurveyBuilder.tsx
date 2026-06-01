@@ -329,9 +329,20 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
           title: localTitle || page.title || "Sondage",
           intro_message: localIntro || null,
           thank_you_message: localThanks || "Merci pour vos réponses !",
+          require_identity: localRequireIdentity,
         },
       });
       toast({ title: "Sondage sauvegardé" });
+    } catch (e) {
+      toastError(toast, e instanceof Error ? e : "Erreur");
+    }
+  };
+
+  const toggleRequireIdentity = async (val: boolean) => {
+    setLocalRequireIdentity(val);
+    try {
+      const s = await ensureSurvey();
+      await updateSurvey.mutateAsync({ id: s.id, updates: { require_identity: val } });
     } catch (e) {
       toastError(toast, e instanceof Error ? e : "Erreur");
     }
