@@ -310,18 +310,22 @@ Deno.serve(async (req: Request): Promise<Response> => {
         console.warn("[add-training-participant] questionnaire_besoins:", qErr);
       }
 
-      // ── 6. Programmation des emails pour les formations futures ────────────
-      // Recueil des besoins : non-e-learning, futur, pas en cours
-      if (trainingStartDate && !isElearning && emailStatus !== "non_envoye" && !ongoing) {
+      // ── 6. Programmation des emails ────────────────────────────────────────
+      // Recueil des besoins : envoyé pour toutes les formations (y compris e-learning).
+      // Pour e-learning ou sans date : envoi immédiat. Sinon : J-needsSurveyDelay.
+      if (emailStatus !== "non_envoye" && !ongoing) {
         try {
-          const startDate = new Date(`${trainingStartDate}T00:00:00`);
-          const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
           const now = new Date();
-          // Si la fenêtre optimale est déjà passée mais la formation n'a pas
-          // encore commencé, on envoie immédiatement plutôt que de ne pas envoyer.
-          const scheduledFor = surveyDate > now
-            ? `${surveyDate.toISOString().split("T")[0]}T09:00:00`
-            : now.toISOString();
+          let scheduledFor: string;
+          if (isElearning || !trainingStartDate) {
+            scheduledFor = now.toISOString();
+          } else {
+            const startDate = new Date(`${trainingStartDate}T00:00:00`);
+            const surveyDate = subtractWorkingDays(startDate, needsSurveyDelay, workingDaysArr);
+            scheduledFor = surveyDate > now
+              ? `${surveyDate.toISOString().split("T")[0]}T09:00:00`
+              : now.toISOString();
+          }
           await admin.from("scheduled_emails").insert({
             training_id: trainingId,
             participant_id: participantId,
