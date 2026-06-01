@@ -16,6 +16,7 @@ import {
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
 import ImageLightbox from "@/components/ui/image-lightbox";
+import { asciiToEmoji } from "@/lib/asciiEmoji";
 
 const REACTION_EMOJIS = [
   { emoji: "👍", label: "J'aime" },
