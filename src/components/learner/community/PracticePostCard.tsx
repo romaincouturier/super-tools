@@ -14,6 +14,7 @@ import {
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
+import ImageLightbox from "@/components/ui/image-lightbox";
 
 const REACTION_EMOJIS = [
   { emoji: "👍", label: "J'aime" },
