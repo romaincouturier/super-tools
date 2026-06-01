@@ -31,6 +31,9 @@ const difficultyLabels: Record<string, string> = {
 export default function LmsCourses() {
   const navigate = useNavigate();
   const { data: courses = [], isLoading } = useCourses();
+  const { data: pendingData } = useCommunityPendingPosts();
+  const pendingPerCourse = pendingData?.perCourse ?? {};
+  const pendingTotal = pendingData?.total ?? 0;
   const createCourse = useCreateCourse();
   const deleteCourse = useDeleteCourse();
   const { toast } = useToast();
