@@ -78,6 +78,25 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
   const { mutateAsync: update, isPending } = useUpdateTestimonial();
   const { toast } = useToast();
 
+  const [retrying, setRetrying] = useState(false);
+
+  const retryTranscript = async () => {
+    setRetrying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("retry-testimonial-transcript", {
+        body: { testimonial_id: testimonial.id },
+      });
+      if (error || !(data as { ok?: boolean })?.ok) {
+        throw new Error((data as { error?: string })?.error || error?.message || "Échec");
+      }
+      toast({ title: "Transcription relancée", description: "Le transcript apparaîtra dans quelques minutes." });
+    } catch (e) {
+      toastError(toast, e instanceof Error ? e.message : "Impossible de relancer la transcription");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const save = async (status?: TestimonialStatus) => {
     try {
       await update({ id: testimonial.id, client_name: clientName, company, service_type: serviceType, reviewer_notes: reviewerNotes, status });
