@@ -137,7 +137,7 @@ export function usePracticePosts(
         c.from("practice_post_reactions").select("post_id, author_email, reaction_type"),
         c.from("practice_post_comments").select("id, post_id"),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        (supabase as any).from("profiles").select("email, first_name, last_name, photo_url"),
+        (supabase as any).rpc("get_staff_public_profiles"),
         c.from("practice_post_hashtags").select("post_id, tag"),
         c.from("practice_polls").select("id, post_id"),
         c.from("practice_poll_options").select("id, poll_id, label, position"),
