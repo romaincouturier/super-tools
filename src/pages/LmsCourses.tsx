@@ -249,6 +249,7 @@ export default function LmsCourses() {
                     </Button>
                   </div>
                 </CardHeader>
+                <CardContent className="space-y-3">
                   {course.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
                   )}
