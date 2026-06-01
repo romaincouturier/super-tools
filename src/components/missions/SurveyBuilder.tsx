@@ -413,7 +413,17 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
                 rows={2}
               />
             </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label className="text-sm">Identité obligatoire</Label>
+                <p className="text-xs text-muted-foreground">
+                  Si activé, le nom et l'email du répondant sont requis. Sinon, ils restent optionnels (les champs sont toujours affichés).
+                </p>
+              </div>
+              <Switch checked={localRequireIdentity} onCheckedChange={toggleRequireIdentity} />
+            </div>
           </div>
+
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
