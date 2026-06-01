@@ -250,6 +250,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
   const [localTitle, setLocalTitle] = useState("");
   const [localIntro, setLocalIntro] = useState("");
   const [localThanks, setLocalThanks] = useState("");
+  const [localRequireIdentity, setLocalRequireIdentity] = useState(false);
   const [localQuestions, setLocalQuestions] = useState<SurveyQuestion[]>([]);
 
   useEffect(() => {
@@ -257,6 +258,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
       setLocalTitle(survey.title);
       setLocalIntro(survey.intro_message ?? "");
       setLocalThanks(survey.thank_you_message);
+      setLocalRequireIdentity(!!survey.require_identity);
     }
   }, [survey?.id]);
 
