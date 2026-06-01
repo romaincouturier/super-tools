@@ -1248,6 +1248,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   tva_rate: { default: "20", description: "Taux de TVA par défaut en pourcentage (ex: 20 pour 20%)" },
   working_days: { default: JSON.stringify([false, true, true, true, true, true, false]), description: "Jours ouvrables pour l'envoi des emails (tableau de 7 booléens : dim, lun, mar, mer, jeu, ven, sam)" },
   delay_needs_survey_days: { default: "7", description: "Délai avant formation pour envoyer le questionnaire de besoins (en jours)" },
+  delay_needs_survey_reminder_days: { default: "3", description: "Délai après l'envoi du questionnaire pour relancer les participants qui n'ont pas répondu (en jours ouvrables)" },
   delay_reminder_days: { default: "7", description: "Délai avant formation pour envoyer le rappel logistique (en jours)" },
   delay_trainer_summary_days: { default: "1", description: "Délai avant formation pour envoyer la synthèse au formateur (en jours)" },
   delay_google_review_days: { default: "1", description: "Délai après formation pour demander un avis Google (en jours ouvrables)" },
