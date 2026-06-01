@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.assemblyai-webhook]
 verify_jwt = false
 
+[functions.retry-testimonial-transcript]
+verify_jwt = true
+
 [functions.cleanup-pending-email-drafts]
 verify_jwt = false
 

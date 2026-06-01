@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download } from "lucide-react";
+import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2 } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useTestimonials,
   useTestimonialCounts,
@@ -77,6 +78,25 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
   const { mutateAsync: update, isPending } = useUpdateTestimonial();
   const { toast } = useToast();
 
+  const [retrying, setRetrying] = useState(false);
+
+  const retryTranscript = async () => {
+    setRetrying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("retry-testimonial-transcript", {
+        body: { testimonial_id: testimonial.id },
+      });
+      if (error || !(data as { ok?: boolean })?.ok) {
+        throw new Error((data as { error?: string })?.error || error?.message || "Échec");
+      }
+      toast({ title: "Transcription relancée", description: "Le transcript apparaîtra dans quelques minutes." });
+    } catch (e) {
+      toastError(toast, e instanceof Error ? e.message : "Impossible de relancer la transcription");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const save = async (status?: TestimonialStatus) => {
     try {
       await update({ id: testimonial.id, client_name: clientName, company, service_type: serviceType, reviewer_notes: reviewerNotes, status });
@@ -120,14 +140,27 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
             <Separator />
 
             {/* Raw transcript */}
-            {testimonial.raw_transcript && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Transcript</p>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transcript</p>
+                {!testimonial.raw_transcript && (
+                  <Button size="sm" variant="outline" onClick={retryTranscript} disabled={retrying}>
+                    {retrying ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Wand2 className="h-3 w-3 mr-1" />}
+                    Générer le transcript
+                  </Button>
+                )}
+              </div>
+              {testimonial.raw_transcript ? (
                 <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed text-foreground/70 bg-muted/40 rounded-md p-3 max-h-60 overflow-y-auto">
                   {testimonial.raw_transcript}
                 </pre>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-muted-foreground italic bg-muted/40 rounded-md p-3">
+                  Transcription non disponible. Cliquez sur "Générer le transcript" pour relancer la transcription AssemblyAI à partir de la vidéo Drive.
+                </p>
+              )}
+            </div>
+
           </div>
         </ScrollArea>
 
