@@ -189,6 +189,9 @@ export const useSurveyResponses = (surveyId: string) =>
       return (data ?? []) as (SurveyResponse & { mission_survey_answers: SurveyAnswer[] })[];
     },
     enabled: !!surveyId,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
 export const useSubmitSurveyResponse = () =>

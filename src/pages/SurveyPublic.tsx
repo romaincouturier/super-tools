@@ -190,7 +190,7 @@ function IntroStep({
     <div className="space-y-8 animate-in fade-in-0 duration-300">
       <div className="space-y-3">
         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
-        {intro && <p className="text-muted-foreground text-lg leading-relaxed">{intro}</p>}
+        {intro && <p className="text-muted-foreground text-lg leading-relaxed whitespace-pre-wrap">{intro}</p>}
       </div>
       <div className="space-y-4 max-w-sm">
         <div className="space-y-1.5">
