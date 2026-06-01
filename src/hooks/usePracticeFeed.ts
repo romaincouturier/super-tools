@@ -36,6 +36,7 @@ export interface PracticePost {
   author_first_name?: string | null;
   author_last_name?: string | null;
   author_photo_url?: string | null;
+  author_is_staff?: boolean;
   lesson_title?: string | null;
   course_title?: string | null;
   reaction_count: number;
@@ -147,13 +148,15 @@ export function usePracticePosts(
       const posts: any[] = postsRes.data || [];
       const reactions: any[] = reactionsRes.data || [];
       const comments: any[] = commentsRes.data || [];
-      // Merge learner profiles + staff profiles; learner profile takes precedence (has photo_url)
+      // Merge staff profiles + learner profiles; staff profile takes precedence
+      // so a staff member's real name and avatar are used instead of any legacy
+      // learner_profile they may also have for testing.
       const learnerProfiles: any[] = profilesRes.data || [];
       const staffProfiles: any[] = staffProfilesRes.data || [];
       const staffEmailSet = new Set(staffProfiles.map((p: any) => p.email));
       const profiles: any[] = [
-        ...learnerProfiles,
-        ...staffProfiles.filter((p: any) => !learnerProfiles.some((lp: any) => lp.email === p.email)),
+        ...staffProfiles,
+        ...learnerProfiles.filter((lp: any) => !staffEmailSet.has(lp.email)),
       ];
       const hashtags: any[] = hashtagsRes.data || [];
       const polls: any[] = pollsRes.data || [];
@@ -206,6 +209,7 @@ export function usePracticePosts(
           author_first_name: profile?.first_name ?? null,
           author_last_name: profile?.last_name ?? null,
           author_photo_url: profile?.photo_url ?? null,
+          author_is_staff: staffEmailSet.has(post.author_email),
           lesson_title: post.lesson_id ? (lessonMap.get(post.lesson_id) ?? null) : null,
           course_title: post.course_id ? (courseMap.get(post.course_id) ?? null) : null,
           reaction_count: postReactions.length,
