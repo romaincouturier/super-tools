@@ -231,7 +231,14 @@ export default function LmsCourses() {
                 )}
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-2">{course.title}</CardTitle>
+                    <CardTitle className="text-base line-clamp-2 flex items-center gap-2">
+                      {course.title}
+                      {(pendingPerCourse[course.id] ?? 0) > 0 && (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0" title={`${pendingPerCourse[course.id]} message(s) en attente`}>
+                          {pendingPerCourse[course.id]}
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -242,7 +249,6 @@ export default function LmsCourses() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
                   {course.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
                   )}
