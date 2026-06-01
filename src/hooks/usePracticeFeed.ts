@@ -148,13 +148,15 @@ export function usePracticePosts(
       const posts: any[] = postsRes.data || [];
       const reactions: any[] = reactionsRes.data || [];
       const comments: any[] = commentsRes.data || [];
-      // Merge learner profiles + staff profiles; learner profile takes precedence (has photo_url)
+      // Merge staff profiles + learner profiles; staff profile takes precedence
+      // so a staff member's real name and avatar are used instead of any legacy
+      // learner_profile they may also have for testing.
       const learnerProfiles: any[] = profilesRes.data || [];
       const staffProfiles: any[] = staffProfilesRes.data || [];
       const staffEmailSet = new Set(staffProfiles.map((p: any) => p.email));
       const profiles: any[] = [
-        ...learnerProfiles,
-        ...staffProfiles.filter((p: any) => !learnerProfiles.some((lp: any) => lp.email === p.email)),
+        ...staffProfiles,
+        ...learnerProfiles.filter((lp: any) => !staffEmailSet.has(lp.email)),
       ];
       const hashtags: any[] = hashtagsRes.data || [];
       const polls: any[] = pollsRes.data || [];
