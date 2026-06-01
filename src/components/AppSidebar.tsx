@@ -11,6 +11,7 @@ import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
+import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
