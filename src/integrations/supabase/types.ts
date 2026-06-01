@@ -6512,6 +6512,7 @@ export type Database = {
           job_title: string | null
           last_name: string | null
           org_id: string | null
+          photo_url: string | null
           updated_at: string
           user_id: string
           voice_description: string | null
@@ -6526,6 +6527,7 @@ export type Database = {
           job_title?: string | null
           last_name?: string | null
           org_id?: string | null
+          photo_url?: string | null
           updated_at?: string
           user_id: string
           voice_description?: string | null
@@ -6540,6 +6542,7 @@ export type Database = {
           job_title?: string | null
           last_name?: string | null
           org_id?: string | null
+          photo_url?: string | null
           updated_at?: string
           user_id?: string
           voice_description?: string | null

@@ -1,4 +1,4 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart, UserCircle } from "lucide-react";
 import { SettingsTab as SupertiltSettingsTab } from "@/pages/SupertiltOrders";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
@@ -27,6 +27,7 @@ import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 import VoiceSettings from "@/components/settings/VoiceSettings";
 import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
 import TranscriptPromptsSettings from "@/components/settings/TranscriptPromptsSettings";
+import StaffProfileSettings from "@/components/settings/StaffProfileSettings";
 
 const Parametres = () => {
   const navigate = useNavigate();
@@ -78,6 +79,7 @@ const Parametres = () => {
         <PageHeader icon={Settings} title="Paramètres" />
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="profile" className="flex items-center gap-2"><UserCircle className="h-4 w-4" />Mon profil</TabsTrigger>
             <TabsTrigger value="general" className="flex items-center gap-2"><Cog className="h-4 w-4" />{tabLabel("general", "Général")}</TabsTrigger>
             <TabsTrigger value="trainers" className="flex items-center gap-2"><Users className="h-4 w-4" />{tabLabel("trainers", "Formateurs")}</TabsTrigger>
             <TabsTrigger value="crm" className="flex items-center gap-2"><Tag className="h-4 w-4" />{tabLabel("crm", "CRM")}</TabsTrigger>
@@ -94,6 +96,12 @@ const Parametres = () => {
             {isAdmin && <TabsTrigger value="dropshipping" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Dropshipping</TabsTrigger>}
           </TabsList>
 
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader><CardTitle>Mon profil</CardTitle><CardDescription>Prénom, nom et photo affichés dans la communauté e-learning.</CardDescription></CardHeader>
+              <CardContent><StaffProfileSettings /></CardContent>
+            </Card>
+          </TabsContent>
           <TabsContent value="general">
             <SettingsGeneral settings={settings} updateSetting={updateSetting} autoSaveStatus={autoSaveStatus} />
           </TabsContent>

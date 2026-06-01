@@ -130,11 +130,12 @@ export function usePracticePosts(
       if (authorFilter) postsQuery = postsQuery.eq("author_email", authorFilter);
       if (restrictIds !== null) postsQuery = postsQuery.in("id", restrictIds);
 
-      const [postsRes, reactionsRes, commentsRes, profilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
+      const [postsRes, reactionsRes, commentsRes, profilesRes, staffProfilesRes, hashtagsRes, pollsRes, optionsRes, votesRes] = await Promise.all([
         postsQuery,
         c.from("practice_post_reactions").select("post_id, author_email, reaction_type"),
         c.from("practice_post_comments").select("id, post_id"),
         (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
+        (supabase as any).from("profiles").select("email, first_name, last_name, photo_url"),
         c.from("practice_post_hashtags").select("post_id, tag"),
         c.from("practice_polls").select("id, post_id"),
         c.from("practice_poll_options").select("id, poll_id, label, position"),
@@ -146,7 +147,14 @@ export function usePracticePosts(
       const posts: any[] = postsRes.data || [];
       const reactions: any[] = reactionsRes.data || [];
       const comments: any[] = commentsRes.data || [];
-      const profiles: any[] = profilesRes.data || [];
+      // Merge learner profiles + staff profiles; learner profile takes precedence (has photo_url)
+      const learnerProfiles: any[] = profilesRes.data || [];
+      const staffProfiles: any[] = staffProfilesRes.data || [];
+      const staffEmailSet = new Set(staffProfiles.map((p: any) => p.email));
+      const profiles: any[] = [
+        ...learnerProfiles,
+        ...staffProfiles.filter((p: any) => !learnerProfiles.some((lp: any) => lp.email === p.email)),
+      ];
       const hashtags: any[] = hashtagsRes.data || [];
       const polls: any[] = pollsRes.data || [];
       const pollOptions: any[] = optionsRes.data || [];
@@ -351,7 +359,7 @@ async function generateHashtags(content: string): Promise<string[]> {
   }
 }
 
-export function useCreatePracticePost(learnerEmail: string | null) {
+export function useCreatePracticePost(learnerEmail: string | null, isAdmin = false) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl }: {
@@ -363,7 +371,7 @@ export function useCreatePracticePost(learnerEmail: string | null) {
       gifUrl?: string | null;
     }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
       if (gifUrl) {
         fileData = { url: gifUrl, name: "gif", size: 0, mime: "image/gif" };
