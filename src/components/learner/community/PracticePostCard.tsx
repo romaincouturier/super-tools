@@ -128,7 +128,10 @@ export default function PracticePostCard({
             : initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight" style={{ color: "var(--st-ink)" }}>{displayName}</p>
+          <p className="text-sm font-semibold leading-tight flex items-center gap-1.5" style={{ color: "var(--st-ink)" }}>
+            {displayName}
+            {post.author_is_staff && <StaffBadge />}
+          </p>
           <p className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
             {formatDistanceToNow(new Date(post.created_at), { locale: fr, addSuffix: true })}
           </p>
