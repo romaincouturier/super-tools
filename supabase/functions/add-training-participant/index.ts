@@ -343,6 +343,51 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       }
 
+      // Relance recueil des besoins : programmée pour toutes les formations
+      // si la date de relance est encore future. La case force-send vérifiera
+      // l'état du questionnaire avant envoi (skip si déjà complété).
+      if (emailStatus !== "non_envoye" && !ongoing) {
+        try {
+          const now = new Date();
+          const baseDate = (isElearning || !trainingStartDate)
+            ? now
+            : subtractWorkingDays(new Date(`${trainingStartDate}T00:00:00`), needsSurveyDelay, workingDaysArr);
+          const reminderDate = addWorkingDays(baseDate, needsSurveyReminderDelay, workingDaysArr);
+          if (reminderDate > now) {
+            await admin.from("scheduled_emails").insert({
+              training_id: trainingId,
+              participant_id: participantId,
+              email_type: "needs_survey_reminder",
+              scheduled_for: `${reminderDate.toISOString().split("T")[0]}T09:00:00`,
+              status: "pending",
+            });
+          }
+        } catch (err) {
+          console.error("[add-training-participant] schedule needs_survey_reminder:", err);
+        }
+      }
+
+      // Rappel "votre formation approche" : programmé pour toutes les formations
+      // (y compris e-learning) à J-delay_reminder_days jours ouvrés, si la date
+      // est encore future.
+      if (trainingStartDate) {
+        try {
+          const startDate = new Date(`${trainingStartDate}T00:00:00`);
+          const approachDate = subtractWorkingDays(startDate, reminderDelay, workingDaysArr);
+          if (approachDate > new Date()) {
+            await admin.from("scheduled_emails").insert({
+              training_id: trainingId,
+              participant_id: participantId,
+              email_type: "reminder",
+              scheduled_for: `${approachDate.toISOString().split("T")[0]}T09:00:00`,
+              status: "pending",
+            });
+          }
+        } catch (err) {
+          console.error("[add-training-participant] schedule reminder:", err);
+        }
+      }
+
       // Convocation J-7 : uniquement quand la formation est à plus de 7 j
       // (status "programme") et non e-learning.
       if (trainingStartDate && !isElearning && emailStatus === "programme") {
