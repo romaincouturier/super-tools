@@ -11,6 +11,7 @@ import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
+import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
@@ -117,6 +118,8 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
   const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
   const edgeFunctionsAlert = useEdgeFunctionsAlert();
+  const { data: communityPending } = useCommunityPendingPosts();
+  const lmsAlert = (communityPending?.total ?? 0) > 0;
 
 
 
@@ -260,6 +263,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               entry.key === "time-tracker" ? timeTrackerAlert
               : entry.key === "support" ? supportAlert
               : entry.key === "crm" ? crmAlert
+              : entry.key === "lms" ? lmsAlert
               : undefined;
             return (
               <RailItem

@@ -14,6 +14,7 @@ import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
 import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -30,6 +31,9 @@ const difficultyLabels: Record<string, string> = {
 export default function LmsCourses() {
   const navigate = useNavigate();
   const { data: courses = [], isLoading } = useCourses();
+  const { data: pendingData } = useCommunityPendingPosts();
+  const pendingPerCourse = pendingData?.perCourse ?? {};
+  const pendingTotal = pendingData?.total ?? 0;
   const createCourse = useCreateCourse();
   const deleteCourse = useDeleteCourse();
   const { toast } = useToast();
@@ -125,8 +129,13 @@ export default function LmsCourses() {
             <Button variant="outline" onClick={() => navigate("/lms/apprenants")}>
               <Users className="w-4 h-4 mr-2" /> Apprenants
             </Button>
-            <Button variant="outline" onClick={() => navigate("/lms/communautes")}>
+            <Button variant="outline" onClick={() => navigate("/lms/communautes")} className="relative">
               <MessageSquare className="w-4 h-4 mr-2" /> Communautés
+              {pendingTotal > 0 && (
+                <span className="ml-2 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 min-w-[18px]">
+                  {pendingTotal}
+                </span>
+              )}
             </Button>
             <Button variant="outline" onClick={() => navigate("/lms/faq")}>
               <HelpCircle className="w-4 h-4 mr-2" /> FAQ
@@ -222,7 +231,14 @@ export default function LmsCourses() {
                 )}
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-2">{course.title}</CardTitle>
+                    <CardTitle className="text-base line-clamp-2 flex items-center gap-2">
+                      {course.title}
+                      {(pendingPerCourse[course.id] ?? 0) > 0 && (
+                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0" title={`${pendingPerCourse[course.id]} message(s) en attente`}>
+                          {pendingPerCourse[course.id]}
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <Button
                       variant="ghost"
                       size="icon"
