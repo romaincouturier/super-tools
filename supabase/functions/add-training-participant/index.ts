@@ -229,9 +229,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
 
     // Envoie la convocation si la formation n'est pas passée OU si elle est
-    // en cours (mid-session add) — sauf pour l'e-learning qui a son propre flux.
+    // en cours (mid-session add). Pour l'e-learning : envoi immédiat à l'inscription.
     const shouldSendWelcome =
-      !isElearning && (emailStatus !== "non_envoye" || ongoing);
+      isElearning || emailStatus !== "non_envoye" || ongoing;
 
     // ── 3. Participant existant ? ────────────────────────────────────────────
     const { data: existing } = await admin
