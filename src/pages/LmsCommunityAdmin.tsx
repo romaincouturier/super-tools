@@ -13,10 +13,12 @@ import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare } from "luci
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
+import PostComposer from "@/components/learner/community/PostComposer";
 import { useQuery } from "@tanstack/react-query";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
 import {
   usePracticePosts,
+  useCreatePracticePost,
   useDeletePracticePost,
   usePinPracticePost,
   useTogglePracticeReaction,
@@ -366,6 +368,7 @@ export default function LmsCommunityAdmin() {
     { courseId },
     true,
   );
+  const createPost = useCreatePracticePost(userEmail, true);
 
   const sharedPosts = posts.filter((p) => p.file_url != null);
 
@@ -413,6 +416,19 @@ export default function LmsCommunityAdmin() {
 
           <div className="mt-6">
             <TabsContent value="posts">
+              {userEmail && (
+                <div className="mb-4">
+                  <PostComposer
+                    email={userEmail}
+                    firstName={adminName?.split(" ")[0] ?? ""}
+                    lastName={adminName?.split(" ").slice(1).join(" ") ?? ""}
+                    photoUrl={null}
+                    onCreate={async (content, file, poll, gifUrl) => {
+                      await createPost.mutateAsync({ content, file: file ?? null, courseId, poll, gifUrl });
+                    }}
+                  />
+                </div>
+              )}
               <PostsFeed
                 posts={posts}
                 isLoading={postsLoading}

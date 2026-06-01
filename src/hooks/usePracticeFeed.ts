@@ -351,7 +351,7 @@ async function generateHashtags(content: string): Promise<string[]> {
   }
 }
 
-export function useCreatePracticePost(learnerEmail: string | null) {
+export function useCreatePracticePost(learnerEmail: string | null, isAdmin = false) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ content, file, courseId, lessonId, poll, gifUrl }: {
@@ -363,7 +363,7 @@ export function useCreatePracticePost(learnerEmail: string | null) {
       gifUrl?: string | null;
     }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail) as any;
+      const c = clientFor(learnerEmail, isAdmin) as any;
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
       if (gifUrl) {
         fileData = { url: gifUrl, name: "gif", size: 0, mime: "image/gif" };
