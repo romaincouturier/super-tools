@@ -254,20 +254,30 @@ function PostsFeed({
 
 // ── Membres tab ───────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  enrolled: "Inscrit",
-  in_progress: "En cours",
-  completed: "Terminé",
-};
-
-const STATUS_VARIANTS: Record<string, "default" | "secondary" | "outline"> = {
-  enrolled: "outline",
-  in_progress: "secondary",
-  completed: "default",
-};
+function useLastPublicationByLearner(courseId: string) {
+  return useQuery({
+    queryKey: ["lms_last_publication_by_learner", courseId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("practice_posts")
+        .select("author_email, created_at")
+        .eq("course_id", courseId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const map = new Map<string, string>();
+      ((data ?? []) as Array<{ author_email: string; created_at: string }>).forEach((p) => {
+        const k = (p.author_email || "").toLowerCase();
+        if (!map.has(k)) map.set(k, p.created_at);
+      });
+      return map;
+    },
+    enabled: !!courseId,
+  });
+}
 
 function MembersTab({ courseId }: { courseId: string }) {
   const { data: enrollments = [], isLoading } = useCourseEnrollments(courseId);
+  const { data: lastPubMap } = useLastPublicationByLearner(courseId);
 
   if (isLoading) {
     return (
@@ -291,28 +301,29 @@ function MembersTab({ courseId }: { courseId: string }) {
         <thead className="bg-muted/50">
           <tr>
             <th className="text-left px-4 py-3 font-medium">Email</th>
-            <th className="text-left px-4 py-3 font-medium">Statut</th>
+            <th className="text-left px-4 py-3 font-medium">Dernière publication</th>
             <th className="text-left px-4 py-3 font-medium">Inscription</th>
             <th className="text-right px-4 py-3 font-medium">Progression</th>
           </tr>
         </thead>
         <tbody>
-          {enrollments.map((e, i) => (
-            <tr key={e.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-              <td className="px-4 py-3">{e.learner_email}</td>
-              <td className="px-4 py-3">
-                <Badge variant={STATUS_VARIANTS[e.status] ?? "outline"}>
-                  {STATUS_LABELS[e.status] ?? e.status}
-                </Badge>
-              </td>
-              <td className="px-4 py-3 text-muted-foreground">
-                {new Date(e.enrolled_at).toLocaleDateString("fr-FR")}
-              </td>
-              <td className="px-4 py-3 text-right">
-                {e.completion_percentage != null ? `${Math.round(e.completion_percentage)}%` : "—"}
-              </td>
-            </tr>
-          ))}
+          {enrollments.map((e, i) => {
+            const last = lastPubMap?.get((e.learner_email || "").toLowerCase());
+            return (
+              <tr key={e.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                <td className="px-4 py-3">{e.learner_email}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {last ? new Date(last).toLocaleDateString("fr-FR") : <span className="italic">Aucune</span>}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {new Date(e.enrolled_at).toLocaleDateString("fr-FR")}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {e.completion_percentage != null ? `${Math.round(e.completion_percentage)}%` : "—"}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
