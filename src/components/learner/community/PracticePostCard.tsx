@@ -16,6 +16,7 @@ import {
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
 import ImageLightbox from "@/components/ui/image-lightbox";
+import { asciiToEmoji } from "@/lib/asciiEmoji";
 
 const REACTION_EMOJIS = [
   { emoji: "👍", label: "J'aime" },
@@ -183,7 +184,7 @@ export default function PracticePostCard({
       {/* Content */}
       {post.content && (
         <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
-          {post.content}
+          {asciiToEmoji(post.content)}
         </p>
       )}
 
@@ -467,7 +468,7 @@ export default function PracticePostCard({
                       </button>
                     </div>
                   ) : (
-                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>{asciiToEmoji(c.content)}</p>
                   )}
                 </div>
               </div>
