@@ -64,7 +64,14 @@ const ImageLightbox = ({ src, alt, onClose, rotation = 0 }: ImageLightboxProps) 
       <img
         src={src}
         alt={alt || "Image"}
-        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+        className="rounded-lg shadow-2xl"
+        style={{
+          maxWidth: isRotated ? "90vh" : "90vw",
+          maxHeight: isRotated ? "90vw" : "90vh",
+          objectFit: "contain",
+          transform: `rotate(${normalizedRotation}deg)`,
+          transformOrigin: "center center",
+        }}
         onClick={(e) => e.stopPropagation()}
       />
     </div>
