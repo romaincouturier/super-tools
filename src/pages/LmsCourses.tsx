@@ -14,6 +14,7 @@ import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
 import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
