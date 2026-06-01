@@ -600,6 +600,23 @@ export function useDeletePracticeComment(learnerEmail: string | null, isAdmin = 
   });
 }
 
+// ── Update comment ────────────────────────────────────────────────────────────
+
+export function useUpdatePracticeComment(learnerEmail: string | null, isAdmin = false) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ commentId, content }: { commentId: string; postId: string; content: string }) => {
+      if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
+      const c = (isAdmin ? supabase : clientFor(learnerEmail)) as any;
+      const { error } = await c.from("practice_post_comments").update({ content }).eq("id", commentId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { postId }) => {
+      qc.invalidateQueries({ queryKey: COMMENTS_KEY(postId) });
+    },
+  });
+}
+
 // ── Admin community: current & upcoming training sessions (cross-session view) ──
 
 export interface AdminCommunityCourse {
