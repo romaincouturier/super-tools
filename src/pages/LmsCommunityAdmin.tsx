@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare, Pin, PinOff, Trash2, Send } from "lucide-react";
+import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,12 +17,11 @@ import { useQuery } from "@tanstack/react-query";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
 import {
   usePracticePosts,
-  usePracticeComments,
-  useCreatePracticeComment,
   useDeletePracticePost,
   usePinPracticePost,
   useTogglePracticeReaction,
   useVotePracticePoll,
+  useMarkPostStaffTreated,
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
 
@@ -67,110 +65,7 @@ function useCourseEnrollments(courseId: string) {
   });
 }
 
-// ── "À traiter" tab — posts without staff reply ───────────────────────────────
-
-function PendingReplyTab({
-  posts,
-  userEmail,
-  adminName,
-}: {
-  posts: PracticePost[];
-  userEmail: string | null;
-  adminName: string | null;
-}) {
-  const { toast } = useToast();
-  const [replyMap, setReplyMap] = useState<Record<string, string>>({});
-  const [openReplyId, setOpenReplyId] = useState<string | null>(null);
-  const createComment = useCreatePracticeComment(userEmail, true, adminName);
-  const { data: allComments } = useQuery({
-    queryKey: ["practice_comments_all_posts", posts.map((p) => p.id).join(",")],
-    queryFn: async () => {
-      if (posts.length === 0) return [];
-      const postIds = posts.map((p) => p.id);
-      const { data } = await (supabase as any)
-        .from("practice_post_comments")
-        .select("post_id, is_staff_reply")
-        .in("post_id", postIds);
-      return (data ?? []) as Array<{ post_id: string; is_staff_reply: boolean }>;
-    },
-    enabled: posts.length > 0,
-  });
-
-  const postsWithoutStaffReply = posts.filter((p) => {
-    const comments = (allComments ?? []).filter((c) => c.post_id === p.id);
-    return !comments.some((c) => c.is_staff_reply);
-  });
-
-  const handleSubmitReply = async (postId: string) => {
-    const content = (replyMap[postId] ?? "").trim();
-    if (!content) return;
-    try {
-      await createComment.mutateAsync({ postId, content });
-      setReplyMap((prev) => ({ ...prev, [postId]: "" }));
-      setOpenReplyId(null);
-      toast({ title: "Réponse envoyée" });
-    } catch {
-      toastError(toast, "Impossible d'envoyer la réponse.");
-    }
-  };
-
-  if (postsWithoutStaffReply.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-        Aucun message en attente de retour.
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {postsWithoutStaffReply.map((post) => (
-        <Card key={post.id}>
-          <CardContent className="pt-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="text-sm space-y-1 flex-1">
-                <p className="font-medium text-muted-foreground text-xs">{post.author_email}</p>
-                {post.content && <p className="text-sm">{post.content}</p>}
-                {post.file_url && (
-                  <a href={post.file_url} target="_blank" rel="noopener noreferrer" className="text-primary underline text-xs">
-                    Voir le fichier joint
-                  </a>
-                )}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setOpenReplyId(openReplyId === post.id ? null : post.id)}
-              >
-                Répondre
-              </Button>
-            </div>
-            {openReplyId === post.id && (
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder="Votre réponse en tant que formateur..."
-                  value={replyMap[post.id] ?? ""}
-                  onChange={(e) => setReplyMap((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                  className="text-sm"
-                  rows={3}
-                />
-                <Button
-                  size="sm"
-                  onClick={() => handleSubmitReply(post.id)}
-                  disabled={createComment.isPending || !(replyMap[post.id] ?? "").trim()}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-// ── Shared PostsFeed used in Publications + Travaux tabs ──────────────────────
+// ── PostsFeed — Publications + Travaux tabs with "À traiter" toggle ──────────
 
 function PostsFeed({
   posts,
@@ -178,18 +73,22 @@ function PostsFeed({
   userEmail,
   adminName,
   emptyLabel,
+  showTreatedToggle = false,
 }: {
   posts: PracticePost[];
   isLoading: boolean;
   userEmail: string | null;
   adminName: string | null;
   emptyLabel: string;
+  showTreatedToggle?: boolean;
 }) {
   const { toast } = useToast();
+  const [onlyPending, setOnlyPending] = useState(false);
   const deletePost = useDeletePracticePost(userEmail, true);
   const pinPost = usePinPracticePost();
   const toggleReaction = useTogglePracticeReaction(userEmail);
   const votePoll = useVotePracticePoll(userEmail);
+  const markTreated = useMarkPostStaffTreated();
 
   const handleDelete = async (postId: string) => {
     if (!window.confirm("Supprimer ce message ?")) return;
@@ -215,6 +114,14 @@ function PostsFeed({
       toastError(toast, "Vote impossible.")
     );
 
+  const handleToggleTreated = (postId: string, current: boolean) =>
+    markTreated.mutateAsync({ postId, treated: !current }).catch(() =>
+      toastError(toast, "Impossible de mettre à jour.")
+    );
+
+  const pendingCount = posts.filter((p) => !p.is_staff_treated).length;
+  const visiblePosts = onlyPending ? posts.filter((p) => !p.is_staff_treated) : posts;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -223,30 +130,73 @@ function PostsFeed({
     );
   }
 
-  if (posts.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
-        {emptyLabel}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      {posts.map((post) => (
-        <PracticePostCard
-          key={post.id}
-          post={post}
-          currentEmail={userEmail ?? ""}
-          isAdmin
-          currentUserName={adminName}
-          onReact={handleReact}
-          onDelete={handleDelete}
-          onVote={handleVote}
-          onPin={handlePin}
-          onSelectTag={() => {}}
-        />
-      ))}
+      {showTreatedToggle && posts.length > 0 && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setOnlyPending(!onlyPending)}
+            className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border transition-colors ${
+              onlyPending
+                ? "bg-destructive/10 border-destructive/30 text-destructive font-medium"
+                : "border-muted-foreground/20 text-muted-foreground hover:border-muted-foreground/40"
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            À traiter
+            {pendingCount > 0 && (
+              <Badge variant="destructive" className="text-xs px-1.5 py-0 ml-0.5">{pendingCount}</Badge>
+            )}
+          </button>
+          {onlyPending && (
+            <span className="text-xs text-muted-foreground">{pendingCount} publication{pendingCount !== 1 ? "s" : ""} en attente</span>
+          )}
+        </div>
+      )}
+
+      {visiblePosts.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-12 text-center text-sm text-muted-foreground">
+          {onlyPending ? "Aucune publication en attente de traitement." : emptyLabel}
+        </div>
+      ) : (
+        visiblePosts.map((post) => (
+          <div key={post.id} className="relative">
+            {post.is_staff_treated && (
+              <div className="absolute top-2 right-2 z-10">
+                <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50">Traité</Badge>
+              </div>
+            )}
+            <PracticePostCard
+              post={post}
+              currentEmail={userEmail ?? ""}
+              isAdmin
+              currentUserName={adminName}
+              onReact={async (postId, emoji, iReacted) => {
+                await handleReact(postId, emoji, iReacted);
+                if (!post.is_staff_treated)
+                  markTreated.mutate({ postId, treated: true });
+              }}
+              onDelete={handleDelete}
+              onVote={handleVote}
+              onPin={handlePin}
+              onSelectTag={() => {}}
+            />
+            <div className="flex justify-end mt-1 pr-1">
+              <button
+                onClick={() => handleToggleTreated(post.id, post.is_staff_treated)}
+                className={`flex items-center gap-1.5 text-xs transition-colors ${
+                  post.is_staff_treated
+                    ? "text-green-600 hover:text-muted-foreground"
+                    : "text-muted-foreground hover:text-green-600"
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                {post.is_staff_treated ? "Marquer non traité" : "Marquer traité"}
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -429,20 +379,16 @@ export default function LmsCommunityAdmin() {
           backTo="/lms/communautes"
         />
 
-        <Tabs defaultValue="pending">
+        <Tabs defaultValue="posts">
           <TabsList className="flex-wrap h-auto gap-1">
-            <TabsTrigger value="pending" className="gap-1.5">
-              <CheckSquare className="w-4 h-4" />
-              À traiter
-              {!postsLoading && posts.length > 0 && (
-                <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
-                  {posts.filter((p) => p.comment_count === 0).length || ""}
-                </Badge>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="posts" className="gap-1.5">
               <MessageSquare className="w-4 h-4" />
               Publications
+              {!postsLoading && posts.filter((p) => !p.is_staff_treated).length > 0 && (
+                <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
+                  {posts.filter((p) => !p.is_staff_treated).length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="shared" className="gap-1.5">
               <FileText className="w-4 h-4" />
@@ -466,16 +412,6 @@ export default function LmsCommunityAdmin() {
           </TabsList>
 
           <div className="mt-6">
-            <TabsContent value="pending">
-              {postsLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Spinner size="lg" />
-                </div>
-              ) : (
-                <PendingReplyTab posts={posts} userEmail={userEmail} adminName={adminName} />
-              )}
-            </TabsContent>
-
             <TabsContent value="posts">
               <PostsFeed
                 posts={posts}
@@ -483,6 +419,7 @@ export default function LmsCommunityAdmin() {
                 userEmail={userEmail}
                 adminName={adminName}
                 emptyLabel="Aucune publication dans cette communauté."
+                showTreatedToggle
               />
             </TabsContent>
 
@@ -493,6 +430,7 @@ export default function LmsCommunityAdmin() {
                 userEmail={userEmail}
                 adminName={adminName}
                 emptyLabel="Aucun travail partagé dans cette communauté."
+                showTreatedToggle
               />
             </TabsContent>
 

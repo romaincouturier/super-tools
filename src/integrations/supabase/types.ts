@@ -6455,6 +6455,7 @@ export type Database = {
           file_url: string | null
           id: string
           is_pinned: boolean
+          is_staff_treated: boolean
           lesson_id: string | null
           updated_at: string
         }
@@ -6470,6 +6471,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_pinned?: boolean
+          is_staff_treated?: boolean
           lesson_id?: string | null
           updated_at?: string
         }
@@ -6485,6 +6487,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           is_pinned?: boolean
+          is_staff_treated?: boolean
           lesson_id?: string | null
           updated_at?: string
         }

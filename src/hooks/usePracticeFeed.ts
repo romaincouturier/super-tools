@@ -29,6 +29,7 @@ export interface PracticePost {
   course_id: string | null;
   lesson_id: string | null;
   is_pinned: boolean;
+  is_staff_treated: boolean;
   created_at: string;
   updated_at: string;
   // enriched client-side
@@ -601,5 +602,21 @@ export function useAdminCommunityCourses() {
         title: (titleMap.get(id) as string) ?? "Cours sans titre",
       }));
     },
+  });
+}
+
+// ── Mark post as staff-treated (manual checkbox) ─────────────────────────────
+
+export function useMarkPostStaffTreated() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId, treated }: { postId: string; treated: boolean }) => {
+      const { error } = await (supabase as any)
+        .from("practice_posts")
+        .update({ is_staff_treated: treated })
+        .eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
   });
 }
