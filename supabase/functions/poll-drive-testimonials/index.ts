@@ -204,6 +204,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // ── Pass 1b: retry stuck rows (failed AssemblyAI submission) ──
+    const { data: stuck } = await (admin as any)
+      .from("testimonials")
+      .select("id")
+      .is("raw_transcript", null)
+      .is("metadata->>assemblyai_id", null)
+      .neq("status", "rejected")
+      .limit(5);
+
+    for (const row of (stuck ?? []) as Array<{ id: string }>) {
+      try {
+        await fetch(`${SUPABASE_URL}/functions/v1/retry-testimonial-transcript`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ testimonial_id: row.id }),
+        });
+        results.submitted++;
+      } catch (err) {
+        console.warn(`[poll-drive-testimonials] retry failed for ${row.id}:`, err);
+        results.errors++;
+      }
+    }
+
+
     // ── Pass 2: discover new Drive files ────────────────────────
     const accessToken = await getValidDriveAccessToken(admin);
     if (!accessToken) {
