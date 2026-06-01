@@ -53,6 +53,7 @@ export interface MissionPage {
   icon: string | null;
   position: number;
   is_expanded: boolean;
+  page_type: string;
   created_at: string;
   updated_at: string;
 }

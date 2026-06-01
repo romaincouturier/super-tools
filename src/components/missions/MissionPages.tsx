@@ -96,6 +96,7 @@ import {
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
 import Generate8PDialog from "./Generate8PDialog";
+import SurveyBuilder from "./SurveyBuilder";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
@@ -459,6 +460,10 @@ const PageEditor = ({
   missionId: string;
   onPageUpdated: (page: MissionPage) => void;
 }) => {
+  if (page.page_type === "survey") {
+    return <SurveyBuilder page={page} missionId={missionId} />;
+  }
+
   const { toast } = useToast();
   const updatePage = useUpdateMissionPage();
   const [imageUploading, setImageUploading] = useState(false);
@@ -1098,7 +1103,6 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   const [pending8PTemplate, setPending8PTemplate] = useState<MissionPageTemplate | null>(null);
 
   const handleCreateFromTemplate = async (template: MissionPageTemplate) => {
-    // Special case: 9P (or legacy 8P) template triggers source-selection dialog and AI generation
     const tplKey = (template.name || "").trim().toLowerCase();
     if (tplKey === "9p" || tplKey === "8p") {
       setPending8PTemplate(template);
@@ -1106,14 +1110,16 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
       return;
     }
     try {
+      const isSurvey = tplKey === "sondage";
       const newPage = await createPage.mutateAsync({
         mission_id: mission.id,
         title: template.name,
-        content: template.content,
+        content: isSurvey ? null : template.content,
         icon: template.icon,
-      });
+        page_type: isSurvey ? "survey" : "page",
+      } as Parameters<typeof createPage.mutateAsync>[0]);
       setSelectedPage(newPage);
-      toast({ title: "Page créée à partir du modèle" });
+      toast({ title: isSurvey ? "Sondage créé" : "Page créée à partir du modèle" });
     } catch (error: unknown) {
       toastError(toast, error instanceof Error ? error : "Erreur inconnue");
     }

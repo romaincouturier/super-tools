@@ -30,6 +30,7 @@ export interface PracticePost {
   lesson_id: string | null;
   is_pinned: boolean;
   is_staff_treated: boolean;
+  file_rotation: number;
   created_at: string;
   updated_at: string;
   // enriched client-side
@@ -638,6 +639,20 @@ export function useMarkPostStaffTreated() {
       const { error } = await (supabase as any)
         .from("practice_posts")
         .update({ is_staff_treated: treated })
+        .eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
+  });
+}
+
+export function useRotatePracticePostImage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId, rotation }: { postId: string; rotation: number }) => {
+      const { error } = await (supabase as any)
+        .from("practice_posts")
+        .update({ file_rotation: ((rotation % 360) + 360) % 360 })
         .eq("id", postId);
       if (error) throw error;
     },

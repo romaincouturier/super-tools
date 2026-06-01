@@ -5017,6 +5017,138 @@ export type Database = {
           },
         ]
       }
+      mission_surveys: {
+        Row: {
+          id: string
+          mission_page_id: string
+          mission_id: string
+          title: string
+          intro_message: string | null
+          thank_you_message: string
+          public_token: string
+          recipient_emails: string[]
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          mission_page_id: string
+          mission_id: string
+          title?: string
+          intro_message?: string | null
+          thank_you_message?: string
+          public_token?: string
+          recipient_emails?: string[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          mission_page_id?: string
+          mission_id?: string
+          title?: string
+          intro_message?: string | null
+          thank_you_message?: string
+          public_token?: string
+          recipient_emails?: string[]
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      mission_survey_questions: {
+        Row: {
+          id: string
+          survey_id: string
+          type: string
+          label: string
+          description: string | null
+          required: boolean
+          position: number
+          options: Json | null
+          settings: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          survey_id: string
+          type: string
+          label?: string
+          description?: string | null
+          required?: boolean
+          position?: number
+          options?: Json | null
+          settings?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          survey_id?: string
+          type?: string
+          label?: string
+          description?: string | null
+          required?: boolean
+          position?: number
+          options?: Json | null
+          settings?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      mission_survey_responses: {
+        Row: {
+          id: string
+          survey_id: string
+          respondent_name: string | null
+          respondent_email: string | null
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          survey_id: string
+          respondent_name?: string | null
+          respondent_email?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          survey_id?: string
+          respondent_name?: string | null
+          respondent_email?: string | null
+          submitted_at?: string
+        }
+        Relationships: []
+      }
+      mission_survey_answers: {
+        Row: {
+          id: string
+          response_id: string
+          question_id: string
+          value: string | null
+          values: Json | null
+        }
+        Insert: {
+          id?: string
+          response_id: string
+          question_id: string
+          value?: string | null
+          values?: Json | null
+        }
+        Update: {
+          id?: string
+          response_id?: string
+          question_id?: string
+          value?: string | null
+          values?: Json | null
+        }
+        Relationships: []
+      }
       mission_page_templates: {
         Row: {
           content: string
@@ -5062,6 +5194,7 @@ export type Database = {
           id: string
           is_expanded: boolean | null
           mission_id: string
+          page_type: string
           parent_page_id: string | null
           position: number
           title: string
@@ -5075,6 +5208,7 @@ export type Database = {
           id?: string
           is_expanded?: boolean | null
           mission_id: string
+          page_type?: string
           parent_page_id?: string | null
           position?: number
           title?: string
@@ -5088,6 +5222,7 @@ export type Database = {
           id?: string
           is_expanded?: boolean | null
           mission_id?: string
+          page_type?: string
           parent_page_id?: string | null
           position?: number
           title?: string
@@ -6451,6 +6586,7 @@ export type Database = {
           deposit_id: string | null
           file_mime: string | null
           file_name: string | null
+          file_rotation: number
           file_size: number | null
           file_url: string | null
           id: string
@@ -6467,6 +6603,7 @@ export type Database = {
           deposit_id?: string | null
           file_mime?: string | null
           file_name?: string | null
+          file_rotation?: number
           file_size?: number | null
           file_url?: string | null
           id?: string
@@ -6483,6 +6620,7 @@ export type Database = {
           deposit_id?: string | null
           file_mime?: string | null
           file_name?: string | null
+          file_rotation?: number
           file_size?: number | null
           file_url?: string | null
           id?: string
