@@ -209,6 +209,7 @@ export function usePracticePosts(
           author_first_name: profile?.first_name ?? null,
           author_last_name: profile?.last_name ?? null,
           author_photo_url: profile?.photo_url ?? null,
+          author_is_staff: staffEmailSet.has(post.author_email),
           lesson_title: post.lesson_id ? (lessonMap.get(post.lesson_id) ?? null) : null,
           course_title: post.course_id ? (courseMap.get(post.course_id) ?? null) : null,
           reaction_count: postReactions.length,
