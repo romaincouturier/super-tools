@@ -602,3 +602,6 @@ verify_jwt = false
 
 [functions.supertilt-confirm-shipped]
 verify_jwt = false
+
+[functions.process-elearning-start-reminders]
+verify_jwt = false
