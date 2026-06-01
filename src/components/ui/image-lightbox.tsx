@@ -8,9 +8,12 @@ interface ImageLightboxProps {
   src: string;
   alt?: string;
   onClose: () => void;
+  rotation?: number;
 }
 
-const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
+const ImageLightbox = ({ src, alt, onClose, rotation = 0 }: ImageLightboxProps) => {
+  const normalizedRotation = ((rotation % 360) + 360) % 360;
+  const isRotated = normalizedRotation % 180 === 90;
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
