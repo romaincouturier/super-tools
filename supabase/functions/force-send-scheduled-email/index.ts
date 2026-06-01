@@ -244,6 +244,54 @@ const handler = async (req: Request): Promise<Response> => {
         break;
       }
 
+      case "needs_survey_reminder": {
+        if (!scheduledEmail.participant_id) {
+          throw new Error("needs_survey_reminder requires a participant_id");
+        }
+        // Skip if questionnaire already submitted
+        const { data: questionnaire } = await supabase
+          .from("questionnaire_besoins")
+          .select("etat")
+          .eq("participant_id", scheduledEmail.participant_id)
+          .eq("training_id", scheduledEmail.training_id)
+          .maybeSingle();
+        if (questionnaire && questionnaire.etat && questionnaire.etat !== "envoye") {
+          await supabase
+            .from("scheduled_emails")
+            .update({ status: "cancelled", error_message: "Questionnaire déjà complété" })
+            .eq("id", scheduledEmailId);
+          return new Response(
+            JSON.stringify({ success: true, message: "Skipped: needs survey already completed" }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+        // Delegate to send-needs-survey-reminder
+        const invokeRes = await fetch(`${supabaseUrl}/functions/v1/send-needs-survey-reminder`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            participantId: scheduledEmail.participant_id,
+            trainingId: scheduledEmail.training_id,
+          }),
+        });
+        if (!invokeRes.ok) {
+          const errText = await invokeRes.text();
+          throw new Error(`send-needs-survey-reminder failed: ${errText}`);
+        }
+        await supabase
+          .from("scheduled_emails")
+          .update({ status: "sent", sent_at: new Date().toISOString() })
+          .eq("id", scheduledEmailId);
+        return new Response(
+          JSON.stringify({ success: true, message: "needs_survey_reminder sent" }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+
       case "reminder": {
         recipientEmail = participant?.email || "";
         const equipmentLine = requiredEquipment
