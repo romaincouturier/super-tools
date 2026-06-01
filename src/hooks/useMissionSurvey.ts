@@ -24,6 +24,7 @@ export interface Survey {
   public_token: string;
   recipient_emails: string[];
   is_active: boolean;
+  require_identity: boolean;
   created_at: string;
   updated_at: string;
 }
