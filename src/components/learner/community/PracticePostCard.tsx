@@ -176,14 +176,15 @@ export default function PracticePostCard({
       )}
 
       {/* Media: image / video / file */}
-      {post.file_url && (
-        post.file_mime?.startsWith("image/") ? (
-          <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+      {post.file_url && (() => {
+        const fileHref = safeFileUrl(post.file_url);
+        return post.file_mime?.startsWith("image/") ? (
+          <img src={fileHref} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
         ) : post.file_mime?.startsWith("video/") ? (
-          <video src={post.file_url} controls className="w-full" style={{ maxHeight: 480 }} />
+          <video src={fileHref} controls className="w-full" style={{ maxHeight: 480 }} />
         ) : (
           <a
-            href={post.file_url}
+            href={fileHref}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
@@ -195,8 +196,8 @@ export default function PracticePostCard({
               {post.file_name ?? "Voir le fichier"}
             </span>
           </a>
-        )
-      )}
+        );
+      })()}
 
       {/* Poll */}
       {post.poll && <PollDisplay poll={post.poll} onVote={onVote} />}
