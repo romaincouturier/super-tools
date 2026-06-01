@@ -14,22 +14,13 @@ export function useCommunityPendingPosts() {
     queryFn: async () => {
       const { data: posts } = await (supabase as any)
         .from("practice_posts")
-        .select("id, course_id");
-      const postIds: string[] = (posts || []).map((p: any) => p.id);
-      if (postIds.length === 0) return { perCourse: {}, total: 0 };
-
-      const { data: staff } = await (supabase as any)
-        .from("practice_post_comments")
-        .select("post_id")
-        .in("post_id", postIds)
-        .eq("is_staff_reply", true);
-      const repliedTo = new Set<string>((staff || []).map((c: any) => c.post_id));
+        .select("id, course_id, is_staff_treated");
 
       const perCourse: Record<string, number> = {};
       let total = 0;
       (posts || []).forEach((p: any) => {
         if (!p.course_id) return;
-        if (repliedTo.has(p.id)) return;
+        if (p.is_staff_treated) return;
         perCourse[p.course_id] = (perCourse[p.course_id] ?? 0) + 1;
         total += 1;
       });
