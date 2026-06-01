@@ -22,6 +22,24 @@ const REACTION_EMOJIS = [
   { emoji: "👏", label: "Bravo" },
 ];
 
+/**
+ * Re-encode a stored file URL so reserved chars left raw in the path
+ * (notably `@` from email folders) don't break the browser's PDF viewer
+ * or trigger phishing-style URL warnings.
+ */
+function safeFileUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    u.pathname = u.pathname
+      .split("/")
+      .map((seg) => encodeURIComponent(decodeURIComponent(seg)))
+      .join("/");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function StaffBadge() {
   return (
     <span
