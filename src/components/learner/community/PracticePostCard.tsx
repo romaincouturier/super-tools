@@ -186,9 +186,10 @@ export default function PracticePostCard({
         const fileHref = safeFileUrl(post.file_url);
         const rotation = ((post.file_rotation ?? 0) % 360 + 360) % 360;
         const isRotated = rotation % 180 === 90;
-        const aspect = naturalSize
-          ? (isRotated ? naturalSize.h / naturalSize.w : naturalSize.w / naturalSize.h)
-          : undefined;
+        // Container always uses the ORIGINAL natural aspect so the post box
+        // takes the same width/height as a non-rotated image. The image
+        // inside is then rotated and sized via container queries to fill it.
+        const aspect = naturalSize ? naturalSize.w / naturalSize.h : undefined;
         return post.file_mime?.startsWith("image/") ? (
           <div
             className="relative w-full overflow-hidden flex items-center justify-center"
@@ -196,6 +197,7 @@ export default function PracticePostCard({
               aspectRatio: aspect,
               maxHeight: 480,
               background: "rgba(16,24,32,0.04)",
+              containerType: isRotated ? "size" : undefined,
             }}
           >
             <img
@@ -203,9 +205,9 @@ export default function PracticePostCard({
               alt={post.file_name ?? ""}
               onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
               style={{
-                width: isRotated ? "auto" : "100%",
-                height: isRotated ? "100%" : "auto",
-                maxHeight: isRotated ? "100%" : 480,
+                width: isRotated ? "100cqh" : "100%",
+                height: isRotated ? "100cqw" : "100%",
+                objectFit: "cover",
                 transform: `rotate(${rotation}deg)`,
                 transformOrigin: "center",
                 transition: "transform 0.3s ease",
