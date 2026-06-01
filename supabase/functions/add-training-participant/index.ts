@@ -392,8 +392,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── 8. Convocation immédiate (formations J-2 à J-7 ou en cours) ───────────
     let welcomeSent = false;
     let welcomeFailed = false;
-    let welcomeSent = false;
-    let welcomeFailed = false;
     const sendWelcomeImmediately =
       shouldSendWelcome && (sendWelcomeNow || ongoing || isElearning);
     if (sendWelcomeImmediately) {
