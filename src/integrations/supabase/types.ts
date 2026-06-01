@@ -10176,6 +10176,15 @@ export type Database = {
         Args: { p_token: string }
         Returns: Json
       }
+      get_staff_public_profiles: {
+        Args: never
+        Returns: {
+          email: string
+          first_name: string
+          last_name: string
+          photo_url: string
+        }[]
+      }
       get_stakeholder_appreciation_by_token: {
         Args: { p_token: string }
         Returns: Json
