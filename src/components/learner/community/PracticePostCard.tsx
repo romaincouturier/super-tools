@@ -206,6 +206,7 @@ export default function PracticePostCard({
               src={fileHref}
               alt={post.file_name ?? ""}
               onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+              onClick={() => setLightboxOpen(true)}
               style={{
                 width: isRotated ? "100cqh" : "100%",
                 height: isRotated ? "100cqw" : "100%",
@@ -214,8 +215,12 @@ export default function PracticePostCard({
                 transformOrigin: "center",
                 transition: "transform 0.3s ease",
                 display: "block",
+                cursor: "zoom-in",
               }}
             />
+            {lightboxOpen && (
+              <ImageLightbox src={fileHref} alt={post.file_name ?? undefined} onClose={() => setLightboxOpen(false)} />
+            )}
             {isAdmin && (
               <div className="absolute bottom-2 right-2 flex gap-1 z-10">
                 <button
