@@ -204,14 +204,20 @@ export const useSubmitSurveyResponse = () =>
       respondentEmail: string;
       answers: { questionId: string; value?: string; values?: string[] }[];
     }) => {
-      const { data: response, error: re } = await (supabase as any)
+      // Generate the response id client-side so anonymous submitters don't
+      // need SELECT permission on mission_survey_responses to read it back.
+      const responseId = crypto.randomUUID();
+      const { error: re } = await (supabase as any)
         .from("mission_survey_responses")
-        .insert({ survey_id: surveyId, respondent_name: respondentName || null, respondent_email: respondentEmail || null })
-        .select()
-        .single();
+        .insert({
+          id: responseId,
+          survey_id: surveyId,
+          respondent_name: respondentName || null,
+          respondent_email: respondentEmail || null,
+        });
       if (re) throw re;
       const answerRows = answers.map((a) => ({
-        response_id: response.id,
+        response_id: responseId,
         question_id: a.questionId,
         value: a.value ?? null,
         values: a.values ?? null,
