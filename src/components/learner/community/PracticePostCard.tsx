@@ -22,6 +22,24 @@ const REACTION_EMOJIS = [
   { emoji: "👏", label: "Bravo" },
 ];
 
+/**
+ * Re-encode a stored file URL so reserved chars left raw in the path
+ * (notably `@` from email folders) don't break the browser's PDF viewer
+ * or trigger phishing-style URL warnings.
+ */
+function safeFileUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    u.pathname = u.pathname
+      .split("/")
+      .map((seg) => encodeURIComponent(decodeURIComponent(seg)))
+      .join("/");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function StaffBadge() {
   return (
     <span
@@ -158,14 +176,15 @@ export default function PracticePostCard({
       )}
 
       {/* Media: image / video / file */}
-      {post.file_url && (
-        post.file_mime?.startsWith("image/") ? (
-          <img src={post.file_url} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+      {post.file_url && (() => {
+        const fileHref = safeFileUrl(post.file_url);
+        return post.file_mime?.startsWith("image/") ? (
+          <img src={fileHref} alt={post.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
         ) : post.file_mime?.startsWith("video/") ? (
-          <video src={post.file_url} controls className="w-full" style={{ maxHeight: 480 }} />
+          <video src={fileHref} controls className="w-full" style={{ maxHeight: 480 }} />
         ) : (
           <a
-            href={post.file_url}
+            href={fileHref}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
@@ -177,8 +196,8 @@ export default function PracticePostCard({
               {post.file_name ?? "Voir le fichier"}
             </span>
           </a>
-        )
-      )}
+        );
+      })()}
 
       {/* Poll */}
       {post.poll && <PollDisplay poll={post.poll} onVote={onVote} />}
