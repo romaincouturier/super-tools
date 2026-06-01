@@ -46,7 +46,7 @@ function StaffBadge() {
       className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
       style={{ background: "var(--st-ink)", color: "#fff" }}
     >
-      Formateur
+      Staff
     </span>
   );
 }
