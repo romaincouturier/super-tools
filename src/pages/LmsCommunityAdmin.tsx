@@ -13,7 +13,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, MessageSquare, FileText, Settings, Eye, CheckSquare, Pin, PinOff, Trash2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { useModuleAccess } from "@/hooks/useModuleAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
@@ -390,21 +389,14 @@ function SettingsTab({ courseId }: { courseId: string }) {
 
 export default function LmsCommunityAdmin() {
   const { courseId = "" } = useParams<{ courseId: string }>();
-  const { userEmail } = useModuleAccess();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [adminName, setAdminName] = useState<string | null>(null);
-
-  const { data: course, isLoading: courseLoading } = useCourseInfo(courseId);
-  const { data: posts = [], isLoading: postsLoading } = usePracticePosts(
-    userEmail,
-    200,
-    { courseId },
-    true,
-  );
 
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user || cancelled) return;
+      setUserEmail(user.email ?? null);
       const { data: profile } = await (supabase as any)
         .from("profiles")
         .select("first_name, last_name")
@@ -416,6 +408,14 @@ export default function LmsCommunityAdmin() {
     });
     return () => { cancelled = true; };
   }, []);
+
+  const { data: course, isLoading: courseLoading } = useCourseInfo(courseId);
+  const { data: posts = [], isLoading: postsLoading } = usePracticePosts(
+    userEmail,
+    200,
+    { courseId },
+    true,
+  );
 
   const sharedPosts = posts.filter((p) => p.file_url != null);
 
