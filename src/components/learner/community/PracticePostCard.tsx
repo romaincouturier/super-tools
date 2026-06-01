@@ -468,7 +468,7 @@ export default function PracticePostCard({
                       </button>
                     </div>
                   ) : (
-                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                    <p className="text-sm mt-0.5 whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>{asciiToEmoji(c.content)}</p>
                   )}
                 </div>
               </div>
