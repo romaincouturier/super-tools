@@ -96,6 +96,9 @@ export default function PracticePostCard({
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
+  const updateComment = useUpdatePracticeComment(currentEmail, isAdmin);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
   const { toast } = useToast();
   const rotateImage = useRotatePracticePostImage();
 
