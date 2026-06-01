@@ -14,6 +14,7 @@ import {
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
 import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/community/authorDisplay";
+import ImageLightbox from "@/components/ui/image-lightbox";
 
 const REACTION_EMOJIS = [
   { emoji: "👍", label: "J'aime" },
@@ -90,6 +91,7 @@ export default function PracticePostCard({
   }, [showEmojiPicker]);
   const [commentText, setCommentText] = useState("");
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
@@ -204,6 +206,7 @@ export default function PracticePostCard({
               src={fileHref}
               alt={post.file_name ?? ""}
               onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+              onClick={() => setLightboxOpen(true)}
               style={{
                 width: isRotated ? "100cqh" : "100%",
                 height: isRotated ? "100cqw" : "100%",
@@ -212,8 +215,12 @@ export default function PracticePostCard({
                 transformOrigin: "center",
                 transition: "transform 0.3s ease",
                 display: "block",
+                cursor: "zoom-in",
               }}
             />
+            {lightboxOpen && (
+              <ImageLightbox src={fileHref} alt={post.file_name ?? undefined} onClose={() => setLightboxOpen(false)} />
+            )}
             {isAdmin && (
               <div className="absolute bottom-2 right-2 flex gap-1 z-10">
                 <button
