@@ -89,6 +89,7 @@ export default function PracticePostCard({
     return () => document.removeEventListener("mousedown", handle);
   }, [showEmojiPicker]);
   const [commentText, setCommentText] = useState("");
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
