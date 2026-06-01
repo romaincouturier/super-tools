@@ -5017,138 +5017,6 @@ export type Database = {
           },
         ]
       }
-      mission_surveys: {
-        Row: {
-          id: string
-          mission_page_id: string
-          mission_id: string
-          title: string
-          intro_message: string | null
-          thank_you_message: string
-          public_token: string
-          recipient_emails: string[]
-          is_active: boolean
-          created_at: string
-          updated_at: string
-          created_by: string | null
-        }
-        Insert: {
-          id?: string
-          mission_page_id: string
-          mission_id: string
-          title?: string
-          intro_message?: string | null
-          thank_you_message?: string
-          public_token?: string
-          recipient_emails?: string[]
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-          created_by?: string | null
-        }
-        Update: {
-          id?: string
-          mission_page_id?: string
-          mission_id?: string
-          title?: string
-          intro_message?: string | null
-          thank_you_message?: string
-          public_token?: string
-          recipient_emails?: string[]
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-          created_by?: string | null
-        }
-        Relationships: []
-      }
-      mission_survey_questions: {
-        Row: {
-          id: string
-          survey_id: string
-          type: string
-          label: string
-          description: string | null
-          required: boolean
-          position: number
-          options: Json | null
-          settings: Json | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          survey_id: string
-          type: string
-          label?: string
-          description?: string | null
-          required?: boolean
-          position?: number
-          options?: Json | null
-          settings?: Json | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          survey_id?: string
-          type?: string
-          label?: string
-          description?: string | null
-          required?: boolean
-          position?: number
-          options?: Json | null
-          settings?: Json | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      mission_survey_responses: {
-        Row: {
-          id: string
-          survey_id: string
-          respondent_name: string | null
-          respondent_email: string | null
-          submitted_at: string
-        }
-        Insert: {
-          id?: string
-          survey_id: string
-          respondent_name?: string | null
-          respondent_email?: string | null
-          submitted_at?: string
-        }
-        Update: {
-          id?: string
-          survey_id?: string
-          respondent_name?: string | null
-          respondent_email?: string | null
-          submitted_at?: string
-        }
-        Relationships: []
-      }
-      mission_survey_answers: {
-        Row: {
-          id: string
-          response_id: string
-          question_id: string
-          value: string | null
-          values: Json | null
-        }
-        Insert: {
-          id?: string
-          response_id: string
-          question_id: string
-          value?: string | null
-          values?: Json | null
-        }
-        Update: {
-          id?: string
-          response_id?: string
-          question_id?: string
-          value?: string | null
-          values?: Json | null
-        }
-        Relationships: []
-      }
       mission_page_templates: {
         Row: {
           content: string
@@ -5246,6 +5114,184 @@ export type Database = {
           {
             foreignKeyName: "mission_pages_parent_page_id_fkey"
             columns: ["parent_page_id"]
+            isOneToOne: false
+            referencedRelation: "mission_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_survey_answers: {
+        Row: {
+          id: string
+          question_id: string
+          response_id: string
+          value: string | null
+          values: Json | null
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          response_id: string
+          value?: string | null
+          values?: Json | null
+        }
+        Update: {
+          id?: string
+          question_id?: string
+          response_id?: string
+          value?: string | null
+          values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_survey_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "mission_survey_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_survey_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "mission_survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_survey_questions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          options: Json | null
+          position: number
+          required: boolean
+          settings: Json | null
+          survey_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          options?: Json | null
+          position?: number
+          required?: boolean
+          settings?: Json | null
+          survey_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          options?: Json | null
+          position?: number
+          required?: boolean
+          settings?: Json | null
+          survey_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "mission_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_survey_responses: {
+        Row: {
+          id: string
+          respondent_email: string | null
+          respondent_name: string | null
+          submitted_at: string
+          survey_id: string
+        }
+        Insert: {
+          id?: string
+          respondent_email?: string | null
+          respondent_name?: string | null
+          submitted_at?: string
+          survey_id: string
+        }
+        Update: {
+          id?: string
+          respondent_email?: string | null
+          respondent_name?: string | null
+          submitted_at?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "mission_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_surveys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          intro_message: string | null
+          is_active: boolean
+          mission_id: string
+          mission_page_id: string
+          public_token: string
+          recipient_emails: Json
+          thank_you_message: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          intro_message?: string | null
+          is_active?: boolean
+          mission_id: string
+          mission_page_id: string
+          public_token?: string
+          recipient_emails?: Json
+          thank_you_message?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          intro_message?: string | null
+          is_active?: boolean
+          mission_id?: string
+          mission_page_id?: string
+          public_token?: string
+          recipient_emails?: Json
+          thank_you_message?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_surveys_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_surveys_mission_page_id_fkey"
+            columns: ["mission_page_id"]
             isOneToOne: false
             referencedRelation: "mission_pages"
             referencedColumns: ["id"]
