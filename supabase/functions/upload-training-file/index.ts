@@ -13,6 +13,7 @@ const ALLOWED_PREFIXES = new Set([
   "trainers",
   "reglement-interieur",
   "company-stamp",
+  "staff-profiles",
 ]);
 
 Deno.serve(async (req) => {
