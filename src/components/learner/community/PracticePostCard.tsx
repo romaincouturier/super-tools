@@ -183,21 +183,36 @@ export default function PracticePostCard({
       {/* Media: image / video / file */}
       {post.file_url && (() => {
         const fileHref = safeFileUrl(post.file_url);
+        const rotation = ((post.file_rotation ?? 0) % 360 + 360) % 360;
+        const isRotated = rotation % 180 === 90;
+        const aspect = naturalSize
+          ? (isRotated ? naturalSize.h / naturalSize.w : naturalSize.w / naturalSize.h)
+          : undefined;
         return post.file_mime?.startsWith("image/") ? (
-          <div className="relative">
+          <div
+            className="relative w-full overflow-hidden flex items-center justify-center"
+            style={{
+              aspectRatio: aspect,
+              maxHeight: 480,
+              background: "rgba(16,24,32,0.04)",
+            }}
+          >
             <img
               src={fileHref}
               alt={post.file_name ?? ""}
-              className="w-full"
+              onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
               style={{
-                maxHeight: 480,
-                objectFit: "cover",
-                transform: post.file_rotation ? `rotate(${post.file_rotation}deg)` : undefined,
+                width: isRotated ? "auto" : "100%",
+                height: isRotated ? "100%" : "auto",
+                maxHeight: isRotated ? "100%" : 480,
+                transform: `rotate(${rotation}deg)`,
+                transformOrigin: "center",
                 transition: "transform 0.3s ease",
+                display: "block",
               }}
             />
             {isAdmin && (
-              <div className="absolute bottom-2 right-2 flex gap-1">
+              <div className="absolute bottom-2 right-2 flex gap-1 z-10">
                 <button
                   onClick={() => rotateImage.mutate({ postId: post.id, rotation: (post.file_rotation ?? 0) - 90 })}
                   className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 transition-colors"
