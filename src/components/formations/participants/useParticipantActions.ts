@@ -159,6 +159,29 @@ export function useParticipantActions({
     }
   };
 
+  const handleResendWelcome = async (participant: Participant) => {
+    setResendingWelcomeId(participant.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-welcome-email", {
+        body: { participantId: participant.id, trainingId },
+      });
+      if (error) throw error;
+      toast({
+        title: "Convocation renvoyée",
+        description: `La convocation a été renvoyée à ${participant.email}.`,
+      });
+      onParticipantUpdated();
+    } catch (error: unknown) {
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingWelcomeId(null);
+    }
+  };
+
   const handleToggleCoachingSession = async (participant: Participant) => {
     const current = participant.coaching_sessions_completed || 0;
     const total = participant.coaching_sessions_total || 0;
