@@ -84,9 +84,10 @@ export const useCreateSurvey = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: { mission_page_id: string; mission_id: string; title: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { data, error } = await (supabase as any)
         .from("mission_surveys")
-        .insert(input)
+        .insert({ ...input, created_by: user?.email ?? null })
         .select()
         .single();
       if (error) throw error;
@@ -229,5 +230,9 @@ export const useSubmitSurveyResponse = () =>
         const { error: ae } = await (supabase as any).from("mission_survey_answers").insert(answerRows);
         if (ae) throw ae;
       }
+      // Notify the staff user who created the survey (fire-and-forget).
+      supabase.functions
+        .invoke("notify-survey-response", { body: { responseId, surveyId } })
+        .catch((err) => console.error("notify-survey-response failed", err));
     },
   });
