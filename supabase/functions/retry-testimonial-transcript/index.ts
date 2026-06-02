@@ -1,19 +1,15 @@
 /**
  * retry-testimonial-transcript
  *
- * Re-submits a testimonial's Drive video to AssemblyAI when the initial
- * submission failed (raw_transcript is null and metadata.assemblyai_id is null).
- *
- * Body: { testimonial_id: string }
- * Called from the UI "Régénérer le transcript" button and from
- * poll-drive-testimonials to recover stuck rows.
+ * Re-submits a testimonial's Drive video to AssemblyAI. Runs the upload in
+ * the background (EdgeRuntime.waitUntil) and returns 202 immediately to avoid
+ * the 150s synchronous timeout on large videos.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import {
   getValidDriveAccessToken,
-  downloadDriveFileBytes,
-  uploadToAssemblyAI,
+  uploadDriveFileToAssemblyAI,
   submitAssemblyAIJob,
 } from "../_shared/google-drive-helper.ts";
 
@@ -63,39 +59,49 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   }
 
-  try {
-    const accessToken = await getValidDriveAccessToken(admin);
-    if (!accessToken) throw new Error("No Google Drive access token");
+  const run = async () => {
+    try {
+      const accessToken = await getValidDriveAccessToken(admin);
+      if (!accessToken) throw new Error("No Google Drive access token");
 
-    const bytes = await downloadDriveFileBytes(row.drive_file_id, accessToken);
-    const uploadUrl = await uploadToAssemblyAI(bytes, ASSEMBLYAI_API_KEY);
-    const jobId = await submitAssemblyAIJob(
-      uploadUrl,
-      ASSEMBLYAI_API_KEY,
-      ASSEMBLYAI_WEBHOOK_SECRET
-        ? {
-            url: ASSEMBLYAI_WEBHOOK_URL,
-            authHeaderName: "x-webhook-secret",
-            authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
-          }
-        : undefined,
-    );
+      const uploadUrl = await uploadDriveFileToAssemblyAI(
+        row.drive_file_id,
+        accessToken,
+        ASSEMBLYAI_API_KEY,
+      );
+      const jobId = await submitAssemblyAIJob(
+        uploadUrl,
+        ASSEMBLYAI_API_KEY,
+        ASSEMBLYAI_WEBHOOK_SECRET
+          ? {
+              url: ASSEMBLYAI_WEBHOOK_URL,
+              authHeaderName: "x-webhook-secret",
+              authHeaderValue: ASSEMBLYAI_WEBHOOK_SECRET,
+            }
+          : undefined,
+      );
 
-    await (admin as any)
-      .from("testimonials")
-      .update({ metadata: { assemblyai_id: jobId } })
-      .eq("id", row.id);
+      await (admin as any)
+        .from("testimonials")
+        .update({ metadata: { assemblyai_id: jobId } })
+        .eq("id", row.id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[retry-testimonial-transcript] ${row.id}:`, message);
+    }
+  };
 
-    return new Response(JSON.stringify({ ok: true, jobId }), {
-      status: 200,
+  const waitUntil = (globalThis as unknown as {
+    EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void };
+  }).EdgeRuntime?.waitUntil;
+  if (waitUntil) waitUntil(run());
+  else run().catch(() => {});
+
+  return new Response(
+    JSON.stringify({ ok: true, accepted: true, testimonial_id: row.id }),
+    {
+      status: 202,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[retry-testimonial-transcript] ${row.id}:`, message);
-    return new Response(JSON.stringify({ ok: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    },
+  );
 });
