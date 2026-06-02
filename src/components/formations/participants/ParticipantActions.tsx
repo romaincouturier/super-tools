@@ -59,6 +59,7 @@ const ParticipantActions = ({
   onSendSurvey,
   onSendReminder,
   onSendMagicLink,
+  onResendWelcome,
   onDelete,
   onGenerateConvention,
   onDownloadConvention,
