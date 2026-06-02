@@ -370,6 +370,7 @@ const MicroDevis = () => {
         try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
         // Invalidate CRM cache so the card appears in its new column ("Devis envoyé")
         await queryClient.invalidateQueries({ queryKey: [CRM_QUERY_KEY] });
+        queryClient.invalidateQueries({ queryKey: ["crm-sent-devis"] });
         setTimeout(() => {
           if (crmCardId) {
             navigate(`/crm/card/${crmCardId}`);

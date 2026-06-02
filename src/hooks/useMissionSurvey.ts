@@ -191,7 +191,7 @@ export const useSurveyResponses = (surveyId: string) =>
     enabled: !!surveyId,
     staleTime: 0,
     refetchOnMount: "always",
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
 export const useSubmitSurveyResponse = () =>

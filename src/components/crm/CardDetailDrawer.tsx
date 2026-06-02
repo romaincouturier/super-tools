@@ -696,6 +696,7 @@ const CardDetailDrawer = ({
       });
       setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]); selectedTemplateRef.current = null;
       await queryClient.invalidateQueries({ queryKey: ["crm-board", "card-details", card.id] });
+      queryClient.invalidateQueries({ queryKey: ["crm-sent-devis"] });
       // AI auto-learning: improve email templates based on what was actually sent
       try {
         if (templateSnapshot) {

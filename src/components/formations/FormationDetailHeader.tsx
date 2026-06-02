@@ -28,6 +28,7 @@ import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteTraining } from "@/services/trainings";
+import { toastError } from "@/lib/toastError";
 import type { Training, Schedule } from "@/hooks/useFormationDetail";
 import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
@@ -88,7 +89,7 @@ const FormationDetailHeader = ({
       toast({ title: "Formation supprimée" });
       navigate("/formations");
     } catch {
-      toast({ title: "Erreur", description: "Erreur lors de la suppression.", variant: "destructive" });
+      toastError(toast, "Erreur lors de la suppression.");
     } finally {
       setDeleting(false);
     }

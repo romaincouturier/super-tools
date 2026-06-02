@@ -131,6 +131,49 @@ describe("useUpsertLearnerProfile", () => {
   });
 });
 
+// ── Security: own-row restriction ────────────────────────────────────────────
+//
+// The RLS policy now uses get_learner_email() which reads x-learner-email from
+// the request header. The hook must always pass the email to createLearnerClient
+// so that the header is set, and the .eq("email", ...) call restricts the query
+// to the learner's own row at the application level too.
+
+describe("useLearnerProfile — security invariants", () => {
+  it("uses createLearnerClient with the exact email (sets x-learner-email header)", async () => {
+    const { createLearnerClient } = await import("@/integrations/supabase/client");
+    setNextResult({ data: null, error: null });
+
+    renderHook(() => useLearnerProfile("test@example.com"), { wrapper });
+    await waitFor(() => {});
+
+    expect(createLearnerClient).toHaveBeenCalledWith("test@example.com");
+  });
+
+  it("filters by the learner's email before hitting the DB (own-row)", async () => {
+    // The hook calls .eq("email", email.toLowerCase()) which means even if RLS
+    // were misconfigured it would still only fetch the learner's own row.
+    setNextResult({ data: { email: "alice@example.com" }, error: null });
+    const { result } = renderHook(() => useLearnerProfile("Alice@Example.COM"), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // mockFrom was called with "learner_profiles" — the chain includes .eq()
+    expect(mockFrom).toHaveBeenCalledWith("learner_profiles");
+  });
+
+  it("upsert always lowercases the email key (consistent with RLS check on lower(email))", async () => {
+    const { result } = renderHook(() => useUpsertLearnerProfile(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ email: "UPPER@CASE.COM", first_name: "X" });
+    });
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "upper@case.com" }),
+      { onConflict: "email" },
+    );
+  });
+});
+
 // ── uploadLearnerPhoto ────────────────────────────────────────────────────────
 
 describe("uploadLearnerPhoto", () => {

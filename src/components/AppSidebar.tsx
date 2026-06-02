@@ -120,6 +120,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const edgeFunctionsAlert = useEdgeFunctionsAlert();
   const { data: communityPending } = useCommunityPendingPosts();
   const lmsAlert = (communityPending?.total ?? 0) > 0;
+  const evaluationsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.evaluations", table: "training_evaluations", route: "/evaluations" });
+  const besoinsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.besoins", table: "questionnaire_besoins", route: "/besoins" });
+  const formationsGroupAlert = evaluationsAlert || besoinsAlert;
 
 
 
@@ -292,6 +295,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             const isOpen = openGroups.has(entry.key);
             const groupAlert = entry.key === "dropshipping" ? routingInboxAlert
               : entry.key === "monitoring" ? edgeFunctionsAlert
+              : entry.key === "formations" ? formationsGroupAlert
               : undefined;
 
             if (!showLabels) {
@@ -358,7 +362,12 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
                             icon={childInfo.icon}
                             label={childInfo.label}
                             active={isActive(childInfo.path)}
-                            alert={child.key === "wc_inbox" ? routingInboxAlert : undefined}
+                            alert={
+                              child.key === "wc_inbox" ? routingInboxAlert
+                              : child.key === "evaluations" ? evaluationsAlert
+                              : child.key === "besoins" ? besoinsAlert
+                              : undefined
+                            }
                             onClick={() => go(childInfo.path)}
                           />
                         </div>

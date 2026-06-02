@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Receipt, Copy, RefreshCw, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
+import { Receipt, Copy, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -54,7 +54,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState<string | null>(null);
 
-  const { data: sentDevis, isLoading, refetch } = useQuery({
+  const { data: sentDevis, isLoading } = useQuery({
     queryKey: ["crm-sent-devis", email, cardId],
     queryFn: async () => {
       if (!cardId) return [];
@@ -187,9 +187,6 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
           <Mail className="h-4 w-4" />
           Historique emails & devis
         </h4>
-        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-6 w-6 p-0">
-          <RefreshCw className="h-3 w-3" />
-        </Button>
       </div>
       <div className="space-y-2">
         {timelineItems.map((item) => {
