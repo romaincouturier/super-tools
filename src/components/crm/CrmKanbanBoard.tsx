@@ -42,9 +42,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const navigate = useNavigate();
   const { data: boardData, isLoading, isError, refetch } = useCrmBoard();
   const { data: crmSettings } = useCrmSettings();
+  const { data: columnEntryDates } = useCardColumnEntryDates();
   const moveCard = useMoveCard();
   const createColumn = useCreateColumn();
   const updateCard = useUpdateCard();
+
+  const [sortByWaiting, setSortByWaiting] = useState(false);
 
   const serviceTypeColors = crmSettings?.serviceTypeColors;
 
