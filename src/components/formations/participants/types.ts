@@ -85,6 +85,7 @@ export interface ParticipantActionsProps {
   sendingId: string | null;
   remindingId: string | null;
   sendingMagicLinkId: string | null;
+  resendingWelcomeId: string | null;
   deletingId: string | null;
   generatingConventionId: string | null;
   downloadingConventionId: string | null;
