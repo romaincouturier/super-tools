@@ -80,6 +80,7 @@ const ParticipantList = ({
     clientName, trainingDuree, attendanceSheetsUrls,
     sendingId: actions.sendingId, remindingId: actions.remindingId,
     sendingMagicLinkId: actions.sendingMagicLinkId,
+    resendingWelcomeId: actions.resendingWelcomeId,
     deletingId: actions.deletingId, generatingConventionId: actions.generatingConventionId,
     downloadingConventionId: actions.downloadingConventionId,
     conventionRemindingId: actions.conventionRemindingId,
