@@ -1,5 +1,7 @@
 // CardDetailCommunication
 import { useNavigate } from "react-router-dom";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,7 @@ interface Props {
 }
 
 const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, selectedTemplateRef }: Props) => {
+  const { isDemoMode } = useDemoMode();
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -145,9 +148,10 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
             </Label>
             <Input
               placeholder="email@exemple.com (séparer par des virgules)"
-              value={emailTo}
+              value={isDemoMode && emailTo ? maskEmail(emailTo) : emailTo}
               onChange={(e) => setEmailTo(e.target.value)}
               className="flex-1"
+              readOnly={isDemoMode}
             />
             {!showCcBcc && (
               <Button

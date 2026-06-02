@@ -4,14 +4,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { getInitials } from "@/lib/stringUtils";
 import { Camera } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 
 export default function StaffProfileSettings() {
   const { toast } = useToast();
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
   const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -127,6 +131,27 @@ export default function StaffProfileSettings() {
       <Button onClick={handleSave} disabled={saving} size="sm">
         {saving ? <Spinner size="sm" /> : "Sauvegarder"}
       </Button>
+
+      <Separator />
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="demo-mode-toggle" className="text-base">Mode démo</Label>
+            <p className="text-sm text-muted-foreground">
+              Masque les données sensibles (emails, noms, montants, clés API) pour les présentations. Actif uniquement pour votre compte.
+            </p>
+          </div>
+          <Switch
+            id="demo-mode-toggle"
+            checked={isDemoMode}
+            onCheckedChange={toggleDemoMode}
+          />
+        </div>
+        {isDemoMode && (
+          <p className="text-xs text-amber-600 font-medium">Mode démo actif — les données sensibles sont masquées.</p>
+        )}
+      </div>
     </div>
   );
 }

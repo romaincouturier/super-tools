@@ -9,6 +9,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useSirenLookup } from "@/hooks/useQuotes";
 import { supabase } from "@/integrations/supabase/client";
 import type { CrmCard } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskEmail, maskAddress, maskSiren } from "@/lib/demoMask";
 
 export interface ClientData {
   company: string;
@@ -27,6 +29,7 @@ interface Props {
 }
 
 export default function Step0ClientValidation({ crmCard, onValidate, initialClient }: Props) {
+  const { isDemoMode } = useDemoMode();
   const sirenLookup = useSirenLookup();
   const [siren, setSiren] = useState(initialClient?.siren || crmCard.company || "");
   const [client, setClient] = useState<ClientData>(
@@ -137,15 +140,17 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
             <div className="space-y-2 md:col-span-2">
               <Label>Raison sociale *</Label>
               <Input
-                value={client.company}
+                value={isDemoMode ? maskText(client.company) : client.company}
                 onChange={(e) => set("company", e.target.value)}
+                readOnly={isDemoMode}
               />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Adresse *</Label>
               <Input
-                value={client.address}
+                value={isDemoMode ? maskAddress(client.address) : client.address}
                 onChange={(e) => set("address", e.target.value)}
+                readOnly={isDemoMode}
               />
             </div>
             <div className="space-y-2">
@@ -158,8 +163,9 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
             <div className="space-y-2">
               <Label>Ville *</Label>
               <Input
-                value={client.city}
+                value={isDemoMode ? maskText(client.city) : client.city}
                 onChange={(e) => set("city", e.target.value)}
+                readOnly={isDemoMode}
               />
             </div>
             <div className="space-y-2">
@@ -173,8 +179,9 @@ export default function Step0ClientValidation({ crmCard, onValidate, initialClie
               <Label>Email</Label>
               <Input
                 type="email"
-                value={client.email}
+                value={isDemoMode ? maskEmail(client.email) : client.email}
                 onChange={(e) => set("email", e.target.value)}
+                readOnly={isDemoMode}
               />
             </div>
           </div>

@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { CardDetailState, CardDetailHandlers } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail, maskPhone, maskText, maskAddress, maskSiren } from "@/lib/demoMask";
 
 interface Props {
   state: CardDetailState;
@@ -29,6 +31,7 @@ interface Props {
 }
 
 const CardDetailContact = ({ state, handlers }: Props) => {
+  const { isDemoMode } = useDemoMode();
   const {
     contactExpanded, setContactExpanded,
     firstName, setFirstName, lastName, setLastName,
@@ -37,6 +40,18 @@ const CardDetailContact = ({ state, handlers }: Props) => {
     siren, setSiren, address, setAddress,
     postalCode, setPostalCode, city, setCity, country, setCountry,
   } = state;
+
+  const d = {
+    firstName: isDemoMode ? maskName(firstName) : firstName,
+    lastName: isDemoMode ? maskName(lastName) : lastName,
+    company: isDemoMode ? maskText(company) : company,
+    email: isDemoMode ? maskEmail(email) : email,
+    phone: isDemoMode ? maskPhone(phone) : phone,
+    address: isDemoMode ? maskAddress(address) : address,
+    siren: isDemoMode ? maskSiren(siren) : siren,
+    city: isDemoMode ? maskText(city) : city,
+    postalCode: isDemoMode ? "•••••" : postalCode,
+  };
 
   return (
     <div className="p-4 bg-muted/50 rounded-lg space-y-3 mt-4">
@@ -49,8 +64,8 @@ const CardDetailContact = ({ state, handlers }: Props) => {
           Contact
           {(firstName || lastName) && (
             <span className="text-muted-foreground font-normal">
-              — {[firstName, lastName].filter(Boolean).join(" ")}
-              {company && ` (${company})`}
+              — {[d.firstName, d.lastName].filter(Boolean).join(" ")}
+              {company && ` (${d.company})`}
             </span>
           )}
         </h4>
@@ -70,23 +85,24 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               size="sm"
               className="h-7 gap-1.5 text-xs"
               onClick={() => handlers.copyToClipboard(email)}
-              title={email}
+              title={isDemoMode ? "••••" : email}
             >
               <Copy className="h-3 w-3" />
-              Email
+              {d.email}
             </Button>
           )}
           {phone.trim() && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" title="QR Code téléphone">
-                  <QRCodeSVG value={`tel:${phone.trim()}`} size={12} className="h-3 w-3" />
-                  QR
+                  <Phone className="h-3 w-3" />
+                  {d.phone}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-4" align="end">
                 <div className="flex flex-col items-center gap-2">
-                  <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />
+                  {!isDemoMode && <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />}
+                  {isDemoMode && <div className="w-[140px] h-[140px] bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">Masqué</div>}
                   <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
                 </div>
               </PopoverContent>
@@ -111,18 +127,18 @@ const CardDetailContact = ({ state, handlers }: Props) => {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Prénom</Label>
-            <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Prénom" className="h-8" />
+            <Input value={d.firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Prénom" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Nom</Label>
-            <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nom" className="h-8" />
+            <Input value={d.lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Nom" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1 col-span-2">
             <Label className="text-xs flex items-center gap-1">
               <Building2 className="h-3 w-3" />
               Entreprise
             </Label>
-            <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Nom de l'entreprise" className="h-8" />
+            <Input value={d.company} onChange={(e) => setCompany(e.target.value)} placeholder="Nom de l'entreprise" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs flex items-center gap-1">
@@ -130,7 +146,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               Email
             </Label>
             <div className="flex gap-1">
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemple.com" className="h-8 flex-1" />
+              <Input type="email" value={d.email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemple.com" className="h-8 flex-1" readOnly={isDemoMode} />
               {email.trim() && (
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handlers.copyToClipboard(email)} title="Copier l'email">
                   <Copy className="h-3.5 w-3.5" />
@@ -144,7 +160,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               Téléphone
             </Label>
             <div className="flex items-center gap-2">
-              <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" className="h-8 flex-1" />
+              <Input type="tel" value={d.phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" className="h-8 flex-1" readOnly={isDemoMode} />
               {phone.trim() && (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -154,7 +170,8 @@ const CardDetailContact = ({ state, handlers }: Props) => {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-4" align="end">
                     <div className="flex flex-col items-center gap-2">
-                      <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />
+                      {!isDemoMode && <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />}
+                      {isDemoMode && <div className="w-[140px] h-[140px] bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">Masqué</div>}
                       <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
                     </div>
                   </PopoverContent>
@@ -192,7 +209,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               <Hash className="h-3 w-3" />
               SIREN
             </Label>
-            <Input value={siren} onChange={(e) => setSiren(e.target.value)} placeholder="123456789" className="h-8" />
+            <Input value={d.siren} onChange={(e) => setSiren(e.target.value)} placeholder="123456789" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1" />
           <div className="space-y-1 col-span-2">
@@ -200,15 +217,15 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               <MapPin className="h-3 w-3" />
               Adresse
             </Label>
-            <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 rue de la République" className="h-8" />
+            <Input value={d.address} onChange={(e) => setAddress(e.target.value)} placeholder="12 rue de la République" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Code postal</Label>
-            <Input value={postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="75001" className="h-8" />
+            <Input value={d.postalCode} onChange={(e) => setPostalCode(e.target.value)} placeholder="75001" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Ville</Label>
-            <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Paris" className="h-8" />
+            <Input value={d.city} onChange={(e) => setCity(e.target.value)} placeholder="Paris" className="h-8" readOnly={isDemoMode} />
           </div>
           <div className="space-y-1 col-span-2">
             <Label className="text-xs">Pays</Label>

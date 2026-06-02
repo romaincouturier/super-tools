@@ -2,6 +2,8 @@ import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { PennylaneInvoice } from "@/hooks/usePennylane";
 import { EUR, toNumber, formatDate } from "@/lib/financeFormatters";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskAmount } from "@/lib/demoMask";
 
 // Re-exports : la majorité des composants finance importe encore EUR/toNumber/formatDate
 // depuis ce fichier, on les expose pour ne pas casser les imports existants.
@@ -29,6 +31,7 @@ function StatusBadge({ status }: { status?: string }) {
 }
 
 function InvoiceRow({ inv, kind }: { inv: PennylaneInvoice; kind: "customer" | "supplier" }) {
+  const { isDemoMode } = useDemoMode();
   const amount = toNumber(inv.amount ?? inv.currency_amount);
   const remaining = toNumber(inv.remaining_amount);
   const counterpartName = kind === "customer" ? inv.customer?.name : inv.supplier?.name;
@@ -36,11 +39,11 @@ function InvoiceRow({ inv, kind }: { inv: PennylaneInvoice; kind: "customer" | "
   return (
     <tr className="border-b last:border-b-0 hover:bg-muted/30">
       <td className="py-2 px-3 text-sm font-mono">{inv.invoice_number || "—"}</td>
-      <td className="py-2 px-3 text-sm">{counterpartName || inv.label || "—"}</td>
+      <td className="py-2 px-3 text-sm">{isDemoMode ? maskText(counterpartName || inv.label) || "—" : (counterpartName || inv.label || "—")}</td>
       <td className="py-2 px-3 text-sm text-muted-foreground">{formatDate(inv.date)}</td>
-      <td className="py-2 px-3 text-sm text-right tabular-nums">{EUR.format(amount)}</td>
+      <td className="py-2 px-3 text-sm text-right tabular-nums">{isDemoMode ? maskAmount(amount) : EUR.format(amount)}</td>
       <td className="py-2 px-3 text-sm text-right tabular-nums text-muted-foreground">
-        {remaining > 0 ? EUR.format(remaining) : "—"}
+        {remaining > 0 ? (isDemoMode ? maskAmount(remaining) : EUR.format(remaining)) : "—"}
       </td>
       <td className="py-2 px-3"><StatusBadge status={inv.status} /></td>
       <td className="py-2 px-3 text-right">

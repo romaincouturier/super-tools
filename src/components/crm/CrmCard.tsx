@@ -7,6 +7,8 @@ import { useUpdateCard } from "@/hooks/useCrmBoard";
 import { useAuth } from "@/hooks/useAuth";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { useSortableCard } from "@/hooks/useSortableCard";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskAmount } from "@/lib/demoMask";
 
 interface ServiceTypeColors {
   formation: string;
@@ -29,6 +31,7 @@ const DEFAULT_COLORS: ServiceTypeColors = {
 
 const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTypeColors }: CrmCardProps) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const updateCard = useUpdateCard();
   const [isEditingValue, setIsEditingValue] = useState(false);
   const [editValue, setEditValue] = useState(String(card.estimated_value || 0));
@@ -135,7 +138,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
               onClick={handleValueClick}
               title="Cliquer pour modifier"
             >
-              {Number(card.estimated_value || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €
+              {isDemoMode ? maskAmount(card.estimated_value) : `${Number(card.estimated_value || 0).toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`}
             </div>
           )}
         </div>
@@ -184,7 +187,7 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
         {card.company && (
           <div className="flex items-center gap-1 text-xs text-slate-600">
             <Building className="h-3 w-3 shrink-0" />
-            <span className="truncate">{card.company}</span>
+            <span className="truncate">{isDemoMode ? maskText(card.company) : card.company}</span>
           </div>
         )}
 

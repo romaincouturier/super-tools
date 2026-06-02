@@ -1,4 +1,6 @@
 import { Copy, ExternalLink } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskApiKey } from "@/lib/demoMask";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,6 +20,7 @@ interface SettingsIntegrationsProps {
 
 const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: SettingsIntegrationsProps) => {
   const { copy } = useCopyToClipboard();
+  const { isDemoMode } = useDemoMode();
 
   return (
     <div className="space-y-6">
@@ -288,8 +291,9 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
           <Input
             id="wp-stats-token"
             type="password"
-            value={settings.wp_statistics_api_token}
+            value={isDemoMode && settings.wp_statistics_api_token ? maskApiKey(settings.wp_statistics_api_token) : settings.wp_statistics_api_token}
             onChange={(e) => updateSetting("wp_statistics_api_token", e.target.value)}
+            readOnly={isDemoMode}
             placeholder="Votre token WP-Statistics"
           />
           <p className="text-xs text-muted-foreground">
@@ -308,8 +312,9 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
           <Input
             id="pennylane-token"
             type="password"
-            value={settings.pennylane_api_token || ""}
+            value={isDemoMode && settings.pennylane_api_token ? maskApiKey(settings.pennylane_api_token) : (settings.pennylane_api_token || "")}
             onChange={(e) => updateSetting("pennylane_api_token", e.target.value)}
+            readOnly={isDemoMode}
             placeholder="Bearer token Pennylane"
           />
           <p className="text-xs text-muted-foreground">
@@ -329,8 +334,9 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
             <Input
               id="openai-api-key"
               type="password"
-              value={settings.openai_api_key}
+              value={isDemoMode && settings.openai_api_key ? maskApiKey(settings.openai_api_key) : settings.openai_api_key}
               onChange={(e) => updateSetting("openai_api_key", e.target.value)}
+              readOnly={isDemoMode}
               placeholder="sk-..."
             />
             <p className="text-xs text-muted-foreground">
@@ -351,8 +357,9 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
             <Input
               id="insee-api-key"
               type="password"
-              value={settings.insee_api_key}
+              value={isDemoMode && settings.insee_api_key ? maskApiKey(settings.insee_api_key) : settings.insee_api_key}
               onChange={(e) => updateSetting("insee_api_key", e.target.value)}
+              readOnly={isDemoMode}
               placeholder="Votre clé API INSEE"
             />
             <p className="text-xs text-muted-foreground">
@@ -365,8 +372,9 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
             <Input
               id="google-search-api-key"
               type="password"
-              value={settings.google_search_api_key}
+              value={isDemoMode && settings.google_search_api_key ? maskApiKey(settings.google_search_api_key) : settings.google_search_api_key}
               onChange={(e) => updateSetting("google_search_api_key", e.target.value)}
+              readOnly={isDemoMode}
               placeholder="Votre clé API Google"
             />
             <p className="text-xs text-muted-foreground">

@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/tooltip";
 import ParticipantActions from "./ParticipantActions";
 import type { Participant, ParticipantActionsProps, SortField, SortDirection } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail, maskText, maskAmount } from "@/lib/demoMask";
 
 interface ParticipantTableProps extends Omit<ParticipantActionsProps, "participant" | "displayName"> {
   sortedParticipants: Participant[];
@@ -46,6 +48,7 @@ const ParticipantTable = ({
   onUncheckCoachingSession,
   ...actionsProps
 }: ParticipantTableProps) => {
+  const { isDemoMode } = useDemoMode();
   return (
     <Table>
       <TableHeader>
@@ -69,9 +72,10 @@ const ParticipantTable = ({
       </TableHeader>
       <TableBody>
         {sortedParticipants.map((participant) => {
-          const displayName = participant.first_name || participant.last_name
+          const rawName = participant.first_name || participant.last_name
             ? `${participant.first_name || ""} ${participant.last_name || ""}`.trim()
             : participant.email;
+          const displayName = isDemoMode ? maskName(rawName) : rawName;
 
           return (
             <TableRow key={participant.id} className={actionsProps.isInterEntreprise && participant.payment_mode === "invoice" && !participant.invoice_file_url ? "text-red-600" : ""}>
@@ -80,9 +84,11 @@ const ParticipantTable = ({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">
-                        {participant.first_name || participant.last_name
-                          ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim()
-                          : participant.email}
+                        {isDemoMode
+                          ? displayName
+                          : (participant.first_name || participant.last_name
+                              ? `${participant.last_name || ""} ${participant.first_name || ""}`.trim()
+                              : participant.email)}
                       </span>
                       {participant.formula && (
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -152,7 +158,7 @@ const ParticipantTable = ({
                         <Mail className="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent><p>Copier {participant.email}</p></TooltipContent>
+                    <TooltipContent><p>Copier {isDemoMode ? maskEmail(participant.email) : participant.email}</p></TooltipContent>
                   </Tooltip>
                   {(participant.first_name || participant.last_name) && (
                     <Tooltip>
@@ -174,12 +180,12 @@ const ParticipantTable = ({
                 </div>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {participant.company || "—"}
+                {isDemoMode ? maskText(participant.company) || "—" : (participant.company || "—")}
               </TableCell>
               {actionsProps.isInterEntreprise && (
                 <TableCell className="tabular-nums">
                   {participant.sold_price_ht != null
-                    ? `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`
+                    ? (isDemoMode ? maskAmount(participant.sold_price_ht) : `${participant.sold_price_ht.toLocaleString("fr-FR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} €`)
                     : "—"}
                 </TableCell>
               )}

@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Send, TestTube, Sparkles } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import { useUpdateQuote, useQuoteSettings } from "@/hooks/useQuotes";
 import { toast } from "sonner";
 import type { Quote } from "@/types/quotes";
@@ -29,6 +31,7 @@ export default function Step5Email({
   clientCompany,
   onSent,
 }: Props) {
+  const { isDemoMode } = useDemoMode();
   const updateMutation = useUpdateQuote();
   const { data: settings } = useQuoteSettings();
   const [to, setTo] = useState(clientEmail);
@@ -251,9 +254,10 @@ export default function Step5Email({
                 <Label>Destinataire</Label>
                 <Input
                   type="email"
-                  value={to}
+                  value={isDemoMode ? maskEmail(to) : to}
                   onChange={(e) => setTo(e.target.value)}
                   placeholder="email@client.com"
+                  readOnly={isDemoMode}
                 />
               </div>
 
