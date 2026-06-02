@@ -92,6 +92,7 @@ const ParticipantList = ({
     participantsWithAccount: data.participantsWithAccount,
     onSendSurvey: actions.handleSendSurvey, onSendReminder: actions.handleSendReminder,
     onSendMagicLink: actions.handleSendMagicLink,
+    onResendWelcome: actions.handleResendWelcome,
     onDelete: actions.handleDelete, onGenerateConvention: actions.handleGenerateConvention,
     onDownloadConvention: actions.handleDownloadConvention,
     onSendConventionReminder: actions.handleSendConventionReminder,
