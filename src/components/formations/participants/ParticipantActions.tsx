@@ -44,6 +44,7 @@ const ParticipantActions = ({
   sendingId,
   remindingId,
   sendingMagicLinkId,
+  resendingWelcomeId,
   deletingId,
   generatingConventionId,
   downloadingConventionId,
