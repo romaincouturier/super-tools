@@ -191,17 +191,18 @@ const FormationDetail = () => {
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{fd.training.location}</p>
-            <a
-              href={getGoogleMapsSearchUrl(fd.training.location || "")}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block aspect-video w-full rounded-lg overflow-hidden border bg-muted/10 hover:bg-muted/20 transition-colors"
-            >
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground hover:text-foreground transition-colors">
-                <MapPin className="h-10 w-10" />
-                <span className="text-sm font-medium">Voir sur Google Maps</span>
+            {fd.training.location ? (
+              <div className="aspect-video w-full rounded-lg overflow-hidden border">
+                <iframe
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(fd.training.location)}&output=embed`}
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Carte de la formation"
+                  allowFullScreen
+                />
               </div>
-            </a>
+            ) : null}
             <div className="flex justify-end">
               <Button variant="outline" asChild>
                 <a href={getGoogleMapsDirectionsUrl(fd.training.location)} target="_blank" rel="noopener noreferrer">
