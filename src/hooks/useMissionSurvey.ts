@@ -229,5 +229,9 @@ export const useSubmitSurveyResponse = () =>
         const { error: ae } = await (supabase as any).from("mission_survey_answers").insert(answerRows);
         if (ae) throw ae;
       }
+      // Notify the staff user who created the survey (fire-and-forget).
+      supabase.functions
+        .invoke("notify-survey-response", { body: { responseId, surveyId } })
+        .catch((err) => console.error("notify-survey-response failed", err));
     },
   });
