@@ -41,6 +41,7 @@ export function useParticipantActions({
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [sendingMagicLinkId, setSendingMagicLinkId] = useState<string | null>(null);
+  const [resendingWelcomeId, setResendingWelcomeId] = useState<string | null>(null);
   const { invoke: invokeSendSurvey } = useEdgeFunction(
     "send-needs-survey",
     { errorMessage: "Erreur" },
