@@ -1,0 +1,2 @@
+ALTER TABLE public.transcripts DROP CONSTRAINT transcripts_status_check;
+ALTER TABLE public.transcripts ADD CONSTRAINT transcripts_status_check CHECK (status = ANY (ARRAY['pending'::text, 'processing'::text, 'ready'::text, 'error'::text, 'trashed'::text]));
