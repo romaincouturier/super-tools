@@ -322,6 +322,7 @@ export default function Transcripts() {
             <SelectItem value="processing">En cours</SelectItem>
             <SelectItem value="pending">En attente</SelectItem>
             <SelectItem value="error">Erreur</SelectItem>
+            <SelectItem value="trashed">Corbeille</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" onClick={() => refetch()} title="Rafraîchir">
