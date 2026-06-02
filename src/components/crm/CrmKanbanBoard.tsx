@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Plus, Search, X, Building, User, BarChart3 } from "lucide-react";
+import { Plus, Search, X, Building, User, BarChart3, Clock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
+import { useCardColumnEntryDates } from "@/hooks/crm/useCardColumnEntryDates";
 import { useAuth } from "@/hooks/useAuth";
 import { CrmCard, CrmColumn as CrmColumnType, LossReason } from "@/types/crm";
 import LossReasonDialog from "./LossReasonDialog";
@@ -41,9 +42,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const navigate = useNavigate();
   const { data: boardData, isLoading, isError, refetch } = useCrmBoard();
   const { data: crmSettings } = useCrmSettings();
+  const { data: columnEntryDates } = useCardColumnEntryDates();
   const moveCard = useMoveCard();
   const createColumn = useCreateColumn();
   const updateCard = useUpdateCard();
+
+  const [sortByWaiting, setSortByWaiting] = useState(false);
 
   const serviceTypeColors = crmSettings?.serviceTypeColors;
 
@@ -206,11 +210,32 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
         break;
     }
-    return filtered.map((c) => ({
+    const mapped = filtered.map((c) => ({
       ...c,
       columnId: c.column_id,
     }));
-  }, [boardData?.cards, filterMode]);
+
+    if (!sortByWaiting) return mapped;
+
+    // Entry date = latest card_moved timestamp, fallback to card.created_at.
+    const entryDateOf = (c: CrmCard) =>
+      columnEntryDates?.get(c.id) || c.created_at;
+
+    // Group by column, sort ascending by entry date (oldest = longest waiting first),
+    // then re-assign `position` so the board renders in that order.
+    const byCol = new Map<string, CrmKanbanCard[]>();
+    for (const c of mapped) {
+      const arr = byCol.get(c.columnId) || [];
+      arr.push(c);
+      byCol.set(c.columnId, arr);
+    }
+    const result: CrmKanbanCard[] = [];
+    for (const arr of byCol.values()) {
+      arr.sort((a, b) => entryDateOf(a).localeCompare(entryDateOf(b)));
+      arr.forEach((c, i) => result.push({ ...c, position: i }));
+    }
+    return result;
+  }, [boardData?.cards, filterMode, sortByWaiting, columnEntryDates, isFullyTagged]);
 
   // Build columns for the board
   const kanbanColumns: CrmKanbanColumn[] = useMemo(() => {
@@ -626,6 +651,17 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
           </Button>
         ))}
       </div>
+
+      <Button
+        variant={sortByWaiting ? "default" : "outline"}
+        size="sm"
+        className="h-7 text-xs"
+        onClick={() => setSortByWaiting((v) => !v)}
+        title="Trier par délai d'attente le plus long en haut de chaque colonne"
+      >
+        <Clock className="h-3.5 w-3.5 mr-1" />
+        <span className="hidden sm:inline">Attente longue</span>
+      </Button>
 
       <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowStats(true)} title="Statistiques du pipeline">
         <BarChart3 className="h-3.5 w-3.5 mr-1" />
