@@ -563,7 +563,7 @@ const CardDetailDrawer = ({
   const handleCalendarEventCreated = async (eventDate: string, eventSummary: string) => {
     if (!card || !user?.email) return;
     const existing = card.waiting_next_action_date;
-    if (existing && existing <= eventDate) return;
+    if (existing && existing < eventDate) return;
     await updateCard.mutateAsync({
       id: card.id,
       updates: { waiting_next_action_date: eventDate, waiting_next_action_text: eventSummary },
