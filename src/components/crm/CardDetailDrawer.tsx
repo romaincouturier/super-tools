@@ -44,7 +44,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useConfirm } from "@/hooks/useConfirm";
 import { Spinner } from "@/components/ui/spinner";
 import { toastError } from "@/lib/toastError";
-import { isBefore, startOfDay } from "date-fns";
+import { isBefore, startOfDay, format } from "date-fns";
 import { PricingLine } from "./MacroPricingDialog";
 
 // Sub-components
