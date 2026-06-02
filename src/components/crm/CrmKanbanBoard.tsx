@@ -210,11 +210,32 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         filtered = boardData.cards.filter((c) => !isScheduledInFuture(c));
         break;
     }
-    return filtered.map((c) => ({
+    const mapped = filtered.map((c) => ({
       ...c,
       columnId: c.column_id,
     }));
-  }, [boardData?.cards, filterMode]);
+
+    if (!sortByWaiting) return mapped;
+
+    // Entry date = latest card_moved timestamp, fallback to card.created_at.
+    const entryDateOf = (c: CrmCard) =>
+      columnEntryDates?.get(c.id) || c.created_at;
+
+    // Group by column, sort ascending by entry date (oldest = longest waiting first),
+    // then re-assign `position` so the board renders in that order.
+    const byCol = new Map<string, CrmKanbanCard[]>();
+    for (const c of mapped) {
+      const arr = byCol.get(c.columnId) || [];
+      arr.push(c);
+      byCol.set(c.columnId, arr);
+    }
+    const result: CrmKanbanCard[] = [];
+    for (const arr of byCol.values()) {
+      arr.sort((a, b) => entryDateOf(a).localeCompare(entryDateOf(b)));
+      arr.forEach((c, i) => result.push({ ...c, position: i }));
+    }
+    return result;
+  }, [boardData?.cards, filterMode, sortByWaiting, columnEntryDates, isFullyTagged]);
 
   // Build columns for the board
   const kanbanColumns: CrmKanbanColumn[] = useMemo(() => {
