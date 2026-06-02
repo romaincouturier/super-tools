@@ -44,7 +44,7 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useConfirm } from "@/hooks/useConfirm";
 import { Spinner } from "@/components/ui/spinner";
 import { toastError } from "@/lib/toastError";
-import { isBefore, startOfDay } from "date-fns";
+import { isBefore, startOfDay, format } from "date-fns";
 import { PricingLine } from "./MacroPricingDialog";
 
 // Sub-components
@@ -563,7 +563,8 @@ const CardDetailDrawer = ({
   const handleCalendarEventCreated = async (eventDate: string, eventSummary: string) => {
     if (!card || !user?.email) return;
     const existing = card.waiting_next_action_date;
-    if (existing && existing < eventDate) return;
+    const today = format(new Date(), "yyyy-MM-dd");
+    if (existing && existing < eventDate && existing !== today) return;
     await updateCard.mutateAsync({
       id: card.id,
       updates: { waiting_next_action_date: eventDate, waiting_next_action_text: eventSummary },
