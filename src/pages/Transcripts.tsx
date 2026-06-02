@@ -255,7 +255,12 @@ export default function Transcripts() {
   const [status, setStatus] = useState<TranscriptStatus | "">("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useTranscripts({ search, source, status });
+  const { data, isLoading, refetch } = useTranscripts({
+    search,
+    source,
+    status: status === "trashed" ? "" : status,
+    trashed: status === "trashed",
+  });
 
   const counts = {
     total: data?.length ?? 0,
