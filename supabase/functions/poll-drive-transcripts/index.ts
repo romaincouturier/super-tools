@@ -81,6 +81,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.errors++;
         continue;
       }
+
+      // Auto-trash empty transcripts (no speech detected — not a processing error)
+      const isEmpty = !result.text || result.text.trim().length < 10;
+      if (isEmpty) {
+        await (admin as any).from("transcripts").update({
+          status: "trashed",
+          raw_text: result.text ?? "",
+          duration_seconds: result.duration,
+          summary: "Transcript vide (aucune parole détectée) — mis automatiquement à la corbeille.",
+          assemblyai_id: null,
+        }).eq("id", row.id);
+        results.completed++;
+        continue;
+      }
+
       const analysis = await analyzeTranscript(result.text);
       await (admin as any).from("transcripts").update({
         status: "ready",
