@@ -1204,6 +1204,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         parent_page_id: page.parent_page_id,
         title: `${page.title || "Sans titre"} (copie)`,
         content: page.content || undefined,
+        page_type: (page as any).page_type,
+        icon: (page as any).icon,
       });
 
       // Duplicate attached survey (if any) with its questions
