@@ -10,6 +10,7 @@
 -- as owner and bypass RLS — internal callers are unaffected.
 
 DROP POLICY IF EXISTS "Authenticated users can view settings" ON public.app_settings;
+DROP POLICY IF EXISTS "Admins can view settings" ON public.app_settings;
 
 CREATE POLICY "Admins can view settings" ON public.app_settings
   FOR SELECT TO authenticated
