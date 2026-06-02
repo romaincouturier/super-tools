@@ -652,6 +652,17 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         ))}
       </div>
 
+      <Button
+        variant={sortByWaiting ? "default" : "outline"}
+        size="sm"
+        className="h-7 text-xs"
+        onClick={() => setSortByWaiting((v) => !v)}
+        title="Trier par délai d'attente le plus long en haut de chaque colonne"
+      >
+        <Clock className="h-3.5 w-3.5 mr-1" />
+        <span className="hidden sm:inline">Attente longue</span>
+      </Button>
+
       <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowStats(true)} title="Statistiques du pipeline">
         <BarChart3 className="h-3.5 w-3.5 mr-1" />
         <span className="hidden sm:inline">Statistiques</span>
