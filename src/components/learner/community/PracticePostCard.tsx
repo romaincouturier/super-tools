@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, RotateCcw, RotateCw, Pencil, Check, X } from "lucide-react";
+import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, RotateCcw, RotateCw, Pencil, Check, X, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import PollDisplay from "@/components/learner/community/PollDisplay";
@@ -94,6 +94,7 @@ export default function PracticePostCard({
   const [commentText, setCommentText] = useState("");
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [downloadingFile, setDownloadingFile] = useState(false);
   const { data: comments = [] } = usePracticeComments(showComments ? post.id : null, currentEmail, isAdmin);
   const createComment = useCreatePracticeComment(currentEmail, isAdmin, currentUserName);
   const deleteComment = useDeletePracticeComment(currentEmail, isAdmin);
@@ -115,6 +116,27 @@ export default function PracticePostCard({
       setCommentText("");
     } catch {
       toastError(toast, "Impossible d'envoyer le commentaire.");
+    }
+  };
+
+  const handleFileDownload = async (fileHref: string) => {
+    try {
+      setDownloadingFile(true);
+      const response = await fetch(fileHref);
+      if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = post.file_name || "fichier";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      toastError(toast, "Impossible de télécharger ce fichier.");
+    } finally {
+      setDownloadingFile(false);
     }
   };
 
@@ -248,19 +270,23 @@ export default function PracticePostCard({
         ) : post.file_mime?.startsWith("video/") ? (
           <video src={fileHref} controls className="w-full" style={{ maxHeight: 480 }} />
         ) : (
-          <a
-            href={fileHref}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => handleFileDownload(fileHref)}
+            disabled={downloadingFile}
             className="flex flex-col items-center justify-center gap-2 w-full px-4 py-10 hover:bg-black/5 transition-colors"
             style={{ background: "rgba(16,24,32,0.04)", color: "var(--st-ink)", minHeight: 220 }}
-            title={post.file_name ?? "Voir le fichier"}
+            title={post.file_name ?? "Télécharger le fichier"}
           >
             <FileText size={48} style={{ color: "var(--st-ink-muted)" }} />
             <span className="text-sm font-medium text-center break-all px-4">
-              {post.file_name ?? "Voir le fichier"}
+              {post.file_name ?? "Télécharger le fichier"}
             </span>
-          </a>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--st-ink-muted)" }}>
+              <Download size={14} />
+              {downloadingFile ? "Préparation..." : "Télécharger"}
+            </span>
+          </button>
         );
       })()}
 
