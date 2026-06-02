@@ -10301,6 +10301,7 @@ export type Database = {
       }
       monitor_cron_failures: { Args: never; Returns: Json }
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
+      move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
       practice_popular_hashtags: {
         Args: { p_limit?: number }
