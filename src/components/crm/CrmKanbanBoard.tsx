@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Plus, Search, X, Building, User, BarChart3 } from "lucide-react";
+import { Plus, Search, X, Building, User, BarChart3, Clock } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
+import { useCardColumnEntryDates } from "@/hooks/crm/useCardColumnEntryDates";
 import { useAuth } from "@/hooks/useAuth";
 import { CrmCard, CrmColumn as CrmColumnType, LossReason } from "@/types/crm";
 import LossReasonDialog from "./LossReasonDialog";
