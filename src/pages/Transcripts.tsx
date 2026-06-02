@@ -98,6 +98,8 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
   const { data: t, isLoading } = useTranscript(id);
   const [regenerating, setRegenerating] = useState(false);
   const queryClient = useQueryClient();
+  const trashMutation = useTrashTranscript();
+  const restoreMutation = useRestoreTranscript();
 
   const regenerateTitle = async () => {
     if (!t) return;
@@ -115,6 +117,27 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
     queryClient.invalidateQueries({ queryKey: ["transcripts"] });
   };
 
+  const handleTrash = () => {
+    if (!t) return;
+    if (!confirm("Mettre ce transcript à la corbeille ?")) return;
+    trashMutation.mutate(t.id, {
+      onSuccess: () => {
+        toast.success("Mis à la corbeille");
+        onClose();
+      },
+      onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+    });
+  };
+
+  const handleRestore = () => {
+    if (!t) return;
+    const target: TranscriptStatus = t.raw_text ? "ready" : "error";
+    restoreMutation.mutate({ id: t.id, status: target }, {
+      onSuccess: () => toast.success("Restauré"),
+      onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+    });
+  };
+
   const headerTitle = t?.ai_title || t?.title || "Transcript";
   const showFilename = !!t?.ai_title && !!t?.title && t.ai_title !== t.title;
 
@@ -124,17 +147,41 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
         <SheetHeader className="shrink-0">
           <div className="flex items-start justify-between gap-2">
             <SheetTitle className="text-left line-clamp-2 flex-1">{headerTitle}</SheetTitle>
-            {t && t.status === "ready" && t.raw_text && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={regenerateTitle}
-                disabled={regenerating}
-                title="Régénérer le titre IA"
-              >
-                {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </Button>
-            )}
+            <div className="flex items-center gap-1 shrink-0">
+              {t && t.status === "ready" && t.raw_text && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={regenerateTitle}
+                  disabled={regenerating}
+                  title="Régénérer le titre IA"
+                >
+                  {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+              )}
+              {t && t.status !== "trashed" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleTrash}
+                  disabled={trashMutation.isPending}
+                  title="Mettre à la corbeille"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              {t && t.status === "trashed" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRestore}
+                  disabled={restoreMutation.isPending}
+                  title="Restaurer depuis la corbeille"
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           {showFilename && (
             <p className="text-xs text-muted-foreground text-left">📄 {t!.title}</p>
