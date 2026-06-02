@@ -19,7 +19,7 @@ import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanToolbar from "@/components/shared/kanban/KanbanToolbar";
 import SupportTicketCardComponent from "@/components/support/SupportTicketCard";
 import TicketDetail from "@/components/support/TicketDetail";
-import { useSupportTickets, useCreateSupportTicket, useUpdateSupportTicket, useMoveSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
+import { useSupportTickets, useSupportTicketsForStats, useCreateSupportTicket, useUpdateSupportTicket, useMoveSupportTicket, useAnalyzeTicket } from "@/hooks/useSupport";
 import {
   SUPPORT_COLUMNS,
   TICKET_PRIORITY_CONFIG,
@@ -36,6 +36,7 @@ const Support = () => {
   const { toast } = useToast();
   const { copy } = useCopyToClipboard();
   const { data: tickets, isLoading } = useSupportTickets();
+  const { data: allTicketsForStats } = useSupportTicketsForStats();
   const createTicket = useCreateSupportTicket();
   const updateTicket = useUpdateSupportTicket();
   const moveTicket = useMoveSupportTicket();
@@ -91,14 +92,14 @@ const Support = () => {
   }, [tickets]);
 
   const statsItems: KanbanStatsItem[] = useMemo(() => {
-    if (!tickets) return [];
-    return tickets.map((t) => ({
+    if (!allTicketsForStats) return [];
+    return allTicketsForStats.map((t) => ({
       id: t.id,
       columnId: t.status,
       createdAt: t.created_at,
       completedAt: t.resolved_at,
     }));
-  }, [tickets]);
+  }, [allTicketsForStats]);
 
   const SUPPORT_DONE_COLS = ["resolu"] as const;
   const meanCycleTimeDays = useMemo(

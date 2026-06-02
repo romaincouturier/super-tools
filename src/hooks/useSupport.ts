@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchSupportTickets, createSupportTicket, updateSupportTicket, moveSupportTicket, analyzeTicket } from "@/services/support";
+import { fetchSupportTickets, fetchAllSupportTicketsForStats, createSupportTicket, updateSupportTicket, moveSupportTicket, analyzeTicket } from "@/services/support";
 import { supabase } from "@/integrations/supabase/client";
 import type { SupportTicket, TicketStatus } from "@/types/support";
 
@@ -10,6 +10,15 @@ export function useSupportTickets() {
   return useQuery({
     queryKey: QUERY_KEY,
     queryFn: fetchSupportTickets,
+  });
+}
+
+/** Tous les tickets (archivés inclus, boîte à idées exclus) pour les cartes de contrôle. */
+export function useSupportTicketsForStats() {
+  return useQuery({
+    queryKey: ["support-tickets-stats"],
+    queryFn: fetchAllSupportTicketsForStats,
+    staleTime: 60_000,
   });
 }
 

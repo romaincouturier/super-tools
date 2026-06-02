@@ -107,6 +107,19 @@ export async function fetchSupportTickets(): Promise<SupportTicket[]> {
   return resolveTicketScreenshots(tickets);
 }
 
+/**
+ * Tous les tickets pour les cartes de contrôle : inclut les archivés,
+ * exclut la boîte à idées (ces tickets ne doivent pas entrer dans le calcul).
+ */
+export async function fetchAllSupportTicketsForStats(): Promise<SupportTicket[]> {
+  const result = await db()
+    .from("support_tickets")
+    .select("*")
+    .neq("status", "boite_a_idees")
+    .order("created_at", { ascending: false });
+  return (throwIfError(result) || []) as SupportTicket[];
+}
+
 export async function fetchSupportTicketById(id: string): Promise<SupportTicket> {
   const result = await db().from("support_tickets").select("*").eq("id", id).single();
   const ticket = throwIfError(result) as SupportTicket;
