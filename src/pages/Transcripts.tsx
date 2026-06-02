@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw, Trash2, ArchiveRestore } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -16,7 +16,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
-import { useTranscripts, useTranscript, type Transcript, type TranscriptSource, type TranscriptStatus } from "@/hooks/useTranscripts";
+import {
+  useTranscripts,
+  useTranscript,
+  useTrashTranscript,
+  useRestoreTranscript,
+  type Transcript,
+  type TranscriptSource,
+  type TranscriptStatus,
+} from "@/hooks/useTranscripts";
 
 const SOURCE_LABELS: Record<TranscriptSource, string> = {
   google_drive: "Google Drive",
@@ -28,6 +36,7 @@ const STATUS_ICONS: Record<TranscriptStatus, React.ReactNode> = {
   processing: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
   ready: <CheckCircle2 className="h-3.5 w-3.5" />,
   error: <AlertCircle className="h-3.5 w-3.5" />,
+  trashed: <Trash2 className="h-3.5 w-3.5" />,
 };
 
 const STATUS_VARIANTS: Record<TranscriptStatus, "default" | "secondary" | "outline" | "destructive"> = {
@@ -35,6 +44,7 @@ const STATUS_VARIANTS: Record<TranscriptStatus, "default" | "secondary" | "outli
   processing: "secondary",
   ready: "default",
   error: "destructive",
+  trashed: "outline",
 };
 
 function formatDuration(seconds: number | null): string {
