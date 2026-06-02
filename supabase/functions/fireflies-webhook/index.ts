@@ -93,14 +93,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
     // ── Verify signing secret ────────────────────────────────────
-    if (storedSecret) {
-      const incoming = req.headers.get("X-Webhook-Secret") ?? "";
-      if (incoming !== storedSecret) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (!storedSecret) {
+      return new Response(JSON.stringify({ error: "fireflies_webhook_secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const incoming = req.headers.get("X-Webhook-Secret") ?? "";
+    if (incoming !== storedSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ── Parse body ───────────────────────────────────────────────

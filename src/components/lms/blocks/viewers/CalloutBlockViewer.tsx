@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { CALLOUT_PALETTE, CALLOUT_LEVELS } from "../callout-colors";
 import type { CalloutBlockContent } from "@/types/lms-blocks";
 
@@ -42,7 +43,7 @@ export default function CalloutBlockViewer({ content }: Props) {
             "--tw-prose-bold": palette.text,
             "--tw-prose-headings": palette.text,
           } as React.CSSProperties}
-          dangerouslySetInnerHTML={{ __html: content.body_html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.body_html) }}
         />
       )}
     </div>

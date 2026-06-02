@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -260,7 +261,7 @@ function DepositForm({
       {config.instructions_html && (
         <div
           className="rounded-md bg-muted/40 p-3 prose prose-sm max-w-none break-words"
-          dangerouslySetInnerHTML={{ __html: config.instructions_html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(config.instructions_html) }}
         />
       )}
 

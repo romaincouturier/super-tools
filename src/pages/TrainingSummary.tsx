@@ -108,7 +108,7 @@ const c = {
 const TrainingSummary = () => {
   const { trainingId } = useParams<{ trainingId: string }>();
   const websiteUrl = useAppSetting("website_url", "https://www.supertilt.fr");
-  const googleMapsApiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+  const googleMapsApiKey = useAppSetting("google_maps_api_key", "");
 
   const [training, setTraining] = useState<Training | null>(null);
   const [schedules, setSchedules] = useState<Schedule[]>([]);

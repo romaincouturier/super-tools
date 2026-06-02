@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { AccordionBlockContent } from "@/types/lms-blocks";
@@ -52,7 +53,7 @@ export default function AccordionBlockViewer({ content }: Props) {
               >
                 <div
                   className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: item.answer_html }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.answer_html) }}
                 />
               </div>
             )}

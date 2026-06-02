@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState } from "react";
 import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
@@ -217,7 +218,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
                       {log.body && (
                         <div
                           className="mt-2 p-2 bg-background border rounded prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: log.body }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(log.body) }}
                         />
                       )}
                     </div>

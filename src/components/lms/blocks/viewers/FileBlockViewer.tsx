@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { Button } from "@/components/ui/button";
 import { Paperclip, Download } from "lucide-react";
 import { formatFileSize } from "@/lib/file-utils";
@@ -30,7 +31,7 @@ export default function FileBlockViewer({ content }: Props) {
       {content.description_html && (
         <div
           className="prose prose-sm max-w-none break-words"
-          dangerouslySetInnerHTML={{ __html: content.description_html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.description_html) }}
         />
       )}
     </div>

@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import type { ImageBlockContent } from "@/types/lms-blocks";
 import { ImageWithLightbox } from "./ImageLightbox";
 
@@ -17,7 +18,7 @@ export default function ImageBlockViewer({ content }: Props) {
       {content.caption_html && (
         <div
           className="prose prose-sm max-w-none break-words"
-          dangerouslySetInnerHTML={{ __html: content.caption_html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.caption_html) }}
         />
       )}
     </div>

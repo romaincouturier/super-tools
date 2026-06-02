@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState } from "react";
 import { X } from "lucide-react";
 import type { ImageHotspotBlockContent } from "@/types/lms-blocks";
@@ -86,7 +87,7 @@ export default function ImageHotspotBlockViewer({ content }: Props) {
               {spot.description_html && (
                 <div
                   className="prose prose-xs max-w-none text-xs"
-                  dangerouslySetInnerHTML={{ __html: spot.description_html }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(spot.description_html) }}
                 />
               )}
             </div>

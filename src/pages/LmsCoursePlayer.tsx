@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -341,7 +342,7 @@ export default function LmsCoursePlayer() {
                       {selectedLesson.lesson_type === "text" && selectedLesson.content_html && (
                         <div
                           className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                          dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedLesson.content_html) }}
                         />
                       )}
                       {selectedLesson.lesson_type === "video" && selectedLesson.video_url && (
@@ -377,7 +378,7 @@ export default function LmsCoursePlayer() {
                           {selectedLesson.content_html && (
                             <div
                               className="prose prose-sm max-w-none"
-                              dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedLesson.content_html) }}
                             />
                           )}
                           <AssignmentSubmitter lessonId={selectedLesson.id} learnerEmail={learnerEmail} />
@@ -397,7 +398,7 @@ export default function LmsCoursePlayer() {
                           {selectedLesson.content_html && (
                             <div
                               className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                              dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedLesson.content_html) }}
                             />
                           )}
                         </div>
@@ -427,7 +428,7 @@ export default function LmsCoursePlayer() {
                           {selectedLesson.content_html && (
                             <div
                               className="prose prose-sm max-w-none prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg"
-                              dangerouslySetInnerHTML={{ __html: selectedLesson.content_html }}
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedLesson.content_html) }}
                             />
                           )}
                         </div>

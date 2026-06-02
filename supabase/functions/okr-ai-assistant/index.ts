@@ -2,12 +2,21 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const _authUser = await verifyAuth(req.headers.get("Authorization"));
+  if (!_authUser) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const { prompt, mode, objectiveId, year } = await req.json();
