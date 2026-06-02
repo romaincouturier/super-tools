@@ -41,6 +41,7 @@ export function useParticipantActions({
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [sendingMagicLinkId, setSendingMagicLinkId] = useState<string | null>(null);
+  const [resendingWelcomeId, setResendingWelcomeId] = useState<string | null>(null);
   const { invoke: invokeSendSurvey } = useEdgeFunction(
     "send-needs-survey",
     { errorMessage: "Erreur" },
@@ -158,6 +159,29 @@ export function useParticipantActions({
     }
   };
 
+  const handleResendWelcome = async (participant: Participant) => {
+    setResendingWelcomeId(participant.id);
+    try {
+      const { error } = await supabase.functions.invoke("send-welcome-email", {
+        body: { participantId: participant.id, trainingId },
+      });
+      if (error) throw error;
+      toast({
+        title: "Convocation renvoyée",
+        description: `La convocation a été renvoyée à ${participant.email}.`,
+      });
+      onParticipantUpdated();
+    } catch (error: unknown) {
+      toast({
+        title: "Erreur",
+        description: error instanceof Error ? error.message : "Erreur inconnue",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingWelcomeId(null);
+    }
+  };
+
   const handleToggleCoachingSession = async (participant: Participant) => {
     const current = participant.coaching_sessions_completed || 0;
     const total = participant.coaching_sessions_total || 0;
@@ -208,11 +232,13 @@ export function useParticipantActions({
     sendingId,
     remindingId,
     sendingMagicLinkId,
+    resendingWelcomeId,
     ...documentActions,
     handleDelete,
     handleSendSurvey,
     handleSendReminder,
     handleSendMagicLink,
+    handleResendWelcome,
     handleToggleCoachingSession,
     handleUncheckCoachingSession,
     handleCopyEmail,

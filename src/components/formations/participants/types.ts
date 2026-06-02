@@ -85,6 +85,7 @@ export interface ParticipantActionsProps {
   sendingId: string | null;
   remindingId: string | null;
   sendingMagicLinkId: string | null;
+  resendingWelcomeId: string | null;
   deletingId: string | null;
   generatingConventionId: string | null;
   downloadingConventionId: string | null;
@@ -101,6 +102,7 @@ export interface ParticipantActionsProps {
   onSendSurvey: (participant: Participant) => void;
   onSendReminder: (participant: Participant) => void;
   onSendMagicLink: (participant: Participant) => void;
+  onResendWelcome: (participant: Participant) => void;
   onDelete: (participant: Participant) => void;
   onGenerateConvention: (participant: Participant) => void;
   onDownloadConvention: (participant: Participant) => void;
