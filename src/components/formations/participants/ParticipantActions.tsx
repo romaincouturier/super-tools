@@ -84,9 +84,28 @@ const ParticipantActions = ({
 
   return (
     <div className="flex items-center gap-0.5">
-      {/* 0a. Convocation status indicator */}
+      {/* 0a. Convocation status indicator (clickable to resend for inter-entreprise) */}
       {(() => {
         const isConvoked = !["non_envoye", "manuel"].includes(participant.needs_survey_status);
+        const isResending = resendingWelcomeId === participant.id;
+        if (isInterEntreprise) {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 ${isConvoked ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                  onClick={() => onResendWelcome(participant)}
+                  disabled={isResending}
+                >
+                  {isResending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (isConvoked ? <Send className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />)}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent><p>{isConvoked ? "Relancer la convocation" : "Envoyer la convocation"}</p></TooltipContent>
+            </Tooltip>
+          );
+        }
         return (
           <Tooltip>
             <TooltipTrigger asChild>
