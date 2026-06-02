@@ -34,9 +34,12 @@ DROP POLICY IF EXISTS "Anyone can request magic link"
 -- It is already used on practice_posts, reactions, comments, etc.
 -- Staff reads all profiles via the authenticated policy which is unchanged.
 
-DROP POLICY IF EXISTS "anon_read_learner_profiles"   ON public.learner_profiles;
-DROP POLICY IF EXISTS "anon_insert_learner_profiles" ON public.learner_profiles;
-DROP POLICY IF EXISTS "anon_update_learner_profiles" ON public.learner_profiles;
+DROP POLICY IF EXISTS "anon_read_learner_profiles"      ON public.learner_profiles;
+DROP POLICY IF EXISTS "anon_insert_learner_profiles"    ON public.learner_profiles;
+DROP POLICY IF EXISTS "anon_update_learner_profiles"    ON public.learner_profiles;
+DROP POLICY IF EXISTS "anon_read_own_learner_profile"   ON public.learner_profiles;
+DROP POLICY IF EXISTS "anon_insert_own_learner_profile" ON public.learner_profiles;
+DROP POLICY IF EXISTS "anon_update_own_learner_profile" ON public.learner_profiles;
 
 CREATE POLICY "anon_read_own_learner_profile" ON public.learner_profiles
   FOR SELECT TO anon

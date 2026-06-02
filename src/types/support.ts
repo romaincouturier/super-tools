@@ -2,7 +2,7 @@ import type { KanbanCardDef, KanbanColumnDef } from "./kanban";
 
 export type TicketType = "bug" | "evolution";
 export type TicketPriority = "low" | "medium" | "high" | "critical";
-export type TicketStatus = "nouveau" | "qualification" | "vibe_coding" | "resolu";
+export type TicketStatus = "nouveau" | "qualification" | "vibe_coding" | "resolu" | "boite_a_idees";
 
 export interface BugAnalysis {
   type: "bug";
@@ -59,6 +59,7 @@ export const SUPPORT_COLUMNS: KanbanColumnDef[] = [
   { id: "qualification", name: "Qualification", position: 1, color: "#f59e0b" },
   { id: "vibe_coding", name: "Vibe Coding", position: 2, color: "#3b82f6" },
   { id: "resolu", name: "Résolu", position: 3, color: "#22c55e" },
+  { id: "boite_a_idees", name: "Boîte à idées", position: 4, color: "#a855f7" },
 ];
 
 export const TICKET_TYPE_CONFIG: Record<TicketType, { label: string; color: string }> = {
