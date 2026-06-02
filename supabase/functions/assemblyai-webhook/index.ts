@@ -127,6 +127,19 @@ async function finalizeTranscript(
     return jsonResponse({ ok: true, finalized: "error" });
   }
 
+  // Auto-trash empty transcripts (no speech detected — not a processing error)
+  const isEmpty = !result.text || result.text.trim().length < 10;
+  if (isEmpty) {
+    await admin.from("transcripts").update({
+      status: "trashed",
+      raw_text: result.text ?? "",
+      duration_seconds: result.duration,
+      summary: "Transcript vide (aucune parole détectée) — mis automatiquement à la corbeille.",
+      assemblyai_id: null,
+    }).eq("id", row.id);
+    return jsonResponse({ ok: true, finalized: "trashed" });
+  }
+
   const analysis = await analyzeTranscript(result.text);
   await admin.from("transcripts").update({
     status: "ready",
