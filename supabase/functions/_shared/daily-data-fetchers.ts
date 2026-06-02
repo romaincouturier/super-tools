@@ -585,57 +585,53 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
 }
 
 /**
- * Fetch content cards that are *actually* under review — i.e. have at least
- * one row in `content_reviews` with status `pending` or `in_review`.
- *
- * BEWARE: the previous implementation returned cards from any column with
- * `assigned_user_ids` set, which conflated "columns with designated
- * owners" (e.g. Bloqué, Diffusion) with "cards being reviewed". That sent
- * blocked/published cards into the "Articles en relecture" email section.
- *
- * `assignedUserIds` now holds the list of reviewers assigned via
- * `content_reviews.reviewer_id` (deduped), so per-user routing downstream
- * correctly targets the actual reviewer(s), not the column owner(s).
+ * Fetch content cards located in kanban columns that have at least one
+ * assigned user. Each card's `assignedUserIds` mirrors the column's
+ * `assigned_user_ids`, so downstream per-user routing only notifies the
+ * staff member(s) responsible for that column.
  */
 export async function fetchReviewArticles(supabase: SupabaseClient): Promise<ReviewArticleItem[]> {
-  const { data: reviews, error: reviewsError } = await supabase
-    .from("content_reviews")
-    .select("card_id, reviewer_id, status")
-    .in("status", ["pending", "in_review"]);
+  const { data: columns, error: colErr } = await supabase
+    .from("content_columns")
+    .select("id, name, assigned_user_ids")
+    .not("assigned_user_ids", "eq", "{}");
 
-  if (reviewsError) {
-    console.error("fetchReviewArticles reviews error:", reviewsError.message);
+  if (colErr) {
+    console.error("fetchReviewArticles columns error:", colErr.message);
     return [];
   }
-  if (!reviews || reviews.length === 0) return [];
+  if (!columns || columns.length === 0) return [];
 
-  const cardIds = Array.from(new Set(reviews.map((r: any) => r.card_id).filter(Boolean)));
-  if (cardIds.length === 0) return [];
+  const colMap = new Map<string, { name: string; users: string[] }>();
+  for (const c of columns as any[]) {
+    if (c.assigned_user_ids?.length) {
+      colMap.set(c.id, { name: c.name, users: c.assigned_user_ids });
+    }
+  }
+  if (colMap.size === 0) return [];
 
-  const { data: cards } = await supabase
+  const { data: cards, error: cardsErr } = await supabase
     .from("content_cards")
-    .select("id, title, column_id, created_at, content_columns:column_id(name)")
-    .in("id", cardIds);
+    .select("id, title, column_id, created_at")
+    .in("column_id", Array.from(colMap.keys()));
 
+  if (cardsErr) {
+    console.error("fetchReviewArticles cards error:", cardsErr.message);
+    return [];
+  }
   if (!cards) return [];
 
-  // Aggregate reviewer ids per card
-  const reviewersByCard = new Map<string, Set<string>>();
-  for (const r of reviews as any[]) {
-    if (!r.card_id || !r.reviewer_id) continue;
-    const set = reviewersByCard.get(r.card_id) || new Set<string>();
-    set.add(r.reviewer_id);
-    reviewersByCard.set(r.card_id, set);
-  }
-
-  return (cards as any[]).map((card) => ({
-    id: card.id,
-    title: card.title,
-    columnId: card.column_id,
-    columnName: card.content_columns?.name || "",
-    createdAt: card.created_at,
-    assignedUserIds: Array.from(reviewersByCard.get(card.id) || []),
-  }));
+  return (cards as any[]).map((card) => {
+    const col = colMap.get(card.column_id)!;
+    return {
+      id: card.id,
+      title: card.title,
+      columnId: card.column_id,
+      columnName: col.name,
+      createdAt: card.created_at,
+      assignedUserIds: col.users,
+    };
+  });
 }
 
 export async function fetchBlockedArticles(supabase: SupabaseClient): Promise<BlockedArticleItem[]> {
