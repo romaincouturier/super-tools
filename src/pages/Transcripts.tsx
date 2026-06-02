@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw, Trash2, ArchiveRestore } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -16,7 +16,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
-import { useTranscripts, useTranscript, type Transcript, type TranscriptSource, type TranscriptStatus } from "@/hooks/useTranscripts";
+import {
+  useTranscripts,
+  useTranscript,
+  useTrashTranscript,
+  useRestoreTranscript,
+  type Transcript,
+  type TranscriptSource,
+  type TranscriptStatus,
+} from "@/hooks/useTranscripts";
 
 const SOURCE_LABELS: Record<TranscriptSource, string> = {
   google_drive: "Google Drive",
@@ -28,6 +36,7 @@ const STATUS_ICONS: Record<TranscriptStatus, React.ReactNode> = {
   processing: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
   ready: <CheckCircle2 className="h-3.5 w-3.5" />,
   error: <AlertCircle className="h-3.5 w-3.5" />,
+  trashed: <Trash2 className="h-3.5 w-3.5" />,
 };
 
 const STATUS_VARIANTS: Record<TranscriptStatus, "default" | "secondary" | "outline" | "destructive"> = {
@@ -35,6 +44,7 @@ const STATUS_VARIANTS: Record<TranscriptStatus, "default" | "secondary" | "outli
   processing: "secondary",
   ready: "default",
   error: "destructive",
+  trashed: "outline",
 };
 
 function formatDuration(seconds: number | null): string {
@@ -88,6 +98,8 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
   const { data: t, isLoading } = useTranscript(id);
   const [regenerating, setRegenerating] = useState(false);
   const queryClient = useQueryClient();
+  const trashMutation = useTrashTranscript();
+  const restoreMutation = useRestoreTranscript();
 
   const regenerateTitle = async () => {
     if (!t) return;
@@ -105,6 +117,27 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
     queryClient.invalidateQueries({ queryKey: ["transcripts"] });
   };
 
+  const handleTrash = () => {
+    if (!t) return;
+    if (!confirm("Mettre ce transcript à la corbeille ?")) return;
+    trashMutation.mutate(t.id, {
+      onSuccess: () => {
+        toast.success("Mis à la corbeille");
+        onClose();
+      },
+      onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+    });
+  };
+
+  const handleRestore = () => {
+    if (!t) return;
+    const target: TranscriptStatus = t.raw_text ? "ready" : "error";
+    restoreMutation.mutate({ id: t.id, status: target }, {
+      onSuccess: () => toast.success("Restauré"),
+      onError: (e: any) => toast.error(e?.message ?? "Erreur"),
+    });
+  };
+
   const headerTitle = t?.ai_title || t?.title || "Transcript";
   const showFilename = !!t?.ai_title && !!t?.title && t.ai_title !== t.title;
 
@@ -114,17 +147,41 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
         <SheetHeader className="shrink-0">
           <div className="flex items-start justify-between gap-2">
             <SheetTitle className="text-left line-clamp-2 flex-1">{headerTitle}</SheetTitle>
-            {t && t.status === "ready" && t.raw_text && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={regenerateTitle}
-                disabled={regenerating}
-                title="Régénérer le titre IA"
-              >
-                {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </Button>
-            )}
+            <div className="flex items-center gap-1 shrink-0">
+              {t && t.status === "ready" && t.raw_text && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={regenerateTitle}
+                  disabled={regenerating}
+                  title="Régénérer le titre IA"
+                >
+                  {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                </Button>
+              )}
+              {t && t.status !== "trashed" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleTrash}
+                  disabled={trashMutation.isPending}
+                  title="Mettre à la corbeille"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              {t && t.status === "trashed" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRestore}
+                  disabled={restoreMutation.isPending}
+                  title="Restaurer depuis la corbeille"
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
           {showFilename && (
             <p className="text-xs text-muted-foreground text-left">📄 {t!.title}</p>
@@ -198,7 +255,12 @@ export default function Transcripts() {
   const [status, setStatus] = useState<TranscriptStatus | "">("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useTranscripts({ search, source, status });
+  const { data, isLoading, refetch } = useTranscripts({
+    search,
+    source,
+    status: status === "trashed" ? "" : status,
+    trashed: status === "trashed",
+  });
 
   const counts = {
     total: data?.length ?? 0,
@@ -265,6 +327,7 @@ export default function Transcripts() {
             <SelectItem value="processing">En cours</SelectItem>
             <SelectItem value="pending">En attente</SelectItem>
             <SelectItem value="error">Erreur</SelectItem>
+            <SelectItem value="trashed">Corbeille</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" onClick={() => refetch()} title="Rafraîchir">
