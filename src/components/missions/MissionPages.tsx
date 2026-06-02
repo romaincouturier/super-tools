@@ -1205,6 +1205,55 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         title: `${page.title || "Sans titre"} (copie)`,
         content: page.content || undefined,
       });
+
+      // Duplicate attached survey (if any) with its questions
+      const { data: srcSurvey } = await (supabase as any)
+        .from("mission_surveys")
+        .select("*")
+        .eq("mission_page_id", page.id)
+        .maybeSingle();
+
+      if (srcSurvey) {
+        const { data: newSurvey, error: surveyErr } = await (supabase as any)
+          .from("mission_surveys")
+          .insert({
+            mission_id: mission.id,
+            mission_page_id: newPage.id,
+            title: srcSurvey.title,
+            intro_message: srcSurvey.intro_message,
+            thank_you_message: srcSurvey.thank_you_message,
+            recipient_emails: srcSurvey.recipient_emails,
+            is_active: srcSurvey.is_active,
+            require_identity: srcSurvey.require_identity,
+          })
+          .select()
+          .single();
+        if (surveyErr) throw surveyErr;
+
+        const { data: srcQuestions } = await (supabase as any)
+          .from("mission_survey_questions")
+          .select("*")
+          .eq("survey_id", srcSurvey.id)
+          .order("position");
+
+        if (srcQuestions && srcQuestions.length > 0) {
+          const rows = srcQuestions.map((q: any) => ({
+            survey_id: newSurvey.id,
+            type: q.type,
+            label: q.label,
+            description: q.description,
+            required: q.required,
+            position: q.position,
+            options: q.options,
+            settings: q.settings,
+          }));
+          const { error: qErr } = await (supabase as any)
+            .from("mission_survey_questions")
+            .insert(rows);
+          if (qErr) throw qErr;
+        }
+      }
+
       setSelectedPage(newPage);
       toast({ title: "Page dupliquée" });
     } catch (error: unknown) {
