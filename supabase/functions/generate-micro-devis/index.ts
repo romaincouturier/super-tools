@@ -674,6 +674,9 @@ serve(async (req: Request): Promise<Response> => {
             typeSubrogation: typeSubrogation,
             typeDevis: body.typeDevis || "formation",
             formatFormation: body.formatFormation || "inter",
+            selectedFormulaId: (body as { selectedFormulaId?: string }).selectedFormulaId || "",
+            prix: body.prix,
+            dureeHeures: body.dureeHeures,
           },
         },
       }).select("id").single();
