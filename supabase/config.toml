@@ -441,6 +441,12 @@ verify_jwt = false
 [functions.send-broadcast-email]
 verify_jwt = false
 
+[functions.send-training-survey]
+verify_jwt = false
+
+[functions.training-survey-reminders]
+verify_jwt = false
+
 [functions.transcribe-audio-long]
 verify_jwt = false
 
