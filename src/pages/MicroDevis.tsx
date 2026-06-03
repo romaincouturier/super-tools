@@ -255,31 +255,36 @@ const MicroDevis = () => {
       setLieu("En ligne en accédant à son compte sur supertilt.fr");
   }, [formationDemandee]);
 
+  const applyDevisFormData = (fd: Record<string, unknown> | null | undefined) => {
+    if (!fd) return false;
+    const f = fd as Record<string, string | boolean | undefined>;
+    setNomClient((f.nomClient as string) || ""); setAdresseClient((f.adresseClient as string) || "");
+    setCodePostalClient((f.codePostalClient as string) || ""); setVilleClient((f.villeClient as string) || "");
+    setPays(f.pays === "France" ? "france" : "autre");
+    if (f.pays && f.pays !== "France") setPaysAutre(f.pays as string);
+    setEmailCommanditaire((f.emailCommanditaire as string) || "");
+    if (f.adresseCommanditaire) {
+      const ac = f.adresseCommanditaire as string;
+      if (ac.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(ac.slice(4)); }
+      else if (ac.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(ac.slice(3)); }
+      else { setNomCommanditaire(ac); }
+    }
+    setTypeDevis(((f.typeDevis as string) || "formation"));
+    setNoteDevis((f.noteDevis as string) || ""); setFormatFormation(((f.formatFormation as string) || "inter"));
+    setFormationDemandee((f.formationDemandee as string) || ""); setFormationLibre((f.formationLibre as string) || "");
+    setDateFormation((f.dateFormation as string) || ""); setDateFormationLibre((f.dateFormationLibre as string) || "");
+    setParticipants((f.participants as string) || ""); setIncludeCadeau(!!f.includeCadeau);
+    setFraisDossier(f.fraisDossier ? "oui" : "non"); setTypeSubrogation(((f.typeSubrogation as "sans" | "avec" | "les2") || "les2"));
+    const lv = (f.lieu as string) || "";
+    if (LIEUX.includes(lv)) { setLieu(lv); setLieuAutre((f.lieuAutre as string) || ""); }
+    else if (lv) { setLieu("autre"); setLieuAutre((f.lieuAutre as string) || lv); }
+    else { setLieu(""); setLieuAutre((f.lieuAutre as string) || ""); }
+    return true;
+  };
+
   const handleDuplicateDevis = (item: DevisHistoryItem) => {
     const fd = item.details?.form_data;
-    if (fd) {
-      setNomClient(fd.nomClient || ""); setAdresseClient(fd.adresseClient || "");
-      setCodePostalClient(fd.codePostalClient || ""); setVilleClient(fd.villeClient || "");
-      setPays(fd.pays === "France" ? "france" : "autre");
-      if (fd.pays && fd.pays !== "France") setPaysAutre(fd.pays);
-      setEmailCommanditaire(fd.emailCommanditaire || "");
-      if (fd.adresseCommanditaire) {
-        const ac = fd.adresseCommanditaire;
-        if (ac.startsWith("Mme ")) { setCiviliteCommanditaire("Mme"); setNomCommanditaire(ac.slice(4)); }
-        else if (ac.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(ac.slice(3)); }
-        else { setNomCommanditaire(ac); }
-      }
-      setTypeDevis(fd.typeDevis || "formation");
-      setNoteDevis(fd.noteDevis || ""); setFormatFormation(fd.formatFormation || "inter");
-      setFormationDemandee(fd.formationDemandee || ""); setFormationLibre(fd.formationLibre || "");
-      setDateFormation(fd.dateFormation || ""); setDateFormationLibre(fd.dateFormationLibre || "");
-      setParticipants(fd.participants || ""); setIncludeCadeau(fd.includeCadeau || false);
-      setFraisDossier(fd.fraisDossier ? "oui" : "non"); setTypeSubrogation(fd.typeSubrogation || "les2");
-      const lv = fd.lieu || "";
-      if (LIEUX.includes(lv)) { setLieu(lv); setLieuAutre(fd.lieuAutre || ""); }
-      else if (lv) { setLieu("autre"); setLieuAutre(fd.lieuAutre || lv); }
-      else { setLieu(""); setLieuAutre(fd.lieuAutre || ""); }
-    } else {
+    if (!applyDevisFormData(fd as Record<string, unknown> | undefined)) {
       setNomClient(item.details?.client_name || ""); setEmailCommanditaire(item.recipient_email || "");
       setTypeDevis("formation"); setFormatFormation("inter");
       setFormationDemandee(item.details?.formation_name || "");
@@ -288,6 +293,29 @@ const MicroDevis = () => {
     historyHook.setHistoryDialogOpen(false);
     toast({ title: "Devis dupliqué", description: "Le formulaire a été pré-rempli avec les données du devis sélectionné." });
   };
+
+  // Prefill from previous micro-devis sent for this CRM opportunity
+  useEffect(() => {
+    if (searchParams.get("source") !== "crm") return;
+    if (!crmCardId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("activity_logs")
+        .select("details")
+        .eq("action_type", "micro_devis_sent")
+        .contains("details", { crm_card_id: crmCardId })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const fd = (data as { details?: { form_data?: Record<string, unknown> } }).details?.form_data;
+      if (applyDevisFormData(fd)) {
+        toast({ title: "Devis précédent retrouvé", description: "Le formulaire a été pré-rempli avec le dernier devis envoyé pour cette opportunité." });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [crmCardId, searchParams, toast]);
 
   const onSearchSiren = async () => {
     const r = await sirenSearch.handleSearchSiren();
