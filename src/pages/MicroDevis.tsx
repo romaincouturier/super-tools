@@ -271,7 +271,10 @@ const MicroDevis = () => {
     }
     setTypeDevis(((f.typeDevis as "formation" | "jeu") || "formation"));
     setNoteDevis((f.noteDevis as string) || ""); setFormatFormation(((f.formatFormation as "inter" | "intra") || "inter"));
-    setFormationDemandee((f.formationDemandee as string) || ""); setFormationLibre((f.formationLibre as string) || "");
+    // formationDemandee may be stored as "Formation — Formule"; strip the formula part
+    const rawFormation = ((f.formationDemandee as string) || "").split(" — ")[0];
+    setFormationDemandee(rawFormation); setFormationLibre((f.formationLibre as string) || "");
+    if (f.selectedFormulaId) pendingFormulaIdRef.current = f.selectedFormulaId as string;
     setDateFormation((f.dateFormation as string) || ""); setDateFormationLibre((f.dateFormationLibre as string) || "");
     setParticipants((f.participants as string) || ""); setIncludeCadeau(!!f.includeCadeau);
     setFraisDossier(f.fraisDossier ? "oui" : "non"); setTypeSubrogation(((f.typeSubrogation as "sans" | "avec" | "les2") || "les2"));
@@ -389,7 +392,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isOpco: isOpco === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isOpco: isOpco === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
