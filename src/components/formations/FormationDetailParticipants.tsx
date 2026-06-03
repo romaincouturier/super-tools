@@ -14,6 +14,7 @@ import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import BroadcastEmailDialog from "@/components/formations/BroadcastEmailDialog";
+import TrainingSurveyDialog from "@/components/formations/TrainingSurveyDialog";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { Training, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
