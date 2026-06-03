@@ -17,6 +17,7 @@ import FormationDetailHeader from "@/components/formations/FormationDetailHeader
 import FormationDetailInfo from "@/components/formations/FormationDetailInfo";
 import FormationDetailParticipants from "@/components/formations/FormationDetailParticipants";
 import FormationDetailSections from "@/components/formations/FormationDetailSections";
+import TrainingSurveyResults from "@/components/formations/TrainingSurveyResults";
 import { useFormationDetail } from "@/hooks/useFormationDetail";
 import { sendVenueBookingRequest } from "@/services/training-venues";
 import { format, parseISO } from "date-fns";
@@ -150,6 +151,8 @@ const FormationDetail = () => {
             bpfNeedsAttention={bpfParticipantsNeedAttention}
           />
         </div>
+
+        <TrainingSurveyResults trainingId={fd.id!} />
 
         <FormationDetailSections
           training={fd.training}

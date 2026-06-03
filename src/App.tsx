@@ -55,6 +55,7 @@ const CrmReports = lazy(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
 const MissionSummary = lazy(() => import("./pages/MissionSummary"));
 const SurveyPublic = lazy(() => import("./pages/SurveyPublic"));
+const TrainingSurveyResponse = lazy(() => import("./pages/TrainingSurveyResponse"));
 const OKR = lazy(() => import("./pages/OKR"));
 const MediaLibrary = lazy(() => import("./pages/MediaLibrary"));
 const Events = lazy(() => import("./pages/Events"));
@@ -180,6 +181,7 @@ const App = () => (
               <Route path="/formation-support/:trainingId/lms/:courseId" element={<LmsCoursePlayer />} />
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               <Route path="/sondage/:token" element={<SurveyPublic />} />
+              <Route path="/sondage-formation/:token" element={<TrainingSurveyResponse />} />
               {/* OAuth callbacks */}
               <Route path="/google/callback" element={<GoogleCallback />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />

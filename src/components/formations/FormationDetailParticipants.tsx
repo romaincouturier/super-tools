@@ -14,6 +14,7 @@ import AddParticipantDialog from "@/components/formations/AddParticipantDialog";
 import BulkAddParticipantsDialog from "@/components/formations/BulkAddParticipantsDialog";
 import NeedsSurveySummaryDialog from "@/components/formations/NeedsSurveySummaryDialog";
 import BroadcastEmailDialog from "@/components/formations/BroadcastEmailDialog";
+import TrainingSurveyDialog from "@/components/formations/TrainingSurveyDialog";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import type { Training, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
@@ -235,11 +236,18 @@ const FormationDetailParticipants = ({
             <span className="text-sm font-medium flex items-center gap-2">
               <Megaphone className="h-4 w-4" />Communication groupée
             </span>
-            <BroadcastEmailDialog
-              trainingId={training.id}
-              trainingName={training.training_name}
-              participantCount={participants.length}
-            />
+            <div className="flex gap-2">
+              <BroadcastEmailDialog
+                trainingId={training.id}
+                trainingName={training.training_name}
+                participantCount={participants.length}
+              />
+              <TrainingSurveyDialog
+                trainingId={training.id}
+                trainingName={training.training_name}
+                participantCount={participants.length}
+              />
+            </div>
           </div>
         </div>
 

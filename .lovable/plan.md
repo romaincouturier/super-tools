@@ -1,95 +1,54 @@
-# Audit Dropshipping vs spec initiale
+# Sondages de formation
 
-## ✅ Ce qui fonctionne déjà
+## Modèle de données (nouvelles tables, structure calquée sur `mission_surveys`)
 
-- **Webhook WooCommerce** (`supertilt-webhook`) : signature HMAC, filtre par statut (`completed`/`processing`), upsert `woocommerce_orders` + `order_items` (multi‑lignes).
-- **Catalogue jeux** (`games`) : titre, type, auteur, URL produit, message perso, instructions, commission (%, fixe, formule), email auteur secondaire, partenaire, stock.
-- **Auteurs** (`game_authors`) : nom, email, email secondaire, royalty_rate.
-- **Kanban** : à valider / reçue / à expédier / dropshipping / location en attente / traitée / bloquée.
-- **Validation manuelle** d'une ligne inconnue : Rattacher / Créer le jeu+auteur / Refuser.
-- **Envoi email** (`supertilt-send-email`) : 4 templates (dropshipping / location / partner / internal_notif), variables, BCC fallback, log dans `order_email_log`.
-- **Restock** (`supertilt-restock-email`) + table `game_expenses` (date, type, fournisseur, HT, TVA, qté).
-- **Portail partenaire** (`supertilt-partner-portal`, `partner_access_tokens`, `partner_payments`) : page partagée par token, partenaire peut déclarer un encaissement.
-- **Paramètres** : webhook secret, statuts WC, auto‑send, email interne, expéditeur par défaut.
-- **Suivi factures auteur** (ajouté ce matin) : colonne `invoice_received_at`, rappel sympa dans l'email à partir de 5 jeux en attente.
+- `training_surveys` : `id`, `training_id`, `title`, `intro_message` (texte du mail), `thank_you_message`, `email_subject`, `closes_at` (timestamptz, nullable), `is_active`, `created_by`, `created_at`, `updated_at`.
+- `training_survey_questions` : `id`, `survey_id`, `type` (text/textarea/single_choice/multiple_choice/rating/nps/date), `label`, `description`, `required`, `position`, `options` (jsonb).
+- `training_survey_recipients` : `id`, `survey_id`, `participant_id` (FK `training_participants`), `email`, `first_name`, `last_name`, `token` (uuid unique), `sent_at`, `last_reminded_at`. Un seul recipient par (survey, participant).
+- `training_survey_responses` : `id`, `survey_id`, `recipient_id` (FK), `submitted_at`, `updated_at`. Unique (survey_id, recipient_id) — éditable.
+- `training_survey_answers` : `id`, `response_id`, `question_id`, `value`, `values` (jsonb).
+- RLS : lecture admin/staff via `is_admin()` + module `formations` ; insertion/màj des réponses via RPC SECURITY DEFINER `submit_training_survey(token, answers)` exécutable par `anon` (validation du token et de `closes_at`).
+- GRANTs explicites pour chaque table (`authenticated`, `service_role`).
 
-## ⚠️ Écarts vs spec — à corriger
+## Edge functions
 
-### 1. Double système de ventes incohérent
+- `send-training-survey` (JWT) : crée le sondage si non persisté, génère un `recipient` (token) par participant, envoie un email à chacun (BCC standard, signature, 400ms delay) avec le `intro_message` HTML + bouton "Répondre au sondage" → `https://super-tools.lovable.app/sondage-formation/{token}`. Log dans `sent_emails_log`.
+- `training-survey-reminders` (cron 07h00 Paris) : pour chaque sondage actif dont `closes_at` est entre J+1 et J+2, envoie un rappel aux recipients sans `response`. Idempotent via `last_reminded_at`.
 
-Le webhook alimente `order_items` mais **pas** `game_sales`. Une fonction parallèle `poll-woocommerce-orders` alimente `game_sales`. Conséquence : la page partenaire (qui lit `game_sales`) ne voit pas en temps réel les ventes arrivées par webhook.
-→ **Faire alimenter `game_sales` par le webhook** (en plus de `order_items`), et garder le poller comme filet de sécurité.
+## UI
 
-### 2. Historique de vente incomplet
+- `FormationDetail.tsx` : à côté du bouton "Email groupé", nouveau bouton **"Envoyer un sondage"** (icône ClipboardList).
+- Dialog `TrainingSurveyDialog` :
+  1. Champ titre + intro (Tiptap simplifié, comme bulk email).
+  2. Date de clôture (DatePicker avec `pointer-events-auto`).
+  3. Builder de questions réutilisant les composants existants des mission surveys (extraction d'un `SurveyQuestionsBuilder` partagé dans `src/components/surveys/`).
+  4. Aperçu des destinataires (liste des participants avec email).
+  5. Boutons "Enregistrer brouillon" / "Envoyer maintenant".
+- Section **Résultats du sondage** sur la page formation (collapsible) : nombre de réponses / envois, taux, agrégats par question (moyennes pour rating/nps, distribution pour choix, liste pour texte), bouton export CSV.
 
-`game_sales` ne stocke pas : montant HT, TVA, **frais bancaires Stripe**, alors que la spec les exige.
-→ **Ajouter colonnes** `amount_ht`, `vat_amount`, `bank_fees`, `net_amount`, `currency` à `game_sales`. Calcul auto à l'insert (utiliser `stripe_fee_rate`/`stripe_fee_fixed` des settings, et `game.include_stripe_fees`).
+## Page publique
 
-### 3. Notification partenaire jamais déclenchée
+- Route `/sondage-formation/:token` (`src/pages/TrainingSurveyResponse.tsx`) : `disableRedirect` dans `useAuth`, charge le sondage via RPC `get_training_survey_by_token(token)`, affiche les questions, permet soumission via RPC `submit_training_survey`. Si déjà répondu : pré-remplit et autorise modification jusqu'à `closes_at`. Après clôture : page "Sondage clôturé".
 
-Un jeu peut avoir `is_partner=true` indépendamment du type. Aujourd'hui le mail "partner" ne part que si `game_type='partner'` — aucun jeu n'a ce type, donc le partenaire n'est jamais notifié.
-→ **Logique** : pour tout jeu avec `is_partner=true`, envoyer en plus un email partenaire avec lien vers la page de suivi (token).
+## Hooks
 
-### 4. Lien partenaire pas inclus dans le mail partenaire
+- `src/hooks/useTrainingSurveys.ts` : `useTrainingSurvey(trainingId)`, `useTrainingSurveyResults(surveyId)`, mutations `useUpsertTrainingSurvey`, `useSendTrainingSurvey`, `useSubmitTrainingSurveyResponse` (publique via RPC).
 
-Le template "partner" n'a pas de `{{lien_suivi_partenaire}}`. Or la spec dit "récap de la page" dans le mail.
-→ Générer/réutiliser le `partner_access_tokens` du jeu, exposer la variable et l'inclure dans le template.
+## Fichiers créés / modifiés
 
-### 5. Email location sans contrat joint
+- migration SQL (tables + RPC + grants + RLS).
+- `supabase/functions/send-training-survey/index.ts` (nouveau).
+- `supabase/functions/training-survey-reminders/index.ts` (nouveau) + cron via `supabase--insert`.
+- `supabase/config.toml` : enregistrer les 2 fonctions.
+- `src/pages/TrainingSurveyResponse.tsx` (nouveau) + route dans `App.tsx`.
+- `src/components/surveys/SurveyQuestionsBuilder.tsx` (extrait/partagé) + utilisé par missions et formations.
+- `src/components/formations/TrainingSurveyDialog.tsx` (nouveau).
+- `src/components/formations/TrainingSurveyResults.tsx` (nouveau).
+- `src/hooks/useTrainingSurveys.ts` (nouveau).
+- `src/pages/FormationDetail.tsx` (ajout bouton + section résultats).
 
-La fonction n'attache aucun PDF / lien de contrat. Spec : "envoie un mail avec le contrat de location à renvoyer signé".
-→ Ajouter un champ `location_contract_url` sur `games` (PDF dans Storage), exposé en variable `{{contrat_url}}` dans le template "location".
+## Hors scope
 
-### 6. Notification "jeu Eco / SuperTilt" floue
-
-Aujourd'hui un jeu `game_type='supertilt'` envoie `internal_notif` à `internal_email`. La spec dit "il faudra que ça notifie" sans préciser qui. À confirmer : OK pour notifier l'email interne uniquement ?
-
-### 7. Bouton "Facture reçue" manquant
-
-La colonne existe mais aucune UI pour cocher. Sans ça, le compteur de rappel sympa monte indéfiniment.
-→ Ajouter dans l'onglet **Emails envoyés** un bouton/checkbox "Facture reçue".
-
-### 8. Confirmation d'envoi de l'auteur (dropshipping)
-
-Spec : "Une fois que tu auras tout envoyé, peux‑tu me le confirmer ?" — on demande à l'auteur de confirmer mais on n'a pas de moyen de tracer cette confirmation.
-→ Ajouter `shipped_confirmed_at` sur `order_items` + bouton dans la card kanban "Confirmé envoyé par l'auteur".
-
-### 9. Suivi des dépenses SuperTilt — UI
-
-Table `game_expenses` OK mais il faut vérifier qu'une page de saisie/listing existe pour les jeux SuperTilt (achat matériel).
-→ À confirmer en testant la page Catalogue / fiche jeu.
-
-## 🛠 Plan de mise en conformité (par ordre de priorité)
-
-**Lot 1 — Cohérence ventes & partenaire (critique)**
-
-1. Migration : ajouter `amount_ht`, `vat_amount`, `bank_fees`, `net_amount`, `currency` à `game_sales` ; ajouter `shipped_confirmed_at` à `order_items` ; ajouter `location_contract_url` à `games`.
-2. Webhook : alimenter `game_sales` à chaque ligne validée (avec calcul Stripe).
-3. Webhook + send-email : si `is_partner=true`, déclencher en plus le mail partenaire avec lien token.
-
-**Lot 2 — Templates & UI**
-4. Mettre à jour les templates `partner` (variable `{{lien_suivi_partenaire}}`) et `location` (variable `{{contrat_url}}`).
-5. UI : bouton "Facture reçue" dans l'onglet Emails envoyés.
-6. UI : bouton "Confirmé envoyé" sur les cards dropshipping.
-
-**Lot 3 — Vérifications**
-7. Vérifier la page Catalogue : édition complète d'un jeu (auteur, partenaire, commission, restock, dépenses).
-8. Vérifier la page Portail partenaire (pas de régression suite ajout HT/TVA/frais).
-
-## Questions avant de coder
-
-1. Pour le **mail Eco/SuperTilt** : envoi à `internal_email` uniquement, ou aussi à un destinataire spécifique au jeu ?
-2. Pour le **contrat de location** : tu veux un PDF unique uploadé par jeu, ou un template avec variables (date, client) à générer dynamiquement ?
-3. Tu veux que j'attaque directement le **Lot 1** (le plus critique pour ne plus rater de ventes/partenaires) ou que je commence par autre chose ?  
-  
-  
-1. Je ne vois pas de quoi tu parles  
-2. Le contrat de location est un lien à ajouter. Actuellement le mail est Bonjour Stéphane Vuillemenot,
-  Merci infiniment pour votre confiance.
-  Vous avez choisi de louer le jeu Deadline. Pour bien encadrer notre relation, je vous invite à [signer le contrat de location](https://supertilt.fr/contrat-de-location-du-jeu-deadline/).
-  Dès sa signature, je procéderai à son expédition.
-  Si vous avez la moindre question, je reste à votre disposition : [romain@supertilt.fr](mailto:romain@supertilt.fr).
-  Je vous souhaite de belles parties !
-  Bonne journée,
-  Romain  
-  3. Attaque le lot 1 
+- Pas de sondage envoyé aux sponsors (uniquement participants).
+- Pas d'envoi à des destinataires externes ajoutés manuellement.
+- Pas de notifications Slack (peut être ajouté plus tard).
