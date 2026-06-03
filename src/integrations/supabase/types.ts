@@ -1394,6 +1394,45 @@ export type Database = {
           },
         ]
       }
+      crm_card_transcripts: {
+        Row: {
+          card_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          transcript_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          transcript_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          transcript_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_card_transcripts_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_card_transcripts_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_cards: {
         Row: {
           acquisition_source: string | null
