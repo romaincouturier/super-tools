@@ -188,7 +188,7 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
               {viewedTranscript?.ai_title || viewedTranscript?.title || "Transcript"}
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
+          <div className="flex-1 overflow-y-auto pr-4">
             {loadingView && <Spinner />}
             {viewedTranscript?.summary && (
               <div className="mb-4 p-3 bg-muted rounded">
@@ -201,8 +201,19 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
             <p className="text-sm whitespace-pre-wrap leading-relaxed">
               {viewedTranscript?.raw_text || "Aucun contenu"}
             </p>
-          </ScrollArea>
+            {viewedTranscript?.raw_text && (
+              <p className="text-xs text-muted-foreground mt-4 pt-2 border-t">
+                {viewedTranscript.raw_text.length.toLocaleString("fr-FR")} caractères
+              </p>
+            )}
+          </div>
           <DialogFooter>
+            {viewId && (
+              <Button variant="outline" onClick={() => copyTranscript(viewId)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copier
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setViewId(null)}>
               Fermer
             </Button>
