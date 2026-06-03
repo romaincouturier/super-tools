@@ -107,6 +107,15 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
                 </Button>
                 <Button
                   variant="ghost"
+                  size="sm"
+                  onClick={() => copyTranscript(link.transcript_id)}
+                  title="Copier le transcript"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copier
+                </Button>
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-7 w-7"
                   onClick={() => unlink.mutate({ linkId: link.id, cardId })}
