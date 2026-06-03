@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Plus, FileAudio, Eye, Trash2, Search } from "lucide-react";
+import { Plus, FileAudio, Eye, Trash2, Search, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
