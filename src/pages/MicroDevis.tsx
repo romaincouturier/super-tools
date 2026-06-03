@@ -284,7 +284,7 @@ const MicroDevis = () => {
 
   const handleDuplicateDevis = (item: DevisHistoryItem) => {
     const fd = item.details?.form_data;
-    if (!applyDevisFormData(fd as Record<string, unknown> | undefined)) {
+    if (!applyDevisFormData(fd as unknown as Record<string, unknown> | undefined)) {
       setNomClient(item.details?.client_name || ""); setEmailCommanditaire(item.recipient_email || "");
       setTypeDevis("formation"); setFormatFormation("inter");
       setFormationDemandee(item.details?.formation_name || "");
