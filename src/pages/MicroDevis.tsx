@@ -269,8 +269,8 @@ const MicroDevis = () => {
       else if (ac.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(ac.slice(3)); }
       else { setNomCommanditaire(ac); }
     }
-    setTypeDevis(((f.typeDevis as string) || "formation"));
-    setNoteDevis((f.noteDevis as string) || ""); setFormatFormation(((f.formatFormation as string) || "inter"));
+    setTypeDevis(((f.typeDevis as "formation" | "jeu") || "formation"));
+    setNoteDevis((f.noteDevis as string) || ""); setFormatFormation(((f.formatFormation as "inter" | "intra") || "inter"));
     setFormationDemandee((f.formationDemandee as string) || ""); setFormationLibre((f.formationLibre as string) || "");
     setDateFormation((f.dateFormation as string) || ""); setDateFormationLibre((f.dateFormationLibre as string) || "");
     setParticipants((f.participants as string) || ""); setIncludeCadeau(!!f.includeCadeau);
