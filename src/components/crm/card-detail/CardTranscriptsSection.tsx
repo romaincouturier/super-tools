@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { Plus, FileAudio, Eye, Trash2, Search } from "lucide-react";
+import { Plus, FileAudio, Eye, Trash2, Search, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -28,10 +30,24 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
   const [associateOpen, setAssociateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [viewId, setViewId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: links = [], isLoading } = useCardTranscripts(cardId);
   const associate = useAssociateTranscript();
   const unlink = useUnlinkTranscript();
+
+  const copyTranscript = async (transcriptId: string) => {
+    const { data, error } = await (supabase as unknown as { from: typeof supabase.from }).from("transcripts").select("ai_title,title,summary,raw_text").eq("id", transcriptId).single();
+    if (error || !data) { toast({ title: "Erreur", description: "Impossible de récupérer le transcript", variant: "destructive" }); return; }
+    const t = data as { ai_title: string | null; title: string | null; summary: string | null; raw_text: string | null };
+    const parts = [t.ai_title || t.title || "Transcript", t.summary ? `\nRésumé:\n${t.summary}` : "", t.raw_text ? `\n${t.raw_text}` : ""].filter(Boolean);
+    try {
+      await navigator.clipboard.writeText(parts.join("\n"));
+      toast({ title: "Copié", description: "Le transcript complet est dans le presse-papier." });
+    } catch {
+      toast({ title: "Erreur", description: "Copie impossible", variant: "destructive" });
+    }
+  };
 
   const { data: allTranscripts = [], isLoading: loadingList } = useTranscripts({
     search: search || undefined,
@@ -88,6 +104,15 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
                 >
                   <Eye className="h-4 w-4 mr-1" />
                   Voir
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => copyTranscript(link.transcript_id)}
+                  title="Copier le transcript"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copier
                 </Button>
                 <Button
                   variant="ghost"
@@ -163,7 +188,7 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
               {viewedTranscript?.ai_title || viewedTranscript?.title || "Transcript"}
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
+          <div className="flex-1 overflow-y-auto pr-4">
             {loadingView && <Spinner />}
             {viewedTranscript?.summary && (
               <div className="mb-4 p-3 bg-muted rounded">
@@ -176,8 +201,19 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
             <p className="text-sm whitespace-pre-wrap leading-relaxed">
               {viewedTranscript?.raw_text || "Aucun contenu"}
             </p>
-          </ScrollArea>
+            {viewedTranscript?.raw_text && (
+              <p className="text-xs text-muted-foreground mt-4 pt-2 border-t">
+                {viewedTranscript.raw_text.length.toLocaleString("fr-FR")} caractères
+              </p>
+            )}
+          </div>
           <DialogFooter>
+            {viewId && (
+              <Button variant="outline" onClick={() => copyTranscript(viewId)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copier
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setViewId(null)}>
               Fermer
             </Button>
