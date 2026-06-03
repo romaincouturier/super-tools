@@ -55,6 +55,7 @@ const CrmReports = lazy(() => import("./pages/CrmReports"));
 const Missions = lazy(() => import("./pages/Missions"));
 const MissionSummary = lazy(() => import("./pages/MissionSummary"));
 const SurveyPublic = lazy(() => import("./pages/SurveyPublic"));
+const TrainingSurveyResponse = lazy(() => import("./pages/TrainingSurveyResponse"));
 const OKR = lazy(() => import("./pages/OKR"));
 const MediaLibrary = lazy(() => import("./pages/MediaLibrary"));
 const Events = lazy(() => import("./pages/Events"));
