@@ -152,6 +152,8 @@ const FormationDetail = () => {
           />
         </div>
 
+        <TrainingSurveyResults trainingId={fd.id!} />
+
         <FormationDetailSections
           training={fd.training}
           setTraining={fd.setTraining}
