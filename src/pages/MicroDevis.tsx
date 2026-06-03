@@ -271,7 +271,10 @@ const MicroDevis = () => {
     }
     setTypeDevis(((f.typeDevis as "formation" | "jeu") || "formation"));
     setNoteDevis((f.noteDevis as string) || ""); setFormatFormation(((f.formatFormation as "inter" | "intra") || "inter"));
-    setFormationDemandee((f.formationDemandee as string) || ""); setFormationLibre((f.formationLibre as string) || "");
+    // formationDemandee may be stored as "Formation — Formule"; strip the formula part
+    const rawFormation = ((f.formationDemandee as string) || "").split(" — ")[0];
+    setFormationDemandee(rawFormation); setFormationLibre((f.formationLibre as string) || "");
+    if (f.selectedFormulaId) pendingFormulaIdRef.current = f.selectedFormulaId as string;
     setDateFormation((f.dateFormation as string) || ""); setDateFormationLibre((f.dateFormationLibre as string) || "");
     setParticipants((f.participants as string) || ""); setIncludeCadeau(!!f.includeCadeau);
     setFraisDossier(f.fraisDossier ? "oui" : "non"); setTypeSubrogation(((f.typeSubrogation as "sans" | "avec" | "les2") || "les2"));
