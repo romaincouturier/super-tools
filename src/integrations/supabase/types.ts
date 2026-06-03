@@ -9065,6 +9065,250 @@ export type Database = {
           },
         ]
       }
+      training_survey_answers: {
+        Row: {
+          created_at: string
+          id: string
+          question_id: string
+          response_id: string
+          value: string | null
+          values: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_id: string
+          response_id: string
+          value?: string | null
+          values?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_id?: string
+          response_id?: string
+          value?: string | null
+          values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_survey_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "training_survey_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_survey_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "training_survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_survey_questions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          label: string
+          options: Json | null
+          position: number
+          required: boolean
+          settings: Json | null
+          survey_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          options?: Json | null
+          position?: number
+          required?: boolean
+          settings?: Json | null
+          survey_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          label?: string
+          options?: Json | null
+          position?: number
+          required?: boolean
+          settings?: Json | null
+          survey_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "training_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_survey_recipients: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          last_reminded_at: string | null
+          participant_id: string | null
+          sent_at: string | null
+          survey_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_reminded_at?: string | null
+          participant_id?: string | null
+          sent_at?: string | null
+          survey_id: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_reminded_at?: string | null
+          participant_id?: string | null
+          sent_at?: string | null
+          survey_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_survey_recipients_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "training_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_survey_recipients_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "training_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_survey_responses: {
+        Row: {
+          id: string
+          recipient_id: string
+          respondent_email: string | null
+          respondent_name: string | null
+          submitted_at: string
+          survey_id: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_id: string
+          respondent_email?: string | null
+          respondent_name?: string | null
+          submitted_at?: string
+          survey_id: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          recipient_id?: string
+          respondent_email?: string | null
+          respondent_name?: string | null
+          submitted_at?: string
+          survey_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_survey_responses_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "training_survey_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "training_surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_surveys: {
+        Row: {
+          closes_at: string | null
+          created_at: string
+          created_by: string | null
+          email_body: string | null
+          email_subject: string | null
+          id: string
+          intro_message: string | null
+          is_active: boolean
+          sent_at: string | null
+          thank_you_message: string
+          title: string
+          training_id: string
+          updated_at: string
+        }
+        Insert: {
+          closes_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          intro_message?: string | null
+          is_active?: boolean
+          sent_at?: string | null
+          thank_you_message?: string
+          title?: string
+          training_id: string
+          updated_at?: string
+        }
+        Update: {
+          closes_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          intro_message?: string | null
+          is_active?: boolean
+          sent_at?: string | null
+          thank_you_message?: string
+          title?: string
+          training_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_surveys_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_venues: {
         Row: {
           address: string
@@ -10217,6 +10461,7 @@ export type Database = {
         Args: { p_training_id: string }
         Returns: Json
       }
+      get_training_survey_by_token: { Args: { p_token: string }; Returns: Json }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
@@ -10327,6 +10572,10 @@ export type Database = {
       }
       resolve_formulaire_token: {
         Args: { p_course_id: number; p_email: string; p_form_type: string }
+        Returns: Json
+      }
+      submit_training_survey: {
+        Args: { p_answers: Json; p_token: string }
         Returns: Json
       }
       update_api_key_last_used: { Args: { key_id: string }; Returns: undefined }
