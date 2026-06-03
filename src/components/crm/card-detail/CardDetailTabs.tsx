@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, X, Paperclip, MessageSquare, History, Trash2, ImageIcon, FileText } from "lucide-react";
+import { Plus, X, Paperclip, MessageSquare, History, Trash2, ImageIcon, FileText, FileAudio } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeleteComment, useAddAttachment, useDeleteAttachment } from "@/hooks/useCrmBoard";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
+import CardTranscriptsSection from "./CardTranscriptsSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
 
 function formatActivityType(type: string): string {
@@ -49,10 +50,11 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
       <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider mb-3">
         Compléments
       </h4>
-      <TabsList className="grid grid-cols-3 sm:grid-cols-5 w-full">
+      <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full">
         <TabsTrigger value="comments"><MessageSquare className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="attachments"><Paperclip className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="quotes"><FileText className="h-4 w-4" /></TabsTrigger>
+        <TabsTrigger value="transcripts"><FileAudio className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="media"><ImageIcon className="h-4 w-4" /></TabsTrigger>
         <TabsTrigger value="activity"><History className="h-4 w-4" /></TabsTrigger>
       </TabsList>
@@ -144,6 +146,11 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
       {/* Quotes */}
       <TabsContent value="quotes" className="mt-4">
         <QuoteHistorySection cardId={card.id} />
+      </TabsContent>
+
+      {/* Transcripts */}
+      <TabsContent value="transcripts" className="mt-4">
+        <CardTranscriptsSection cardId={card.id} />
       </TabsContent>
 
       {/* Media */}
