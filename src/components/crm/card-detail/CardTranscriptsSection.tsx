@@ -29,10 +29,24 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
   const [associateOpen, setAssociateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [viewId, setViewId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const { data: links = [], isLoading } = useCardTranscripts(cardId);
   const associate = useAssociateTranscript();
   const unlink = useUnlinkTranscript();
+
+  const copyTranscript = async (transcriptId: string) => {
+    const { data, error } = await (supabase as unknown as { from: typeof supabase.from }).from("transcripts").select("ai_title,title,summary,raw_text").eq("id", transcriptId).single();
+    if (error || !data) { toast({ title: "Erreur", description: "Impossible de récupérer le transcript", variant: "destructive" }); return; }
+    const t = data as { ai_title: string | null; title: string | null; summary: string | null; raw_text: string | null };
+    const parts = [t.ai_title || t.title || "Transcript", t.summary ? `\nRésumé:\n${t.summary}` : "", t.raw_text ? `\n${t.raw_text}` : ""].filter(Boolean);
+    try {
+      await navigator.clipboard.writeText(parts.join("\n"));
+      toast({ title: "Copié", description: "Le transcript complet est dans le presse-papier." });
+    } catch {
+      toast({ title: "Erreur", description: "Copie impossible", variant: "destructive" });
+    }
+  };
 
   const { data: allTranscripts = [], isLoading: loadingList } = useTranscripts({
     search: search || undefined,
