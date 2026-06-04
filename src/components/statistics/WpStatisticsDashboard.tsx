@@ -193,7 +193,7 @@ function TrendChart({ hitsData, days }: { hitsData: unknown; days: number }) {
 /* ─── Data Table generic ─── */
 function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }: {
   data: unknown;
-  columns: { key: string; label: string; align?: "left" | "right"; render?: (row: Record<string, unknown>) => React.ReactNode }[];
+  columns: { key: string; label: string; align?: "left" | "right"; render?: (row: any) => React.ReactNode }[];
   emptyMsg?: string;
   maxRows?: number;
 }) {
@@ -220,7 +220,7 @@ function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }:
             <tr key={i} className="border-b border-border/50">
               {columns.map((col) => (
                 <td key={col.key} className={`py-1.5 pr-4 ${col.align === "right" ? "text-right font-medium" : "truncate max-w-[300px]"}`}>
-                  {col.render ? col.render(row) : (row[col.key] || "—")}
+                  {col.render ? col.render(row) : ((row[col.key] as React.ReactNode) || "—")}
                 </td>
               ))}
             </tr>
@@ -291,7 +291,7 @@ const WpStatisticsDashboard = () => {
       const c = Number(p?.count ?? p?.hits ?? p?.views ?? 0);
       const cur = map.get(uri);
       if (cur) cur.count += c;
-      else map.set(uri, { uri, title: p?.title, count: c });
+      else map.set(uri, { uri, title: p?.title as string | undefined, count: c });
     }
     return [...map.values()].sort((a, b) => b.count - a.count);
   }, [pages]);
