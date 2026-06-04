@@ -18,6 +18,40 @@ import { authorDisplayName, authorInitialsFromPost } from "@/components/learner/
 import ImageLightbox from "@/components/ui/image-lightbox";
 import { asciiToEmoji } from "@/lib/asciiEmoji";
 
+/**
+ * Render post text supporting [label](url) markdown links and bare URLs.
+ * Returns a list of React nodes; non-link segments stay as plain text so
+ * `whitespace-pre-wrap` keeps formatting.
+ */
+function renderPostContent(text: string): (string | JSX.Element)[] {
+  const nodes: (string | JSX.Element)[] = [];
+  const regex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<]+)/g;
+  let lastIndex = 0;
+  let key = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const [, mdLabel, mdUrl, bareUrl] = match;
+    const href = mdUrl || bareUrl!;
+    const label = mdLabel || href;
+    nodes.push(
+      <a
+        key={`lnk-${key++}`}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline"
+        style={{ color: "var(--st-primary, #2563eb)" }}
+      >
+        {label}
+      </a>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
+
 const REACTION_EMOJIS = [
   { emoji: "👍", label: "J'aime" },
   { emoji: "❤️", label: "J'adore" },
