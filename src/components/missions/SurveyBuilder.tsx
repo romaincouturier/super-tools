@@ -277,8 +277,10 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
   useEffect(() => {
     setLocalQuestions(questions);
     if (!survey) return;
-    const last = questions[questions.length - 1];
-    if (!last || !isExpressionLibre(last)) {
+    if (qLoading) return;
+    // Guard: only add Expression libre if NONE exists yet (avoid duplicates
+    // when ordering becomes ambiguous due to colliding positions).
+    if (!questions.some(isExpressionLibre)) {
       upsertQuestion.mutate({
         survey_id: survey.id,
         type: "textarea",
@@ -287,7 +289,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
         position: questions.length,
       });
     }
-  }, [survey?.id, questions.length]);
+  }, [survey?.id, questions.length, qLoading]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
