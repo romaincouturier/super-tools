@@ -185,7 +185,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
       const authorEmail = user?.email || "staff@super-tools.fr";
       const calendarUrl = `${window.location.origin}/lms/${courseId}/home?view=calendar`;
-      const content = `🎬 Le replay du live <strong>« ${meetingTitle} »</strong> est disponible ! 🎉<br/><br/>Vous pouvez le retrouver dès maintenant dans le <a href="${calendarUrl}">calendrier des lives</a>. Bon visionnage 👀`;
+      const content = `🎬 Le replay du live « ${meetingTitle} » est disponible ! 🎉\n\nVous pouvez le retrouver dès maintenant dans le calendrier des lives :\n${calendarUrl}\n\nBon visionnage 👀`;
 
       await (supabase as any)
         .from("practice_posts")
