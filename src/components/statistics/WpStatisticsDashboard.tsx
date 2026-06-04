@@ -291,7 +291,7 @@ const WpStatisticsDashboard = () => {
       const c = Number(p?.count ?? p?.hits ?? p?.views ?? 0);
       const cur = map.get(uri);
       if (cur) cur.count += c;
-      else map.set(uri, { uri, title: p?.title, count: c });
+      else map.set(uri, { uri, title: p?.title as string | undefined, count: c });
     }
     return [...map.values()].sort((a, b) => b.count - a.count);
   }, [pages]);
