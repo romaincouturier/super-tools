@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { toastError } from "@/lib/toastError";
 
 interface LiveMeeting {
@@ -77,6 +78,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   const [runNotes, setRunNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchMeetings = async () => {
     const { data, error } = await supabase
@@ -171,6 +173,33 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     }
   };
 
+  const publishReplayCommunityPost = async (meetingTitle: string, replay: string) => {
+    try {
+      const { data: training } = await supabase
+        .from("trainings")
+        .select("supports_lms_course_id, training_name")
+        .eq("id", trainingId)
+        .maybeSingle();
+      const courseId = (training as { supports_lms_course_id?: string | null } | null)?.supports_lms_course_id;
+      if (!courseId) return;
+
+      const authorEmail = user?.email || "staff@super-tools.fr";
+      const calendarUrl = `${window.location.origin}/lms/${courseId}/home?view=calendar`;
+      const content = `🎬 Le replay du live <strong>« ${meetingTitle} »</strong> est disponible ! 🎉<br/><br/>Vous pouvez le retrouver dès maintenant dans le <a href="${calendarUrl}">calendrier des lives</a>. Bon visionnage 👀`;
+
+      await (supabase as any)
+        .from("practice_posts")
+        .insert({
+          course_id: courseId,
+          author_email: authorEmail,
+          content,
+          is_pinned: false,
+        });
+    } catch (err) {
+      console.warn("Failed to publish replay community post:", err);
+    }
+  };
+
   const handleSave = async () => {
     if (!title.trim() || !scheduledDate || !scheduledTime) return;
     setSaving(true);
@@ -178,6 +207,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
     // Build a local Date and convert to ISO with correct timezone offset
     const localDate = new Date(`${scheduledDate}T${scheduledTime}:00`);
     const scheduledAt = localDate.toISOString();
+    const newReplayUrl = replayUrl.trim() || null;
     const payload = {
       training_id: trainingId,
       title: title.trim(),
@@ -186,11 +216,12 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
       meeting_url: meetingUrl.trim() || null,
       description: description.trim() || null,
       email_content: emailContent.trim() || null,
-      replay_url: replayUrl.trim() || null,
+      replay_url: newReplayUrl,
     };
 
     try {
       if (editingMeeting) {
+        const previousReplay = editingMeeting.replay_url?.trim() || null;
         const { error } = await supabase
           .from("training_live_meetings")
           .update(payload)
@@ -206,6 +237,11 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
           .like("error_message", `%live:${editingMeeting.id}%`);
 
         await scheduleLiveReminders(editingMeeting.id, scheduledAt);
+
+        // If a replay link was just added, publish a community post
+        if (!previousReplay && newReplayUrl) {
+          await publishReplayCommunityPost(payload.title, newReplayUrl);
+        }
         toast({ title: "Live modifié" });
       } else {
         const { data: inserted, error } = await supabase
@@ -218,6 +254,11 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
         // Schedule reminder emails for communaute + coachee participants
         if (inserted) {
           await scheduleLiveReminders(inserted.id, scheduledAt);
+        }
+
+        // If a replay link is provided at creation, publish a community post
+        if (newReplayUrl) {
+          await publishReplayCommunityPost(payload.title, newReplayUrl);
         }
         toast({ title: "Live ajouté" });
       }
