@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useCrmBoard, useMoveCard, useCreateColumn, useCrmSettings, useUpdateCard } from "@/hooks/useCrmBoard";
 import { useCardColumnEntryDates } from "@/hooks/crm/useCardColumnEntryDates";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskName, maskAmount } from "@/lib/demoMask";
 import { CrmCard, CrmColumn as CrmColumnType, LossReason } from "@/types/crm";
 import LossReasonDialog from "./LossReasonDialog";
 import CrmCardComponent from "./CrmCard";
@@ -39,6 +41,7 @@ interface CrmKanbanBoardProps {
 
 const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const navigate = useNavigate();
   const { data: boardData, isLoading, isError, refetch } = useCrmBoard();
   const { data: crmSettings } = useCrmSettings();
@@ -590,18 +593,20 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
                         {card.company && (
                           <span className="flex items-center gap-1">
                             <Building className="h-3 w-3" />
-                            {card.company}
+                            {isDemoMode ? maskText(card.company) : card.company}
                           </span>
                         )}
                         {(card.first_name || card.last_name) && (
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
-                            {[card.first_name, card.last_name].filter(Boolean).join(" ")}
+                            {isDemoMode
+                              ? [card.first_name, card.last_name].filter(Boolean).map(maskName).join(" ")
+                              : [card.first_name, card.last_name].filter(Boolean).join(" ")}
                           </span>
                         )}
                         {(card.estimated_value ?? 0) > 0 && (
                           <span className="font-semibold text-green-700">
-                            {(card.estimated_value ?? 0).toLocaleString("fr-FR")} €
+                            {isDemoMode ? maskAmount(card.estimated_value) : `${(card.estimated_value ?? 0).toLocaleString("fr-FR")} €`}
                           </span>
                         )}
                       </div>

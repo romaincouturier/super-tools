@@ -17,6 +17,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { useNavigate } from "react-router-dom";
 import { useQuotesByCard, useDeleteQuote } from "@/hooks/useQuotes";
 import type { CardDetailState, CardDetailHandlers } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 interface Props {
   state: CardDetailState;
@@ -25,6 +27,7 @@ interface Props {
 
 const CardDetailCommercial = ({ state, handlers }: Props) => {
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const {
     card, serviceType, company, email, firstName, lastName,
     estimatedValue: _estimatedValue, quoteUrl, setQuoteUrl, descriptionHtml,
@@ -109,7 +112,7 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{q.quote_number}</p>
                 <p className="text-xs text-muted-foreground">
-                  {q.client_company} — Étape : {stepLabels[(q as unknown as { workflow_step?: number }).workflow_step ?? 0] || "Client"}
+                  {isDemoMode ? maskText(q.client_company) : q.client_company} — Étape : {stepLabels[(q as unknown as { workflow_step?: number }).workflow_step ?? 0] || "Client"}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0 ml-2">

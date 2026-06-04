@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { CrmColumn as CrmColumnType } from "@/types/crm";
 import { useUpdateColumn, useArchiveColumn } from "@/hooks/useCrmBoard";
 import { useConfirm } from "@/hooks/useConfirm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface CardWithEstimatedValue {
   estimated_value?: number | null;
@@ -52,6 +54,7 @@ const CrmColumnHeader = ({ column, cards }: CrmColumnHeaderProps) => {
     if (ok) archiveColumn.mutate(column.id);
   };
 
+  const { isDemoMode } = useDemoMode();
   const totalValue = cards.reduce((sum, card) => sum + (card.estimated_value || 0), 0);
 
   return (
@@ -84,7 +87,7 @@ const CrmColumnHeader = ({ column, cards }: CrmColumnHeaderProps) => {
         </div>
         {totalValue > 0 && (
           <div className="text-xs text-muted-foreground">
-            Total: {totalValue.toLocaleString("fr-FR")} €
+            Total: {isDemoMode ? maskAmount(totalValue) : `${totalValue.toLocaleString("fr-FR")} €`}
           </div>
         )}
       </div>
