@@ -69,9 +69,103 @@ export interface PracticeComment {
 const POSTS_KEY = ["practice_posts"];
 const COMMENTS_KEY = (postId: string) => ["practice_comments", postId];
 
+/** Supabase client alias for tables absent from generated types. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 function clientFor(email?: string | null, asAdmin = false) {
   if (asAdmin) return supabase;
   return email ? createLearnerClient(email) : supabase;
+}
+
+/**
+ * Returns a Supabase-compatible query client for tables not present in the
+ * generated schema. Accepts either the main supabase client or a learner
+ * client (both expose the same `.from()` API at runtime).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function clientDb(email?: string | null, asAdmin = false): any {
+  return clientFor(email, asAdmin);
+}
+
+// ── Internal raw row types ────────────────────────────────────────────────────
+
+interface RawPost {
+  id: string;
+  author_email: string;
+  content: string | null;
+  file_url: string | null;
+  file_name: string | null;
+  file_mime: string | null;
+  file_size: number | null;
+  course_id: string | null;
+  lesson_id: string | null;
+  is_pinned: boolean;
+  is_staff_treated: boolean;
+  file_rotation: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RawReaction {
+  post_id: string;
+  author_email: string;
+  reaction_type: string | null;
+}
+
+interface RawCommentCount {
+  id: string;
+  post_id: string;
+}
+
+interface RawProfile {
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  photo_url: string | null;
+}
+
+interface RawHashtag {
+  post_id: string;
+  tag: string;
+}
+
+interface RawPoll {
+  id: string;
+  post_id: string;
+}
+
+interface RawPollOption {
+  id: string;
+  poll_id: string;
+  label: string;
+  position: number | null;
+}
+
+interface RawPollVote {
+  poll_id: string;
+  option_id: string;
+  author_email: string;
+}
+
+interface RawLesson {
+  id: string;
+  title: string;
+}
+
+interface RawCourse {
+  id: string;
+  title: string;
+}
+
+interface RawComment {
+  id: string;
+  post_id: string;
+  author_email: string;
+  content: string;
+  created_at: string;
+  is_staff_reply?: boolean;
+  author_display_name?: string | null;
 }
 
 
@@ -107,8 +201,7 @@ export function usePracticePosts(
     queryKey: [...POSTS_KEY, learnerEmail, limit, lessonFilter, courseFilter, courseIdsFilter, authorFilter, likedByFilter, tagFilter, isAdmin],
     queryFn: async (): Promise<PracticePost[]> => {
       if (!learnerEmail) return [];
-      const c = clientFor(learnerEmail, isAdmin) as any;
-
+      const c = clientDb(learnerEmail, isAdmin);
 
       // Resolve post-id restrictions from like / tag filters first.
       let restrictIds: string[] | null = null;
@@ -117,11 +210,11 @@ export function usePracticePosts(
       };
       if (likedByFilter) {
         const { data } = await c.from("practice_post_reactions").select("post_id").eq("author_email", likedByFilter);
-        intersect(Array.from(new Set((data || []).map((r: any) => r.post_id))));
+        intersect(Array.from(new Set(((data || []) as { post_id: string }[]).map((r) => r.post_id))));
       }
       if (tagFilter) {
         const { data } = await c.from("practice_post_hashtags").select("post_id").eq("tag", tagFilter);
-        intersect(Array.from(new Set((data || []).map((r: any) => r.post_id))));
+        intersect(Array.from(new Set(((data || []) as { post_id: string }[]).map((r) => r.post_id))));
       }
       if (restrictIds !== null && restrictIds.length === 0) return [];
 
@@ -136,8 +229,8 @@ export function usePracticePosts(
         postsQuery,
         c.from("practice_post_reactions").select("post_id, author_email, reaction_type"),
         c.from("practice_post_comments").select("id, post_id"),
-        (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        (supabase as any).rpc("get_staff_public_profiles"),
+        db.from("learner_profiles").select("email, first_name, last_name, photo_url"),
+        db.rpc("get_staff_public_profiles"),
         c.from("practice_post_hashtags").select("post_id, tag"),
         c.from("practice_polls").select("id, post_id"),
         c.from("practice_poll_options").select("id, poll_id, label, position"),
@@ -146,64 +239,64 @@ export function usePracticePosts(
 
       if (postsRes.error) throw postsRes.error;
 
-      const posts: any[] = postsRes.data || [];
-      const reactions: any[] = reactionsRes.data || [];
-      const comments: any[] = commentsRes.data || [];
+      const posts: RawPost[] = postsRes.data || [];
+      const reactions: RawReaction[] = reactionsRes.data || [];
+      const comments: RawCommentCount[] = commentsRes.data || [];
       // Merge staff profiles + learner profiles; staff profile takes precedence
       // so a staff member's real name and avatar are used instead of any legacy
       // learner_profile they may also have for testing.
-      const learnerProfiles: any[] = profilesRes.data || [];
-      const staffProfiles: any[] = staffProfilesRes.data || [];
-      const staffEmailSet = new Set(staffProfiles.map((p: any) => p.email));
-      const profiles: any[] = [
+      const learnerProfiles: RawProfile[] = profilesRes.data || [];
+      const staffProfiles: RawProfile[] = staffProfilesRes.data || [];
+      const staffEmailSet = new Set(staffProfiles.map((p) => p.email));
+      const profiles: RawProfile[] = [
         ...staffProfiles,
-        ...learnerProfiles.filter((lp: any) => !staffEmailSet.has(lp.email)),
+        ...learnerProfiles.filter((lp) => !staffEmailSet.has(lp.email)),
       ];
-      const hashtags: any[] = hashtagsRes.data || [];
-      const polls: any[] = pollsRes.data || [];
-      const pollOptions: any[] = optionsRes.data || [];
-      const votes: any[] = votesRes.data || [];
+      const hashtags: RawHashtag[] = hashtagsRes.data || [];
+      const polls: RawPoll[] = pollsRes.data || [];
+      const pollOptions: RawPollOption[] = optionsRes.data || [];
+      const votes: RawPollVote[] = votesRes.data || [];
 
-      const profileMap = new Map(profiles.map((p: any) => [p.email, p]));
-      const pollByPost = new Map(polls.map((p: any) => [p.post_id, p]));
+      const profileMap = new Map(profiles.map((p) => [p.email, p]));
+      const pollByPost = new Map(polls.map((p) => [p.post_id, p]));
 
       // Enrich with lesson/course titles when present
-      const lessonIds = Array.from(new Set(posts.map((p: any) => p.lesson_id).filter(Boolean)));
-      const courseIds = Array.from(new Set(posts.map((p: any) => p.course_id).filter(Boolean)));
+      const lessonIds = Array.from(new Set(posts.map((p) => p.lesson_id).filter(Boolean))) as string[];
+      const courseIds = Array.from(new Set(posts.map((p) => p.course_id).filter(Boolean))) as string[];
       const [lessonsRes, coursesRes] = await Promise.all([
         lessonIds.length
-          ? (supabase as any).from("lms_lessons").select("id, title").in("id", lessonIds)
-          : Promise.resolve({ data: [] }),
+          ? db.from("lms_lessons").select("id, title").in("id", lessonIds)
+          : Promise.resolve({ data: [] as RawLesson[] }),
         courseIds.length
-          ? (supabase as any).from("lms_courses").select("id, title").in("id", courseIds)
-          : Promise.resolve({ data: [] }),
+          ? db.from("lms_courses").select("id, title").in("id", courseIds)
+          : Promise.resolve({ data: [] as RawCourse[] }),
       ]);
-      const lessonMap = new Map((lessonsRes.data || []).map((l: any) => [l.id, l.title]));
-      const courseMap = new Map((coursesRes.data || []).map((c: any) => [c.id, c.title]));
+      const lessonMap = new Map(((lessonsRes.data || []) as RawLesson[]).map((l) => [l.id, l.title]));
+      const courseMap = new Map(((coursesRes.data || []) as RawCourse[]).map((c) => [c.id, c.title]));
 
       const buildPoll = (postId: string): PracticePoll | null => {
         const poll = pollByPost.get(postId);
         if (!poll) return null;
         const opts = pollOptions
-          .filter((o: any) => o.poll_id === poll.id)
-          .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
-        const pollVotes = votes.filter((v: any) => v.poll_id === poll.id);
-        const myVote = pollVotes.find((v: any) => v.author_email === learnerEmail);
+          .filter((o) => o.poll_id === poll.id)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        const pollVotes = votes.filter((v) => v.poll_id === poll.id);
+        const myVote = pollVotes.find((v) => v.author_email === learnerEmail);
         return {
           id: poll.id,
           total_votes: pollVotes.length,
           my_option_id: myVote?.option_id ?? null,
-          options: opts.map((o: any) => ({
+          options: opts.map((o) => ({
             id: o.id,
             label: o.label,
-            vote_count: pollVotes.filter((v: any) => v.option_id === o.id).length,
+            vote_count: pollVotes.filter((v) => v.option_id === o.id).length,
           })),
         };
       };
 
-      return posts.map((post: any) => {
-        const postReactions = reactions.filter((r: any) => r.post_id === post.id);
-        const postComments = comments.filter((c: any) => c.post_id === post.id);
+      return posts.map((post) => {
+        const postReactions = reactions.filter((r) => r.post_id === post.id);
+        const postComments = comments.filter((c) => c.post_id === post.id);
         const profile = profileMap.get(post.author_email);
         return {
           ...post,
@@ -214,17 +307,17 @@ export function usePracticePosts(
           lesson_title: post.lesson_id ? (lessonMap.get(post.lesson_id) ?? null) : null,
           course_title: post.course_id ? (courseMap.get(post.course_id) ?? null) : null,
           reaction_count: postReactions.length,
-          i_reacted: postReactions.some((r: any) => r.author_email === learnerEmail),
-          reactions_by_type: postReactions.reduce((acc: Record<string, number>, r: any) => {
+          i_reacted: postReactions.some((r) => r.author_email === learnerEmail),
+          reactions_by_type: postReactions.reduce((acc: Record<string, number>, r) => {
             const t = r.reaction_type ?? '👍';
             acc[t] = (acc[t] ?? 0) + 1;
             return acc;
           }, {}),
           my_reaction_types: postReactions
-            .filter((r: any) => r.author_email === learnerEmail)
-            .map((r: any) => r.reaction_type ?? '👍'),
+            .filter((r) => r.author_email === learnerEmail)
+            .map((r) => r.reaction_type ?? '👍'),
           comment_count: postComments.length,
-          hashtags: hashtags.filter((h: any) => h.post_id === post.id).map((h: any) => h.tag),
+          hashtags: hashtags.filter((h) => h.post_id === post.id).map((h) => h.tag),
           poll: buildPoll(post.id),
         };
       });
@@ -240,24 +333,24 @@ export function usePracticeComments(postId: string | null, learnerEmail: string 
     queryKey: [...COMMENTS_KEY(postId ?? ""), isAdmin],
     queryFn: async (): Promise<PracticeComment[]> => {
       if (!postId || !learnerEmail) return [];
-      const c = clientFor(learnerEmail, isAdmin) as any;
+      const c = clientDb(learnerEmail, isAdmin);
       const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
         c.from("practice_post_comments").select("*").eq("post_id", postId).order("created_at", { ascending: true }),
-        (supabase as any).from("learner_profiles").select("email, first_name, last_name, photo_url"),
-        (supabase as any).rpc("get_staff_public_profiles"),
+        db.from("learner_profiles").select("email, first_name, last_name, photo_url"),
+        db.rpc("get_staff_public_profiles"),
       ]);
 
       if (commentsRes.error) throw commentsRes.error;
-      const learnerProfiles: any[] = learnerProfilesRes.data || [];
-      const staffProfiles: any[] = staffProfilesRes.data || [];
-      const staffEmailSet = new Set(staffProfiles.map((p: any) => p.email));
+      const learnerProfiles: RawProfile[] = learnerProfilesRes.data || [];
+      const staffProfiles: RawProfile[] = staffProfilesRes.data || [];
+      const staffEmailSet = new Set(staffProfiles.map((p) => p.email));
       // Staff profile takes precedence so a staff member's real name and avatar
       // are used instead of any legacy learner_profile with the same email.
-      const profileMap = new Map<string, any>([
-        ...learnerProfiles.filter((lp: any) => !staffEmailSet.has(lp.email)).map((p: any) => [p.email, p] as [string, any]),
-        ...staffProfiles.map((p: any) => [p.email, p] as [string, any]),
+      const profileMap = new Map<string, RawProfile>([
+        ...learnerProfiles.filter((lp) => !staffEmailSet.has(lp.email)).map((p) => [p.email, p] as [string, RawProfile]),
+        ...staffProfiles.map((p) => [p.email, p] as [string, RawProfile]),
       ]);
-      return (commentsRes.data || []).map((c: any) => {
+      return ((commentsRes.data || []) as RawComment[]).map((c) => {
         const profile = profileMap.get(c.author_email);
         return {
           ...c,
@@ -278,7 +371,7 @@ export function useLessonTitle(learnerEmail: string | null, lessonId: string | n
     queryKey: ["practice_lesson_title", lessonId],
     queryFn: async (): Promise<string | null> => {
       if (!lessonId) return null;
-      const c = clientFor(learnerEmail) as any;
+      const c = clientDb(learnerEmail);
       const { data } = await c.from("lms_lessons").select("title").eq("id", lessonId).maybeSingle();
       return (data as { title?: string } | null)?.title ?? null;
     },
@@ -291,7 +384,7 @@ export function useCourseTitle(learnerEmail: string | null, courseId: string | n
     queryKey: ["practice_course_title", courseId],
     queryFn: async (): Promise<string | null> => {
       if (!courseId) return null;
-      const c = clientFor(learnerEmail) as any;
+      const c = clientDb(learnerEmail);
       const { data } = await c.from("lms_courses").select("title").eq("id", courseId).maybeSingle();
       return (data as { title?: string } | null)?.title ?? null;
     },
@@ -315,18 +408,20 @@ export function useMyPracticeComments(learnerEmail: string | null) {
     queryKey: ["practice_my_comments", learnerEmail],
     queryFn: async (): Promise<MyPracticeComment[]> => {
       if (!learnerEmail) return [];
-      const c = clientFor(learnerEmail) as any;
+      interface RawMyComment { id: string; post_id: string; content: string; created_at: string }
+      interface RawPostExcerpt { id: string; content: string | null; author_email: string }
+      const c = clientDb(learnerEmail);
       const { data: comments, error } = await c.from("practice_post_comments")
         .select("id, post_id, content, created_at")
         .eq("author_email", learnerEmail)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const list: any[] = comments || [];
+      const list: RawMyComment[] = comments || [];
       const postIds = Array.from(new Set(list.map((x) => x.post_id)));
       const postsRes = postIds.length
         ? await c.from("practice_posts").select("id, content, author_email").in("id", postIds)
-        : { data: [] };
-      const postMap = new Map<string, any>(((postsRes.data || []) as any[]).map((p: any) => [p.id, p]));
+        : { data: [] as RawPostExcerpt[] };
+      const postMap = new Map<string, RawPostExcerpt>(((postsRes.data || []) as RawPostExcerpt[]).map((p) => [p.id, p]));
       return list.map((cm) => {
         const post = postMap.get(cm.post_id);
         return {
@@ -384,7 +479,7 @@ export function useCreatePracticePost(learnerEmail: string | null, isAdmin = fal
       gifUrl?: string | null;
     }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail, isAdmin) as any;
+      const c = clientDb(learnerEmail, isAdmin);
       let fileData: { url: string; name: string; size: number; mime: string } | null = null;
       if (gifUrl) {
         fileData = { url: gifUrl, name: "gif", size: 0, mime: "image/gif" };
@@ -434,7 +529,7 @@ export function useVotePracticePoll(learnerEmail: string | null) {
   return useMutation({
     mutationFn: async ({ pollId, optionId, currentOptionId }: { pollId: string; optionId: string; currentOptionId: string | null }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail) as any;
+      const c = clientDb(learnerEmail);
       if (currentOptionId === optionId) {
         // Toggle off: remove the vote.
         const { error } = await c.from("practice_poll_votes")
@@ -465,10 +560,10 @@ export function usePracticePopularHashtags(learnerEmail: string | null, limit = 
     queryKey: ["practice_popular_hashtags", learnerEmail, limit],
     queryFn: async (): Promise<PopularHashtag[]> => {
       if (!learnerEmail) return [];
-      const c = clientFor(learnerEmail) as any;
+      const c = clientDb(learnerEmail);
       const { data, error } = await c.rpc("practice_popular_hashtags", { p_limit: limit });
       if (error) throw error;
-      return (data || []).map((r: any) => ({ tag: r.tag, post_count: Number(r.post_count) }));
+      return ((data || []) as { tag: string; post_count: number | string }[]).map((r) => ({ tag: r.tag, post_count: Number(r.post_count) }));
     },
     enabled: !!learnerEmail,
   });
@@ -481,7 +576,7 @@ export function useTogglePracticeReaction(learnerEmail: string | null) {
   return useMutation({
     mutationFn: async ({ postId, emoji, iReacted }: { postId: string; emoji: string; iReacted: boolean }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail) as any;
+      const c = clientDb(learnerEmail);
       if (iReacted) {
         const { error } = await c.from("practice_post_reactions")
           .delete().eq("post_id", postId).eq("author_email", learnerEmail).eq("reaction_type", emoji);
@@ -507,7 +602,7 @@ export function useCreatePracticeComment(
   return useMutation({
     mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
       if (!learnerEmail) throw new Error("Not authenticated");
-      const c = clientFor(learnerEmail, isAdmin) as any;
+      const c = clientDb(learnerEmail, isAdmin);
       const { data: inserted, error } = await c.from("practice_post_comments")
         .insert({
           post_id: postId,
@@ -523,7 +618,7 @@ export function useCreatePracticeComment(
       // Staff comment counts as treatment: auto-mark the post as treated so
       // it disappears from the "À traiter" filter without an extra click.
       if (isAdmin) {
-        (supabase as any)
+        db
           .from("practice_posts")
           .update({ is_staff_treated: true })
           .eq("id", postId)
@@ -553,7 +648,7 @@ export function usePinPracticePost() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, pin }: { postId: string; pin: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("practice_posts")
         .update({ is_pinned: pin })
         .eq("id", postId);
@@ -574,7 +669,7 @@ export function useDeletePracticePost(learnerEmail: string | null, isAdmin = fal
       // Admins delete via the authenticated client (auth_manage_practice_posts);
       // learners delete their own via the learner client.
       if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
-      const c = (isAdmin ? supabase : clientFor(learnerEmail)) as any;
+      const c = clientDb(isAdmin ? null : learnerEmail, isAdmin);
       const { error } = await c.from("practice_posts").delete().eq("id", postId);
       if (error) throw error;
     },
@@ -589,7 +684,7 @@ export function useDeletePracticeComment(learnerEmail: string | null, isAdmin = 
   return useMutation({
     mutationFn: async ({ commentId }: { commentId: string; postId: string }) => {
       if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
-      const c = (isAdmin ? supabase : clientFor(learnerEmail)) as any;
+      const c = clientDb(isAdmin ? null : learnerEmail, isAdmin);
       const { error } = await c.from("practice_post_comments").delete().eq("id", commentId);
       if (error) throw error;
     },
@@ -607,7 +702,7 @@ export function useUpdatePracticeComment(learnerEmail: string | null, isAdmin = 
   return useMutation({
     mutationFn: async ({ commentId, content }: { commentId: string; postId: string; content: string }) => {
       if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
-      const c = (isAdmin ? supabase : clientFor(learnerEmail)) as any;
+      const c = clientDb(isAdmin ? null : learnerEmail, isAdmin);
       const { error } = await c.from("practice_post_comments").update({ content }).eq("id", commentId);
       if (error) throw error;
     },
@@ -636,20 +731,21 @@ export function useAdminCommunityCourses() {
         .or(`end_date.gte.${today},and(end_date.is.null,start_date.gte.${today})`);
       if (error) throw error;
 
+      interface RawTraining { supports_lms_course_id: string | null }
       const courseIds = Array.from(
-        new Set((trainings || []).map((t: any) => t.supports_lms_course_id).filter(Boolean)),
-      );
+        new Set(((trainings || []) as RawTraining[]).map((t) => t.supports_lms_course_id).filter(Boolean)),
+      ) as string[];
       if (courseIds.length === 0) return [];
 
       const { data: courses } = await supabase
         .from("lms_courses")
         .select("id, title")
         .in("id", courseIds);
-      const titleMap = new Map((courses || []).map((c: any) => [c.id, c.title]));
+      const titleMap = new Map((courses || []).map((c) => [c.id, c.title]));
 
       return courseIds.map((id) => ({
-        courseId: id as string,
-        title: (titleMap.get(id) as string) ?? "Cours sans titre",
+        courseId: id,
+        title: (titleMap.get(id) as string | null) ?? "Cours sans titre",
       }));
     },
   });
@@ -661,7 +757,7 @@ export function useMarkPostStaffTreated() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, treated }: { postId: string; treated: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("practice_posts")
         .update({ is_staff_treated: treated })
         .eq("id", postId);
@@ -675,7 +771,7 @@ export function useRotatePracticePostImage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ postId, rotation }: { postId: string; rotation: number }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("practice_posts")
         .update({ file_rotation: ((rotation % 360) + 360) % 360 })
         .eq("id", postId);

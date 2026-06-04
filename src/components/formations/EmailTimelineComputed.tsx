@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -127,6 +128,7 @@ const EmailTimelineComputed = ({
   hasCoaching,
   isElearning,
 }: EmailTimelineProps) => {
+  const { isDemoMode } = useDemoMode();
   const [dbEmails, setDbEmails] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [delaySettings, setDelaySettings] = useState({
@@ -516,6 +518,7 @@ const EmailTimelineComputed = ({
                               recipientLabel={`${typeItems.length} participants`}
                               recipientType="all"
                               condition={firstItem.condition}
+                              isDemoMode={isDemoMode}
                               breakdown={
                                 <span className="text-[10px] text-muted-foreground">
                                   {sentCount > 0 && <span className="text-primary">{sentCount}✓ </span>}
@@ -536,6 +539,7 @@ const EmailTimelineComputed = ({
                             recipientLabel={item.recipientLabel}
                             recipientType={item.recipientType}
                             condition={item.condition}
+                            isDemoMode={isDemoMode}
                           />
                         ));
                       })}
@@ -589,6 +593,7 @@ function TimelineRow({
   recipientType,
   condition,
   breakdown,
+  isDemoMode,
 }: {
   label: string;
   date: Date;
@@ -597,6 +602,7 @@ function TimelineRow({
   recipientType: TimelineEmail["recipientType"];
   condition?: string;
   breakdown?: React.ReactNode;
+  isDemoMode?: boolean;
 }) {
   const Icon = RECIPIENT_ICONS[recipientType] || User;
 
@@ -626,7 +632,10 @@ function TimelineRow({
         </div>
         <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
           <Icon className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">{recipientLabel}</span>
+          <span
+            className="truncate"
+            style={isDemoMode && recipientType !== "all" ? { filter: "blur(4px)", userSelect: "none" } : undefined}
+          >{recipientLabel}</span>
           <span className="text-muted-foreground/60">•</span>
           <span className="whitespace-nowrap">
             {format(date, "d MMM yyyy", { locale: fr })}

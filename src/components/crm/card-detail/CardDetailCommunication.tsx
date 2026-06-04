@@ -277,7 +277,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
           {emailAttachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {emailAttachments.map((att, i) => (
-                <Badge key={i} variant="secondary" className="text-xs gap-1 pr-1">
+                <Badge key={att.filename} variant="secondary" className="text-xs gap-1 pr-1">
                   <Paperclip className="h-3 w-3" />
                   {att.filename}
                   <button type="button" onClick={() => handlers.handleRemoveAttachment(i)} className="ml-0.5 hover:text-destructive">

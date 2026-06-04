@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Users, MessageSquare, BarChart3, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,9 +41,11 @@ const ReseauDashboard = ({
   const { data: interactions = [] } = useNetworkInteractions();
   const stats = useNetworkStats(contacts, actions, interactions);
 
-  const hotCount = contacts.filter((c) => c.warmth === "hot").length;
-  const warmCount = contacts.filter((c) => c.warmth === "warm").length;
-  const coldCount = contacts.filter((c) => c.warmth === "cold").length;
+  const { hotCount, warmCount, coldCount } = useMemo(() => ({
+    hotCount: contacts.filter((c) => c.warmth === "hot").length,
+    warmCount: contacts.filter((c) => c.warmth === "warm").length,
+    coldCount: contacts.filter((c) => c.warmth === "cold").length,
+  }), [contacts]);
 
   return (
     <div className="space-y-6">

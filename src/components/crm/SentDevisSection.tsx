@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskText, maskFileName, maskName } from "@/lib/demoMask";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Receipt, Copy, FileDown, AlertCircle, Loader2, ChevronDown, Mail, Paperclip, Eye, MousePointerClick, CheckCircle2, XCircle } from "lucide-react";
@@ -51,6 +53,7 @@ interface SentDevisSectionProps {
 }
 
 const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
+  const { isDemoMode } = useDemoMode();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState<string | null>(null);
 
@@ -207,7 +210,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-xs flex items-center gap-1.5">
                     <Receipt className="h-3 w-3 text-orange-500" />
-                    {details?.formation_name || "Devis"}
+                    {isDemoMode ? maskText(details?.formation_name) || "Devis" : (details?.formation_name || "Devis")}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(devis.created_at), "dd MMM yyyy", { locale: fr })}
@@ -216,7 +219,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                 <div className="flex items-center gap-2 flex-wrap">
                   {details?.client_name && (
                     <Badge variant="outline" className="text-[10px] h-5">
-                      {details.client_name}
+                      {isDemoMode ? maskName(details.client_name) : details.client_name}
                     </Badge>
                   )}
                   {details?.type_subrogation && (
@@ -301,11 +304,11 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate flex items-center gap-1.5">
                       <Mail className="h-3 w-3 text-blue-500 shrink-0" />
-                      {emailItem.subject}
+                      {isDemoMode ? maskText(emailItem.subject) : emailItem.subject}
                     </p>
                     <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                       <span className="text-xs text-muted-foreground">
-                        À: {emailItem.recipient_email} •{" "}
+                        À: {isDemoMode ? maskEmail(emailItem.recipient_email) : emailItem.recipient_email} •{" "}
                         {format(new Date(emailItem.sent_at), "d MMM yyyy HH:mm", { locale: fr })}
                         {emailItem.attachment_names && emailItem.attachment_names.length > 0 && (
                           <span> • <Paperclip className="inline h-3 w-3" /> {emailItem.attachment_names.length}</span>
@@ -373,13 +376,13 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                                 }}
                               >
                                 <FileDown className="h-3 w-3 shrink-0" />
-                                {name}
+                                {isDemoMode ? maskFileName(name) : name}
                               </button>
                             );
                           }
                           return (
                             <Badge key={idx} variant="secondary" className="text-[10px] h-5 font-normal max-w-[250px] truncate">
-                              {name}
+                              {isDemoMode ? maskFileName(name) : name}
                             </Badge>
                           );
                         })}
@@ -388,6 +391,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                     {emailItem.body_html && (
                       <div
                         className="px-4 pb-4 pt-2 prose prose-sm dark:prose-invert max-w-none [&_a]:text-primary [&_a]:underline"
+                        style={isDemoMode ? { filter: "blur(4px)", userSelect: "none", pointerEvents: "none" } : undefined}
                         dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(emailItem.body_html, { ADD_ATTR: ["target"], ALLOW_DATA_ATTR: false }) }}
                         onClick={(e) => {
                           const target = e.target as HTMLElement;

@@ -163,6 +163,7 @@ const CardDetailDrawer = ({
   const [fieldSaving, setFieldSaving] = useState(false);
   const [fieldSaved, setFieldSaved] = useState(false);
   const fieldTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedFlagTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedFieldsHashRef = useRef<string>("");
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [showCreateCalendarEventDialog, setShowCreateCalendarEventDialog] = useState(false);
@@ -288,7 +289,7 @@ const CardDetailDrawer = ({
         await updateCardRef.current.mutateAsync({ id: currentCard.id, updates: autoSaveUpdates, actorEmail: currentEmail, oldCard: currentCard });
         lastSavedFieldsHashRef.current = fieldsHash;
         setFieldSaved(true);
-        setTimeout(() => setFieldSaved(false), 2000);
+        savedFlagTimeoutRef.current = setTimeout(() => setFieldSaved(false), 2000);
       } catch (error) {
         console.error("Failed to auto-save field:", error);
       } finally {
@@ -323,6 +324,7 @@ const CardDetailDrawer = ({
     return () => {
       if (descriptionTimeoutRef.current) clearTimeout(descriptionTimeoutRef.current);
       if (fieldTimeoutRef.current) clearTimeout(fieldTimeoutRef.current);
+      if (savedFlagTimeoutRef.current) clearTimeout(savedFlagTimeoutRef.current);
     };
   }, []);
 

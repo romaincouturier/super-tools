@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
 import { registerMediaEntry, deleteMediaFile } from "@/hooks/useMedia";
 
+/**
+ * Access Supabase tables that are not yet in the generated types schema.
+ * Using a cast here is intentional: these tables exist in the DB but are
+ * absent from the auto-generated TypeScript definitions.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 // ── Types ───────────────────────────────────────────────────────────
 
 export interface TrainingSupport {
@@ -86,7 +94,7 @@ export const useTrainingSupport = (trainingId: string | undefined) => {
     queryKey: [SUPPORT_KEY, trainingId],
     enabled: !!trainingId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_supports")
         .select("*")
         .eq("training_id", trainingId)
@@ -112,7 +120,7 @@ export const useCreateSupport = () => {
       const userId = session.session?.user?.id;
 
       // Create support
-      const { data: support, error } = await (supabase as any)
+      const { data: support, error } = await db
         .from("training_supports")
         .insert({
           training_id: trainingId,
@@ -127,7 +135,7 @@ export const useCreateSupport = () => {
 
       // If from template, copy template sections
       if (templateId) {
-        const { data: tplSections } = await (supabase as any)
+        const { data: tplSections } = await db
           .from("training_support_template_sections")
           .select("*")
           .eq("template_id", templateId)
@@ -141,19 +149,19 @@ export const useCreateSupport = () => {
             position: i,
             is_resources: false,
           }));
-          await (supabase as any).from("training_support_sections").insert(sections);
+          await db.from("training_support_sections").insert(sections);
         }
       }
 
       // Always ensure a "Ressources" section exists at the end
-      const { data: existingSections } = await (supabase as any)
+      const { data: existingSections } = await db
         .from("training_support_sections")
         .select("id")
         .eq("support_id", support.id)
         .eq("is_resources", true);
 
       if (!existingSections?.length) {
-        await (supabase as any).from("training_support_sections").insert({
+        await db.from("training_support_sections").insert({
           support_id: support.id,
           title: "Ressources",
           content: "",
@@ -177,7 +185,7 @@ export const useUpdateSupport = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<TrainingSupport> & { id: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_supports")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id);
@@ -196,7 +204,7 @@ export const useSupportSections = (supportId: string | undefined) => {
     queryKey: [SECTIONS_KEY, supportId],
     enabled: !!supportId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_sections")
         .select("*")
         .eq("support_id", supportId)
@@ -218,7 +226,7 @@ export const useAddSection = () => {
       position: number;
     }) => {
       // Shift positions of existing sections at or after this position
-      const { data: existing } = await (supabase as any)
+      const { data: existing } = await db
         .from("training_support_sections")
         .select("id, position")
         .eq("support_id", supportId)
@@ -227,14 +235,14 @@ export const useAddSection = () => {
 
       if (existing && existing.length > 0) {
         for (const s of existing) {
-          await (supabase as any)
+          await db
             .from("training_support_sections")
             .update({ position: s.position + 1 })
             .eq("id", s.id);
         }
       }
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_sections")
         .insert({ support_id: supportId, title, content: content || "", position })
         .select()
@@ -253,7 +261,7 @@ export const useUpdateSection = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<SupportSection> & { id: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_support_sections")
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id);
@@ -269,7 +277,7 @@ export const useDeleteSection = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_support_sections")
         .delete()
         .eq("id", id);
@@ -286,7 +294,7 @@ export const useReorderSections = () => {
   return useMutation({
     mutationFn: async (sections: { id: string; position: number }[]) => {
       for (const s of sections) {
-        await (supabase as any)
+        await db
           .from("training_support_sections")
           .update({ position: s.position })
           .eq("id", s.id);
@@ -305,7 +313,7 @@ export const useSectionMedia = (supportId: string | undefined) => {
     queryKey: [MEDIA_KEY, supportId],
     enabled: !!supportId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_media")
         .select("*")
         .eq("support_id", supportId)
@@ -329,7 +337,7 @@ export const useAddSectionMedia = () => {
       mimeType: string | null;
       fileSize: number | null;
     }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_media")
         .insert({
           section_id: input.sectionId,
@@ -369,7 +377,7 @@ export const useDeleteSectionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, fileUrl }: { id: string; fileUrl: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_support_media")
         .delete()
         .eq("id", id);
@@ -388,7 +396,7 @@ export const useUnassignSectionMedia = () => {
   return useMutation({
     mutationFn: async (media: Pick<SupportMedia, "id" | "support_id" | "file_url" | "file_name" | "file_type" | "mime_type" | "file_size">) => {
       // Find the import that was assigned for this file
-      const { data: imp } = await (supabase as any)
+      const { data: imp } = await db
         .from("training_support_imports")
         .select("id")
         .eq("support_id", media.support_id)
@@ -398,13 +406,13 @@ export const useUnassignSectionMedia = () => {
 
       if (imp) {
         // Unmark the import so it reappears in available imports
-        await (supabase as any)
+        await db
           .from("training_support_imports")
           .update({ assigned_section_id: null })
           .eq("id", imp.id);
       } else {
         // No matching import found — recreate one
-        await (supabase as any)
+        await db
           .from("training_support_imports")
           .insert({
             support_id: media.support_id,
@@ -417,7 +425,7 @@ export const useUnassignSectionMedia = () => {
       }
 
       // Delete the media entry from the section
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_support_media")
         .delete()
         .eq("id", media.id);
@@ -434,7 +442,7 @@ export const useUpdateSectionMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<SupportMedia> & { id: string }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_support_media")
         .update(updates)
         .eq("id", id);
@@ -453,7 +461,7 @@ export const useSupportImports = (supportId: string | undefined) => {
     queryKey: [IMPORTS_KEY, supportId],
     enabled: !!supportId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_imports")
         .select("*")
         .eq("support_id", supportId)
@@ -477,7 +485,7 @@ export const useAddSupportImport = () => {
       mimeType: string | null;
       fileSize: number | null;
     }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_imports")
         .insert({
           support_id: input.supportId,
@@ -508,7 +516,7 @@ export const useAssignImportToSection = () => {
       supportId: string;
     }) => {
       // Get import data
-      const { data: imp } = await (supabase as any)
+      const { data: imp } = await db
         .from("training_support_imports")
         .select("*")
         .eq("id", importId)
@@ -517,7 +525,7 @@ export const useAssignImportToSection = () => {
       if (!imp) throw new Error("Import not found");
 
       // Create media entry in the section
-      await (supabase as any).from("training_support_media").insert({
+      await db.from("training_support_media").insert({
         section_id: sectionId,
         support_id: supportId,
         file_url: imp.file_url,
@@ -540,7 +548,7 @@ export const useAssignImportToSection = () => {
       });
 
       // Mark import as assigned
-      await (supabase as any)
+      await db
         .from("training_support_imports")
         .update({ assigned_section_id: sectionId })
         .eq("id", importId);
@@ -558,7 +566,7 @@ export const useSupportTemplates = () => {
   return useQuery({
     queryKey: [TEMPLATES_KEY],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_templates")
         .select("*")
         .order("name");
@@ -574,7 +582,7 @@ export const useTemplateSections = (templateId: string | undefined) => {
     queryKey: [TEMPLATES_KEY, "sections", templateId],
     enabled: !!templateId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("training_support_template_sections")
         .select("*")
         .eq("template_id", templateId)
@@ -597,7 +605,7 @@ export const useCreateTemplate = () => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
 
-      const { data: tpl, error } = await (supabase as any)
+      const { data: tpl, error } = await db
         .from("training_support_templates")
         .insert({ name, description: description || "", created_by: userId })
         .select()
@@ -612,7 +620,7 @@ export const useCreateTemplate = () => {
           content: s.content,
           position: i,
         }));
-        await (supabase as any).from("training_support_template_sections").insert(rows);
+        await db.from("training_support_template_sections").insert(rows);
       }
 
       return tpl as SupportTemplate;
@@ -627,7 +635,7 @@ export const useDeleteTemplate = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("training_support_templates")
         .delete()
         .eq("id", id);
@@ -649,14 +657,14 @@ export const useSaveAsTemplate = () => {
       const userId = session.session?.user?.id;
 
       // Fetch current sections
-      const { data: sections } = await (supabase as any)
+      const { data: sections } = await db
         .from("training_support_sections")
         .select("title, content, position")
         .eq("support_id", supportId)
         .order("position");
 
       // Create template
-      const { data: tpl, error } = await (supabase as any)
+      const { data: tpl, error } = await db
         .from("training_support_templates")
         .insert({ name, created_by: userId })
         .select()
@@ -671,7 +679,7 @@ export const useSaveAsTemplate = () => {
           content: s.content,
           position: i,
         }));
-        await (supabase as any).from("training_support_template_sections").insert(rows);
+        await db.from("training_support_template_sections").insert(rows);
       }
 
       return tpl as SupportTemplate;

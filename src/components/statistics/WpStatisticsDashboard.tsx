@@ -53,22 +53,24 @@ function formatPeriodLabel(from: string, to: string) {
 }
 
 /* ─── Generic series normalizer ─── */
-function toDailySeries(raw: any, valueKeys: string[]): Array<{ date: string; value: number }> {
+type RawSeriesEntry = Record<string, unknown>;
+
+function toDailySeries(raw: unknown, valueKeys: string[]): Array<{ date: string; value: number }> {
   if (!raw || typeof raw !== "object") return [];
-  const entries = Array.isArray(raw)
-    ? raw
-    : Object.entries(raw).map(([date, val]) => {
+  const entries: RawSeriesEntry[] = Array.isArray(raw)
+    ? (raw as RawSeriesEntry[])
+    : Object.entries(raw as Record<string, unknown>).map(([date, val]) => {
         if (val && typeof val === "object") return { date, ...(val as Record<string, unknown>) };
         return { date, value: val };
       });
 
   const out: Array<{ date: string; value: number }> = [];
   for (const e of entries) {
-    const date = (e as any).date || (e as any).day || "";
+    const date = String(e.date ?? e.day ?? "");
     if (!date) continue;
     let value = 0;
     for (const k of valueKeys) {
-      const v = (e as any)[k];
+      const v = e[k];
       if (typeof v === "number") { value = v; break; }
       if (typeof v === "string" && v !== "") { value = Number(v) || 0; break; }
     }
@@ -78,10 +80,10 @@ function toDailySeries(raw: any, valueKeys: string[]): Array<{ date: string; val
 }
 
 /* ─── Summary Cards ─── */
-function SummaryCards({ summary }: { summary: Record<string, any> }) {
-  const visitors = summary?.visitors ?? {};
-  const visits = summary?.visits ?? {};
-  const onlineCount = summary?.user_online ?? 0;
+function SummaryCards({ summary }: { summary: Record<string, unknown> }) {
+  const visitors = (summary?.visitors ?? {}) as Record<string, number | undefined>;
+  const visits = (summary?.visits ?? {}) as Record<string, number | undefined>;
+  const onlineCount = (summary?.user_online as number | undefined) ?? 0;
   const cards = [
     { label: "En ligne", value: onlineCount, sub: "maintenant", icon: Activity, highlight: true },
     { label: "Aujourd'hui", visitors: visitors.today, views: visits.today, icon: Eye },
@@ -119,20 +121,23 @@ function SummaryCards({ summary }: { summary: Record<string, any> }) {
 }
 
 /* ─── Pie / Donut chart generic ─── */
-function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: any; nameKey?: string; valueKey?: string }) {
+function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: unknown; nameKey?: string; valueKey?: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">Aucune donnée</p>;
 
-  const rawItems = Array.isArray(data)
-    ? data
-    : Object.entries(data).map(([name, value]) => ({ name, value: typeof value === "object" ? (value as any)?.count || 0 : value }));
+  const rawItems: Record<string, unknown>[] = Array.isArray(data)
+    ? (data as Record<string, unknown>[])
+    : Object.entries(data as Record<string, unknown>).map(([name, value]) => ({
+        name,
+        value: typeof value === "object" && value !== null ? ((value as Record<string, unknown>)?.count ?? 0) : value,
+      }));
 
   const chartData = rawItems
     .slice(0, 8)
-    .map((b: any) => ({
-      name: b.agent || b.browser || b.platform || b.country || b.engine || b.name || b[nameKey] || "Autre",
-      value: Number(b.count || b.hits || b.value || b[valueKey] || 0),
+    .map((b) => ({
+      name: String(b.agent ?? b.browser ?? b.platform ?? b.country ?? b.engine ?? b.name ?? b[nameKey] ?? "Autre"),
+      value: Number(b.count ?? b.hits ?? b.value ?? b[valueKey] ?? 0),
     }))
-    .filter((d: any) => d.value > 0);
+    .filter((d) => d.value > 0);
 
   if (chartData.length === 0) return <p className="text-sm text-muted-foreground">Aucune donnée</p>;
 
@@ -141,7 +146,7 @@ function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: an
       <PieChart>
         <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={90}
           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-          {chartData.map((_: any, i: number) => (
+          {chartData.map((_, i: number) => (
             <Cell key={i} fill={COLORS[i % COLORS.length]} />
           ))}
         </Pie>
@@ -152,12 +157,12 @@ function PieChartCard({ data, nameKey = "name", valueKey = "value" }: { data: an
 }
 
 /* ─── Hits trend chart (hits payload contains daily { date, visitor, visit }) ─── */
-function TrendChart({ hitsData, days }: { hitsData: any; days: number }) {
+function TrendChart({ hitsData, days }: { hitsData: unknown; days: number }) {
   if (!Array.isArray(hitsData) || hitsData.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucune donnée de tendance</p>;
   }
 
-  const chartData = hitsData.map((e: any) => ({
+  const chartData = (hitsData as Record<string, unknown>[]).map((e) => ({
     date: String(e.date ?? e.day ?? ""),
     views: Number(e.visit ?? e.views ?? e.hits ?? e.count ?? 0),
     visitors: Number(e.visitor ?? e.visitors ?? 0),
@@ -187,14 +192,16 @@ function TrendChart({ hitsData, days }: { hitsData: any; days: number }) {
 
 /* ─── Data Table generic ─── */
 function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }: {
-  data: any;
-  columns: { key: string; label: string; align?: "left" | "right"; render?: (row: any) => React.ReactNode }[];
+  data: unknown;
+  columns: { key: string; label: string; align?: "left" | "right"; render?: (row: Record<string, unknown>) => React.ReactNode }[];
   emptyMsg?: string;
   maxRows?: number;
 }) {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyMsg}</p>;
   }
+
+  const rows = data as Record<string, unknown>[];
 
   return (
     <div className="overflow-auto max-h-[400px]">
@@ -209,7 +216,7 @@ function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }:
           </tr>
         </thead>
         <tbody>
-          {data.slice(0, maxRows).map((row: any, i: number) => (
+          {rows.slice(0, maxRows).map((row, i: number) => (
             <tr key={i} className="border-b border-border/50">
               {columns.map((col) => (
                 <td key={col.key} className={`py-1.5 pr-4 ${col.align === "right" ? "text-right font-medium" : "truncate max-w-[300px]"}`}>
@@ -236,12 +243,13 @@ function ErrorState({ message }: { message: string }) {
 /* ─── Product page detection ─── */
 const KNOWN_PRODUCT_SLUGS = ["produit", "product", "produits", "products", "shop", "boutique"];
 
-function detectProductPages(pages: any): { slug: string | null; items: any[] } {
+function detectProductPages(pages: unknown): { slug: string | null; items: Record<string, unknown>[] } {
   if (!Array.isArray(pages) || pages.length === 0) return { slug: null, items: [] };
 
+  const typedPages = pages as Record<string, unknown>[];
   const counts = new Map<string, number>();
-  for (const page of pages) {
-    const uri: string = page?.uri || page?.page || "";
+  for (const page of typedPages) {
+    const uri: string = String(page?.uri ?? page?.page ?? "");
     if (!uri) continue;
     const first = uri.split("/").filter(Boolean)[0]?.toLowerCase();
     if (first && KNOWN_PRODUCT_SLUGS.includes(first)) {
@@ -251,8 +259,8 @@ function detectProductPages(pages: any): { slug: string | null; items: any[] } {
   if (counts.size === 0) return { slug: null, items: [] };
 
   const [slug] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  const items = pages.filter((p: any) => {
-    const uri: string = (p?.uri || p?.page || "").toLowerCase();
+  const items = typedPages.filter((p) => {
+    const uri: string = String(p?.uri ?? p?.page ?? "").toLowerCase();
     return uri.startsWith(`/${slug}/`) || uri.startsWith(`${slug}/`);
   });
   return { slug, items };
@@ -277,8 +285,8 @@ const WpStatisticsDashboard = () => {
   const aggregatedPages = useMemo(() => {
     if (!Array.isArray(pages)) return [];
     const map = new Map<string, { uri: string; title?: string; count: number }>();
-    for (const p of pages as any[]) {
-      const uri: string = p?.uri || p?.page || "";
+    for (const p of pages as Record<string, unknown>[]) {
+      const uri: string = String(p?.uri ?? p?.page ?? "");
       if (!uri) continue;
       const c = Number(p?.count ?? p?.hits ?? p?.views ?? 0);
       const cur = map.get(uri);
@@ -425,14 +433,14 @@ const WpStatisticsDashboard = () => {
             <CardContent>
               {loadingReferrers ? <Spinner /> : (() => {
                 const list = Array.isArray(referrers)
-                  ? (referrers as any[]).map((r) => ({
-                      domain: r.referred || r.domain || r.referrer || "(direct)",
+                  ? (referrers as Record<string, unknown>[]).map((r) => ({
+                      domain: String(r.referred ?? r.domain ?? r.referrer ?? "(direct)"),
                       count: Number(r.total ?? r.count ?? r.hits ?? 0),
                     }))
                   : referrers
-                    ? Object.entries(referrers).map(([domain, val]) => ({
+                    ? Object.entries(referrers as Record<string, unknown>).map(([domain, val]) => ({
                         domain: domain || "(direct)",
-                        count: typeof val === "number" ? val : Number((val as any)?.total ?? (val as any)?.count ?? 0),
+                        count: typeof val === "number" ? val : Number((val as Record<string, unknown>)?.total ?? (val as Record<string, unknown>)?.count ?? 0),
                       }))
                     : [];
                 const sorted = list.filter((r) => r.count > 0).sort((a, b) => b.count - a.count);
@@ -465,7 +473,7 @@ const WpStatisticsDashboard = () => {
               {loadingSearch ? <Spinner /> : errorSearch ? <ErrorState message="Erreur chargement moteurs de recherche" /> : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <DataTable
-                    data={Array.isArray(search) ? search : search ? Object.entries(search).map(([engine, val]) => ({ engine, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
+                    data={Array.isArray(search) ? search : search ? Object.entries(search as Record<string, unknown>).map(([engine, val]) => ({ engine, count: typeof val === "number" ? val : ((val as Record<string, unknown>)?.count ?? 0) })) : []}
                     columns={[
                       { key: "engine", label: "Moteur", render: (r) => r.engine || r.name || r.search_engine || "—" },
                       { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || r.value || 0 },
@@ -488,7 +496,7 @@ const WpStatisticsDashboard = () => {
               {loadingBrowsers ? <Spinner /> : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <DataTable
-                    data={Array.isArray(browsers) ? browsers : browsers ? Object.entries(browsers).map(([name, val]) => ({ name, count: typeof val === "number" ? val : (val as any)?.count || 0 })) : []}
+                    data={Array.isArray(browsers) ? browsers : browsers ? Object.entries(browsers as Record<string, unknown>).map(([name, val]) => ({ name, count: typeof val === "number" ? val : ((val as Record<string, unknown>)?.count ?? 0) })) : []}
                     columns={[
                       { key: "name", label: "Navigateur", render: (r) => r.agent || r.browser || r.name || "—" },
                       { key: "count", label: "Visites", align: "right", render: (r) => r.count || r.hits || r.value || 0 },

@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, Plus, Search } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useFailedEmailsCount } from "@/hooks/useEmailAlerts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ReactNode } from "react";
 
@@ -17,25 +15,7 @@ interface AppTopBarProps {
 
 const AppTopBar = ({ mobileSlot }: AppTopBarProps) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [failedEmailCount, setFailedEmailCount] = useState(0);
-
-  useEffect(() => {
-    if (!user) return;
-    const check = async () => {
-      const { count: scheduledCount } = await supabase
-        .from("scheduled_emails")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "failed");
-      const { count: failedCount } = await supabase
-        .from("failed_emails")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "failed");
-      setFailedEmailCount((scheduledCount || 0) + (failedCount || 0));
-    };
-    check();
-  }, [user]);
-
+  const failedEmailCount = useFailedEmailsCount();
   const hasAlert = failedEmailCount > 0;
 
   return (

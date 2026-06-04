@@ -9,8 +9,7 @@ import type {
   CrmActivityType,
 } from "@/types/crm";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RawRow = Record<string, any>;
+type RawRow = Record<string, unknown>;
 
 export function mapColumns(data: RawRow[]): CrmColumn[] {
   return (data || []).map((col) => ({
@@ -63,23 +62,23 @@ export function mapCards(
       company: card.company,
       email: card.email,
       linkedin_url: card.linkedin_url,
-      website_url: (card as unknown as { website_url?: string }).website_url ?? null,
+      website_url: (card.website_url as string | undefined) ?? null,
       service_type: card.service_type as CrmCard["service_type"],
-      brief_questions: (Array.isArray(card.brief_questions) ? card.brief_questions : []) as unknown as CrmCard["brief_questions"],
+      brief_questions: (Array.isArray(card.brief_questions) ? card.brief_questions : []) as CrmCard["brief_questions"],
       raw_input: card.raw_input,
-      next_action_text: (card as unknown as { next_action_text?: string }).next_action_text ?? null,
-      next_action_done: (card as unknown as { next_action_done?: boolean }).next_action_done ?? false,
-      next_action_type: ((card as unknown as { next_action_type?: string }).next_action_type ?? "other") as CrmCard["next_action_type"],
-      linked_mission_id: (card as unknown as { linked_mission_id?: string }).linked_mission_id ?? null,
-      emoji: (card as unknown as { emoji?: string }).emoji ?? null,
-      confidence_score: (card as unknown as { confidence_score?: number }).confidence_score ?? null,
-      won_at: (card as unknown as { won_at?: string }).won_at ?? null,
-      lost_at: (card as unknown as { lost_at?: string }).lost_at ?? null,
-      acquisition_source: ((card as unknown as { acquisition_source?: string }).acquisition_source ?? null) as CrmCard["acquisition_source"],
-      loss_reason: ((card as unknown as { loss_reason?: string }).loss_reason ?? null) as CrmCard["loss_reason"],
-      loss_reason_detail: (card as unknown as { loss_reason_detail?: string }).loss_reason_detail ?? null,
-      assigned_to: (card as unknown as { assigned_to?: string }).assigned_to ?? null,
-      source_metadata: (card as unknown as { source_metadata?: any }).source_metadata ?? null,
+      next_action_text: (card.next_action_text as string | undefined) ?? null,
+      next_action_done: (card.next_action_done as boolean | undefined) ?? false,
+      next_action_type: ((card.next_action_type as string | undefined) ?? "other") as CrmCard["next_action_type"],
+      linked_mission_id: (card.linked_mission_id as string | undefined) ?? null,
+      emoji: (card.emoji as string | undefined) ?? null,
+      confidence_score: (card.confidence_score as number | undefined) ?? null,
+      won_at: (card.won_at as string | undefined) ?? null,
+      lost_at: (card.lost_at as string | undefined) ?? null,
+      acquisition_source: ((card.acquisition_source as string | undefined) ?? null) as CrmCard["acquisition_source"],
+      loss_reason: ((card.loss_reason as string | undefined) ?? null) as CrmCard["loss_reason"],
+      loss_reason_detail: (card.loss_reason_detail as string | undefined) ?? null,
+      assigned_to: (card.assigned_to as string | undefined) ?? null,
+      source_metadata: (card.source_metadata as CrmCard["source_metadata"]) ?? null,
       tags: cardTagsList,
     };
   });

@@ -149,7 +149,7 @@ export function LocationInput({
               )}
               {suggestions.map((s, i) => (
                 <button
-                  key={`${s.properties.postcode}-${s.properties.city}-${i}`}
+                  key={s.properties.label}
                   type="button"
                   className={cn(
                     "w-full text-left px-3 py-1.5 text-sm hover:bg-accent",
