@@ -10,6 +10,7 @@ import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
 import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 import { useEmailDraftsAlert } from "@/hooks/useEmailDraftsAlert";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
