@@ -9,10 +9,10 @@ import type {
   CrmActivityType,
 } from "@/types/crm";
 
-type RawRow = Record<string, unknown>;
+type RawRow = Record<string, any>;
 
 export function mapColumns(data: RawRow[]): CrmColumn[] {
-  return (data || []).map((col) => ({
+  return (data || []).map((col): CrmColumn => ({
     id: col.id,
     name: col.name,
     position: col.position,
@@ -23,7 +23,7 @@ export function mapColumns(data: RawRow[]): CrmColumn[] {
 }
 
 export function mapTags(data: RawRow[]): CrmTag[] {
-  return (data || []).map((t) => ({
+  return (data || []).map((t): CrmTag => ({
     id: t.id,
     name: t.name,
     color: t.color,
@@ -37,7 +37,7 @@ export function mapCards(
   cardTagRows: RawRow[],
   tags: CrmTag[]
 ): CrmCard[] {
-  return (data || []).map((card) => {
+  return (data || []).map((card): CrmCard => {
     const cardTagIds = cardTagRows
       .filter((ct) => ct.card_id === card.id)
       .map((ct) => ct.tag_id);
@@ -85,7 +85,7 @@ export function mapCards(
 }
 
 export function mapAttachments(data: RawRow[]): CrmAttachment[] {
-  return (data || []).map((a) => ({
+  return (data || []).map((a): CrmAttachment => ({
     id: a.id,
     card_id: a.card_id,
     file_name: a.file_name,
@@ -97,7 +97,7 @@ export function mapAttachments(data: RawRow[]): CrmAttachment[] {
 }
 
 export function mapComments(data: RawRow[]): CrmComment[] {
-  return (data || []).map((c) => ({
+  return (data || []).map((c): CrmComment => ({
     id: c.id,
     card_id: c.card_id,
     author_email: c.author_email,
@@ -108,7 +108,7 @@ export function mapComments(data: RawRow[]): CrmComment[] {
 }
 
 export function mapActivity(data: RawRow[]): CrmActivityLog[] {
-  return (data || []).map((a) => ({
+  return (data || []).map((a): CrmActivityLog => ({
     id: a.id,
     card_id: a.card_id,
     action_type: a.action_type as CrmActivityType,
@@ -121,7 +121,7 @@ export function mapActivity(data: RawRow[]): CrmActivityLog[] {
 }
 
 export function mapEmails(data: RawRow[]): CrmCardEmail[] {
-  return (data || []).map((e) => ({
+  return (data || []).map((e): CrmCardEmail => ({
     id: e.id,
     card_id: e.card_id,
     sender_email: e.sender_email,
