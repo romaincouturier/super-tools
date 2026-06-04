@@ -620,6 +620,12 @@ const Formations = () => {
                                 title="Actions programmées"
                               />
                             )}
+                            {newSurveyTrainings.has(training.id) && (
+                              <span
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-destructive"
+                                title="Nouvelle réponse au sondage"
+                              />
+                            )}
                             {isUpcoming && daysUntil >= 0 && (
                               <Badge
                                 variant={daysUntil <= 7 ? "default" : "secondary"}
