@@ -6,6 +6,7 @@ import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { Button } from "@/components/ui/button";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useMissions, useMoveMission, useUpdateMission, useMissionIdsWithFutureScheduledActions } from "@/hooks/useMissions";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
@@ -53,6 +54,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const updateMission = useUpdateMission();
   const delayGoogleReview = useAppSetting("delay_mission_google_review_days", "2");
   const delayVideoTestimonial = useAppSetting("delay_mission_video_testimonial_days", "4");
+  const { markSeen: markSurveySeen } = useNewSurveyResponses("mission");
 
   // Track the selected mission by id only, then derive the fresh object from
   // the React Query cache on every render. Storing the whole object as state
@@ -258,7 +260,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
             newPosition,
           });
         }}
-        onCardClick={(card) => setSelectedMissionId(card.id)}
+        onCardClick={(card) => { markSurveySeen(card.id); setSelectedMissionId(card.id); }}
       />
 
       <CreateMissionDialog

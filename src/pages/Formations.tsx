@@ -11,6 +11,7 @@ import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { parseISO, isPast, isFuture, isToday, differenceInDays } from "date-fns";
 import { formatDateRange } from "@/lib/dateFormatters";
 import ModuleLayout from "@/components/ModuleLayout";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -301,6 +302,8 @@ const Formations = () => {
     const actionsByTraining = new Set(trainingActions.map((a) => a.training_id));
     return (trainingId: string) => actionsByTraining.has(trainingId);
   }, [trainingActions]);
+
+  const { newSet: newSurveyTrainings } = useNewSurveyResponses("training");
 
   // Sort past trainings
   const sortedPastTrainings = useMemo(() => {
@@ -617,6 +620,12 @@ const Formations = () => {
                                 title="Actions programmées"
                               />
                             )}
+                            {newSurveyTrainings.has(training.id) && (
+                              <span
+                                className="inline-block w-2.5 h-2.5 rounded-full bg-destructive"
+                                title="Nouvelle réponse au sondage"
+                              />
+                            )}
                             {isUpcoming && daysUntil >= 0 && (
                               <Badge
                                 variant={daysUntil <= 7 ? "default" : "secondary"}
@@ -745,6 +754,12 @@ const Formations = () => {
                                 <span
                                   className="inline-block w-2.5 h-2.5 rounded-full bg-warning"
                                   title="Actions programmées"
+                                />
+                              )}
+                              {newSurveyTrainings.has(training.id) && (
+                                <span
+                                  className="inline-block w-2.5 h-2.5 rounded-full bg-destructive"
+                                  title="Nouvelle réponse au sondage"
                                 />
                               )}
                             </div>

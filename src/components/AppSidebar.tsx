@@ -10,6 +10,7 @@ import { useSettingsAlerts } from "@/hooks/useSettingsAlerts";
 import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 import { useEmailDraftsAlert } from "@/hooks/useEmailDraftsAlert";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
@@ -124,7 +125,10 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const lmsAlert = (communityPending?.total ?? 0) > 0;
   const evaluationsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.evaluations", table: "training_evaluations", route: "/evaluations" });
   const besoinsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.besoins", table: "questionnaire_besoins", route: "/besoins" });
-  const formationsGroupAlert = evaluationsAlert || besoinsAlert;
+  const { hasAny: trainingSurveyAlert } = useNewSurveyResponses("training");
+  const { hasAny: missionSurveyAlert } = useNewSurveyResponses("mission");
+  const formationsGroupAlert = evaluationsAlert || besoinsAlert || trainingSurveyAlert;
+  const missionsAlert = missionSurveyAlert;
 
 
 
@@ -269,6 +273,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               : entry.key === "support" ? supportAlert
               : entry.key === "crm" ? crmAlert
               : entry.key === "lms" ? lmsAlert
+              : entry.key === "missions" ? missionsAlert
               : undefined;
             return (
               <RailItem

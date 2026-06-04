@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { MapPin, ExternalLink, Mail, Loader2 } from "lucide-react";
 import { toastError } from "@/lib/toastError";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,6 +27,11 @@ import { fr } from "date-fns/locale";
 const FormationDetail = () => {
   const fd = useFormationDetail();
   const [sendingVenueBooking, setSendingVenueBooking] = useState(false);
+  const { markSeen: markSurveySeen } = useNewSurveyResponses("training");
+
+  useEffect(() => {
+    if (fd.training?.id) markSurveySeen(fd.training.id);
+  }, [fd.training?.id, markSurveySeen]);
 
   const handleResendVenueBooking = async () => {
     if (!fd.training?.id) return;
