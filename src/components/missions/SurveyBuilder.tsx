@@ -27,6 +27,7 @@ import {
   Check,
   Mail,
   Download,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,10 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { MissionPage } from "@/hooks/useMissions";
 import SurveyResults from "./SurveyResults";
 
+const FREE_EXPRESSION_LABEL = "Expression libre, vous avez quelque chose à ajouter ? À préciser ?";
+
+const isExpressionLibre = (q: SurveyQuestion) => q.label === FREE_EXPRESSION_LABEL;
+
 const QUESTION_TYPES = [
   { value: "text", label: "Texte court" },
   { value: "textarea", label: "Texte long" },
@@ -70,12 +75,17 @@ function SortableQuestion({
   question,
   onUpdate,
   onDelete,
+  locked = false,
 }: {
   question: SurveyQuestion;
   onUpdate: (q: Partial<SurveyQuestion> & { survey_id: string; id: string }) => void;
   onDelete: () => void;
+  locked?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: question.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: question.id,
+    disabled: locked,
+  });
   const [expanded, setExpanded] = useState(false);
   const [localLabel, setLocalLabel] = useState(question.label);
   const [localDesc, setLocalDesc] = useState(question.description ?? "");
@@ -98,27 +108,29 @@ function SortableQuestion({
   const isChoice = question.type === "single_choice" || question.type === "multiple_choice";
 
   return (
-    <div ref={setNodeRef} style={style} className="border rounded-lg bg-background">
+    <div ref={setNodeRef} style={style} className={`border rounded-lg bg-background ${locked ? "border-muted" : ""}`}>
       <div className="flex items-center gap-2 p-3">
-        <button {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground">
-          <GripVertical className="h-4 w-4" />
-        </button>
-        <Badge variant="secondary" className="text-xs shrink-0">
+        {locked ? (
+          <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+        ) : (
+          <button {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground">
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
+        <Badge variant={locked ? "outline" : "secondary"} className="text-xs shrink-0">
           {QUESTION_TYPES.find((t) => t.value === question.type)?.label}
         </Badge>
-        <Input
-          value={localLabel}
-          onChange={(e) => setLocalLabel(e.target.value)}
-          onBlur={() => save({ label: localLabel })}
-          placeholder="Question..."
-          className="flex-1 border-0 shadow-none focus-visible:ring-0 px-0"
-        />
+        <span className={`flex-1 text-sm px-0 ${locked ? "text-muted-foreground italic" : ""}`}>
+          {question.label}
+        </span>
         <button onClick={() => setExpanded((e) => !e)} className="text-muted-foreground hover:text-foreground">
           {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </button>
-        <button onClick={onDelete} className="text-muted-foreground hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
-        </button>
+        {!locked && (
+          <button onClick={onDelete} className="text-muted-foreground hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {expanded && (
@@ -264,7 +276,18 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
 
   useEffect(() => {
     setLocalQuestions(questions);
-  }, [questions]);
+    if (!survey) return;
+    const last = questions[questions.length - 1];
+    if (!last || !isExpressionLibre(last)) {
+      upsertQuestion.mutate({
+        survey_id: survey.id,
+        type: "textarea",
+        label: FREE_EXPRESSION_LABEL,
+        required: false,
+        position: questions.length,
+      });
+    }
+  }, [survey?.id, questions.length]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -277,12 +300,15 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
   const handleAddQuestion = async () => {
     try {
       const s = await ensureSurvey();
+      // Insert before the Expression libre question (always last)
+      const exprIdx = localQuestions.findIndex(isExpressionLibre);
+      const insertAt = exprIdx >= 0 ? exprIdx : localQuestions.length;
       await upsertQuestion.mutateAsync({
         survey_id: s.id,
         type: "text",
         label: "",
         required: false,
-        position: localQuestions.length,
+        position: insertAt,
       });
     } catch (e) {
       toastError(toast, e instanceof Error ? e : "Erreur");
@@ -312,6 +338,9 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
     if (!over || active.id === over.id) return;
     const oldIndex = localQuestions.findIndex((q) => q.id === active.id);
     const newIndex = localQuestions.findIndex((q) => q.id === over.id);
+    // Never allow moving to or past the Expression libre position
+    const exprIdx = localQuestions.findIndex(isExpressionLibre);
+    if (exprIdx >= 0 && newIndex >= exprIdx) return;
     const reordered = arrayMove(localQuestions, oldIndex, newIndex);
     setLocalQuestions(reordered);
     await reorderQuestions.mutateAsync({
@@ -447,6 +476,7 @@ export default function SurveyBuilder({ page, missionId }: { page: MissionPage; 
                         question={q}
                         onUpdate={handleUpdateQuestion}
                         onDelete={() => handleDeleteQuestion(q.id)}
+                        locked={isExpressionLibre(q)}
                       />
                     ))}
                   </div>
