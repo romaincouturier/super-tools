@@ -185,7 +185,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
 
       const authorEmail = user?.email || "romain@supertilt.fr";
       const calendarUrl = `${window.location.origin}/lms/${courseId}/home?view=calendar`;
-      const content = `🎬 Le replay du live « ${meetingTitle} » est disponible ! 🎉\n\nVous pouvez le retrouver dès maintenant dans le calendrier des lives :\n${calendarUrl}\n\nBon visionnage 👀`;
+      const content = `🎬 Le replay du live « ${meetingTitle} » est disponible ! 🎉\n\nVous pouvez le retrouver dès maintenant dans le [calendrier des lives](${calendarUrl}).\n\nBon visionnage 👀`;
 
       await (supabase as any)
         .from("practice_posts")
