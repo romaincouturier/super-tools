@@ -5,9 +5,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck } from "lucide-react";
+import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck, Send } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface ParticipantTraceabilityDrawerProps {
   open: boolean;
@@ -98,6 +99,24 @@ const ParticipantTraceabilityDrawer = ({
   const [evaluation, setEvaluation] = useState<EvaluationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResend = async (emailId: string) => {
+    setResendingId(emailId);
+    try {
+      const { data, error } = await supabase.functions.invoke("resend-logged-email", {
+        body: { logId: emailId, recipientOverride: participantEmail },
+      });
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || "Erreur lors du renvoi");
+      }
+      toast.success(`Email renvoyé à ${participantEmail}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec du renvoi");
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -260,7 +279,23 @@ const ParticipantTraceabilityDrawer = ({
                             )}
                           </button>
                           {isExpanded && (
-                            <div className="border-t px-4 py-3">
+                            <div className="border-t px-4 py-3 space-y-3">
+                              <div className="flex justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5"
+                                  disabled={resendingId === email.id}
+                                  onClick={(e) => { e.stopPropagation(); handleResend(email.id); }}
+                                >
+                                  {resendingId === email.id ? (
+                                    <Spinner size="sm" />
+                                  ) : (
+                                    <Send className="h-3.5 w-3.5" />
+                                  )}
+                                  Renvoyer
+                                </Button>
+                              </div>
                               <div
                                 className="prose prose-sm max-w-none text-sm [&_img]:max-w-full [&_table]:text-xs"
                                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_content || "", { ADD_ATTR: ["target"] }) }}
