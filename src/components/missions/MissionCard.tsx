@@ -58,7 +58,13 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
             className="shrink-0 mt-0.5"
           />
         </span>
-        <h4 className="font-medium text-sm line-clamp-2">{mission.title}</h4>
+        <h4 className="font-medium text-sm line-clamp-2 flex-1">{mission.title}</h4>
+        {hasNewSurvey && (
+          <span
+            className="inline-block w-2.5 h-2.5 rounded-full bg-destructive shrink-0 mt-1"
+            title="Nouvelle réponse au sondage"
+          />
+        )}
       </div>
 
       {/* Client */}
