@@ -32,6 +32,41 @@ import {
   SourceFinancementSelector,
 } from "@/components/formations/FormationFormFields";
 
+interface TrainingExtended {
+  training_name: string;
+  location: string;
+  venue_id?: string | null;
+  client_name: string;
+  client_address?: string | null;
+  sold_price_ht?: number | null;
+  ancillary_fees_ht?: number | null;
+  max_participants?: number | null;
+  session_type?: string | null;
+  session_format?: string | null;
+  format_formation?: string | null;
+  prerequisites?: string[] | null;
+  objectives?: string[] | null;
+  program_file_url?: string | null;
+  supertilt_link?: string | null;
+  private_group_url?: string | null;
+  sponsor_first_name?: string | null;
+  sponsor_last_name?: string | null;
+  sponsor_email?: string | null;
+  sponsor_formal_address?: boolean | null;
+  trainer_id?: string | null;
+  assigned_to?: string | null;
+  financeur_same_as_sponsor?: boolean | null;
+  financeur_name?: string | null;
+  financeur_url?: string | null;
+  notes?: string | null;
+  specific_instructions?: string | null;
+  catalog_id?: string | null;
+  source_financement_bpf?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  elearning_access_email_content?: string | null;
+}
+
 const FormationEdit = () => {
   const { id } = useParams<{ id: string }>();
   const [saving, setSaving] = useState(false);
@@ -65,62 +100,63 @@ const FormationEdit = () => {
 
       if (trainingError) throw trainingError;
 
+      const t = training as unknown as TrainingExtended;
+
       // Set form values
-      form.setTrainingName(training.training_name);
-      setLocation(training.location);
-      const loadedVenueId = (training as unknown as { venue_id?: string | null }).venue_id ?? null;
-      setVenueId(loadedVenueId);
-      form.setClientName(training.client_name);
-      form.setClientAddress(training.client_address || "");
-      form.setSoldPriceHt(training.sold_price_ht != null ? String(training.sold_price_ht) : "");
-      form.setAncillaryFeesHt((training as any).ancillary_fees_ht != null ? String((training as any).ancillary_fees_ht) : "");
-      form.setMaxParticipants(training.max_participants != null ? String(training.max_participants) : "");
+      form.setTrainingName(t.training_name);
+      setLocation(t.location);
+      setVenueId(t.venue_id ?? null);
+      form.setClientName(t.client_name);
+      form.setClientAddress(t.client_address || "");
+      form.setSoldPriceHt(t.sold_price_ht != null ? String(t.sold_price_ht) : "");
+      form.setAncillaryFeesHt(t.ancillary_fees_ht != null ? String(t.ancillary_fees_ht) : "");
+      form.setMaxParticipants(t.max_participants != null ? String(t.max_participants) : "");
 
       // Load session_type/session_format with fallback from legacy format_formation
-      if ((training as unknown as { session_type?: string }).session_type) {
-        form.setSessionType((training as unknown as { session_type?: string }).session_type);
+      if (t.session_type) {
+        form.setSessionType(t.session_type);
       } else {
-        const ff = training.format_formation;
+        const ff = t.format_formation;
         if (ff === "inter-entreprises" || ff === "e_learning") form.setSessionType("inter");
         else if (ff) form.setSessionType("intra");
       }
-      if ((training as unknown as { session_format?: string }).session_format) {
-        form.setSessionFormat((training as unknown as { session_format?: string }).session_format);
+      if (t.session_format) {
+        form.setSessionFormat(t.session_format);
       } else {
-        const ff = training.format_formation;
+        const ff = t.format_formation;
         if (ff === "e_learning") form.setSessionFormat("distanciel_asynchrone");
         else if (ff === "classe_virtuelle") form.setSessionFormat("distanciel_synchrone");
         else if (ff) form.setSessionFormat("presentiel");
       }
 
-      form.setPrerequisites(training.prerequisites || []);
-      form.setObjectives(training.objectives || []);
-      form.setProgramFileUrl(training.program_file_url || "");
-      form.setSupertiltLink(training.supertilt_link || "");
-      form.setPrivateGroupUrl((training as unknown as { private_group_url?: string }).private_group_url || "");
-      form.setSponsorFirstName(training.sponsor_first_name || "");
-      form.setSponsorLastName(training.sponsor_last_name || "");
-      form.setSponsorEmail(training.sponsor_email || "");
-      form.setSponsorFormalAddress(training.sponsor_formal_address ?? false);
-      form.setTrainerId(training.trainer_id || null);
-      form.setAssignedTo((training as unknown as { assigned_to?: string | null }).assigned_to || null);
-      form.setFinanceurSameAsSponsor(training.financeur_same_as_sponsor ?? true);
-      form.setFinanceurName(training.financeur_name || "");
-      form.setFinanceurUrl(training.financeur_url || "");
-      form.setTrainingNotes((training as unknown as { notes?: string }).notes || "");
-      form.setSpecificInstructions((training as unknown as { specific_instructions?: string }).specific_instructions || "");
-      form.setCatalogId((training as unknown as { catalog_id?: string | null }).catalog_id || null);
-      setSourceFinancementBpf((training as unknown as { source_financement_bpf?: string | null }).source_financement_bpf || null);
+      form.setPrerequisites(t.prerequisites || []);
+      form.setObjectives(t.objectives || []);
+      form.setProgramFileUrl(t.program_file_url || "");
+      form.setSupertiltLink(t.supertilt_link || "");
+      form.setPrivateGroupUrl(t.private_group_url || "");
+      form.setSponsorFirstName(t.sponsor_first_name || "");
+      form.setSponsorLastName(t.sponsor_last_name || "");
+      form.setSponsorEmail(t.sponsor_email || "");
+      form.setSponsorFormalAddress(t.sponsor_formal_address ?? false);
+      form.setTrainerId(t.trainer_id || null);
+      form.setAssignedTo(t.assigned_to || null);
+      form.setFinanceurSameAsSponsor(t.financeur_same_as_sponsor ?? true);
+      form.setFinanceurName(t.financeur_name || "");
+      form.setFinanceurUrl(t.financeur_url || "");
+      form.setTrainingNotes(t.notes || "");
+      form.setSpecificInstructions(t.specific_instructions || "");
+      form.setCatalogId(t.catalog_id || null);
+      setSourceFinancementBpf(t.source_financement_bpf || null);
 
       // For e-learning, load start/end dates directly
       const loadedIsElearning =
-        (training as unknown as { session_format?: string }).session_format === "distanciel_asynchrone" ||
-        training.format_formation === "e_learning";
+        t.session_format === "distanciel_asynchrone" ||
+        t.format_formation === "e_learning";
 
       if (loadedIsElearning) {
-        if (training.start_date) form.setElearningStartDate(parseISO(training.start_date));
-        if (training.end_date) form.setElearningEndDate(parseISO(training.end_date));
-        form.setElearningAccessEmailContent(training.elearning_access_email_content || "");
+        if (t.start_date) form.setElearningStartDate(parseISO(t.start_date));
+        if (t.end_date) form.setElearningEndDate(parseISO(t.end_date));
+        form.setElearningAccessEmailContent(t.elearning_access_email_content || "");
         form.setSchedules([]);
         form.setSelectedDates([]);
       } else {
@@ -141,12 +177,12 @@ const FormationEdit = () => {
               end_time: s.end_time,
             }))
           );
-        } else if (training.start_date) {
-          const start = parseISO(training.start_date);
+        } else if (t.start_date) {
+          const start = parseISO(t.start_date);
           form.setSelectedDates([start]);
           form.setSchedules([
             {
-              day_date: training.start_date,
+              day_date: t.start_date,
               start_time: SESSION_PRESETS.full.start,
               end_time: SESSION_PRESETS.full.end,
               session_type: "full",
@@ -158,11 +194,11 @@ const FormationEdit = () => {
       form.setDataLoaded(true);
 
       // Fetch formulas if linked to catalog
-      if ((training as unknown as { catalog_id?: string | null }).catalog_id) {
+      if (t.catalog_id) {
         const { data: formulas } = await supabase
           .from("formation_formulas")
           .select("id")
-          .eq("formation_config_id", (training as unknown as { catalog_id?: string | null }).catalog_id);
+          .eq("formation_config_id", t.catalog_id);
         form.setHasFormulas((formulas?.length ?? 0) > 0);
       }
 

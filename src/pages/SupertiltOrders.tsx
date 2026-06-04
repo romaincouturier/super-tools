@@ -160,14 +160,14 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
       <DialogContent className="w-full max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Commande #{(item.woocommerce_orders as any)?.order_number ?? item.wc_order_id} — {item.product_name}
+            Commande #{item.woocommerce_orders?.order_number ?? item.wc_order_id} — {item.product_name}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 text-sm">
           <div className="grid grid-cols-2 gap-3">
             <div><span className="text-muted-foreground">Produit WC</span><p className="font-medium">{item.product_name} (ID #{item.wc_product_id})</p></div>
             <div><span className="text-muted-foreground">Quantité</span><p className="font-medium">{item.quantity}</p></div>
-            <div><span className="text-muted-foreground">Jeu identifié</span><p className="font-medium">{(item.games as any)?.title ?? "—"}</p></div>
+            <div><span className="text-muted-foreground">Jeu identifié</span><p className="font-medium">{item.games?.title ?? "—"}</p></div>
             <div><span className="text-muted-foreground">Type</span><p className="font-medium">{item.game_type ? GAME_TYPE_LABELS[item.game_type] : "—"}</p></div>
             <div><span className="text-muted-foreground">Total ligne</span><p className="font-medium">{item.line_total ? EUR(item.line_total) : "—"}</p></div>
             <div><span className="text-muted-foreground">Email envoyé</span><p className="font-medium">{item.email_sent_at ? DATE(item.email_sent_at) : "Non"}</p></div>
@@ -238,7 +238,7 @@ function ItemDetailDialog({ item, onClose }: { item: OrderItem; onClose: () => v
             <details>
               <summary className="cursor-pointer text-muted-foreground font-medium">Commande WooCommerce complète</summary>
               <pre className="mt-2 text-xs bg-muted p-3 rounded overflow-auto max-h-64">
-                {JSON.stringify((item.woocommerce_orders as any).raw_order ?? {}, null, 2)}
+                {JSON.stringify(item.woocommerce_orders?.raw_order ?? {}, null, 2)}
               </pre>
             </details>
           )}
@@ -607,7 +607,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const { mutateAsync: markShipped, isPending: markingShipped } = useMarkShippedConfirmed();
   const { toast } = useToast();
 
-  const order = item.woocommerce_orders as any;
+  const order = item.woocommerce_orders;
   const customerName = order
     ? [order.customer_first_name, order.customer_last_name].filter(Boolean).join(" ") || order.customer_email
     : `Commande #${item.wc_order_id}`;
@@ -653,7 +653,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <p>{customerName}</p>
         {order?.date_created && <p>{DATE(order.date_created)}</p>}
         <p>Qté : {item.quantity}{item.line_total ? ` — ${EUR(item.line_total)}` : ""}</p>
-        {(item.games as any)?.title && <p>Jeu : {(item.games as any).title}</p>}
+        {item.games?.title && <p>Jeu : {item.games.title}</p>}
         {item.email_sent_at && (
           <p className="flex items-center gap-1 text-green-700">
             <Send className="h-3 w-3" />
@@ -738,10 +738,10 @@ function Kanban() {
     // Exclure les commandes routées vers une formation
     if ((i.game_type as string) === "formation") return false;
     if (!filter) return true;
-    const order = i.woocommerce_orders as any;
+    const order = i.woocommerce_orders;
     return (
       i.product_name?.toLowerCase().includes(filter) ||
-      (i.games as any)?.title?.toLowerCase().includes(filter) ||
+      i.games?.title?.toLowerCase().includes(filter) ||
       String(i.wc_order_id).includes(filter) ||
       order?.customer_email?.toLowerCase().includes(filter) ||
       [order?.customer_first_name, order?.customer_last_name].join(" ").toLowerCase().includes(filter)
@@ -987,8 +987,8 @@ function GameDialog({
                 <Label>Prix de revient unitaire HT (€)</Label>
                 <Input
                   type="number" min="0" step="0.01"
-                  value={(form as any).cost_price ?? ""}
-                  onChange={(e) => set("cost_price" as any, e.target.value ? parseFloat(e.target.value) : null)}
+                  value={form.cost_price ?? ""}
+                  onChange={(e) => set("cost_price", e.target.value ? parseFloat(e.target.value) : null)}
                   placeholder="Coût d'achat / fabrication par exemplaire"
                 />
                 <p className="text-xs text-muted-foreground">Utilisé pour calculer la marge réelle dans le bilan (CA SuperTilt − prix de revient × qté − dépenses).</p>
@@ -1105,7 +1105,7 @@ function Catalog() {
                     {GAME_TYPE_LABELS[g.game_type]}
                   </span>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{(g.game_authors as any)?.name ?? "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{g.game_authors?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{g.woocommerce_product_id ?? "—"}</TableCell>
                 <TableCell className="text-sm">
                   {g.commission_type === "percentage" && g.commission_rate != null
@@ -1153,10 +1153,10 @@ function Sales() {
   const processed = (items ?? []).filter((i) => i.kanban_status === "processed" || i.email_sent_at);
   const filtered = processed.filter((i) => {
     if (!search) return true;
-    const order = i.woocommerce_orders as any;
+    const order = i.woocommerce_orders;
     return (
       i.product_name?.toLowerCase().includes(search.toLowerCase()) ||
-      (i.games as any)?.title?.toLowerCase().includes(search.toLowerCase()) ||
+      i.games?.title?.toLowerCase().includes(search.toLowerCase()) ||
       order?.customer_email?.toLowerCase().includes(search.toLowerCase()) ||
       String(i.wc_order_id).includes(search)
     );
@@ -1164,11 +1164,11 @@ function Sales() {
 
   const handleExport = () => exportCsv(
     filtered.map((i) => {
-      const order = i.woocommerce_orders as any;
+      const order = i.woocommerce_orders;
       return {
         Date: order?.date_created ? DATE(order.date_created) : "",
         "Commande #": order?.order_number ?? i.wc_order_id,
-        Jeu: (i.games as any)?.title ?? i.product_name ?? "",
+        Jeu: i.games?.title ?? i.product_name ?? "",
         Client: [order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || order?.customer_email || "",
         "Email client": order?.customer_email ?? "",
         Quantité: i.quantity,
@@ -1214,12 +1214,12 @@ function Sales() {
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Aucune vente traitée</TableCell></TableRow>
             )}
             {filtered.map((i) => {
-              const order = i.woocommerce_orders as any;
+              const order = i.woocommerce_orders;
               return (
                 <TableRow key={i.id}>
                   <TableCell className="text-sm">{order?.date_created ? DATE(order.date_created) : "—"}</TableCell>
                   <TableCell className="text-sm font-mono">{order?.order_number ?? i.wc_order_id}</TableCell>
-                  <TableCell className="text-sm font-medium">{(i.games as any)?.title ?? i.product_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm font-medium">{i.games?.title ?? i.product_name ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {[order?.customer_first_name, order?.customer_last_name].filter(Boolean).join(" ") || order?.customer_email || "—"}
                   </TableCell>
@@ -1280,7 +1280,7 @@ function EmailLogTab() {
             <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucun email envoyé</TableCell></TableRow>
           )}
           {(logs ?? []).map((l) => {
-            const item = l.order_items as any;
+            const item = l.order_items;
             const isDropshipping = item?.games?.game_type === "dropshipping";
             const invoiceReceived = !!item?.invoice_received_at;
             return (
