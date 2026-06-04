@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { MapPin, ExternalLink, Mail, Loader2 } from "lucide-react";
 import { toastError } from "@/lib/toastError";
 import { Spinner } from "@/components/ui/spinner";
