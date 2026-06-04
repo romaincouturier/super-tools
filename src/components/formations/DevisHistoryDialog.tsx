@@ -13,6 +13,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { DevisHistoryItem } from "@/types/formations";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskText, maskName } from "@/lib/demoMask";
 
 interface DevisHistoryDialogProps {
   historyDialogOpen: boolean;
@@ -35,6 +37,7 @@ export default function DevisHistoryDialog({
   onDuplicate,
   onDelete,
 }: DevisHistoryDialogProps) {
+  const { isDemoMode } = useDemoMode();
   return (
     <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
       <DialogTrigger asChild>
@@ -82,11 +85,11 @@ export default function DevisHistoryDialog({
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <p className="font-medium text-sm">
-                        {item.details?.formation_name || "Formation"}
+                        {isDemoMode ? maskText(item.details?.formation_name || "Formation") : (item.details?.formation_name || "Formation")}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Mail className="w-3 h-3" />
-                        <span>{item.recipient_email}</span>
+                        <span>{isDemoMode ? maskEmail(item.recipient_email) : item.recipient_email}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -114,7 +117,7 @@ export default function DevisHistoryDialog({
                     </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>Client : {item.details?.client_name || "—"}</span>
+                    <span>Client : {isDemoMode ? maskName(item.details?.client_name || "—") : (item.details?.client_name || "—")}</span>
                     <span>Participants : {item.details?.nb_participants || "—"}</span>
                     <span className="capitalize">
                       {item.details?.type_subrogation === "les2" ? "2 versions" :
