@@ -69,9 +69,23 @@ export interface PracticeComment {
 const POSTS_KEY = ["practice_posts"];
 const COMMENTS_KEY = (postId: string) => ["practice_comments", postId];
 
+/** Supabase client alias for tables absent from generated types. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 function clientFor(email?: string | null, asAdmin = false) {
   if (asAdmin) return supabase;
   return email ? createLearnerClient(email) : supabase;
+}
+
+/**
+ * Returns a Supabase-compatible query client for tables not present in the
+ * generated schema. Accepts either the main supabase client or a learner
+ * client (both expose the same `.from()` API at runtime).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function clientDb(email?: string | null, asAdmin = false): any {
+  return clientFor(email, asAdmin);
 }
 
 

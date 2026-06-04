@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCallback } from "react";
 
+/**
+ * Access Supabase tables that are not yet in the generated types schema.
+ * Using a cast here is intentional: these tables exist in the DB but are
+ * absent from the auto-generated TypeScript definitions.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export type GameType = "supertilt" | "dropshipping" | "location" | "partner";
@@ -169,7 +177,7 @@ export function useGamesFullCatalog() {
   return useQuery({
     queryKey: ["games-full"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("games")
         .select("*, game_authors(*)")
         .order("title");
@@ -184,10 +192,10 @@ export function useUpsertGameFull() {
   return useMutation({
     mutationFn: async (payload: Partial<GameFull> & { title: string }) => {
       // Strip joined relations and read-only fields before upsert
-      const { game_authors: _ga, created_at: _ca, updated_at: _ua, ...clean } = payload as any;
+      const { game_authors: _ga, created_at: _ca, updated_at: _ua, ...clean } = payload as Partial<GameFull> & { title: string; id?: string };
       const { data, error } = clean.id
-        ? await (supabase as any).from("games").update(clean).eq("id", clean.id).select().single()
-        : await (supabase as any).from("games").insert(clean).select().single();
+        ? await db.from("games").update(clean).eq("id", clean.id).select().single()
+        : await db.from("games").insert(clean).select().single();
       if (error) throw error;
       return data as GameFull;
     },
@@ -199,7 +207,7 @@ export function useDeleteGameFull() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("games").delete().eq("id", id);
+      const { error } = await db.from("games").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["games-full"] }),
@@ -212,7 +220,7 @@ export function useAuthorsFullList() {
   return useQuery({
     queryKey: ["authors-full"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("game_authors")
         .select("*")
         .order("name");
@@ -227,8 +235,8 @@ export function useUpsertAuthorFull() {
   return useMutation({
     mutationFn: async (payload: Partial<GameAuthorFull> & { name: string }) => {
       const { data, error } = payload.id
-        ? await (supabase as any).from("game_authors").update(payload).eq("id", payload.id).select().single()
-        : await (supabase as any).from("game_authors").insert(payload).select().single();
+        ? await db.from("game_authors").update(payload).eq("id", payload.id).select().single()
+        : await db.from("game_authors").insert(payload).select().single();
       if (error) throw error;
       return data as GameAuthorFull;
     },
@@ -242,7 +250,7 @@ export function useOrderItems(kanbanStatus?: KanbanStatus) {
   return useQuery({
     queryKey: ["order-items", kanbanStatus],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = db
         .from("order_items")
         .select(`*, woocommerce_orders(*), games(id, title, game_type, game_authors(name))`)
         .order("created_at", { ascending: false })
@@ -259,7 +267,7 @@ export function useAllOrderItems() {
   return useQuery({
     queryKey: ["order-items-all"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("order_items")
         .select(`*, woocommerce_orders(*), games(id, title, game_type, game_authors(name))`)
         .order("created_at", { ascending: false })
@@ -289,7 +297,7 @@ export function useUpdateOrderItemStatus() {
       if (block_reason !== undefined) patch.block_reason = block_reason;
       if (notes !== undefined) patch.notes = notes;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("order_items")
         .update(patch)
         .eq("id", id)
@@ -310,7 +318,7 @@ export function useValidateOrderItem() {
   return useMutation({
     mutationFn: async ({ id, game_id }: { id: string; game_id: string }) => {
       // Load game to determine kanban status
-      const { data: game } = await (supabase as any)
+      const { data: game } = await db
         .from("games")
         .select("game_type")
         .eq("id", game_id)
@@ -323,7 +331,7 @@ export function useValidateOrderItem() {
         gameType === "location" ? "location_pending" :
         "received";
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("order_items")
         .update({
           game_id,
@@ -352,7 +360,7 @@ export function useSendOrderEmail() {
   return useMutation({
     mutationFn: async (params: string | { order_item_id: string; template_key?: string }) => {
       const body = typeof params === "string" ? { order_item_id: params } : params;
-      const { data, error } = await (supabase as any).functions.invoke("supertilt-send-email", {
+      const { data, error } = await db.functions.invoke("supertilt-send-email", {
         body,
       });
       if (error) throw error;
@@ -374,7 +382,7 @@ export function useWooOrders() {
   return useQuery({
     queryKey: ["woo-orders"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("woocommerce_orders")
         .select("*")
         .order("date_created", { ascending: false })
@@ -391,7 +399,7 @@ export function useEmailTemplates() {
   return useQuery({
     queryKey: ["email-templates"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("email_templates")
         .select("*")
         .order("template_key");
@@ -406,8 +414,8 @@ export function useUpsertEmailTemplate() {
   return useMutation({
     mutationFn: async (payload: Partial<EmailTemplate> & { template_key: string }) => {
       const { data, error } = payload.id
-        ? await (supabase as any).from("email_templates").update(payload).eq("id", payload.id).select().single()
-        : await (supabase as any)
+        ? await db.from("email_templates").update(payload).eq("id", payload.id).select().single()
+        : await db
             .from("email_templates")
             .upsert(payload, { onConflict: "template_key" })
             .select()
@@ -425,7 +433,7 @@ export function useEmailLog() {
   return useQuery({
     queryKey: ["email-log"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("order_email_log")
         .select("*, order_items(product_name, invoice_received_at, shipped_confirmed_at, games(title, game_type))")
         .order("sent_at", { ascending: false })
@@ -441,7 +449,7 @@ export function useOrderItemEmailLog(wcOrderId: number | null | undefined) {
     queryKey: ["order-item-email-log", wcOrderId],
     enabled: !!wcOrderId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("order_email_log")
         .select("*")
         .eq("wc_order_id", wcOrderId as number)
@@ -461,7 +469,7 @@ export function useMarkInvoiceReceived() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, received }: { id: string; received: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("order_items")
         .update({ invoice_received_at: received ? new Date().toISOString() : null })
         .eq("id", id);
@@ -479,7 +487,7 @@ export function useMarkShippedConfirmed() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, confirmed }: { id: string; confirmed: boolean }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("order_items")
         .update({ shipped_confirmed_at: confirmed ? new Date().toISOString() : null })
         .eq("id", id);
@@ -499,7 +507,7 @@ export function useSupertiltSettings() {
   return useQuery({
     queryKey: ["supertilt-settings"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("supertilt_settings")
         .select("*");
       if (error) throw error;
@@ -514,7 +522,7 @@ export function useUpsertSupertiltSetting() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
-      const { error } = await (supabase as any)
+      const { error } = await db
         .from("supertilt_settings")
         .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
       if (error) throw error;
@@ -529,7 +537,7 @@ export function useOrderKpis() {
   return useQuery({
     queryKey: ["order-kpis"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("order_items")
         .select("kanban_status, line_total, game_type, created_at, game_id");
       if (error) throw error;
@@ -622,7 +630,7 @@ export function usePartnerTokens(gameId?: string) {
   return useQuery({
     queryKey: ["partner-tokens", gameId],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = db
         .from("partner_access_tokens")
         .select("*, games(title, partner_name)")
         .order("created_at", { ascending: false });
@@ -638,7 +646,7 @@ export function useCreatePartnerToken() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { game_id: string; label?: string; expires_at?: string | null }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("partner_access_tokens")
         .insert(payload)
         .select()
@@ -654,7 +662,7 @@ export function useDeletePartnerToken() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("partner_access_tokens").delete().eq("id", id);
+      const { error } = await db.from("partner_access_tokens").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-tokens"] }),
@@ -669,7 +677,7 @@ export function usePartnerPayments(gameId?: string) {
   return useQuery({
     queryKey: ["partner-payments", gameId],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = db
         .from("partner_payments")
         .select("*, games(title)")
         .order("payment_date", { ascending: false });
@@ -686,8 +694,8 @@ export function useUpsertPartnerPayment() {
   return useMutation({
     mutationFn: async (payload: Partial<PartnerPayment> & { game_id: string; amount: number; payment_date: string }) => {
       const { data, error } = payload.id
-        ? await (supabase as any).from("partner_payments").update(payload).eq("id", payload.id).select().single()
-        : await (supabase as any).from("partner_payments").insert(payload).select().single();
+        ? await db.from("partner_payments").update(payload).eq("id", payload.id).select().single()
+        : await db.from("partner_payments").insert(payload).select().single();
       if (error) throw error;
       return data as PartnerPayment;
     },
@@ -699,7 +707,7 @@ export function useUpdatePaymentStatus() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status, admin_notes }: { id: string; status: "verified" | "rejected"; admin_notes?: string }) => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("partner_payments")
         .update({ status, admin_notes: admin_notes ?? null })
         .eq("id", id)
@@ -716,7 +724,7 @@ export function useDeletePartnerPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("partner_payments").delete().eq("id", id);
+      const { error } = await db.from("partner_payments").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["partner-payments"] }),
@@ -732,7 +740,7 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
     queryKey: ["financial-summary", gameId, from, to],
     queryFn: async () => {
       // Sales
-      let salesQ = (supabase as any)
+      let salesQ = db
         .from("order_items")
         .select("game_id, line_total, commission_amount, quantity, games(id, title, game_type, commission_type, commission_rate, commission_fixed, include_stripe_fees, cost_price)")
         .not("kanban_status", "eq", "to_validate");
@@ -743,7 +751,7 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       if (salesErr) throw salesErr;
 
       // Expenses
-      let expQ = (supabase as any)
+      let expQ = db
         .from("game_expenses")
         .select("game_id, amount_ttc, amount_ht");
       if (gameId) expQ = expQ.eq("game_id", gameId);
@@ -752,7 +760,7 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       const { data: expData } = await expQ;
 
       // Payments
-      let payQ = (supabase as any)
+      let payQ = db
         .from("partner_payments")
         .select("game_id, amount, status");
       if (gameId) payQ = payQ.eq("game_id", gameId);
@@ -844,7 +852,7 @@ export function useGameExpenses(gameId?: string) {
   return useQuery({
     queryKey: ["game-expenses", gameId],
     queryFn: async () => {
-      let q = (supabase as any)
+      let q = db
         .from("game_expenses")
         .select("*, games(title)")
         .order("expense_date", { ascending: false });
@@ -861,8 +869,8 @@ export function useUpsertGameExpense() {
   return useMutation({
     mutationFn: async (payload: Partial<GameExpense> & { game_id: string; expense_date: string; expense_type: string }) => {
       const { data, error } = payload.id
-        ? await (supabase as any).from("game_expenses").update(payload).eq("id", payload.id).select().single()
-        : await (supabase as any).from("game_expenses").insert(payload).select().single();
+        ? await db.from("game_expenses").update(payload).eq("id", payload.id).select().single()
+        : await db.from("game_expenses").insert(payload).select().single();
       if (error) throw error;
       return data as GameExpense;
     },
@@ -874,7 +882,7 @@ export function useDeleteGameExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from("game_expenses").delete().eq("id", id);
+      const { error } = await db.from("game_expenses").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["game-expenses"] }),
@@ -889,7 +897,7 @@ export function useGamesWithStockAlerts() {
   return useQuery({
     queryKey: ["games-stock-alerts"],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("games")
         .select("id, title, game_type, current_stock, min_stock, restock_threshold, restock_items, restock_supplier_urls, restock_contact_email, game_authors(name, email)")
         .eq("status", "active")
@@ -908,7 +916,7 @@ export function useGamesWithStockAlerts() {
 export function useSendRestockEmail() {
   return useMutation({
     mutationFn: async ({ game_id, preview = false }: { game_id: string; preview?: boolean }) => {
-      const { data, error } = await (supabase as any).functions.invoke("supertilt-restock-email", {
+      const { data, error } = await db.functions.invoke("supertilt-restock-email", {
         body: { game_id, preview },
       });
       if (error) throw error;
@@ -943,7 +951,7 @@ export function useLocationContractSignature(orderItemId: string | null | undefi
     queryKey: ["location-contract-signature", orderItemId],
     enabled: !!orderItemId,
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from("location_contract_signatures")
         .select("id, token, order_item_id, recipient_email, recipient_name, game_name, contrat_reference, pdf_url, signed_pdf_url, status, signed_at, email_sent_at, created_at")
         .eq("order_item_id", orderItemId as string)
@@ -960,7 +968,7 @@ export function useGenerateLocationContract() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (orderItemId: string) => {
-      const { data, error } = await (supabase as any).functions.invoke("generate-location-contract", {
+      const { data, error } = await db.functions.invoke("generate-location-contract", {
         body: { orderItemId },
       });
       if (error) throw error;
@@ -978,7 +986,7 @@ export function useSendLocationContractEmail() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ orderItemId, enableOnlineSignature = true }: { orderItemId: string; enableOnlineSignature?: boolean }) => {
-      const { data, error } = await (supabase as any).functions.invoke("send-location-contract-email", {
+      const { data, error } = await db.functions.invoke("send-location-contract-email", {
         body: { orderItemId, enableOnlineSignature },
       });
       if (error) throw error;
