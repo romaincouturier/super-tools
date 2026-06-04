@@ -390,7 +390,7 @@ function ValidateItemDialog({
                   <p className="text-xs text-muted-foreground">Saisissez un titre pour activer la validation.</p>
                 )}
               </div>
-              </div>
+
               <div className="space-y-1">
                 <Label>Type</Label>
                 <Select value={newGameType} onValueChange={(v) => setNewGameType(v as GameType)}>
