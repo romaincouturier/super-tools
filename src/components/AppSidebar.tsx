@@ -273,6 +273,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               : entry.key === "support" ? supportAlert
               : entry.key === "crm" ? crmAlert
               : entry.key === "lms" ? lmsAlert
+              : entry.key === "missions" ? missionsAlert
               : undefined;
             return (
               <RailItem
