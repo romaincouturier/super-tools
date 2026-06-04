@@ -125,7 +125,10 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const lmsAlert = (communityPending?.total ?? 0) > 0;
   const evaluationsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.evaluations", table: "training_evaluations", route: "/evaluations" });
   const besoinsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.besoins", table: "questionnaire_besoins", route: "/besoins" });
-  const formationsGroupAlert = evaluationsAlert || besoinsAlert;
+  const { hasAny: trainingSurveyAlert } = useNewSurveyResponses("training");
+  const { hasAny: missionSurveyAlert } = useNewSurveyResponses("mission");
+  const formationsGroupAlert = evaluationsAlert || besoinsAlert || trainingSurveyAlert;
+  const missionsAlert = missionSurveyAlert;
 
 
 
