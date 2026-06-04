@@ -78,6 +78,7 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
   const [runNotes, setRunNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchMeetings = async () => {
     const { data, error } = await supabase
