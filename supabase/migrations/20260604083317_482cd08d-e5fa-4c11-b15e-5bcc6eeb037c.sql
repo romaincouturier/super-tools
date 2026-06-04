@@ -1,0 +1,1 @@
+DELETE FROM public.missions WHERE id='a5c4dea8-f0cf-45c2-9e54-bbe22c80662d';
