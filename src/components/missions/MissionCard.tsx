@@ -8,6 +8,7 @@ import { useSortableCard } from "@/hooks/useSortableCard";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText, maskAmount } from "@/lib/demoMask";
 import CardTagList from "@/components/shared/kanban/CardTagList";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 
 interface MissionCardProps {
   mission: Mission;
