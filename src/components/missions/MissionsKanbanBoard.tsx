@@ -54,6 +54,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
   const updateMission = useUpdateMission();
   const delayGoogleReview = useAppSetting("delay_mission_google_review_days", "2");
   const delayVideoTestimonial = useAppSetting("delay_mission_video_testimonial_days", "4");
+  const { markSeen: markSurveySeen } = useNewSurveyResponses("mission");
 
   // Track the selected mission by id only, then derive the fresh object from
   // the React Query cache on every render. Storing the whole object as state
