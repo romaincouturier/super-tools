@@ -379,8 +379,17 @@ function ValidateItemDialog({
 
             <TabsContent value="create" className="space-y-3 pt-3">
               <div className="space-y-1">
-                <Label>Titre du jeu</Label>
-                <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+                <Label>Titre du jeu <span className="text-destructive">*</span></Label>
+                <Input
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Saisir le titre du jeu"
+                  autoFocus={!newTitle}
+                />
+                {!newTitle.trim() && (
+                  <p className="text-xs text-muted-foreground">Saisissez un titre pour activer la validation.</p>
+                )}
+              </div>
               </div>
               <div className="space-y-1">
                 <Label>Type</Label>
