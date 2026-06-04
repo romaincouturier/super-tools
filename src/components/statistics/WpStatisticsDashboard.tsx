@@ -193,7 +193,7 @@ function TrendChart({ hitsData, days }: { hitsData: unknown; days: number }) {
 /* ─── Data Table generic ─── */
 function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }: {
   data: unknown;
-  columns: { key: string; label: string; align?: "left" | "right"; render?: (row: Record<string, unknown>) => React.ReactNode }[];
+  columns: { key: string; label: string; align?: "left" | "right"; render?: (row: any) => React.ReactNode }[];
   emptyMsg?: string;
   maxRows?: number;
 }) {
