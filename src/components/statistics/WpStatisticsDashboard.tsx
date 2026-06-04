@@ -220,7 +220,7 @@ function DataTable({ data, columns, emptyMsg = "Aucune donnée", maxRows = 20 }:
             <tr key={i} className="border-b border-border/50">
               {columns.map((col) => (
                 <td key={col.key} className={`py-1.5 pr-4 ${col.align === "right" ? "text-right font-medium" : "truncate max-w-[300px]"}`}>
-                  {col.render ? col.render(row) : (row[col.key] || "—")}
+                  {col.render ? col.render(row) : ((row[col.key] as React.ReactNode) || "—")}
                 </td>
               ))}
             </tr>
