@@ -20,6 +20,8 @@ interface MissionCardProps {
 const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChange }: MissionCardProps) => {
   const { ref, style, attributes, listeners, isDragging } = useSortableCard(mission.id, isDraggingProp);
   const { isDemoMode } = useDemoMode();
+  const { newSet: newSurveyMissions } = useNewSurveyResponses("mission");
+  const hasNewSurvey = newSurveyMissions.has(mission.id);
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
