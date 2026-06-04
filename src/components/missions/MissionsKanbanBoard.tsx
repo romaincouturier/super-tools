@@ -259,7 +259,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
             newPosition,
           });
         }}
-        onCardClick={(card) => setSelectedMissionId(card.id)}
+        onCardClick={(card) => { markSurveySeen(card.id); setSelectedMissionId(card.id); }}
       />
 
       <CreateMissionDialog
