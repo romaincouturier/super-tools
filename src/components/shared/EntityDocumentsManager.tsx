@@ -2,7 +2,7 @@
  * Reusable document manager for any entity (missions, trainings, etc.).
  * Handles upload, download, delete with consistent UI.
  */
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Upload, Download, Trash2, Package, FileAudio, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -168,6 +168,11 @@ const EntityDocumentsManager = ({
     }
   }, [entityType, deleteDocument, entityId]);
 
+  const sortedDocuments = useMemo(
+    () => [...documents].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)),
+    [documents],
+  );
+
   const getProcessingLabel = (doc: typeof documents[number]) => {
     if (doc.processing_status === "pending") return "Transcription en attente…";
     if (doc.processing_status === "processing") {
@@ -221,7 +226,7 @@ const EntityDocumentsManager = ({
         </div>
       ) : (
         <div className="space-y-2">
-          {[...documents].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((doc) => (
+          {sortedDocuments.map((doc) => (
             <div
               key={doc.id}
               className="flex items-center justify-between gap-2 py-2 px-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"

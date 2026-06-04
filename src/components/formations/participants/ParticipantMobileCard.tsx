@@ -1,3 +1,4 @@
+import React from "react";
 import { Send, Clock, Linkedin, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusConfig } from "./statusConfig";
@@ -126,4 +127,4 @@ const ParticipantMobileCard = ({
   );
 };
 
-export default ParticipantMobileCard;
+export default React.memo(ParticipantMobileCard);
