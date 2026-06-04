@@ -29,7 +29,7 @@ import {
 } from "@/hooks/useDashboardData";
 import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
 import { useDemoMode } from "@/contexts/DemoModeContext";
-import { maskName } from "@/lib/demoMask";
+import { maskAmount } from "@/lib/demoMask";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -114,9 +114,12 @@ function Sparkline({ data, color, width = 64, height = 28, strokeWidth = 1.75 }:
 }
 
 // ── KPI card ─────────────────────────────────────────────────
-function KpiCard({ kpi }: { kpi: DashboardKpi }) {
+function KpiCard({ kpi, demo }: { kpi: DashboardKpi; demo: boolean }) {
   const trendColor = kpi.trend === "up" ? "#1a7a3f" : kpi.trend === "warn" ? "#b45309" : "rgba(16,24,32,0.3)";
   const deltaColor = kpi.trend === "up" ? "#1a7a3f" : kpi.trend === "warn" ? "#b45309" : "rgba(16,24,32,0.5)";
+  const displayValue = demo
+    ? (kpi.value.includes("€") ? maskAmount(kpi.value) : "••")
+    : kpi.value;
   return (
     <div
       style={{
@@ -129,7 +132,7 @@ function KpiCard({ kpi }: { kpi: DashboardKpi }) {
       <div style={{ fontSize: 12, color: "rgba(16,24,32,0.55)", marginBottom: 10 }}>{kpi.label}</div>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <div style={{ fontFamily: serif, fontSize: 30, fontWeight: 500, letterSpacing: -0.8, lineHeight: 1 }}>{kpi.value}</div>
+          <div style={{ fontFamily: serif, fontSize: 30, fontWeight: 500, letterSpacing: -0.8, lineHeight: 1 }}>{displayValue}</div>
           <div
             style={{
               fontSize: 11.5,
@@ -177,7 +180,7 @@ const Dashboard = () => {
     navigate(trimmed ? `/agent?q=${encodeURIComponent(trimmed)}` : "/agent");
   };
 
-  const firstName = isDemoMode ? maskName(dashboard.user.firstName) || "vous" : (dashboard.user.firstName || "vous");
+  const firstName = dashboard.user.firstName || "vous";
 
   return (
     <ModuleLayout>
@@ -353,7 +356,7 @@ const Dashboard = () => {
                 <Spinner />
               </div>
             ) : (
-              dashboard.kpis.map((k) => <KpiCard key={k.id} kpi={k} />)
+              dashboard.kpis.map((k) => <KpiCard key={k.id} kpi={k} demo={isDemoMode} />)
             )}
           </section>
 
@@ -436,7 +439,7 @@ const Dashboard = () => {
                         </div>
                         <div style={{ width: 3, height: 28, borderRadius: 2, background: accentColor }} />
                         <Icon size={14} style={{ color: "rgba(16,24,32,0.55)" }} />
-                        <div style={{ fontSize: 14, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", filter: isDemoMode ? "blur(4px)" : "none", userSelect: isDemoMode ? "none" : "auto" }}>
                           {e.title}
                         </div>
                         <div
@@ -559,7 +562,7 @@ const Dashboard = () => {
                           >
                             <IconCmp size={13} />
                           </div>
-                          <div style={{ fontSize: 12.5, flex: 1 }}>{a.text}</div>
+                          <div style={{ fontSize: 12.5, flex: 1, filter: isDemoMode ? "blur(4px)" : "none", userSelect: isDemoMode ? "none" : "auto" }}>{a.text}</div>
                           <ChevronRight size={13} style={{ opacity: 0.4 }} />
                         </button>
                       );

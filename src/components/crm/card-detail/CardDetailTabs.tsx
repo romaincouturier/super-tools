@@ -12,6 +12,8 @@ import EntityMediaManager from "@/components/media/EntityMediaManager";
 import QuoteHistorySection from "@/components/quotes/QuoteHistorySection";
 import CardTranscriptsSection from "./CardTranscriptsSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskFileName } from "@/lib/demoMask";
 
 function formatActivityType(type: string): string {
   const labels: Record<string, string> = {
@@ -40,6 +42,7 @@ interface Props {
 
 const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => {
   const { user } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const deleteComment = useDeleteComment();
   const addAttachment = useAddAttachment();
   const deleteAttachment = useDeleteAttachment();
@@ -74,7 +77,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
             <div key={comment.id} className="p-3 bg-muted rounded-lg">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-medium">{comment.author_email}</p>
+                  <p className="text-sm font-medium">{isDemoMode ? maskEmail(comment.author_email) : comment.author_email}</p>
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(comment.created_at), "d MMM yyyy HH:mm", { locale: fr })}
                   </p>
@@ -119,7 +122,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
                 }}
               >
                 <Paperclip className="h-4 w-4 shrink-0" />
-                <span className="text-sm truncate underline">{att.file_name}</span>
+                <span className="text-sm truncate underline">{isDemoMode ? maskFileName(att.file_name) : att.file_name}</span>
                 {att.file_size && <span className="text-xs text-muted-foreground">({Math.round(att.file_size / 1024)} KB)</span>}
               </button>
               <Button
@@ -174,7 +177,7 @@ const CardDetailTabs = ({ state, handlers, details, detailsLoading }: Props) => 
               )}
             </p>
             <p className="text-xs text-muted-foreground">
-              {log.actor_email} • {format(new Date(log.created_at), "d MMM yyyy HH:mm", { locale: fr })}
+              {isDemoMode ? maskEmail(log.actor_email) : log.actor_email} • {format(new Date(log.created_at), "d MMM yyyy HH:mm", { locale: fr })}
             </p>
           </div>
         ))}
