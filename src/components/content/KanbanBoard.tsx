@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useContentBoardUsers } from "@/hooks/useContentBoard";
 import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -96,7 +97,7 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
   const [renameColumn, setRenameColumn] = useState<Column | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [assignColumn, setAssignColumn] = useState<Column | null>(null);
-  const [collaborators, setCollaborators] = useState<{ id: string; email: string; displayName: string | null }[]>([]);
+  const collaborators = useContentBoardUsers();
 
   const {
     value: typeColors,
@@ -131,22 +132,6 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  // Load collaborators with access to content module (including admins)
-  useEffect(() => {
-    (async () => {
-      const { data: access } = await supabase.from("user_module_access").select("user_id").eq("module", "contenu");
-      const { data: admins } = await supabase.from("profiles").select("user_id").eq("is_admin", true);
-      const userIds = new Set<string>();
-      access?.forEach((a) => userIds.add(a.user_id));
-      admins?.forEach((a) => userIds.add(a.user_id));
-      if (userIds.size === 0) return;
-      const { data: profiles } = await supabase.from("profiles").select("user_id, email, display_name").in("user_id", Array.from(userIds));
-      if (profiles) {
-        setCollaborators(profiles.map((p) => ({ id: p.user_id, email: p.email, displayName: p.display_name })));
-      }
-    })();
   }, []);
 
   // Open card from URL parameter

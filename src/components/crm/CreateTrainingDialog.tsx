@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GraduationCap, Plus, UserPlus, Search, Calendar, Building } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -42,11 +43,8 @@ export function CreateTrainingDialog({
   isFormation,
 }: CreateTrainingDialogProps) {
   const [mode, setMode] = useState<"choice" | "select-training">("choice");
-  const [trainings, setTrainings] = useState<Training[]>([]);
-  const [loadingTrainings, setLoadingTrainings] = useState(false);
   const [trainingSearch, setTrainingSearch] = useState("");
 
-  // Reset mode when dialog opens/closes
   useEffect(() => {
     if (open) {
       setMode("choice");
@@ -54,25 +52,21 @@ export function CreateTrainingDialog({
     }
   }, [open]);
 
-  // Fetch trainings when switching to select mode
-  useEffect(() => {
-    if (mode !== "select-training") return;
-    const fetchTrainings = async () => {
-      setLoadingTrainings(true);
+  const { data: trainings = [], isLoading: loadingTrainings } = useQuery({
+    queryKey: ["trainings-list"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("trainings")
         .select("id, training_name, start_date, client_name, format_formation")
         .eq("is_cancelled", false)
         .order("start_date", { ascending: false })
         .limit(100);
-
-      if (!error && data) {
-        setTrainings(data as any);
-      }
-      setLoadingTrainings(false);
-    };
-    fetchTrainings();
-  }, [mode]);
+      if (error) throw error;
+      return (data || []) as Training[];
+    },
+    enabled: mode === "select-training",
+    staleTime: 60_000,
+  });
 
   const filteredTrainings = useMemo(() => {
     if (!trainingSearch.trim()) return trainings;
