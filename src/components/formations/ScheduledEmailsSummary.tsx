@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +90,7 @@ interface DelaySettings {
 }
 
 const ScheduledEmailsSummary = ({ trainingId, participants, refreshTrigger }: ScheduledEmailsSummaryProps) => {
+  const { isDemoMode } = useDemoMode();
   const [emails, setEmails] = useState<ScheduledEmail[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<ScheduledEmail | null>(null);
@@ -869,7 +871,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
                           onClick={() => setSelectedEmail(email)}
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="truncate block">{getParticipantName(email)}</span>
+                            <span className="truncate block" style={isDemoMode && email.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{getParticipantName(email)}</span>
                             <span className="text-xs text-muted-foreground">
                               Prévu le {format(parseISO(email.scheduled_for), "d MMM à HH:mm", { locale: fr })}
                             </span>
@@ -927,7 +929,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
                           onClick={() => setSelectedEmail(email)}
                         >
                           <div className="flex-1 min-w-0">
-                            <span className="truncate block">{getParticipantName(email)}</span>
+                            <span className="truncate block" style={isDemoMode && email.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{getParticipantName(email)}</span>
                             <span className="text-xs text-muted-foreground">
                               Envoyé le {format(parseISO(email.sent_at!), "d MMM à HH:mm", { locale: fr })}
                             </span>
@@ -964,7 +966,7 @@ L'objectif est de renouer le contact de manière humaine et naturelle, sans ques
             <DialogDescription>
               De: {"{sender_name}"} &lt;{"{sender_email}"}&gt;
               <br />
-              À: {selectedEmail && getParticipantName(selectedEmail)}
+              À: <span style={isDemoMode && selectedEmail?.participant_id ? { filter: "blur(4px)", userSelect: "none" } : undefined}>{selectedEmail && getParticipantName(selectedEmail)}</span>
             </DialogDescription>
           </DialogHeader>
           
