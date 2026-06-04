@@ -216,7 +216,50 @@ const handler = async (req: Request): Promise<Response> => {
 
       case "needs_survey": {
         recipientEmail = participant?.email || "";
-        const surveyToken = participant?.needs_survey_token || "";
+        let surveyToken = participant?.needs_survey_token || "";
+
+        // Ensure a questionnaire_besoins row exists so the public link works.
+        // Without it the public form returns "Questionnaire introuvable".
+        if (participant && training) {
+          const { data: existingQ } = await supabase
+            .from("questionnaire_besoins")
+            .select("id, token")
+            .eq("participant_id", participant.id)
+            .eq("training_id", training.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (existingQ?.token) {
+            surveyToken = existingQ.token;
+          } else {
+            if (!surveyToken) surveyToken = crypto.randomUUID();
+            const { error: qInsErr } = await supabase
+              .from("questionnaire_besoins")
+              .insert({
+                participant_id: participant.id,
+                training_id: training.id,
+                token: surveyToken,
+                etat: "envoye",
+                email: participant.email,
+                prenom: participant.first_name,
+                nom: participant.last_name,
+                societe: (participant as any).company ?? null,
+                date_envoi: new Date().toISOString(),
+              });
+            if (qInsErr) {
+              console.warn("[force-send-scheduled-email] questionnaire_besoins insert:", qInsErr);
+            }
+          }
+
+          if (surveyToken && surveyToken !== participant.needs_survey_token) {
+            await supabase
+              .from("training_participants")
+              .update({ needs_survey_token: surveyToken })
+              .eq("id", participant.id);
+          }
+        }
+
         const surveyUrl = `${appUrl}/questionnaire/${surveyToken}`;
         const vars = {
           first_name: firstName,
