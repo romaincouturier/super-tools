@@ -303,6 +303,8 @@ const Formations = () => {
     return (trainingId: string) => actionsByTraining.has(trainingId);
   }, [trainingActions]);
 
+  const { newSet: newSurveyTrainings } = useNewSurveyResponses("training");
+
   // Sort past trainings
   const sortedPastTrainings = useMemo(() => {
     const sorted = [...pastTrainings].sort((a, b) => {
