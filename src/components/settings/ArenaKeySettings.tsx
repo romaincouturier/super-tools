@@ -6,8 +6,11 @@ import { Eye, EyeOff, ExternalLink, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loadArenaApiKeys, saveArenaApiKeys } from "@/lib/arena/api";
 import type { ApiKeys } from "@/lib/arena/types";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskApiKey } from "@/lib/demoMask";
 
 export default function ArenaKeySettings() {
+  const { isDemoMode } = useDemoMode();
   const [keys, setKeys] = useState<ApiKeys>({ claude: "", openai: "", gemini: "" });
   const [loading, setLoading] = useState(true);
   const [showKeys, setShowKeys] = useState(false);
@@ -104,9 +107,10 @@ export default function ArenaKeySettings() {
             </Label>
             <Input
               type={showKeys ? "text" : "password"}
-              value={keys.openai || ""}
+              value={isDemoMode && keys.openai ? maskApiKey(keys.openai) : (keys.openai || "")}
               onChange={(e) => setKeys({ ...keys, openai: e.target.value })}
               placeholder="sk-..."
+              readOnly={isDemoMode}
             />
             <p className="text-[11px] text-muted-foreground">
               Pour utiliser GPT-4o / GPT-4o Mini comme provider alternatif.
@@ -121,9 +125,10 @@ export default function ArenaKeySettings() {
             </Label>
             <Input
               type={showKeys ? "text" : "password"}
-              value={keys.gemini || ""}
+              value={isDemoMode && keys.gemini ? maskApiKey(keys.gemini) : (keys.gemini || "")}
               onChange={(e) => setKeys({ ...keys, gemini: e.target.value })}
               placeholder="AIza..."
+              readOnly={isDemoMode}
             />
             <p className="text-[11px] text-muted-foreground">
               Pour utiliser Gemini 2.0 Flash / Gemini 2.5 Pro comme provider alternatif.

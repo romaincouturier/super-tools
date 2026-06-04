@@ -21,6 +21,8 @@ import {
   useDeleteMissionContact,
 } from "@/hooks/useMissions";
 import { MissionContact } from "@/types/missions";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail, maskPhone } from "@/lib/demoMask";
 
 const LANGUAGE_OPTIONS = [
   { value: "fr", label: "Français" },
@@ -152,7 +154,9 @@ interface ContactCardProps {
 }
 
 const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary, onDelete }: ContactCardProps) => {
+  const { isDemoMode } = useDemoMode();
   const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
+  const displayName = isDemoMode ? maskName(name) : name;
   const langLabel = LANGUAGE_OPTIONS.find((l) => l.value === contact.language)?.label || contact.language;
 
   return (
@@ -169,7 +173,7 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
 
         <div className="flex-1 min-w-0 cursor-pointer" onClick={onToggleEdit}>
           {name ? (
-            <span className="font-medium text-sm">{name}</span>
+            <span className="font-medium text-sm">{displayName}</span>
           ) : (
             <span className="text-sm text-muted-foreground italic">Nouveau contact</span>
           )}
@@ -196,13 +200,13 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
           {contact.email && (
             <span className="flex items-center gap-1">
               <Mail className="h-3 w-3" />
-              {contact.email}
+              {isDemoMode ? maskEmail(contact.email) : contact.email}
             </span>
           )}
           {contact.phone && (
             <span className="flex items-center gap-1">
               <Phone className="h-3 w-3" />
-              {contact.phone}
+              {isDemoMode ? maskPhone(contact.phone) : contact.phone}
             </span>
           )}
           {!contact.email && !contact.phone && (

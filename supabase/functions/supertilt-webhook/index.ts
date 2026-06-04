@@ -100,7 +100,8 @@ async function upsertVisibleOrderItem(
 
 // Verify WooCommerce HMAC-SHA256 signature
 async function verifySignature(secret: string, body: string, sig: string): Promise<boolean> {
-  if (!secret || !sig) return true; // no secret configured → skip verification
+  if (!secret) return false; // secret not configured → reject
+  if (!sig) return false;
   try {
     const key = await crypto.subtle.importKey(
       "raw",

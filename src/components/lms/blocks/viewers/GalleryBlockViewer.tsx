@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { GalleryBlockContent } from "@/types/lms-blocks";
@@ -34,7 +35,7 @@ export default function GalleryBlockViewer({ content }: Props) {
             <div
               className="px-2 py-1 text-xs text-center"
               style={{ color: "var(--st-ink-60)" }}
-              dangerouslySetInnerHTML={{ __html: img.caption_html }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(img.caption_html) }}
             />
           )}
         </div>
@@ -99,7 +100,7 @@ function CarouselView({ images }: { images: { url: string | null; caption_html?:
         <div
           className="mt-2 text-sm text-center"
           style={{ color: "var(--st-ink-60)" }}
-          dangerouslySetInnerHTML={{ __html: images[current].caption_html! }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(images[current].caption_html!) }}
         />
       )}
 

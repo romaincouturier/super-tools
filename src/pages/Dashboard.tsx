@@ -28,6 +28,8 @@ import {
   type DashboardKpi,
 } from "@/hooks/useDashboardData";
 import { greetingFor, formatToday } from "@/lib/dashboardHelpers";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName } from "@/lib/demoMask";
 
 // ── Palette (charte SuperTools) ──────────────────────────────
 const CREAM = "#f7f5f0";
@@ -154,6 +156,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { hasAccess } = useModuleAccess();
   const dashboard = useDashboardData();
+  const { isDemoMode } = useDemoMode();
 
   const now = useMemo(() => new Date(), []);
   const greet = greetingFor(now.getHours());
@@ -174,7 +177,7 @@ const Dashboard = () => {
     navigate(trimmed ? `/agent?q=${encodeURIComponent(trimmed)}` : "/agent");
   };
 
-  const firstName = dashboard.user.firstName || "vous";
+  const firstName = isDemoMode ? maskName(dashboard.user.firstName) || "vous" : (dashboard.user.firstName || "vous");
 
   return (
     <ModuleLayout>

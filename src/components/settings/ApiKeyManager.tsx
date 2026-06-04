@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Key, Plus, Trash2, Copy, Check, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ async function hashApiKey(key: string): Promise<string> {
 }
 
 export function ApiKeyManager() {
+  const { isDemoMode } = useDemoMode();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
@@ -249,7 +251,7 @@ export function ApiKeyManager() {
                   <TableCell className="font-medium">{key.name}</TableCell>
                   <TableCell>
                     <code className="text-xs bg-muted px-2 py-1 rounded">
-                      {key.key_prefix}...
+                      {isDemoMode ? "stk_••••••••••••" : `${key.key_prefix}...`}
                     </code>
                   </TableCell>
                   <TableCell>

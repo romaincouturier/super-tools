@@ -11,6 +11,7 @@ import { useTimeTrackerAlert } from "@/hooks/useTimeTrackerAlert";
 import { useRoutingInboxAlert } from "@/hooks/useRoutingInboxAlert";
 import { useNewItemsAlert } from "@/hooks/useNewItemsAlert";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
+import { useEmailDraftsAlert } from "@/hooks/useEmailDraftsAlert";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
@@ -118,6 +119,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
   const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
   const edgeFunctionsAlert = useEdgeFunctionsAlert();
+  const emailDraftsAlert = useEmailDraftsAlert();
   const { data: communityPending } = useCommunityPendingPosts();
   const lmsAlert = (communityPending?.total ?? 0) > 0;
   const evaluationsAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.evaluations", table: "training_evaluations", route: "/evaluations" });
@@ -388,6 +390,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
             label="Emails à valider"
             active={isActive("/emails-a-valider")}
             showLabels={showLabels}
+            alert={emailDraftsAlert}
             onClick={() => go("/emails-a-valider")}
           />
         )}

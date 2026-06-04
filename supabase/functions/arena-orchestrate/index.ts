@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 interface RequestBody {
   provider: "claude" | "openai" | "gemini";
@@ -17,6 +18,14 @@ interface RequestBody {
 Deno.serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const _authUser = await verifyAuth(req.headers.get("Authorization"));
+  if (!_authUser) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   let body: RequestBody;
   try {

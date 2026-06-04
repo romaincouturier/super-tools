@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Download } from "lucide-react";
+import { Download, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import type { Survey, SurveyQuestion, SurveyResponse, SurveyAnswer } from "@/hooks/useMissionSurvey";
 
 type ResponseWithAnswers = SurveyResponse & { mission_survey_answers: SurveyAnswer[] };
@@ -130,6 +132,52 @@ function exportCsv(questions: SurveyQuestion[], responses: ResponseWithAnswers[]
   URL.revokeObjectURL(url);
 }
 
+function ResponsesTable({ questions, responses }: { questions: SurveyQuestion[]; responses: ResponseWithAnswers[] }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Toutes les réponses</CardTitle>
+      </CardHeader>
+      <CardContent className="overflow-x-auto p-0">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/40">
+              <th className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Date</th>
+              <th className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Nom</th>
+              <th className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Email</th>
+              {questions.map((q) => (
+                <th key={q.id} className="px-3 py-2 text-left font-medium text-muted-foreground max-w-[200px]">
+                  <span className="block truncate" title={q.label}>{q.label || "—"}</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {responses.map((r, i) => (
+              <tr key={r.id} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                  {format(new Date(r.submitted_at), "d MMM yyyy", { locale: fr })}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">{r.respondent_name || "—"}</td>
+                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{r.respondent_email || "—"}</td>
+                {questions.map((q) => {
+                  const a = r.mission_survey_answers.find((ans) => ans.question_id === q.id);
+                  const val = a ? (a.values ? a.values.join(", ") : a.value ?? "—") : "—";
+                  return (
+                    <td key={q.id} className="px-3 py-2 max-w-[200px]">
+                      <span className="block truncate" title={val}>{val}</span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SurveyResults({
   survey: _survey,
   questions,
@@ -139,6 +187,8 @@ export default function SurveyResults({
   questions: SurveyQuestion[];
   responses: ResponseWithAnswers[];
 }) {
+  const [showTable, setShowTable] = useState(false);
+
   if (responses.length === 0) {
     return (
       <div className="py-10 text-center text-muted-foreground text-sm">
@@ -153,9 +203,15 @@ export default function SurveyResults({
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{responses.length} réponse(s)</Badge>
         </div>
-        <Button variant="outline" size="sm" onClick={() => exportCsv(questions, responses)}>
-          <Download className="h-4 w-4 mr-2" /> Exporter CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowTable((v) => !v)}>
+            <Table className="h-4 w-4 mr-2" />
+            {showTable ? "Masquer les réponses" : "Voir les réponses"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportCsv(questions, responses)}>
+            <Download className="h-4 w-4 mr-2" /> Exporter CSV
+          </Button>
+        </div>
       </div>
 
       {questions.map((q) => (
@@ -168,6 +224,8 @@ export default function SurveyResults({
           </CardContent>
         </Card>
       ))}
+
+      {showTable && <ResponsesTable questions={questions} responses={responses} />}
     </div>
   );
 }

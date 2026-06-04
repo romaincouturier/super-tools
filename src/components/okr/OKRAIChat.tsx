@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import DOMPurify from "dompurify";
 import { Sparkles, Send, Target, ShieldAlert, BarChart3, ClipboardCheck, FileSearch, X, Maximize2, Minimize2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,7 @@ const OKRAIChat = ({ year, objectiveId }: OKRAIChatProps) => {
                     <div
                       className="prose prose-sm max-w-none dark:prose-invert [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
                       dangerouslySetInnerHTML={{
-                        __html: formatMarkdown(msg.content),
+                        __html: DOMPurify.sanitize(formatMarkdown(msg.content)),
                       }}
                     />
                   ) : (

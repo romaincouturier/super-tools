@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -73,7 +74,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
       {content.prompt_html && (
         <div
           className="prose prose-base sm:prose-lg max-w-none break-words"
-          dangerouslySetInnerHTML={{ __html: content.prompt_html }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.prompt_html) }}
         />
       )}
 
@@ -135,7 +136,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
               {content.answer_html && (
                 <div
                   className="prose prose-base sm:prose-lg max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: content.answer_html }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.answer_html) }}
                 />
               )}
             </div>

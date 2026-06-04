@@ -30,18 +30,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!webhookSecret) {
+      return new Response(JSON.stringify({ error: "stripe_webhook_secret not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const stripe = new Stripe(secretKey, { apiVersion: "2023-10-16" });
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
 
-    let event: Stripe.Event;
-
-    if (webhookSecret && sig) {
-      event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-    } else {
-      event = JSON.parse(body);
-      console.warn("⚠️ Webhook signature not verified — configure stripe_webhook_secret");
+    if (!sig) {
+      return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const event: Stripe.Event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,

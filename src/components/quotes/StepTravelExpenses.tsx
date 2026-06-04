@@ -22,7 +22,7 @@ function GoogleMapsEmbed({
   departure: { lat: number | null; lon: number | null; address: string };
   destinations: TravelDestination[];
 }) {
-  const apiKey = useAppSetting("google_maps_api_key", "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8");
+  const apiKey = useAppSetting("google_maps_api_key", "");
   const validDests = destinations.filter((d) => d.lat != null && d.lon != null);
   if (!departure.lat || !departure.lon || validDests.length === 0) {
     return (

@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
+import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import { PageViewTracker } from "@/components/PageViewTracker";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import AgentCommandDialog from "@/components/AgentCommandDialog";
@@ -135,6 +136,7 @@ const PageLoader = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <DemoModeProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -262,6 +264,7 @@ const App = () => (
         <ChatbotProvider />
       </BrowserRouter>
     </TooltipProvider>
+    </DemoModeProvider>
   </QueryClientProvider>
 );
 

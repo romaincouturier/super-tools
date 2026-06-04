@@ -5,6 +5,8 @@ import { Mission } from "@/types/missions";
 import { cn } from "@/lib/utils";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { useSortableCard } from "@/hooks/useSortableCard";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskAmount } from "@/lib/demoMask";
 import CardTagList from "@/components/shared/kanban/CardTagList";
 
 interface MissionCardProps {
@@ -16,6 +18,7 @@ interface MissionCardProps {
 
 const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChange }: MissionCardProps) => {
   const { ref, style, attributes, listeners, isDragging } = useSortableCard(mission.id, isDraggingProp);
+  const { isDemoMode } = useDemoMode();
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -59,7 +62,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
       {mission.client_name && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
           <Building2 className="h-3 w-3" />
-          <span className="truncate">{mission.client_name}</span>
+          <span className="truncate">{isDemoMode ? maskText(mission.client_name) : mission.client_name}</span>
         </div>
       )}
 
@@ -79,7 +82,7 @@ const MissionCard = ({ mission, isDragging: isDraggingProp, onClick, onEmojiChan
       {mission.total_amount && (
         <div className="flex items-center gap-1 text-xs font-medium text-primary">
           <Euro className="h-3 w-3" />
-          <span>{mission.total_amount.toLocaleString("fr-FR")} €</span>
+          <span>{isDemoMode ? maskAmount(mission.total_amount) : `${mission.total_amount.toLocaleString("fr-FR")} €`}</span>
         </div>
       )}
 

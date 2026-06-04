@@ -25,6 +25,8 @@ import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
 import MissionContacts from "./MissionContacts";
 import { useMissionActivities } from "@/hooks/useMissions";
 import { MissionStatus, missionStatusConfig } from "@/types/missions";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskAmount } from "@/lib/demoMask";
 
 const colorOptions = [
   "#6b7280", // gray
@@ -110,6 +112,7 @@ const MissionSettingsTab = ({
   // Block setting an end_date until at least one mission activity carries
   // an invoice (number or URL). Existing end_dates stay editable so we
   // never lock the user out of fixing a typo.
+  const { isDemoMode } = useDemoMode();
   const { data: activities } = useMissionActivities(missionId);
   const hasInvoice = !!activities?.some((a) => a.invoice_number?.trim() || a.invoice_url?.trim());
   const endDateLocked = !endDate && !hasInvoice;
@@ -164,9 +167,10 @@ const MissionSettingsTab = ({
       <div>
         <Label>Entreprise</Label>
         <Input
-          value={clientName}
+          value={isDemoMode ? maskText(clientName) : clientName}
           onChange={(e) => setClientName(e.target.value)}
           placeholder="Nom de l'entreprise"
+          readOnly={isDemoMode}
         />
       </div>
 
@@ -236,9 +240,10 @@ const MissionSettingsTab = ({
               type="number"
               min="0"
               step="0.01"
-              value={dailyRate}
+              value={isDemoMode && dailyRate ? "••••" : dailyRate}
               onChange={(e) => setDailyRate(e.target.value)}
               placeholder="500"
+              readOnly={isDemoMode}
             />
           </div>
           <div>
@@ -257,16 +262,17 @@ const MissionSettingsTab = ({
               type="number"
               min="0"
               step="0.01"
-              value={initialAmount}
+              value={isDemoMode && initialAmount ? "••••" : initialAmount}
               onChange={(e) => setInitialAmount(e.target.value)}
               placeholder="5000"
+              readOnly={isDemoMode}
             />
           </div>
         </div>
         {calculatedTotal && (
           <div className="text-right">
             <span className="text-sm text-muted-foreground">Total estimé: </span>
-            <span className="font-semibold text-primary">{calculatedTotal} €</span>
+            <span className="font-semibold text-primary">{isDemoMode ? maskAmount(calculatedTotal) : `${calculatedTotal} €`}</span>
           </div>
         )}
       </div>

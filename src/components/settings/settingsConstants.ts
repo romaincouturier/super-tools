@@ -1278,7 +1278,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   wc_webhook_secret: { default: "", description: "Secret du webhook WooCommerce pour valider les notifications de commandes (HMAC SHA256)" },
   woocommerce_cart_base_url: { default: "", description: "URL de base du panier WooCommerce pour les accès e-learning (ex: https://supertilt.fr/commande/?add-to-cart=)" },
   app_url: { default: "https://super-tools.lovable.app", description: "URL principale de l'application SuperTools (utilisée dans tous les emails)" },
-  google_maps_api_key: { default: "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8", description: "Clé API Google Maps pour les cartes intégrées" },
+  google_maps_api_key: { default: "", description: "Clé API Google Maps pour les cartes intégrées" },
   qualiopi_certificate_path: { default: "certificat-qualiopi/Certificat QUALIOPI v3.pdf", description: "Chemin du certificat Qualiopi dans le storage (bucket/fichier)" },
   backup_enabled: { default: "false", description: "Activer les sauvegardes automatiques quotidiennes vers Google Drive" },
   backup_gdrive_folder_id: { default: "", description: "ID du dossier Google Drive pour les sauvegardes" },
