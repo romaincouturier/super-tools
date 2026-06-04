@@ -6,6 +6,7 @@ import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { Button } from "@/components/ui/button";
 import { Mission, MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useMissions, useMoveMission, useUpdateMission, useMissionIdsWithFutureScheduledActions } from "@/hooks/useMissions";
+import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import MissionCard from "./MissionCard";
 import MissionDetailDrawer from "./MissionDetailDrawer";
 import CreateMissionDialog from "./CreateMissionDialog";
