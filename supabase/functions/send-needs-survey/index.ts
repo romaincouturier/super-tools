@@ -189,13 +189,17 @@ serve(async (req) => {
 
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
-    const formattedDate = formatDateWithDayFr(training.start_date);
 
-    // Calculate deadline (2 days before training)
-    const trainingDate = new Date(training.start_date);
-    const deadlineDate = new Date(trainingDate);
-    deadlineDate.setDate(deadlineDate.getDate() - 2);
-    const formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
+    // Only compute dates if start_date exists (e-learning/permanent trainings have none)
+    let formattedDate: string | null = null;
+    let formattedDeadline: string | null = null;
+    if (training.start_date) {
+      formattedDate = formatDateWithDayFr(training.start_date);
+      const trainingDate = new Date(training.start_date);
+      const deadlineDate = new Date(trainingDate);
+      deadlineDate.setDate(deadlineDate.getDate() - 2);
+      formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
+    }
 
     // Prepare template variables
     const variables = {
