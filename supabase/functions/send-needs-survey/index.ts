@@ -19,27 +19,27 @@ const DEFAULT_SUBJECT_VOUS = "Préparez votre formation \"{{training_name}}\"";
 
 const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Tu es inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+Tu es inscrit(e) à la formation "{{training_name}}"{{#training_date}} qui aura lieu le {{training_date}}{{/training_date}}.
 
 Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
 {{questionnaire_link}}
 
 Ce questionnaire me permettra de mieux comprendre tes attentes et d'adapter le contenu de la formation à tes besoins spécifiques.
 
-Je te remercie de le compléter avant le {{deadline_date}}.
+Je te remercie de le compléter{{#deadline_date}} avant le {{deadline_date}}{{/deadline_date}} dès que possible.
 
 À très bientôt !`;
 
 const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
-Vous êtes inscrit(e) à la formation "{{training_name}}" qui aura lieu le {{training_date}}.
+Vous êtes inscrit(e) à la formation "{{training_name}}"{{#training_date}} qui aura lieu le {{training_date}}{{/training_date}}.
 
 Afin de personnaliser au mieux cette formation, je vous invite à remplir ce court questionnaire de recueil des besoins :
 {{questionnaire_link}}
 
 Ce questionnaire me permettra de mieux comprendre vos attentes et d'adapter le contenu de la formation à vos besoins spécifiques.
 
-Je vous remercie de le compléter avant le {{deadline_date}}.
+Je vous remercie de le compléter{{#deadline_date}} avant le {{deadline_date}}{{/deadline_date}} dès que possible.
 
 À très bientôt !`;
 
