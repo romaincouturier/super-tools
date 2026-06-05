@@ -202,10 +202,57 @@ export const useAddMedia = () => {
   });
 };
 
+const SIGNED_UPLOAD_THRESHOLD = 5 * 1024 * 1024; // 5MB
+
 export const useUploadEventMedia = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, eventId }: { file: File; eventId: string }) => {
+      // Large files bypass the edge-function FormData path (which has a strict
+      // body limit) and are uploaded directly to storage via a signed URL.
+      if (file.size > SIGNED_UPLOAD_THRESHOLD) {
+        const mimeType = resolveContentType(file);
+        const normalizedFile =
+          file.type && file.type !== mimeType
+            ? new File([file], file.name, { type: mimeType, lastModified: file.lastModified })
+            : file;
+
+        const { data: signed, error: signedError } = await supabase.functions.invoke(
+          "create-event-media-upload-url",
+          { body: { eventId, fileName: file.name || "media" } },
+        );
+        if (signedError) throw signedError;
+        const signedResult = signed as { path?: string; token?: string; publicUrl?: string; bucket?: string } | null;
+        const path = signedResult?.path;
+        const token = signedResult?.token;
+        const publicUrl = signedResult?.publicUrl;
+        const bucket = signedResult?.bucket || "media";
+        if (!path || !token || !publicUrl) throw new Error("Réponse d'upload invalide");
+
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .uploadToSignedUrl(path, token, normalizedFile, { contentType: mimeType, upsert: false });
+        if (uploadError) throw uploadError;
+
+        const { data: regData, error: regError } = await supabase.functions.invoke(
+          "register-event-media",
+          {
+            body: {
+              eventId,
+              path,
+              publicUrl,
+              fileName: file.name || "media",
+              mimeType,
+              fileSize: file.size,
+            },
+          },
+        );
+        if (regError) throw regError;
+        const media = (regData as { media?: unknown } | null)?.media;
+        if (!media) throw new Error("Média introuvable après enregistrement");
+        return media as MediaItem;
+      }
+
       const formData = new FormData();
       formData.append("eventId", eventId);
       formData.append("file", file, file.name || "media");
