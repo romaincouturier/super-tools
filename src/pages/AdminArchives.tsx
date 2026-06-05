@@ -184,6 +184,7 @@ export default function AdminArchives() {
 
   return (
     <ModuleLayout>
+      <div className="flex flex-col h-full overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6">
       <PageHeader
         icon={Archive}
         title="Archives administratives"
@@ -212,7 +213,7 @@ export default function AdminArchives() {
         }
       />
 
-      <div className="flex gap-6 p-6 min-h-0 flex-1">
+      <div className="flex gap-6 min-h-0 flex-1 pb-6">
         {/* Sidebar filtres */}
         <aside className="w-52 flex-shrink-0 space-y-6">
           {/* Années */}
@@ -416,6 +417,7 @@ export default function AdminArchives() {
             </ul>
           )}
         </div>
+      </div>
       </div>
     </ModuleLayout>
   );
