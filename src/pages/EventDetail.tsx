@@ -82,11 +82,13 @@ const EventDetail = () => {
   const [cancellationReason, setCancellationReason] = useState("");
 
   useEffect(() => {
-    if (event) {
+    if (event?.id) {
       setNotes(event.notes || "");
       setSummaryNotes(event.summary_notes || "");
     }
-  }, [event]);
+    // Only reset when switching events, not on every refetch (causes cursor jumps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id]);
 
   const notesFormValues = useMemo(() => ({ notes }), [notes]);
   const summaryFormValues = useMemo(() => ({ summary_notes: summaryNotes }), [summaryNotes]);
