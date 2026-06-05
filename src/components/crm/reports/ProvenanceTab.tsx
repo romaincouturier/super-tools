@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -157,6 +159,7 @@ function useProvenanceData() {
 const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#6366f1", "#84cc16"];
 
 export default function ProvenanceTab() {
+  const { isDemoMode } = useDemoMode();
   const { data, isLoading } = useProvenanceData();
 
   // Heatmap filters
@@ -562,7 +565,7 @@ export default function ProvenanceTab() {
                   <td className="py-2 text-right">{p.count}</td>
                   <td className="py-2 text-right text-green-600">{p.won}</td>
                   <td className="py-2 text-right">{p.conversion}%</td>
-                  <td className="py-2 text-right">{p.avgValue ? eur(p.avgValue) : "—"}</td>
+                  <td className="py-2 text-right">{p.avgValue ? (isDemoMode ? maskAmount(p.avgValue) : eur(p.avgValue)) : "—"}</td>
                 </tr>
               ))}
               {stats.topPages.length === 0 && (

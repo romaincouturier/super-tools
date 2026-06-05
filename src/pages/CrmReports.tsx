@@ -37,6 +37,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { SalesStatus } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 // ── Persistence ────────────────────────────────────────────
 
@@ -138,6 +140,7 @@ const fmt = (v: number) => v.toLocaleString("fr-FR");
 // ── Page ────────────────────────────────────────────────────
 
 const CrmReports = () => {
+  const { isDemoMode } = useDemoMode();
   const prefs = useMemo(() => loadPrefs(), []);
   const [preset, setPreset] = useState<PeriodPreset>((prefs.preset as PeriodPreset) || "year");
   const [customStart, setCustomStart] = useState<Date | undefined>();
@@ -220,7 +223,7 @@ const CrmReports = () => {
               <KpiCard
                 title="Pipeline ouvert"
                 icon={<Target className="h-4 w-4 text-muted-foreground" />}
-                mainValue={`${fmt(reports.openValue)} €`}
+                mainValue={isDemoMode ? maskAmount(reports.openValue) : `${fmt(reports.openValue)} €`}
                 secondary={`${reports.openCount} opportunité${reports.openCount > 1 ? "s" : ""}`}
                 active={activeChart === "open"}
                 onClick={() => toggleChart("open")}
@@ -228,7 +231,7 @@ const CrmReports = () => {
               <KpiCard
                 title="Pipeline pondéré"
                 icon={<Euro className="h-4 w-4 text-amber-600" />}
-                mainValue={`${fmt(Math.round(reports.weightedPipeline))} €`}
+                mainValue={isDemoMode ? maskAmount(Math.round(reports.weightedPipeline)) : `${fmt(Math.round(reports.weightedPipeline))} €`}
                 secondary="confiance × valeur"
                 mainColor="text-amber-600"
                 active={activeChart === "weighted"}
@@ -237,7 +240,7 @@ const CrmReports = () => {
               <KpiCard
                 title="Gagné"
                 icon={<TrendingUp className="h-4 w-4 text-green-600" />}
-                mainValue={`${fmt(reports.wonValue)} €`}
+                mainValue={isDemoMode ? maskAmount(reports.wonValue) : `${fmt(reports.wonValue)} €`}
                 secondary={`${reports.wonCount} vente${reports.wonCount > 1 ? "s" : ""}`}
                 mainColor="text-green-600"
                 active={activeChart === "won"}
@@ -246,7 +249,7 @@ const CrmReports = () => {
               <KpiCard
                 title="Perdu"
                 icon={<TrendingDown className="h-4 w-4 text-red-600" />}
-                mainValue={`${fmt(reports.lostValue)} €`}
+                mainValue={isDemoMode ? maskAmount(reports.lostValue) : `${fmt(reports.lostValue)} €`}
                 secondary={`${reports.lostCount} opportunité${reports.lostCount > 1 ? "s" : ""}`}
                 mainColor="text-red-600"
                 active={activeChart === "lost"}
@@ -267,6 +270,7 @@ const CrmReports = () => {
               <WeeklyChart
                 data={reports.weeklyData}
                 config={kpiChartConfig[activeChart]}
+                isDemoMode={isDemoMode}
               />
             )}
 
@@ -362,9 +366,11 @@ function KpiCard({
 function WeeklyChart({
   data,
   config,
+  isDemoMode,
 }: {
   data: WeeklyPoint[];
   config: { dataKey: keyof WeeklyPoint; color: string; label: string; suffix: string };
+  isDemoMode?: boolean;
 }) {
   return (
     <Card>
@@ -386,11 +392,13 @@ function WeeklyChart({
               <YAxis
                 tick={{ fontSize: 12 }}
                 className="text-muted-foreground"
-                tickFormatter={(v) => config.suffix === "%" ? `${v}%` : `${fmt(v)}`}
+                tickFormatter={(v) => isDemoMode ? "***" : config.suffix === "%" ? `${v}%` : `${fmt(v)}`}
               />
               <Tooltip
                 formatter={(value: number) =>
-                  config.suffix === "%" ? [`${value}%`, config.label] : [`${fmt(value)} €`, config.label]
+                  isDemoMode
+                    ? [maskAmount(value), config.label]
+                    : config.suffix === "%" ? [`${value}%`, config.label] : [`${fmt(value)} €`, config.label]
                 }
                 labelFormatter={(label) => `Semaine du ${label}`}
                 contentStyle={{ borderRadius: 8, fontSize: 13 }}

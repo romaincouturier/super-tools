@@ -7,6 +7,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CrmCard } from "@/types/crm";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskAmount } from "@/lib/demoMask";
 
 const fmt = (v: number) => v.toLocaleString("fr-FR");
 
@@ -52,6 +54,8 @@ export default function PivotCellDetail({
   value,
   triggerClassName,
 }: PivotCellDetailProps) {
+  const { isDemoMode } = useDemoMode();
+
   if (cards.length === 0) {
     return <span className="text-muted-foreground">-</span>;
   }
@@ -71,24 +75,26 @@ export default function PivotCellDetail({
           )}
           aria-label={`Voir les opportunités — ${label}`}
         >
-          {fmt(value)} €
+          {isDemoMode ? maskAmount(value) : `${fmt(value)} €`}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-96 max-w-[90vw] p-0" align="end">
         <div className="px-3 py-2 border-b">
           <p className="text-xs text-muted-foreground">{label}</p>
           <p className="text-sm font-semibold tabular-nums">
-            {fmt(value)} € · {cards.length} opportunité{cards.length > 1 ? "s" : ""}
+            {isDemoMode ? maskAmount(value) : `${fmt(value)} €`} · {cards.length} opportunité{cards.length > 1 ? "s" : ""}
           </p>
         </div>
         <ul className="max-h-80 overflow-y-auto divide-y">
           {sortedCards.map((card) => {
-            const subtitle = [
+            const rawSubtitle = [
               [card.first_name, card.last_name].filter(Boolean).join(" ").trim(),
               card.company,
             ]
               .filter(Boolean)
               .join(" · ");
+            const subtitle = isDemoMode ? maskName(rawSubtitle) : rawSubtitle;
+            const label = isDemoMode ? maskName(cardLabel(card)) : cardLabel(card);
             return (
               <li key={card.id}>
                 <a
@@ -99,7 +105,7 @@ export default function PivotCellDetail({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-medium truncate">{cardLabel(card)}</span>
+                      <span className="font-medium truncate">{label}</span>
                       <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
                     </div>
                     {subtitle && (
@@ -108,7 +114,7 @@ export default function PivotCellDetail({
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className="text-sm font-medium tabular-nums">
-                      {fmt(card.estimated_value || 0)} €
+                      {isDemoMode ? maskAmount(card.estimated_value || 0) : `${fmt(card.estimated_value || 0)} €`}
                     </span>
                     <Badge
                       variant="outline"
