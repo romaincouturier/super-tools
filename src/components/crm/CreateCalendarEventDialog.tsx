@@ -270,15 +270,27 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cal-desc">Message</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="cal-desc">Message</Label>
+                <Tabs value={formality} onValueChange={(v) => handleFormalityChange(v as Formality)}>
+                  <TabsList className="h-7">
+                    <TabsTrigger value="tu" className="text-xs px-2 py-0.5">Tu</TabsTrigger>
+                    <TabsTrigger value="vous" className="text-xs px-2 py-0.5">Vous</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               <Textarea
                 id="cal-desc"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  descriptionDirtyRef.current = true;
+                  setDescription(e.target.value);
+                }}
                 rows={7}
                 className="text-sm"
               />
             </div>
+
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
