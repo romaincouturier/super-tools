@@ -396,6 +396,7 @@ function GamesTable() {
 export default function Dropshipping() {
   return (
     <ModuleLayout>
+      <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-0">
       <PageHeader title="Dropshipping" />
       <Tabs defaultValue="dashboard">
         <TabsList className="mb-6">
@@ -409,6 +410,7 @@ export default function Dropshipping() {
         <TabsContent value="games"><GamesTable /></TabsContent>
         <TabsContent value="authors"><AuthorsTable /></TabsContent>
       </Tabs>
+      </div>
     </ModuleLayout>
   );
 }
