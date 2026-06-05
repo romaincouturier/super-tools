@@ -525,8 +525,10 @@ const MissionDetailDrawer = ({
           company={clientName}
           contactEmail={primaryContactEmail}
           initialSummary={clientName.trim() || undefined}
+          defaultFormality="tu"
           onEventCreated={handleCalendarEventCreated}
         />
+
         <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
           <DialogContent className="w-full sm:max-w-lg p-0 max-h-[85vh] flex flex-col">
             <DialogHeader className="px-4 pt-4 shrink-0">
