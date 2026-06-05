@@ -497,6 +497,12 @@ verify_jwt = false
 [functions.upload-event-media]
 verify_jwt = false
 
+[functions.create-event-media-upload-url]
+verify_jwt = false
+
+[functions.register-event-media]
+verify_jwt = false
+
 [functions.process-mission-audio-transcriptions]
 verify_jwt = false
 
