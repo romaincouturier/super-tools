@@ -311,6 +311,22 @@ const EntityMediaManager = ({
   const handlePaste = useCallback(
     (e: ClipboardEvent) => {
       if (!enablePaste) return;
+
+      // Skip when an editable element has focus, so pastes in textareas/inputs
+      // (e.g. event notes) are never intercepted by the media uploader.
+      const active = document.activeElement as HTMLElement | null;
+      if (active) {
+        const tag = active.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          active.isContentEditable
+        ) {
+          return;
+        }
+      }
+
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -329,6 +345,7 @@ const EntityMediaManager = ({
     },
     [enablePaste, uploadFiles]
   );
+
 
   useEffect(() => {
     if (!enablePaste) return;
