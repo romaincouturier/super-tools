@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare } from "lucide-react";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
@@ -139,6 +139,9 @@ export default function LmsCourses() {
             </Button>
             <Button variant="outline" onClick={() => navigate("/lms/faq")}>
               <HelpCircle className="w-4 h-4 mr-2" /> FAQ
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/lms/deposits")}>
+              <ClipboardList className="w-4 h-4 mr-2" /> Travaux déposés
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
