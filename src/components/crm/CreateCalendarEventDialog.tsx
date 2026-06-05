@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarPlus, ExternalLink, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { todayAsISO } from "@/lib/dateFormatters";
+
+export type Formality = "tu" | "vous";
 
 interface Props {
   open: boolean;
@@ -17,11 +20,13 @@ interface Props {
   contactEmail: string;
   /** When provided, overrides the auto-generated buildTitle() computation. */
   initialSummary?: string;
+  /** Default tu/vous variant. CRM => "vous", missions => "tu". */
+  defaultFormality?: Formality;
   /** Called when the event is successfully created, with the event date (YYYY-MM-DD) and summary. */
   onEventCreated?: (eventDate: string, eventSummary: string) => void;
 }
 
-const DEFAULT_DESCRIPTION = `Bonjour,
+const DESCRIPTION_VOUS = `Bonjour,
 
 Je me permets de vous envoyer cette invitation pour notre échange à venir.
 
@@ -35,6 +40,23 @@ N'hésitez pas à me contacter si vous avez la moindre question en amont.
 
 Au plaisir d'échanger avec vous,`;
 
+const DESCRIPTION_TU = `Bonjour,
+
+Je te confirme notre échange à venir.
+
+Au programme :
+- Point sur l'avancée du projet
+- Échange sur tes besoins et questions
+- Définition des prochaines étapes
+
+N'hésite pas à me contacter si tu as la moindre question en amont.
+
+Au plaisir d'échanger,`;
+
+function descriptionFor(formality: Formality): string {
+  return formality === "tu" ? DESCRIPTION_TU : DESCRIPTION_VOUS;
+}
+
 function buildTitle(company: string, title: string): string {
   const c = company?.trim();
   const t = title?.trim();
@@ -44,33 +66,43 @@ function buildTitle(company: string, title: string): string {
   return "Échange";
 }
 
-function toDateTimeLocal(date: string, time: string): string {
-  return `${date}T${time}`;
-}
-
 function toIso(dateLocal: string, timeLocal: string): string {
   const dt = new Date(`${dateLocal}T${timeLocal}`);
   return dt.toISOString();
 }
 
-export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, onEventCreated }: Props) {
+export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, defaultFormality = "vous", onEventCreated }: Props) {
   const today = todayAsISO();
   const [summary, setSummary] = useState(() => initialSummary ?? buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState("10:00");
   const [endTime, setEndTime] = useState("10:30");
   const [attendeeEmail, setAttendeeEmail] = useState(contactEmail);
-  const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
+  const [formality, setFormality] = useState<Formality>(defaultFormality);
+  const [description, setDescription] = useState(descriptionFor(defaultFormality));
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ htmlLink: string; meetLink: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const descriptionDirtyRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setSummary(initialSummary ?? buildTitle(company, opportunityTitle));
       setAttendeeEmail(contactEmail || "");
+      setFormality(defaultFormality);
+      setDescription(descriptionFor(defaultFormality));
+      descriptionDirtyRef.current = false;
     }
-  }, [open, company, opportunityTitle, contactEmail, initialSummary]);
+  }, [open, company, opportunityTitle, contactEmail, initialSummary, defaultFormality]);
+
+  const handleFormalityChange = (next: Formality) => {
+    setFormality(next);
+    // Swap to matching template unless the user has manually edited the description.
+    if (!descriptionDirtyRef.current) {
+      setDescription(descriptionFor(next));
+    }
+  };
+
 
   const handleOpen = (v: boolean) => {
     if (!v) {
@@ -238,15 +270,27 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="cal-desc">Message</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="cal-desc">Message</Label>
+                <Tabs value={formality} onValueChange={(v) => handleFormalityChange(v as Formality)}>
+                  <TabsList className="h-7">
+                    <TabsTrigger value="tu" className="text-xs px-2 py-0.5">Tu</TabsTrigger>
+                    <TabsTrigger value="vous" className="text-xs px-2 py-0.5">Vous</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               <Textarea
                 id="cal-desc"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  descriptionDirtyRef.current = true;
+                  setDescription(e.target.value);
+                }}
                 rows={7}
                 className="text-sm"
               />
             </div>
+
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
