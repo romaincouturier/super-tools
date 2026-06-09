@@ -45,8 +45,15 @@ function GroupRow({ group }: { group: GroupMatchingGroup }) {
   );
 }
 
-function PendingAvatars({ profiles }: { profiles: GroupMatchingMember[] }) {
+function groupNoun(size: number): string {
+  if (size === 2) return "binôme";
+  if (size === 3) return "trinôme";
+  return "groupe";
+}
+
+function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember[]; groupSize: number }) {
   if (!profiles.length) return null;
+  const noun = groupNoun(groupSize);
 
   return (
     <div className="flex items-center gap-2.5">
@@ -64,11 +71,12 @@ function PendingAvatars({ profiles }: { profiles: GroupMatchingMember[] }) {
         )}
       </div>
       <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>
-        D'autres participant(e)s sont déjà partant(e)s, rejoins-les pour enrichir ton expérience de formation
+        D'autres participant(e)s sont déjà partant(e)s pour former un {noun}, rejoins-les pour enrichir ton expérience de formation
       </p>
     </div>
   );
 }
+
 
 export default function GroupMatchingBlock({
   postId,
