@@ -245,6 +245,9 @@ export default function PracticePostCard({
         </p>
       )}
 
+      {/* Group matching — between text and media */}
+      <GroupMatchingBlock postId={post.id} currentEmail={currentEmail} />
+
       {/* Media: image / video / file */}
       {post.file_url && (() => {
         const fileHref = safeFileUrl(post.file_url);
