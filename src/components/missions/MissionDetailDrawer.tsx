@@ -17,7 +17,6 @@ import MissionSettingsTab from "./MissionSettingsTab";
 import EntityMediaManager from "@/components/media/EntityMediaManager";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
-import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
 import SendDeliverablesDialog from "./SendDeliverablesDialog";
@@ -90,8 +89,6 @@ const MissionDetailDrawer = ({
   const [color, setColor] = useState("#6b7280");
   const [missionEmoji, setMissionEmoji] = useState<string | null>(null);
   const [location, setLocation] = useState("");
-  const [trainBooked, setTrainBooked] = useState(false);
-  const [hotelBooked, setHotelBooked] = useState(false);
   const [activeTab, setActiveTab] = useState("pages");
   const [activityPageRequest, setActivityPageRequest] = useState<{ activityId: string; description: string } | null>(null);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
@@ -157,8 +154,6 @@ const MissionDetailDrawer = ({
       setColor(m.color);
       setMissionEmoji(m.emoji || null);
       setLocation(m.location || "");
-      setTrainBooked(m.train_booked ?? false);
-      setHotelBooked(m.hotel_booked ?? false);
       setAssignedTo(m.assigned_to || null);
     },
     onSave: async (id, values) => {
@@ -411,17 +406,6 @@ const MissionDetailDrawer = ({
                   <MapPin className="h-3 w-3" />
                   {location}
                 </a>
-                <LogisticsBookingButtons
-                  table="missions"
-                  entityId={mission.id}
-                  location={location}
-                  trainBooked={trainBooked}
-                  hotelBooked={hotelBooked}
-                  onUpdate={(field, value) => {
-                    if (field === "train_booked") setTrainBooked(value);
-                    if (field === "hotel_booked") setHotelBooked(value);
-                  }}
-                />
               </>
             )}
           </div>

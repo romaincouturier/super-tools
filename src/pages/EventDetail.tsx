@@ -18,14 +18,9 @@ import {
   Globe,
   FileText,
   AlertTriangle,
-  Train,
-  Hotel,
-  UtensilsCrossed,
-  DoorOpen,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CANCELLATION_REASONS, getCfpDaysLeft } from "@/types/events";
-import LogisticsBookingButtons from "@/components/shared/LogisticsBookingButtons";
 import ShareEventDialog from "@/components/events/ShareEventDialog";
 import PageHeader from "@/components/PageHeader";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -35,7 +30,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -380,59 +374,6 @@ const EventDetail = () => {
           </CardContent>
         </Card>
 
-        {/* Logistics booking for internal physical events */}
-        {event.event_type === "internal" && event.location_type === "physical" && event.status !== "cancelled" && (
-          <Card className="border-amber-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 text-amber-700">
-                <Train className="h-5 w-5" />
-                Logistique
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap items-center gap-3">
-                <LogisticsBookingButtons
-                  table="events"
-                  entityId={event.id}
-                  location={event.location}
-                  trainBooked={event.train_booked}
-                  hotelBooked={event.hotel_booked}
-                  onUpdate={(field, value) => {
-                    updateEvent.mutate({ id: event.id, [field]: value });
-                  }}
-                />
-                {/* Salle */}
-                <div className="flex items-center gap-1">
-                  <DoorOpen className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Salle</span>
-                  <Checkbox
-                    checked={event.room_rental_booked}
-                    onCheckedChange={async (checked) => {
-                      const newValue = checked === true;
-                      updateEvent.mutate({ id: event.id, room_rental_booked: newValue });
-                    }}
-                    className="ml-1"
-                    title="Salle réservée"
-                  />
-                </div>
-                {/* Restaurant */}
-                <div className="flex items-center gap-1">
-                  <UtensilsCrossed className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Restaurant</span>
-                  <Checkbox
-                    checked={event.restaurant_booked}
-                    onCheckedChange={async (checked) => {
-                      const newValue = checked === true;
-                      updateEvent.mutate({ id: event.id, restaurant_booked: newValue });
-                    }}
-                    className="ml-1"
-                    title="Restaurant réservé"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* External event info */}
         {event.event_type === "external" && (event.event_url || event.cfp_url || event.cfp_deadline) && (

@@ -1,10 +1,9 @@
-import { useState, useEffect, useMemo, useRef, type KeyboardEvent } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Pencil, Trash2, Zap, MoreHorizontal } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,13 +76,12 @@ const SuperTilt = () => {
   } = useSupertiltColumns();
   const systemUsers = useSystemUsers();
 
-  const [newTitle, setNewTitle] = useState("");
+  const [showAddAction, setShowAddAction] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [renameTarget, setRenameTarget] = useState<SupertiltKanbanColumn | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SupertiltKanbanColumn | null>(null);
   const [editingAction, setEditingAction] = useState<SupertiltAction | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const isLoading = actionsLoading || columnsLoading;
 
@@ -105,22 +103,6 @@ const SuperTilt = () => {
         })),
     [actions],
   );
-
-  const handleAdd = () => {
-    if (!newTitle.trim() || !firstColumnId) return;
-    const colCards = kanbanCards.filter((c) => c.columnId === firstColumnId);
-    addAction.mutate({
-      title: newTitle.trim(),
-      column_id: firstColumnId,
-      position: colCards.length,
-    });
-    setNewTitle("");
-    inputRef.current?.focus();
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") handleAdd();
-  };
 
   const handleAddColumn = (name: string) => {
     addColumn.mutate(name);
@@ -158,27 +140,13 @@ const SuperTilt = () => {
           subtitle={`${actions.length} action${actions.length > 1 ? "s" : ""}`}
         />
 
-        {/* Quick add into first column */}
-        <div className="flex gap-2 items-center max-w-2xl">
-          <Input
-            ref={inputRef}
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              firstColumnId
-                ? `Nouvelle action dans « ${columns[0].name} »…`
-                : "Créez d'abord une colonne"
-            }
-            className="flex-1"
-            disabled={!firstColumnId}
-          />
+        <div className="flex gap-2 items-center">
           <Button
-            onClick={handleAdd}
-            disabled={!newTitle.trim() || !firstColumnId || addAction.isPending}
+            onClick={() => setShowAddAction(true)}
+            disabled={!firstColumnId}
             className="gap-1.5 shrink-0"
           >
-            {addAction.isPending ? <Spinner /> : <Plus className="w-4 h-4" />}
+            <Plus className="w-4 h-4" />
             Ajouter
           </Button>
           <Button
@@ -313,6 +281,29 @@ const SuperTilt = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Create new action */}
+      <SupertiltActionDialog
+        action={null}
+        open={showAddAction}
+        isNew
+        onOpenChange={(open) => setShowAddAction(open)}
+        systemUsers={systemUsers}
+        onSave={(updates) => {
+          if (!updates.title?.trim() || !firstColumnId) return;
+          const colCards = kanbanCards.filter((c) => c.columnId === firstColumnId);
+          addAction.mutate({
+            title: updates.title.trim(),
+            description: updates.description ?? null,
+            assigned_to: updates.assigned_to ?? null,
+            deadline: updates.deadline ?? null,
+            column_id: firstColumnId,
+            position: colCards.length,
+          });
+        }}
+        onDelete={() => {}}
+      />
+
+      {/* Edit existing action */}
       <SupertiltActionDialog
         action={editingAction}
         open={!!editingAction}
