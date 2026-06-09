@@ -275,7 +275,7 @@ export default function PracticePostCard({
               style={{
                 width: isRotated ? "100cqh" : "100%",
                 height: isRotated ? "100cqw" : "100%",
-                objectFit: "cover",
+                objectFit: "contain",
                 transform: `rotate(${rotation}deg)`,
                 transformOrigin: "center",
                 transition: "transform 0.3s ease",
