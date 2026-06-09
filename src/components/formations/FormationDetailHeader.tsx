@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, ExternalLink, Edit2, Map, Copy, MoreHorizontal, Ban, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Edit2, Map, Copy, MoreHorizontal, Ban, RotateCcw, Trash2, Train, Hotel, UtensilsCrossed, DoorOpen, Package } from "lucide-react";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
 import { Button } from "@/components/ui/button";
 import {
