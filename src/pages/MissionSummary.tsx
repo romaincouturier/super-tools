@@ -751,18 +751,6 @@ const MissionSummary = () => {
                               {activity.is_billed ? L.billedBadge : L.pendingBadge}
                             </Badge>
                           </td>
-                          <td className="py-2.5 pl-2">
-                            {activity.invoice_url && (
-                              <a
-                                href={activity.invoice_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline flex items-center gap-1 text-xs"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
