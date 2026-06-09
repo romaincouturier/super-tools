@@ -1,9 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Mail } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Mail, Search, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+
+const normalize = (s: string) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/<[^>]*>/g, " ");
 import {
   Accordion,
   AccordionContent,
