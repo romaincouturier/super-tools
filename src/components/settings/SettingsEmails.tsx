@@ -43,6 +43,32 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
   const lastEditedTemplateRef = useRef<{ type: string; mode: AddressMode } | null>(null);
   const [templateAutoSaveStatus, setTemplateAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const templatesLoadedRef = useRef(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const searchTerms = useMemo(
+    () => normalize(searchQuery).split(/\s+/).filter(Boolean),
+    [searchQuery]
+  );
+
+  const matchesSearch = useCallback(
+    (type: string, defaultName: string) => {
+      if (searchTerms.length === 0) return true;
+      const edited = editedTemplates[type];
+      const haystack = normalize(
+        [
+          defaultName,
+          edited?.tu?.subject,
+          edited?.tu?.content,
+          edited?.vous?.subject,
+          edited?.vous?.content,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      return searchTerms.every((t) => haystack.includes(t));
+    },
+    [searchTerms, editedTemplates]
+  );
 
   useEffect(() => { fetchTemplates(); }, []);
 
