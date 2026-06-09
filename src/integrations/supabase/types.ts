@@ -2972,6 +2972,138 @@ export type Database = {
         }
         Relationships: []
       }
+      group_matching_configs: {
+        Row: {
+          created_at: string
+          group_size: number
+          id: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_size?: number
+          id?: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          group_size?: number
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_matching_configs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_matching_groups: {
+        Row: {
+          created_at: string
+          email_sent_at: string | null
+          id: string
+          post_id: string
+          wave: number
+        }
+        Insert: {
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          post_id: string
+          wave?: number
+        }
+        Update: {
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          post_id?: string
+          wave?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_matching_groups_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_matching_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          learner_email: string
+          registration_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          learner_email: string
+          registration_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          learner_email?: string
+          registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_matching_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "group_matching_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_matching_members_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: true
+            referencedRelation: "group_matching_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_matching_registrations: {
+        Row: {
+          created_at: string
+          id: string
+          learner_email: string
+          post_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          learner_email: string
+          post_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          learner_email?: string
+          post_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_matching_registrations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "practice_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       improvements: {
         Row: {
           category: string
