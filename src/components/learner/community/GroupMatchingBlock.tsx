@@ -86,7 +86,7 @@ export default function GroupMatchingBlock({
 
   return (
     <div
-      className="mx-4 mt-1 mb-4 rounded-xl p-3 space-y-2.5"
+      className="mx-4 mt-1 mb-5 rounded-xl p-3 space-y-2.5"
       style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
     >
       <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function GroupMatchingBlock({
           style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
         >
           {register.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
-          Je suis partant(e)
+          Je veux un binôme
         </button>
       )}
     </div>
