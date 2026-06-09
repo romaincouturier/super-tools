@@ -68,6 +68,46 @@ function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }
   );
 }
 
+function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () => void }) {
+  const driveUrl = t.drive_file_id ? `https://drive.google.com/file/d/${t.drive_file_id}/view` : null;
+  const videoUrl = driveUrl ?? t.video_url ?? "#";
+  const thumb = t.drive_file_id ? `https://drive.google.com/thumbnail?id=${t.drive_file_id}&sz=w640` : null;
+  return (
+    <div className="group flex flex-col gap-2">
+      <a
+        href={videoUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="relative block aspect-video overflow-hidden rounded-lg bg-muted"
+      >
+        {thumb ? (
+          <img src={thumb} alt={t.service_type || t.company || "Témoignage"} className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Star className="h-10 w-10 text-muted-foreground" />
+          </div>
+        )}
+      </a>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-sm line-clamp-2 leading-snug">{t.service_type || "Prestation non renseignée"}</p>
+          <p className="text-xs text-muted-foreground truncate">{t.company || "—"}</p>
+          <p className="text-xs text-muted-foreground truncate">{t.client_name || "Client inconnu"}</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(); }}
+          title="Éditer"
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function AddTestimonialDialog({ onClose }: { onClose: () => void }) {
   const [clientName, setClientName] = useState("");
   const [company, setCompany] = useState("");
@@ -288,12 +328,17 @@ function TestimonialList({ status }: { status: TestimonialStatus | "" }) {
     );
   }
 
+  const isPublished = status === "published";
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {data.map((t) => (
-          <TestimonialCard key={t.id} t={t} onClick={() => setSelected(t)} />
-        ))}
+      <div className={isPublished ? "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"}>
+        {data.map((t) =>
+          isPublished ? (
+            <PublishedTestimonialCard key={t.id} t={t} onEdit={() => setSelected(t)} />
+          ) : (
+            <TestimonialCard key={t.id} t={t} onClick={() => setSelected(t)} />
+          )
+        )}
       </div>
       {selected && <ValidationSheet testimonial={selected} onClose={() => setSelected(null)} />}
     </>
