@@ -7987,7 +7987,7 @@ export type Database = {
           client_name: string | null
           company: string | null
           created_at: string
-          drive_file_id: string
+          drive_file_id: string | null
           drive_file_name: string | null
           id: string
           metadata: Json
@@ -7997,12 +7997,13 @@ export type Database = {
           service_type: string | null
           status: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           client_name?: string | null
           company?: string | null
           created_at?: string
-          drive_file_id: string
+          drive_file_id?: string | null
           drive_file_name?: string | null
           id?: string
           metadata?: Json
@@ -8012,12 +8013,13 @@ export type Database = {
           service_type?: string | null
           status?: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           client_name?: string | null
           company?: string | null
           created_at?: string
-          drive_file_id?: string
+          drive_file_id?: string | null
           drive_file_name?: string | null
           id?: string
           metadata?: Json
@@ -8027,6 +8029,7 @@ export type Database = {
           service_type?: string | null
           status?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: []
       }
