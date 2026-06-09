@@ -70,7 +70,9 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
           .select(
             "id, training_name, start_date, end_date, location, format_formation, max_participants",
           )
-          .or(`start_date.gte.${today},start_date.is.null`)
+          .or(
+            `start_date.gte.${today},start_date.is.null,end_date.gte.${today}`,
+          )
           .neq("id", trainingId)
           .or("is_cancelled.is.null,is_cancelled.eq.false")
           .order("start_date", { ascending: true });
