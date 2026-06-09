@@ -1,6 +1,6 @@
 /**
  * Stream all deliverables of a mission into a single ZIP archive,
- * upload it to the `mission-media` bucket under a short-lived path,
+ * upload it to the `mission-documents` bucket under a short-lived path,
  * and return a 1h signed URL so the browser can download it natively.
  *
  * Why upload then signed URL (instead of streaming the response body)?
@@ -41,18 +41,22 @@ serve(async (req) => {
       .single();
     if (missionError || !mission) return createErrorResponse("Mission not found", 404);
 
-    const [{ data: docs }, { data: media }] = await Promise.all([
+    const [{ data: docs, error: docsError }, { data: media, error: mediaError }] = await Promise.all([
       supabase
         .from("mission_documents")
         .select("file_name, file_url")
         .eq("mission_id", mission_id)
         .eq("is_deliverable", true),
       supabase
-        .from("mission_media")
+        .from("media")
         .select("file_name, file_url")
-        .eq("mission_id", mission_id)
+        .eq("source_type", "mission")
+        .eq("source_id", mission_id)
         .eq("is_deliverable", true),
     ]);
+
+    if (docsError) return createErrorResponse(`Documents query failed: ${docsError.message}`, 500);
+    if (mediaError) return createErrorResponse(`Media query failed: ${mediaError.message}`, 500);
 
     const deliverables: Deliverable[] = [
       ...((docs ?? []) as Deliverable[]),
@@ -107,7 +111,7 @@ serve(async (req) => {
     const storagePath = `_zips/${mission_id}/${Date.now()}_livrables_${safeTitle}.zip`;
 
     const { error: uploadError } = await supabase.storage
-      .from("mission-media")
+      .from("mission-documents")
       .upload(storagePath, zipBlob, {
         contentType: "application/zip",
         upsert: true,
@@ -118,7 +122,7 @@ serve(async (req) => {
     }
 
     const { data: signed, error: signError } = await supabase.storage
-      .from("mission-media")
+      .from("mission-documents")
       .createSignedUrl(storagePath, 60 * 60, {
         download: `livrables_${safeTitle}.zip`,
       });
@@ -129,7 +133,7 @@ serve(async (req) => {
     return createJsonResponse({
       success: true,
       url: signed.signedUrl,
-      file_count: seen.size,
+      file_count: added,
       size_bytes: zipBlob.size,
     });
   } catch (error) {
