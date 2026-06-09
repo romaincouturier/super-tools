@@ -229,6 +229,35 @@ export function useUnregisterFromMatching(postId: string, learnerEmail: string) 
   });
 }
 
+export function usePendingRegistrationProfiles(postId: string | null) {
+  return useQuery({
+    queryKey: ["group-matching-pending-profiles", postId ?? ""],
+    enabled: !!postId,
+    queryFn: async () => {
+      const { data: regs, error } = await (supabase as any)
+        .from("group_matching_registrations")
+        .select("learner_email")
+        .eq("post_id", postId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      if (!regs?.length) return [] as GroupMatchingMember[];
+
+      const emails = (regs as Array<{ learner_email: string }>).map((r) => r.learner_email);
+      const { data: profiles } = await (supabase as any)
+        .from("learner_profiles")
+        .select("email, first_name, last_name, photo_url")
+        .in("email", emails);
+
+      const profileMap = new Map<string, GroupMatchingMember>();
+      for (const p of (profiles ?? []) as Array<{ email: string; first_name: string | null; last_name: string | null; photo_url: string | null }>) {
+        profileMap.set(p.email, { learner_email: p.email, first_name: p.first_name, last_name: p.last_name, photo_url: p.photo_url });
+      }
+      return emails.map((e) => profileMap.get(e) ?? { learner_email: e });
+    },
+  });
+}
+
 export function useRegistrationCount(postId: string | null) {
   return useQuery({
     queryKey: ["group-matching-reg-count", postId ?? ""],

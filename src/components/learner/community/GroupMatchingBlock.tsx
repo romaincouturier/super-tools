@@ -6,20 +6,21 @@ import {
   useGroupMatchingConfig,
   useMyGroupRegistration,
   usePostGroups,
-  useRegistrationCount,
+  usePendingRegistrationProfiles,
   useRegisterForMatching,
   useUnregisterFromMatching,
   type GroupMatchingGroup,
   type GroupMatchingMember,
 } from "@/hooks/useGroupMatching";
 
-function MemberAvatar({ member }: { member: GroupMatchingMember }) {
+function MemberAvatar({ member, size = 7 }: { member: GroupMatchingMember; size?: number }) {
   const name = [member.first_name, member.last_name].filter(Boolean).join(" ") || member.learner_email.split("@")[0];
   const initials = getInitials(member.first_name ?? "", member.last_name ?? "", member.learner_email.slice(0, 2).toUpperCase());
+  const px = size * 4;
   return (
     <div
-      className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0 border-2"
-      style={{ background: member.photo_url ? "transparent" : "var(--st-yellow)", color: "#101820", borderColor: "var(--st-white)" }}
+      className="rounded-full overflow-hidden flex items-center justify-center font-bold shrink-0 border-2"
+      style={{ width: px, height: px, fontSize: px * 0.35, background: member.photo_url ? "transparent" : "var(--st-yellow)", color: "#101820", borderColor: "var(--st-white)" }}
       title={name}
     >
       {member.photo_url
@@ -44,6 +45,57 @@ function GroupRow({ group }: { group: GroupMatchingGroup }) {
   );
 }
 
+function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember[]; groupSize: number }) {
+  if (!profiles.length) return null;
+
+  const pending = profiles.length;
+  const slotsFilled = pending % groupSize;
+  const isAlmostFull = slotsFilled > 0;
+  const remaining = groupSize - slotsFilled;
+
+  const label = isAlmostFull
+    ? remaining === 1
+      ? "Plus qu'une place pour compléter un groupe !"
+      : `${remaining} places restantes dans le groupe en cours`
+    : pending === 1
+      ? "1 personne attend un binôme — rejoins-la !"
+      : `${pending} personnes cherchent un binôme`;
+
+  return (
+    <div className="space-y-2">
+      {/* Avatars des inscrits en attente */}
+      <div className="flex items-center gap-2">
+        <div className="flex -space-x-2">
+          {profiles.slice(0, 7).map((m) => (
+            <MemberAvatar key={m.learner_email} member={m} size={8} />
+          ))}
+          {profiles.length > 7 && (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2"
+              style={{ background: "rgba(16,24,32,0.08)", color: "var(--st-ink-muted)", borderColor: "var(--st-white)" }}
+            >
+              +{profiles.length - 7}
+            </div>
+          )}
+        </div>
+
+        {/* Progression slots */}
+        <div className="flex gap-1 ml-1">
+          {Array.from({ length: groupSize }).map((_, i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full"
+              style={{ background: i < slotsFilled ? "#101820" : "rgba(16,24,32,0.15)" }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>{label}</p>
+    </div>
+  );
+}
+
 export default function GroupMatchingBlock({
   postId,
   currentEmail,
@@ -54,7 +106,7 @@ export default function GroupMatchingBlock({
   const { data: config, isLoading: configLoading } = useGroupMatchingConfig(postId);
   const { data: myReg, isLoading: regLoading } = useMyGroupRegistration(postId, currentEmail);
   const { data: groups = [] } = usePostGroups(postId);
-  const { data: counts } = useRegistrationCount(postId);
+  const { data: pendingProfiles = [] } = usePendingRegistrationProfiles(postId);
   const register = useRegisterForMatching(postId, currentEmail);
   const unregister = useUnregisterFromMatching(postId, currentEmail);
   const { toast } = useToast();
@@ -65,6 +117,8 @@ export default function GroupMatchingBlock({
   const myGroup = myReg?.status === "assigned"
     ? groups.find((g) => g.members.some((m) => m.learner_email === currentEmail))
     : null;
+
+  const isNotRegistered = !myReg;
 
   const handleRegister = async () => {
     try {
@@ -87,26 +141,26 @@ export default function GroupMatchingBlock({
   return (
     <div className="px-4 pt-2 pb-6">
       <div
-        className="rounded-xl p-3 space-y-2.5"
+        className="rounded-xl p-3 space-y-3"
         style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
       >
       <div className="flex items-center gap-2">
         <Users size={14} style={{ color: "var(--st-ink)" }} />
         <span className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>
-          Mise en relation — groupes de {config.group_size}
+          Trouver un binôme
         </span>
-        {counts && counts.total > 0 && (
-          <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-            · {counts.total} inscrit{counts.total > 1 ? "s" : ""}
-          </span>
-        )}
       </div>
 
-      {/* Groupes formés */}
+      {/* Groupes déjà formés */}
       {groups.length > 0 && (
         <div className="space-y-1.5">
           {groups.map((g) => <GroupRow key={g.id} group={g} />)}
         </div>
+      )}
+
+      {/* Inscrits en attente — avatars + progression (visible si pas encore inscrit) */}
+      {isNotRegistered && (
+        <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
       )}
 
       {/* Mon statut */}
@@ -119,16 +173,19 @@ export default function GroupMatchingBlock({
           Tu es dans un groupe.
         </div>
       ) : myReg?.status === "pending" ? (
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Inscrit(e) — mise en relation prochainement</span>
-          <button
-            onClick={handleUnregister}
-            disabled={unregister.isPending}
-            className="text-xs px-2 py-1 rounded-lg hover:bg-black/5 transition-colors"
-            style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
-          >
-            {unregister.isPending ? <Loader2 size={12} className="animate-spin" /> : "Me désinscrire"}
-          </button>
+        <div className="space-y-2">
+          <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Tu es inscrit(e) — mise en relation prochainement</span>
+            <button
+              onClick={handleUnregister}
+              disabled={unregister.isPending}
+              className="text-xs px-2 py-1 rounded-lg hover:bg-black/5 transition-colors shrink-0"
+              style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+            >
+              {unregister.isPending ? <Loader2 size={12} className="animate-spin" /> : "Me désinscrire"}
+            </button>
+          </div>
         </div>
       ) : (
         <button
