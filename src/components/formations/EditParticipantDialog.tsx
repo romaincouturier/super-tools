@@ -215,6 +215,11 @@ const EditParticipantDialog = ({
                 />
               )
             )}
+            <DuplicateParticipantDialog
+              participant={participant}
+              trainingId={trainingId}
+              onDuplicated={() => { hook.handleClose(); onParticipantUpdated(); }}
+            />
           </div>
           <Button type="button" variant="outline" onClick={hook.handleClose}>
             Fermer
