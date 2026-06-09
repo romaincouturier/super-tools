@@ -212,10 +212,7 @@ export const useUploadEventMedia = () => {
       // body limit) and are uploaded directly to storage via a signed URL.
       if (file.size > SIGNED_UPLOAD_THRESHOLD) {
         const mimeType = resolveContentType(file);
-        const normalizedFile =
-          file.type && file.type !== mimeType
-            ? new File([file], file.name, { type: mimeType, lastModified: file.lastModified })
-            : file;
+        const normalizedFile = new File([file], file.name, { type: mimeType, lastModified: file.lastModified });
 
         const { data: signed, error: signedError } = await supabase.functions.invoke(
           "create-event-media-upload-url",
