@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
 import PostComposer from "@/components/learner/community/PostComposer";
+import { useCreateMatchingConfig } from "@/hooks/useGroupMatching";
 import { useQuery } from "@tanstack/react-query";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
 import {
@@ -369,6 +370,7 @@ export default function LmsCommunityAdmin() {
     true,
   );
   const createPost = useCreatePracticePost(userEmail, true);
+  const createMatchingConfig = useCreateMatchingConfig();
 
   const sharedPosts = posts.filter((p) => p.file_url != null);
 
@@ -423,8 +425,12 @@ export default function LmsCommunityAdmin() {
                     firstName={adminName?.split(" ")[0] ?? ""}
                     lastName={adminName?.split(" ").slice(1).join(" ") ?? ""}
                     photoUrl={null}
-                    onCreate={async (content, file, poll, gifUrl) => {
-                      await createPost.mutateAsync({ content, file: file ?? null, courseId, poll, gifUrl });
+                    isStaff
+                    onCreate={async (content, file, poll, gifUrl, matchingGroupSize) => {
+                      const postId = await createPost.mutateAsync({ content, file: file ?? null, courseId, poll, gifUrl });
+                      if (matchingGroupSize && postId) {
+                        await createMatchingConfig.mutateAsync({ postId, groupSize: matchingGroupSize });
+                      }
                     }}
                   />
                 </div>
