@@ -409,6 +409,7 @@ function TestimonialList({ status, search }: { status: TestimonialStatus | ""; s
 export default function Temoignages() {
   const { data: counts } = useTestimonialCounts();
   const [addOpen, setAddOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   return (
     <ModuleLayout>
@@ -423,6 +424,14 @@ export default function Temoignages() {
       </div>
       {addOpen && <AddTestimonialDialog onClose={() => setAddOpen(false)} />}
 
+      <div className="mb-3 max-w-sm">
+        <Input
+          placeholder="Rechercher par nom, prénom, entreprise ou titre…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <Tabs defaultValue="pending_review">
         <TabsList className="mb-4">
           <TabsTrigger value="pending_review">
@@ -433,11 +442,12 @@ export default function Temoignages() {
           <TabsTrigger value="">Tous</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pending_review"><TestimonialList status="pending_review" /></TabsContent>
-        <TabsContent value="published"><TestimonialList status="published" /></TabsContent>
-        <TabsContent value="rejected"><TestimonialList status="rejected" /></TabsContent>
-        <TabsContent value=""><TestimonialList status="" /></TabsContent>
+        <TabsContent value="pending_review"><TestimonialList status="pending_review" search={search} /></TabsContent>
+        <TabsContent value="published"><TestimonialList status="published" search={search} /></TabsContent>
+        <TabsContent value="rejected"><TestimonialList status="rejected" search={search} /></TabsContent>
+        <TabsContent value=""><TestimonialList status="" search={search} /></TabsContent>
       </Tabs>
     </ModuleLayout>
   );
 }
+
