@@ -300,17 +300,19 @@ const DeliverablesBlock = ({ deliverables, lang, missionId, missionTitle }: Deli
         { id: toastId, description: zipName },
       );
     } catch (e) {
-      console.error("ZIP download failed, falling back to sequential", e);
-      toast.message(
+      console.error("ZIP download failed", e);
+      toast.error(
         lang === "fr"
-          ? "Archive indisponible, téléchargement fichier par fichier"
-          : "Archive unavailable, downloading files one by one",
-        { id: toastId },
+          ? "Archive ZIP indisponible"
+          : "ZIP archive unavailable",
+        {
+          id: toastId,
+          description:
+            lang === "fr"
+              ? "Téléchargez les fichiers un par un depuis la liste ci-dessous."
+              : "Please download files one by one from the list below.",
+        },
       );
-      for (const doc of deliverables) {
-        triggerDownload(doc.file_url, doc.file_name, lang);
-        await new Promise((r) => setTimeout(r, 400));
-      }
     } finally {
       setDownloadingAll(false);
     }
