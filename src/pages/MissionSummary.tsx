@@ -724,7 +724,6 @@ const MissionSummary = () => {
                         <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.description}</th>
                         <th className="text-right py-2 pr-4 font-medium text-muted-foreground">{L.amount}</th>
                         <th className="text-center py-2 font-medium text-muted-foreground">{L.status}</th>
-                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
