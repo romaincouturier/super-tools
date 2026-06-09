@@ -11,7 +11,7 @@
  *   browsers).
  */
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { BlobWriter, ZipWriter } from "https://deno.land/x/zipjs@v2.7.53/index.js";
+import { BlobWriter, HttpReader, ZipWriter } from "https://deno.land/x/zipjs@v2.7.53/index.js";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
