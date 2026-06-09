@@ -388,7 +388,7 @@ const DeliverablesBlock = ({ deliverables, lang, missionId, missionTitle }: Deli
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-primary hover:text-primary/80"
-                      onClick={() => forceDownload(doc.file_url, doc.file_name)}
+                      onClick={() => triggerDownload(doc.file_url, doc.file_name, lang)}
                       title={L.download}
                     >
                       <Download className="h-4 w-4" />
