@@ -331,10 +331,8 @@ export default function PracticePostCard({
       {/* Poll */}
       {post.poll && <PollDisplay poll={post.poll} onVote={onVote} />}
 
-      {/* Group matching */}
-      <GroupMatchingBlock postId={post.id} currentEmail={currentEmail} />
-
       {/* Hashtags */}
+
       {post.hashtags.length > 0 && (
         <div className="px-4 pb-3 flex flex-wrap gap-1.5">
           {post.hashtags.map((tag) => (
