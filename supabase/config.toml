@@ -276,6 +276,9 @@ verify_jwt = false
 [functions.send-mission-deliverables]
 verify_jwt = false
 
+[functions.zip-mission-deliverables]
+verify_jwt = false
+
 [functions.send-trainer-evaluation-email]
 verify_jwt = false
 

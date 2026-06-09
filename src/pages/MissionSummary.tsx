@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { isRemoteLocation } from "@/lib/missionLocation";
+import { toast } from "sonner";
 
 // ---------- Types ----------
 
@@ -235,36 +236,80 @@ const ActionsKanbanColumn = ({ title, items, color, icon }: ActionsKanbanColumnP
 interface DeliverablesBlockProps {
   deliverables: Deliverable[];
   lang: Lang;
+  missionId: string;
+  missionTitle: string;
 }
 
-const forceDownload = async (url: string, fileName: string) => {
+
+/**
+ * Build a streamed download URL by appending Supabase Storage's `?download=`
+ * query param. The browser handles the transfer natively (progress bar,
+ * disk streaming) instead of buffering the whole file in JS memory first.
+ */
+const buildDownloadUrl = (url: string, fileName: string): string => {
   try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(blobUrl);
+    const u = new URL(url);
+    u.searchParams.set("download", fileName);
+    return u.toString();
   } catch {
-    // Fallback: open in new tab
-    window.open(url, "_blank");
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}download=${encodeURIComponent(fileName)}`;
   }
 };
 
-const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
+const triggerDownload = (url: string, fileName: string, lang: Lang) => {
+  const a = document.createElement("a");
+  a.href = buildDownloadUrl(url, fileName);
+  a.download = fileName;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast.success(lang === "fr" ? "Téléchargement démarré" : "Download started", {
+    description: fileName,
+  });
+};
+
+const DeliverablesBlock = ({ deliverables, lang, missionId, missionTitle }: DeliverablesBlockProps) => {
   const L = t[lang];
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const handleDownloadAll = async () => {
     setDownloadingAll(true);
+    const toastId = toast.loading(
+      lang === "fr" ? "Préparation de l'archive ZIP…" : "Preparing ZIP archive…",
+    );
     try {
+      const { data, error } = await supabase.functions.invoke("zip-mission-deliverables", {
+        body: { mission_id: missionId },
+      });
+      if (error) throw error;
+      const signedUrl = (data as { url?: string })?.url;
+      if (!signedUrl) throw new Error("No URL returned");
+      const safeTitle = (missionTitle || "mission").replace(/[^a-zA-Z0-9._-]+/g, "_");
+      const zipName = `livrables_${safeTitle}.zip`;
+      const a = document.createElement("a");
+      a.href = signedUrl;
+      a.download = zipName;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success(
+        lang === "fr" ? "Téléchargement démarré" : "Download started",
+        { id: toastId, description: zipName },
+      );
+    } catch (e) {
+      console.error("ZIP download failed, falling back to sequential", e);
+      toast.message(
+        lang === "fr"
+          ? "Archive indisponible, téléchargement fichier par fichier"
+          : "Archive unavailable, downloading files one by one",
+        { id: toastId },
+      );
       for (const doc of deliverables) {
-        await forceDownload(doc.file_url, doc.file_name);
-        await new Promise((r) => setTimeout(r, 500));
+        triggerDownload(doc.file_url, doc.file_name, lang);
+        await new Promise((r) => setTimeout(r, 400));
       }
     } finally {
       setDownloadingAll(false);
@@ -344,7 +389,7 @@ const DeliverablesBlock = ({ deliverables, lang }: DeliverablesBlockProps) => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-primary hover:text-primary/80"
-                      onClick={() => forceDownload(doc.file_url, doc.file_name)}
+                      onClick={() => triggerDownload(doc.file_url, doc.file_name, lang)}
                       title={L.download}
                     >
                       <Download className="h-4 w-4" />
@@ -570,7 +615,7 @@ const MissionSummary = () => {
 
         {/* Deliverables (only if there are any marked) */}
         {deliverables.length > 0 && (
-          <DeliverablesBlock deliverables={deliverables} lang={lang} />
+          <DeliverablesBlock deliverables={deliverables} lang={lang} missionId={mission.id} missionTitle={mission.title} />
         )}
 
         {/* Financial Summary — authenticated only */}
