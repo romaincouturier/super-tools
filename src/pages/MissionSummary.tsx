@@ -280,16 +280,12 @@ const DeliverablesBlock = ({ deliverables, lang, missionId, missionTitle }: Deli
       lang === "fr" ? "Préparation de l'archive ZIP…" : "Preparing ZIP archive…",
     );
     try {
-      const { data, error } = await supabase.functions.invoke("zip-mission-deliverables", {
-        body: { mission_id: missionId },
-      });
-      if (error) throw error;
-      const signedUrl = (data as { url?: string })?.url;
-      if (!signedUrl) throw new Error("No URL returned");
       const safeTitle = (missionTitle || "mission").replace(/[^a-zA-Z0-9._-]+/g, "_");
       const zipName = `livrables_${safeTitle}.zip`;
+      const url = new URL(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/zip-mission-deliverables`);
+      url.searchParams.set("mission_id", missionId);
       const a = document.createElement("a");
-      a.href = signedUrl;
+      a.href = url.toString();
       a.download = zipName;
       a.rel = "noopener";
       document.body.appendChild(a);
