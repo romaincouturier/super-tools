@@ -85,10 +85,11 @@ export default function GroupMatchingBlock({
   };
 
   return (
-    <div
-      className="mx-4 mt-2 mb-6 rounded-xl p-3 space-y-2.5"
-      style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
-    >
+    <div className="px-4 pt-2 pb-6">
+      <div
+        className="rounded-xl p-3 space-y-2.5"
+        style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
+      >
       <div className="flex items-center gap-2">
         <Users size={14} style={{ color: "var(--st-ink)" }} />
         <span className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>
@@ -140,6 +141,7 @@ export default function GroupMatchingBlock({
           Je veux un binôme
         </button>
       )}
+      </div>
     </div>
   );
 }
