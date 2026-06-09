@@ -45,53 +45,27 @@ function GroupRow({ group }: { group: GroupMatchingGroup }) {
   );
 }
 
-function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember[]; groupSize: number }) {
+function PendingAvatars({ profiles }: { profiles: GroupMatchingMember[] }) {
   if (!profiles.length) return null;
 
-  const pending = profiles.length;
-  const slotsFilled = pending % groupSize;
-  const isAlmostFull = slotsFilled > 0;
-  const remaining = groupSize - slotsFilled;
-
-  const label = isAlmostFull
-    ? remaining === 1
-      ? "Plus qu'une place pour compléter un groupe !"
-      : `${remaining} places restantes dans le groupe en cours`
-    : pending === 1
-      ? "1 personne attend un binôme — rejoins-la !"
-      : `${pending} personnes cherchent un binôme`;
-
   return (
-    <div className="space-y-2">
-      {/* Avatars des inscrits en attente */}
-      <div className="flex items-center gap-2">
-        <div className="flex -space-x-2">
-          {profiles.slice(0, 7).map((m) => (
-            <MemberAvatar key={m.learner_email} member={m} size={8} />
-          ))}
-          {profiles.length > 7 && (
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2"
-              style={{ background: "rgba(16,24,32,0.08)", color: "var(--st-ink-muted)", borderColor: "var(--st-white)" }}
-            >
-              +{profiles.length - 7}
-            </div>
-          )}
-        </div>
-
-        {/* Progression slots */}
-        <div className="flex gap-1 ml-1">
-          {Array.from({ length: groupSize }).map((_, i) => (
-            <div
-              key={i}
-              className="w-2 h-2 rounded-full"
-              style={{ background: i < slotsFilled ? "#101820" : "rgba(16,24,32,0.15)" }}
-            />
-          ))}
-        </div>
+    <div className="flex items-center gap-2.5">
+      <div className="flex -space-x-2">
+        {profiles.slice(0, 6).map((m) => (
+          <MemberAvatar key={m.learner_email} member={m} size={8} />
+        ))}
+        {profiles.length > 6 && (
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2"
+            style={{ background: "rgba(16,24,32,0.08)", color: "var(--st-ink-muted)", borderColor: "var(--st-white)" }}
+          >
+            +{profiles.length - 6}
+          </div>
+        )}
       </div>
-
-      <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>{label}</p>
+      <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>
+        D'autres participants sont partants — rejoins-les !
+      </p>
     </div>
   );
 }
@@ -160,7 +134,7 @@ export default function GroupMatchingBlock({
 
       {/* Inscrits en attente — avatars + progression (visible si pas encore inscrit) */}
       {isNotRegistered && (
-        <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
+        <PendingAvatars profiles={pendingProfiles} />
       )}
 
       {/* Mon statut */}
@@ -174,7 +148,7 @@ export default function GroupMatchingBlock({
         </div>
       ) : myReg?.status === "pending" ? (
         <div className="space-y-2">
-          <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
+          <PendingAvatars profiles={pendingProfiles} />
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Tu es inscrit(e) — mise en relation prochainement</span>
             <button
