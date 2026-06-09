@@ -64,6 +64,7 @@ import {
 } from "@/components/learner/portal/LearnerTrainingCard";
 import { TravauxView } from "@/components/learner/portal/TravauxView";
 import { DashCard } from "@/components/learner/portal/DashCard";
+import { useCreateMatchingConfig } from "@/hooks/useGroupMatching";
 
 
 // ── Recommended courses (other published e-learnings not yet enrolled) ────────
@@ -913,6 +914,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   const { data: myComments = [] } = useMyPracticeComments(mode === "comments" ? email : null);
 
   const createPost = useCreatePracticePost(email);
+  const createMatchingConfig = useCreateMatchingConfig();
   const toggleReaction = useTogglePracticeReaction(email);
   const toggleDepositReaction = useToggleDepositReaction(email);
   const deletePost = useDeletePracticePost(email, canManageCommunity);
@@ -939,10 +941,12 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     return items;
   }, [posts, deposits, showDeposits]);
 
-  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => {
-    // Le post est rattaché à la communauté active (cours sélectionné).
+  const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null, matchingGroupSize?: number | null) => {
     const courseId = activeCourseId ?? fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
-    await createPost.mutateAsync({ content, file, poll, gifUrl, courseId });
+    const postId = await createPost.mutateAsync({ content, file, poll, gifUrl, courseId });
+    if (matchingGroupSize && postId) {
+      await createMatchingConfig.mutateAsync({ postId, groupSize: matchingGroupSize });
+    }
   };
 
   const handleReact = async (postId: string, emoji: string, iReacted: boolean) => {
@@ -1079,7 +1083,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
             En tant qu'admin, publie depuis <a href="/lms/communaute" className="underline font-medium" style={{ color: "var(--st-ink)" }}>/lms/communaute</a> pour rattacher le message à une communauté.
           </div>
         ) : (
-          <PostComposer email={email} firstName={firstName} lastName={lastName} photoUrl={photoUrl} onCreate={handleCreate} />
+          <PostComposer email={email} firstName={firstName} lastName={lastName} photoUrl={photoUrl} isStaff={isAdmin} onCreate={handleCreate} />
         )}
         {renderPostList("Aucun post pour l'instant. Soyez le premier à partager !")}
       </>

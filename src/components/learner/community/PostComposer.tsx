@@ -1,5 +1,5 @@
 import { useRef, useState, type ElementType } from "react";
-import { Image as ImageIcon, Video, Paperclip, BarChart3, X, Plus } from "lucide-react";
+import { Image as ImageIcon, Video, Paperclip, BarChart3, X, Plus, Users } from "lucide-react";
 import EmojiInsert from "@/components/ui/emoji-insert";
 import GifPicker from "@/components/learner/community/GifPicker";
 import { useToast } from "@/hooks/use-toast";
@@ -14,13 +14,15 @@ export default function PostComposer({
   firstName,
   lastName,
   photoUrl,
+  isStaff,
   onCreate,
 }: {
   email: string;
   firstName: string;
   lastName: string;
   photoUrl: string | null;
-  onCreate: (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null) => Promise<void>;
+  isStaff?: boolean;
+  onCreate: (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null, matchingGroupSize?: number | null) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [content, setContent] = useState("");
@@ -29,6 +31,8 @@ export default function PostComposer({
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [pollOptions, setPollOptions] = useState<string[] | null>(null);
+  const [matchingEnabled, setMatchingEnabled] = useState(false);
+  const [matchingGroupSize, setMatchingGroupSize] = useState(2);
   const [posting, setPosting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -42,6 +46,8 @@ export default function PostComposer({
     setGifUrl(null);
     setShowGifPicker(false);
     setPollOptions(null);
+    setMatchingEnabled(false);
+    setMatchingGroupSize(2);
     setExpanded(false);
   };
 
@@ -75,7 +81,7 @@ export default function PostComposer({
       const poll = pollOptions && pollOptions.map((o) => o.trim()).filter(Boolean).length >= 2
         ? { options: pollOptions }
         : null;
-      await onCreate(content, file, poll, gifUrl);
+      await onCreate(content, file, poll, gifUrl, matchingEnabled ? matchingGroupSize : null);
       reset();
     } catch {
       toastError(toast, "Impossible de publier.");
@@ -182,6 +188,34 @@ export default function PostComposer({
               </div>
             )}
 
+            {/* Matching config panel (staff only) */}
+            {isStaff && matchingEnabled && (
+              <div className="rounded-xl border p-3 space-y-2" style={{ borderColor: "rgba(16,24,32,0.12)" }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>Mise en relation</span>
+                  <button onClick={() => setMatchingEnabled(false)} className="text-xs hover:underline" style={{ color: "var(--st-ink-muted)" }}>
+                    Retirer
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Taille du groupe</label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setMatchingGroupSize((s) => Math.max(2, s - 1))}
+                      className="w-6 h-6 rounded flex items-center justify-center hover:bg-black/5 text-sm font-bold"
+                      style={{ color: "var(--st-ink)" }}
+                    >−</button>
+                    <span className="w-6 text-center text-sm font-semibold" style={{ color: "var(--st-ink)" }}>{matchingGroupSize}</span>
+                    <button
+                      onClick={() => setMatchingGroupSize((s) => Math.min(10, s + 1))}
+                      className="w-6 h-6 rounded flex items-center justify-center hover:bg-black/5 text-sm font-bold"
+                      style={{ color: "var(--st-ink)" }}
+                    >+</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Toolbar */}
             <div className="flex items-center gap-1 flex-wrap">
               <ToolbarButton icon={ImageIcon} label="Photo" onClick={() => { setGifUrl(null); openPicker("image/*"); }} />
@@ -197,6 +231,14 @@ export default function PostComposer({
                 active={pollOptions !== null}
                 onClick={() => setPollOptions((prev) => (prev === null ? ["", ""] : prev))}
               />
+              {isStaff && (
+                <ToolbarButton
+                  icon={Users}
+                  label="Binômes"
+                  active={matchingEnabled}
+                  onClick={() => setMatchingEnabled((v) => !v)}
+                />
+              )}
               <div className="ml-auto flex items-center gap-2">
                 <button onClick={reset} className="text-sm px-3 py-1.5 rounded-lg hover:bg-black/5" style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}>
                   Annuler

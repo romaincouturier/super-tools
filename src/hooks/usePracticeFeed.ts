@@ -517,6 +517,7 @@ export function useCreatePracticePost(learnerEmail: string | null, isAdmin = fal
           pollOptions.map((label, position) => ({ poll_id: pollId, label, position })),
         );
       }
+      return postId;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
   });
