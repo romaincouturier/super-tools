@@ -1,0 +1,281 @@
+import { useState } from "react";
+import { Loader2, Users, Send, ChevronRight, UserPlus } from "lucide-react";
+import ModuleLayout from "@/components/ModuleLayout";
+import PageHeader from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
+import { getInitials } from "@/lib/stringUtils";
+import {
+  useAllMatchingPosts,
+  usePostGroups,
+  useUnassignedRegistrations,
+  useFormGroups,
+  useAddMemberToGroup,
+  useSendGroupEmail,
+  type MatchingPostSummary,
+  type GroupMatchingGroup,
+  type GroupMatchingRegistration,
+} from "@/hooks/useGroupMatching";
+
+// ── Avatar ────────────────────────────────────────────────────────────────────
+
+function MiniAvatar({ email, firstName, lastName, photoUrl }: { email: string; firstName?: string | null; lastName?: string | null; photoUrl?: string | null }) {
+  const initials = getInitials(firstName ?? "", lastName ?? "", email.slice(0, 2).toUpperCase());
+  return (
+    <div
+      className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center text-[10px] font-bold shrink-0"
+      style={{ background: photoUrl ? "transparent" : "var(--st-yellow)", color: "#101820" }}
+      title={[firstName, lastName].filter(Boolean).join(" ") || email}
+    >
+      {photoUrl ? <img src={photoUrl} alt="" className="w-full h-full object-cover" /> : initials}
+    </div>
+  );
+}
+
+// ── Wave sheet ────────────────────────────────────────────────────────────────
+
+function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () => void }) {
+  const { data: groups = [], isLoading: groupsLoading } = usePostGroups(post.post_id);
+  const { data: unassigned = [], isLoading: unassignedLoading } = useUnassignedRegistrations(post.post_id);
+  const formGroups = useFormGroups(post.post_id);
+  const addMember = useAddMemberToGroup(post.post_id);
+  const sendEmail = useSendGroupEmail();
+  const [draftGroups, setDraftGroups] = useState<GroupMatchingGroup[] | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const activeGroups = draftGroups ?? groups;
+  const pendingRegs = draftGroups ? [] : unassigned;
+
+  const handleFormGroups = async () => {
+    try {
+      const created = await formGroups.mutateAsync({ groupSize: post.group_size });
+      setDraftGroups([...groups, ...created]);
+    } catch {
+      toastError(toast, "Impossible de former les groupes.");
+    }
+  };
+
+  const handleAddToGroup = async (group: GroupMatchingGroup, reg: GroupMatchingRegistration) => {
+    try {
+      await addMember.mutateAsync({ groupId: group.id, registrationId: reg.id, learnerEmail: reg.learner_email });
+      setDraftGroups(null);
+    } catch {
+      toastError(toast, "Impossible d'ajouter au groupe.");
+    }
+  };
+
+  const handleSendAll = async () => {
+    const unsent = activeGroups.filter((g) => !g.email_sent_at);
+    if (!unsent.length) { toast({ title: "Tous les emails ont déjà été envoyés." }); return; }
+    for (const g of unsent) {
+      setSending(g.id);
+      try {
+        await sendEmail.mutateAsync(g.id);
+      } catch {
+        toastError(toast, `Échec pour le groupe ${g.id.slice(0, 8)}`);
+      }
+    }
+    setSending(null);
+    toast({ title: "Mises en relation envoyées !", description: `${unsent.length} groupe(s) notifié(s).` });
+    setDraftGroups(null);
+  };
+
+  const isLoading = groupsLoading || unassignedLoading;
+
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full sm:max-w-2xl flex flex-col overflow-y-auto">
+        <SheetHeader className="shrink-0">
+          <SheetTitle>Nouvelle vague — groupes de {post.group_size}</SheetTitle>
+          <p className="text-sm text-muted-foreground line-clamp-2">{post.post_content ?? "Post sans texte"}</p>
+        </SheetHeader>
+
+        {isLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin" /></div>
+        ) : (
+          <div className="flex-1 space-y-6 py-4">
+
+            {/* Unassigned */}
+            {unassigned.length > 0 && !draftGroups && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{unassigned.length} inscrit(s) non assigné(s)</p>
+                  <Button size="sm" onClick={handleFormGroups} disabled={formGroups.isPending}>
+                    {formGroups.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                    Former les groupes
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {unassigned.map((r) => (
+                    <div key={r.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
+                      style={{ background: "rgba(16,24,32,0.05)", color: "var(--st-ink)" }}>
+                      {r.learner_email.split("@")[0]}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* After form groups: show remaining unassigned */}
+            {draftGroups && pendingRegs.length === 0 && unassigned.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Non assignés après formation</p>
+                {unassigned.map((reg) => (
+                  <div key={reg.id} className="rounded-lg border p-3 space-y-2">
+                    <p className="text-sm font-medium">{reg.learner_email}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {draftGroups.map((g) => (
+                        <Button
+                          key={g.id}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAddToGroup(g, reg)}
+                          disabled={addMember.isPending}
+                        >
+                          <UserPlus className="h-3 w-3 mr-1" />
+                          Groupe {g.members.map((m) => m.learner_email.split("@")[0]).join(" · ")}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formed groups */}
+            {activeGroups.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Groupes formés ({activeGroups.length})</p>
+                <div className="space-y-2">
+                  {activeGroups.map((g, i) => (
+                    <div key={g.id} className="rounded-lg border p-3 flex items-center gap-3">
+                      <div className="flex -space-x-1.5">
+                        {g.members.map((m) => (
+                          <MiniAvatar
+                            key={m.learner_email}
+                            email={m.learner_email}
+                            firstName={m.first_name}
+                            lastName={m.last_name}
+                            photoUrl={m.photo_url}
+                          />
+                        ))}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground truncate">
+                          {g.members.map((m) => [m.first_name, m.last_name].filter(Boolean).join(" ") || m.learner_email.split("@")[0]).join(" · ")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {g.email_sent_at ? (
+                          <Badge variant="outline" className="text-xs text-green-600 border-green-200">Email envoyé</Badge>
+                        ) : sending === g.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        ) : null}
+                        <span className="text-xs text-muted-foreground">#{i + 1}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeGroups.length === 0 && unassigned.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Aucun inscrit en attente.
+              </p>
+            )}
+          </div>
+        )}
+
+        <SheetFooter className="shrink-0 pt-4 border-t">
+          <Button variant="outline" onClick={onClose}>Fermer</Button>
+          {activeGroups.some((g) => !g.email_sent_at) && (
+            <Button onClick={handleSendAll} disabled={!!sending}>
+              {sending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+              Envoyer les mises en relation
+            </Button>
+          )}
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ── Post summary card ─────────────────────────────────────────────────────────
+
+function MatchingPostCard({ post }: { post: MatchingPostSummary }) {
+  const [waveOpen, setWaveOpen] = useState(false);
+
+  return (
+    <>
+      <Card>
+        <CardContent className="p-4 flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "rgba(255,209,0,0.15)" }}>
+            <Users className="h-5 w-5" style={{ color: "var(--st-ink)" }} />
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-sm font-medium line-clamp-2" style={{ color: "var(--st-ink)" }}>
+              {post.post_content ?? <span className="text-muted-foreground italic">Post sans texte</span>}
+            </p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span>Groupes de {post.group_size}</span>
+              <span>·</span>
+              <span>{post.pending_count} en attente</span>
+              <span>·</span>
+              <span>{post.assigned_count} assigné(s)</span>
+              <span>·</span>
+              <span>{post.group_count} groupe(s) formé(s)</span>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setWaveOpen(true)}
+          >
+            Nouvelle vague <ChevronRight className="h-3 w-3 ml-1" />
+          </Button>
+        </CardContent>
+      </Card>
+      {waveOpen && <WaveSheet post={post} onClose={() => setWaveOpen(false)} />}
+    </>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function LmsGroupMatching() {
+  const { data: posts = [], isLoading } = useAllMatchingPosts();
+
+  return (
+    <ModuleLayout>
+      <PageHeader title="Mise en relation" />
+
+      {isLoading ? (
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+      ) : posts.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center py-14 text-center gap-3">
+            <Users className="h-10 w-10 text-muted-foreground" />
+            <p className="font-medium">Aucun post de mise en relation</p>
+            <p className="text-sm text-muted-foreground">
+              Activez l'option "Binômes" lors de la publication d'un post dans la communauté.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {posts.map((p) => (
+            <MatchingPostCard key={p.post_id} post={p} />
+          ))}
+        </div>
+      )}
+    </ModuleLayout>
+  );
+}

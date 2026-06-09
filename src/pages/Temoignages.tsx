@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2 } from "lucide-react";
+import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2, Plus } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,7 @@ import {
   useTestimonials,
   useTestimonialCounts,
   useUpdateTestimonial,
+  useCreateTestimonial,
   type Testimonial,
   type TestimonialStatus,
 } from "@/hooks/useTestimonials";
@@ -32,6 +34,7 @@ function StatusBadge({ status }: { status: TestimonialStatus }) {
 
 function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }) {
   const driveUrl = t.drive_file_id ? `https://drive.google.com/file/d/${t.drive_file_id}/view` : null;
+  const videoUrl = driveUrl ?? t.video_url;
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <CardContent className="p-4 space-y-2">
@@ -48,9 +51,9 @@ function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }
         )}
         <div className="flex items-center justify-between gap-2 pt-1">
           <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("fr-FR")}</p>
-          {driveUrl && (
+          {videoUrl && (
             <a
-              href={driveUrl}
+              href={videoUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -62,6 +65,69 @@ function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function AddTestimonialDialog({ onClose }: { onClose: () => void }) {
+  const [clientName, setClientName] = useState("");
+  const [company, setCompany] = useState("");
+  const [serviceType, setServiceType] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [reviewerNotes, setReviewerNotes] = useState("");
+  const { mutateAsync: create, isPending } = useCreateTestimonial();
+  const { toast } = useToast();
+
+  const submit = async () => {
+    if (!videoUrl.trim()) {
+      toastError(toast, "L'URL de la vidéo est obligatoire");
+      return;
+    }
+    try {
+      await create({ client_name: clientName, company, service_type: serviceType, video_url: videoUrl.trim(), reviewer_notes: reviewerNotes });
+      toast({ title: "Témoignage ajouté", description: "Il apparaît dans l'onglet \"À valider\"." });
+      onClose();
+    } catch {
+      toastError(toast, "Impossible d'ajouter le témoignage");
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Ajouter un témoignage manuellement</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1">
+            <Label htmlFor="add-video-url">URL de la vidéo (Notion ou autre) *</Label>
+            <Input id="add-video-url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://…" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="add-client-name">Nom du client</Label>
+            <Input id="add-client-name" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Prénom Nom" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="add-company">Entreprise</Label>
+            <Input id="add-company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Nom de l'entreprise" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="add-service-type">Prestation</Label>
+            <Input id="add-service-type" value={serviceType} onChange={(e) => setServiceType(e.target.value)} placeholder="Type de formation ou prestation" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="add-notes">Notes</Label>
+            <Textarea id="add-notes" value={reviewerNotes} onChange={(e) => setReviewerNotes(e.target.value)} placeholder="Notes internes…" rows={2} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Annuler</Button>
+          <Button onClick={submit} disabled={isPending}>
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            Ajouter
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -136,6 +202,23 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
                 <Textarea id="notes" value={reviewerNotes} onChange={(e) => setReviewerNotes(e.target.value)} placeholder="Notes internes…" rows={2} />
               </div>
             </div>
+
+            {testimonial.video_url && !testimonial.drive_file_id && (
+              <>
+                <Separator />
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Lien vidéo</p>
+                  <a
+                    href={testimonial.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline break-all"
+                  >
+                    {testimonial.video_url}
+                  </a>
+                </div>
+              </>
+            )}
 
             <Separator />
 
@@ -219,13 +302,20 @@ function TestimonialList({ status }: { status: TestimonialStatus | "" }) {
 
 export default function Temoignages() {
   const { data: counts } = useTestimonialCounts();
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <ModuleLayout>
       <div className="flex items-center justify-between mb-2">
         <PageHeader title="Témoignages" />
-        <PollingIndicator source="drive_testimonials" label="Google Drive — Témoignages" functionName="poll-drive-testimonials" />
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />Ajouter manuellement
+          </Button>
+          <PollingIndicator source="drive_testimonials" label="Google Drive — Témoignages" functionName="poll-drive-testimonials" />
+        </div>
       </div>
+      {addOpen && <AddTestimonialDialog onClose={() => setAddOpen(false)} />}
 
       <Tabs defaultValue="pending_review">
         <TabsList className="mb-4">

@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Plus, FileAudio, Eye, Trash2, Search, Copy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,6 +33,7 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
   const [search, setSearch] = useState("");
   const [viewId, setViewId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard({ defaultToastTitle: "Transcript copié" });
 
   const { data: links = [], isLoading } = useCardTranscripts(cardId);
   const associate = useAssociateTranscript();
@@ -38,15 +41,10 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
 
   const copyTranscript = async (transcriptId: string) => {
     const { data, error } = await (supabase as unknown as { from: typeof supabase.from }).from("transcripts").select("ai_title,title,summary,raw_text").eq("id", transcriptId).single();
-    if (error || !data) { toast({ title: "Erreur", description: "Impossible de récupérer le transcript", variant: "destructive" }); return; }
+    if (error || !data) { toastError(toast, "Impossible de récupérer le transcript"); return; }
     const t = data as { ai_title: string | null; title: string | null; summary: string | null; raw_text: string | null };
     const parts = [t.ai_title || t.title || "Transcript", t.summary ? `\nRésumé:\n${t.summary}` : "", t.raw_text ? `\n${t.raw_text}` : ""].filter(Boolean);
-    try {
-      await navigator.clipboard.writeText(parts.join("\n"));
-      toast({ title: "Copié", description: "Le transcript complet est dans le presse-papier." });
-    } catch {
-      toast({ title: "Erreur", description: "Copie impossible", variant: "destructive" });
-    }
+    await copy(parts.join("\n"), { title: "Transcript copié", description: "Le transcript complet est dans le presse-papier." });
   };
 
   const { data: allTranscripts = [], isLoading: loadingList } = useTranscripts({
@@ -131,7 +129,7 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
 
       {/* Associate dialog */}
       <Dialog open={associateOpen} onOpenChange={setAssociateOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-full max-w-lg">
           <DialogHeader>
             <DialogTitle>Associer un transcript</DialogTitle>
           </DialogHeader>
@@ -182,7 +180,7 @@ const CardTranscriptsSection = ({ cardId }: Props) => {
 
       {/* View dialog */}
       <Dialog open={!!viewId} onOpenChange={(o) => !o && setViewId(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogContent className="w-full max-w-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {viewedTranscript?.ai_title || viewedTranscript?.title || "Transcript"}

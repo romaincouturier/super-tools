@@ -5,6 +5,7 @@ import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, Ro
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import PollDisplay from "@/components/learner/community/PollDisplay";
+import GroupMatchingBlock from "@/components/learner/community/GroupMatchingBlock";
 import EmojiInsert from "@/components/ui/emoji-insert";
 import {
   usePracticeComments,
@@ -326,6 +327,9 @@ export default function PracticePostCard({
 
       {/* Poll */}
       {post.poll && <PollDisplay poll={post.poll} onVote={onVote} />}
+
+      {/* Group matching */}
+      <GroupMatchingBlock postId={post.id} currentEmail={currentEmail} />
 
       {/* Hashtags */}
       {post.hashtags.length > 0 && (

@@ -5,7 +5,8 @@ export type TestimonialStatus = "pending_review" | "published" | "rejected";
 
 export interface Testimonial {
   id: string;
-  drive_file_id: string;
+  drive_file_id: string | null;
+  video_url: string | null;
   client_name: string | null;
   company: string | null;
   service_type: string | null;
@@ -47,6 +48,33 @@ export function useTestimonialCounts() {
         published: rows.filter((r) => r.status === "published").length,
         rejected: rows.filter((r) => r.status === "rejected").length,
       };
+    },
+  });
+}
+
+interface CreateTestimonialPayload {
+  client_name?: string;
+  company?: string;
+  service_type?: string;
+  video_url: string;
+  reviewer_notes?: string;
+}
+
+export function useCreateTestimonial() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateTestimonialPayload) => {
+      const { data, error } = await (supabase as any)
+        .from("testimonials")
+        .insert({ ...payload, status: "pending_review" })
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Testimonial;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["testimonials"] });
+      qc.invalidateQueries({ queryKey: ["testimonials-counts"] });
     },
   });
 }
