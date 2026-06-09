@@ -137,7 +137,7 @@ export default function GroupMatchingBlock({
           style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
         >
           {register.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
-          Je suis partant(e)
+          Je veux un binôme
         </button>
       )}
     </div>
