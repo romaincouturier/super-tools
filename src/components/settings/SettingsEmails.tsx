@@ -1,9 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Mail } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Mail, Search, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+
+const normalize = (s: string) =>
+  (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/<[^>]*>/g, " ");
 import {
   Accordion,
   AccordionContent,
@@ -34,6 +43,32 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
   const lastEditedTemplateRef = useRef<{ type: string; mode: AddressMode } | null>(null);
   const [templateAutoSaveStatus, setTemplateAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const templatesLoadedRef = useRef(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const searchTerms = useMemo(
+    () => normalize(searchQuery).split(/\s+/).filter(Boolean),
+    [searchQuery]
+  );
+
+  const matchesSearch = useCallback(
+    (type: string, defaultName: string) => {
+      if (searchTerms.length === 0) return true;
+      const edited = editedTemplates[type];
+      const haystack = normalize(
+        [
+          defaultName,
+          edited?.tu?.subject,
+          edited?.tu?.content,
+          edited?.vous?.subject,
+          edited?.vous?.content,
+        ]
+          .filter(Boolean)
+          .join(" ")
+      );
+      return searchTerms.every((t) => haystack.includes(t));
+    },
+    [searchTerms, editedTemplates]
+  );
 
   useEffect(() => { fetchTemplates(); }, []);
 
@@ -138,53 +173,73 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
     setActiveMode((prev) => ({ ...prev, [type]: mode }));
   };
 
-  const renderTimingSection = (timingFilter: TemplateConfig["timing"], title: string, badgeStyle: string, showDelay: boolean, delayPrefix: string) => (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h3>
-      <Accordion type="single" collapsible className="w-full">
-        {Object.entries(DEFAULT_TEMPLATES).filter(([, t]) => t.timing === timingFilter).map(([type, defaultTemplate]) => {
-          const currentMode = activeMode[type] || "vous";
-          const saveKey = `${type}_${currentMode}`;
-          const isCustomized = templates[type]?.tu || templates[type]?.vous;
-          const delayValue = defaultTemplate.delayKey ? (settings[defaultTemplate.delayKey] || null) : null;
-          const timingLabel = showDelay && delayValue ? `${delayPrefix}${delayValue}` : null;
+  const renderTimingSection = (timingFilter: TemplateConfig["timing"], title: string, badgeStyle: string, showDelay: boolean, delayPrefix: string) => {
+    const entries = Object.entries(DEFAULT_TEMPLATES)
+      .filter(([, t]) => t.timing === timingFilter)
+      .filter(([type, t]) => matchesSearch(type, t.name));
 
-          return (
-            <AccordionItem key={type} value={type}>
-              <AccordionTrigger className="text-left">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span>{defaultTemplate.name}</span>
-                    {timingLabel && <span className={`text-xs px-2 py-0.5 rounded font-medium ${badgeStyle}`}>{timingLabel}</span>}
-                    {isCustomized && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Personnalisé</span>}
+    if (entries.length === 0) return null;
+
+    const accordionProps = searchTerms.length > 0
+      ? { type: "multiple" as const, value: entries.map(([type]) => type) }
+      : { type: "single" as const, collapsible: true };
+
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h3>
+        <Accordion {...accordionProps} className="w-full">
+          {entries.map(([type, defaultTemplate]) => {
+            const currentMode = activeMode[type] || "vous";
+            const saveKey = `${type}_${currentMode}`;
+            const isCustomized = templates[type]?.tu || templates[type]?.vous;
+            const delayValue = defaultTemplate.delayKey ? (settings[defaultTemplate.delayKey] || null) : null;
+            const timingLabel = showDelay && delayValue ? `${delayPrefix}${delayValue}` : null;
+
+            return (
+              <AccordionItem key={type} value={type}>
+                <AccordionTrigger className="text-left">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span>{defaultTemplate.name}</span>
+                      {timingLabel && <span className={`text-xs px-2 py-0.5 rounded font-medium ${badgeStyle}`}>{timingLabel}</span>}
+                      {isCustomized && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Personnalisé</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground font-normal ml-7">{defaultTemplate.sendingInfo}</p>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pt-4">
-                <EmailTemplateEditor
-                  type={type}
-                  defaultTemplate={defaultTemplate}
-                  currentMode={currentMode}
-                  saveKey={saveKey}
-                  editedSubject={editedTemplates[type]?.[currentMode]?.subject || ""}
-                  editedContent={editedTemplates[type]?.[currentMode]?.content || ""}
-                  templateAutoSaveStatus={templateAutoSaveStatus}
-                  improving={improving}
-                  saving={saving}
-                  onModeChange={handleModeChange}
-                  onUpdateTemplate={updateTemplate}
-                  onImproveWithAI={handleImproveWithAI}
-                  onResetTemplate={handleResetTemplate}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
-      </Accordion>
-    </div>
-  );
+                </AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-4">
+                  <EmailTemplateEditor
+                    type={type}
+                    defaultTemplate={defaultTemplate}
+                    currentMode={currentMode}
+                    saveKey={saveKey}
+                    editedSubject={editedTemplates[type]?.[currentMode]?.subject || ""}
+                    editedContent={editedTemplates[type]?.[currentMode]?.content || ""}
+                    templateAutoSaveStatus={templateAutoSaveStatus}
+                    improving={improving}
+                    saving={saving}
+                    onModeChange={handleModeChange}
+                    onUpdateTemplate={updateTemplate}
+                    onImproveWithAI={handleImproveWithAI}
+                    onResetTemplate={handleResetTemplate}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      </div>
+    );
+  };
+
+  const sections = [
+    renderTimingSection("before", "\u{1F4C5} Avant la formation", "bg-secondary text-secondary-foreground", true, "J-"),
+    renderTimingSection("after", "\u2705 Après la formation", "bg-accent text-accent-foreground", true, "J+"),
+    renderTimingSection("during", "\u{1F3AF} Pendant la formation", "bg-secondary text-secondary-foreground", false, ""),
+    renderTimingSection("manual", "\u270B Envoi manuel", "bg-secondary text-secondary-foreground", false, ""),
+    renderTimingSection("mission_after", "\u{1F4BC} Après une mission", "bg-accent text-accent-foreground", true, "J+"),
+  ].filter(Boolean);
 
   return (
     <>
@@ -195,17 +250,40 @@ const SettingsEmails = ({ settings, loading, initialLoadDone }: SettingsEmailsPr
             Modifiez le contenu des emails automatiques envoyés par l'application.
             Utilisez les variables entre doubles accolades (ex: {"{{first_name}}"}) pour insérer des données dynamiques.
           </CardDescription>
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher dans le titre et le contenu des modèles…"
+              className="pl-9 pr-9"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => setSearchQuery("")}
+                aria-label="Effacer la recherche"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {renderTimingSection("before", "\u{1F4C5} Avant la formation", "bg-secondary text-secondary-foreground", true, "J-")}
-          <Separator />
-          {renderTimingSection("after", "\u2705 Après la formation", "bg-accent text-accent-foreground", true, "J+")}
-          <Separator />
-          {renderTimingSection("during", "\u{1F3AF} Pendant la formation", "bg-secondary text-secondary-foreground", false, "")}
-          <Separator />
-          {renderTimingSection("manual", "\u270B Envoi manuel", "bg-secondary text-secondary-foreground", false, "")}
-          <Separator />
-          {renderTimingSection("mission_after", "\u{1F4BC} Après une mission", "bg-accent text-accent-foreground", true, "J+")}
+          {sections.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Aucun modèle ne correspond à « {searchQuery} ».
+            </p>
+          ) : (
+            sections.map((section, i) => (
+              <div key={i}>
+                {i > 0 && <Separator className="mb-6" />}
+                {section}
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
       <PostEvaluationEmailManager />
