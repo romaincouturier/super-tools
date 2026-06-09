@@ -55,6 +55,7 @@ interface SystemUser {
 interface Props {
   action: SupertiltAction | null;
   open: boolean;
+  isNew?: boolean;
   onOpenChange: (open: boolean) => void;
   systemUsers: SystemUser[];
   onSave: (updates: Partial<Pick<SupertiltAction, "title" | "description" | "assigned_to" | "deadline" | "is_completed">>) => void;
@@ -64,6 +65,7 @@ interface Props {
 export default function SupertiltActionDialog({
   action,
   open,
+  isNew = false,
   onOpenChange,
   systemUsers,
   onSave,
@@ -85,16 +87,14 @@ export default function SupertiltActionDialog({
   });
 
   useEffect(() => {
-    if (action) {
-      setTitle(action.title);
-      setDescription(action.description || "");
-      setAssigned(action.assigned_to || "__none__");
-      setDeadline(action.deadline ? new Date(action.deadline + "T00:00:00") : undefined);
+    if (open) {
+      setTitle(action?.title ?? "");
+      setDescription(action?.description || "");
+      setAssigned(action?.assigned_to || "__none__");
+      setDeadline(action?.deadline ? new Date(action.deadline + "T00:00:00") : undefined);
       setTab("details");
     }
-  }, [action]);
-
-  if (!action) return null;
+  }, [open, action]);
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -169,35 +169,37 @@ export default function SupertiltActionDialog({
         )}
       </div>
       <DialogFooter className="gap-2 sm:gap-2 mt-4">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" className="text-destructive mr-auto gap-1.5">
-              <Trash2 className="h-4 w-4" /> Supprimer
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                L'action « {action.title} » sera définitivement supprimée.
-                {hasMission && " Les pages et documents de la mission liée seront préservés."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  onDelete();
-                  onOpenChange(false);
-                }}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        <Button variant="outline" onClick={() => onOpenChange(false)} className="gap-1.5">
+        {!isNew && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" className="text-destructive mr-auto gap-1.5">
+                <Trash2 className="h-4 w-4" /> Supprimer
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer cette action ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  L'action « {action?.title} » sera définitivement supprimée.
+                  {hasMission && " Les pages et documents de la mission liée seront préservés."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onDelete();
+                    onOpenChange(false);
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+        <Button variant="outline" onClick={() => onOpenChange(false)} className="gap-1.5 ml-auto">
           <X className="h-4 w-4" /> Annuler
         </Button>
         <Button onClick={handleSave} disabled={!title.trim()} className="gap-1.5">
@@ -207,73 +209,66 @@ export default function SupertiltActionDialog({
     </>
   );
 
+  const dialogTitle = isNew ? "Nouvelle action" : hasMission ? (action?.title ?? "Action") : "Modifier l'action";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn(
-          "w-full",
-          hasMission ? "sm:max-w-6xl h-[90vh] flex flex-col" : "sm:max-w-md",
-        )}
-      >
+      <DialogContent className="w-full sm:max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{hasMission ? action.title : "Modifier l'action"}</DialogTitle>
+          <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>
 
-        {hasMission ? (
-          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="self-start">
-              <TabsTrigger value="details" className="gap-1.5">
-                <Briefcase className="h-3.5 w-3.5" /> Détails
-              </TabsTrigger>
-              <TabsTrigger value="pages" className="gap-1.5">
-                <FileText className="h-3.5 w-3.5" /> Pages
-              </TabsTrigger>
-              <TabsTrigger value="documents" className="gap-1.5">
-                <FolderOpen className="h-3.5 w-3.5" /> Documents
-              </TabsTrigger>
-              <TabsTrigger value="gallery" className="gap-1.5">
-                <ImageIcon className="h-3.5 w-3.5" /> Galerie
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="details" className="mt-4">
-              {detailsContent}
-            </TabsContent>
-            <TabsContent value="pages" className="flex-1 min-h-0 mt-4 overflow-hidden">
-              {missionLoading || !linkedMission ? (
-                <div className="h-full flex items-center justify-center">
-                  <Spinner />
-                </div>
-              ) : (
-                <div className="h-full overflow-hidden">
-                  <MissionPages mission={linkedMission} />
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="documents" className="flex-1 min-h-0 mt-4 overflow-auto">
-              {missionId && (
-                <EntityDocumentsManager
-                  entityType="mission"
-                  entityId={missionId}
-                  variant="bare"
-                  title="Documents contractuels"
-                />
-              )}
-            </TabsContent>
-            <TabsContent value="gallery" className="flex-1 min-h-0 mt-4 overflow-auto">
-              {missionId && (
-                <EntityMediaManager
-                  sourceType="mission"
-                  sourceId={missionId}
-                  sourceLabel={linkedMission?.title || action.title}
-                  variant="bare"
-                  enablePaste
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        ) : (
-          detailsContent
-        )}
+        <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="self-start">
+            <TabsTrigger value="details" className="gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" /> Détails
+            </TabsTrigger>
+            <TabsTrigger value="pages" className="gap-1.5" disabled={!hasMission}>
+              <FileText className="h-3.5 w-3.5" /> Pages
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-1.5" disabled={!hasMission}>
+              <FolderOpen className="h-3.5 w-3.5" /> Documents
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="gap-1.5" disabled={!hasMission}>
+              <ImageIcon className="h-3.5 w-3.5" /> Galerie
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="details" className="mt-4">
+            {detailsContent}
+          </TabsContent>
+          <TabsContent value="pages" className="flex-1 min-h-0 mt-4 overflow-hidden">
+            {hasMission && (missionLoading || !linkedMission) ? (
+              <div className="h-full flex items-center justify-center">
+                <Spinner />
+              </div>
+            ) : hasMission && linkedMission ? (
+              <div className="h-full overflow-hidden">
+                <MissionPages mission={linkedMission} />
+              </div>
+            ) : null}
+          </TabsContent>
+          <TabsContent value="documents" className="flex-1 min-h-0 mt-4 overflow-auto">
+            {missionId && (
+              <EntityDocumentsManager
+                entityType="mission"
+                entityId={missionId}
+                variant="bare"
+                title="Documents contractuels"
+              />
+            )}
+          </TabsContent>
+          <TabsContent value="gallery" className="flex-1 min-h-0 mt-4 overflow-auto">
+            {missionId && (
+              <EntityMediaManager
+                sourceType="mission"
+                sourceId={missionId}
+                sourceLabel={linkedMission?.title || action?.title || ""}
+                variant="bare"
+                enablePaste
+              />
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
