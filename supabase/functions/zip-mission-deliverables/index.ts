@@ -41,18 +41,22 @@ serve(async (req) => {
       .single();
     if (missionError || !mission) return createErrorResponse("Mission not found", 404);
 
-    const [{ data: docs }, { data: media }] = await Promise.all([
+    const [{ data: docs, error: docsError }, { data: media, error: mediaError }] = await Promise.all([
       supabase
         .from("mission_documents")
         .select("file_name, file_url")
         .eq("mission_id", mission_id)
         .eq("is_deliverable", true),
       supabase
-        .from("mission_media")
+        .from("media")
         .select("file_name, file_url")
-        .eq("mission_id", mission_id)
+        .eq("source_type", "mission")
+        .eq("source_id", mission_id)
         .eq("is_deliverable", true),
     ]);
+
+    if (docsError) return createErrorResponse(`Documents query failed: ${docsError.message}`, 500);
+    if (mediaError) return createErrorResponse(`Media query failed: ${mediaError.message}`, 500);
 
     const deliverables: Deliverable[] = [
       ...((docs ?? []) as Deliverable[]),
@@ -129,7 +133,7 @@ serve(async (req) => {
     return createJsonResponse({
       success: true,
       url: signed.signedUrl,
-      file_count: seen.size,
+      file_count: added,
       size_bytes: zipBlob.size,
     });
   } catch (error) {
