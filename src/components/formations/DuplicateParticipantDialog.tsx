@@ -165,7 +165,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
             financeurName: participant.financeur_name || "",
             financeurUrl: participant.financeur_url || "",
             generateCoupon: false,
-            source: "duplicate",
+            source: "manual",
           },
         },
       );
