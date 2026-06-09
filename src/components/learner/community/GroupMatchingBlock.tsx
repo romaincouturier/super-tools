@@ -64,7 +64,7 @@ function PendingAvatars({ profiles }: { profiles: GroupMatchingMember[] }) {
         )}
       </div>
       <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>
-        D'autres participants sont partants — rejoins-les !
+        D'autres participant(e)s sont déjà partant(e)s, rejoins-les pour enrichir ton expérience de formation
       </p>
     </div>
   );
