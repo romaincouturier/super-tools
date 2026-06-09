@@ -358,22 +358,31 @@ function ValidationSheet({ testimonial, onClose }: ValidationSheetProps) {
   );
 }
 
-function TestimonialList({ status }: { status: TestimonialStatus | "" }) {
+function TestimonialList({ status, search }: { status: TestimonialStatus | ""; search: string }) {
   const [selected, setSelected] = useState<Testimonial | null>(null);
   const { data, isLoading, refetch } = useTestimonials(status);
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
-  if (!data?.length) {
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? (data ?? []).filter((t) =>
+        [t.client_name, t.company, t.service_type]
+          .filter(Boolean)
+          .some((v) => (v as string).toLowerCase().includes(q))
+      )
+    : data ?? [];
+
+  if (!filtered.length) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center py-14 text-center gap-3">
           <Star className="h-10 w-10 text-muted-foreground" />
-          <p className="font-medium">Aucun témoignage</p>
+          <p className="font-medium">{q ? "Aucun résultat" : "Aucun témoignage"}</p>
           <p className="text-sm text-muted-foreground">
-            Déposez une vidéo dans votre dossier Google Drive dédié aux témoignages.
+            {q ? "Essayez un autre nom, prénom ou titre." : "Déposez une vidéo dans votre dossier Google Drive dédié aux témoignages."}
           </p>
-          <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-1" />Rafraîchir</Button>
+          {!q && <Button variant="outline" size="sm" onClick={() => refetch()}><RefreshCw className="h-4 w-4 mr-1" />Rafraîchir</Button>}
         </CardContent>
       </Card>
     );
@@ -383,7 +392,7 @@ function TestimonialList({ status }: { status: TestimonialStatus | "" }) {
   return (
     <>
       <div className={isPublished ? "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"}>
-        {data.map((t) =>
+        {filtered.map((t) =>
           isPublished ? (
             <PublishedTestimonialCard key={t.id} t={t} onEdit={() => setSelected(t)} />
           ) : (
@@ -395,6 +404,7 @@ function TestimonialList({ status }: { status: TestimonialStatus | "" }) {
     </>
   );
 }
+
 
 export default function Temoignages() {
   const { data: counts } = useTestimonialCounts();
