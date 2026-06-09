@@ -1,6 +1,6 @@
 /**
  * Stream all deliverables of a mission into a single ZIP archive,
- * upload it to the `mission-media` bucket under a short-lived path,
+ * upload it to the `mission-documents` bucket under a short-lived path,
  * and return a 1h signed URL so the browser can download it natively.
  *
  * Why upload then signed URL (instead of streaming the response body)?
@@ -111,7 +111,7 @@ serve(async (req) => {
     const storagePath = `_zips/${mission_id}/${Date.now()}_livrables_${safeTitle}.zip`;
 
     const { error: uploadError } = await supabase.storage
-      .from("mission-media")
+      .from("mission-documents")
       .upload(storagePath, zipBlob, {
         contentType: "application/zip",
         upsert: true,
@@ -122,7 +122,7 @@ serve(async (req) => {
     }
 
     const { data: signed, error: signError } = await supabase.storage
-      .from("mission-media")
+      .from("mission-documents")
       .createSignedUrl(storagePath, 60 * 60, {
         download: `livrables_${safeTitle}.zip`,
       });
