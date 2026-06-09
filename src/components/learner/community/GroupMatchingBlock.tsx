@@ -45,8 +45,15 @@ function GroupRow({ group }: { group: GroupMatchingGroup }) {
   );
 }
 
-function PendingAvatars({ profiles }: { profiles: GroupMatchingMember[] }) {
+function groupNoun(size: number): string {
+  if (size === 2) return "binôme";
+  if (size === 3) return "trinôme";
+  return "groupe";
+}
+
+function PendingAvatars({ profiles, groupSize }: { profiles: GroupMatchingMember[]; groupSize: number }) {
   if (!profiles.length) return null;
+  const noun = groupNoun(groupSize);
 
   return (
     <div className="flex items-center gap-2.5">
@@ -64,11 +71,12 @@ function PendingAvatars({ profiles }: { profiles: GroupMatchingMember[] }) {
         )}
       </div>
       <p className="text-xs font-medium" style={{ color: "var(--st-ink)" }}>
-        D'autres participant(e)s sont déjà partant(e)s, rejoins-les pour enrichir ton expérience de formation
+        D'autres participant(e)s sont déjà partant(e)s pour former un {noun}, rejoins-les pour enrichir ton expérience de formation
       </p>
     </div>
   );
 }
+
 
 export default function GroupMatchingBlock({
   postId,
@@ -112,6 +120,8 @@ export default function GroupMatchingBlock({
     }
   };
 
+  const noun = groupNoun(config.group_size);
+
   return (
     <div className="px-4 pt-2 pb-6">
       <div
@@ -121,7 +131,7 @@ export default function GroupMatchingBlock({
       <div className="flex items-center gap-2">
         <Users size={14} style={{ color: "var(--st-ink)" }} />
         <span className="text-xs font-semibold" style={{ color: "var(--st-ink)" }}>
-          Trouver un binôme
+          Trouver un {noun}
         </span>
       </div>
 
@@ -134,21 +144,21 @@ export default function GroupMatchingBlock({
 
       {/* Inscrits en attente — avatars + progression (visible si pas encore inscrit) */}
       {isNotRegistered && (
-        <PendingAvatars profiles={pendingProfiles} />
+        <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
       )}
 
       {/* Mon statut */}
       {myGroup ? (
         <div className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-          Ton groupe ci-dessus — organisez-vous librement !
+          Ton {noun} ci-dessus — organisez-vous librement !
         </div>
       ) : myReg?.status === "assigned" ? (
         <div className="text-xs" style={{ color: "var(--st-ink-muted)" }}>
-          Tu es dans un groupe.
+          Tu es dans un {noun}.
         </div>
       ) : myReg?.status === "pending" ? (
         <div className="space-y-2">
-          <PendingAvatars profiles={pendingProfiles} />
+          <PendingAvatars profiles={pendingProfiles} groupSize={config.group_size} />
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs" style={{ color: "var(--st-ink-muted)" }}>Tu es inscrit(e) — mise en relation prochainement</span>
             <button
@@ -169,10 +179,11 @@ export default function GroupMatchingBlock({
           style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
         >
           {register.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
-          Je veux un binôme
+          Je veux un {noun}
         </button>
       )}
       </div>
     </div>
   );
 }
+
