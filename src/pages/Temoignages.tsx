@@ -68,26 +68,76 @@ function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }
   );
 }
 
+function extractYoutubeId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const patterns = [
+    /(?:youtube\.com\/watch\?[^#]*v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{11})/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () => void }) {
+  const ytId = extractYoutubeId(t.video_url);
+  const [playing, setPlaying] = useState(false);
+
   const driveUrl = t.drive_file_id ? `https://drive.google.com/file/d/${t.drive_file_id}/view` : null;
-  const videoUrl = driveUrl ?? t.video_url ?? "#";
-  const thumb = t.drive_file_id ? `https://drive.google.com/thumbnail?id=${t.drive_file_id}&sz=w640` : null;
+  const videoUrl = ytId
+    ? `https://www.youtube.com/watch?v=${ytId}`
+    : driveUrl ?? t.video_url ?? "#";
+  const thumb = ytId
+    ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`
+    : t.drive_file_id
+    ? `https://drive.google.com/thumbnail?id=${t.drive_file_id}&sz=w640`
+    : null;
+
   return (
     <div className="group flex flex-col gap-2">
-      <a
-        href={videoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="relative block aspect-video overflow-hidden rounded-lg bg-muted"
-      >
-        {thumb ? (
-          <img src={thumb} alt={t.service_type || t.company || "Témoignage"} className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+      <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+        {playing && ytId ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`}
+            title={t.service_type || "Témoignage"}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="h-full w-full border-0"
+          />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Star className="h-10 w-10 text-muted-foreground" />
-          </div>
+          <a
+            href={videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => {
+              if (ytId) {
+                e.preventDefault();
+                setPlaying(true);
+              }
+            }}
+            className="relative block h-full w-full"
+          >
+            {thumb ? (
+              <img
+                src={thumb}
+                alt={t.service_type || t.company || "Témoignage"}
+                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Star className="h-10 w-10 text-muted-foreground" />
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/70">
+                <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white"><path d="M8 5v14l11-7z" /></svg>
+              </div>
+            </div>
+          </a>
         )}
-      </a>
+      </div>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm line-clamp-2 leading-snug">{t.service_type || "Prestation non renseignée"}</p>
@@ -107,6 +157,7 @@ function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () =>
     </div>
   );
 }
+
 
 function AddTestimonialDialog({ onClose }: { onClose: () => void }) {
   const [clientName, setClientName] = useState("");
