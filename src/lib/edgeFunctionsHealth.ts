@@ -49,7 +49,7 @@ export const EXPECTED_FUNCTIONS = [
   "upload-participant-invoice","upload-support-attachment","upload-trainer-document","upload-training-document",
   "upload-training-document-field","upload-training-file","upload-watch-file","verify-attendance-signature",
   "verify-convention-signature","verify-devis-signature","watch-check-duplicate","watch-cluster-analysis",
-  "watch-process-item","watch-weekly-digest","wp-statistics-proxy",
+  "watch-process-item","watch-weekly-digest","wp-statistics-proxy","zip-mission-deliverables",
 ];
 
 export interface FunctionInfo {
