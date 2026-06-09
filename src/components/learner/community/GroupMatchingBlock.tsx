@@ -86,7 +86,7 @@ export default function GroupMatchingBlock({
 
   return (
     <div
-      className="mx-4 mt-1 mb-4 rounded-xl p-3 space-y-2.5"
+      className="mx-4 mt-1 mb-5 rounded-xl p-3 space-y-2.5"
       style={{ background: "rgba(255,209,0,0.08)", border: "1px solid rgba(255,209,0,0.3)" }}
     >
       <div className="flex items-center gap-2">
