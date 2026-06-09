@@ -614,7 +614,7 @@ const MissionSummary = () => {
 
         {/* Deliverables (only if there are any marked) */}
         {deliverables.length > 0 && (
-          <DeliverablesBlock deliverables={deliverables} lang={lang} />
+          <DeliverablesBlock deliverables={deliverables} lang={lang} missionId={mission.id} missionTitle={mission.title} />
         )}
 
         {/* Financial Summary — authenticated only */}
