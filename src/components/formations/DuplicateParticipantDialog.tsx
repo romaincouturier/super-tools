@@ -15,7 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateRange } from "@/lib/dateFormatters";
-import { normalizeText } from "@/lib/stringUtils";
+const normalizeText = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 import type { Participant } from "@/hooks/useEditParticipant";
 import type { AddParticipantResponse } from "@/types/addParticipant";
 
