@@ -72,12 +72,8 @@ serve(async (req) => {
     });
 
     const seen = new Map<string, number>();
+    let added = 0;
     for (const d of deliverables) {
-      const resp = await fetch(d.file_url);
-      if (!resp.ok || !resp.body) {
-        console.warn(`Skipping ${d.file_name}: HTTP ${resp.status}`);
-        continue;
-      }
       // De-duplicate file names inside the archive.
       let name = d.file_name || "fichier";
       if (seen.has(name)) {
@@ -90,7 +86,19 @@ serve(async (req) => {
       } else {
         seen.set(name, 1);
       }
-      await zipWriter.add(name, resp.body);
+      try {
+        // HttpReader streams chunks from the URL into the zip — no full
+        // file buffered in memory. `level: 0` (STORE) avoids re-compressing
+        // already-compressed media which would waste CPU.
+        await zipWriter.add(name, new HttpReader(d.file_url), { level: 0 });
+        added++;
+      } catch (e) {
+        console.warn(`Skipping ${name}:`, e instanceof Error ? e.message : e);
+      }
+    }
+
+    if (added === 0) {
+      return createErrorResponse("Could not fetch any deliverable", 502);
     }
 
     const zipBlob: Blob = await zipWriter.close();
