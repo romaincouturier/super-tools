@@ -235,7 +235,10 @@ const ActionsKanbanColumn = ({ title, items, color, icon }: ActionsKanbanColumnP
 interface DeliverablesBlockProps {
   deliverables: Deliverable[];
   lang: Lang;
+  missionId: string;
+  missionTitle: string;
 }
+
 
 /**
  * Build a streamed download URL by appending Supabase Storage's `?download=`
