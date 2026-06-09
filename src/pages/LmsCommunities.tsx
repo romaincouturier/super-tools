@@ -67,15 +67,14 @@ function useCommunityList() {
         recentMap.set(p.course_id, (recentMap.get(p.course_id) ?? 0) + 1);
       });
 
-      // Posts without any staff reply → pending review
+      // Travaux (posts liés à un dépôt) sans retour staff
       const { data: allPosts } = await (supabase as any)
         .from("practice_posts")
-        .select("id, course_id")
-        .in("course_id", courseIds);
+        .select("id, course_id, deposit_id, is_staff_treated")
+        .in("course_id", courseIds)
+        .not("deposit_id", "is", null);
 
       const allPostIds: string[] = (allPosts || []).map((p: any) => p.id);
-      const postCourseMap = new Map<string, string>();
-      (allPosts || []).forEach((p: any) => postCourseMap.set(p.id, p.course_id));
 
       let postsWithStaffReply = new Set<string>();
       if (allPostIds.length > 0) {
@@ -89,10 +88,11 @@ function useCommunityList() {
 
       const pendingMap = new Map<string, number>();
       (allPosts || []).forEach((p: any) => {
-        if (!postsWithStaffReply.has(p.id)) {
+        if (!p.is_staff_treated && !postsWithStaffReply.has(p.id)) {
           pendingMap.set(p.course_id, (pendingMap.get(p.course_id) ?? 0) + 1);
         }
       });
+
 
       // Only include courses that have enrollments OR posts
       return courses
