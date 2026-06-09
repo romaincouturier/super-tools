@@ -328,12 +328,17 @@ function TestimonialList({ status }: { status: TestimonialStatus | "" }) {
     );
   }
 
+  const isPublished = status === "published";
   return (
     <>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {data.map((t) => (
-          <TestimonialCard key={t.id} t={t} onClick={() => setSelected(t)} />
-        ))}
+      <div className={isPublished ? "grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"}>
+        {data.map((t) =>
+          isPublished ? (
+            <PublishedTestimonialCard key={t.id} t={t} onEdit={() => setSelected(t)} />
+          ) : (
+            <TestimonialCard key={t.id} t={t} onClick={() => setSelected(t)} />
+          )
+        )}
       </div>
       {selected && <ValidationSheet testimonial={selected} onClose={() => setSelected(null)} />}
     </>
