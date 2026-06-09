@@ -20,6 +20,7 @@ import type { Participant } from "@/hooks/useEditParticipant";
 import { ParticipantFormFields, SponsorFormFields, ParticipantFiles } from "./edit-participant";
 import { formatDateRange } from "@/lib/dateFormatters";
 import RepositionParticipantDialog from "./RepositionParticipantDialog";
+import DuplicateParticipantDialog from "./DuplicateParticipantDialog";
 
 export type { Participant };
 
