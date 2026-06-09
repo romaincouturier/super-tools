@@ -724,7 +724,6 @@ const MissionSummary = () => {
                         <th className="text-left py-2 pr-4 font-medium text-muted-foreground">{L.description}</th>
                         <th className="text-right py-2 pr-4 font-medium text-muted-foreground">{L.amount}</th>
                         <th className="text-center py-2 font-medium text-muted-foreground">{L.status}</th>
-                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -751,18 +750,6 @@ const MissionSummary = () => {
                             >
                               {activity.is_billed ? L.billedBadge : L.pendingBadge}
                             </Badge>
-                          </td>
-                          <td className="py-2.5 pl-2">
-                            {activity.invoice_url && (
-                              <a
-                                href={activity.invoice_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline flex items-center gap-1 text-xs"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
                           </td>
                         </tr>
                       ))}
