@@ -423,15 +423,42 @@ const EventDetail = () => {
                 const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                 const isPastDeadline = daysLeft < 0;
                 const isUrgent = daysLeft >= 0 && daysLeft <= 7;
+                const isSubmitted = !!event.cfp_submitted_at;
                 return (
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 ${isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
-                    <div>
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className={`h-4 w-4 flex-shrink-0 mt-0.5 ${isSubmitted ? "text-green-600" : isUrgent && !isPastDeadline ? "text-orange-500" : "text-muted-foreground"}`} />
+                    <div className="flex-1">
                       <p className="text-sm font-medium">Date limite CFP</p>
-                      <p className={`text-sm ${isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
+                      <p className={`text-sm ${isSubmitted ? "text-muted-foreground" : isPastDeadline ? "text-muted-foreground line-through" : isUrgent ? "text-orange-600 font-medium" : "text-muted-foreground"}`}>
                         {formatDateWithDayOfWeek(event.cfp_deadline)}
                         {isPastDeadline ? " (passée)" : daysLeft === 0 ? " (aujourd'hui !)" : daysLeft === 1 ? " (demain !)" : ` (dans ${daysLeft}j)`}
                       </p>
+                      {isSubmitted ? (
+                        <div className="mt-1 flex items-center gap-2">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            CFP soumis le {new Date(event.cfp_submitted_at!).toLocaleDateString("fr-FR")}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => updateEvent.mutate({ id: event.id, cfp_submitted_at: null })}
+                            disabled={updateEvent.isPending}
+                          >
+                            Annuler
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 h-7 text-xs"
+                          onClick={() => updateEvent.mutate({ id: event.id, cfp_submitted_at: new Date().toISOString() })}
+                          disabled={updateEvent.isPending}
+                        >
+                          Marquer comme soumis
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
