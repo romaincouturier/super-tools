@@ -9,6 +9,7 @@ import {
   sendEmail,
 } from "../_shared/mod.ts";
 import { getSenderEmail, getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
