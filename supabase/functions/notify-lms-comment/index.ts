@@ -53,7 +53,7 @@ serve(async (req) => {
 
     const subject = `💬 Nouveau commentaire e-learning — ${course?.title || "Cours"}`;
     const { app_url } = await getAppUrls();
-    const communityUrl = courseId && lessonId ? `${app_url}/lms/${courseId}/player?preview=admin&lesson=${lessonId}` : null;
+    const communityUrl = courseId ? `${app_url}/lms/communautes/${courseId}` : null;
 
     const html = `
       <p>Un apprenant a laissé un commentaire sur une leçon e-learning :</p>
