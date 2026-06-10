@@ -86,7 +86,7 @@ serve(async (req) => {
     const bccList = await getBccList();
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
-    const link = `${urls.app_url}/espace-apprenant/pratique`;
+    const link = `${urls.app_url}/espace-apprenant/pratique?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`;
 
     const subject = `💬 Nouveau commentaire sur votre publication`;
     const commentExcerpt = (comment?.content || "").slice(0, 280);
