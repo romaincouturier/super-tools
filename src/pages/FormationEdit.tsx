@@ -83,6 +83,8 @@ const FormationEdit = () => {
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
+  const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
+  const [trainingIsPermanent, setTrainingIsPermanent] = useState<boolean>(false);
 
   useEffect(() => {
     if (!authLoading && user) {
