@@ -24,6 +24,12 @@ export default function FileBlockEditor({ lessonId, content, onChange, slim }: P
   const { toast } = useToast();
 
   const handleUpload = async (file: File) => {
+    if (content.url) {
+      const ok = window.confirm(
+        `Un fichier est déjà attaché à ce bloc ("${content.name || "fichier"}"). L'importer remplacera le précédent. Continuer ?`,
+      );
+      if (!ok) return;
+    }
     setUploading(true);
     try {
       const result = await uploadLmsFile(file, lessonId);
