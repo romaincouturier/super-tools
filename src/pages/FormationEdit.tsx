@@ -157,12 +157,17 @@ const FormationEdit = () => {
         t.session_format === "distanciel_asynchrone" ||
         t.format_formation === "e_learning";
 
+      const loadedIsPermanent = loadedIsElearning && !t.start_date && !t.end_date;
+
       if (loadedIsElearning) {
-        if (t.start_date) form.setElearningStartDate(parseISO(t.start_date));
-        if (t.end_date) form.setElearningEndDate(parseISO(t.end_date));
+        if (!loadedIsPermanent) {
+          if (t.start_date) form.setElearningStartDate(parseISO(t.start_date));
+          if (t.end_date) form.setElearningEndDate(parseISO(t.end_date));
+        }
         form.setElearningAccessEmailContent(t.elearning_access_email_content || "");
         form.setSchedules([]);
         form.setSelectedDates([]);
+        form.setIsPermanent(loadedIsPermanent);
       } else {
         // Fetch schedules
         const { data: schedulesData } = await supabase
@@ -233,9 +238,11 @@ const FormationEdit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const hasValidDates = form.isElearning
-      ? !!(form.elearningStartDate && form.elearningEndDate)
-      : form.selectedDates.length > 0;
+    const hasValidDates = form.isPermanent
+      ? true
+      : form.isElearning
+        ? !!(form.elearningStartDate && form.elearningEndDate)
+        : form.selectedDates.length > 0;
 
     const locationValid = form.isInter ? (form.isElearning || !!venueId) : !!location;
     if (!hasValidDates || !form.trainingName || !locationValid || (!form.isInter && !form.clientName) || !user || !id) {
@@ -389,11 +396,13 @@ const FormationEdit = () => {
                     />
                   </div>
 
-                  {/* Dates */}
-                  {form.isElearning ? (
-                    <ElearningDatesFields form={form} />
-                  ) : (
-                    <TrainingDaysCalendar form={form} />
+                  {/* Dates — masquées sur une session permanente */}
+                  {!form.isPermanent && (
+                    form.isElearning ? (
+                      <ElearningDatesFields form={form} />
+                    ) : (
+                      <TrainingDaysCalendar form={form} />
+                    )
                   )}
 
                   {/* Session type/format */}
