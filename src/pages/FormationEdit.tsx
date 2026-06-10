@@ -588,6 +588,13 @@ const FormationEdit = () => {
                     : undefined
                 }
               />
+              {form.isElearning && id && availableFormulas.length > 0 && (
+                <TrainingFormulasManager
+                  trainingId={id}
+                  isPermanent={trainingIsPermanent}
+                  availableFormulas={availableFormulas}
+                />
+              )}
               {/* Show legacy data when no catalog */}
               {!form.catalogId && (form.objectives.length > 0 || form.prerequisites.length > 0 || form.programFileUrl) && (
                 <Card>
