@@ -31,6 +31,8 @@ import {
   CatalogSummaryCard,
   SourceFinancementSelector,
 } from "@/components/formations/FormationFormFields";
+import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
+import type { FormationFormula } from "@/types/training";
 
 interface TrainingExtended {
   training_name: string;
