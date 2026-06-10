@@ -13,6 +13,7 @@ export interface Event {
   cfp_deadline: string | null;
   event_url: string | null;
   cfp_url: string | null;
+  cfp_submitted_at: string | null;
   created_by: string | null;
   assigned_to: string | null;
   train_booked: boolean;

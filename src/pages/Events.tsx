@@ -175,7 +175,7 @@ const Events = () => {
                           {formatDateWithDayOfWeek(event.event_date)}
                           {event.event_time && ` à ${event.event_time.slice(0, 5)}`}
                         </span>
-                        {event.event_type === "external" && event.cfp_deadline && (() => {
+                        {event.event_type === "external" && event.cfp_deadline && !event.cfp_submitted_at && (() => {
                           const daysLeft = getCfpDaysLeft(event.cfp_deadline);
                           if (daysLeft < 0) return null;
                           return (
@@ -184,6 +184,11 @@ const Events = () => {
                             </span>
                           );
                         })()}
+                        {event.event_type === "external" && event.cfp_submitted_at && (
+                          <span className="text-[10px] sm:text-xs text-green-600 font-medium">
+                            CFP soumis
+                          </span>
+                        )}
                       </div>
                       {/* Location — inline on desktop, below on mobile */}
                       {event.location && (
