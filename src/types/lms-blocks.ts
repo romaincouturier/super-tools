@@ -119,10 +119,20 @@ export interface GalleryBlockContent {
   columns?: 2 | 3 | 4;
 }
 
-export interface FileBlockContent {
-  url: string | null;
-  name?: string | null;
+export interface FileBlockItem {
+  url: string;
+  name: string;
   size?: number | null;
+}
+
+export interface FileBlockContent {
+  /** @deprecated use `files` — kept for backward compatibility */
+  url?: string | null;
+  /** @deprecated use `files` — kept for backward compatibility */
+  name?: string | null;
+  /** @deprecated use `files` — kept for backward compatibility */
+  size?: number | null;
+  files?: FileBlockItem[];
   description_html?: string | null;
 }
 
