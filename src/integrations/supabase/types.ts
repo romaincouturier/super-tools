@@ -2215,6 +2215,7 @@ export type Database = {
           assigned_to: string | null
           cancellation_reason: string | null
           cfp_deadline: string | null
+          cfp_submitted_at: string | null
           cfp_url: string | null
           created_at: string
           created_by: string | null
@@ -2242,6 +2243,7 @@ export type Database = {
           assigned_to?: string | null
           cancellation_reason?: string | null
           cfp_deadline?: string | null
+          cfp_submitted_at?: string | null
           cfp_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -2269,6 +2271,7 @@ export type Database = {
           assigned_to?: string | null
           cancellation_reason?: string | null
           cfp_deadline?: string | null
+          cfp_submitted_at?: string | null
           cfp_url?: string | null
           created_at?: string
           created_by?: string | null
