@@ -373,61 +373,111 @@ Deno.serve(async (req: Request): Promise<Response> => {
         let routingReason = "";
         const parsedDates = parseFrenchDates(item.name ?? "");
 
-        // Routing strict via catalog_id (lié au product_id de la formule).
-        // Toutes les sessions du catalogue sont éligibles, aucun matching par nom.
+        // Routing strict via training_formulas (sessions explicitement liées à la formule achetée).
+        // Fallback historique sur catalog_id si aucune liaison n'a encore été déclarée.
         if (catalogId) {
           const today = new Date().toISOString().split("T")[0];
 
-          // 1️⃣ Pour une formation inter : cherche une session aux dates parsées dans le titre du produit
+          // Sessions explicitement liées à cette formule
+          const { data: linkedRows } = await (admin as any)
+            .from("training_formulas")
+            .select("training_id, trainings:training_id(id, training_name, start_date, end_date, format_formation, is_cancelled, catalog_id)")
+            .eq("formula_id", formula.id);
+
+          type LinkedTraining = {
+            id: string;
+            training_name: string;
+            start_date: string | null;
+            end_date: string | null;
+            format_formation: string | null;
+            is_cancelled: boolean | null;
+            catalog_id: string | null;
+          };
+          const linkedTrainings: LinkedTraining[] = ((linkedRows ?? []) as Array<{ trainings: LinkedTraining | null }>)
+            .map((r) => r.trainings)
+            .filter((t): t is LinkedTraining => !!t && t.is_cancelled !== true);
+
+          // 1️⃣ Dates parsées dans le titre Woo → session datée correspondante liée à la formule
           if (parsedDates) {
-            const { data: byDate } = await (admin as any)
-              .from("trainings")
-              .select("id, training_name, start_date, end_date, format_formation")
-              .eq("catalog_id", catalogId)
-              .eq("is_cancelled", false)
-              .eq("start_date", parsedDates.start)
-              .maybeSingle();
+            const byDate = linkedTrainings.find((t) => t.start_date === parsedDates.start);
             if (byDate) {
               training = byDate;
-              routingReason = `session du ${parsedDates.start} trouvée via dates dans le titre (catalog_id ${catalogId})`;
+              routingReason = `formule ${formula.name} — session du ${parsedDates.start} liée explicitement`;
             }
           }
 
-          // 2️⃣ E-learning : session permanente (start_date NULL) du même catalogue
-          if (!training && isElearningCatalog) {
-            const { data: permanent } = await (admin as any)
-              .from("trainings")
-              .select("id, training_name, start_date, end_date, format_formation")
-              .eq("catalog_id", catalogId)
-              .eq("is_cancelled", false)
-              .is("start_date", null)
-              .limit(1)
-              .maybeSingle();
+          // 2️⃣ Sinon session permanente liée à la formule (start_date NULL)
+          if (!training) {
+            const permanent = linkedTrainings.find((t) => t.start_date === null);
             if (permanent) {
               training = permanent;
-              routingReason = `session e-learning permanente du catalogue ${catalogId}`;
+              routingReason = `formule ${formula.name} — session permanente liée`;
             }
           }
 
-          // 3️⃣ Sinon : prochaine session INTER-ENTREPRISES datée non encore commencée du même catalogue
-          //    (on exclut volontairement les sessions intra pour ne pas inscrire un client B2C dans une session privée)
+          // 3️⃣ Sinon prochaine session datée liée à la formule
           if (!training) {
-            const { data: upcoming } = await (admin as any)
-              .from("trainings")
-              .select("id, training_name, start_date, end_date, format_formation")
-              .eq("catalog_id", catalogId)
-              .eq("is_cancelled", false)
-              .eq("format_formation", "inter-entreprises")
-              .gt("start_date", today)
-              .order("start_date", { ascending: true })
-              .limit(1)
-              .maybeSingle();
+            const upcoming = linkedTrainings
+              .filter((t) => t.start_date !== null && t.start_date! > today)
+              .sort((a, b) => (a.start_date! < b.start_date! ? -1 : 1))[0];
             if (upcoming) {
               training = upcoming;
-              routingReason = `prochaine session inter-entreprises datée du catalogue ${catalogId}`;
+              routingReason = `formule ${formula.name} — prochaine session datée liée (${upcoming.start_date})`;
+            }
+          }
+
+          // 4️⃣ Fallback historique (aucune liaison déclarée pour cette formule) : on garde
+          //     l'ancienne logique catalog_id pour ne pas régresser tant que l'admin n'a pas migré.
+          if (!training && linkedTrainings.length === 0) {
+            if (parsedDates) {
+              const { data: byDate } = await (admin as any)
+                .from("trainings")
+                .select("id, training_name, start_date, end_date, format_formation")
+                .eq("catalog_id", catalogId)
+                .eq("is_cancelled", false)
+                .eq("start_date", parsedDates.start)
+                .maybeSingle();
+              if (byDate) {
+                training = byDate;
+                routingReason = `fallback catalog_id — session du ${parsedDates.start}`;
+              }
+            }
+
+            if (!training && isElearningCatalog) {
+              const { data: permanent } = await (admin as any)
+                .from("trainings")
+                .select("id, training_name, start_date, end_date, format_formation")
+                .eq("catalog_id", catalogId)
+                .eq("is_cancelled", false)
+                .is("start_date", null)
+                .limit(1)
+                .maybeSingle();
+              if (permanent) {
+                training = permanent;
+                routingReason = `fallback catalog_id — session permanente`;
+              }
+            }
+
+            if (!training) {
+              const { data: upcoming } = await (admin as any)
+                .from("trainings")
+                .select("id, training_name, start_date, end_date, format_formation")
+                .eq("catalog_id", catalogId)
+                .eq("is_cancelled", false)
+                .eq("format_formation", "inter-entreprises")
+                .gt("start_date", today)
+                .order("start_date", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+              if (upcoming) {
+                training = upcoming;
+                routingReason = `fallback catalog_id — prochaine session inter-entreprises`;
+              }
             }
           }
         }
+
+
 
 
         // 3️⃣ Inbox si aucune session trouvée
