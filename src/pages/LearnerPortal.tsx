@@ -995,17 +995,18 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
       <div className="space-y-4">
         {feed.map((item) =>
           item.kind === "post" ? (
-            <PracticePostCard
-              key={item.key}
-              post={item.post}
-              currentEmail={email}
-              isAdmin={isAdmin}
-              onReact={handleReact}
-              onDelete={handleDelete}
-              onVote={handleVote}
-              onSelectTag={handleSelectTag}
-              onPin={canManageCommunity ? (postId, pin) => pinPost.mutateAsync({ postId, pin }).catch(() => toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler.")) : undefined}
-            />
+            <div key={item.key} id={`post-${item.post.id}`} className="scroll-mt-24 transition-shadow rounded-2xl">
+              <PracticePostCard
+                post={item.post}
+                currentEmail={email}
+                isAdmin={isAdmin}
+                onReact={handleReact}
+                onDelete={handleDelete}
+                onVote={handleVote}
+                onSelectTag={handleSelectTag}
+                onPin={canManageCommunity ? (postId, pin) => pinPost.mutateAsync({ postId, pin }).catch(() => toastError(toast, pin ? "Impossible d'épingler." : "Impossible de désépingler.")) : undefined}
+              />
+            </div>
           ) : (
             <DepositFeedCard
               key={item.key}
