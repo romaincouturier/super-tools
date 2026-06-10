@@ -944,7 +944,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
   // Deep-link: scroll to and highlight a specific post when ?post=<id> is present
   const targetPostId = searchParams.get("post");
   useEffect(() => {
-    if (!targetPostId || loading || feed.length === 0) return;
+    if (!targetPostId || isLoading || feed.length === 0) return;
     const exists = feed.some((it) => it.kind === "post" && it.post.id === targetPostId);
     if (!exists) return;
     const t = setTimeout(() => {
