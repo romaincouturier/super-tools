@@ -292,12 +292,8 @@ serve(async (req) => {
 
     // 12. Réservations
     for (const r of data.reservations) {
-      const items: string[] = [];
-      if (r.needsTrain) items.push("🚄 Train");
-      if (r.needsHotel) items.push("🏨 Hôtel");
-      if (r.needsRestaurant) items.push("🍽️ Restaurant");
-      if (r.needsRoom) items.push("🚪 Salle");
-      if (r.needsEquipment) items.push("📦 Matériel");
+      const items = r.pendingItems || [];
+      if (items.length === 0) continue;
       const startFormatted = new Date(r.startDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
       const pathMap = { mission: "missions", training: "formations", event: "events" };
       const categoryMap = { mission: "reservations_mission", training: "reservations_formation", event: "reservations_evenement" };
