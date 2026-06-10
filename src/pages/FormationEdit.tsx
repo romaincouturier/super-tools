@@ -238,9 +238,11 @@ const FormationEdit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const hasValidDates = form.isElearning
-      ? !!(form.elearningStartDate && form.elearningEndDate)
-      : form.selectedDates.length > 0;
+    const hasValidDates = form.isPermanent
+      ? true
+      : form.isElearning
+        ? !!(form.elearningStartDate && form.elearningEndDate)
+        : form.selectedDates.length > 0;
 
     const locationValid = form.isInter ? (form.isElearning || !!venueId) : !!location;
     if (!hasValidDates || !form.trainingName || !locationValid || (!form.isInter && !form.clientName) || !user || !id) {
