@@ -111,6 +111,11 @@ serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (cronSecret && req.headers.get("x-cron-secret") !== cronSecret) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({ error: "Method not allowed", _version: VERSION }),
