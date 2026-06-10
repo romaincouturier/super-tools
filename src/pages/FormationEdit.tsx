@@ -31,6 +31,8 @@ import {
   CatalogSummaryCard,
   SourceFinancementSelector,
 } from "@/components/formations/FormationFormFields";
+import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
+import type { FormationFormula } from "@/types/training";
 
 interface TrainingExtended {
   training_name: string;
@@ -81,6 +83,8 @@ const FormationEdit = () => {
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
+  const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
+  const [trainingIsPermanent, setTrainingIsPermanent] = useState<boolean>(false);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -193,13 +197,18 @@ const FormationEdit = () => {
 
       form.setDataLoaded(true);
 
+      // Permanent session = no start_date
+      setTrainingIsPermanent(!t.start_date);
+
       // Fetch formulas if linked to catalog
       if (t.catalog_id) {
         const { data: formulas } = await supabase
           .from("formation_formulas")
-          .select("id")
-          .eq("formation_config_id", t.catalog_id);
+          .select("*")
+          .eq("formation_config_id", t.catalog_id)
+          .order("display_order");
         form.setHasFormulas((formulas?.length ?? 0) > 0);
+        setAvailableFormulas((formulas as FormationFormula[]) || []);
       }
 
       await form.fetchSupertiltSiteUrl();
@@ -579,6 +588,13 @@ const FormationEdit = () => {
                     : undefined
                 }
               />
+              {form.isElearning && id && availableFormulas.length > 0 && (
+                <TrainingFormulasManager
+                  trainingId={id}
+                  isPermanent={trainingIsPermanent}
+                  availableFormulas={availableFormulas}
+                />
+              )}
               {/* Show legacy data when no catalog */}
               {!form.catalogId && (form.objectives.length > 0 || form.prerequisites.length > 0 || form.programFileUrl) && (
                 <Card>
