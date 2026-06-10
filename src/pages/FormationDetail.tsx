@@ -162,6 +162,15 @@ const FormationDetail = () => {
 
         <TrainingSurveyResults trainingId={fd.id!} />
 
+        {fd.isElearningSession && (
+          <TrainingFormulasManager
+            trainingId={fd.id!}
+            isPermanent={!fd.training.start_date}
+            availableFormulas={fd.availableFormulas}
+          />
+        )}
+
+
         <FormationDetailSections
           training={fd.training}
           setTraining={fd.setTraining}
