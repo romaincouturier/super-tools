@@ -899,6 +899,45 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
 
   const results: ReservationItem[] = [];
 
+  // ── Helpers ───────────────────────────────────────────────────────────
+  // Pre-fetch all pending checklist items for the upcoming entities in one
+  // round-trip; group by entity for cheap lookup.
+  async function fetchPendingChecklists(
+    entityType: "mission" | "training",
+    entityIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const map = new Map<string, string[]>();
+    if (!entityIds.length) return map;
+    const { data } = await supabase
+      .from("logistics_checklist_items")
+      .select("entity_id, label, legacy_field, is_done, position")
+      .eq("entity_type", entityType)
+      .in("entity_id", entityIds)
+      .order("position", { ascending: true });
+    for (const it of (data || []) as any[]) {
+      if (it.is_done) {
+        // ensure entity is registered (so we can tell "has checklist" later)
+        if (!map.has(it.entity_id)) map.set(it.entity_id, []);
+        continue;
+      }
+      const arr = map.get(it.entity_id) || [];
+      arr.push(`${emojiForChecklistItem(it.label, it.legacy_field)} ${it.label}`);
+      map.set(it.entity_id, arr);
+    }
+    // Mark entities that have a checklist (even if all done) so callers
+    // can distinguish "has checklist, nothing pending" from "no checklist".
+    const { data: allEntities } = await supabase
+      .from("logistics_checklist_items")
+      .select("entity_id")
+      .eq("entity_type", entityType)
+      .in("entity_id", entityIds)
+      .limit(1000);
+    for (const row of (allEntities || []) as any[]) {
+      if (!map.has(row.entity_id)) map.set(row.entity_id, []);
+    }
+    return map;
+  }
+
   // Missions
   const { data: missions } = await supabase
     .from("missions")
@@ -909,12 +948,25 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     .lte("start_date", sixtyDaysStr)
     .in("status", ["pending", "in_progress", "not_started"]);
 
+  const missionChecklists = await fetchPendingChecklists(
+    "mission",
+    (missions || []).map((m: any) => m.id),
+  );
+
   if (missions) {
     for (const m of missions) {
       if (!m.location?.trim()) continue;
-      const needsTrain = !m.train_booked;
-      const needsHotel = !m.hotel_booked;
-      if (!needsTrain && !needsHotel) continue;
+      const fromChecklist = missionChecklists.get(m.id);
+      let pendingItems: string[];
+      if (fromChecklist !== undefined) {
+        pendingItems = fromChecklist;
+      } else {
+        // Legacy fallback (entity has no checklist yet)
+        pendingItems = [];
+        if (!m.train_booked) pendingItems.push("🚄 Train");
+        if (!m.hotel_booked) pendingItems.push("🏨 Hôtel");
+      }
+      if (pendingItems.length === 0) continue;
       results.push({
         entityType: "mission",
         entityId: m.id,
@@ -923,8 +975,7 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
         location: m.location,
         startDate: m.start_date,
         assignedTo: m.assigned_to,
-        needsTrain, needsHotel,
-        needsRestaurant: false, needsRoom: false, needsEquipment: false,
+        pendingItems,
       });
     }
   }
@@ -938,22 +989,33 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
     .lte("start_date", sixtyDaysStr)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
 
+  const trainingChecklists = await fetchPendingChecklists(
+    "training",
+    (trainings || []).map((t: any) => t.id),
+  );
+
   if (trainings) {
     for (const t of trainings) {
-      const hasLocation = t.location?.trim();
+      const hasLocation = !!t.location?.trim();
       const isPresentiel = t.format_formation !== "e_learning" && t.format_formation !== "classe_virtuelle";
       const isInter = t.format_formation === "inter-entreprises" || t.session_type === "inter";
 
-      let needsTrain = false, needsHotel = false, needsRestaurant = false, needsRoom = false, needsEquipment = false;
-      if (isPresentiel && hasLocation) {
-        needsTrain = !t.train_booked;
-        needsHotel = !t.hotel_booked;
-        if (isInter) needsRestaurant = !t.restaurant_booked;
-        needsRoom = !t.room_rental_booked;
+      const fromChecklist = trainingChecklists.get(t.id);
+      let pendingItems: string[];
+      if (fromChecklist !== undefined) {
+        pendingItems = fromChecklist;
+      } else {
+        // Legacy fallback (training created before checklist bootstrap)
+        pendingItems = [];
+        if (isPresentiel && hasLocation) {
+          if (!t.train_booked) pendingItems.push("🚄 Train");
+          if (!t.hotel_booked) pendingItems.push("🏨 Hôtel");
+          if (isInter && !t.restaurant_booked) pendingItems.push("🍽️ Restaurant");
+          if (!t.room_rental_booked) pendingItems.push("🚪 Salle");
+        }
+        if (isPresentiel && !t.equipment_ready) pendingItems.push("📦 Matériel");
       }
-      if (isPresentiel) needsEquipment = !t.equipment_ready;
-
-      if (!needsTrain && !needsHotel && !needsRestaurant && !needsRoom && !needsEquipment) continue;
+      if (pendingItems.length === 0) continue;
 
       results.push({
         entityType: "training",
@@ -963,12 +1025,12 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
         location: hasLocation ? t.location : "",
         startDate: t.start_date,
         assignedTo: t.assigned_to,
-        needsTrain, needsHotel, needsRestaurant, needsRoom, needsEquipment,
+        pendingItems,
       });
     }
   }
 
-  // Events
+  // Events (still legacy boolean fields — no checklist support)
   const { data: events } = await supabase
     .from("events")
     .select("id, title, event_date, location, location_type, event_type, train_booked, hotel_booked, room_rental_booked, restaurant_booked, assigned_to")
@@ -982,11 +1044,12 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
   if (events) {
     for (const ev of events) {
       if (!ev.location?.trim()) continue;
-      const needsTrain = !ev.train_booked;
-      const needsHotel = !ev.hotel_booked;
-      const needsRoom = !ev.room_rental_booked;
-      const needsRestaurant = !ev.restaurant_booked;
-      if (!needsTrain && !needsHotel && !needsRoom && !needsRestaurant) continue;
+      const pendingItems: string[] = [];
+      if (!ev.train_booked) pendingItems.push("🚄 Train");
+      if (!ev.hotel_booked) pendingItems.push("🏨 Hôtel");
+      if (!ev.room_rental_booked) pendingItems.push("🚪 Salle");
+      if (!ev.restaurant_booked) pendingItems.push("🍽️ Restaurant");
+      if (pendingItems.length === 0) continue;
       results.push({
         entityType: "event",
         entityId: ev.id,
@@ -995,8 +1058,7 @@ export async function fetchReservationAlerts(supabase: SupabaseClient, today: st
         location: ev.location,
         startDate: ev.event_date,
         assignedTo: ev.assigned_to,
-        needsTrain, needsHotel, needsRestaurant, needsRoom,
-        needsEquipment: false,
+        pendingItems,
       });
     }
   }
