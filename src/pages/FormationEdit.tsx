@@ -197,13 +197,18 @@ const FormationEdit = () => {
 
       form.setDataLoaded(true);
 
+      // Permanent session = no start_date
+      setTrainingIsPermanent(!t.start_date);
+
       // Fetch formulas if linked to catalog
       if (t.catalog_id) {
         const { data: formulas } = await supabase
           .from("formation_formulas")
-          .select("id")
-          .eq("formation_config_id", t.catalog_id);
+          .select("*")
+          .eq("formation_config_id", t.catalog_id)
+          .order("display_order");
         form.setHasFormulas((formulas?.length ?? 0) > 0);
+        setAvailableFormulas((formulas as FormationFormula[]) || []);
       }
 
       await form.fetchSupertiltSiteUrl();
