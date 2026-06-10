@@ -157,12 +157,17 @@ const FormationEdit = () => {
         t.session_format === "distanciel_asynchrone" ||
         t.format_formation === "e_learning";
 
+      const loadedIsPermanent = loadedIsElearning && !t.start_date && !t.end_date;
+
       if (loadedIsElearning) {
-        if (t.start_date) form.setElearningStartDate(parseISO(t.start_date));
-        if (t.end_date) form.setElearningEndDate(parseISO(t.end_date));
+        if (!loadedIsPermanent) {
+          if (t.start_date) form.setElearningStartDate(parseISO(t.start_date));
+          if (t.end_date) form.setElearningEndDate(parseISO(t.end_date));
+        }
         form.setElearningAccessEmailContent(t.elearning_access_email_content || "");
         form.setSchedules([]);
         form.setSelectedDates([]);
+        form.setIsPermanent(loadedIsPermanent);
       } else {
         // Fetch schedules
         const { data: schedulesData } = await supabase
