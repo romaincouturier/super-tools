@@ -955,7 +955,7 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
       setTimeout(() => { el.style.boxShadow = ""; }, 2500);
     }, 150);
     return () => clearTimeout(t);
-  }, [targetPostId, loading, feed]);
+  }, [targetPostId, isLoading, feed]);
 
   const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null, matchingGroupSize?: number | null) => {
     const courseId = activeCourseId ?? fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
