@@ -941,6 +941,22 @@ function PratiqueView({ mode, email, courseIds, courses, firstName, lastName, ph
     return items;
   }, [posts, deposits, showDeposits]);
 
+  // Deep-link: scroll to and highlight a specific post when ?post=<id> is present
+  const targetPostId = searchParams.get("post");
+  useEffect(() => {
+    if (!targetPostId || loading || feed.length === 0) return;
+    const exists = feed.some((it) => it.kind === "post" && it.post.id === targetPostId);
+    if (!exists) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`post-${targetPostId}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.style.boxShadow = "0 0 0 3px rgba(255,209,0,0.7)";
+      setTimeout(() => { el.style.boxShadow = ""; }, 2500);
+    }, 150);
+    return () => clearTimeout(t);
+  }, [targetPostId, loading, feed]);
+
   const handleCreate = async (content: string, file: File | null, poll: NewPoll | null, gifUrl?: string | null, matchingGroupSize?: number | null) => {
     const courseId = activeCourseId ?? fromCourse ?? (courseIds.length === 1 ? courseIds[0] : null);
     const postId = await createPost.mutateAsync({ content, file, poll, gifUrl, courseId });
