@@ -9,6 +9,7 @@ import {
   sendEmail,
 } from "../_shared/mod.ts";
 import { getSenderEmail, getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -51,6 +52,9 @@ serve(async (req) => {
     const bccList = await getBccList();
 
     const subject = `💬 Nouveau commentaire e-learning — ${course?.title || "Cours"}`;
+    const { app_url } = await getAppUrls();
+    const communityUrl = courseId ? `${app_url}/lms/communautes/${courseId}` : null;
+
     const html = `
       <p>Un apprenant a laissé un commentaire sur une leçon e-learning :</p>
       <table style="border-collapse:collapse;margin:16px 0">
@@ -61,6 +65,7 @@ serve(async (req) => {
       <blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">
         ${comment.replace(/\n/g, "<br>")}
       </blockquote>
+      ${communityUrl ? `<p style="margin:24px 0"><a href="${communityUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:500">Voir la communauté (vue staff)</a></p>` : ""}
     `;
 
     const result = await sendEmail({
