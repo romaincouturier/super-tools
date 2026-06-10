@@ -16,11 +16,11 @@ Il sert à :
 
 Ce document complète :
 
-- [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
-- [README.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\README.md)
-- [PRD.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\PRD.md)
-- [docs/architecture.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\architecture.md)
-- [SECURITY.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\SECURITY.md)
+- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
+- [README.md](./README.md)
+- [PRD.md](./PRD.md)
+- [docs/architecture.md](./docs\architecture.md)
+- [SECURITY.md](./SECURITY.md)
 
 ---
 
@@ -75,12 +75,12 @@ Lecture recommandée de ces chiffres :
 
 Le socle de documentation a été récemment renforcé avec :
 
-- [README.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\README.md)
-- [PRD.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\PRD.md)
-- [CONTRIBUTING.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\CONTRIBUTING.md)
-- [SECURITY.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\SECURITY.md)
-- [docs/architecture.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\architecture.md)
-- [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
+- [README.md](./README.md)
+- [PRD.md](./PRD.md)
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [SECURITY.md](./SECURITY.md)
+- [docs/architecture.md](./docs\architecture.md)
+- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
 
 ### Dette restante
 
@@ -122,18 +122,18 @@ Conséquences :
 
 Les plus gros fichiers observés hors génération de types :
 
-- [ScheduledEmailsSummary.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\formations\ScheduledEmailsSummary.tsx) : `937` lignes
-- [settingsConstants.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\settings\settingsConstants.ts) : `917` lignes
-- [useArenaDiscussion.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\hooks\useArenaDiscussion.ts) : `916` lignes
-- [MissionPages.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\missions\MissionPages.tsx) : `891` lignes
-- [CommentThread.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\content\CommentThread.tsx) : `873` lignes
-- [CatalogFormDialog.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\catalogue\CatalogFormDialog.tsx) : `839` lignes
-- [Step3QuoteGeneration.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\quotes\Step3QuoteGeneration.tsx) : `836` lignes
-- [TrainingSummary.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\pages\TrainingSummary.tsx) : `798` lignes
-- [CardDetailDrawer.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\crm\CardDetailDrawer.tsx) : `763` lignes
-- [KanbanBoard.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components\content\KanbanBoard.tsx) : `741` lignes
-- [Dashboard.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\pages\Dashboard.tsx) : `724` lignes
-- [useLms.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\hooks\useLms.ts) : `706` lignes
+- [ScheduledEmailsSummary.tsx](./src\components\formations\ScheduledEmailsSummary.tsx) : `937` lignes
+- [settingsConstants.ts](./src\components\settings\settingsConstants.ts) : `917` lignes
+- [useArenaDiscussion.ts](./src\hooks\useArenaDiscussion.ts) : `916` lignes
+- [MissionPages.tsx](./src\components\missions\MissionPages.tsx) : `891` lignes
+- [CommentThread.tsx](./src\components\content\CommentThread.tsx) : `873` lignes
+- [CatalogFormDialog.tsx](./src\components\catalogue\CatalogFormDialog.tsx) : `839` lignes
+- [Step3QuoteGeneration.tsx](./src\components\quotes\Step3QuoteGeneration.tsx) : `836` lignes
+- [TrainingSummary.tsx](./src\pages\TrainingSummary.tsx) : `798` lignes
+- [CardDetailDrawer.tsx](./src\components\crm\CardDetailDrawer.tsx) : `763` lignes
+- [KanbanBoard.tsx](./src\components\content\KanbanBoard.tsx) : `741` lignes
+- [Dashboard.tsx](./src\pages\Dashboard.tsx) : `724` lignes
+- [useLms.ts](./src\hooks\useLms.ts) : `706` lignes
 
 Ces fichiers ne sont pas forcément “mauvais”, mais ils augmentent le coût d'entrée pour un externe.
 
@@ -154,7 +154,7 @@ Cela rend la contribution moins prédictible.
 
 ## 5.1 Edge Functions publiques
 
-`121` entrées `verify_jwt = false` sont présentes dans [supabase/config.toml](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\config.toml).
+`121` entrées `verify_jwt = false` sont présentes dans [supabase/config.toml](./supabase\config.toml).
 
 Cela impose une revue fine de :
 
@@ -169,7 +169,7 @@ La configuration centralisée actuelle utilise encore `Access-Control-Allow-Orig
 
 Référence :
 
-- [cors.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\functions\_shared\cors.ts)
+- [cors.ts](./supabase\functions\_shared\cors.ts)
 
 ## 5.3 Portail apprenant
 
@@ -177,7 +177,7 @@ Le client apprenant repose actuellement sur le header `x-learner-email`.
 
 Référence :
 
-- [client.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\integrations\supabase\client.ts)
+- [client.ts](./src\integrations\supabase\client.ts)
 
 Ce mécanisme existe, mais il doit être traité comme une zone de durcissement.
 
@@ -204,8 +204,8 @@ Le repo dispose déjà d'une base de tests et de garde-fous, mais elle reste ins
 Points positifs :
 
 - présence de tests unitaires
-- présence de [scripts/check-rules.sh](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\scripts\check-rules.sh)
-- présence d'invariants documentés dans [IMPROVEMENTS.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\IMPROVEMENTS.md)
+- présence de [scripts/check-rules.sh](./scripts\check-rules.sh)
+- présence d'invariants documentés dans [IMPROVEMENTS.md](./IMPROVEMENTS.md)
 
 Limites :
 

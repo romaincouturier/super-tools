@@ -28,35 +28,35 @@ Le repo est organisé autour d'un frontend principal, avec Supabase embarqué da
 
 ### Frontend
 
-- [src/pages](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\pages)
-- [src/components](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\components)
-- [src/hooks](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\hooks)
-- [src/services](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\services)
-- [src/lib](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\lib)
-- [src/integrations/supabase](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\integrations\supabase)
-- [src/types](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\types)
+- [src/pages](./src\pages)
+- [src/components](./src\components)
+- [src/hooks](./src\hooks)
+- [src/services](./src\services)
+- [src/lib](./src\lib)
+- [src/integrations/supabase](./src\integrations\supabase)
+- [src/types](./src\types)
 
 ### Backend
 
-- [supabase/migrations](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\migrations)
-- [supabase/functions](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\functions)
-- [supabase/config.toml](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\config.toml)
+- [supabase/migrations](./supabase\migrations)
+- [supabase/functions](./supabase\functions)
+- [supabase/config.toml](./supabase\config.toml)
 
 ### Documentation
 
-- [README.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\README.md)
-- [PRD.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\PRD.md)
-- [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
-- [IMPROVEMENTS.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\IMPROVEMENTS.md)
+- [README.md](./README.md)
+- [PRD.md](./PRD.md)
+- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
+- [IMPROVEMENTS.md](./IMPROVEMENTS.md)
 
 ## 3. Point d'entrée frontend
 
 Les points d'entrée principaux sont :
 
-- [src/main.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\main.tsx)
-- [src/App.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\App.tsx)
+- [src/main.tsx](./src\main.tsx)
+- [src/App.tsx](./src\App.tsx)
 
-[src/App.tsx](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\App.tsx) contient :
+[src/App.tsx](./src\App.tsx) contient :
 
 - le `QueryClient`
 - la persistance du cache
@@ -154,11 +154,11 @@ Le repo contient encore des écarts à ce modèle, mais toute nouvelle contribut
 
 Le client principal se trouve dans :
 
-- [src/integrations/supabase/client.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\integrations\supabase\client.ts)
+- [src/integrations/supabase/client.ts](./src\integrations\supabase\client.ts)
 
 Les types générés se trouvent dans :
 
-- [src/integrations/supabase/types.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\integrations\supabase\types.ts)
+- [src/integrations/supabase/types.ts](./src\integrations\supabase\types.ts)
 
 ### Point important
 
@@ -189,7 +189,7 @@ Les Edge Functions sont nombreuses et servent à plusieurs types de besoins :
 
 Le dossier partagé :
 
-- [supabase/functions/_shared](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\functions\_shared)
+- [supabase/functions/_shared](./supabase\functions\_shared)
 
 contient les utilitaires communs.
 
@@ -204,7 +204,7 @@ contient les utilitaires communs.
 
 ## 9. Migrations
 
-Le dossier [supabase/migrations](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\migrations) est large et historique.
+Le dossier [supabase/migrations](./supabase\migrations) est large et historique.
 
 Conséquences :
 
@@ -296,7 +296,7 @@ Quelques faits utiles à connaître avant de contribuer :
 
 Le plan de remise à plat est documenté dans :
 
-- [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
+- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
 
 ## 13. Règles pratiques pour un contributeur externe
 

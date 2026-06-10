@@ -71,16 +71,16 @@ Accès restreint à son espace d'apprentissage et à ses contenus associés.
 
 Les zones suivantes doivent être considérées comme sensibles :
 
-- [supabase/config.toml](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\config.toml)
-- [supabase/functions](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\functions)
-- [supabase/migrations](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\migrations)
-- [src/integrations/supabase/client.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\integrations\supabase\client.ts)
+- [supabase/config.toml](./supabase\config.toml)
+- [supabase/functions](./supabase\functions)
+- [supabase/migrations](./supabase\migrations)
+- [src/integrations/supabase/client.ts](./src\integrations\supabase\client.ts)
 
 ### 1. Edge Functions exposées
 
 Le projet utilise un grand nombre d'Edge Functions.
 
-À date, beaucoup sont configurées avec `verify_jwt = false` dans [supabase/config.toml](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\config.toml).
+À date, beaucoup sont configurées avec `verify_jwt = false` dans [supabase/config.toml](./supabase\config.toml).
 
 Cela ne signifie pas automatiquement qu'elles sont vulnérables, mais cela signifie qu'elles doivent être examinées comme des surfaces publiques ou semi-publiques.
 
@@ -97,7 +97,7 @@ doit partir de ce constat.
 
 ### 2. CORS
 
-La configuration partagée actuelle dans [supabase/functions/_shared/cors.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\supabase\functions\_shared\cors.ts) utilise encore `Access-Control-Allow-Origin: "*"`.
+La configuration partagée actuelle dans [supabase/functions/_shared/cors.ts](./supabase\functions\_shared\cors.ts) utilise encore `Access-Control-Allow-Origin: "*"`.
 
 Pour un projet open source ou exposé plus largement, cela doit être considéré comme un point de durcissement prioritaire.
 
@@ -117,7 +117,7 @@ Toute policy publique permissive ou basée sur une hypothèse implicite doit êt
 
 ### 4. Portail apprenant
 
-Le portail apprenant utilise actuellement un mode d'accès basé sur un header `x-learner-email` dans [src/integrations/supabase/client.ts](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\src\integrations\supabase\client.ts).
+Le portail apprenant utilise actuellement un mode d'accès basé sur un header `x-learner-email` dans [src/integrations/supabase/client.ts](./src\integrations\supabase\client.ts).
 
 Ce mécanisme existe, mais il doit être considéré comme une zone à auditer et à renforcer.
 
@@ -193,7 +193,7 @@ Quand une contribution touche une surface sensible, la description doit précise
 
 Ces sujets sont suivis dans :
 
-- [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
+- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
 
 Le but de ce document n'est pas de masquer ces limites, mais de les rendre explicites pour des contributeurs externes.
 
