@@ -159,11 +159,38 @@ export interface ReservationItem {
   location: string;
   startDate: string;
   assignedTo: string | null;
-  needsTrain: boolean;
-  needsHotel: boolean;
-  needsRestaurant: boolean;
-  needsRoom: boolean;
-  needsEquipment: boolean;
+  /**
+   * Display-ready list of pending checklist labels (emoji prefixed when
+   * known). Source: `logistics_checklist_items` (is_done=false) for
+   * missions/trainings; legacy booleans for events and as fallback when
+   * an entity has no checklist yet.
+   */
+  pendingItems: string[];
+}
+
+// Map known legacy fields to a display emoji so the new (configurable)
+// checklist still renders with familiar pictograms in alerts.
+const LEGACY_FIELD_EMOJI: Record<string, string> = {
+  train_booked: "🚄",
+  hotel_booked: "🏨",
+  restaurant_booked: "🍽️",
+  room_rental_booked: "🚪",
+  equipment_ready: "📦",
+};
+
+function emojiForChecklistItem(label: string, legacyField: string | null): string {
+  if (legacyField && LEGACY_FIELD_EMOJI[legacyField]) return LEGACY_FIELD_EMOJI[legacyField];
+  // Soft heuristic on label keywords (case-insensitive, accent-tolerant)
+  const l = label.toLowerCase();
+  if (l.includes("train")) return "🚄";
+  if (l.includes("hôtel") || l.includes("hotel")) return "🏨";
+  if (l.includes("restau")) return "🍽️";
+  if (l.includes("salle")) return "🚪";
+  if (l.includes("matériel") || l.includes("materiel") || l.includes("paperboard") || l.includes("vidéo")) return "📦";
+  if (l.includes("buffet") || l.includes("pause")) return "☕";
+  if (l.includes("email") || l.includes("logistique")) return "✉️";
+  if (l.includes("visio") || l.includes("lien")) return "🔗";
+  return "📋";
 }
 
 export interface OkrInitiativeItem {
