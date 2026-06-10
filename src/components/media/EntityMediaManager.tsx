@@ -16,6 +16,7 @@ import {
 } from "@/hooks/useMedia";
 import { uploadEntityDocument } from "@/hooks/useEntityDocuments";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
