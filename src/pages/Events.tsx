@@ -20,6 +20,7 @@ const Events = () => {
   const { data: events = [], isLoading } = useEvents();
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCancelled, setShowCancelled] = useState(false);
 
   const matchesSearch = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -33,20 +34,28 @@ const Events = () => {
     };
   }, [searchQuery]);
 
+  const matchesCancelled = (e: (typeof events)[0]) =>
+    showCancelled || e.status !== "cancelled";
+
+  const cancelledCount = useMemo(
+    () => events.filter((e) => e.status === "cancelled" && matchesSearch(e)).length,
+    [events, matchesSearch]
+  );
+
   const upcomingEvents = useMemo(
     () =>
       events
-        .filter((e) => !isPast(endOfDay(parseISO(e.event_date))) && matchesSearch(e))
+        .filter((e) => !isPast(endOfDay(parseISO(e.event_date))) && matchesSearch(e) && matchesCancelled(e))
         .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()),
-    [events, matchesSearch]
+    [events, matchesSearch, showCancelled]
   );
 
   const pastEvents = useMemo(
     () =>
       events
-        .filter((e) => isPast(endOfDay(parseISO(e.event_date))) && matchesSearch(e))
+        .filter((e) => isPast(endOfDay(parseISO(e.event_date))) && matchesSearch(e) && matchesCancelled(e))
         .sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime()),
-    [events, matchesSearch]
+    [events, matchesSearch, showCancelled]
   );
 
   const displayedEvents = filter === "upcoming" ? upcomingEvents : pastEvents;
@@ -101,6 +110,19 @@ const Events = () => {
                 )}
               </div>
             </div>
+            {cancelledCount > 0 && (
+              <div className="mt-2 flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground"
+                  onClick={() => setShowCancelled((v) => !v)}
+                >
+                  <Ban className="h-3 w-3 mr-1" />
+                  {showCancelled ? `Masquer les annulés (${cancelledCount})` : `Afficher les annulés (${cancelledCount})`}
+                </Button>
+              </div>
+            )}
           </CardHeader>
 
           <CardContent>
