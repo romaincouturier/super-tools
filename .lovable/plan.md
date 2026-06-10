@@ -1,54 +1,79 @@
-# Sondages de formation
+## Objectif
 
-## Modèle de données (nouvelles tables, structure calquée sur `mission_surveys`)
+Lier les **formules** non plus au catalogue seul, mais à des **sessions** précises (permanentes ou programmées), pour que le routing WooCommerce envoie chaque acheteur dans la bonne session.
 
-- `training_surveys` : `id`, `training_id`, `title`, `intro_message` (texte du mail), `thank_you_message`, `email_subject`, `closes_at` (timestamptz, nullable), `is_active`, `created_by`, `created_at`, `updated_at`.
-- `training_survey_questions` : `id`, `survey_id`, `type` (text/textarea/single_choice/multiple_choice/rating/nps/date), `label`, `description`, `required`, `position`, `options` (jsonb).
-- `training_survey_recipients` : `id`, `survey_id`, `participant_id` (FK `training_participants`), `email`, `first_name`, `last_name`, `token` (uuid unique), `sent_at`, `last_reminded_at`. Un seul recipient par (survey, participant).
-- `training_survey_responses` : `id`, `survey_id`, `recipient_id` (FK), `submitted_at`, `updated_at`. Unique (survey_id, recipient_id) — éditable.
-- `training_survey_answers` : `id`, `response_id`, `question_id`, `value`, `values` (jsonb).
-- RLS : lecture admin/staff via `is_admin()` + module `formations` ; insertion/màj des réponses via RPC SECURITY DEFINER `submit_training_survey(token, answers)` exécutable par `anon` (validation du token et de `closes_at`).
-- GRANTs explicites pour chaque table (`authenticated`, `service_role`).
+## 1. Modèle de données
 
-## Edge functions
+Nouvelle table de liaison `training_formulas` (M:N entre `trainings` et `formation_formulas`) :
 
-- `send-training-survey` (JWT) : crée le sondage si non persisté, génère un `recipient` (token) par participant, envoie un email à chacun (BCC standard, signature, 400ms delay) avec le `intro_message` HTML + bouton "Répondre au sondage" → `https://super-tools.lovable.app/sondage-formation/{token}`. Log dans `sent_emails_log`.
-- `training-survey-reminders` (cron 07h00 Paris) : pour chaque sondage actif dont `closes_at` est entre J+1 et J+2, envoie un rappel aux recipients sans `response`. Idempotent via `last_reminded_at`.
+```
+training_formulas(
+  training_id  uuid → trainings,
+  formula_id   uuid → formation_formulas,
+  PRIMARY KEY (training_id, formula_id)
+)
+```
 
-## UI
+Règle métier (contrainte applicative + trigger SQL) :
 
-- `FormationDetail.tsx` : à côté du bouton "Email groupé", nouveau bouton **"Envoyer un sondage"** (icône ClipboardList).
-- Dialog `TrainingSurveyDialog` :
-  1. Champ titre + intro (Tiptap simplifié, comme bulk email).
-  2. Date de clôture (DatePicker avec `pointer-events-auto`).
-  3. Builder de questions réutilisant les composants existants des mission surveys (extraction d'un `SurveyQuestionsBuilder` partagé dans `src/components/surveys/`).
-  4. Aperçu des destinataires (liste des participants avec email).
-  5. Boutons "Enregistrer brouillon" / "Envoyer maintenant".
-- Section **Résultats du sondage** sur la page formation (collapsible) : nombre de réponses / envois, taux, agrégats par question (moyennes pour rating/nps, distribution pour choix, liste pour texte), bouton export CSV.
+- Une `formula_id` peut être attachée à **plusieurs sessions programmées** du même catalogue (cohortes successives), **ou** à **une seule session permanente** (start_date NULL), mais **pas aux deux** simultanément.
+- Trigger qui rejette l'insertion si la formule est déjà liée à une session permanente quand on tente de la lier à une session datée (et inversement).
 
-## Page publique
+## 2. UI — `FormationDetail` (sessions)
 
-- Route `/sondage-formation/:token` (`src/pages/TrainingSurveyResponse.tsx`) : `disableRedirect` dans `useAuth`, charge le sondage via RPC `get_training_survey_by_token(token)`, affiche les questions, permet soumission via RPC `submit_training_survey`. Si déjà répondu : pré-remplit et autorise modification jusqu'à `closes_at`. Après clôture : page "Sondage clôturé".
+Sur chaque session (programmée ou permanente), ajouter une section **"Formules disponibles"** :
 
-## Hooks
+- Multi-select des formules du catalogue.
+- Lecture des liaisons existantes via `training_formulas`.
+- Désactiver les formules déjà liées à une session du type opposé (avec message explicatif).
 
-- `src/hooks/useTrainingSurveys.ts` : `useTrainingSurvey(trainingId)`, `useTrainingSurveyResults(surveyId)`, mutations `useUpsertTrainingSurvey`, `useSendTrainingSurvey`, `useSubmitTrainingSurveyResponse` (publique via RPC).
+## 3. Routing WooCommerce — `supertilt-webhook`
 
-## Fichiers créés / modifiés
+Refactor des lignes 376-430 (`index.ts`) :
 
-- migration SQL (tables + RPC + grants + RLS).
-- `supabase/functions/send-training-survey/index.ts` (nouveau).
-- `supabase/functions/training-survey-reminders/index.ts` (nouveau) + cron via `supabase--insert`.
-- `supabase/config.toml` : enregistrer les 2 fonctions.
-- `src/pages/TrainingSurveyResponse.tsx` (nouveau) + route dans `App.tsx`.
-- `src/components/surveys/SurveyQuestionsBuilder.tsx` (extrait/partagé) + utilisé par missions et formations.
-- `src/components/formations/TrainingSurveyDialog.tsx` (nouveau).
-- `src/components/formations/TrainingSurveyResults.tsx` (nouveau).
-- `src/hooks/useTrainingSurveys.ts` (nouveau).
-- `src/pages/FormationDetail.tsx` (ajout bouton + section résultats).
+```text
+product_id → formule → table training_formulas
+  ├─ Si dates parsées dans le titre Woo → session programmée matchant la date
+  ├─ Sinon, parmi les sessions liées à la formule :
+  │    • session permanente si elle existe
+  │    • sinon la prochaine session programmée (start_date > today)
+  └─ Sinon → inbox to_validate
+```
 
-## Hors scope
+On supprime le fallback "première session permanente du catalogue" qui causait le bug Liza.
 
-- Pas de sondage envoyé aux sponsors (uniquement participants).
-- Pas d'envoi à des destinataires externes ajoutés manuellement.
-- Pas de notifications Slack (peut être ajouté plus tard).
+## 4. Backfill des liaisons existantes
+
+Pour chaque participant existant avec `formula_id` non nul :
+
+- Insérer `(training_id, formula_id)` dans `training_formulas` (ON CONFLICT DO NOTHING).
+
+Cela conserve l'état actuel comme point de départ ; l'admin ajustera ensuite manuellement via l'UI.
+
+## 5. Correction Liza & Agnès
+
+État actuel constaté :
+
+
+| Participant        | Session actuelle                | Formule    | Correction                                                 |
+| ------------------ | ------------------------------- | ---------- | ---------------------------------------------------------- |
+| Liza Gobber        | permanente (497f7804, no date)  | Communauté | déplacer vers la prochaine cohorte Communauté              |
+| Agnès Golfier (×2) | permanente + cohorte 2026-05-27 | Communauté | supprimer le doublon dans la permanente, garder la cohorte |
+
+
+Pour Liza : la prochaine cohorte Communauté du catalogue est  2026-05-27. Je la déplace là
+
+Côté technique : `UPDATE training_participants SET training_id = ... WHERE id = ...` + `DELETE` du doublon Agnès.
+
+## 6. Ordre d'exécution
+
+1. Migration : table `training_formulas` + trigger d'exclusivité + GRANT + RLS + backfill.
+2. UI section "Formules" sur `FormationDetail`.
+3. Refactor `supertilt-webhook` pour utiliser `training_formulas`.
+4. Correction des affectations Liza + Agnès.
+
+## Questions avant de lancer
+
+- Confirme la cible pour Liza : cohorte **mars 2026** ou **mai 2026** ? --> **mai 2026** 
+- Pour la formule **Coaché** (16571) du catalogue Facilitation graphique en ligne : actuellement aucune session ne porte cette formule. Tu veux que je crée une session permanente "Coaché" ou tu la lieras manuellement après ? --> Associé à la cohorte de **mai 2026** 
+  &nbsp;

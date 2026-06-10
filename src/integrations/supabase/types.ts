@@ -8703,6 +8703,39 @@ export type Database = {
           },
         ]
       }
+      training_formulas: {
+        Row: {
+          created_at: string
+          formula_id: string
+          training_id: string
+        }
+        Insert: {
+          created_at?: string
+          formula_id: string
+          training_id: string
+        }
+        Update: {
+          created_at?: string
+          formula_id?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_formulas_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "formation_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_formulas_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_live_meetings: {
         Row: {
           created_at: string

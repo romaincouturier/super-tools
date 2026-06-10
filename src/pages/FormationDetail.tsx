@@ -18,7 +18,9 @@ import FormationDetailHeader from "@/components/formations/FormationDetailHeader
 import FormationDetailInfo from "@/components/formations/FormationDetailInfo";
 import FormationDetailParticipants from "@/components/formations/FormationDetailParticipants";
 import FormationDetailSections from "@/components/formations/FormationDetailSections";
+import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
 import TrainingSurveyResults from "@/components/formations/TrainingSurveyResults";
+
 import { useFormationDetail } from "@/hooks/useFormationDetail";
 import { sendVenueBookingRequest } from "@/services/training-venues";
 import { format, parseISO } from "date-fns";
@@ -159,6 +161,15 @@ const FormationDetail = () => {
         </div>
 
         <TrainingSurveyResults trainingId={fd.id!} />
+
+        {fd.isElearningSession && (
+          <TrainingFormulasManager
+            trainingId={fd.id!}
+            isPermanent={!fd.training.start_date}
+            availableFormulas={fd.availableFormulas}
+          />
+        )}
+
 
         <FormationDetailSections
           training={fd.training}
