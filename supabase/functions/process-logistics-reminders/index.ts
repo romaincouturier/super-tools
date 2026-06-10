@@ -93,13 +93,7 @@ function formatCrmCardHtml(card: CrmCardItem, appUrl: string): string {
 }
 
 function formatReservationItems(r: ReservationItem): string {
-  const items: string[] = [];
-  if (r.needsTrain) items.push("🚄 Train");
-  if (r.needsHotel) items.push("🏨 Hôtel");
-  if (r.needsRestaurant) items.push("🍽️ Restaurant");
-  if (r.needsRoom) items.push("🚪 Salle");
-  if (r.needsEquipment) items.push("📦 Matériel");
-  return items.join(" + ");
+  return (r.pendingItems || []).join(" + ");
 }
 
 
