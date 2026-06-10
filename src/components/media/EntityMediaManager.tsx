@@ -220,6 +220,23 @@ const EntityMediaManager = ({
         sourceId: item.source_id,
       });
 
+      // For events: auto-fill summary_notes if empty, so the
+      // "compte-rendu manquant" alert disappears once transcription is done.
+      if (item.source_type === "event") {
+        const { data: ev } = await supabase
+          .from("events")
+          .select("summary_notes")
+          .eq("id", item.source_id)
+          .maybeSingle();
+        if (ev && !ev.summary_notes) {
+          await supabase
+            .from("events")
+            .update({ summary_notes: transcript })
+            .eq("id", item.source_id);
+          queryClient.invalidateQueries({ queryKey: ["events"] });
+        }
+      }
+
       toast.success("Transcription terminée");
     } finally {
       setTranscribingIds((prev) => {
