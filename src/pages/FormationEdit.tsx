@@ -396,11 +396,13 @@ const FormationEdit = () => {
                     />
                   </div>
 
-                  {/* Dates */}
-                  {form.isElearning ? (
-                    <ElearningDatesFields form={form} />
-                  ) : (
-                    <TrainingDaysCalendar form={form} />
+                  {/* Dates — masquées sur une session permanente */}
+                  {!form.isPermanent && (
+                    form.isElearning ? (
+                      <ElearningDatesFields form={form} />
+                    ) : (
+                      <TrainingDaysCalendar form={form} />
+                    )
                   )}
 
                   {/* Session type/format */}
