@@ -261,6 +261,11 @@ const DocumentDeliverySection = ({
           {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}><Receipt className="h-4 w-4 mr-2" />Facture</DropdownMenuItem>}
           {hasSheets && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}><ClipboardList className="h-4 w-4 mr-2" />Feuille d&apos;émargement</DropdownMenuItem>}
           {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", true)}><Award className="h-4 w-4 mr-2" />Certificats ({certificateUrls.length})</DropdownMenuItem>}
+          {!hasCertificates && canGenerateCerts && sponsorEmail && (
+            <DropdownMenuItem disabled={generatingCerts} onClick={() => handleGenerateAndSendCertificates(sponsorEmail)}>
+              <Award className="h-4 w-4 mr-2" />{generatingCerts ? "Génération en cours…" : `Générer & envoyer attestations (${participants.length})`}
+            </DropdownMenuItem>
+          )}
           {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", true)}><Star className="h-4 w-4 mr-2" />Évaluations participants ({evaluationCount})</DropdownMenuItem>}
           {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}><FileText className="h-4 w-4 mr-2" />Tous les documents</DropdownMenuItem>}
           <DropdownMenuSeparator />
