@@ -122,15 +122,30 @@ export function useDocumentsFetch({ trainingId, participants }: UseDocumentsFetc
         .select("certificate_url, etat")
         .eq("training_id", trainingId);
 
+      let urls: string[] = [];
       if (!error && data) {
-        const urls = data
+        urls = data
           .map((e: { certificate_url: string | null }) => e.certificate_url as string)
           .filter(Boolean);
-        setCertificateUrls(urls);
-
         const submitted = data.filter((e: { etat: string }) => e.etat === "soumis").length;
         setEvaluationCount(submitted);
       }
+
+      // Fallback: list PDFs directly from the certificates bucket if the
+      // evaluation rows don't carry the certificate_url (cert generated before
+      // any evaluation was submitted).
+      if (urls.length === 0) {
+        const { data: files } = await supabase.storage
+          .from("certificates")
+          .list(trainingId, { limit: 200 });
+        if (files && files.length > 0) {
+          urls = files
+            .filter((f) => f.name.endsWith(".pdf"))
+            .map((f) => supabase.storage.from("certificates").getPublicUrl(`${trainingId}/${f.name}`).data.publicUrl);
+        }
+      }
+
+      setCertificateUrls(urls);
     };
 
     fetchCertificatesAndEvaluations();
