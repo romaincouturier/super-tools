@@ -66,5 +66,7 @@ export interface DocumentsManagerProps {
   schedules: { day_date: string; start_time: string; end_time: string }[];
   participants: { id: string; first_name: string | null; last_name: string | null; email: string }[];
   signedConventionUrls?: string[];
+  clientName?: string;
+  trainingDuree?: string;
   onUpdate?: () => void;
 }
