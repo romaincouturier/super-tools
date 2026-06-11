@@ -93,6 +93,8 @@ const DocumentsManager = ({
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
             sponsorFormalAddress={sponsorFormalAddress} documentsSentInfo={documentsSentInfo}
             setDocumentsSentInfo={setDocumentsSentInfo} evaluationCount={evaluationCount} signatureCount={signatureCount}
+            participants={participants} clientName={clientName} trainingDuree={trainingDuree}
+            onCertificatesGenerated={onUpdate}
           />
         </CardContent>
       </Card>
