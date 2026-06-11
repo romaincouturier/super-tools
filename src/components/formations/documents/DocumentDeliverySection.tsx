@@ -78,9 +78,9 @@ const DocumentDeliverySection = ({
   const hasCertificates = certificateUrls.length > 0;
   const hasEvaluations = evaluationCount > 0;
   const hasSheets = attendanceSheetsUrls.length > 0 || signatureCount > 0;
-  const canGenerateCerts = !hasCertificates && participants.length > 0 && !!clientName && !!trainingDuree && !!startDate;
+  const canGenerateCerts = participants.length > 0 && !!clientName && !!trainingDuree && !!startDate;
   const hasDocuments = invoiceFileUrl || hasSheets || hasCertificates || hasEvaluations || canGenerateCerts;
-  const docCount = (invoiceFileUrl ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
+  const docCount = (invoiceFileUrl ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificates || canGenerateCerts ? 1 : 0) + (hasEvaluations ? 1 : 0);
 
   const handleGenerateAndSendCertificates = async (recipientEmail: string) => {
     if (!canGenerateCerts) return;
