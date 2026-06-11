@@ -443,7 +443,7 @@ async function sendCertificatesToCommanditaire(
   // If only one PDF, send it directly without ZIP
   if (pdfDataList.length === 1) {
     const pdfData = pdfDataList[0];
-    const pdfBase64 = btoa(String.fromCharCode(...pdfData.pdfBuffer));
+    const pdfBase64 = uint8ToBase64(pdfData.pdfBuffer);
 
     console.log(`Sending single certificate to commanditaire: ${emailCommanditaire}`);
 
