@@ -21,6 +21,8 @@ export default function SortableCardWrapper({ id, children }: SortableCardWrappe
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : undefined,
+    // Allow vertical scroll on touch devices; long-press (TouchSensor delay) still triggers drag.
+    touchAction: "pan-y" as const,
   };
 
   return (
