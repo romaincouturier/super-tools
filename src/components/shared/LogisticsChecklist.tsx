@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Calendar, Bell, GripVertical, ListChecks } from "lucide-react";
+import { Plus, Trash2, Calendar, Bell, GripVertical, ListChecks, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ import {
   useCreateLogisticsItem,
   useUpdateLogisticsItem,
   useDeleteLogisticsItem,
+  useChecklistTemplates,
+  useImportTemplate,
 } from "@/hooks/useLogisticsChecklist";
 import { bootstrapChecklist } from "@/services/logistics";
 import type { LogisticsEntityType, LogisticsChecklistItem } from "@/types/logistics";
@@ -34,6 +36,8 @@ interface LogisticsChecklistProps {
   format?: string | null;
   sessionType?: string | null;
   isRemote?: boolean;
+  /** start_date of the entity — used to calculate due_date when importing a template */
+  startDate?: string | null;
 }
 
 /**
@@ -48,16 +52,19 @@ interface LogisticsChecklistProps {
  *   - due_date          → deadline displayed inline
  *   - notify_days_before → email reminder N days before due_date
  */
-export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false, format: fmt, sessionType, isRemote }: LogisticsChecklistProps) {
+export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false, format: fmt, sessionType, isRemote, startDate }: LogisticsChecklistProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: items = [], isLoading } = useLogisticsChecklist(entityType, entityId);
   const createItem = useCreateLogisticsItem();
   const updateItem = useUpdateLogisticsItem();
   const deleteItem = useDeleteLogisticsItem(entityType, entityId);
+  const { data: templates = [] } = useChecklistTemplates(entityType);
+  const importTemplate = useImportTemplate(entityType, entityId);
 
   const [newLabel, setNewLabel] = useState("");
   const [bootstrapping, setBootstrapping] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const handleBootstrap = async () => {
     setBootstrapping(true);
@@ -74,6 +81,16 @@ export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false
       toastError(toast, err instanceof Error ? err : "Impossible d'initialiser la checklist.");
     } finally {
       setBootstrapping(false);
+    }
+  };
+
+  const handleImport = async (templateId: string) => {
+    setImportOpen(false);
+    try {
+      await importTemplate.mutateAsync({ templateId, startDate: startDate ?? null });
+      toast({ title: "Modèle importé" });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Impossible d'importer le modèle.");
     }
   };
 
@@ -133,6 +150,36 @@ export function LogisticsChecklist({ entityType, entityId, hideWhenEmpty = false
               </span>
             )}
           </h4>
+          {templates.length > 0 && (
+            <Popover open={importOpen} onOpenChange={setImportOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                  <Download className="h-3.5 w-3.5" />
+                  Importer un modèle
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="end">
+                <p className="text-xs text-muted-foreground mb-2 px-1">Choisir un modèle à ajouter :</p>
+                <ul className="space-y-0.5">
+                  {templates.map((t) => (
+                    <li key={t.id}>
+                      <button
+                        type="button"
+                        className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted"
+                        onClick={() => handleImport(t.id)}
+                        disabled={importTemplate.isPending}
+                      >
+                        {t.name}
+                        {t.items?.length != null && (
+                          <span className="text-muted-foreground text-xs ml-1">({t.items.length})</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
         {items.length === 0 && (

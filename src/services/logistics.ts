@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { LogisticsChecklistItem, LogisticsEntityType, LogisticsTemplateItem, LogisticsTemplates } from "@/types/logistics";
+import type { LogisticsChecklistItem, LogisticsEntityType, LogisticsTemplateItem, LogisticsTemplates, ChecklistTemplate, ChecklistTemplateItem } from "@/types/logistics";
 import { resolveTemplateKey } from "@/lib/logisticsTemplateKey";
 
 export { resolveTemplateKey };
@@ -139,6 +139,107 @@ export async function fetchTemplates(): Promise<LogisticsTemplates> {
   }
   _cachedTemplates = FALLBACK_TEMPLATES;
   return FALLBACK_TEMPLATES;
+}
+
+// ── Unified template CRUD ──────────────────────────────────────────────────
+
+const TEMPLATES_TABLE = "checklist_templates";
+const TEMPLATE_ITEMS_TABLE = "checklist_template_items";
+
+export async function fetchChecklistTemplates(entityType?: LogisticsEntityType): Promise<ChecklistTemplate[]> {
+  let q = sb.from(TEMPLATES_TABLE).select(`*, items:${TEMPLATE_ITEMS_TABLE}(*)`)
+    .order("name", { ascending: true });
+  if (entityType) {
+    q = q.or(`entity_type.eq.${entityType},entity_type.is.null`);
+  }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data || []) as ChecklistTemplate[];
+}
+
+export async function createChecklistTemplate(input: {
+  name: string;
+  entity_type: LogisticsEntityType | null;
+  is_global: boolean;
+  user_id?: string | null;
+}): Promise<ChecklistTemplate> {
+  const { data, error } = await sb.from(TEMPLATES_TABLE).insert(input).select().single();
+  if (error) throw error;
+  return data as ChecklistTemplate;
+}
+
+export async function updateChecklistTemplate(id: string, updates: Partial<Pick<ChecklistTemplate, "name" | "entity_type">>): Promise<ChecklistTemplate> {
+  const { data, error } = await sb.from(TEMPLATES_TABLE).update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data as ChecklistTemplate;
+}
+
+export async function deleteChecklistTemplate(id: string): Promise<void> {
+  const { error } = await sb.from(TEMPLATES_TABLE).delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function createChecklistTemplateItem(input: Omit<ChecklistTemplateItem, "id" | "created_at">): Promise<ChecklistTemplateItem> {
+  const { data, error } = await sb.from(TEMPLATE_ITEMS_TABLE).insert(input).select().single();
+  if (error) throw error;
+  return data as ChecklistTemplateItem;
+}
+
+export async function updateChecklistTemplateItem(id: string, updates: Partial<Pick<ChecklistTemplateItem, "label" | "day_offset" | "notify_days_before" | "position">>): Promise<ChecklistTemplateItem> {
+  const { data, error } = await sb.from(TEMPLATE_ITEMS_TABLE).update(updates).eq("id", id).select().single();
+  if (error) throw error;
+  return data as ChecklistTemplateItem;
+}
+
+export async function deleteChecklistTemplateItem(id: string): Promise<void> {
+  const { error } = await sb.from(TEMPLATE_ITEMS_TABLE).delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Import all items from a template into an entity's checklist.
+ * Dates are calculated from start_date + day_offset.
+ * Non-destructive: existing items are not touched.
+ */
+export async function importTemplate(args: {
+  templateId: string;
+  entityType: LogisticsEntityType;
+  entityId: string;
+  startDate: string | null;
+}): Promise<void> {
+  const { data: tmplItems, error } = await sb
+    .from(TEMPLATE_ITEMS_TABLE)
+    .select("*")
+    .eq("template_id", args.templateId)
+    .order("position", { ascending: true });
+  if (error) throw error;
+  if (!tmplItems?.length) return;
+
+  const existingItems = await fetchItems(args.entityType, args.entityId);
+  const nextPosition = existingItems.length;
+
+  const toInsert = (tmplItems as ChecklistTemplateItem[]).map((item, idx) => {
+    let due_date: string | null = null;
+    if (args.startDate && item.day_offset !== 0) {
+      const d = new Date(args.startDate);
+      d.setDate(d.getDate() + item.day_offset);
+      due_date = d.toISOString().slice(0, 10);
+    } else if (args.startDate && item.day_offset === 0) {
+      due_date = args.startDate;
+    }
+    return {
+      entity_type: args.entityType,
+      entity_id: args.entityId,
+      label: item.label,
+      position: nextPosition + idx,
+      legacy_field: item.legacy_field ?? null,
+      due_date,
+      notify_days_before: item.notify_days_before ?? null,
+      is_done: false,
+    };
+  });
+
+  await createItemsBatch(toInsert);
 }
 
 /**
