@@ -8,6 +8,16 @@ import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+  }
+  return btoa(binary);
+}
+
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID");
@@ -443,7 +453,7 @@ async function sendCertificatesToCommanditaire(
   // If only one PDF, send it directly without ZIP
   if (pdfDataList.length === 1) {
     const pdfData = pdfDataList[0];
-    const pdfBase64 = btoa(String.fromCharCode(...pdfData.pdfBuffer));
+    const pdfBase64 = uint8ToBase64(pdfData.pdfBuffer);
 
     console.log(`Sending single certificate to commanditaire: ${emailCommanditaire}`);
 
@@ -480,7 +490,7 @@ async function sendCertificatesToCommanditaire(
   }
 
   const zipBuffer = zipSync(zipFiles);
-  const zipBase64 = btoa(String.fromCharCode(...zipBuffer));
+  const zipBase64 = uint8ToBase64(zipBuffer);
 
   const zipFileName = `Certificats_${formationName.replace(/\s+/g, "_")}.zip`;
 
