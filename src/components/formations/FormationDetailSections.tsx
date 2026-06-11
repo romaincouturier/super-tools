@@ -113,6 +113,8 @@ const FormationDetailSections = ({
           schedules={schedules}
           participants={participants}
           signedConventionUrls={training.signed_convention_urls || []}
+          clientName={training.client_name}
+          trainingDuree={`${_calculateTotalDuration()}h`}
           onUpdate={fetchTrainingData}
         />
         <EntityDocumentsManager entityType="training" entityId={id} title="Documents joints" />

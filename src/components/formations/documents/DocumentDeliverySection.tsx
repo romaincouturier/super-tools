@@ -36,6 +36,10 @@ interface DocumentDeliverySectionProps {
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
   evaluationCount?: number;
   signatureCount?: number;
+  participants?: { id: string; first_name: string | null; last_name: string | null; email: string }[];
+  clientName?: string;
+  trainingDuree?: string;
+  onCertificatesGenerated?: () => void;
 }
 
 const DocumentDeliverySection = ({
@@ -54,6 +58,10 @@ const DocumentDeliverySection = ({
   setDocumentsSentInfo,
   evaluationCount = 0,
   signatureCount = 0,
+  participants = [],
+  clientName = "",
+  trainingDuree = "",
+  onCertificatesGenerated,
 }: DocumentDeliverySectionProps) => {
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
@@ -66,11 +74,72 @@ const DocumentDeliverySection = ({
     { errorMessage: "Impossible d'envoyer les documents." },
   );
 
+  const [generatingCerts, setGeneratingCerts] = useState(false);
   const hasCertificates = certificateUrls.length > 0;
   const hasEvaluations = evaluationCount > 0;
   const hasSheets = attendanceSheetsUrls.length > 0 || signatureCount > 0;
-  const hasDocuments = invoiceFileUrl || hasSheets || hasCertificates || hasEvaluations;
+  const canGenerateCerts = !hasCertificates && participants.length > 0 && !!clientName && !!trainingDuree && !!startDate;
+  const hasDocuments = invoiceFileUrl || hasSheets || hasCertificates || hasEvaluations || canGenerateCerts;
   const docCount = (invoiceFileUrl ? 1 : 0) + (hasSheets ? 1 : 0) + (hasCertificates ? 1 : 0) + (hasEvaluations ? 1 : 0);
+
+  const handleGenerateAndSendCertificates = async (recipientEmail: string) => {
+    if (!canGenerateCerts) return;
+    setGeneratingCerts(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-certificates`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}`,
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            formationName: trainingName,
+            entreprise: clientName,
+            duree: trainingDuree,
+            dateDebut: startDate,
+            dateFin: endDate || startDate,
+            emailDestinataire: session.data.session?.user?.email || "",
+            emailCommanditaire: recipientEmail,
+            participants: participants.map(p => ({
+              prenom: p.first_name || "",
+              nom: p.last_name || "",
+              email: p.email,
+              participantId: p.id,
+            })),
+            userId: session.data.session?.user?.id,
+            trainingId,
+          }),
+        },
+      );
+      if (!response.ok) throw new Error(`Erreur serveur: ${response.status}`);
+      // Drain stream
+      const reader = response.body?.getReader();
+      if (reader) {
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done } = await reader.read();
+          if (done) break;
+        }
+        void decoder;
+      }
+      toast({
+        title: "Attestations envoyées",
+        description: `Les attestations ont été générées et envoyées à ${recipientEmail}.`,
+      });
+      onCertificatesGenerated?.();
+    } catch (error: unknown) {
+      console.error("Error generating certificates:", error);
+      toastError(toast, error instanceof Error ? error.message : "Erreur lors de la génération des attestations.");
+    } finally {
+      setGeneratingCerts(false);
+    }
+  };
+
 
   const ensureAttendanceSheetsUrls = async (): Promise<string[]> => {
     if (attendanceSheetsUrls.length > 0) return attendanceSheetsUrls;
@@ -192,6 +261,11 @@ const DocumentDeliverySection = ({
           {invoiceFileUrl && <DropdownMenuItem onClick={() => openCustomRecipientDialog("invoice", true)}><Receipt className="h-4 w-4 mr-2" />Facture</DropdownMenuItem>}
           {hasSheets && <DropdownMenuItem onClick={() => openCustomRecipientDialog("sheets", true)}><ClipboardList className="h-4 w-4 mr-2" />Feuille d&apos;émargement</DropdownMenuItem>}
           {hasCertificates && <DropdownMenuItem onClick={() => openCustomRecipientDialog("certificates", true)}><Award className="h-4 w-4 mr-2" />Certificats ({certificateUrls.length})</DropdownMenuItem>}
+          {!hasCertificates && canGenerateCerts && sponsorEmail && (
+            <DropdownMenuItem disabled={generatingCerts} onClick={() => handleGenerateAndSendCertificates(sponsorEmail)}>
+              <Award className="h-4 w-4 mr-2" />{generatingCerts ? "Génération en cours…" : `Générer & envoyer attestations (${participants.length})`}
+            </DropdownMenuItem>
+          )}
           {hasEvaluations && <DropdownMenuItem onClick={() => openCustomRecipientDialog("evaluations", true)}><Star className="h-4 w-4 mr-2" />Évaluations participants ({evaluationCount})</DropdownMenuItem>}
           {docCount >= 2 && <DropdownMenuItem onClick={() => openCustomRecipientDialog("all", true)}><FileText className="h-4 w-4 mr-2" />Tous les documents</DropdownMenuItem>}
           <DropdownMenuSeparator />
