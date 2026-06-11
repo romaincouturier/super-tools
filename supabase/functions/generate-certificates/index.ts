@@ -480,7 +480,7 @@ async function sendCertificatesToCommanditaire(
   }
 
   const zipBuffer = zipSync(zipFiles);
-  const zipBase64 = btoa(String.fromCharCode(...zipBuffer));
+  const zipBase64 = uint8ToBase64(zipBuffer);
 
   const zipFileName = `Certificats_${formationName.replace(/\s+/g, "_")}.zip`;
 
