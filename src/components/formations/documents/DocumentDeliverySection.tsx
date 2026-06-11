@@ -36,6 +36,10 @@ interface DocumentDeliverySectionProps {
   setDocumentsSentInfo: React.Dispatch<React.SetStateAction<DocumentSentInfo>>;
   evaluationCount?: number;
   signatureCount?: number;
+  participants?: { id: string; first_name: string | null; last_name: string | null; email: string }[];
+  clientName?: string;
+  trainingDuree?: string;
+  onCertificatesGenerated?: () => void;
 }
 
 const DocumentDeliverySection = ({
@@ -54,6 +58,10 @@ const DocumentDeliverySection = ({
   setDocumentsSentInfo,
   evaluationCount = 0,
   signatureCount = 0,
+  participants = [],
+  clientName = "",
+  trainingDuree = "",
+  onCertificatesGenerated,
 }: DocumentDeliverySectionProps) => {
   const [customRecipientEmail, setCustomRecipientEmail] = useState("");
   const [ccEmail, setCcEmail] = useState("");
