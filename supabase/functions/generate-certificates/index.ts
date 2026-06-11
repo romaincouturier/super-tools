@@ -586,7 +586,45 @@ serve(async (req: Request): Promise<Response> => {
           const participantName = `${participant.prenom} ${participant.nom}`;
           let pdfUrl = "";
           let pdfGenerated = false;
+          let existingPdfBuffer: Uint8Array | null = null;
           const errors: string[] = [];
+
+          // Check if certificate already exists in storage; reuse it if so
+          if (trainingId) {
+            try {
+              const participantId = participant.participantId || participant.email;
+              const storagePath = `${trainingId}/${participantId}.pdf`;
+              const { data: existing } = await supabaseAdmin.storage
+                .from("certificates")
+                .download(storagePath);
+              if (existing) {
+                existingPdfBuffer = new Uint8Array(await existing.arrayBuffer());
+                console.log(`Reusing existing certificate for ${participantName}`);
+                sendEvent({
+                  type: "step",
+                  data: {
+                    participant: participantName,
+                    step: "pdf",
+                    status: "success",
+                    message: "Attestation existante réutilisée",
+                  },
+                });
+              }
+            } catch (_e) { /* not found */ }
+          }
+
+          if (existingPdfBuffer) {
+            if (emailCommanditaire) {
+              const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+              pdfDataList.push({ fileName, pdfBuffer: existingPdfBuffer });
+            }
+            successCount++;
+            sendEvent({
+              type: "participant_done",
+              data: { participant: participantName, success: true, index: i + 1, total: participants.length },
+            });
+            continue;
+          }
 
           // Notify PDF generation started
           sendEvent({ 
