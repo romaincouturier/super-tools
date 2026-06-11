@@ -21,7 +21,7 @@ const DocumentsManager = ({
   isInterEntreprise: isInterEntrepriseProp,
   conventionFileUrl: initialConventionUrl,
   trainerName, location, schedules, participants,
-  signedConventionUrls: initialSignedConventionUrls, onUpdate,
+  signedConventionUrls: initialSignedConventionUrls, clientName, trainingDuree, onUpdate,
 }: DocumentsManagerProps) => {
   const isInterEntreprise = isInterEntrepriseProp ?? (formatFormation === "inter-entreprises" || formatFormation === "e_learning");
   const [invoiceFileUrl, setInvoiceFileUrl] = useState<string | null>(initialInvoiceUrl);
