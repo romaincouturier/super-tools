@@ -12,6 +12,7 @@ import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
 import { transcribeAudio, analyzeAudioForLessons } from "@/services/lmsMediaImport";
+import { createLessonBlock } from "@/services/lms-blocks";
 import type { LmsModule, LmsLesson } from "@/hooks/useLms";
 import {
   DropdownMenu,
@@ -267,8 +268,6 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
           ressourcesLessonId = newLesson.id;
         }
       }
-
-      const { createLessonBlock } = await import("@/services/lms-blocks");
 
       for (const audio of audios) {
         if (audio.status !== "done" || !audio.reformulatedText) continue;

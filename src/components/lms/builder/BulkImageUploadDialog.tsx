@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from "@tanstack/react-query";
+import { createLessonBlock } from "@/services/lms-blocks";
 
 interface UploadedImage {
   file: File;
@@ -186,8 +187,6 @@ export default function BulkImageUploadDialog({ open, onClose, courseId }: Props
       for (const [lessonId, imgs] of byLesson.entries()) {
         for (let i = 0; i < imgs.length; i++) {
           const img = imgs[i];
-          // useCreateLessonBlock is a hook — we call the service directly here
-          const { createLessonBlock } = await import("@/services/lms-blocks");
           await createLessonBlock({
             lesson_id: lessonId,
             type: "image",
