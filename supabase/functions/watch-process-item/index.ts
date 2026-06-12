@@ -76,7 +76,80 @@ serve(async (req) => {
 
     // ── Step 1: Content extraction ──────────────────────────────────
 
+    // For URL items: detect audio URLs and podcast RSS feeds before scraping
+    let resolvedAudioUrl: string | null = null;
+    let podcastEpisodeTitle: string | undefined;
+    let podcastEpisodeDesc: string | undefined;
+
     if (item.content_type === "url" && item.source_url) {
+      try {
+        const detected = await detectAudioOrPodcast(item.source_url);
+        if (detected) {
+          resolvedAudioUrl = detected.audioUrl;
+          podcastEpisodeTitle = detected.episodeTitle;
+          podcastEpisodeDesc = detected.episodeDescription;
+        }
+      } catch (e) {
+        console.warn("Podcast/audio detection failed:", e);
+      }
+    }
+
+    if (resolvedAudioUrl) {
+      // Transcribe via AssemblyAI — same pipeline as uploaded audio files
+      const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
+      if (ASSEMBLYAI_API_KEY) {
+        try {
+          const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
+            method: "POST",
+            headers: {
+              Authorization: ASSEMBLYAI_API_KEY,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              audio_url: resolvedAudioUrl,
+              language_code: "fr",
+              punctuate: true,
+              format_text: true,
+            }),
+          });
+
+          if (submitRes.ok) {
+            const { id: transcriptId } = await submitRes.json();
+
+            for (let i = 0; i < 60; i++) {
+              await new Promise((r) => setTimeout(r, 5000));
+
+              const pollRes = await fetch(
+                `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+                { headers: { Authorization: ASSEMBLYAI_API_KEY } },
+              );
+
+              if (pollRes.ok) {
+                const result = await pollRes.json();
+                if (result.status === "completed") {
+                  const transcript = result.text || "";
+                  body = transcript;
+                  // Store in both body and transcript field
+                  await saveUpdates({ body: transcript, transcript });
+                  break;
+                }
+                if (result.status === "error") break;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Podcast URL transcription failed:", e);
+        }
+      }
+
+      // Use podcast episode metadata as title/body fallback
+      if (podcastEpisodeTitle && (!item.title || item.title === "(Sans titre)")) {
+        updates.title = podcastEpisodeTitle;
+      }
+      if (podcastEpisodeDesc && !body) {
+        body = podcastEpisodeDesc;
+      }
+    } else if (item.content_type === "url" && item.source_url) {
       // Scrape URL content
       try {
         const scrapeRes = await fetch(item.source_url, {
@@ -287,6 +360,98 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
     return createErrorResponse(msg);
   }
 });
+
+const AUDIO_EXTENSIONS = /\.(mp3|m4a|wav|ogg|webm|aac|opus|flac|mp4)(\?[^#]*)?$/i;
+
+interface PodcastAudioTarget {
+  audioUrl: string;
+  episodeTitle?: string;
+  episodeDescription?: string;
+}
+
+/**
+ * Returns the audio URL to transcribe if the given URL is:
+ * - A direct audio file (by extension or Content-Type)
+ * - A podcast RSS feed (extracts the latest episode's enclosure URL)
+ * Returns null if it's a regular web page.
+ */
+async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | null> {
+  // 1. Extension-based detection (fast, no network)
+  try {
+    if (AUDIO_EXTENSIONS.test(new URL(url).pathname)) {
+      return { audioUrl: url };
+    }
+  } catch {
+    return null;
+  }
+
+  // 2. HEAD request to inspect Content-Type
+  try {
+    const head = await fetch(url, {
+      method: "HEAD",
+      redirect: "follow",
+      signal: AbortSignal.timeout(6000),
+      headers: { "User-Agent": "SuperTools-Watch/1.0" },
+    });
+    const ct = (head.headers.get("content-type") || "").toLowerCase();
+
+    if (ct.startsWith("audio/")) {
+      return { audioUrl: url };
+    }
+
+    if (ct.includes("xml") || ct.includes("rss") || ct.includes("atom")) {
+      return extractFromRssFeed(url);
+    }
+  } catch {
+    // ignore — fall through
+  }
+
+  // 3. Heuristic: URL pattern suggests a podcast feed, try to parse as RSS
+  if (/\/(feed|rss|podcast)(\/|$|\?)/i.test(url) || /\.(xml|rss)(\?|$)/i.test(url)) {
+    try {
+      return await extractFromRssFeed(url);
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
+}
+
+async function extractFromRssFeed(feedUrl: string): Promise<PodcastAudioTarget | null> {
+  const res = await fetch(feedUrl, {
+    headers: { "User-Agent": "SuperTools-Watch/1.0" },
+    signal: AbortSignal.timeout(10000),
+    redirect: "follow",
+  });
+  if (!res.ok) return null;
+
+  const xml = await res.text();
+
+  // Find first audio enclosure in the feed
+  const enclosureMatch =
+    xml.match(/<enclosure[^>]+url="([^"]+)"[^>]*type="audio[^"]*"/i) ||
+    xml.match(/<enclosure[^>]+type="audio[^"]*"[^>]+url="([^"]+)"/i);
+
+  if (!enclosureMatch) return null;
+
+  const audioUrl = enclosureMatch[1];
+
+  // Extract first <item> episode title
+  const itemMatch = xml.match(/<item[\s>][\s\S]*?<\/item>/i);
+  const itemBlock = itemMatch ? itemMatch[0] : xml;
+
+  const titleMatch = itemBlock.match(/<title[^>]*>(?:<!\[CDATA\[)?\s*([\s\S]*?)\s*(?:\]\]>)?<\/title>/i);
+  const episodeTitle = titleMatch ? titleMatch[1].trim() : undefined;
+
+  const descMatch = itemBlock.match(/<(?:itunes:summary|description)[^>]*>(?:<!\[CDATA\[)?\s*([\s\S]*?)\s*(?:\]\]>)?<\/(?:itunes:summary|description)>/i);
+  const raw = descMatch ? descMatch[1] : "";
+  const episodeDescription = raw
+    ? raw.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 500)
+    : undefined;
+
+  return { audioUrl, episodeTitle, episodeDescription };
+}
 
 /** Basic HTML text extraction */
 function extractTextFromHtml(html: string): string {
