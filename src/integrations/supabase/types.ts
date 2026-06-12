@@ -555,6 +555,208 @@ export type Database = {
         }
         Relationships: []
       }
+      book_albums: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          sort_order: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      book_analytics_events: {
+        Row: {
+          event_type: string
+          id: string
+          link_id: string
+          production_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          link_id: string
+          production_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          link_id?: string
+          production_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_analytics_events_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "book_share_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_analytics_events_production_id_fkey"
+            columns: ["production_id"]
+            isOneToOne: false
+            referencedRelation: "book_productions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_productions: {
+        Row: {
+          album_id: string
+          created_at: string
+          exif_date: string | null
+          exif_height: number | null
+          exif_width: number | null
+          file_type: string
+          file_url: string
+          id: string
+          notes: string | null
+          original_filename: string | null
+          sort_order: number
+          tags: string[]
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          album_id: string
+          created_at?: string
+          exif_date?: string | null
+          exif_height?: number | null
+          exif_width?: number | null
+          file_type: string
+          file_url: string
+          id?: string
+          notes?: string | null
+          original_filename?: string | null
+          sort_order?: number
+          tags?: string[]
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          album_id?: string
+          created_at?: string
+          exif_date?: string | null
+          exif_height?: number | null
+          exif_width?: number | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          notes?: string | null
+          original_filename?: string | null
+          sort_order?: number
+          tags?: string[]
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_productions_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "book_albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          photo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      book_share_links: {
+        Row: {
+          album_id: string
+          created_at: string
+          id: string
+          prospect_name: string
+          revoked_at: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          album_id: string
+          created_at?: string
+          id?: string
+          prospect_name: string
+          revoked_at?: string | null
+          token?: string
+          user_id: string
+        }
+        Update: {
+          album_id?: string
+          created_at?: string
+          id?: string
+          prospect_name?: string
+          revoked_at?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_share_links_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "book_albums"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bpf_reports: {
         Row: {
           annee: number
