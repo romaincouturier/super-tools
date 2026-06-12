@@ -436,7 +436,7 @@ const EventDetail = () => {
                       {isSubmitted ? (
                         <div className="mt-1 flex items-center gap-2">
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            CFP soumis le {new Date(event.cfp_submitted_at!).toLocaleDateString("fr-FR")}
+                            CFP soumis le {formatDateWithDayOfWeek(event.cfp_submitted_at!)}
                           </Badge>
                           <Button
                             variant="ghost"
