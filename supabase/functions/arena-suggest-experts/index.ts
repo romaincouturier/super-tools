@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
