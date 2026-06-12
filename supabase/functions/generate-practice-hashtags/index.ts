@@ -55,6 +55,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
 
+  const user = await verifyAuth(req.headers.get("Authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401);
+
+
   try {
     const { content } = await req.json();
     const text = typeof content === "string" ? content.trim() : "";
