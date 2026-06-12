@@ -852,7 +852,7 @@ function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: ()
               <p className="text-xs text-muted-foreground">Objet</p>
               <p className="font-medium text-sm">{preview.subject}</p>
             </div>
-            <div className="border rounded p-3 text-sm prose max-w-none" dangerouslySetInnerHTML={{ __html: preview.html }} />
+            <div className="border rounded p-3 text-sm prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.html, { ADD_ATTR: ["target"] }) }} />
           </div>
         )}
         {!loading && !preview && (
