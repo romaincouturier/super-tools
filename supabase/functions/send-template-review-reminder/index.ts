@@ -32,6 +32,14 @@ Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
 
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const isServiceRole = authHeader === `Bearer ${SERVICE_ROLE_KEY}`;
+  if (!isServiceRole) {
+    const user = await verifyAuth(authHeader);
+    if (!user) return createErrorResponse("Unauthorized", 401);
+  }
+
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
