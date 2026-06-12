@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import ModuleLayout from '@/components/ModuleLayout';
-import { PageHeader } from '@/components/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import BookAlbumDetail from '@/components/book/BookAlbumDetail';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
 import { useBookProfile, useBookAlbums } from '@/hooks/useBook';
