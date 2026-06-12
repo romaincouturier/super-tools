@@ -88,6 +88,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
 
+  // Internal cron-only endpoint: require service role bearer token
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (authHeader !== `Bearer ${SERVICE_ROLE_KEY}`) {
+    return createErrorResponse("Unauthorized", 401);
+  }
+
+
   try {
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
