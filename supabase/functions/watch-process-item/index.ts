@@ -95,54 +95,14 @@ serve(async (req) => {
     }
 
     if (resolvedAudioUrl) {
-      // Transcribe via AssemblyAI — same pipeline as uploaded audio files
       const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
       if (ASSEMBLYAI_API_KEY) {
-        try {
-          const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
-            method: "POST",
-            headers: {
-              Authorization: ASSEMBLYAI_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              audio_url: resolvedAudioUrl,
-              language_code: "fr",
-              punctuate: true,
-              format_text: true,
-            }),
-          });
-
-          if (submitRes.ok) {
-            const { id: transcriptId } = await submitRes.json();
-
-            for (let i = 0; i < 60; i++) {
-              await new Promise((r) => setTimeout(r, 5000));
-
-              const pollRes = await fetch(
-                `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-                { headers: { Authorization: ASSEMBLYAI_API_KEY } },
-              );
-
-              if (pollRes.ok) {
-                const result = await pollRes.json();
-                if (result.status === "completed") {
-                  const transcript = result.text || "";
-                  body = transcript;
-                  // Store in both body and transcript field
-                  await saveUpdates({ body: transcript, transcript });
-                  break;
-                }
-                if (result.status === "error") break;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Podcast URL transcription failed:", e);
+        const transcript = await transcribeWithAssemblyAI(resolvedAudioUrl, ASSEMBLYAI_API_KEY);
+        if (transcript) {
+          body = transcript;
+          await saveUpdates({ body: transcript, transcript });
         }
       }
-
-      // Use podcast episode metadata as title/body fallback
       if (podcastEpisodeTitle && (!item.title || item.title === "(Sans titre)")) {
         updates.title = podcastEpisodeTitle;
       }
@@ -219,53 +179,12 @@ serve(async (req) => {
     }
 
     if (item.content_type === "audio" && item.file_url) {
-      // Transcription via AssemblyAI
       const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
       if (ASSEMBLYAI_API_KEY) {
-        try {
-          // Submit transcription job
-          const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
-            method: "POST",
-            headers: {
-              Authorization: ASSEMBLYAI_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              audio_url: item.file_url,
-              language_code: "fr",
-              punctuate: true,
-              format_text: true,
-            }),
-          });
-
-          if (submitRes.ok) {
-            const { id: transcriptId } = await submitRes.json();
-
-            // Poll for completion (max 5 min)
-            for (let i = 0; i < 60; i++) {
-              await new Promise((r) => setTimeout(r, 5000));
-
-              const pollRes = await fetch(
-                `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-                { headers: { Authorization: ASSEMBLYAI_API_KEY } }
-              );
-
-              if (pollRes.ok) {
-                const result = await pollRes.json();
-                if (result.status === "completed") {
-                  body = result.text || "";
-                  updates.body = body;
-                  if (body.trim()) {
-                    await saveUpdates({ body });
-                  }
-                  break;
-                }
-                if (result.status === "error") break;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Audio transcription failed:", e);
+        const transcript = await transcribeWithAssemblyAI(item.file_url, ASSEMBLYAI_API_KEY);
+        if (transcript) {
+          body = transcript;
+          await saveUpdates({ body: transcript });
         }
       }
     }
@@ -360,6 +279,35 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
     return createErrorResponse(msg);
   }
 });
+
+/** Submits an audio URL to AssemblyAI and polls until completion (max 5 min). Returns transcript text or null. */
+async function transcribeWithAssemblyAI(audioUrl: string, apiKey: string): Promise<string | null> {
+  try {
+    const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
+      method: "POST",
+      headers: { Authorization: apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ audio_url: audioUrl, language_code: "fr", punctuate: true, format_text: true }),
+    });
+    if (!submitRes.ok) return null;
+
+    const { id: transcriptId } = await submitRes.json();
+
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const pollRes = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+        headers: { Authorization: apiKey },
+      });
+      if (pollRes.ok) {
+        const result = await pollRes.json();
+        if (result.status === "completed") return result.text || null;
+        if (result.status === "error") return null;
+      }
+    }
+  } catch (e) {
+    console.warn("AssemblyAI transcription failed:", e);
+  }
+  return null;
+}
 
 const AUDIO_EXTENSIONS = /\.(mp3|m4a|wav|ogg|webm|aac|opus|flac|mp4)(\?[^#]*)?$/i;
 
