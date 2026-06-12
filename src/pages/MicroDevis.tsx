@@ -48,7 +48,7 @@ const MicroDevis = () => {
   const [civiliteCommanditaire, setCiviliteCommanditaire] = useState<"M." | "Mme" | "">("");
   const [prenomCommanditaire, setPrenomCommanditaire] = useState("");
   const [nomCommanditaire, setNomCommanditaire] = useState("");
-  const [typeDevis, setTypeDevis] = useState<"formation" | "jeu" | "">("");
+  const typeDevis = "formation" as const;
   const [isOpco, setIsOpco] = useState<"oui" | "non">("non");
   const [noteDevis, setNoteDevis] = useState("");
   const [formatFormation, setFormatFormation] = useState<"intra" | "inter" | "">("");
@@ -241,13 +241,13 @@ const MicroDevis = () => {
   useEffect(() => {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
       formatFormation, formationDemandee, formationLibre, dateFormation,
-      dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis,
+      dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire,
       selectedFormulaId: formulasHook.selectedFormulaId,
       adresseClient, codePostalClient, villeClient, pays, paysAutre,
       civiliteCommanditaire, prenomCommanditaire, nomCommanditaire,
       isOpco, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation,
     }));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, typeDevis, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, isOpco, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation]);
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, isOpco, noteDevis, participants, includeCadeau, fraisDossier, typeSubrogation]);
 
   // Auto-set lieu
   useEffect(() => {
@@ -269,7 +269,6 @@ const MicroDevis = () => {
       else if (ac.startsWith("M. ")) { setCiviliteCommanditaire("M."); setNomCommanditaire(ac.slice(3)); }
       else { setNomCommanditaire(ac); }
     }
-    setTypeDevis(((f.typeDevis as "formation" | "jeu") || "formation"));
     setNoteDevis((f.noteDevis as string) || ""); setFormatFormation(((f.formatFormation as "inter" | "intra") || "inter"));
     // formationDemandee may be stored as "Formation — Formule"; strip the formula part
     const rawFormation = ((f.formationDemandee as string) || "").split(" — ")[0];
@@ -376,10 +375,6 @@ const MicroDevis = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (typeDevis !== "formation") {
-      toast({ title: "Fonctionnalité en développement", description: "La génération de devis pour les jeux sera bientôt disponible." });
-      return;
-    }
     const sc = getSelectedFormationConfig();
     if (!sc) { toastError(toast, "Veuillez sélectionner une formation"); return; }
     setSubmitting(true);
@@ -466,7 +461,6 @@ const MicroDevis = () => {
               />
 
               <TypeDevisSection
-                typeDevis={typeDevis} setTypeDevis={setTypeDevis}
                 isOpco={isOpco} setIsOpco={setIsOpco}
                 noteDevis={noteDevis} setNoteDevis={setNoteDevis}
               />
@@ -504,20 +498,10 @@ const MicroDevis = () => {
               )}
 
 
-              {typeDevis === "jeu" && (
-                <div className="space-y-4 p-4 bg-secondary/50 rounded-lg border border-secondary">
-                  <h3 className="text-lg font-semibold">Jeu</h3>
-                  <p className="text-muted-foreground">Pour créer un devis pour un jeu, veuillez utiliser notre formulaire dédié :</p>
-                  <Button asChild variant="outline" className="w-full">
-                    <a href="https://docs.google.com/forms/d/e/1FAIpQLScoZ3qkcJDxbEQYysE2YSkTEV-bfmF6mkAumwQ20Hoqflp7_g/viewform" target="_blank" rel="noopener noreferrer">Accéder au formulaire de devis Jeu</a>
-                  </Button>
-                </div>
-              )}
-
               <div className="flex gap-3">
                 <Dialog open={jsonPreviewOpen} onOpenChange={setJsonPreviewOpen}>
                   <DialogTrigger asChild>
-                    <Button type="button" variant="outline" className="font-semibold py-6" disabled={!typeDevis || typeDevis !== "formation" || !formationDemandee}>
+                    <Button type="button" variant="outline" className="font-semibold py-6" disabled={!formationDemandee}>
                       <Eye className="w-5 h-5 mr-2" />Prévisualiser JSON
                     </Button>
                   </DialogTrigger>
