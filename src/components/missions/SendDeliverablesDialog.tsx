@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
