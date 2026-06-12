@@ -175,7 +175,7 @@ export default function Step4Loom({
               {script && !scriptLoading && (
                 <div
                   className="p-4 rounded-lg border bg-muted/30 text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 [&_ul]:my-1 [&_ul]:pl-5 [&_ul]:list-disc [&_ol]:my-1 [&_ol]:pl-5 [&_ol]:list-decimal [&_li]:my-0.5 [&_strong]:font-semibold"
-                  dangerouslySetInnerHTML={{ __html: script }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(script, { ADD_ATTR: ["target"] }) }}
                 />
               )}
             </div>
