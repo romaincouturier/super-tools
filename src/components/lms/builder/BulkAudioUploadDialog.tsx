@@ -210,7 +210,12 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
     const successAudios = updated.filter((a) => a.status === "done" && a.transcript);
     if (!successAudios.length) {
-      toast({ title: "Aucun audio transcrit avec succès", variant: "destructive" });
+      const details = updated.map((a) => a.error).filter(Boolean).join(" · ");
+      toast({
+        title: "Aucun audio transcrit avec succès",
+        description: details || "La transcription est vide ou inaudible.",
+        variant: "destructive",
+      });
       return;
     }
 
