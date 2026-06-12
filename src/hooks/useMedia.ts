@@ -395,18 +395,25 @@ export const uploadMediaFile = async (file: File, sourceType: MediaSourceType, s
         })
       : file;
 
-  const formData = new FormData();
-  formData.append("sourceType", sourceType);
-  formData.append("sourceId", sourceId);
-  formData.append("file", normalizedFile, file.name || "media");
+  // Get a signed upload URL — uploads stream directly to storage and avoid
+  // the edge function payload/memory limits that break files > a few MB.
+  const { data: signed, error: signedError } = await supabase.functions.invoke(
+    "create-media-upload-url",
+    { body: { sourceType, sourceId, fileName: file.name || "media" } },
+  );
+  if (signedError) throw signedError;
+  const { path, token, publicUrl, bucket } = (signed ?? {}) as {
+    path?: string; token?: string; publicUrl?: string; bucket?: string;
+  };
+  if (!path || !token || !publicUrl || !bucket) {
+    throw new Error("URL signée d'upload introuvable");
+  }
 
-  const { data, error: uploadError } = await supabase.functions.invoke("upload-media-file", {
-    body: formData,
-  });
-
+  const { error: uploadError } = await supabase.storage
+    .from(bucket)
+    .uploadToSignedUrl(path, token, normalizedFile, { contentType: resolvedContentType });
   if (uploadError) throw uploadError;
-  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
-  if (!publicUrl) throw new Error("URL du média introuvable après upload");
+
   return publicUrl;
 };
 
