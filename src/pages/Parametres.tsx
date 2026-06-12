@@ -1,4 +1,4 @@
-import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart, UserCircle } from "lucide-react";
+import { Settings, Mail, Sparkles, Cog, Shield, Users, Key, Tag, Database, CreditCard, FileText, Mic, Bot, Radio, ShoppingCart, UserCircle, ListChecks } from "lucide-react";
 import { SettingsTab as SupertiltSettingsTab } from "@/pages/SupertiltOrders";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
@@ -28,6 +28,7 @@ import VoiceSettings from "@/components/settings/VoiceSettings";
 import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
 import TranscriptPromptsSettings from "@/components/settings/TranscriptPromptsSettings";
 import StaffProfileSettings from "@/components/settings/StaffProfileSettings";
+import ChecklistTemplateManager from "@/components/settings/ChecklistTemplateManager";
 
 const Parametres = () => {
   const navigate = useNavigate();
@@ -94,6 +95,7 @@ const Parametres = () => {
             {isAdmin && <TabsTrigger value="agent" className="flex items-center gap-2"><Bot className="h-4 w-4" />{tabLabel("agent", "Agent IA")}</TabsTrigger>}
             {isAdmin && <TabsTrigger value="transcripts" className="flex items-center gap-2"><Radio className="h-4 w-4" />Prompts Transcripts</TabsTrigger>}
             {isAdmin && <TabsTrigger value="dropshipping" className="flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Dropshipping</TabsTrigger>}
+            <TabsTrigger value="checklists" className="flex items-center gap-2"><ListChecks className="h-4 w-4" />Modèles checklist</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile">
@@ -142,6 +144,7 @@ const Parametres = () => {
           {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
           {isAdmin && <TabsContent value="transcripts"><TranscriptPromptsSettings /></TabsContent>}
           {isAdmin && <TabsContent value="dropshipping"><SupertiltSettingsTab /></TabsContent>}
+          <TabsContent value="checklists"><ChecklistTemplateManager /></TabsContent>
         </Tabs>
       </main>
     </ModuleLayout>

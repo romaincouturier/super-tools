@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, ArrowLeft, Eye } from "lucide-react";
+import { Menu, ArrowLeft, Eye, ImageIcon, Mic } from "lucide-react";
 import { LmsLesson, useCourse, useUpdateCourse } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
+import BulkImageUploadDialog from "./BulkImageUploadDialog";
+import BulkAudioUploadDialog from "./BulkAudioUploadDialog";
 
 interface Props {
   lesson?: LmsLesson;
@@ -17,6 +20,8 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   const { data: course } = useCourse(courseId);
   const updateCourse = useUpdateCourse();
   const { toast } = useToast();
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [audioDialogOpen, setAudioDialogOpen] = useState(false);
 
   const status = course?.status ?? "draft";
   const isPublished = status === "published";
@@ -130,6 +135,26 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         </button>
 
 
+        {/* Bulk import buttons */}
+        <button
+          type="button"
+          title="Importer des images dans les leçons"
+          onClick={() => setImageDialogOpen(true)}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
+          style={{ color: "var(--st-ink)" }}
+        >
+          <ImageIcon size={16} />
+        </button>
+        <button
+          type="button"
+          title="Importer des audios dans les leçons"
+          onClick={() => setAudioDialogOpen(true)}
+          className="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg transition-colors hover:bg-black/5"
+          style={{ color: "var(--st-ink)" }}
+        >
+          <Mic size={16} />
+        </button>
+
         {/* Preview */}
         <a
           href={lesson ? `/lms/${courseId}/player?preview=admin&lesson=${lesson.id}` : `/lms/${courseId}/home?preview=admin`}
@@ -149,6 +174,17 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
 
 
       </div>
+
+      <BulkImageUploadDialog
+        open={imageDialogOpen}
+        onClose={() => setImageDialogOpen(false)}
+        courseId={courseId}
+      />
+      <BulkAudioUploadDialog
+        open={audioDialogOpen}
+        onClose={() => setAudioDialogOpen(false)}
+        courseId={courseId}
+      />
     </header>
   );
 }

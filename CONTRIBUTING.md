@@ -8,11 +8,11 @@ Ce projet est fonctionnel, large, et encore en phase de clarification architectu
 
 Lire ces documents dans cet ordre :
 
-1. [README.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\README.md)
-2. [PRD.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\PRD.md)
-3. [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
-4. [IMPROVEMENTS.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\IMPROVEMENTS.md)
-5. [docs/architecture.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\architecture.md)
+1. [README.md](./README.md)
+2. [PRD.md](./PRD.md)
+3. [docs/cleanup-plan.md](./docs\cleanup-plan.md)
+4. [IMPROVEMENTS.md](./IMPROVEMENTS.md)
+5. [docs/architecture.md](./docs\architecture.md)
 
 ## Ce qu'on attend d'une bonne contribution
 
@@ -52,7 +52,7 @@ Avant de coder :
 
 ### 3. Vérifier les invariants existants
 
-Le fichier [IMPROVEMENTS.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\IMPROVEMENTS.md) contient des règles de qualité acquises.
+Le fichier [IMPROVEMENTS.md](./IMPROVEMENTS.md) contient des règles de qualité acquises.
 
 Ce ne sont pas des idées. Ce sont des invariants à respecter.
 
@@ -143,10 +143,10 @@ Mettre à jour la documentation si nécessaire quand tu modifies :
 
 Les documents de référence sont :
 
-- [README.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\README.md)
-- [PRD.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\PRD.md)
-- [docs/architecture.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\architecture.md)
-- [docs/cleanup-plan.md](C:\Users\coutu\SuperTilt Dropbox\Romain Couturier\Codex\super-tools\docs\cleanup-plan.md)
+- [README.md](./README.md)
+- [PRD.md](./PRD.md)
+- [docs/architecture.md](./docs\architecture.md)
+- [docs/cleanup-plan.md](./docs\cleanup-plan.md)
 
 ## Règles de style utiles
 

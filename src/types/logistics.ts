@@ -30,3 +30,25 @@ export interface LogisticsTemplateItem {
 
 /** Set of templates indexed by composite key, e.g. "training.inter.presentiel". */
 export type LogisticsTemplates = Record<string, LogisticsTemplateItem[]>;
+
+export interface ChecklistTemplate {
+  id: string;
+  user_id: string | null;
+  name: string;
+  entity_type: LogisticsEntityType | null;
+  is_global: boolean;
+  created_at: string;
+  updated_at: string;
+  items?: ChecklistTemplateItem[];
+}
+
+export interface ChecklistTemplateItem {
+  id: string;
+  template_id: string;
+  label: string;
+  day_offset: number;
+  notify_days_before: number | null;
+  legacy_field: string | null;
+  position: number;
+  created_at: string;
+}

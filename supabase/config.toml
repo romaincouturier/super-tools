@@ -629,3 +629,12 @@ verify_jwt = false
 
 [functions.notify-survey-response]
 verify_jwt = false
+
+[functions.send-group-matching-email]
+verify_jwt = false
+
+[functions.fireflies-backfill-range]
+verify_jwt = false
+
+[functions.lms-analyze-audio]
+verify_jwt = true
