@@ -68,14 +68,9 @@ export const useSurveyByToken = (token: string) =>
   useQuery({
     queryKey: [SURVEY_KEY, "token", token],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("mission_surveys")
-        .select("*, mission_survey_questions(*)")
-        .eq("public_token", token)
-        .eq("is_active", true)
-        .maybeSingle();
+      const { data, error } = await (supabase as any).rpc("get_mission_survey_by_token", { p_token: token });
       if (error) throw error;
-      return data as (Survey & { mission_survey_questions: SurveyQuestion[] }) | null;
+      return (data as (Survey & { mission_survey_questions: SurveyQuestion[] }) | null) ?? null;
     },
     enabled: !!token,
   });

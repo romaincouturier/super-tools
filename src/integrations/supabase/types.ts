@@ -801,6 +801,85 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_template_items: {
+        Row: {
+          created_at: string
+          day_offset: number
+          id: string
+          label: string
+          legacy_field: string | null
+          notify_days_before: number | null
+          position: number
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_offset?: number
+          id?: string
+          label: string
+          legacy_field?: string | null
+          notify_days_before?: number | null
+          position?: number
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          day_offset?: number
+          id?: string
+          label?: string
+          legacy_field?: string | null
+          notify_days_before?: number | null
+          position?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          created_at: string
+          entity_type: string | null
+          id: string
+          is_global: boolean
+          name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_type?: string | null
+          id?: string
+          is_global?: boolean
+          name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string | null
+          id?: string
+          is_global?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coaching_bookings: {
         Row: {
           confirmed_at: string | null
@@ -10569,6 +10648,7 @@ export type Database = {
         Args: { p_mission_id: string }
         Returns: Json
       }
+      get_mission_survey_by_token: { Args: { p_token: string }; Returns: Json }
       get_participant_public_info: {
         Args: { p_participant_id: string }
         Returns: Json

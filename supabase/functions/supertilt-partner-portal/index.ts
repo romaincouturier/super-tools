@@ -14,6 +14,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -187,9 +188,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Admin action (verify / reject)
     if (body.action === "verify" || body.action === "reject") {
       const authHeader = req.headers.get("Authorization") ?? "";
-      if (!authHeader.includes(SUPABASE_SERVICE_ROLE_KEY.slice(0, 20))) {
-        return json({ error: "Action admin non autorisée" }, 403);
-      }
+      const user = await verifyAuth(authHeader);
+      if (!user) return json({ error: "Unauthorized" }, 401);
+      const { data: isAdminData } = await (admin as any).rpc("is_admin", { _user_id: user.id });
+      if (!isAdminData) return json({ error: "Action admin non autorisée" }, 403);
       const newStatus = body.action === "verify" ? "verified" : "rejected";
       const { error } = await (admin as any)
         .from("partner_payments")

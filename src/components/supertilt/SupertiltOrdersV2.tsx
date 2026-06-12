@@ -2,6 +2,7 @@
  * SupertiltOrdersV2 — tabs V2 (Bilan, Partenaires) and V3 (Dépenses, Stock)
  * Imported and composed into SupertiltOrders.tsx main page.
  */
+import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
 import {
   Euro, TrendingUp, Users, Package, Plus, Pencil, Trash2,
@@ -851,7 +852,7 @@ function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: ()
               <p className="text-xs text-muted-foreground">Objet</p>
               <p className="font-medium text-sm">{preview.subject}</p>
             </div>
-            <div className="border rounded p-3 text-sm prose max-w-none" dangerouslySetInnerHTML={{ __html: preview.html }} />
+            <div className="border rounded p-3 text-sm prose max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(preview.html, { ADD_ATTR: ["target"] }) }} />
           </div>
         )}
         {!loading && !preview && (

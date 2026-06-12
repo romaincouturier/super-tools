@@ -7,6 +7,7 @@
  */
 import { corsHeaders, handleCorsPreflightIfNeeded, createJsonResponse, createErrorResponse } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
@@ -53,6 +54,10 @@ function parseHashtags(text: string): string[] {
 Deno.serve(async (req: Request): Promise<Response> => {
   const cors = handleCorsPreflightIfNeeded(req);
   if (cors) return cors;
+
+  const user = await verifyAuth(req.headers.get("Authorization"));
+  if (!user) return createErrorResponse("Unauthorized", 401);
+
 
   try {
     const { content } = await req.json();

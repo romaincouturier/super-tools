@@ -3,10 +3,21 @@ import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJs
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/bcc-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
+
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const isServiceRole = authHeader === `Bearer ${SERVICE_ROLE_KEY}`;
+  if (!isServiceRole) {
+    const user = await verifyAuth(authHeader);
+    if (!user) return createErrorResponse("Unauthorized", 401);
+  }
+
 
   try {
     const supabase = createClient(

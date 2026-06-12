@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useState } from "react";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,7 @@ const NeedsSurveySummaryDialog = ({
           {summary && !loading && (
             <div
               className="prose prose-sm max-w-none dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: formatSummary(summary) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatSummary(summary)) }}
             />
           )}
         </ScrollArea>
