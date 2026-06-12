@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ModuleLayout from '@/components/ModuleLayout';
-import { PageHeader } from '@/components/PageHeader';
+import PageHeader from '@/components/PageHeader';
 import BookAlbumGrid from '@/components/book/BookAlbumGrid';
 import BookCreateAlbumDialog from '@/components/book/BookCreateAlbumDialog';
 import BookShareLinksManager from '@/components/book/BookShareLinksManager';
