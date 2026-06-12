@@ -321,6 +321,7 @@ interface PodcastAudioTarget {
  * Returns the audio URL to transcribe if the given URL is:
  * - A direct audio file (by extension or Content-Type)
  * - A podcast RSS feed (extracts the latest episode's enclosure URL)
+ * - An Apple Podcasts episode or show URL
  * Returns null if it's a regular web page.
  */
 async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | null> {
@@ -333,7 +334,27 @@ async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | n
     return null;
   }
 
-  // 2. HEAD request to inspect Content-Type
+  // 2. Apple Podcasts episode URL: podcasts.apple.com/...?i=<episodeId>
+  const appleEpisodeMatch = url.match(/podcasts\.apple\.com\/.*[?&]i=(\d+)/);
+  if (appleEpisodeMatch) {
+    try {
+      return await extractFromApplePodcastsEpisode(appleEpisodeMatch[1]);
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. Apple Podcasts show URL: podcasts.apple.com/.../id<showId> (no episode ID)
+  const appleShowMatch = url.match(/podcasts\.apple\.com\/.*\/id(\d+)/);
+  if (appleShowMatch && !url.includes("?i=") && !url.includes("&i=")) {
+    try {
+      return await extractFromApplePodcastsShow(appleShowMatch[1]);
+    } catch {
+      // ignore
+    }
+  }
+
+  // 4. HEAD request to inspect Content-Type
   try {
     const head = await fetch(url, {
       method: "HEAD",
@@ -354,7 +375,7 @@ async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | n
     // ignore — fall through
   }
 
-  // 3. Heuristic: URL pattern suggests a podcast feed, try to parse as RSS
+  // 5. Heuristic: URL pattern suggests a podcast feed, try to parse as RSS
   if (/\/(feed|rss|podcast)(\/|$|\?)/i.test(url) || /\.(xml|rss)(\?|$)/i.test(url)) {
     try {
       return await extractFromRssFeed(url);
@@ -364,6 +385,43 @@ async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | n
   }
 
   return null;
+}
+
+async function extractFromApplePodcastsEpisode(episodeId: string): Promise<PodcastAudioTarget | null> {
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${episodeId}`, {
+    signal: AbortSignal.timeout(8000),
+    headers: { "User-Agent": "SuperTools-Watch/1.0" },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const episode = data.results?.[0];
+  if (!episode) return null;
+
+  const audioUrl = episode.episodeUrl || episode.previewUrl;
+  if (!audioUrl) return null;
+
+  return {
+    audioUrl,
+    episodeTitle: episode.trackName,
+    episodeDescription: episode.description
+      ? String(episode.description).replace(/<[^>]+>/g, "").trim().slice(0, 500)
+      : undefined,
+  };
+}
+
+async function extractFromApplePodcastsShow(showId: string): Promise<PodcastAudioTarget | null> {
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${showId}`, {
+    signal: AbortSignal.timeout(8000),
+    headers: { "User-Agent": "SuperTools-Watch/1.0" },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const show = data.results?.[0];
+  if (!show?.feedUrl) return null;
+
+  return await extractFromRssFeed(show.feedUrl);
 }
 
 async function extractFromRssFeed(feedUrl: string): Promise<PodcastAudioTarget | null> {
