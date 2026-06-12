@@ -115,6 +115,9 @@ const PartnerPortal = lazy(() => import("./pages/PartnerPortal"));
 const GoogleDriveCallback = lazy(() => import("./pages/GoogleDriveCallback"));
 const GoogleCalendarCallback = lazy(() => import("./pages/GoogleCalendarCallback"));
 const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
+const BookPage = lazy(() => import("./pages/Book"));
+const BookAlbumPage = lazy(() => import("./pages/BookAlbumPage"));
+const BookPublicPage = lazy(() => import("./pages/BookPublicPage"));
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
@@ -185,6 +188,8 @@ const App = () => (
               <Route path="/mission-info/:missionId" element={<MissionSummary />} />
               <Route path="/sondage/:token" element={<SurveyPublic />} />
               <Route path="/sondage-formation/:token" element={<TrainingSurveyResponse />} />
+              {/* Book public share */}
+              <Route path="/book/share/:token" element={<BookPublicPage />} />
               {/* OAuth callbacks */}
               <Route path="/google/callback" element={<GoogleCallback />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
@@ -256,6 +261,8 @@ const App = () => (
                 <Route path="/commandes/inbox" element={<WoocommerceInbox />} />
                 <Route path="/pictodico" element={<PictoDico />} />
                 <Route path="/time-tracker" element={<TimeTracker />} />
+                <Route path="/book" element={<BookPage />} />
+                <Route path="/book/album/:albumId" element={<BookAlbumPage />} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

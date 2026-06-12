@@ -99,6 +99,7 @@ const NAV_CONFIG: NavConfig[] = [
   },
   { type: "item", key: "pictodico" },
   { type: "item", key: "time-tracker" },
+  { type: "item", key: "book" },
 ];
 
 function toAppModule(key: string): AppModule {
