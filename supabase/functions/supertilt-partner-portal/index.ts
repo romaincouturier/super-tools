@@ -188,9 +188,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Admin action (verify / reject)
     if (body.action === "verify" || body.action === "reject") {
       const authHeader = req.headers.get("Authorization") ?? "";
-      if (!authHeader.includes(SUPABASE_SERVICE_ROLE_KEY.slice(0, 20))) {
-        return json({ error: "Action admin non autorisée" }, 403);
-      }
+      const user = await verifyAuth(authHeader);
+      if (!user) return json({ error: "Unauthorized" }, 401);
+      const { data: isAdminData } = await (admin as any).rpc("is_admin", { _user_id: user.id });
+      if (!isAdminData) return json({ error: "Action admin non autorisée" }, 403);
       const newStatus = body.action === "verify" ? "verified" : "rejected";
       const { error } = await (admin as any)
         .from("partner_payments")
