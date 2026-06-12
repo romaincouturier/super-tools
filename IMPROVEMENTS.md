@@ -6,6 +6,18 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ---
 
+## DX
+
+### [032] Checklist merge d'un nouveau module — tsc + check-rules + test UI golden path obligatoires
+- **Constat** : Lors de la livraison du module Book (juin 2026), les checks tsc et check-rules ont été effectués mais le golden path UI (upload, lightbox, partage, analytics) n'a pas été testé dans un navigateur. Le TypeScript peut être valide et les règles respectées sans que le comportement UI soit correct.
+- **Règle** : Avant de merger tout nouveau module, exécuter dans cet ordre : (1) `npx tsc --noEmit` → zéro erreur ; (2) `bash scripts/check-rules.sh` → zéro violation ; (3) tester manuellement dans un navigateur le golden path du module (créer, consulter, partager, edge cases). Les checks (1) et (2) sont nécessaires mais ne suffisent pas — ils ne valident pas le comportement UI.
+- **Vérification** : PR checklist : [ ] tsc OK [ ] check-rules OK [ ] golden path testé manuellement dans le navigateur.
+- **Fichiers de référence** : `scripts/check-rules.sh`
+- **Origine** : Livraison module Book sans test navigateur — UI non vérifiée en conditions réelles.
+- **Date** : 2026-06-12
+
+---
+
 ## Uploads de fichiers / RLS
 
 ### [026] Uploads — toujours passer par une edge function avec service_role_key, jamais de storage+insert direct depuis le frontend
