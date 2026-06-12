@@ -35,7 +35,8 @@ export type AppModule =
   | "dropshipping"
   | "wc_inbox"
   | "pictodico"
-  | "time_tracker";
+  | "time_tracker"
+  | "book";
 
 export const ALL_MODULES: AppModule[] = [
   "micro_devis",
@@ -70,6 +71,7 @@ export const ALL_MODULES: AppModule[] = [
   "wc_inbox",
   "pictodico",
   "time_tracker",
+  "book",
 ];
 
 export const MODULE_LABELS: Record<AppModule, string> = {
@@ -107,6 +109,7 @@ export const MODULE_LABELS: Record<AppModule, string> = {
   wc_inbox: "Inbox WooCommerce",
   pictodico: "Picto-Dico",
   time_tracker: "Suivi du temps",
+  book: "Book",
 };
 
 export function useModuleAccess() {

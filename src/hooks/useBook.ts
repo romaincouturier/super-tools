@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import type {
   BookProfile,
   BookAlbum,
@@ -63,7 +64,7 @@ export function useUpsertBookProfile() {
       queryClient.invalidateQueries({ queryKey: ["book-profile"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -123,7 +124,7 @@ export function useCreateAlbum() {
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -148,7 +149,7 @@ export function useUpdateAlbum() {
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -179,7 +180,7 @@ export function useDeleteAlbum() {
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -250,7 +251,7 @@ export function useUploadProduction() {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur upload", description: err.message, variant: "destructive" });
+      toastError(toast, err, { title: "Erreur upload" });
     },
   });
 }
@@ -278,7 +279,7 @@ export function useUpdateProduction() {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -320,7 +321,7 @@ export function useDeleteProduction() {
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -349,7 +350,7 @@ export function useReorderProductions() {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -397,7 +398,7 @@ export function useCreateShareLink() {
       queryClient.invalidateQueries({ queryKey: ["book-share-links", variables.albumId] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }
@@ -416,7 +417,7 @@ export function useRevokeShareLink() {
       queryClient.invalidateQueries({ queryKey: ["book-share-links", variables.albumId] });
     },
     onError: (err: Error) => {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toastError(toast, err);
     },
   });
 }

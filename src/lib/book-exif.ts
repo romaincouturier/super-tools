@@ -12,7 +12,7 @@ export async function extractExifData(file: File): Promise<ExifData> {
     exif_width: number | null;
     exif_height: number | null;
   }>((resolve) => {
-    if (!file.type.startsWith('image/')) {
+    if (!file.name.match(/\.(jpe?g|png|gif|webp|bmp|tiff?)$/i)) {
       resolve({ exif_width: null, exif_height: null });
       return;
     }

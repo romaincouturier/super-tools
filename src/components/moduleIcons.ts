@@ -30,6 +30,7 @@ import {
   ShoppingCart,
   BookImage,
   Clock,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -72,4 +73,5 @@ export const MODULE_ICONS: Record<string, ModuleIconInfo> = {
   wc_inbox: { icon: Inbox, label: "Inbox ventes", path: "/commandes/inbox" },
   pictodico: { icon: BookImage, label: "Picto-Dico", path: "/pictodico" },
   "time-tracker": { icon: Clock, label: "Suivi du temps", path: "/time-tracker" },
+  book: { icon: FolderOpen, label: "Book", path: "/book" },
 };

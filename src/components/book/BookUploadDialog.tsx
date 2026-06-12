@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { Upload, X, ImageIcon, Video } from 'lucide-react';
+import { resolveContentType } from '@/lib/file-utils';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,7 @@ interface BookUploadDialogProps {
 const ACCEPTED_TYPES = 'image/jpeg,image/png,video/mp4,video/quicktime';
 
 function detectFileType(file: File): 'image' | 'video' {
-  return file.type.startsWith('video/') ? 'video' : 'image';
+  return resolveContentType(file).startsWith('video/') ? 'video' : 'image';
 }
 
 function stripExtension(name: string): string {
@@ -116,7 +117,7 @@ export default function BookUploadDialog({ open, onOpenChange, albumId }: BookUp
 
   return (
     <Dialog open={open} onOpenChange={isUploading ? undefined : onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="w-full sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Ajouter des productions</DialogTitle>
         </DialogHeader>
