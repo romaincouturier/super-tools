@@ -10648,6 +10648,7 @@ export type Database = {
         Args: { p_mission_id: string }
         Returns: Json
       }
+      get_mission_survey_by_token: { Args: { p_token: string }; Returns: Json }
       get_participant_public_info: {
         Args: { p_participant_id: string }
         Returns: Json
