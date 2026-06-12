@@ -641,3 +641,6 @@ verify_jwt = true
 
 [functions.create-media-upload-url]
 verify_jwt = false
+
+[functions.generate-game-devis]
+verify_jwt = false
