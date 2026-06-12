@@ -108,3 +108,16 @@ CREATE POLICY "book_analytics_events_auth_select" ON book_analytics_events
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('book-productions', 'book-productions', false)
 ON CONFLICT DO NOTHING;
+
+-- Storage RLS: owner can manage their own files only
+CREATE POLICY "book_productions_storage_select"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'book-productions' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "book_productions_storage_insert"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'book-productions' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "book_productions_storage_delete"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'book-productions' AND (storage.foldername(name))[1] = auth.uid()::text);

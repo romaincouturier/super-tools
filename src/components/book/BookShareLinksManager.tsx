@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Copy, Check, X, Plus } from 'lucide-react';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import {

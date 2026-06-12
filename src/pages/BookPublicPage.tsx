@@ -1,29 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import BookProductionCard from '@/components/book/BookProductionCard';
 import BookProductionLightbox from '@/components/book/BookProductionLightbox';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
-import { usePublicAlbum, useRecordView } from '@/hooks/useBook';
+import { usePublicAlbum } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 
 export default function BookPublicPage() {
   const { token } = useParams<{ token: string }>();
   const { data, isLoading } = usePublicAlbum(token ?? '');
-  const recordView = useRecordView();
 
-  const albumViewRecorded = useRef(false);
+  // album_view is recorded server-side in book-public-album edge function
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-
-  // Record album view on mount (once, when data loads)
-  useEffect(() => {
-    if (!data || albumViewRecorded.current || !token) return;
-    albumViewRecorded.current = true;
-    // Record with a sentinel productionId for album-level view
-    recordView.mutate({ token, productionId: data.link.id });
-  }, [data, token, recordView]);
 
   function openLightbox(index: number) {
     setLightboxIndex(index);

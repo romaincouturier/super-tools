@@ -39,7 +39,10 @@ serve(async (req: Request): Promise<Response> => {
       "Sans titre";
     const notes = (formData.get("notes") as string | null) ?? null;
     const tagsRaw = formData.get("tags") as string | null;
-    const tags: string[] = tagsRaw ? JSON.parse(tagsRaw) : [];
+    let tags: string[] = [];
+    if (tagsRaw) {
+      try { tags = JSON.parse(tagsRaw); } catch { tags = []; }
+    }
     const exifDate = (formData.get("exifDate") as string | null) ?? null;
     const exifWidthRaw = formData.get("exifWidth") as string | null;
     const exifHeightRaw = formData.get("exifHeight") as string | null;
