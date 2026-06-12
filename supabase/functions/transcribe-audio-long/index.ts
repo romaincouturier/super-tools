@@ -6,6 +6,77 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 
+const FETCH_TIMEOUT_MS = 25_000;
+
+async function fetchWithTimeout(input: string, init: RequestInit = {}, timeoutMs = FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function uploadAudioUrlToAssemblyAI(apiKey: string, audioUrl: string): Promise<string> {
+  console.log("[transcribe-audio-long] proxy upload from public URL");
+  const audioResponse = await fetchWithTimeout(audioUrl, {}, 45_000);
+  if (!audioResponse.ok) {
+    const details = await audioResponse.text().catch(() => "");
+    throw new Error(`Audio fetch error ${audioResponse.status}: ${details.slice(0, 300)}`);
+  }
+
+  const audioBytes = await audioResponse.arrayBuffer();
+  const uploadResponse = await fetchWithTimeout("https://api.assemblyai.com/v2/upload", {
+    method: "POST",
+    headers: {
+      Authorization: apiKey,
+      "Content-Type": audioResponse.headers.get("content-type") || "application/octet-stream",
+    },
+    body: audioBytes,
+  }, 60_000);
+
+  if (!uploadResponse.ok) {
+    const errText = await uploadResponse.text();
+    throw new Error(`AssemblyAI upload error ${uploadResponse.status}: ${errText.slice(0, 500)}`);
+  }
+
+  const uploadData = await uploadResponse.json();
+  if (!uploadData.upload_url) throw new Error("AssemblyAI did not return an upload URL");
+  return uploadData.upload_url;
+}
+
+async function submitAssemblyAITranscript(apiKey: string, audioUrl: string): Promise<string> {
+  const submitResponse = await fetchWithTimeout("https://api.assemblyai.com/v2/transcript", {
+    method: "POST",
+    headers: {
+      Authorization: apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      audio_url: audioUrl,
+      language_detection: true,
+      language_confidence_threshold: 0.3,
+      punctuate: true,
+      format_text: true,
+      speaker_labels: true,
+    }),
+  });
+
+  if (!submitResponse.ok) {
+    const errText = await submitResponse.text();
+    console.error("AssemblyAI submit error:", submitResponse.status, errText);
+    if (submitResponse.status === 401) {
+      throw new Error("Clé API AssemblyAI invalide");
+    }
+    throw new Error(`AssemblyAI submit error ${submitResponse.status}: ${errText.slice(0, 500)}`);
+  }
+
+  const { id: transcriptId } = await submitResponse.json();
+  if (!transcriptId) throw new Error("AssemblyAI did not return a transcript id");
+  return transcriptId;
+}
+
 /**
  * Transcribes long audio files via AssemblyAI.
  *
@@ -39,7 +110,7 @@ serve(async (req) => {
       const transcriptId: string | undefined = body?.transcript_id;
       if (!transcriptId) return createErrorResponse("transcript_id is required", 400);
 
-      const pollResponse = await fetch(
+      const pollResponse = await fetchWithTimeout(
         `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
         { headers: { Authorization: ASSEMBLYAI_API_KEY } },
       );
@@ -113,32 +184,16 @@ serve(async (req) => {
       return createErrorResponse("audio_url or audio_base64 is required", 400);
     }
 
-    const submitResponse = await fetch("https://api.assemblyai.com/v2/transcript", {
-      method: "POST",
-      headers: {
-        Authorization: ASSEMBLYAI_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        audio_url: audioUrl,
-        language_detection: true,
-        language_confidence_threshold: 0.3,
-        punctuate: true,
-        format_text: true,
-        speaker_labels: true,
-      }),
-    });
-
-    if (!submitResponse.ok) {
-      const errText = await submitResponse.text();
-      console.error("AssemblyAI submit error:", submitResponse.status, errText);
-      if (submitResponse.status === 401) {
-        return createErrorResponse("Clé API AssemblyAI invalide", 401);
-      }
-      throw new Error(`AssemblyAI submit error: ${submitResponse.status}`);
+    let transcriptId: string;
+    try {
+      transcriptId = await submitAssemblyAITranscript(ASSEMBLYAI_API_KEY, audioUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!audio_url || /Clé API AssemblyAI invalide/.test(message)) throw error;
+      console.warn("[transcribe-audio-long] direct URL submit failed, retrying with proxy upload:", message);
+      const assemblyUploadUrl = await uploadAudioUrlToAssemblyAI(ASSEMBLYAI_API_KEY, audioUrl);
+      transcriptId = await submitAssemblyAITranscript(ASSEMBLYAI_API_KEY, assemblyUploadUrl);
     }
-
-    const { id: transcriptId } = await submitResponse.json();
 
     if (mode === "submit") {
       return createJsonResponse({ transcript_id: transcriptId });
@@ -149,7 +204,7 @@ serve(async (req) => {
     const POLL_INTERVAL = 5000;
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-      const pr = await fetch(
+      const pr = await fetchWithTimeout(
         `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
         { headers: { Authorization: ASSEMBLYAI_API_KEY } },
       );
