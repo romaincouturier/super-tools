@@ -7,9 +7,16 @@ import {
 } from "../_shared/mod.ts";
 
 /**
- * Transcribes long audio files (> 5 min) using AssemblyAI.
- * Accepts a JSON body with either { audio_url: string } or
- * { audio_base64: string, content_type?: string }.
+ * Transcribes long audio files via AssemblyAI.
+ *
+ * Two modes (to avoid edge function wall-time limits):
+ *  - submit  : { audio_url } or { audio_base64, content_type? }
+ *              -> { transcript_id }
+ *  - poll    : { transcript_id }
+ *              -> { status, transcript? }   status in: queued|processing|completed|error
+ *
+ * Legacy mode (no `mode` field): submits + polls until complete. Kept for
+ * back-compat with short audios; new clients should use submit + poll.
  */
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -24,11 +31,67 @@ serve(async (req) => {
       return createErrorResponse("ASSEMBLYAI_API_KEY not configured", 500);
     }
 
-    const { audio_url, audio_base64, content_type } = await req.json();
+    const body = await req.json();
+    const mode: "submit" | "poll" | undefined = body?.mode;
+
+    // ── POLL mode ──────────────────────────────────────────────────────
+    if (mode === "poll") {
+      const transcriptId: string | undefined = body?.transcript_id;
+      if (!transcriptId) return createErrorResponse("transcript_id is required", 400);
+
+      const pollResponse = await fetch(
+        `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+        { headers: { Authorization: ASSEMBLYAI_API_KEY } },
+      );
+
+      if (!pollResponse.ok) {
+        const errText = await pollResponse.text();
+        console.error("AssemblyAI poll error:", pollResponse.status, errText);
+        return createErrorResponse(`AssemblyAI poll error: ${pollResponse.status}`, 500);
+      }
+
+      const result = await pollResponse.json();
+
+      if (result.status === "completed") {
+        let transcript = result.text;
+        if (result.utterances && result.utterances.length > 0) {
+          const uniqueSpeakers = new Set(
+            result.utterances.map((u: { speaker: string }) => u.speaker),
+          );
+          if (uniqueSpeakers.size > 1) {
+            transcript = result.utterances
+              .map((u: { speaker: string; text: string }) => `Speaker ${u.speaker}: ${u.text}`)
+              .join("\n\n");
+          } else {
+            transcript = result.utterances
+              .map((u: { text: string }) => u.text)
+              .join(" ");
+          }
+        }
+        return createJsonResponse({ status: "completed", transcript });
+      }
+
+      if (result.status === "error") {
+        const errStr = String(result.error || "");
+        if (/no spoken audio|language_detection cannot be performed/i.test(errStr)) {
+          return createJsonResponse({
+            status: "completed",
+            transcript: "",
+            warning: "Aucune parole détectée dans l'enregistrement.",
+          });
+        }
+        return createJsonResponse({ status: "error", error: errStr });
+      }
+
+      return createJsonResponse({ status: result.status });
+    }
+
+    // ── SUBMIT (or legacy) ─────────────────────────────────────────────
+    const { audio_url, audio_base64, content_type } = body;
     let audioUrl = audio_url;
 
     if (!audioUrl && audio_base64) {
-      const binary = Uint8Array.from(atob(audio_base64), (char) => char.charCodeAt(0));
+      const binary = Uint8Array.from(atob(audio_base64), (c) => c.charCodeAt(0));
       const uploadResponse = await fetch("https://api.assemblyai.com/v2/upload", {
         method: "POST",
         headers: {
@@ -37,13 +100,11 @@ serve(async (req) => {
         },
         body: binary,
       });
-
       if (!uploadResponse.ok) {
         const errText = await uploadResponse.text();
         console.error("AssemblyAI upload error:", uploadResponse.status, errText);
         throw new Error(`AssemblyAI upload error: ${uploadResponse.status}`);
       }
-
       const uploadData = await uploadResponse.json();
       audioUrl = uploadData.upload_url;
     }
@@ -52,7 +113,6 @@ serve(async (req) => {
       return createErrorResponse("audio_url or audio_base64 is required", 400);
     }
 
-    // Step 1: Submit transcription job
     const submitResponse = await fetch("https://api.assemblyai.com/v2/transcript", {
       method: "POST",
       headers: {
@@ -61,7 +121,6 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         audio_url: audioUrl,
-        // Auto-detect spoken language instead of forcing French.
         language_detection: true,
         language_confidence_threshold: 0.3,
         punctuate: true,
@@ -81,68 +140,35 @@ serve(async (req) => {
 
     const { id: transcriptId } = await submitResponse.json();
 
-    // Step 2: Poll until completion (max ~10 minutes)
-    const MAX_POLLS = 120; // 120 * 5s = 10 min
-    const POLL_INTERVAL = 5000;
+    if (mode === "submit") {
+      return createJsonResponse({ transcript_id: transcriptId });
+    }
 
+    // Legacy: poll until completion (short audios only).
+    const MAX_POLLS = 24; // 24 * 5s = 2 min, stays under wall-time
+    const POLL_INTERVAL = 5000;
     for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL));
-
-      const pollResponse = await fetch(
+      const pr = await fetch(
         `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-        {
-          headers: { Authorization: ASSEMBLYAI_API_KEY },
-        }
+        { headers: { Authorization: ASSEMBLYAI_API_KEY } },
       );
-
-      if (!pollResponse.ok) {
-        const errText = await pollResponse.text();
-        console.error("AssemblyAI poll error:", pollResponse.status, errText);
-        throw new Error(`AssemblyAI poll error: ${pollResponse.status}`);
-      }
-
-      const result = await pollResponse.json();
-
-      if (result.status === "completed") {
-        // Build speaker-labeled transcript only when multiple speakers are detected
-        let transcript = result.text;
-        if (result.utterances && result.utterances.length > 0) {
-          const uniqueSpeakers = new Set(
-            result.utterances.map((u: { speaker: string }) => u.speaker),
-          );
-          if (uniqueSpeakers.size > 1) {
-            transcript = result.utterances
-              .map((u: { speaker: string; text: string }) => `Speaker ${u.speaker}: ${u.text}`)
-              .join("\n\n");
-          } else {
-            transcript = result.utterances
-              .map((u: { text: string }) => u.text)
-              .join(" ");
-          }
+      if (!pr.ok) throw new Error(`AssemblyAI poll error: ${pr.status}`);
+      const r = await pr.json();
+      if (r.status === "completed") {
+        let transcript = r.text;
+        if (r.utterances && r.utterances.length > 0) {
+          transcript = r.utterances.map((u: { text: string }) => u.text).join(" ");
         }
         return createJsonResponse({ transcript });
       }
-
-      if (result.status === "error") {
-        console.error("AssemblyAI transcription error:", result.error);
-        const errStr = String(result.error || "");
-        // No spoken audio detected — return empty transcript gracefully (200)
-        if (/no spoken audio|language_detection cannot be performed/i.test(errStr)) {
-          return createJsonResponse({
-            transcript: "",
-            warning: "Aucune parole détectée dans l'enregistrement.",
-          });
-        }
-        return createErrorResponse(
-          `Erreur de transcription : ${result.error}`,
-          500
-        );
+      if (r.status === "error") {
+        return createErrorResponse(`Erreur de transcription : ${r.error}`, 500);
       }
-
-      // status is "queued" or "processing" — keep polling
     }
 
-    return createErrorResponse("Transcription timeout — fichier trop long", 504);
+    // Return transcript_id so client can keep polling.
+    return createJsonResponse({ transcript_id: transcriptId, status: "processing" });
   } catch (error: unknown) {
     console.error("Error in transcribe-audio-long:", error);
     const msg = error instanceof Error ? error.message : "Erreur inconnue";
