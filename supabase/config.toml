@@ -638,3 +638,6 @@ verify_jwt = false
 
 [functions.lms-analyze-audio]
 verify_jwt = true
+
+[functions.create-media-upload-url]
+verify_jwt = false
