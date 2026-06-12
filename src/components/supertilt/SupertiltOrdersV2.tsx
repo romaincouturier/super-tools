@@ -2,6 +2,7 @@
  * SupertiltOrdersV2 — tabs V2 (Bilan, Partenaires) and V3 (Dépenses, Stock)
  * Imported and composed into SupertiltOrders.tsx main page.
  */
+import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
 import {
   Euro, TrendingUp, Users, Package, Plus, Pencil, Trash2,
