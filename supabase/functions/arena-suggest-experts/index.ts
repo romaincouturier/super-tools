@@ -62,6 +62,14 @@ Deno.serve(async (req: Request) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
+  const _authUser = await verifyAuth(req.headers.get("Authorization"));
+  if (!_authUser) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   let body: RequestBody;
   try {
     body = await req.json();
