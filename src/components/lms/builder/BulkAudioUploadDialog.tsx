@@ -210,10 +210,15 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
     const successAudios = updated.filter((a) => a.status === "done" && a.transcript);
     if (!successAudios.length) {
-      const details = updated.map((a) => a.error).filter(Boolean).join(" · ");
+      const errors = updated.map((a) => a.error).filter(Boolean).join(" · ");
+      const hasEmptyTranscript = updated.some((a) => a.status === "done" && !a.transcript);
       toast({
         title: "Aucun audio transcrit avec succès",
-        description: details || "La transcription est vide ou inaudible.",
+        description: errors
+          ? errors
+          : hasEmptyTranscript
+          ? "La transcription est revenue vide. Vérifiez que le fichier contient bien de la voix."
+          : "La transcription a échoué pour tous les fichiers.",
         variant: "destructive",
       });
       return;

@@ -55,8 +55,7 @@ async function submitAssemblyAITranscript(apiKey: string, audioUrl: string): Pro
     },
     body: JSON.stringify({
       audio_url: audioUrl,
-      language_detection: true,
-      language_confidence_threshold: 0.3,
+      language_code: "fr",
       punctuate: true,
       format_text: true,
       speaker_labels: true,
