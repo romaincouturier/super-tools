@@ -642,5 +642,14 @@ verify_jwt = true
 [functions.create-media-upload-url]
 verify_jwt = false
 
+[functions.book-public-album]
+verify_jwt = false
+
+[functions.book-record-view]
+verify_jwt = false
+
+[functions.book-upload-production]
+verify_jwt = false
+
 [functions.generate-game-devis]
 verify_jwt = false
