@@ -1,0 +1,1 @@
+UPDATE public.trainings SET supports_lms_course_id = 'a1958c5d-17cb-4ede-8823-728e6c874cfc' WHERE id = '497f7804-a6ec-43bf-9d8f-aa0ebda23caf' AND supports_lms_course_id IS NULL;
