@@ -28,15 +28,11 @@ interface RequestBody {
   senderEmail?: string;
 }
 
+const GAME_DEVIS_TEMPLATE_ID = "C5099C66-FB36-49F3-B674-2F8C1A2F314A";
+
 async function generatePdf(data: RequestBody): Promise<{ pdfUrl: string; documentId: string }> {
   const pdfMonkeyApiKey = Deno.env.get("PDFMONKEY_API_KEY");
-  const templateId = Deno.env.get("PDFMONKEY_GAME_DEVIS_TEMPLATE_ID");
-
   if (!pdfMonkeyApiKey) throw new Error("PDFMONKEY_API_KEY is not set");
-  if (!templateId) throw new Error("PDFMONKEY_GAME_DEVIS_TEMPLATE_ID n'est pas configuré");
-
-  const subtotal = data.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-  const totalHT = subtotal + (data.fraisDePort || 0) + (data.fraisDossier || 0);
 
   const payload = {
     client: {
@@ -50,12 +46,9 @@ async function generatePdf(data: RequestBody): Promise<{ pdfUrl: string; documen
       name: i.title,
       quantity: i.quantity,
       unit_price: i.unitPrice,
-      total: i.quantity * i.unitPrice,
     })),
-    frais_de_port: data.fraisDePort || 0,
-    frais_dossier: data.fraisDossier || 0,
-    subtotal,
-    total_ht: totalHT,
+    shipping_fee: data.fraisDePort || 0,
+    admin_fee: data.fraisDossier || 0,
     note: data.noteDevis || "",
   };
 
@@ -67,7 +60,7 @@ async function generatePdf(data: RequestBody): Promise<{ pdfUrl: string; documen
     },
     body: JSON.stringify({
       document: {
-        document_template_id: templateId,
+        document_template_id: GAME_DEVIS_TEMPLATE_ID,
         payload,
         status: "pending",
       },
@@ -154,8 +147,8 @@ serve(async (req) => {
           total_amount: totalHT,
           client_name: body.nomClient,
           items: body.items,
-          frais_de_port: body.fraisDePort,
-          frais_dossier: body.fraisDossier,
+          shipping_fee: body.fraisDePort,
+          admin_fee: body.fraisDossier,
           pdf_url: pdfUrl,
           pdf_storage_path: storagePath,
         },
