@@ -289,7 +289,7 @@ const MicroDevis = () => {
     const fd = item.details?.form_data;
     if (!applyDevisFormData(fd as unknown as Record<string, unknown> | undefined)) {
       setNomClient(item.details?.client_name || ""); setEmailCommanditaire(item.recipient_email || "");
-      setTypeDevis("formation"); setFormatFormation("inter");
+      setFormatFormation("inter");
       setFormationDemandee(item.details?.formation_name || "");
       setTypeSubrogation((item.details?.type_subrogation as "sans" | "avec" | "les2") || "les2");
     }
