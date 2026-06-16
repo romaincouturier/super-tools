@@ -221,9 +221,18 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
     if (!emailSubject.trim()) { toast.error("L'objet de l'email est requis"); return; }
     try {
       await saveMeta();
-      const s = await ensureSurvey();
+      let s = await ensureSurvey();
+      // If the current survey has already been sent, automatically start a new wave
+      // so results don't mix with the previous one.
+      if (s.sent_at) {
+        s = await duplicateSurvey.mutateAsync(s.id);
+      }
       const res = await sendSurvey.mutateAsync(s.id);
-      toast.success(`Sondage envoyé à ${res.sent} participant${res.sent > 1 ? "s" : ""}${res.failed ? ` (${res.failed} échec${res.failed > 1 ? "s" : ""})` : ""}`);
+      if (res.sent === 0 && res.failed === 0) {
+        toast.warning("Aucun envoi : tous les participants ont déjà reçu ce sondage. Utilise 'Renvoyer aux nouveaux' depuis les résultats, ou ajoute des participants.");
+      } else {
+        toast.success(`Sondage envoyé à ${res.sent} participant${res.sent > 1 ? "s" : ""}${res.failed ? ` (${res.failed} échec${res.failed > 1 ? "s" : ""})` : ""}`);
+      }
       setOpen(false);
     } catch (e) {
       toastError(useToastFn, e instanceof Error ? e : "Erreur");
@@ -344,29 +353,12 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
         </Tabs>
 
         <DialogFooter className="mt-4 gap-2 flex-wrap sm:justify-between">
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>Fermer</Button>
-            {survey && (
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    await duplicateSurvey.mutateAsync(survey.id);
-                    toast.success("Nouvelle vague créée — questions copiées. Tu peux l'envoyer.");
-                  } catch (e) {
-                    toastError(useToastFn, e instanceof Error ? e : "Erreur");
-                  }
-                }}
-                disabled={duplicateSurvey.isPending}
-              >
-                {duplicateSurvey.isPending ? <Spinner className="mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Nouvelle vague
-              </Button>
-            )}
-          </div>
-          <Button onClick={handleSend} disabled={sendSurvey.isPending || localQuestions.length === 0}>
-            {sendSurvey.isPending ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-            Envoyer à {participantCount} participant{participantCount > 1 ? "s" : ""}
+          <Button variant="outline" onClick={() => setOpen(false)}>Fermer</Button>
+          <Button onClick={handleSend} disabled={sendSurvey.isPending || duplicateSurvey.isPending || localQuestions.length === 0}>
+            {(sendSurvey.isPending || duplicateSurvey.isPending) ? <Spinner className="mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+            {survey?.sent_at
+              ? `Lancer une nouvelle vague (${participantCount})`
+              : `Envoyer à ${participantCount} participant${participantCount > 1 ? "s" : ""}`}
           </Button>
         </DialogFooter>
       </DialogContent>
