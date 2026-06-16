@@ -221,9 +221,18 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
     if (!emailSubject.trim()) { toast.error("L'objet de l'email est requis"); return; }
     try {
       await saveMeta();
-      const s = await ensureSurvey();
+      let s = await ensureSurvey();
+      // If the current survey has already been sent, automatically start a new wave
+      // so results don't mix with the previous one.
+      if (s.sent_at) {
+        s = await duplicateSurvey.mutateAsync(s.id);
+      }
       const res = await sendSurvey.mutateAsync(s.id);
-      toast.success(`Sondage envoyé à ${res.sent} participant${res.sent > 1 ? "s" : ""}${res.failed ? ` (${res.failed} échec${res.failed > 1 ? "s" : ""})` : ""}`);
+      if (res.sent === 0 && res.failed === 0) {
+        toast.warning("Aucun envoi : tous les participants ont déjà reçu ce sondage. Utilise 'Renvoyer aux nouveaux' depuis les résultats, ou ajoute des participants.");
+      } else {
+        toast.success(`Sondage envoyé à ${res.sent} participant${res.sent > 1 ? "s" : ""}${res.failed ? ` (${res.failed} échec${res.failed > 1 ? "s" : ""})` : ""}`);
+      }
       setOpen(false);
     } catch (e) {
       toastError(useToastFn, e instanceof Error ? e : "Erreur");
