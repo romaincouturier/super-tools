@@ -62,6 +62,72 @@ export const useTrainingSurvey = (trainingId: string) =>
     enabled: !!trainingId,
   });
 
+export const useTrainingSurveysList = (trainingId: string) =>
+  useQuery({
+    queryKey: [KEY, "list", trainingId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("training_surveys")
+        .select("*")
+        .eq("training_id", trainingId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as TrainingSurvey[];
+    },
+    enabled: !!trainingId,
+  });
+
+export const useDuplicateTrainingSurvey = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (sourceSurveyId: string) => {
+      const { data: src, error: srcErr } = await (supabase as any)
+        .from("training_surveys").select("*").eq("id", sourceSurveyId).single();
+      if (srcErr) throw srcErr;
+      const { data: { user } } = await supabase.auth.getUser();
+      const waveMatch = (src.title || "").match(/vague\s+(\d+)\s*$/i);
+      const baseTitle = (src.title || "Sondage").replace(/\s*[—\-·]?\s*vague\s+\d+\s*$/i, "").trim();
+      const nextNum = (waveMatch ? Number(waveMatch[1]) : 1) + 1;
+      const newTitle = `${baseTitle} — Vague ${nextNum}`;
+      const { data: newSurvey, error } = await (supabase as any)
+        .from("training_surveys")
+        .insert({
+          training_id: src.training_id,
+          title: newTitle,
+          intro_message: src.intro_message,
+          email_subject: src.email_subject,
+          email_body: src.email_body,
+          thank_you_message: src.thank_you_message,
+          closes_at: null,
+          is_active: true,
+          created_by: user?.id,
+        })
+        .select().single();
+      if (error) throw error;
+
+      const { data: questions } = await (supabase as any)
+        .from("training_survey_questions").select("*")
+        .eq("survey_id", sourceSurveyId).order("position");
+      if (questions && questions.length) {
+        const cloned = questions.map((q: any) => ({
+          survey_id: newSurvey.id,
+          type: q.type, label: q.label, description: q.description,
+          required: q.required, position: q.position, options: q.options,
+        }));
+        const { error: qErr } = await (supabase as any)
+          .from("training_survey_questions").insert(cloned);
+        if (qErr) throw qErr;
+      }
+      return newSurvey as TrainingSurvey;
+    },
+    onSuccess: (s) => {
+      qc.invalidateQueries({ queryKey: [KEY, "training", s.training_id] });
+      qc.invalidateQueries({ queryKey: [KEY, "list", s.training_id] });
+      qc.invalidateQueries({ queryKey: [KEY, "questions"] });
+    },
+  });
+};
+
 export const useTrainingSurveyQuestions = (surveyId: string) =>
   useQuery({
     queryKey: [KEY, "questions", surveyId],
