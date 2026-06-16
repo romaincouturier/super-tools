@@ -119,8 +119,8 @@ serve(async (req) => {
     let sent = 0;
     let failed = 0;
 
-    for (const p of participants as any[]) {
-      const rec = recByPid.get(p.id);
+    for (const p of recipientsList) {
+      const rec = p.participant_id ? recByPid.get(p.participant_id) : recByEmail.get(p.email.toLowerCase());
       if (!rec) continue;
 
       // Skip already-sent if not a reminder
@@ -129,7 +129,12 @@ serve(async (req) => {
       const firstName = p.first_name || "";
       const link = `${baseUrl}/sondage-formation/${rec.token}`;
 
-      const personalized = (introBody || `Bonjour {{first_name}},\n\nMerci de prendre quelques minutes pour répondre à ce sondage.`)
+      const isTrainerRecipient = !p.participant_id;
+      const greeting = isTrainerRecipient
+        ? `Bonjour ${firstName},\n\nEn tant que formateur de "${training?.training_name || ""}", tu reçois aussi ce sondage pour information (et pour le tester si besoin).`
+        : `Bonjour {{first_name}},\n\nMerci de prendre quelques minutes pour répondre à ce sondage.`;
+
+      const personalized = (isTrainerRecipient ? greeting : (introBody || greeting))
         .replace(/\{\{first_name\}\}/g, firstName);
 
       const bodyHtml = textToHtml(personalized);
@@ -157,7 +162,7 @@ serve(async (req) => {
         html,
         _emailType: isReminder ? "training_survey_reminder" : "training_survey",
         _trainingId: survey.training_id,
-        _participantId: p.id,
+        _participantId: p.participant_id ?? undefined,
       });
 
       if (result.success) {
