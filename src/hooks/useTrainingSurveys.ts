@@ -258,11 +258,11 @@ export const useReorderTrainingSurveyQuestions = () => {
 
 export const useSendTrainingSurvey = () =>
   useMutation({
-    mutationFn: async (surveyId: string) => {
-      const { data, error } = await supabase.functions.invoke("send-training-survey", {
-        body: { surveyId },
-      });
+    mutationFn: async (input: string | { surveyId: string; includeTrainer?: boolean }) => {
+      const body = typeof input === "string" ? { surveyId: input } : input;
+      const { data, error } = await supabase.functions.invoke("send-training-survey", { body });
       if (error) throw error;
       return data as { success: boolean; sent: number; failed: number };
     },
   });
+
