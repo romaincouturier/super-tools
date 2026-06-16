@@ -95,54 +95,14 @@ serve(async (req) => {
     }
 
     if (resolvedAudioUrl) {
-      // Transcribe via AssemblyAI — same pipeline as uploaded audio files
       const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
       if (ASSEMBLYAI_API_KEY) {
-        try {
-          const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
-            method: "POST",
-            headers: {
-              Authorization: ASSEMBLYAI_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              audio_url: resolvedAudioUrl,
-              language_code: "fr",
-              punctuate: true,
-              format_text: true,
-            }),
-          });
-
-          if (submitRes.ok) {
-            const { id: transcriptId } = await submitRes.json();
-
-            for (let i = 0; i < 60; i++) {
-              await new Promise((r) => setTimeout(r, 5000));
-
-              const pollRes = await fetch(
-                `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-                { headers: { Authorization: ASSEMBLYAI_API_KEY } },
-              );
-
-              if (pollRes.ok) {
-                const result = await pollRes.json();
-                if (result.status === "completed") {
-                  const transcript = result.text || "";
-                  body = transcript;
-                  // Store in both body and transcript field
-                  await saveUpdates({ body: transcript, transcript });
-                  break;
-                }
-                if (result.status === "error") break;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Podcast URL transcription failed:", e);
+        const transcript = await transcribeWithAssemblyAI(resolvedAudioUrl, ASSEMBLYAI_API_KEY);
+        if (transcript) {
+          body = transcript;
+          await saveUpdates({ body: transcript, transcript });
         }
       }
-
-      // Use podcast episode metadata as title/body fallback
       if (podcastEpisodeTitle && (!item.title || item.title === "(Sans titre)")) {
         updates.title = podcastEpisodeTitle;
       }
@@ -219,53 +179,12 @@ serve(async (req) => {
     }
 
     if (item.content_type === "audio" && item.file_url) {
-      // Transcription via AssemblyAI
       const ASSEMBLYAI_API_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
       if (ASSEMBLYAI_API_KEY) {
-        try {
-          // Submit transcription job
-          const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
-            method: "POST",
-            headers: {
-              Authorization: ASSEMBLYAI_API_KEY,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              audio_url: item.file_url,
-              language_code: "fr",
-              punctuate: true,
-              format_text: true,
-            }),
-          });
-
-          if (submitRes.ok) {
-            const { id: transcriptId } = await submitRes.json();
-
-            // Poll for completion (max 5 min)
-            for (let i = 0; i < 60; i++) {
-              await new Promise((r) => setTimeout(r, 5000));
-
-              const pollRes = await fetch(
-                `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-                { headers: { Authorization: ASSEMBLYAI_API_KEY } }
-              );
-
-              if (pollRes.ok) {
-                const result = await pollRes.json();
-                if (result.status === "completed") {
-                  body = result.text || "";
-                  updates.body = body;
-                  if (body.trim()) {
-                    await saveUpdates({ body });
-                  }
-                  break;
-                }
-                if (result.status === "error") break;
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Audio transcription failed:", e);
+        const transcript = await transcribeWithAssemblyAI(item.file_url, ASSEMBLYAI_API_KEY);
+        if (transcript) {
+          body = transcript;
+          await saveUpdates({ body: transcript });
         }
       }
     }
@@ -361,6 +280,35 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
   }
 });
 
+/** Submits an audio URL to AssemblyAI and polls until completion (max 5 min). Returns transcript text or null. */
+async function transcribeWithAssemblyAI(audioUrl: string, apiKey: string): Promise<string | null> {
+  try {
+    const submitRes = await fetch("https://api.assemblyai.com/v2/transcript", {
+      method: "POST",
+      headers: { Authorization: apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ audio_url: audioUrl, language_code: "fr", punctuate: true, format_text: true }),
+    });
+    if (!submitRes.ok) return null;
+
+    const { id: transcriptId } = await submitRes.json();
+
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
+      const pollRes = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+        headers: { Authorization: apiKey },
+      });
+      if (pollRes.ok) {
+        const result = await pollRes.json();
+        if (result.status === "completed") return result.text || null;
+        if (result.status === "error") return null;
+      }
+    }
+  } catch (e) {
+    console.warn("AssemblyAI transcription failed:", e);
+  }
+  return null;
+}
+
 const AUDIO_EXTENSIONS = /\.(mp3|m4a|wav|ogg|webm|aac|opus|flac|mp4)(\?[^#]*)?$/i;
 
 interface PodcastAudioTarget {
@@ -373,6 +321,7 @@ interface PodcastAudioTarget {
  * Returns the audio URL to transcribe if the given URL is:
  * - A direct audio file (by extension or Content-Type)
  * - A podcast RSS feed (extracts the latest episode's enclosure URL)
+ * - An Apple Podcasts episode or show URL
  * Returns null if it's a regular web page.
  */
 async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | null> {
@@ -385,7 +334,27 @@ async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | n
     return null;
   }
 
-  // 2. HEAD request to inspect Content-Type
+  // 2. Apple Podcasts episode URL: podcasts.apple.com/...?i=<episodeId>
+  const appleEpisodeMatch = url.match(/podcasts\.apple\.com\/.*[?&]i=(\d+)/);
+  if (appleEpisodeMatch) {
+    try {
+      return await extractFromApplePodcastsEpisode(appleEpisodeMatch[1]);
+    } catch {
+      // ignore
+    }
+  }
+
+  // 3. Apple Podcasts show URL: podcasts.apple.com/.../id<showId> (no episode ID)
+  const appleShowMatch = url.match(/podcasts\.apple\.com\/.*\/id(\d+)/);
+  if (appleShowMatch && !url.includes("?i=") && !url.includes("&i=")) {
+    try {
+      return await extractFromApplePodcastsShow(appleShowMatch[1]);
+    } catch {
+      // ignore
+    }
+  }
+
+  // 4. HEAD request to inspect Content-Type
   try {
     const head = await fetch(url, {
       method: "HEAD",
@@ -406,7 +375,7 @@ async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | n
     // ignore — fall through
   }
 
-  // 3. Heuristic: URL pattern suggests a podcast feed, try to parse as RSS
+  // 5. Heuristic: URL pattern suggests a podcast feed, try to parse as RSS
   if (/\/(feed|rss|podcast)(\/|$|\?)/i.test(url) || /\.(xml|rss)(\?|$)/i.test(url)) {
     try {
       return await extractFromRssFeed(url);
@@ -416,6 +385,43 @@ async function detectAudioOrPodcast(url: string): Promise<PodcastAudioTarget | n
   }
 
   return null;
+}
+
+async function extractFromApplePodcastsEpisode(episodeId: string): Promise<PodcastAudioTarget | null> {
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${episodeId}`, {
+    signal: AbortSignal.timeout(8000),
+    headers: { "User-Agent": "SuperTools-Watch/1.0" },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const episode = data.results?.[0];
+  if (!episode) return null;
+
+  const audioUrl = episode.episodeUrl || episode.previewUrl;
+  if (!audioUrl) return null;
+
+  return {
+    audioUrl,
+    episodeTitle: episode.trackName,
+    episodeDescription: episode.description
+      ? String(episode.description).replace(/<[^>]+>/g, "").trim().slice(0, 500)
+      : undefined,
+  };
+}
+
+async function extractFromApplePodcastsShow(showId: string): Promise<PodcastAudioTarget | null> {
+  const res = await fetch(`https://itunes.apple.com/lookup?id=${showId}`, {
+    signal: AbortSignal.timeout(8000),
+    headers: { "User-Agent": "SuperTools-Watch/1.0" },
+  });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const show = data.results?.[0];
+  if (!show?.feedUrl) return null;
+
+  return await extractFromRssFeed(show.feedUrl);
 }
 
 async function extractFromRssFeed(feedUrl: string): Promise<PodcastAudioTarget | null> {

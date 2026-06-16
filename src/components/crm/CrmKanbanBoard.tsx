@@ -523,7 +523,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
   const allColumns = boardData?.columns || [];
 
   return (
-    <div className="h-full flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
       {/* Search bar + filters */}
       <div className="flex items-center gap-3 flex-wrap">
       <div ref={searchRef} className="relative w-full max-w-md">
@@ -679,6 +679,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         cards={kanbanCards}
         loading={isLoading}
         config={{ enableKeyboard: true }}
+        boardClassName="!h-auto"
         renderCard={(card, isDragging) => {
           const overdue = !isDragging && meanCycleTimeDays > 0
             && card.sales_status !== "WON" && card.sales_status !== "LOST"

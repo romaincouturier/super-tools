@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText } from "lucide-react";
+import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -404,11 +405,13 @@ export default function Dropshipping() {
           <TabsTrigger value="sales"><ShoppingCart className="h-4 w-4 mr-1.5" />Ventes</TabsTrigger>
           <TabsTrigger value="games"><Package className="h-4 w-4 mr-1.5" />Jeux</TabsTrigger>
           <TabsTrigger value="authors"><Users className="h-4 w-4 mr-1.5" />Auteurs</TabsTrigger>
+          <TabsTrigger value="devis"><FileText className="h-4 w-4 mr-1.5" />Devis</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><Dashboard /></TabsContent>
         <TabsContent value="sales"><SalesTable /></TabsContent>
         <TabsContent value="games"><GamesTable /></TabsContent>
         <TabsContent value="authors"><AuthorsTable /></TabsContent>
+        <TabsContent value="devis"><GameDevisTab /></TabsContent>
       </Tabs>
       </div>
     </ModuleLayout>
