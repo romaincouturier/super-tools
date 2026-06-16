@@ -40,6 +40,7 @@ export {
   useCreateCourse,
   useUpdateCourse,
   useDeleteCourse,
+  useDuplicateCourse,
   useCreateModule,
   useUpdateModule,
   useDeleteModule,

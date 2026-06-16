@@ -50,6 +50,23 @@ export function useCreateCourse() {
   });
 }
 
+export function useDuplicateCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ courseId, mode }: { courseId: string; mode: "structure" | "full" }) => {
+      const { data, error } = await supabase.functions.invoke("duplicate-lms-course", {
+        body: { courseId, mode },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { newCourseId: string };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+  });
+}
+
 export function useUpdateCourse() {
   const qc = useQueryClient();
   return useMutation({

@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2 } from "lucide-react";
+import { useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse, useDuplicateCourse } from "@/hooks/useLms";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -38,6 +39,8 @@ export default function LmsCourses() {
   const createCourse = useCreateCourse();
   const deleteCourse = useDeleteCourse();
   const updateCourse = useUpdateCourse();
+  const duplicateCourse = useDuplicateCourse();
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const [open, setOpen] = useState(false);
@@ -78,6 +81,18 @@ export default function LmsCourses() {
     await createCourse.mutateAsync(form as Record<string, unknown>);
     setForm({ title: "", description: "", difficulty_level: "beginner" });
     setOpen(false);
+  };
+
+  const handleDuplicate = async (e: React.MouseEvent, id: string, mode: "structure" | "full") => {
+    e.stopPropagation();
+    setDuplicatingId(id);
+    try {
+      await duplicateCourse.mutateAsync({ courseId: id, mode });
+      toast({ title: mode === "full" ? "Cours dupliqué avec contenus" : "Structure dupliquée" });
+    } catch (err) {
+      toastError(toast, err);
+    }
+    setDuplicatingId(null);
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -289,14 +304,33 @@ export default function LmsCourses() {
                         )}
                       </CardTitle>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 shrink-0 h-8 w-8"
-                      onClick={(e) => handleDelete(e, course.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 shrink-0 h-8 w-8"
+                          onClick={(e) => e.stopPropagation()}
+                          disabled={duplicatingId === course.id}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={(e) => handleDuplicate(e, course.id, "structure")}>
+                          <Copy className="w-4 h-4 mr-2" /> Dupliquer (structure)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => handleDuplicate(e, course.id, "full")}>
+                          <Copy className="w-4 h-4 mr-2" /> Dupliquer (avec contenus)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={(e) => handleDelete(e, course.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
