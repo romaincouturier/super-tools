@@ -138,6 +138,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
   const deleteQuestion = useDeleteTrainingSurveyQuestion();
   const reorderQuestions = useReorderTrainingSurveyQuestions();
   const sendSurvey = useSendTrainingSurvey();
+  const duplicateSurvey = useDuplicateTrainingSurvey();
 
   const [title, setTitle] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
