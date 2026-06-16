@@ -233,7 +233,8 @@ const MicroDevis = () => {
       else { setNomCommanditaire(a); }
     }
     if (c) setCrmCardId(c);
-    setTypeDevis("formation");
+    // typeDevis is a const
+
     toast({ title: "Données préremplies", description: "Les informations de l'opportunité CRM ont été importées." });
   }, [searchParams, toast]);
 
