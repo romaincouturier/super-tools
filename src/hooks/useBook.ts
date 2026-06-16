@@ -103,21 +103,9 @@ export function useBookAlbums() {
         }
       }
 
-      const candidateUrls = [
-        ...Object.values(coverMap),
-        ...(albums ?? []).map((a) => a.cover_url).filter((u): u is string => !!u),
-      ];
-      const signedCoverUrls = await signStorageUrls(candidateUrls);
-
-      const resolveCover = (url: string | null | undefined) =>
-        url ? signedCoverUrls[url] ?? url : null;
-
       return (albums ?? []).map((album) => ({
         ...(album as BookAlbum),
-        cover_url:
-          resolveCover(album.cover_url) ??
-          resolveCover(coverMap[album.id]) ??
-          null,
+        cover_url: album.cover_url ?? coverMap[album.id] ?? null,
         production_count: countMap[album.id] ?? 0,
       }));
     },
@@ -243,41 +231,6 @@ export function extractStoragePath(fileUrl: string): string | null {
   }
 }
 
-async function signStorageUrls(urls: string[]): Promise<Record<string, string>> {
-  const pathByUrl = new Map<string, string>();
-  urls.forEach((url) => {
-    const path = extractStoragePath(url);
-    if (path) pathByUrl.set(url, path);
-  });
-
-  const paths = [...new Set(pathByUrl.values())];
-  if (paths.length === 0) return {};
-
-  const { data, error } = await supabase.storage
-    .from("book-productions")
-    .createSignedUrls(paths, 60 * 60);
-  if (error || !data) return {};
-
-  const signedByPath: Record<string, string> = {};
-  data.forEach((item, index) => {
-    if (item.signedUrl) signedByPath[paths[index]] = item.signedUrl;
-  });
-
-  return Object.fromEntries(
-    [...pathByUrl.entries()].flatMap(([url, path]) =>
-      signedByPath[path] ? [[url, signedByPath[path]]] : []
-    )
-  );
-}
-
-async function signProductions(rows: BookProduction[]): Promise<BookProduction[]> {
-  const signedUrls = await signStorageUrls(rows.map((row) => row.file_url));
-  return rows.map((row) => ({
-    ...row,
-    file_url: signedUrls[row.file_url] ?? row.file_url,
-  }));
-}
-
 export function useBookProductions(albumId: string) {
   return useQuery<BookProduction[]>({
     queryKey: ["book-productions", albumId],
@@ -288,7 +241,7 @@ export function useBookProductions(albumId: string) {
         .eq("album_id", albumId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return await signProductions((data ?? []) as BookProduction[]);
+      return (data ?? []) as BookProduction[];
     },
     enabled: !!albumId,
     staleTime: 30 * 60 * 1000,
@@ -688,7 +641,7 @@ export function useBookProductionViewStats(albumId: string) {
         .order("sort_order", { ascending: true });
       if (prodError) throw prodError;
 
-      const allProductions = await signProductions((productions ?? []) as BookProduction[]);
+      const allProductions = (productions ?? []) as BookProduction[];
 
       if (!links || links.length === 0) {
         return allProductions.map((p) => ({ production: p, views: 0, unique_links: 0 }));
