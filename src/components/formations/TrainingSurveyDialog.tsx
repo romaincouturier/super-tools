@@ -228,7 +228,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
       if (s.sent_at) {
         s = await duplicateSurvey.mutateAsync(s.id);
       }
-      const res = await sendSurvey.mutateAsync(s.id);
+      const res = await sendSurvey.mutateAsync({ surveyId: s.id, includeTrainer });
       if (res.sent === 0 && res.failed === 0) {
         toast.warning("Aucun envoi : tous les participants ont déjà reçu ce sondage. Utilise 'Renvoyer aux nouveaux' depuis les résultats, ou ajoute des participants.");
       } else {
