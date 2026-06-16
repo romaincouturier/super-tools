@@ -189,6 +189,50 @@ export function useDeleteAlbum() {
 // Productions
 // ---------------------------------------------------------------------------
 
+function extractStoragePath(fileUrl: string): string | null {
+  try {
+    const u = new URL(fileUrl);
+    const markers = [
+      "/object/public/book-productions/",
+      "/object/sign/book-productions/",
+      "/object/book-productions/",
+    ];
+    for (const m of markers) {
+      const idx = u.pathname.indexOf(m);
+      if (idx !== -1)
+        return decodeURIComponent(u.pathname.slice(idx + m.length).split("?")[0]);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function signProductions(rows: BookProduction[]): Promise<BookProduction[]> {
+  const paths: string[] = [];
+  const indices: number[] = [];
+  rows.forEach((row, i) => {
+    const p = extractStoragePath(row.file_url);
+    if (p) {
+      paths.push(p);
+      indices.push(i);
+    }
+  });
+  if (paths.length === 0) return rows;
+  const { data, error } = await supabase.storage
+    .from("book-productions")
+    .createSignedUrls(paths, 60 * 60);
+  if (error || !data) return rows;
+  const next = [...rows];
+  data.forEach((d, k) => {
+    if (d.signedUrl) {
+      const i = indices[k];
+      next[i] = { ...next[i], file_url: d.signedUrl };
+    }
+  });
+  return next;
+}
+
 export function useBookProductions(albumId: string) {
   return useQuery<BookProduction[]>({
     queryKey: ["book-productions", albumId],
@@ -199,9 +243,10 @@ export function useBookProductions(albumId: string) {
         .eq("album_id", albumId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as BookProduction[];
+      return await signProductions((data ?? []) as BookProduction[]);
     },
     enabled: !!albumId,
+    staleTime: 30 * 60 * 1000,
   });
 }
 
