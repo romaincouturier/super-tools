@@ -146,6 +146,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
   const [intro, setIntro] = useState("");
   const [closesAt, setClosesAt] = useState<Date | undefined>(undefined);
   const [localQuestions, setLocalQuestions] = useState<TrainingSurveyQuestion[]>([]);
+  const [includeTrainer, setIncludeTrainer] = useState(false);
 
   useEffect(() => {
     if (survey) {
