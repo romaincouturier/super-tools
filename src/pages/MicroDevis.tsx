@@ -409,7 +409,7 @@ const MicroDevis = () => {
       }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
       setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
-      setTypeDevis(""); setIsOpco("non"); setNoteDevis(""); setParticipants("");
+      setIsOpco("non"); setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
     } catch (error: unknown) {
