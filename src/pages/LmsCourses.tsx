@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -10,9 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useCourses, useCreateCourse, useDeleteCourse } from "@/hooks/useLms";
+import { useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse } from "@/hooks/useLms";
 import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
 
@@ -36,10 +37,34 @@ export default function LmsCourses() {
   const pendingTotal = pendingData?.total ?? 0;
   const createCourse = useCreateCourse();
   const deleteCourse = useDeleteCourse();
+  const updateCourse = useUpdateCourse();
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId) editInputRef.current?.select();
+  }, [editingId]);
+
+  const startEdit = (e: React.MouseEvent, id: string, title: string) => {
+    e.stopPropagation();
+    setEditingId(id);
+    setEditingTitle(title);
+  };
+
+  const commitEdit = async () => {
+    if (!editingId || !editingTitle.trim()) { setEditingId(null); return; }
+    try {
+      await updateCourse.mutateAsync({ id: editingId, title: editingTitle.trim() });
+    } catch (err) {
+      toastError(toast, err);
+    }
+    setEditingId(null);
+  };
   const [form, setForm] = useState({ title: "", description: "", difficulty_level: "beginner" });
 
   const filtered = courses.filter(
@@ -237,14 +262,33 @@ export default function LmsCourses() {
                 )}
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base line-clamp-2 flex items-center gap-2">
-                      {course.title}
-                      {(pendingPerCourse[course.id] ?? 0) > 0 && (
-                        <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0" title={`${pendingPerCourse[course.id]} message(s) en attente`}>
-                          {pendingPerCourse[course.id]}
-                        </Badge>
-                      )}
-                    </CardTitle>
+                    {editingId === course.id ? (
+                      <input
+                        ref={editInputRef}
+                        className="flex-1 text-base font-semibold border-b border-primary bg-transparent outline-none px-0 py-0.5"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <CardTitle
+                        className="text-base line-clamp-2 flex items-center gap-2 cursor-text"
+                        onDoubleClick={(e) => startEdit(e, course.id, course.title)}
+                        title="Double-cliquer pour renommer"
+                      >
+                        {course.title}
+                        {(pendingPerCourse[course.id] ?? 0) > 0 && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0" title={`${pendingPerCourse[course.id]} message(s) en attente`}>
+                            {pendingPerCourse[course.id]}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
