@@ -298,6 +298,10 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
               </Popover>
               <p className="text-xs text-muted-foreground">Un rappel automatique sera envoyé aux non-répondants 2 jours avant la clôture.</p>
             </div>
+            <div className="flex items-center gap-2 pt-2">
+              <Switch id="include-trainer" checked={includeTrainer} onCheckedChange={setIncludeTrainer} />
+              <Label htmlFor="include-trainer" className="text-sm">Envoyer aussi au formateur de la formation</Label>
+            </div>
           </TabsContent>
 
           <TabsContent value="questions" className="space-y-3 pt-4">
