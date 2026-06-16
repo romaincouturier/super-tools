@@ -661,6 +661,21 @@ export function usePinPracticePost() {
   });
 }
 
+// ── Update post ───────────────────────────────────────────────────────────────
+
+export function useUpdatePracticePost(learnerEmail: string | null, isAdmin = false) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      if (!isAdmin && !learnerEmail) throw new Error("Not authenticated");
+      const c = clientDb(isAdmin ? null : learnerEmail, isAdmin);
+      const { error } = await c.from("practice_posts").update({ content }).eq("id", postId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: POSTS_KEY }),
+  });
+}
+
 // ── Delete post ───────────────────────────────────────────────────────────────
 
 export function useDeletePracticePost(learnerEmail: string | null, isAdmin = false) {

@@ -12,6 +12,7 @@ import {
   useCreatePracticeComment,
   useDeletePracticeComment,
   useUpdatePracticeComment,
+  useUpdatePracticePost,
   useRotatePracticePostImage,
   type PracticePost,
 } from "@/hooks/usePracticeFeed";
@@ -136,6 +137,9 @@ export default function PracticePostCard({
   const updateComment = useUpdatePracticeComment(currentEmail, isAdmin);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [editingPost, setEditingPost] = useState(false);
+  const [editingPostText, setEditingPostText] = useState("");
+  const updatePost = useUpdatePracticePost(currentEmail, isAdmin);
   const { toast } = useToast();
   const rotateImage = useRotatePracticePostImage();
 
@@ -213,6 +217,16 @@ export default function PracticePostCard({
             {post.is_pinned ? <PinOff size={14} /> : <Pin size={14} />}
           </button>
         )}
+        {canDelete && post.content && (
+          <button
+            onClick={() => { setEditingPostText(post.content ?? ""); setEditingPost(true); }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 transition-colors shrink-0"
+            style={{ color: "var(--st-ink-muted)" }}
+            title={isOwn ? "Modifier mon message" : "Modifier (admin)"}
+          >
+            <Pencil size={14} />
+          </button>
+        )}
         {canDelete && (
           <button
             onClick={() => onDelete(post.id)}
@@ -239,10 +253,47 @@ export default function PracticePostCard({
       )}
 
       {/* Content */}
-      {post.content && (
+      {post.content && !editingPost && (
         <p className="px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--st-ink)" }}>
           {renderPostContent(asciiToEmoji(post.content))}
         </p>
+      )}
+      {editingPost && (
+        <div className="px-4 pb-3 flex flex-col gap-2">
+          <textarea
+            className="w-full text-sm rounded-lg border px-3 py-2 resize-none focus:outline-none focus:ring-2"
+            style={{ borderColor: "rgba(16,24,32,0.15)", minHeight: 80, color: "var(--st-ink)", background: "var(--st-surface, #fff)" }}
+            value={editingPostText}
+            onChange={(e) => setEditingPostText(e.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setEditingPost(false)}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg hover:bg-black/5 transition-colors"
+              style={{ color: "var(--st-ink-muted)" }}
+            >
+              <X size={13} /> Annuler
+            </button>
+            <button
+              onClick={async () => {
+                const trimmed = editingPostText.trim();
+                if (!trimmed) return;
+                try {
+                  await updatePost.mutateAsync({ postId: post.id, content: trimmed });
+                  setEditingPost(false);
+                } catch (err) {
+                  toastError(toast, err);
+                }
+              }}
+              disabled={updatePost.isPending || !editingPostText.trim()}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium disabled:opacity-50"
+              style={{ background: "var(--st-ink)", color: "#fff" }}
+            >
+              <Check size={13} /> Enregistrer
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Group matching — between text and media */}
