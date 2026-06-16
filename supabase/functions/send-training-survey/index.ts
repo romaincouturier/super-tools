@@ -18,7 +18,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { surveyId, isReminder } = await req.json();
+    const { surveyId, isReminder, includeTrainer } = await req.json();
     if (!surveyId) return createErrorResponse("surveyId requis", 400);
 
     const supabase = getSupabaseClient();
@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const { data: training } = await supabase
       .from("trainings")
-      .select("training_name")
+      .select("training_name, trainer_id, trainer_name")
       .eq("id", survey.training_id)
       .maybeSingle();
 
@@ -42,8 +42,28 @@ serve(async (req) => {
       .select("id, email, first_name, last_name")
       .eq("training_id", survey.training_id);
 
-    if (!participants || participants.length === 0) {
-      return createErrorResponse("Aucun participant", 400);
+    const recipientsList: { id?: string; participant_id: string | null; email: string; first_name: string | null; last_name: string | null }[] = [];
+
+    if (participants) {
+      for (const p of participants as any[]) {
+        recipientsList.push({ participant_id: p.id, email: p.email, first_name: p.first_name, last_name: p.last_name });
+      }
+    }
+
+    // Optionally include trainer as a virtual recipient (participant_id NULL)
+    if (includeTrainer && (training as any)?.trainer_id) {
+      const { data: trainer } = await (supabase as any)
+        .from("trainers")
+        .select("email, first_name, last_name")
+        .eq("id", (training as any).trainer_id)
+        .maybeSingle();
+      if (trainer?.email) {
+        recipientsList.push({ participant_id: null, email: trainer.email, first_name: trainer.first_name ?? (training as any).trainer_name ?? null, last_name: trainer.last_name ?? null });
+      }
+    }
+
+    if (recipientsList.length === 0) {
+      return createErrorResponse("Aucun destinataire", 400);
     }
 
     const { data: existingRecipients } = await (supabase as any)
@@ -54,15 +74,21 @@ serve(async (req) => {
     const recByPid = new Map<string, any>(
       (existingRecipients ?? []).filter((r: any) => r.participant_id).map((r: any) => [r.participant_id, r]),
     );
+    const recByEmail = new Map<string, any>(
+      (existingRecipients ?? []).filter((r: any) => !r.participant_id && r.email).map((r: any) => [String(r.email).toLowerCase(), r]),
+    );
 
-    const toCreate = participants.filter((p: any) => !recByPid.has(p.id));
+    const toCreate = recipientsList.filter((p) => {
+      if (p.participant_id) return !recByPid.has(p.participant_id);
+      return !recByEmail.has(p.email.toLowerCase());
+    });
     if (toCreate.length > 0) {
       const { data: inserted, error: insErr } = await (supabase as any)
         .from("training_survey_recipients")
         .insert(
-          toCreate.map((p: any) => ({
+          toCreate.map((p) => ({
             survey_id: surveyId,
-            participant_id: p.id,
+            participant_id: p.participant_id,
             email: p.email,
             first_name: p.first_name,
             last_name: p.last_name,
@@ -70,8 +96,12 @@ serve(async (req) => {
         )
         .select("id, participant_id, email, token, sent_at");
       if (insErr) return createErrorResponse(`Erreur recipients: ${insErr.message}`, 500);
-      for (const r of inserted ?? []) recByPid.set(r.participant_id, r);
+      for (const r of inserted ?? []) {
+        if (r.participant_id) recByPid.set(r.participant_id, r);
+        else if (r.email) recByEmail.set(String(r.email).toLowerCase(), r);
+      }
     }
+
 
     const [senderFrom, bccList, signatureHtml, urls] = await Promise.all([
       getSenderFrom(),
@@ -89,8 +119,8 @@ serve(async (req) => {
     let sent = 0;
     let failed = 0;
 
-    for (const p of participants as any[]) {
-      const rec = recByPid.get(p.id);
+    for (const p of recipientsList) {
+      const rec = p.participant_id ? recByPid.get(p.participant_id) : recByEmail.get(p.email.toLowerCase());
       if (!rec) continue;
 
       // Skip already-sent if not a reminder
@@ -99,7 +129,12 @@ serve(async (req) => {
       const firstName = p.first_name || "";
       const link = `${baseUrl}/sondage-formation/${rec.token}`;
 
-      const personalized = (introBody || `Bonjour {{first_name}},\n\nMerci de prendre quelques minutes pour répondre à ce sondage.`)
+      const isTrainerRecipient = !p.participant_id;
+      const greeting = isTrainerRecipient
+        ? `Bonjour ${firstName},\n\nEn tant que formateur de "${training?.training_name || ""}", tu reçois aussi ce sondage pour information (et pour le tester si besoin).`
+        : `Bonjour {{first_name}},\n\nMerci de prendre quelques minutes pour répondre à ce sondage.`;
+
+      const personalized = (isTrainerRecipient ? greeting : (introBody || greeting))
         .replace(/\{\{first_name\}\}/g, firstName);
 
       const bodyHtml = textToHtml(personalized);
@@ -127,7 +162,7 @@ serve(async (req) => {
         html,
         _emailType: isReminder ? "training_survey_reminder" : "training_survey",
         _trainingId: survey.training_id,
-        _participantId: p.id,
+        _participantId: p.participant_id ?? undefined,
       });
 
       if (result.success) {

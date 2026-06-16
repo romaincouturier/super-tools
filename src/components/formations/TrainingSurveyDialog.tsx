@@ -146,6 +146,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
   const [intro, setIntro] = useState("");
   const [closesAt, setClosesAt] = useState<Date | undefined>(undefined);
   const [localQuestions, setLocalQuestions] = useState<TrainingSurveyQuestion[]>([]);
+  const [includeTrainer, setIncludeTrainer] = useState(false);
 
   useEffect(() => {
     if (survey) {
@@ -227,7 +228,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
       if (s.sent_at) {
         s = await duplicateSurvey.mutateAsync(s.id);
       }
-      const res = await sendSurvey.mutateAsync(s.id);
+      const res = await sendSurvey.mutateAsync({ surveyId: s.id, includeTrainer });
       if (res.sent === 0 && res.failed === 0) {
         toast.warning("Aucun envoi : tous les participants ont déjà reçu ce sondage. Utilise 'Renvoyer aux nouveaux' depuis les résultats, ou ajoute des participants.");
       } else {
@@ -296,6 +297,10 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
                 </PopoverContent>
               </Popover>
               <p className="text-xs text-muted-foreground">Un rappel automatique sera envoyé aux non-répondants 2 jours avant la clôture.</p>
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <Switch id="include-trainer" checked={includeTrainer} onCheckedChange={setIncludeTrainer} />
+              <Label htmlFor="include-trainer" className="text-sm">Envoyer aussi au formateur de la formation</Label>
             </div>
           </TabsContent>
 
