@@ -193,7 +193,7 @@ const MicroDevis = () => {
         if (d.lieuAutre) setLieuAutre(d.lieuAutre);
         if (d.nomClient) setNomClient(d.nomClient);
         if (d.emailCommanditaire) setEmailCommanditaire(d.emailCommanditaire);
-        if (d.typeDevis) setTypeDevis(d.typeDevis);
+        // typeDevis is now a const, ignore legacy field
         if (d.selectedFormulaId) pendingFormulaIdRef.current = d.selectedFormulaId;
         if (d.adresseClient) setAdresseClient(d.adresseClient);
         if (d.codePostalClient) setCodePostalClient(d.codePostalClient);
