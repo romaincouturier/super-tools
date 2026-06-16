@@ -3851,6 +3851,41 @@ export type Database = {
         }
         Relationships: []
       }
+      lms_course_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_course_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "lms_course_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_courses: {
         Row: {
           community_preview_count: number
@@ -3860,6 +3895,7 @@ export type Database = {
           description: string | null
           difficulty_level: string | null
           estimated_duration_minutes: number | null
+          folder_id: string | null
           formation_config_id: string | null
           home_config: Json
           id: string
@@ -3879,6 +3915,7 @@ export type Database = {
           description?: string | null
           difficulty_level?: string | null
           estimated_duration_minutes?: number | null
+          folder_id?: string | null
           formation_config_id?: string | null
           home_config?: Json
           id?: string
@@ -3898,6 +3935,7 @@ export type Database = {
           description?: string | null
           difficulty_level?: string | null
           estimated_duration_minutes?: number | null
+          folder_id?: string | null
           formation_config_id?: string | null
           home_config?: Json
           id?: string
@@ -3910,6 +3948,13 @@ export type Database = {
           welcome_video_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "lms_courses_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "lms_course_folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lms_courses_formation_config_id_fkey"
             columns: ["formation_config_id"]

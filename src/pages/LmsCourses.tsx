@@ -10,9 +10,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse, useDuplicateCourse } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse, useDuplicateCourse,
+  useCourseFolders, useCreateCourseFolder, useRenameCourseFolder, useDeleteCourseFolder, useMoveCourseToFolder,
+  type LmsCourseFolder,
+} from "@/hooks/useLms";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useConfirm } from "@/hooks/useConfirm";
@@ -41,6 +45,62 @@ export default function LmsCourses() {
   const updateCourse = useUpdateCourse();
   const duplicateCourse = useDuplicateCourse();
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  // Folders
+  const { data: folders = [] } = useCourseFolders();
+  const createFolder = useCreateCourseFolder();
+  const renameFolder = useRenameCourseFolder();
+  const deleteFolder = useDeleteCourseFolder();
+  const moveCourse = useMoveCourseToFolder();
+  const [activeFolderId, setActiveFolderId] = useState<string | null | "root">("root");
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [newFolderName, setNewFolderName] = useState("");
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingFolderId) folderInputRef.current?.select();
+  }, [editingFolderId]);
+
+  const rootFolders = folders.filter((f) => !f.parent_id);
+  const subFolders = (parentId: string) => folders.filter((f) => f.parent_id === parentId);
+
+  const handleCreateFolder = async (parentId?: string) => {
+    const name = newFolderName.trim() || "Nouveau dossier";
+    try {
+      await createFolder.mutateAsync({ name, parent_id: parentId ?? null });
+    } catch (err) {
+      toastError(toast, err);
+    }
+    setNewFolderName("");
+  };
+
+  const commitFolderRename = async () => {
+    if (!editingFolderId || !editingFolderName.trim()) { setEditingFolderId(null); return; }
+    try {
+      await renameFolder.mutateAsync({ id: editingFolderId, name: editingFolderName.trim() });
+    } catch (err) {
+      toastError(toast, err);
+    }
+    setEditingFolderId(null);
+  };
+
+  const handleDeleteFolder = async (id: string) => {
+    const ok = await confirm({
+      title: "Supprimer ce dossier ?",
+      description: "Les cours qu'il contient seront déplacés à la racine.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deleteFolder.mutateAsync(id);
+      if (activeFolderId === id) setActiveFolderId("root");
+    } catch (err) {
+      toastError(toast, err);
+    }
+  };
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
   const [open, setOpen] = useState(false);
@@ -70,11 +130,16 @@ export default function LmsCourses() {
   };
   const [form, setForm] = useState({ title: "", description: "", difficulty_level: "beginner" });
 
-  const filtered = courses.filter(
-    (c) =>
+  const filtered = courses.filter((c) => {
+    const matchSearch =
       c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.description?.toLowerCase().includes(search.toLowerCase())
-  );
+      c.description?.toLowerCase().includes(search.toLowerCase());
+    if (!matchSearch) return false;
+    if (search.trim()) return true; // search ignores folder filter
+    if (activeFolderId === "root") return !c.folder_id;
+    if (activeFolderId === null) return true; // "all"
+    return c.folder_id === activeFolderId;
+  });
 
   const handleCreate = async () => {
     if (!form.title.trim()) return;
@@ -116,6 +181,111 @@ export default function LmsCourses() {
   return (
     <ModuleLayout>
       <ConfirmDialog />
+      <div className="flex h-full">
+
+        {/* Folder sidebar */}
+        <aside className="hidden lg:flex flex-col w-56 shrink-0 border-r bg-muted/30 p-3 gap-1 overflow-y-auto">
+          <div className="flex items-center justify-between mb-1 px-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dossiers</span>
+            <button
+              onClick={() => handleCreateFolder()}
+              title="Nouveau dossier"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <FolderPlus size={14} />
+            </button>
+          </div>
+
+          {/* All courses */}
+          <button
+            onClick={() => setActiveFolderId(null)}
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm w-full text-left transition-colors ${activeFolderId === null ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            <BookOpen size={14} /> Tous les cours
+            <span className="ml-auto text-xs opacity-60">{courses.length}</span>
+          </button>
+
+          {/* Root = uncategorized */}
+          <button
+            onClick={() => setActiveFolderId("root")}
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-sm w-full text-left transition-colors ${activeFolderId === "root" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+          >
+            <Folder size={14} /> Sans dossier
+            <span className="ml-auto text-xs opacity-60">{courses.filter((c) => !c.folder_id).length}</span>
+          </button>
+
+          {rootFolders.map((folder) => {
+            const subs = subFolders(folder.id);
+            const isExpanded = expandedFolders.has(folder.id);
+            const courseCount = courses.filter((c) => c.folder_id === folder.id).length;
+            return (
+              <div key={folder.id}>
+                <div className={`group flex items-center gap-1 px-2 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${activeFolderId === folder.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                  <button
+                    className="flex items-center gap-1.5 flex-1 text-left"
+                    onClick={() => setActiveFolderId(folder.id)}
+                  >
+                    {subs.length > 0 && (
+                      <span onClick={(e) => { e.stopPropagation(); setExpandedFolders((s) => { const n = new Set(s); n.has(folder.id) ? n.delete(folder.id) : n.add(folder.id); return n; }); }}>
+                        {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      </span>
+                    )}
+                    {editingFolderId === folder.id ? (
+                      <input
+                        ref={folderInputRef}
+                        className="flex-1 bg-transparent border-b border-current outline-none text-sm"
+                        value={editingFolderName}
+                        onChange={(e) => setEditingFolderName(e.target.value)}
+                        onBlur={commitFolderRename}
+                        onKeyDown={(e) => { if (e.key === "Enter") commitFolderRename(); if (e.key === "Escape") setEditingFolderId(null); }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <>
+                        <FolderOpen size={14} />
+                        <span className="flex-1 truncate">{folder.name}</span>
+                        <span className="text-xs opacity-60">{courseCount}</span>
+                      </>
+                    )}
+                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 rounded hover:bg-black/10" onClick={(e) => e.stopPropagation()}>
+                        <MoreVertical size={12} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={() => { setEditingFolderId(folder.id); setEditingFolderName(folder.name); }}>
+                        Renommer
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleCreateFolder(folder.id)}>
+                        <FolderPlus size={13} className="mr-2" /> Sous-dossier
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteFolder(folder.id)}>
+                        <Trash2 size={13} className="mr-2" /> Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                {isExpanded && subs.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setActiveFolderId(sub.id)}
+                    className={`flex items-center gap-2 pl-7 pr-2 py-1.5 rounded-md text-sm w-full text-left transition-colors ${activeFolderId === sub.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                  >
+                    <Folder size={13} />
+                    <span className="flex-1 truncate">{sub.name}</span>
+                    <span className="text-xs opacity-60">{courses.filter((c) => c.folder_id === sub.id).length}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 overflow-y-auto">
       <div className="container py-6 space-y-6 max-w-7xl">
         <PageHeader
           icon={GraduationCap}
@@ -323,6 +493,34 @@ export default function LmsCourses() {
                         <DropdownMenuItem onClick={(e) => handleDuplicate(e, course.id, "full")}>
                           <Copy className="w-4 h-4 mr-2" /> Dupliquer (avec contenus)
                         </DropdownMenuItem>
+                        {folders.length > 0 && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                                <Folder className="w-4 h-4 mr-2" /> Déplacer vers
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent onClick={(e) => e.stopPropagation()}>
+                                {course.folder_id && (
+                                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); moveCourse.mutate({ courseId: course.id, folderId: null }); }}>
+                                    <Folder className="w-4 h-4 mr-2" /> Sans dossier
+                                  </DropdownMenuItem>
+                                )}
+                                {folders.map((f) => (
+                                  <DropdownMenuItem
+                                    key={f.id}
+                                    disabled={course.folder_id === f.id}
+                                    onClick={(e) => { e.stopPropagation(); moveCourse.mutate({ courseId: course.id, folderId: f.id }); }}
+                                  >
+                                    {f.parent_id ? <span className="ml-4" /> : null}
+                                    <Folder className="w-4 h-4 mr-2" /> {f.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          </>
+                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={(e) => handleDelete(e, course.id)}
@@ -356,6 +554,8 @@ export default function LmsCourses() {
             ))}
           </div>
         )}
+      </div>
+        </div>
       </div>
     </ModuleLayout>
   );

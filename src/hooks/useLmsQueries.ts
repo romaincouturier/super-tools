@@ -612,3 +612,31 @@ export function useAllCourseComments(courseId: string | undefined) {
     },
   });
 }
+
+// ---------------------------------------------------------------------------
+// Course folders
+// ---------------------------------------------------------------------------
+
+export type LmsCourseFolder = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  position: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export function useCourseFolders() {
+  return useQuery<LmsCourseFolder[]>({
+    queryKey: ["lms-course-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("lms_course_folders")
+        .select("*")
+        .order("position", { ascending: true })
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as LmsCourseFolder[];
+    },
+  });
+}
