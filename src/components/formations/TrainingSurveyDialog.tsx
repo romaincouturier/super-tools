@@ -32,6 +32,7 @@ import {
   useTrainingSurvey, useTrainingSurveyQuestions, useUpsertTrainingSurvey,
   useUpsertTrainingSurveyQuestion, useDeleteTrainingSurveyQuestion,
   useReorderTrainingSurveyQuestions, useSendTrainingSurvey,
+  useDuplicateTrainingSurvey,
   type TrainingSurveyQuestion,
 } from "@/hooks/useTrainingSurveys";
 
