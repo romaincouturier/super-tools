@@ -9,9 +9,9 @@ import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  useTrainingSurvey, useTrainingSurveyQuestions, useTrainingSurveyResponses,
+  useTrainingSurveysList, useTrainingSurveyQuestions, useTrainingSurveyResponses,
   useTrainingSurveyRecipients, useSendTrainingSurvey,
-  type TrainingSurveyQuestion, type TrainingSurveyResponseRow,
+  type TrainingSurvey, type TrainingSurveyQuestion, type TrainingSurveyResponseRow,
 } from "@/hooks/useTrainingSurveys";
 
 const CHART_COLORS = ["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#f43f5e", "#a78bfa", "#fb923c"];
@@ -82,7 +82,7 @@ function QuestionResults({ question, responses }: { question: TrainingSurveyQues
   );
 }
 
-function exportCsv(questions: TrainingSurveyQuestion[], responses: TrainingSurveyResponseRow[]) {
+function exportCsv(questions: TrainingSurveyQuestion[], responses: TrainingSurveyResponseRow[], filename: string) {
   const headers = ["Répondu le", "Nom", "Email", ...questions.map((q) => q.label || "Question")];
   const rows = responses.map((r) => {
     const base = [
@@ -102,19 +102,16 @@ function exportCsv(questions: TrainingSurveyQuestion[], responses: TrainingSurve
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = "sondage-formation-resultats.csv"; a.click();
+  a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
 
-export default function TrainingSurveyResults({ trainingId }: { trainingId: string }) {
-  const { data: survey } = useTrainingSurvey(trainingId);
-  const { data: questions = [] } = useTrainingSurveyQuestions(survey?.id ?? "");
-  const { data: responses = [] } = useTrainingSurveyResponses(survey?.id ?? "");
-  const { data: recipients = [] } = useTrainingSurveyRecipients(survey?.id ?? "");
+function SurveyResultsCard({ survey, waveLabel, defaultOpen }: { survey: TrainingSurvey; waveLabel: string; defaultOpen: boolean }) {
+  const { data: questions = [] } = useTrainingSurveyQuestions(survey.id);
+  const { data: responses = [] } = useTrainingSurveyResponses(survey.id);
+  const { data: recipients = [] } = useTrainingSurveyRecipients(survey.id);
   const sendSurvey = useSendTrainingSurvey();
-  const [open, setOpen] = useState(true);
-
-  if (!survey) return null;
+  const [open, setOpen] = useState(defaultOpen);
 
   const sentCount = recipients.filter((r: any) => r.sent_at).length;
   const responseRate = sentCount > 0 ? Math.round((responses.length / sentCount) * 100) : 0;
@@ -134,8 +131,9 @@ export default function TrainingSurveyResults({ trainingId }: { trainingId: stri
       <CardHeader className="px-3 md:px-6">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />Sondage de formation
+            <CardTitle className="flex items-center gap-2 flex-wrap">
+              <BarChart3 className="h-5 w-5" />
+              <span>{waveLabel}</span>
               {isClosed && <Badge variant="outline" className="text-xs">Clôturé</Badge>}
             </CardTitle>
             <CardDescription>
@@ -170,7 +168,7 @@ export default function TrainingSurveyResults({ trainingId }: { trainingId: stri
           ) : (
             <>
               <div className="flex justify-end">
-                <Button variant="outline" size="sm" onClick={() => exportCsv(questions, responses)}>
+                <Button variant="outline" size="sm" onClick={() => exportCsv(questions, responses, `sondage-${waveLabel.toLowerCase().replace(/\s+/g, "-")}.csv`)}>
                   <Download className="h-4 w-4 mr-2" />Exporter CSV
                 </Button>
               </div>
@@ -187,5 +185,23 @@ export default function TrainingSurveyResults({ trainingId }: { trainingId: stri
         </CardContent>
       )}
     </Card>
+  );
+}
+
+export default function TrainingSurveyResults({ trainingId }: { trainingId: string }) {
+  const { data: surveys = [] } = useTrainingSurveysList(trainingId);
+  if (surveys.length === 0) return null;
+  const total = surveys.length;
+  return (
+    <div className="space-y-4">
+      {surveys.map((s, idx) => (
+        <SurveyResultsCard
+          key={s.id}
+          survey={s}
+          waveLabel={total > 1 ? `Sondage — Vague ${total - idx}` : "Sondage de formation"}
+          defaultOpen={idx === 0}
+        />
+      ))}
+    </div>
   );
 }

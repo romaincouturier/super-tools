@@ -193,7 +193,7 @@ const MicroDevis = () => {
         if (d.lieuAutre) setLieuAutre(d.lieuAutre);
         if (d.nomClient) setNomClient(d.nomClient);
         if (d.emailCommanditaire) setEmailCommanditaire(d.emailCommanditaire);
-        if (d.typeDevis) setTypeDevis(d.typeDevis);
+        // typeDevis is now a const, ignore legacy field
         if (d.selectedFormulaId) pendingFormulaIdRef.current = d.selectedFormulaId;
         if (d.adresseClient) setAdresseClient(d.adresseClient);
         if (d.codePostalClient) setCodePostalClient(d.codePostalClient);
@@ -233,7 +233,8 @@ const MicroDevis = () => {
       else { setNomCommanditaire(a); }
     }
     if (c) setCrmCardId(c);
-    setTypeDevis("formation");
+    // typeDevis is a const
+
     toast({ title: "Données préremplies", description: "Les informations de l'opportunité CRM ont été importées." });
   }, [searchParams, toast]);
 
@@ -288,7 +289,7 @@ const MicroDevis = () => {
     const fd = item.details?.form_data;
     if (!applyDevisFormData(fd as unknown as Record<string, unknown> | undefined)) {
       setNomClient(item.details?.client_name || ""); setEmailCommanditaire(item.recipient_email || "");
-      setTypeDevis("formation"); setFormatFormation("inter");
+      setFormatFormation("inter");
       setFormationDemandee(item.details?.formation_name || "");
       setTypeSubrogation((item.details?.type_subrogation as "sans" | "avec" | "les2") || "les2");
     }
@@ -408,7 +409,7 @@ const MicroDevis = () => {
       }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
       setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
-      setTypeDevis(""); setIsOpco("non"); setNoteDevis(""); setParticipants("");
+      setIsOpco("non"); setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
       setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
     } catch (error: unknown) {
