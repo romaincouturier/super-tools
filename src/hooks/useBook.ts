@@ -208,7 +208,7 @@ export function useDeleteAlbum() {
 // Productions
 // ---------------------------------------------------------------------------
 
-function extractStoragePath(fileUrl: string): string | null {
+export function extractStoragePath(fileUrl: string): string | null {
   try {
     const u = new URL(fileUrl);
     const markers = [
