@@ -207,8 +207,8 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
-      <DialogContent className="w-full max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="w-full sm:max-w-2xl flex flex-col max-h-[80vh]">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Dupliquer le participant</DialogTitle>
           <DialogDescription>
             Choisissez une session de formation cible (inter ou intra). Les
@@ -217,7 +217,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative">
+        <div className="relative shrink-0">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -227,6 +227,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
           />
         </div>
 
+        <div className="flex-1 overflow-y-auto min-h-0">
         {loading ? (
           <div className="py-12 flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -290,6 +291,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
             })}
           </div>
         )}
+        </div>
       </DialogContent>
     </Dialog>
   );
