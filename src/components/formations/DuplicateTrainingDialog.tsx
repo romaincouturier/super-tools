@@ -29,6 +29,7 @@ interface LiveMeetingInfo {
   meeting_url: string | null;
   description: string | null;
   email_content: string | null;
+  run_notes: string | null;
 }
 
 interface DuplicateTrainingDialogProps {
