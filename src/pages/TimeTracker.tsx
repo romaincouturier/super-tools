@@ -439,6 +439,9 @@ function HistoryTab() {
 
   return (
     <div className="space-y-4">
+      <TimeChart entries={entries} />
+
+
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground">Total toutes périodes :</span>
         <Badge variant="secondary" className="text-sm font-semibold">
