@@ -88,9 +88,6 @@ export default function BookAlbumCard({
         {album.description && (
           <p className="text-sm text-muted-foreground line-clamp-1">{album.description}</p>
         )}
-
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Calendar className="w-3 h-3" />
           <span>{format(new Date(album.created_at), 'MMM yyyy', { locale: fr })}</span>
         </div>
       </div>
