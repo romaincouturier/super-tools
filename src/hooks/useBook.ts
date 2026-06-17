@@ -103,11 +103,21 @@ export function useBookAlbums() {
         }
       }
 
-      const signedCoverUrls = await signStorageUrls(Object.values(coverMap));
+      const candidateUrls = [
+        ...Object.values(coverMap),
+        ...(albums ?? []).map((a) => a.cover_url).filter((u): u is string => !!u),
+      ];
+      const signedCoverUrls = await signStorageUrls(candidateUrls);
+
+      const resolveCover = (url: string | null | undefined) =>
+        url ? signedCoverUrls[url] ?? url : null;
 
       return (albums ?? []).map((album) => ({
         ...(album as BookAlbum),
-        cover_url: album.cover_url ?? signedCoverUrls[coverMap[album.id]] ?? coverMap[album.id] ?? null,
+        cover_url:
+          resolveCover(album.cover_url) ??
+          resolveCover(coverMap[album.id]) ??
+          null,
         production_count: countMap[album.id] ?? 0,
       }));
     },
