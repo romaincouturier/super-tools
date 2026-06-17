@@ -364,20 +364,23 @@ export function useDeleteProduction() {
     mutationFn: async ({
       id,
       fileUrl,
+      sourceMediaId,
     }: {
       id: string;
       albumId: string;
       fileUrl: string;
+      sourceMediaId?: string | null;
     }) => {
-      // Extract storage path from public or signed URL
-      try {
-        const storagePath = extractStoragePath(fileUrl);
-        if (storagePath) {
-          await supabase.storage.from("book-productions").remove([storagePath]);
+      // Only clean up storage for files we own (not references to the media library)
+      if (!sourceMediaId) {
+        try {
+          const storagePath = extractStoragePath(fileUrl);
+          if (storagePath) {
+            await supabase.storage.from("book-productions").remove([storagePath]);
+          }
+        } catch {
+          console.warn("[useDeleteProduction] Could not parse fileUrl for storage cleanup:", fileUrl);
         }
-      } catch {
-        // Non-blocking: storage cleanup failure should not block DB delete
-        console.warn("[useDeleteProduction] Could not parse fileUrl for storage cleanup:", fileUrl);
       }
 
       const { error } = await supabase
@@ -388,6 +391,113 @@ export function useDeleteProduction() {
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
+      queryClient.invalidateQueries({ queryKey: ["book-albums"] });
+    },
+    onError: (err: Error) => {
+      toastError(toast, err);
+    },
+  });
+}
+
+interface MediaPickerItem {
+  id: string;
+  file_url: string;
+  file_name: string;
+  file_type: "image" | "video" | "video_link" | "audio";
+}
+
+export function useAddMediaToAlbum() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      albumId,
+      items,
+    }: {
+      albumId: string;
+      items: MediaPickerItem[];
+    }) => {
+      const userId = await getCurrentUserId();
+
+      const compatible = items.filter(
+        (m) => m.file_type === "image" || m.file_type === "video"
+      );
+      if (compatible.length === 0) return [];
+
+      const { data: existing } = await supabase
+        .from("book_productions")
+        .select("sort_order")
+        .eq("album_id", albumId)
+        .order("sort_order", { ascending: false })
+        .limit(1);
+      const startOrder = (existing?.[0]?.sort_order ?? -1) + 1;
+
+      const rows = compatible.map((m, idx) => ({
+        album_id: albumId,
+        user_id: userId,
+        title: m.file_name.replace(/\.[^/.]+$/, ""),
+        file_url: m.file_url,
+        thumbnail_url: m.file_url,
+        file_type: m.file_type as "image" | "video",
+        original_filename: m.file_name,
+        sort_order: startOrder + idx,
+        source_media_id: m.id,
+      }));
+
+      const { data, error } = await supabase
+        .from("book_productions")
+        .insert(rows)
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["book-productions", variables.albumId] });
+      queryClient.invalidateQueries({ queryKey: ["book-albums"] });
+    },
+    onError: (err: Error) => {
+      toastError(toast, err, { title: "Erreur ajout depuis la médiathèque" });
+    },
+  });
+}
+
+export function useSetAlbumCover() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      albumId,
+      production,
+    }: {
+      albumId: string;
+      production: BookProduction | null;
+    }) => {
+      // Store the raw (un-signed) URL: either the media library URL for referenced
+      // items, or re-derive the public URL form for items in our private bucket.
+      let coverUrl: string | null = null;
+      if (production) {
+        if (production.source_media_id) {
+          coverUrl = production.file_url;
+        } else {
+          const path = extractStoragePath(production.file_url);
+          if (path) {
+            const { data: row } = await supabase
+              .from("book_productions")
+              .select("file_url")
+              .eq("id", production.id)
+              .maybeSingle();
+            coverUrl = row?.file_url ?? production.file_url;
+          } else {
+            coverUrl = production.file_url;
+          }
+        }
+      }
+
+      const { error } = await supabase
+        .from("book_albums")
+        .update({ cover_url: coverUrl })
+        .eq("id", albumId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
     },
     onError: (err: Error) => {
