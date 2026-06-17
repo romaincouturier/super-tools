@@ -231,6 +231,44 @@ export function extractStoragePath(fileUrl: string): string | null {
   }
 }
 
+/**
+ * Convert public/raw URLs (or stored paths) for the private `book-productions`
+ * bucket into time-limited signed URLs. Inputs that are already signed
+ * (contain ?token=) or that don't belong to this bucket are returned as-is.
+ */
+export async function signBookUrls(
+  inputs: (string | null | undefined)[],
+  expiresIn = 60 * 60,
+): Promise<(string | null)[]> {
+  const result: (string | null)[] = inputs.map((u) => u ?? null);
+  const pathsToSign: string[] = [];
+  const indexMap: number[] = [];
+
+  inputs.forEach((input, i) => {
+    if (!input) return;
+    if (input.includes("/object/sign/") && input.includes("token=")) return;
+    const path = extractStoragePath(input) ?? (input.startsWith("http") ? null : input);
+    if (path) {
+      pathsToSign.push(path);
+      indexMap.push(i);
+    }
+  });
+
+  if (pathsToSign.length === 0) return result;
+
+  const { data, error } = await supabase.storage
+    .from("book-productions")
+    .createSignedUrls(pathsToSign, expiresIn);
+
+  if (error || !data) return result;
+
+  data.forEach((item, idx) => {
+    if (item.signedUrl) result[indexMap[idx]] = item.signedUrl;
+  });
+  return result;
+}
+
+
 export function useBookProductions(albumId: string) {
   return useQuery<BookProduction[]>({
     queryKey: ["book-productions", albumId],
