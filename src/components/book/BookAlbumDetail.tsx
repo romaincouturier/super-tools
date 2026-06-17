@@ -1,14 +1,23 @@
-import { useState } from 'react';
-import { ChevronLeft, Plus, Share2, BarChart2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronLeft, Plus, Share2, BarChart2, Library } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useBookProductions, useDeleteProduction, useUpdateProduction } from '@/hooks/useBook';
+import {
+  useBookProductions,
+  useDeleteProduction,
+  useUpdateProduction,
+  useSetAlbumCover,
+  useAlbumRawCover,
+  extractStoragePath,
+} from '@/hooks/useBook';
 import BookProductionCard from './BookProductionCard';
 import BookProductionLightbox from './BookProductionLightbox';
 import BookUploadDialog from './BookUploadDialog';
 import BookShareLinksManager from './BookShareLinksManager';
 import BookAnalyticsDashboard from './BookAnalyticsDashboard';
+import BookMediaLibraryPicker from './BookMediaLibraryPicker';
 import type { BookProduction } from '@/types/book';
+import { toast } from '@/hooks/use-toast';
 
 interface BookAlbumDetailProps {
   albumId: string;
@@ -23,15 +32,30 @@ export default function BookAlbumDetail({
 }: BookAlbumDetailProps) {
   const navigate = useNavigate();
   const { data: productions = [], isLoading } = useBookProductions(albumId);
+  const { data: rawCoverUrl } = useAlbumRawCover(albumId);
   const deleteProduction = useDeleteProduction();
   const updateProduction = useUpdateProduction();
+  const setAlbumCover = useSetAlbumCover();
 
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const coverPath = useMemo(() => {
+    if (!rawCoverUrl) return null;
+    return extractStoragePath(rawCoverUrl) ?? rawCoverUrl;
+  }, [rawCoverUrl]);
+
+  function isCover(p: BookProduction): boolean {
+    if (!rawCoverUrl || !coverPath) return false;
+    if (p.source_media_id) return p.file_url === coverPath;
+    const path = extractStoragePath(p.file_url);
+    return !!path && path === coverPath;
+  }
 
   function openLightbox(index: number) {
     setLightboxIndex(index);
@@ -43,11 +67,10 @@ export default function BookAlbumDetail({
       id: production.id,
       albumId: production.album_id,
       fileUrl: production.file_url,
+      sourceMediaId: production.source_media_id,
     });
   }
 
-  // Edit handler — opens a simple inline rename for now via the lightbox title.
-  // A full edit dialog would be a separate component; here we trigger a prompt for simplicity.
   function handleEdit(production: BookProduction) {
     const newTitle = window.prompt('Nouveau titre', production.title);
     if (newTitle && newTitle.trim() && newTitle.trim() !== production.title) {
@@ -59,10 +82,15 @@ export default function BookAlbumDetail({
     }
   }
 
+  async function handleSetCover(production: BookProduction) {
+    await setAlbumCover.mutateAsync({ albumId, production });
+    toast({ title: 'Couverture mise à jour' });
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
           <Button
             variant="ghost"
@@ -80,7 +108,7 @@ export default function BookAlbumDetail({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setStatsOpen(true)}>
             <BarChart2 className="w-4 h-4 mr-1.5" />
             Stats
@@ -88,6 +116,10 @@ export default function BookAlbumDetail({
           <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
             <Share2 className="w-4 h-4 mr-1.5" />
             Partager
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setLibraryOpen(true)}>
+            <Library className="w-4 h-4 mr-1.5" />
+            Médiathèque
           </Button>
           <Button size="sm" onClick={() => setUploadOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
@@ -102,12 +134,18 @@ export default function BookAlbumDetail({
           Chargement...
         </div>
       ) : productions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-3">
           <p className="text-lg">Aucune production — ajoutez votre première</p>
-          <Button className="mt-4" onClick={() => setUploadOpen(true)}>
-            <Plus className="w-4 h-4 mr-1.5" />
-            Ajouter des productions
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setUploadOpen(true)}>
+              <Plus className="w-4 h-4 mr-1.5" />
+              Ajouter des productions
+            </Button>
+            <Button variant="outline" onClick={() => setLibraryOpen(true)}>
+              <Library className="w-4 h-4 mr-1.5" />
+              Depuis la médiathèque
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -115,9 +153,11 @@ export default function BookAlbumDetail({
             <BookProductionCard
               key={production.id}
               production={production}
+              isCover={isCover(production)}
               onClick={() => openLightbox(index)}
               onDelete={() => handleDelete(production)}
               onEdit={() => handleEdit(production)}
+              onSetCover={() => handleSetCover(production)}
             />
           ))}
         </div>
@@ -127,6 +167,11 @@ export default function BookAlbumDetail({
       <BookUploadDialog
         open={uploadOpen}
         onOpenChange={setUploadOpen}
+        albumId={albumId}
+      />
+      <BookMediaLibraryPicker
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
         albumId={albumId}
       />
       <BookShareLinksManager
