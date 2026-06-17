@@ -1,6 +1,4 @@
-import { BookImage, Share2, Edit2, Trash2, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { BookImage, Share2, Edit2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -90,11 +88,6 @@ export default function BookAlbumCard({
         {album.description && (
           <p className="text-sm text-muted-foreground line-clamp-1">{album.description}</p>
         )}
-
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Calendar className="w-3 h-3" />
-          <span>{format(new Date(album.created_at), 'MMM yyyy', { locale: fr })}</span>
-        </div>
       </div>
     </Card>
   );
