@@ -103,14 +103,20 @@ export function useBookAlbums() {
         }
       }
 
-      return (albums ?? []).map((album) => ({
+      const rawCovers = (albums ?? []).map(
+        (album) => album.cover_url ?? coverMap[album.id] ?? null,
+      );
+      const signedCovers = await signBookUrls(rawCovers);
+
+      return (albums ?? []).map((album, i) => ({
         ...(album as BookAlbum),
-        cover_url: album.cover_url ?? coverMap[album.id] ?? null,
+        cover_url: signedCovers[i],
         production_count: countMap[album.id] ?? 0,
       }));
     },
   });
 }
+
 
 export function useCreateAlbum() {
   const queryClient = useQueryClient();
@@ -231,6 +237,44 @@ export function extractStoragePath(fileUrl: string): string | null {
   }
 }
 
+/**
+ * Convert public/raw URLs (or stored paths) for the private `book-productions`
+ * bucket into time-limited signed URLs. Inputs that are already signed
+ * (contain ?token=) or that don't belong to this bucket are returned as-is.
+ */
+export async function signBookUrls(
+  inputs: (string | null | undefined)[],
+  expiresIn = 60 * 60,
+): Promise<(string | null)[]> {
+  const result: (string | null)[] = inputs.map((u) => u ?? null);
+  const pathsToSign: string[] = [];
+  const indexMap: number[] = [];
+
+  inputs.forEach((input, i) => {
+    if (!input) return;
+    if (input.includes("/object/sign/") && input.includes("token=")) return;
+    const path = extractStoragePath(input) ?? (input.startsWith("http") ? null : input);
+    if (path) {
+      pathsToSign.push(path);
+      indexMap.push(i);
+    }
+  });
+
+  if (pathsToSign.length === 0) return result;
+
+  const { data, error } = await supabase.storage
+    .from("book-productions")
+    .createSignedUrls(pathsToSign, expiresIn);
+
+  if (error || !data) return result;
+
+  data.forEach((item, idx) => {
+    if (item.signedUrl) result[indexMap[idx]] = item.signedUrl;
+  });
+  return result;
+}
+
+
 export function useBookProductions(albumId: string) {
   return useQuery<BookProduction[]>({
     queryKey: ["book-productions", albumId],
@@ -241,7 +285,18 @@ export function useBookProductions(albumId: string) {
         .eq("album_id", albumId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as BookProduction[];
+      const rows = (data ?? []) as BookProduction[];
+      const fileUrls = rows.map((r) => r.file_url);
+      const thumbs = rows.map((r) => r.thumbnail_url);
+      const [signedFiles, signedThumbs] = await Promise.all([
+        signBookUrls(fileUrls),
+        signBookUrls(thumbs),
+      ]);
+      return rows.map((r, i) => ({
+        ...r,
+        file_url: signedFiles[i] ?? r.file_url,
+        thumbnail_url: signedThumbs[i],
+      }));
     },
     enabled: !!albumId,
     staleTime: 30 * 60 * 1000,
@@ -642,7 +697,16 @@ export function useBookProductionViewStats(albumId: string) {
         .order("sort_order", { ascending: true });
       if (prodError) throw prodError;
 
-      const allProductions = (productions ?? []) as BookProduction[];
+      const rawProductions = (productions ?? []) as BookProduction[];
+      const [signedFiles, signedThumbs] = await Promise.all([
+        signBookUrls(rawProductions.map((p) => p.file_url)),
+        signBookUrls(rawProductions.map((p) => p.thumbnail_url)),
+      ]);
+      const allProductions: BookProduction[] = rawProductions.map((p, i) => ({
+        ...p,
+        file_url: signedFiles[i] ?? p.file_url,
+        thumbnail_url: signedThumbs[i],
+      }));
 
       if (!links || links.length === 0) {
         return allProductions.map((p) => ({ production: p, views: 0, unique_links: 0 }));
