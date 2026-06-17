@@ -21,6 +21,8 @@ import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText, maskEmail } from "@/lib/demoMask";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -62,6 +64,7 @@ type Reclamation = {
 };
 
 const Reclamations = () => {
+  const { isDemoMode } = useDemoMode();
   const { user, loading: authLoading } = useAuth();
   const { hasAccess, loading: accessLoading } = useModuleAccess();
   const navigate = useNavigate();
@@ -443,7 +446,7 @@ const Reclamations = () => {
                   <CardContent className="py-3 flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate">{r.client_name || "—"}</span>
+                        <span className="font-medium truncate">{isDemoMode ? maskText(r.client_name) || "—" : r.client_name || "—"}</span>
                         {r.nature && <Badge className={`text-xs ${NATURE_COLORS[r.nature] || ""}`}>{NATURE_LABELS[r.nature] || r.nature}</Badge>}
                         {r.problem_type && <Badge variant="outline" className="text-xs">{r.problem_type}</Badge>}
                         {r.severity && <Badge className={`text-xs ${SEVERITY_COLORS[r.severity] || ""}`}>{r.severity}</Badge>}
@@ -483,7 +486,7 @@ const Reclamations = () => {
             <>
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  Réclamation — {selectedRec.client_name || "Sans nom"}
+                  Réclamation — {isDemoMode ? maskText(selectedRec.client_name) || "Sans nom" : selectedRec.client_name || "Sans nom"}
                   <Badge className={`text-xs ${STATUS_COLORS[selectedRec.status] || ""}`}>{STATUS_LABELS[selectedRec.status] || selectedRec.status}</Badge>
                 </SheetTitle>
               </SheetHeader>
@@ -493,7 +496,7 @@ const Reclamations = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><span className="text-muted-foreground">Nature :</span> {selectedRec.nature ? (NATURE_LABELS[selectedRec.nature] || selectedRec.nature) : "—"}</div>
                   <div><span className="text-muted-foreground">Date :</span> {selectedRec.date_reclamation || "—"}</div>
-                  <div><span className="text-muted-foreground">Email :</span> {selectedRec.client_email || "—"}</div>
+                  <div><span className="text-muted-foreground">Email :</span> {isDemoMode ? maskEmail(selectedRec.client_email) || "—" : selectedRec.client_email || "—"}</div>
                   <div><span className="text-muted-foreground">Canal :</span> {selectedRec.canal || "—"}</div>
                   <div><span className="text-muted-foreground">Type :</span> {selectedRec.problem_type || "—"}</div>
                   <div><span className="text-muted-foreground">Gravité :</span> {selectedRec.severity || "—"}</div>

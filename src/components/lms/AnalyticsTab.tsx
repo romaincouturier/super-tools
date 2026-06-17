@@ -3,12 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLessonViewStats, useCourseLessons, useCourseModules, useAllCourseComments } from "@/hooks/useLms";
 import { BarChart3, Eye, MessageCircle, Users } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail, maskName } from "@/lib/demoMask";
 
 interface Props {
   courseId: string;
 }
 
 export default function LmsAnalyticsTab({ courseId }: Props) {
+  const { isDemoMode } = useDemoMode();
   const { data: views = [] } = useLessonViewStats(courseId);
   const { data: lessons = [] } = useCourseLessons(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
@@ -137,7 +140,7 @@ export default function LmsAnalyticsTab({ courseId }: Props) {
               return (
                 <div key={c.id} className="bg-muted/50 rounded-lg p-3 text-sm">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{c.learner_name || c.learner_email}</span>
+                    <span className="font-medium">{isDemoMode ? (c.learner_name ? maskName(c.learner_name) : maskEmail(c.learner_email)) : (c.learner_name || c.learner_email)}</span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(c.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </span>
