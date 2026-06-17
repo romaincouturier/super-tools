@@ -1,20 +1,24 @@
-import { Video, Edit2, Trash2 } from 'lucide-react';
+import { Video, Edit2, Trash2, Star, Link2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { BookProduction } from '@/types/book';
 
 interface BookProductionCardProps {
   production: BookProduction;
+  isCover?: boolean;
   onClick: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onSetCover?: () => void;
 }
 
 export default function BookProductionCard({
   production,
+  isCover,
   onClick,
   onDelete,
   onEdit,
+  onSetCover,
 }: BookProductionCardProps) {
   const visibleTags = production.tags.slice(0, 2);
   const extraTagCount = production.tags.length - visibleTags.length;
@@ -45,9 +49,39 @@ export default function BookProductionCard({
         />
       )}
 
+      {/* Persistent badges */}
+      <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+        {isCover && (
+          <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-400 h-5 px-1.5 gap-1">
+            <Star className="w-3 h-3 fill-current" />
+            Couverture
+          </Badge>
+        )}
+        {production.source_media_id && (
+          <Badge variant="secondary" className="h-5 px-1.5 gap-1 bg-white/90">
+            <Link2 className="w-3 h-3" />
+            Médiathèque
+          </Badge>
+        )}
+      </div>
+
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
         <div className="flex justify-end gap-1">
+          {onSetCover && !isCover && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-7 w-7 bg-white/90 hover:bg-white"
+              title="Définir comme couverture"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetCover();
+              }}
+            >
+              <Star className="w-3.5 h-3.5" />
+            </Button>
+          )}
           <Button
             variant="secondary"
             size="icon"

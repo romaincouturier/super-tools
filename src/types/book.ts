@@ -35,6 +35,7 @@ export interface BookProduction {
   tags: string[];
   notes: string | null;
   sort_order: number;
+  source_media_id: string | null;
   created_at: string;
   updated_at: string;
 }
