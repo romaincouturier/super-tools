@@ -359,14 +359,10 @@ export function useDeleteProduction() {
       albumId: string;
       fileUrl: string;
     }) => {
-      // Extract storage path from public URL
-      // URL pattern: .../storage/v1/object/public/book-productions/{path}
+      // Extract storage path from public or signed URL
       try {
-        const url = new URL(fileUrl);
-        const marker = "/object/public/book-productions/";
-        const idx = url.pathname.indexOf(marker);
-        if (idx !== -1) {
-          const storagePath = url.pathname.slice(idx + marker.length);
+        const storagePath = extractStoragePath(fileUrl);
+        if (storagePath) {
           await supabase.storage.from("book-productions").remove([storagePath]);
         }
       } catch {
