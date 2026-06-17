@@ -70,7 +70,7 @@ const DuplicateTrainingDialog = ({
     const fetchLives = async () => {
       const { data } = await supabase
         .from("training_live_meetings")
-        .select("title, duration_minutes, meeting_url, description, email_content")
+        .select("title, duration_minutes, meeting_url, description, email_content, run_notes")
         .eq("training_id", trainingId)
         .order("scheduled_at", { ascending: true });
       if (data && data.length > 0) {
@@ -233,6 +233,7 @@ const DuplicateTrainingDialog = ({
               meeting_url: live.meeting_url,
               description: live.description,
               email_content: live.email_content,
+              run_notes: live.run_notes,
               status: "scheduled",
             };
           })
