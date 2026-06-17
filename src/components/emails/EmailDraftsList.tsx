@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskName, maskEmail } from "@/lib/demoMask";
 import DOMPurify from "dompurify";
 import { Mail, Send, Eye, ChevronDown, ChevronUp, X, Pencil, Clock, CalendarDays, Briefcase, Target, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -61,6 +63,7 @@ const TYPE_LABELS: Record<string, string> = {
  * actions. The comms manager uses this to validate drafts before they go out.
  */
 export default function EmailDraftsList({ missionId, showMissionLabel = false }: Props) {
+  const { isDemoMode } = useDemoMode();
   const { drafts, isLoading, approveAndSend, rejectDraft, updateDraftContent, scheduleDraft } =
     useMissionEmailDrafts(missionId);
   const missionIds = drafts.map((d) => d.mission_id).filter(Boolean);
@@ -187,7 +190,9 @@ function DraftCard({
               </div>
               <p className="text-sm font-medium mt-1 truncate">{draft.subject}</p>
               <p className="text-xs text-muted-foreground">
-                → {draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email}
+                → {isDemoMode
+                  ? (draft.contact_name ? `${maskName(draft.contact_name)} (${maskEmail(draft.contact_email)})` : maskEmail(draft.contact_email))
+                  : (draft.contact_name ? `${draft.contact_name} (${draft.contact_email})` : draft.contact_email)}
               </p>
               {showMissionLabel && draft.mission_id && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
@@ -339,7 +344,9 @@ function DraftCard({
           <div className="space-y-3">
             <div>
               <p className="text-xs text-muted-foreground">Destinataire</p>
-              <p className="text-sm">{draft.contact_name ? `${draft.contact_name} <${draft.contact_email}>` : draft.contact_email}</p>
+              <p className="text-sm">{isDemoMode
+                ? (draft.contact_name ? `${maskName(draft.contact_name)} <${maskEmail(draft.contact_email)}>` : maskEmail(draft.contact_email))
+                : (draft.contact_name ? `${draft.contact_name} <${draft.contact_email}>` : draft.contact_email)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Objet</p>
