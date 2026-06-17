@@ -82,6 +82,28 @@ serve(async (req: Request): Promise<Response> => {
 
     const fileUrl = publicData.publicUrl;
 
+    // Crée d'abord l'entrée dans la médiathèque
+    const { data: mediaRow, error: mediaError } = await supabaseAdmin
+      .from("media")
+      .insert({
+        file_url: fileUrl,
+        file_name: originalFilename ?? file.name ?? "file",
+        file_type: fileType,
+        mime_type: file.type || null,
+        file_size: file.size ?? null,
+        source_type: "book",
+        source_id: albumId,
+        created_by: user.id,
+        tags: tags ?? [],
+      })
+      .select("id")
+      .single();
+
+    if (mediaError) {
+      console.error("[book-upload-production] media insert error:", mediaError);
+      // non bloquant : on continue la création de la production
+    }
+
     const { data: production, error: insertError } = await supabaseAdmin
       .from("book_productions")
       .insert({
@@ -98,6 +120,7 @@ serve(async (req: Request): Promise<Response> => {
         tags,
         notes,
         sort_order: 0,
+        source_media_id: mediaRow?.id ?? null,
       })
       .select()
       .single();
