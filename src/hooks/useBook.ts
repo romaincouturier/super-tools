@@ -513,8 +513,9 @@ export function useSetAlbumCover() {
         .eq("id", albumId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["book-albums"] });
+      queryClient.invalidateQueries({ queryKey: ["book-album-raw-cover", variables.albumId] });
     },
     onError: (err: Error) => {
       toastError(toast, err);
