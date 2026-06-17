@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 import { Star, CheckCircle2, XCircle, Clock, Loader2, RefreshCw, Download, Wand2, Plus } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -33,6 +35,7 @@ function StatusBadge({ status }: { status: TestimonialStatus }) {
 }
 
 function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const driveUrl = t.drive_file_id ? `https://drive.google.com/file/d/${t.drive_file_id}/view` : null;
   const videoUrl = driveUrl ?? t.video_url;
   return (
@@ -40,8 +43,8 @@ function TestimonialCard({ t, onClick }: { t: Testimonial; onClick: () => void }
       <CardContent className="p-4 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-medium text-sm">{t.client_name || "Client inconnu"}</p>
-            <p className="text-xs text-muted-foreground">{t.company || "—"}</p>
+            <p className="font-medium text-sm">{isDemoMode ? maskText(t.client_name) || "Client inconnu" : t.client_name || "Client inconnu"}</p>
+            <p className="text-xs text-muted-foreground">{isDemoMode ? maskText(t.company) || "—" : t.company || "—"}</p>
           </div>
           <StatusBadge status={t.status} />
         </div>
@@ -81,6 +84,7 @@ function extractYoutubeId(url: string | null | undefined): string | null {
 }
 
 function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () => void }) {
+  const { isDemoMode } = useDemoMode();
   const ytId = extractYoutubeId(t.video_url);
   const [playing, setPlaying] = useState(false);
 
@@ -141,8 +145,8 @@ function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () =>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="font-medium text-sm line-clamp-2 leading-snug">{t.service_type || "Prestation non renseignée"}</p>
-          <p className="text-xs text-muted-foreground truncate">{t.company || "—"}</p>
-          <p className="text-xs text-muted-foreground truncate">{t.client_name || "Client inconnu"}</p>
+          <p className="text-xs text-muted-foreground truncate">{isDemoMode ? maskText(t.company) || "—" : t.company || "—"}</p>
+          <p className="text-xs text-muted-foreground truncate">{isDemoMode ? maskText(t.client_name) || "Client inconnu" : t.client_name || "Client inconnu"}</p>
         </div>
         <Button
           variant="ghost"
