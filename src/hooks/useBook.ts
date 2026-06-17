@@ -697,7 +697,16 @@ export function useBookProductionViewStats(albumId: string) {
         .order("sort_order", { ascending: true });
       if (prodError) throw prodError;
 
-      const allProductions = (productions ?? []) as BookProduction[];
+      const rawProductions = (productions ?? []) as BookProduction[];
+      const [signedFiles, signedThumbs] = await Promise.all([
+        signBookUrls(rawProductions.map((p) => p.file_url)),
+        signBookUrls(rawProductions.map((p) => p.thumbnail_url)),
+      ]);
+      const allProductions: BookProduction[] = rawProductions.map((p, i) => ({
+        ...p,
+        file_url: signedFiles[i] ?? p.file_url,
+        thumbnail_url: signedThumbs[i],
+      }));
 
       if (!links || links.length === 0) {
         return allProductions.map((p) => ({ production: p, views: 0, unique_links: 0 }));
