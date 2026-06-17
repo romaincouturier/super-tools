@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -60,6 +62,7 @@ async function callManage(action: string, params: Record<string, string> = {}) {
 export default function LmsLearners() {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [editLearner, setEditLearner] = useState<LearnerAccount | null>(null);
@@ -189,7 +192,7 @@ export default function LmsLearners() {
                       }
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{learner.email}</p>
+                      <p className="text-sm font-medium truncate">{isDemoMode ? maskEmail(learner.email) : learner.email}</p>
                       <p className="text-xs text-muted-foreground">
                         Créé le {format(new Date(learner.created_at), "d MMM yyyy", { locale: fr })}
                         {learner.last_sign_in_at && (

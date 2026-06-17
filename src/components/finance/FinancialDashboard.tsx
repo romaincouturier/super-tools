@@ -27,6 +27,8 @@ import {
   type PeriodRange,
   type KPIWithChange,
 } from "@/hooks/useFinancialKPIs";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 type PresetKey = "last12" | "currentYear" | "previousYear";
 
@@ -79,6 +81,7 @@ export default function FinancialDashboard() {
   const [preset, setPreset] = useState<PresetKey>("last12");
   const period = useMemo(() => PRESETS[preset].range(), [preset]);
   const kpis = useFinancialKPIs(period);
+  const { isDemoMode } = useDemoMode();
 
   const tokenMissing =
     kpis.errorMessage?.toLowerCase().includes("pennylane non configuré") ||
@@ -131,7 +134,7 @@ export default function FinancialDashboard() {
         <div>
           <KpiCard
             title="CA encaissé"
-            value={EUR.format(kpis.revenue.current)}
+            value={isDemoMode ? maskAmount(kpis.revenue.current) : EUR.format(kpis.revenue.current)}
             icon={TrendingUp}
             tone="positive"
           />
@@ -142,7 +145,7 @@ export default function FinancialDashboard() {
         <div>
           <KpiCard
             title="Résultat net"
-            value={EUR.format(kpis.netResult.current)}
+            value={isDemoMode ? maskAmount(kpis.netResult.current) : EUR.format(kpis.netResult.current)}
             icon={Target}
             tone={kpis.netResult.current >= 0 ? "positive" : "negative"}
           />
@@ -153,7 +156,7 @@ export default function FinancialDashboard() {
         <div>
           <KpiCard
             title="Taux de marge"
-            value={`${kpis.marginRate.current.toFixed(1)} %`}
+            value={isDemoMode ? "••%" : `${kpis.marginRate.current.toFixed(1)} %`}
             icon={Percent}
             tone={kpis.marginRate.current >= 0 ? "positive" : "negative"}
           />
@@ -164,7 +167,7 @@ export default function FinancialDashboard() {
         <div>
           <KpiCard
             title="Trésorerie"
-            value={EUR.format(kpis.cash)}
+            value={isDemoMode ? maskAmount(kpis.cash) : EUR.format(kpis.cash)}
             icon={Wallet}
             hint={`${kpis.cashAccountsCount} compte(s)`}
           />

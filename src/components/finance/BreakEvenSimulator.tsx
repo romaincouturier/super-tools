@@ -28,6 +28,8 @@ import {
 } from "@/hooks/useBreakEvenScenarios";
 import { EUR } from "@/components/finance/InvoicesTable";
 import BreakEvenScenarioList from "@/components/finance/BreakEvenScenarioList";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 import BreakEvenSaveDialog from "@/components/finance/BreakEvenSaveDialog";
 import { SliderField, Metric } from "@/components/finance/BreakEvenControls";
 
@@ -81,6 +83,7 @@ const DEFAULT_STATE: SimulatorState = {
 export default function BreakEvenSimulator() {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
+  const { isDemoMode } = useDemoMode();
   const detected = useDetectedFixedCosts();
   const scenariosQuery = useBreakEvenScenarios();
   const saveScenario = useSaveBreakEvenScenario();
@@ -204,7 +207,7 @@ export default function BreakEvenSimulator() {
                 detected.totalMonthly > 0 && !autoDetected ? (
                   <Button size="sm" variant="ghost" onClick={applyDetectedFixedCosts}>
                     <Wand2 className="h-3.5 w-3.5 mr-1" />
-                    Détecter ({EUR.format(detected.totalMonthly)})
+                    Détecter ({isDemoMode ? "•••• €" : EUR.format(detected.totalMonthly)})
                   </Button>
                 ) : null
               }
@@ -253,7 +256,7 @@ export default function BreakEvenSimulator() {
           <CardContent className="space-y-3">
             <Metric
               label="Point mort (CA)"
-              value={Number.isFinite(metrics.pointMortRevenue) ? EUR.format(metrics.pointMortRevenue) : "—"}
+              value={isDemoMode ? (Number.isFinite(metrics.pointMortRevenue) ? "•••• €" : "—") : (Number.isFinite(metrics.pointMortRevenue) ? EUR.format(metrics.pointMortRevenue) : "—")}
               hint="CA mensuel à atteindre pour couvrir les charges"
             />
             <Metric
@@ -263,7 +266,7 @@ export default function BreakEvenSimulator() {
             />
             <Metric
               label="Marge mensuelle actuelle"
-              value={EUR.format(metrics.monthlyMargin)}
+              value={isDemoMode ? maskAmount(metrics.monthlyMargin) : EUR.format(metrics.monthlyMargin)}
               tone={metrics.monthlyMargin >= 0 ? "positive" : "negative"}
             />
             <Metric label="Taux de marge sur coût variable" value={`${Math.round(metrics.marginRate * 100)} %`} />
