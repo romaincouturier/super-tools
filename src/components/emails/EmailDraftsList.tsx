@@ -146,6 +146,7 @@ function DraftCard({
   onSchedule?: (id: string, date: string) => void;
   isMutating: boolean;
 }) {
+  const { isDemoMode } = useDemoMode();
   const [expanded, setExpanded] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editing, setEditing] = useState(false);
