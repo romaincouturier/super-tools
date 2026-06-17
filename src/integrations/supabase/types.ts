@@ -11181,6 +11181,7 @@ export type Database = {
         | "missions"
         | "okr"
         | "medias"
+        | "book"
         | "monitoring"
         | "arena"
         | "reclamations"
@@ -11350,6 +11351,7 @@ export const Constants = {
         "missions",
         "okr",
         "medias",
+        "book",
         "monitoring",
         "arena",
         "reclamations",
