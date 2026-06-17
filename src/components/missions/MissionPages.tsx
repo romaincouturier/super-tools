@@ -375,7 +375,7 @@ const PageTreeItem = ({
           >
             <Plus className="h-3 w-3" />
           </button>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <button
                 className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted"
@@ -858,7 +858,7 @@ const PageEditor = ({
         {editor.isActive("table") && (
           <TB active={false} onClick={() => editor.chain().focus().deleteTable().run()} t="Supprimer le tableau"><Trash2 className="h-3.5 w-3.5 text-destructive" /></TB>
         )}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
@@ -1338,7 +1338,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         <div className="p-2 border-b flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Pages</span>
           <div className="flex items-center gap-0.5">
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Trier">
                   <ArrowDownUp className="h-3.5 w-3.5" />
