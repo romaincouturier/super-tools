@@ -9,11 +9,15 @@ import {
   useUpdateMediaTranscript,
   useUploadEventMedia,
   useUploadMissionMedia,
+  useReorderMedia,
   uploadMediaFile,
   deleteMediaFile,
   MediaSourceType,
   MediaItem,
 } from "@/hooks/useMedia";
+import { DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { uploadEntityDocument } from "@/hooks/useEntityDocuments";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +31,21 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
 
+function SortableThumb({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={isDragging ? "opacity-50" : undefined}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </div>
+  );
+}
+
 interface EntityMediaManagerProps {
   sourceType: MediaSourceType;
   sourceId: string;
@@ -37,6 +56,8 @@ interface EntityMediaManagerProps {
   enablePaste?: boolean;
   /** Also allow video_link entries (for events) */
   allowVideoLinks?: boolean;
+  /** Enable drag-and-drop reordering of images and videos */
+  allowReorder?: boolean;
 }
 
 const EntityMediaManager = ({
@@ -46,6 +67,7 @@ const EntityMediaManager = ({
   variant = "card",
   enablePaste = false,
   allowVideoLinks = false,
+  allowReorder = false,
 }: EntityMediaManagerProps) => {
   const { data: media = [], isLoading } = useEntityMedia(sourceType, sourceId);
   const addMedia = useAddMedia();
@@ -55,6 +77,7 @@ const EntityMediaManager = ({
   const updateTranscript = useUpdateMediaTranscript();
   const uploadEventMedia = useUploadEventMedia();
   const uploadMissionMedia = useUploadMissionMedia();
+  const reorderMedia = useReorderMedia();
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
@@ -62,17 +85,38 @@ const EntityMediaManager = ({
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
   const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
+  const [localItems, setLocalItems] = useState<MediaItem[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
     "transcribe-audio-long",
     { silentOnError: true },
   );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
   // Filter out video_link for display/download purposes
   const downloadableMedia = media.filter((m) => m.file_type !== "video_link");
   const imageItems = media.filter((m) => m.file_type === "image");
   const videoItems = media.filter((m) => m.file_type === "video");
   const audioItems = media.filter((m) => m.file_type === "audio");
+
+  const displayItems = localItems ?? downloadableMedia;
+  const gridItems = allowReorder
+    ? displayItems
+    : [...downloadableMedia].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = displayItems.findIndex((m) => m.id === String(active.id));
+    const newIndex = displayItems.findIndex((m) => m.id === String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(displayItems, oldIndex, newIndex);
+    setLocalItems(reordered);
+    reorderMedia.mutate(
+      { sourceType, sourceId, items: reordered.map((m, i) => ({ id: m.id, position: i })) },
+      { onSettled: () => setLocalItems(null) },
+    );
+  };
 
   const handleToggleDeliverable = (item: MediaItem) => {
     toggleDeliverable.mutate({
@@ -434,189 +478,206 @@ const EntityMediaManager = ({
         </div>
       ) : (
         <div className="space-y-3">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-            {/* Add more button */}
-            <div
-              className={cn(
-                "aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors",
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-primary/50"
-              )}
-              onClick={() => fileInputRef.current?.click()}
-              onDrop={handleDrop}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-            >
-              {uploading ? (
-                <Spinner size="md" className="text-muted-foreground" />
-              ) : (
-                <Plus className="h-6 w-6 text-muted-foreground" />
-              )}
-            </div>
+          {(() => {
+            const grid = (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {/* Add more button */}
+                <div
+                  className={cn(
+                    "aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors",
+                    dragOver
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-primary/50"
+                  )}
+                  onClick={() => fileInputRef.current?.click()}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                >
+                  {uploading ? (
+                    <Spinner size="md" className="text-muted-foreground" />
+                  ) : (
+                    <Plus className="h-6 w-6 text-muted-foreground" />
+                  )}
+                </div>
 
-            {[...downloadableMedia].sort((a, b) => (b.is_deliverable ? 1 : 0) - (a.is_deliverable ? 1 : 0)).map((item) => (
-              <div
-                key={item.id}
-                className={cn(
-                  "group relative rounded-lg overflow-hidden bg-muted cursor-pointer",
-                  item.file_type === "audio" ? "col-span-2 border" : "aspect-square border-2",
-                  item.is_deliverable && item.file_type !== "audio"
-                    ? "border-amber-400"
-                    : "border-border"
-                )}
-                onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
-              >
-                {item.file_type === "image" ? (
-                  <img
-                    src={item.file_url}
-                    alt={item.file_name}
-                    className="w-full h-full object-cover will-change-transform"
-                    loading="lazy"
-                  />
-                ) : item.file_type === "audio" ? (
-                  <div className="p-3 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm font-medium truncate">{item.file_name}</span>
-                      <div className="ml-auto flex items-center gap-1">
-                        {!item.transcript && (
+                {gridItems.map((item) => {
+                  const card = (
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "group relative rounded-lg overflow-hidden bg-muted cursor-pointer",
+                        item.file_type === "audio" ? "col-span-2 border" : "aspect-square border-2",
+                        item.is_deliverable && item.file_type !== "audio"
+                          ? "border-amber-400"
+                          : "border-border"
+                      )}
+                      onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
+                    >
+                      {item.file_type === "image" ? (
+                        <img
+                          src={item.file_url}
+                          alt={item.file_name}
+                          className="w-full h-full object-cover will-change-transform"
+                          loading="lazy"
+                        />
+                      ) : item.file_type === "audio" ? (
+                        <div className="p-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm font-medium truncate">{item.file_name}</span>
+                            <div className="ml-auto flex items-center gap-1">
+                              {!item.transcript && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={(e) => { e.stopPropagation(); handleTranscribe(item); }}
+                                      disabled={transcribingIds.has(item.id)}
+                                    >
+                                      {transcribingIds.has(item.id) ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <FileText className="h-3 w-3 mr-1" />
+                                      )}
+                                      Transcrire
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Transcrire l'audio avec l'IA</TooltipContent>
+                                </Tooltip>
+                              )}
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}>
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, item)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                          <audio src={item.file_url} controls className="w-full h-8" preload="metadata" />
+                          {item.transcript && (
+                            <div className="mt-2 p-2 bg-background rounded border text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
+                              {item.transcript}
+                            </div>
+                          )}
+                          {transcribingIds.has(item.id) && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Transcription en cours...
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-full h-full relative bg-muted">
+                          <video
+                            src={`${item.file_url}#t=0.1`}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                            muted
+                            playsInline
+                            onError={(e) => {
+                              const el = e.currentTarget;
+                              el.style.display = "none";
+                            }}
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
+                            <Play className="h-8 w-8 text-white drop-shadow" />
+                            {item.file_name.toLowerCase().endsWith(".mov") && (
+                              <span className="text-white/70 text-[10px] mt-1">MOV</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Hover overlay (not for audio — handled inline) */}
+                      {item.file_type !== "audio" && (
+                      <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex flex-col items-center justify-between p-2 z-10">
+                        <div className="flex items-center justify-center gap-1 flex-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={(e) => { e.stopPropagation(); handleTranscribe(item); }}
-                                disabled={transcribingIds.has(item.id)}
+                                variant={item.is_deliverable ? "default" : "secondary"}
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleDeliverable(item);
+                                }}
                               >
-                                {transcribingIds.has(item.id) ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                ) : (
-                                  <FileText className="h-3 w-3 mr-1" />
-                                )}
-                                Transcrire
+                                <Package className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Transcrire l'audio avec l'IA</TooltipContent>
+                            <TooltipContent>
+                              {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
+                            </TooltipContent>
                           </Tooltip>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}>
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => handleDelete(e, item)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => handleRename(e, item)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Renommer</TooltipContent>
+                          </Tooltip>
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => handleDelete(e, item)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <p className="w-full text-center text-white text-[11px] leading-tight truncate px-1 drop-shadow">
+                          {item.file_name}
+                        </p>
                       </div>
-                    </div>
-                    <audio src={item.file_url} controls className="w-full h-8" preload="metadata" />
-                    {item.transcript && (
-                      <div className="mt-2 p-2 bg-background rounded border text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
-                        {item.transcript}
-                      </div>
-                    )}
-                    {transcribingIds.has(item.id) && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Transcription en cours...
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="w-full h-full relative bg-muted">
-                    <video
-                      src={`${item.file_url}#t=0.1`}
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                      muted
-                      playsInline
-                      onError={(e) => {
-                        const el = e.currentTarget;
-                        el.style.display = "none";
-                      }}
-                    />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20">
-                      <Play className="h-8 w-8 text-white drop-shadow" />
-                      {item.file_name.toLowerCase().endsWith(".mov") && (
-                        <span className="text-white/70 text-[10px] mt-1">MOV</span>
+                      )}
+
+                      {/* Deliverable badge */}
+                      {item.is_deliverable && item.file_type !== "audio" && (
+                        <div className="absolute top-1 left-1">
+                          <Package className="h-3.5 w-3.5 text-white drop-shadow" />
+                        </div>
+                      )}
+
+                      {item.file_type === "video" && (
+                        <div className="absolute top-1 right-1">
+                          <Video className="h-3.5 w-3.5 text-white drop-shadow" />
+                        </div>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {/* Hover overlay (not for audio — handled inline) */}
-                {item.file_type !== "audio" && (
-                <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex flex-col items-center justify-between p-2 z-10">
-                  <div className="flex items-center justify-center gap-1 flex-1">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant={item.is_deliverable ? "default" : "secondary"}
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleDeliverable(item);
-                          }}
-                        >
-                          <Package className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => handleRename(e, item)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Renommer</TooltipContent>
-                    </Tooltip>
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => handleDownloadFile(e, item.file_url, item.file_name)}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={(e) => handleDelete(e, item)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <p className="w-full text-center text-white text-[11px] leading-tight truncate px-1 drop-shadow">
-                    {item.file_name}
-                  </p>
-                </div>
-                )}
-
-                {/* Deliverable badge */}
-                {item.is_deliverable && item.file_type !== "audio" && (
-                  <div className="absolute top-1 left-1">
-                    <Package className="h-3.5 w-3.5 text-white drop-shadow" />
-                  </div>
-                )}
-
-                {item.file_type === "video" && (
-                  <div className="absolute top-1 right-1">
-                    <Video className="h-3.5 w-3.5 text-white drop-shadow" />
-                  </div>
-                )}
+                  );
+                  return allowReorder ? (
+                    <SortableThumb key={item.id} id={item.id}>{card}</SortableThumb>
+                  ) : card;
+                })}
               </div>
-            ))}
-          </div>
+            );
+            if (!allowReorder) return grid;
+            return (
+              <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <SortableContext items={gridItems.map((m) => m.id)} strategy={rectSortingStrategy}>
+                  {grid}
+                </SortableContext>
+              </DndContext>
+            );
+          })()}
         </div>
       )}
 

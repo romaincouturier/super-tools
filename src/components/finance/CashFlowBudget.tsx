@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useCashFlowAggregator, type CashFlowMonthRow } from "@/hooks/useCashFlowAggregator";
 import { EUR } from "@/components/finance/InvoicesTable";
 import { todayAsISO } from "@/lib/dateFormatters";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import CashFlowAddLineDialog from "@/components/finance/CashFlowAddLineDialog";
 import CashFlowImportPipelineDialog from "@/components/finance/CashFlowImportPipelineDialog";
 import CashFlowImportRecurringDialog from "@/components/finance/CashFlowImportRecurringDialog";
@@ -48,6 +49,7 @@ function buildCsv(rows: CashFlowMonthRow[]): string {
 
 export default function CashFlowBudget() {
   const aggregation = useCashFlowAggregator();
+  const { isDemoMode } = useDemoMode();
   const [threshold, setThreshold] = useState(DEFAULT_THRESHOLD);
   const [addOpen, setAddOpen] = useState(false);
   const [pipelineOpen, setPipelineOpen] = useState(false);
@@ -117,7 +119,7 @@ export default function CashFlowBudget() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center justify-between gap-3">
             <span>Seuil d'alerte trésorerie</span>
-            <span className="tabular-nums font-medium">{EUR.format(threshold)}</span>
+            <span className="tabular-nums font-medium">{isDemoMode ? "•••• €" : EUR.format(threshold)}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -139,7 +141,7 @@ export default function CashFlowBudget() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Tension de trésorerie sur {monthsBelow.length} mois</AlertTitle>
           <AlertDescription>
-            Le solde cumulé prévu passe sous {EUR.format(threshold)} en{" "}
+            Le solde cumulé prévu passe sous {isDemoMode ? "•••• €" : EUR.format(threshold)} en{" "}
             {monthsBelow.map((m) => formatMonth(m.month)).join(", ")}.
           </AlertDescription>
         </Alert>
@@ -148,7 +150,7 @@ export default function CashFlowBudget() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Budget mensuel</CardTitle>
-          <CardDescription>Solde de départ : {EUR.format(aggregation.startingCash)} (banques Pennylane)</CardDescription>
+          <CardDescription>Solde de départ : {isDemoMode ? "•••• €" : EUR.format(aggregation.startingCash)} (banques Pennylane)</CardDescription>
         </CardHeader>
         <CardContent>
           {aggregation.loading ? (
@@ -175,23 +177,23 @@ export default function CashFlowBudget() {
                     return (
                       <tr key={row.month} className={`border-b last:border-b-0 ${belowThreshold ? "bg-destructive/5" : ""}`}>
                         <td className="py-2 px-3 font-medium">{formatMonth(row.month)}</td>
-                        <td className="py-2 px-3 text-right tabular-nums">{EUR.format(row.forecastIncome)}</td>
-                        <td className="py-2 px-3 text-right tabular-nums">{EUR.format(row.forecastExpense)}</td>
+                        <td className="py-2 px-3 text-right tabular-nums">{isDemoMode ? "•••• €" : EUR.format(row.forecastIncome)}</td>
+                        <td className="py-2 px-3 text-right tabular-nums">{isDemoMode ? "•••• €" : EUR.format(row.forecastExpense)}</td>
                         <td className="py-2 px-3 text-right tabular-nums text-emerald-600">
-                          {row.realizedIncome > 0 ? EUR.format(row.realizedIncome) : "—"}
+                          {row.realizedIncome > 0 ? (isDemoMode ? "•••• €" : EUR.format(row.realizedIncome)) : "—"}
                         </td>
                         <td className="py-2 px-3 text-right tabular-nums text-rose-600">
-                          {row.realizedExpense > 0 ? EUR.format(row.realizedExpense) : "—"}
+                          {row.realizedExpense > 0 ? (isDemoMode ? "•••• €" : EUR.format(row.realizedExpense)) : "—"}
                         </td>
                         <td
                           className={`py-2 px-3 text-right tabular-nums ${
                             row.variance > 0 ? "text-emerald-600" : row.variance < 0 ? "text-rose-600" : ""
                           }`}
                         >
-                          {row.realizedIncome + row.realizedExpense > 0 ? EUR.format(row.variance) : "—"}
+                          {row.realizedIncome + row.realizedExpense > 0 ? (isDemoMode ? "•••• €" : EUR.format(row.variance)) : "—"}
                         </td>
                         <td className={`py-2 px-3 text-right tabular-nums font-semibold ${belowThreshold ? "text-rose-600" : ""}`}>
-                          {EUR.format(row.cumulativeForecastBalance)}
+                          {isDemoMode ? "•••• €" : EUR.format(row.cumulativeForecastBalance)}
                         </td>
                       </tr>
                     );

@@ -473,6 +473,7 @@ const EventDetail = () => {
             sourceType="event"
             sourceId={id}
             sourceLabel={event.title}
+            allowReorder
           />
         )}
 

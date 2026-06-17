@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { MissionStatus } from "@/types/missions";
 import { useCreateMission } from "@/hooks/useMissions";
+import { linkMissionToCrmCard } from "@/services/missions";
 
 interface CreateMissionDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ interface CreateMissionDialogProps {
   prefillContactLastName?: string;
   prefillContactEmail?: string;
   prefillContactPhone?: string;
+  prefillFromCrmCardId?: string;
 }
 
 const CreateMissionDialog = ({
@@ -40,6 +42,7 @@ const CreateMissionDialog = ({
   prefillContactLastName,
   prefillContactEmail,
   prefillContactPhone,
+  prefillFromCrmCardId,
 }: CreateMissionDialogProps) => {
   const createMission = useCreateMission();
   const [title, setTitle] = useState("");
@@ -64,18 +67,25 @@ const CreateMissionDialog = ({
     if (!title.trim()) return;
 
     try {
-      await createMission.mutateAsync({
+      const mission = await createMission.mutateAsync({
         title: title.trim(),
         client_name: clientName.trim() || undefined,
         client_contact: clientContact.trim() || undefined,
         initial_amount: totalAmount ? parseFloat(totalAmount) || undefined : undefined,
         status: defaultStatus,
-        // Pass structured contact fields from CRM
         contact_first_name: prefillContactFirstName || undefined,
         contact_last_name: prefillContactLastName || undefined,
         contact_email: prefillContactEmail || undefined,
         contact_phone: prefillContactPhone || undefined,
       });
+
+      if (prefillFromCrmCardId) {
+        try {
+          await linkMissionToCrmCard(mission.id, prefillFromCrmCardId);
+        } catch (err) {
+          console.warn("linkMissionToCrmCard failed (non-fatal):", err);
+        }
+      }
 
       setTitle("");
       setClientName("");

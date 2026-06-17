@@ -651,5 +651,8 @@ verify_jwt = false
 [functions.book-upload-production]
 verify_jwt = false
 
+[functions.duplicate-lms-course]
+verify_jwt = true
+
 [functions.generate-game-devis]
 verify_jwt = false

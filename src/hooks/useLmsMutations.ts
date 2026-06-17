@@ -50,6 +50,23 @@ export function useCreateCourse() {
   });
 }
 
+export function useDuplicateCourse() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ courseId, mode }: { courseId: string; mode: "structure" | "full" }) => {
+      const { data, error } = await supabase.functions.invoke("duplicate-lms-course", {
+        body: { courseId, mode },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { newCourseId: string };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+  });
+}
+
 export function useUpdateCourse() {
   const qc = useQueryClient();
   return useMutation({
@@ -510,5 +527,68 @@ export function usePostLessonComment() {
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ["lms-lesson-comments", vars.lessonId] });
     },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Course folders
+// ---------------------------------------------------------------------------
+
+export function useCreateCourseFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ name, parent_id }: { name: string; parent_id?: string | null }) => {
+      const { data, error } = await supabase
+        .from("lms_course_folders")
+        .insert({ name, parent_id: parent_id ?? null })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lms-course-folders"] }),
+  });
+}
+
+export function useRenameCourseFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase
+        .from("lms_course_folders")
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lms-course-folders"] }),
+  });
+}
+
+export function useDeleteCourseFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Courses in this folder are unlinked (ON DELETE SET NULL in migration)
+      const { error } = await supabase.from("lms_course_folders").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lms-course-folders"] });
+      qc.invalidateQueries({ queryKey: ["lms-courses"] });
+    },
+  });
+}
+
+export function useMoveCourseToFolder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ courseId, folderId }: { courseId: string; folderId: string | null }) => {
+      const { error } = await supabase
+        .from("lms_courses")
+        .update({ folder_id: folderId, updated_at: new Date().toISOString() })
+        .eq("id", courseId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lms-courses"] }),
   });
 }

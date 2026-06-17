@@ -102,6 +102,34 @@ export async function createMission(input: CreateMissionInput): Promise<Mission>
   return mission;
 }
 
+/** Called after a mission is created from a CRM opportunity.
+ * Links the CRM card, then creates an "Historique de l'opportunité" page
+ * from the card's description_html if one exists. Best-effort — failures
+ * are non-fatal so the mission is always returned intact. */
+export async function linkMissionToCrmCard(missionId: string, crmCardId: string): Promise<void> {
+  // Link the CRM card to the mission
+  await db().from("crm_cards").update({ linked_mission_id: missionId }).eq("id", crmCardId);
+
+  // Fetch the card description to populate the history page
+  const { data: card } = await db()
+    .from("crm_cards")
+    .select("description_html")
+    .eq("id", crmCardId)
+    .maybeSingle();
+
+  const content = card?.description_html?.trim();
+  if (!content) return;
+
+  const maxPos = await getMaxPosition("mission_pages", { mission_id: missionId });
+  await db().from("mission_pages").insert({
+    mission_id: missionId,
+    title: "Historique de l'opportunité",
+    icon: "📋",
+    content,
+    position: maxPos + 1,
+  });
+}
+
 export async function updateMission(id: string, updates: UpdateMissionInput): Promise<Mission> {
   const result = await db().from("missions").update(updates).eq("id", id).select().single();
   return throwIfError(result) as Mission;

@@ -35,6 +35,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PageHeader from "@/components/PageHeader";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 interface Training {
   id: string;
@@ -84,6 +86,7 @@ type SortOrder = "asc" | "desc";
 const Formations = () => {
   const isMobile = useIsMobile();
   const { user, loading: authLoading, logout } = useAuth();
+  const { isDemoMode } = useDemoMode();
   const [dataLoading, setDataLoading] = useState(true);
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [trainingActions, setTrainingActions] = useState<TrainingAction[]>([]);
@@ -594,7 +597,7 @@ const Formations = () => {
                       >
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <p className="font-medium text-sm leading-tight">
-                            {asText(training.training_name) || "Sans titre"}
+                            {isDemoMode && training.is_intra ? maskText(asText(training.training_name)) || "Sans titre" : asText(training.training_name) || "Sans titre"}
                           </p>
                           <div className="flex items-center gap-1.5 shrink-0">
                             {(training.participant_count ?? 0) > 0 && (
@@ -645,12 +648,12 @@ const Formations = () => {
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           <Badge variant="outline" className="text-xs flex items-center gap-1">
                             <Building className="h-3 w-3" />
-                            {asText(training.client_name) || "Client non renseigné"}
+                            {isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}
                           </Badge>
                           {training.location && (
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <MapPin className="h-3 w-3" />
-                              {training.location}
+                              {isDemoMode ? maskText(training.location) : training.location}
                             </span>
                           )}
                         </div>
@@ -728,11 +731,11 @@ const Formations = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{asText(training.client_name) || "Client non renseigné"}</Badge>
+                            <Badge variant="outline">{isDemoMode ? maskText(asText(training.client_name)) || "Client non renseigné" : asText(training.client_name) || "Client non renseigné"}</Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {asText(training.training_name) || "Sans titre"}
+                              {isDemoMode && training.is_intra ? maskText(asText(training.training_name)) || "Sans titre" : asText(training.training_name) || "Sans titre"}
                               {(training.participant_count ?? 0) > 0 && (
                                 <Badge variant="secondary" className="text-xs px-1.5 py-0">
                                   {training.participant_count}
@@ -764,7 +767,7 @@ const Formations = () => {
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>{asText(training.location) || "—"}</TableCell>
+                          <TableCell>{isDemoMode ? maskText(asText(training.location)) || "—" : asText(training.location) || "—"}</TableCell>
                         </TableRow>
                       );
                     })}

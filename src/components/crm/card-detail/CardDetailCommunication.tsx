@@ -308,7 +308,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
               </>
             )}
           </Button>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" disabled={!emailTo.trim() || !emailSubject.trim() || sendEmailPending} className="px-2">
                 <Calendar className="h-4 w-4" />

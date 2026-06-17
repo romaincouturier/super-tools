@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Trash2, BookOpen, FileText, Smile, MessageSquare, Send, Pin, PinOff, RotateCcw, RotateCw, Pencil, Check, X, Download } from "lucide-react";
@@ -402,18 +403,34 @@ export default function PracticePostCard({
       {/* Reaction bar — per-emoji counts + comment count */}
       {(post.reaction_count > 0 || post.comment_count > 0) && (
         <div className="px-4 py-2 flex items-center gap-2 flex-wrap text-xs border-t" style={{ borderColor: "rgba(16,24,32,0.06)", color: "var(--st-ink-muted)" }}>
-          {REACTION_EMOJIS.filter((e) => (post.reactions_by_type?.[e.emoji] ?? 0) > 0).map((e) => (
-            <span
-              key={e.emoji}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full"
-              style={{
-                background: post.my_reaction_types?.includes(e.emoji) ? "rgba(255,209,0,0.18)" : "rgba(16,24,32,0.05)",
-                fontWeight: post.my_reaction_types?.includes(e.emoji) ? 600 : 400,
-              }}
-            >
-              {e.emoji} {post.reactions_by_type[e.emoji]}
-            </span>
-          ))}
+          <TooltipProvider delayDuration={300}>
+            {REACTION_EMOJIS.filter((e) => (post.reactions_by_type?.[e.emoji] ?? 0) > 0).map((e) => {
+              const users = post.reactions_by_type_users?.[e.emoji] ?? [];
+              const label = users.length <= 5
+                ? users.join(", ")
+                : `${users.slice(0, 5).join(", ")} +${users.length - 5}`;
+              return (
+                <Tooltip key={e.emoji}>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full cursor-default"
+                      style={{
+                        background: post.my_reaction_types?.includes(e.emoji) ? "rgba(255,209,0,0.18)" : "rgba(16,24,32,0.05)",
+                        fontWeight: post.my_reaction_types?.includes(e.emoji) ? 600 : 400,
+                      }}
+                    >
+                      {e.emoji} {post.reactions_by_type[e.emoji]}
+                    </span>
+                  </TooltipTrigger>
+                  {users.length > 0 && (
+                    <TooltipContent side="top" className="max-w-[220px] text-center text-xs">
+                      {label}
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              );
+            })}
+          </TooltipProvider>
           {post.comment_count > 0 && (
             <button onClick={() => setShowComments(v => !v)} className="hover:underline ml-auto" style={{ fontFamily: "inherit" }}>
               {post.comment_count} commentaire{post.comment_count > 1 ? "s" : ""}

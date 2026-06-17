@@ -46,6 +46,8 @@ import { Mission } from "@/types/missions";
 import GenerateInvoiceDialog from "./GenerateInvoiceDialog";
 import ImportGoogleEventsDialog from "./ImportGoogleEventsDialog";
 import { Wallet, X as XIcon } from "lucide-react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 
 interface MissionActivityTrackerProps {
   mission: Mission;
@@ -53,6 +55,7 @@ interface MissionActivityTrackerProps {
 }
 
 const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionActivityTrackerProps) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { data: activities, isLoading } = useMissionActivities(mission.id);
   const { data: credits } = useMissionCredits(mission.id);
@@ -255,25 +258,25 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
           <div className="text-xs text-blue-600 font-medium">Budget initial HT</div>
           <div className="text-lg font-bold text-blue-700">
-            {mission.initial_amount?.toLocaleString("fr-FR") || "0"} €
+            {isDemoMode ? maskAmount(mission.initial_amount) : `${mission.initial_amount?.toLocaleString("fr-FR") || "0"} €`}
           </div>
         </div>
         <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
           <div className="text-xs text-orange-600 font-medium">Consommé HT</div>
           <div className="text-lg font-bold text-orange-700">
-            {totalConsumed.toLocaleString("fr-FR")} €
+            {isDemoMode ? maskAmount(totalConsumed) : `${totalConsumed.toLocaleString("fr-FR")} €`}
           </div>
         </div>
         <div className="p-3 bg-green-50 rounded-lg border border-green-100">
           <div className="text-xs text-green-600 font-medium">Facturé HT</div>
           <div className="text-lg font-bold text-green-700">
-            {totalBilled.toLocaleString("fr-FR")} €
+            {isDemoMode ? maskAmount(totalBilled) : `${totalBilled.toLocaleString("fr-FR")} €`}
           </div>
         </div>
         <div className="p-3 bg-purple-50 rounded-lg border border-purple-100">
           <div className="text-xs text-purple-600 font-medium">Reste à facturer HT</div>
           <div className="text-lg font-bold text-purple-700">
-            {remainingToBill.toLocaleString("fr-FR")} €
+            {isDemoMode ? maskAmount(remainingToBill) : `${remainingToBill.toLocaleString("fr-FR")} €`}
           </div>
         </div>
         {hasCredits && (
@@ -283,10 +286,10 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
               Crédit restant
             </div>
             <div className="text-lg font-bold text-amber-800">
-              {remainingCredits.toLocaleString("fr-FR")} €
+              {isDemoMode ? maskAmount(remainingCredits) : `${remainingCredits.toLocaleString("fr-FR")} €`}
             </div>
             <div className="text-[10px] text-amber-600 mt-0.5">
-              sur {totalCredits.toLocaleString("fr-FR")} €
+              sur {isDemoMode ? maskAmount(totalCredits) : `${totalCredits.toLocaleString("fr-FR")} €`}
             </div>
           </div>
         )}
@@ -302,7 +305,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
           {credits!.map((c) => (
             <div key={c.id} className="flex items-center justify-between text-sm bg-white rounded px-2 py-1 border border-amber-100">
               <span>
-                {c.label || "Crédit"} — <strong>{Number(c.amount).toLocaleString("fr-FR")} €</strong>
+                {c.label || "Crédit"} — <strong>{isDemoMode ? maskAmount(c.amount) : `${Number(c.amount).toLocaleString("fr-FR")} €`}</strong>
               </span>
               <button
                 onClick={() => handleDeleteCredit(c.id)}
@@ -425,7 +428,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
                     {activity.duration} {activity.duration_type === "hours" ? "h" : "j"}
                   </TableCell>
                   <TableCell className="text-right whitespace-nowrap">
-                    {activity.billable_amount?.toLocaleString("fr-FR") || "-"} €
+                    {isDemoMode ? maskAmount(activity.billable_amount) : `${activity.billable_amount?.toLocaleString("fr-FR") || "-"} €`}
                   </TableCell>
                   <TableCell className="text-center">
                     <Checkbox

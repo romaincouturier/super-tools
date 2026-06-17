@@ -43,6 +43,7 @@ export interface PracticePost {
   reaction_count: number;
   i_reacted: boolean;
   reactions_by_type: Record<string, number>;
+  reactions_by_type_users: Record<string, string[]>;
   my_reaction_types: string[];
   comment_count: number;
   hashtags: string[];
@@ -311,6 +312,13 @@ export function usePracticePosts(
           reactions_by_type: postReactions.reduce((acc: Record<string, number>, r) => {
             const t = r.reaction_type ?? '👍';
             acc[t] = (acc[t] ?? 0) + 1;
+            return acc;
+          }, {}),
+          reactions_by_type_users: postReactions.reduce((acc: Record<string, string[]>, r) => {
+            const t = r.reaction_type ?? '👍';
+            const p = profileMap.get(r.author_email);
+            const name = p ? [p.first_name, p.last_name].filter(Boolean).join(" ") || r.author_email : r.author_email;
+            acc[t] = [...(acc[t] ?? []), name];
             return acc;
           }, {}),
           my_reaction_types: postReactions

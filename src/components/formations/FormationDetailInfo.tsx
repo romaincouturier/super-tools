@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 import type { Training, Schedule, Participant } from "@/hooks/useFormationDetail";
 import type { FormationFormula } from "@/types/training";
 
@@ -39,6 +41,7 @@ const FormationDetailInfo = ({
   calculateTotalDuration,
   bpfNeedsAttention,
 }: Props) => {
+  const { isDemoMode } = useDemoMode();
   const { toast } = useToast();
   const { loading: sendingLogistics, invoke: invokeSendLogistics } = useEdgeFunction(
     "send-logistics-requirements",
@@ -143,12 +146,12 @@ const FormationDetailInfo = ({
               <>
                 {totalCA > 0 && (
                   <Badge variant="outline" className="flex items-center gap-1.5">
-                    <Euro className="h-3.5 w-3.5" />CA : {totalCA.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT
+                    <Euro className="h-3.5 w-3.5" />CA : {isDemoMode ? maskAmount(totalCA) : `${totalCA.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT`}
                   </Badge>
                 )}
                 {resteAFacturer > 0 && (
                   <Badge variant="outline" className="flex items-center gap-1.5 text-amber-600 border-amber-300">
-                    <Euro className="h-3.5 w-3.5" />Reste à facturer : {resteAFacturer.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT
+                    <Euro className="h-3.5 w-3.5" />Reste à facturer : {isDemoMode ? maskAmount(resteAFacturer) : `${resteAFacturer.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € HT`}
                   </Badge>
                 )}
               </>
@@ -158,7 +161,7 @@ const FormationDetailInfo = ({
           training.sold_price_ht != null && (
             <>
               <Badge variant="outline" className="flex items-center gap-1.5">
-                <Euro className="h-3.5 w-3.5" />{training.sold_price_ht.toLocaleString("fr-FR")} € HT
+                <Euro className="h-3.5 w-3.5" />{isDemoMode ? maskAmount(training.sold_price_ht) : `${training.sold_price_ht.toLocaleString("fr-FR")} € HT`}
               </Badge>
               {!training.invoice_file_url && (
                 <Badge variant="outline" className="flex items-center gap-1.5 text-amber-600 border-amber-300">

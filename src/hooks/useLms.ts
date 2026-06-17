@@ -11,6 +11,7 @@ export type {
   LmsForumPost,
   LmsAssignmentSubmission,
   LmsBadge,
+  LmsCourseFolder,
 } from "./useLmsQueries";
 
 export {
@@ -34,12 +35,14 @@ export {
   useAllCourseComments,
   useCourseLiveMeetings,
   useCourseTrainingSessionsAdmin,
+  useCourseFolders,
 } from "./useLmsQueries";
 
 export {
   useCreateCourse,
   useUpdateCourse,
   useDeleteCourse,
+  useDuplicateCourse,
   useCreateModule,
   useUpdateModule,
   useDeleteModule,
@@ -59,6 +62,10 @@ export {
   useCreateForumPost,
   useTrackPageView,
   usePostLessonComment,
+  useCreateCourseFolder,
+  useRenameCourseFolder,
+  useDeleteCourseFolder,
+  useMoveCourseToFolder,
 } from "./useLmsMutations";
 
 export {
