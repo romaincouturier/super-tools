@@ -1,9 +1,9 @@
 import { MediaItem, useRenameMedia } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package, Newspaper } from "lucide-react";
+import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package, Newspaper, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { formatFileSize, downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -30,6 +30,26 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
   const renameMedia = useRenameMedia();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFSChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handleFSChange);
+    return () => document.removeEventListener("fullscreenchange", handleFSChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await containerRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {
+      // Fullscreen not supported
+    }
+  }, []);
 
   const handleRename = () => {
     const finalName = promptRenameFile(item.file_name);
@@ -61,7 +81,9 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (!document.fullscreenElement) onClose();
+      }
       if (e.key === "ArrowLeft") goPrev();
       if (e.key === "ArrowRight") goNext();
     };
@@ -71,7 +93,8 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+      ref={containerRef}
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center"
       onClick={onClose}
     >
       {/* Close */}
@@ -82,6 +105,17 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
         onClick={onClose}
       >
         <X className="h-6 w-6" />
+      </Button>
+
+      {/* Fullscreen toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 right-14 text-white hover:bg-white/20 z-10"
+        onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+        title={isFullscreen ? "Quitter le plein écran (Échap)" : "Plein écran"}
+      >
+        {isFullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
       </Button>
 
       {/* Previous */}

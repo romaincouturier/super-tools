@@ -153,7 +153,8 @@ export const useEntityMedia = (sourceType: MediaSourceType, sourceId: string | u
         .select("*")
         .eq("source_type", sourceType)
         .eq("source_id", sourceId)
-        .order("created_at", { ascending: false });
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
 
@@ -340,6 +341,29 @@ export const useToggleMediaDeliverable = () => {
       return { sourceType, sourceId };
     },
     onSuccess: ({ sourceType, sourceId }) => {
+      invalidateMediaCaches(queryClient, sourceType, sourceId);
+    },
+  });
+};
+
+// ── Reorder media ────────────────────────────────────────────────────
+export const useReorderMedia = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      items,
+    }: {
+      sourceType: MediaSourceType;
+      sourceId: string;
+      items: { id: string; position: number }[];
+    }) => {
+      await Promise.all(
+        items.map(({ id, position }) =>
+          supabase.from("media").update({ position }).eq("id", id)
+        )
+      );
+    },
+    onSuccess: (_, { sourceType, sourceId }) => {
       invalidateMediaCaches(queryClient, sourceType, sourceId);
     },
   });
