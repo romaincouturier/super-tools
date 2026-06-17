@@ -103,14 +103,20 @@ export function useBookAlbums() {
         }
       }
 
-      return (albums ?? []).map((album) => ({
+      const rawCovers = (albums ?? []).map(
+        (album) => album.cover_url ?? coverMap[album.id] ?? null,
+      );
+      const signedCovers = await signBookUrls(rawCovers);
+
+      return (albums ?? []).map((album, i) => ({
         ...(album as BookAlbum),
-        cover_url: album.cover_url ?? coverMap[album.id] ?? null,
+        cover_url: signedCovers[i],
         production_count: countMap[album.id] ?? 0,
       }));
     },
   });
 }
+
 
 export function useCreateAlbum() {
   const queryClient = useQueryClient();
