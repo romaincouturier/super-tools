@@ -55,6 +55,7 @@ export interface LmsCourse {
   welcome_video_url?: string | null;
   welcome_text?: string | null;
   home_config?: CourseHomeConfig | null;
+  folder_id?: string | null;
 }
 
 export interface LmsModule {
