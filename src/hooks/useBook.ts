@@ -204,6 +204,22 @@ export function useDeleteAlbum() {
   });
 }
 
+export function useAlbumRawCover(albumId: string) {
+  return useQuery<string | null>({
+    queryKey: ["book-album-raw-cover", albumId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("book_albums")
+        .select("cover_url")
+        .eq("id", albumId)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.cover_url ?? null;
+    },
+    enabled: !!albumId,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Productions
 // ---------------------------------------------------------------------------
