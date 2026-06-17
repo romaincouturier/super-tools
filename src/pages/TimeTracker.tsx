@@ -372,8 +372,227 @@ function EntryRow({ entry, onDelete, onUpdate, deleting, updating }: EntryRowPro
 }
 
 // ---------------------------------------------------------------------------
+// Chart: heures travaillées par période
+// ---------------------------------------------------------------------------
+
+type Granularity = "day" | "week" | "month" | "year";
+
+interface TimeChartProps {
+  entries: TimeEntry[];
+}
+
+function bucketKey(date: Date, granularity: Granularity): string {
+  switch (granularity) {
+    case "day":
+      return format(date, "yyyy-MM-dd");
+    case "week": {
+      const ws = startOfWeek(date, { weekStartsOn: 1 });
+      return format(ws, "yyyy-MM-dd");
+    }
+    case "month":
+      return format(startOfMonth(date), "yyyy-MM");
+    case "year":
+      return format(startOfYear(date), "yyyy");
+  }
+}
+
+function bucketLabel(key: string, granularity: Granularity): string {
+  switch (granularity) {
+    case "day":
+      return format(parseISO(key), "d MMM", { locale: fr });
+    case "week": {
+      const d = parseISO(key);
+      return `S${getISOWeek(d)}`;
+    }
+    case "month": {
+      const d = parseISO(key + "-01");
+      return format(d, "MMM yy", { locale: fr });
+    }
+    case "year":
+      return key;
+  }
+}
+
+function nextBucket(date: Date, granularity: Granularity): Date {
+  switch (granularity) {
+    case "day":
+      return addDays(date, 1);
+    case "week":
+      return addWeeks(date, 1);
+    case "month":
+      return addMonths(date, 1);
+    case "year":
+      return addYears(date, 1);
+  }
+}
+
+function startBucket(date: Date, granularity: Granularity): Date {
+  switch (granularity) {
+    case "day":
+      return date;
+    case "week":
+      return startOfWeek(date, { weekStartsOn: 1 });
+    case "month":
+      return startOfMonth(date);
+    case "year":
+      return startOfYear(date);
+  }
+}
+
+function TimeChart({ entries }: TimeChartProps) {
+  const today = todayAsISO();
+  const defaultFrom = format(subDays(new Date(), 29), "yyyy-MM-dd");
+
+  const [granularity, setGranularity] = useState<Granularity>("day");
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(today);
+
+  function applyPreset(preset: "7d" | "30d" | "90d" | "12m" | "all") {
+    const now = new Date();
+    setTo(format(now, "yyyy-MM-dd"));
+    switch (preset) {
+      case "7d":
+        setFrom(format(subDays(now, 6), "yyyy-MM-dd"));
+        setGranularity("day");
+        break;
+      case "30d":
+        setFrom(format(subDays(now, 29), "yyyy-MM-dd"));
+        setGranularity("day");
+        break;
+      case "90d":
+        setFrom(format(subDays(now, 89), "yyyy-MM-dd"));
+        setGranularity("week");
+        break;
+      case "12m":
+        setFrom(format(addMonths(now, -11), "yyyy-MM-dd"));
+        setGranularity("month");
+        break;
+      case "all": {
+        if (entries.length > 0) {
+          const oldest = entries.reduce(
+            (min, e) => (e.entry_date < min ? e.entry_date : min),
+            entries[0].entry_date,
+          );
+          setFrom(oldest);
+        }
+        setGranularity("month");
+        break;
+      }
+    }
+  }
+
+  const { data, totalMinutes } = useMemo(() => {
+    const fromDate = parseISO(from);
+    const toDate = parseISO(to);
+    const buckets = new Map<string, number>();
+
+    let cursor = startBucket(fromDate, granularity);
+    const end = toDate;
+    while (cursor <= end) {
+      buckets.set(bucketKey(cursor, granularity), 0);
+      cursor = nextBucket(cursor, granularity);
+    }
+
+    let total = 0;
+    for (const e of entries) {
+      if (e.entry_date < from || e.entry_date > to) continue;
+      const key = bucketKey(parseISO(e.entry_date), granularity);
+      buckets.set(key, (buckets.get(key) ?? 0) + e.duration_minutes);
+      total += e.duration_minutes;
+    }
+
+    const arr = [...buckets.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, minutes]) => ({
+        key,
+        label: bucketLabel(key, granularity),
+        hours: Math.round((minutes / 60) * 100) / 100,
+        minutes,
+      }));
+
+    return { data: arr, totalMinutes: total };
+  }, [entries, from, to, granularity]);
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Heures travaillées
+            <Badge variant="secondary" className="ml-2 text-xs font-semibold">
+              {formatDuration(totalMinutes)}
+            </Badge>
+          </CardTitle>
+          <ToggleGroup
+            type="single"
+            value={granularity}
+            onValueChange={(v) => v && setGranularity(v as Granularity)}
+            size="sm"
+          >
+            <ToggleGroupItem value="day">Jour</ToggleGroupItem>
+            <ToggleGroupItem value="week">Semaine</ToggleGroupItem>
+            <ToggleGroupItem value="month">Mois</ToggleGroupItem>
+            <ToggleGroupItem value="year">Année</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs text-muted-foreground">Du</label>
+            <Input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="h-8 w-auto text-xs"
+            />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <label className="text-xs text-muted-foreground">Au</label>
+            <Input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="h-8 w-auto text-xs"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1 ml-auto">
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => applyPreset("7d")}>7j</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => applyPreset("30d")}>30j</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => applyPreset("90d")}>90j</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => applyPreset("12m")}>12 mois</Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => applyPreset("all")}>Tout</Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11 }}
+                interval="preserveStartEnd"
+              />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip
+                contentStyle={{ fontSize: 12 }}
+                formatter={(_value, _name, item: any) => [formatDuration(item.payload.minutes), "Durée"]}
+                labelFormatter={(label) => label}
+              />
+              <Bar dataKey="hours" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Tab: Historique
 // ---------------------------------------------------------------------------
+
 
 function HistoryTab() {
   const { toast } = useToast();
