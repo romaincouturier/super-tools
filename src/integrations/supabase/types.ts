@@ -640,6 +640,7 @@ export type Database = {
           notes: string | null
           original_filename: string | null
           sort_order: number
+          source_media_id: string | null
           tags: string[]
           thumbnail_url: string | null
           title: string
@@ -658,6 +659,7 @@ export type Database = {
           notes?: string | null
           original_filename?: string | null
           sort_order?: number
+          source_media_id?: string | null
           tags?: string[]
           thumbnail_url?: string | null
           title: string
@@ -676,6 +678,7 @@ export type Database = {
           notes?: string | null
           original_filename?: string | null
           sort_order?: number
+          source_media_id?: string | null
           tags?: string[]
           thumbnail_url?: string | null
           title?: string
@@ -688,6 +691,13 @@ export type Database = {
             columns: ["album_id"]
             isOneToOne: false
             referencedRelation: "book_albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_productions_source_media_id_fkey"
+            columns: ["source_media_id"]
+            isOneToOne: false
+            referencedRelation: "media"
             referencedColumns: ["id"]
           },
         ]
