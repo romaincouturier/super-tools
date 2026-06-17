@@ -77,7 +77,7 @@ export function useBookAlbums() {
   return useQuery<BookAlbum[]>({
     queryKey: ["book-albums"],
     queryFn: async () => {
-      const [{ data: albums, error: albumsError }, { data: counts, error: countsError }] =
+      const [{ data: albums, error: albumsError }, { data: productions, error: productionsError }] =
         await Promise.all([
           supabase
             .from("book_albums")
@@ -86,19 +86,28 @@ export function useBookAlbums() {
             .order("created_at", { ascending: true }),
           supabase
             .from("book_productions")
-            .select("album_id"),
+            .select("album_id, file_url, thumbnail_url, file_type, sort_order, created_at")
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true }),
         ]);
 
       if (albumsError) throw albumsError;
-      if (countsError) throw countsError;
+      if (productionsError) throw productionsError;
 
       const countMap: Record<string, number> = {};
-      for (const row of counts ?? []) {
+      const coverMap: Record<string, string> = {};
+      for (const row of productions ?? []) {
         countMap[row.album_id] = (countMap[row.album_id] ?? 0) + 1;
+        if (!coverMap[row.album_id]) {
+          coverMap[row.album_id] = row.thumbnail_url ?? row.file_url;
+        }
       }
+
+      const signedCoverUrls = await signStorageUrls(Object.values(coverMap));
 
       return (albums ?? []).map((album) => ({
         ...(album as BookAlbum),
+        cover_url: album.cover_url ?? signedCoverUrls[coverMap[album.id]] ?? coverMap[album.id] ?? null,
         production_count: countMap[album.id] ?? 0,
       }));
     },
@@ -208,29 +217,39 @@ function extractStoragePath(fileUrl: string): string | null {
   }
 }
 
-async function signProductions(rows: BookProduction[]): Promise<BookProduction[]> {
-  const paths: string[] = [];
-  const indices: number[] = [];
-  rows.forEach((row, i) => {
-    const p = extractStoragePath(row.file_url);
-    if (p) {
-      paths.push(p);
-      indices.push(i);
-    }
+async function signStorageUrls(urls: string[]): Promise<Record<string, string>> {
+  const pathByUrl = new Map<string, string>();
+  urls.forEach((url) => {
+    const path = extractStoragePath(url);
+    if (path) pathByUrl.set(url, path);
   });
-  if (paths.length === 0) return rows;
+
+  const paths = [...new Set(pathByUrl.values())];
+  if (paths.length === 0) return {};
+
   const { data, error } = await supabase.storage
     .from("book-productions")
     .createSignedUrls(paths, 60 * 60);
-  if (error || !data) return rows;
-  const next = [...rows];
-  data.forEach((d, k) => {
-    if (d.signedUrl) {
-      const i = indices[k];
-      next[i] = { ...next[i], file_url: d.signedUrl };
-    }
+  if (error || !data) return {};
+
+  const signedByPath: Record<string, string> = {};
+  data.forEach((item, index) => {
+    if (item.signedUrl) signedByPath[paths[index]] = item.signedUrl;
   });
-  return next;
+
+  return Object.fromEntries(
+    [...pathByUrl.entries()].flatMap(([url, path]) =>
+      signedByPath[path] ? [[url, signedByPath[path]]] : []
+    )
+  );
+}
+
+async function signProductions(rows: BookProduction[]): Promise<BookProduction[]> {
+  const signedUrls = await signStorageUrls(rows.map((row) => row.file_url));
+  return rows.map((row) => ({
+    ...row,
+    file_url: signedUrls[row.file_url] ?? row.file_url,
+  }));
 }
 
 export function useBookProductions(albumId: string) {
@@ -340,14 +359,10 @@ export function useDeleteProduction() {
       albumId: string;
       fileUrl: string;
     }) => {
-      // Extract storage path from public URL
-      // URL pattern: .../storage/v1/object/public/book-productions/{path}
+      // Extract storage path from public or signed URL
       try {
-        const url = new URL(fileUrl);
-        const marker = "/object/public/book-productions/";
-        const idx = url.pathname.indexOf(marker);
-        if (idx !== -1) {
-          const storagePath = url.pathname.slice(idx + marker.length);
+        const storagePath = extractStoragePath(fileUrl);
+        if (storagePath) {
           await supabase.storage.from("book-productions").remove([storagePath]);
         }
       } catch {

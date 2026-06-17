@@ -7,6 +7,55 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 
+function extractStoragePath(fileUrl: string): string | null {
+  try {
+    const url = new URL(fileUrl);
+    const markers = [
+      "/object/public/book-productions/",
+      "/object/sign/book-productions/",
+      "/object/book-productions/",
+    ];
+    for (const marker of markers) {
+      const index = url.pathname.indexOf(marker);
+      if (index !== -1) {
+        return decodeURIComponent(url.pathname.slice(index + marker.length).split("?")[0]);
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+async function signProductionUrls(supabase: ReturnType<typeof createClient>, productions: any[]) {
+  const paths = productions
+    .map((production) => extractStoragePath(production.file_url))
+    .filter((path): path is string => Boolean(path));
+
+  if (paths.length === 0) return productions;
+
+  const { data, error } = await supabase.storage
+    .from("book-productions")
+    .createSignedUrls(paths, 60 * 60);
+
+  if (error || !data) {
+    console.warn("[book-public-album] signed urls error:", error);
+    return productions;
+  }
+
+  const signedByPath = new Map<string, string>();
+  data.forEach((item, index) => {
+    if (item.signedUrl) signedByPath.set(paths[index], item.signedUrl);
+  });
+
+  return productions.map((production) => {
+    const path = extractStoragePath(production.file_url);
+    return path && signedByPath.has(path)
+      ? { ...production, file_url: signedByPath.get(path) }
+      : production;
+  });
+}
+
 serve(async (req: Request): Promise<Response> => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
@@ -79,9 +128,11 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("[book-public-album] analytics insert error:", analyticsError);
     }
 
+    const signedProductions = await signProductionUrls(supabase, productions ?? []);
+
     return createJsonResponse({
       album,
-      productions: productions ?? [],
+      productions: signedProductions,
       profile: profile ?? null,
       link: {
         id: link.id,
