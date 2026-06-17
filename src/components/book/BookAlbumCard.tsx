@@ -89,7 +89,6 @@ export default function BookAlbumCard({
           <p className="text-sm text-muted-foreground line-clamp-1">{album.description}</p>
         )}
       </div>
-      </div>
     </Card>
   );
 }
