@@ -665,6 +665,63 @@ export function useBookLinkStats(albumId: string) {
   });
 }
 
+export interface ProductionViewStat {
+  production: BookProduction;
+  views: number;
+  unique_links: number;
+}
+
+export function useBookProductionViewStats(albumId: string) {
+  return useQuery<ProductionViewStat[]>({
+    queryKey: ["book-production-view-stats", albumId],
+    queryFn: async () => {
+      const { data: links, error: linksError } = await supabase
+        .from("book_share_links")
+        .select("id")
+        .eq("album_id", albumId);
+      if (linksError) throw linksError;
+
+      const { data: productions, error: prodError } = await supabase
+        .from("book_productions")
+        .select("*")
+        .eq("album_id", albumId)
+        .order("sort_order", { ascending: true });
+      if (prodError) throw prodError;
+
+      const allProductions = await signProductions((productions ?? []) as BookProduction[]);
+
+      if (!links || links.length === 0) {
+        return allProductions.map((p) => ({ production: p, views: 0, unique_links: 0 }));
+      }
+
+      const { data: events, error: eventsError } = await supabase
+        .from("book_analytics_events")
+        .select("link_id, production_id, event_type")
+        .in("link_id", links.map((l) => l.id))
+        .eq("event_type", "production_view");
+      if (eventsError) throw eventsError;
+
+      const viewsByProd: Record<string, number> = {};
+      const linksByProd: Record<string, Set<string>> = {};
+      for (const ev of events ?? []) {
+        if (!ev.production_id) continue;
+        viewsByProd[ev.production_id] = (viewsByProd[ev.production_id] ?? 0) + 1;
+        if (!linksByProd[ev.production_id]) linksByProd[ev.production_id] = new Set();
+        linksByProd[ev.production_id].add(ev.link_id);
+      }
+
+      return allProductions
+        .map((p) => ({
+          production: p,
+          views: viewsByProd[p.id] ?? 0,
+          unique_links: linksByProd[p.id]?.size ?? 0,
+        }))
+        .sort((a, b) => b.views - a.views);
+    },
+    enabled: !!albumId,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Public album (no auth)
 // ---------------------------------------------------------------------------
