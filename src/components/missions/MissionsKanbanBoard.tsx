@@ -278,6 +278,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
         prefillContactLastName={prefillData?.contactLastName}
         prefillContactEmail={prefillData?.contactEmail}
         prefillContactPhone={prefillData?.contactPhone}
+        prefillFromCrmCardId={prefillData?.fromCrmCardId}
       />
 
       <MissionDetailDrawer
