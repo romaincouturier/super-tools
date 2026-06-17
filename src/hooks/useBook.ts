@@ -285,7 +285,18 @@ export function useBookProductions(albumId: string) {
         .eq("album_id", albumId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as BookProduction[];
+      const rows = (data ?? []) as BookProduction[];
+      const fileUrls = rows.map((r) => r.file_url);
+      const thumbs = rows.map((r) => r.thumbnail_url);
+      const [signedFiles, signedThumbs] = await Promise.all([
+        signBookUrls(fileUrls),
+        signBookUrls(thumbs),
+      ]);
+      return rows.map((r, i) => ({
+        ...r,
+        file_url: signedFiles[i] ?? r.file_url,
+        thumbnail_url: signedThumbs[i],
+      }));
     },
     enabled: !!albumId,
     staleTime: 30 * 60 * 1000,
