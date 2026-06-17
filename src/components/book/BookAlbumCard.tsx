@@ -88,8 +88,7 @@ export default function BookAlbumCard({
         {album.description && (
           <p className="text-sm text-muted-foreground line-clamp-1">{album.description}</p>
         )}
-          <span>{format(new Date(album.created_at), 'MMM yyyy', { locale: fr })}</span>
-        </div>
+      </div>
       </div>
     </Card>
   );
