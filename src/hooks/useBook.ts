@@ -599,7 +599,8 @@ export function useBookLinkStats(albumId: string) {
 
       return (links as BookShareLink[]).map((link) => {
         const linkEvents = (events ?? []).filter((e) => e.link_id === link.id);
-        const viewedAts = linkEvents.map((e) => e.viewed_at).sort();
+        const albumViews = linkEvents.filter((e) => e.event_type === "album_view");
+        const viewedAts = albumViews.map((e) => e.viewed_at).sort();
         const productionViews = linkEvents
           .filter((e) => e.event_type === "production_view" && e.production_id != null)
           .map((e) => e.production_id as string);
@@ -607,7 +608,7 @@ export function useBookLinkStats(albumId: string) {
 
         return {
           link,
-          total_views: linkEvents.length,
+          total_views: albumViews.length,
           first_viewed_at: viewedAts.length > 0 ? viewedAts[0] : null,
           last_viewed_at: viewedAts.length > 0 ? viewedAts[viewedAts.length - 1] : null,
           productions_viewed: uniqueProductionsViewed,
