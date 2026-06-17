@@ -1,20 +1,24 @@
-import { Video, Edit2, Trash2 } from 'lucide-react';
+import { Video, Edit2, Trash2, Star, Link2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { BookProduction } from '@/types/book';
 
 interface BookProductionCardProps {
   production: BookProduction;
+  isCover?: boolean;
   onClick: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onSetCover?: () => void;
 }
 
 export default function BookProductionCard({
   production,
+  isCover,
   onClick,
   onDelete,
   onEdit,
+  onSetCover,
 }: BookProductionCardProps) {
   const visibleTags = production.tags.slice(0, 2);
   const extraTagCount = production.tags.length - visibleTags.length;
