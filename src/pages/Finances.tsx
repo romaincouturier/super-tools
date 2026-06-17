@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskAmount } from "@/lib/demoMask";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -37,6 +39,8 @@ export default function Finances() {
   const error = customerQ.error || supplierQ.error || banksQ.error || meQ.error;
   const tokenMissing = error?.message?.toLowerCase().includes("pennylane non configuré") ||
     error?.message?.toLowerCase().includes("token api pennylane");
+
+  const { isDemoMode } = useDemoMode();
 
   const kpis = useMemo(() => {
     const revenuePaid = customers
@@ -125,35 +129,35 @@ export default function Finances() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <KpiCard
                   title="Trésorerie"
-                  value={EUR.format(kpis.cash)}
+                  value={isDemoMode ? maskAmount(kpis.cash) : EUR.format(kpis.cash)}
                   icon={Wallet}
                   hint={`${banks.length} compte(s)`}
                   info="Somme des soldes actuels de tous les comptes bancaires synchronisés dans Pennylane (onglet Trésorerie)."
                 />
                 <KpiCard
                   title="CA encaissé"
-                  value={EUR.format(kpis.revenuePaid)}
+                  value={isDemoMode ? maskAmount(kpis.revenuePaid) : EUR.format(kpis.revenuePaid)}
                   icon={CheckCircle2}
                   tone="positive"
                   info="Total TTC des factures clients dont le statut Pennylane est « payée ». Calculé sur les 100 dernières factures émises."
                 />
                 <KpiCard
                   title="CA en attente"
-                  value={EUR.format(kpis.revenueOpen)}
+                  value={isDemoMode ? maskAmount(kpis.revenueOpen) : EUR.format(kpis.revenueOpen)}
                   icon={Clock}
                   hint="Factures non payées"
                   info="Total restant dû sur les factures clients émises mais non encore payées (hors brouillons et annulées). Inclut les factures à venir et en retard."
                 />
                 <KpiCard
                   title="CA en retard"
-                  value={EUR.format(kpis.revenueLate)}
+                  value={isDemoMode ? maskAmount(kpis.revenueLate) : EUR.format(kpis.revenueLate)}
                   icon={TrendingDown}
                   tone="negative"
                   info="Total restant dû sur les factures clients dont l'échéance de paiement est dépassée (statut Pennylane « late »)."
                 />
                 <KpiCard
                   title="Dépenses"
-                  value={EUR.format(kpis.expenses)}
+                  value={isDemoMode ? maskAmount(kpis.expenses) : EUR.format(kpis.expenses)}
                   icon={TrendingUp}
                   tone="negative"
                   hint="Factures fournisseurs"
@@ -215,7 +219,7 @@ export default function Finances() {
                                 <div className="text-xs text-muted-foreground">Dernière synchro : {formatDate(b.last_sync_at)}</div>
                               )}
                             </div>
-                            <div className="text-lg font-semibold tabular-nums">{EUR.format(toNumber(b.balance))}</div>
+                            <div className="text-lg font-semibold tabular-nums">{isDemoMode ? maskAmount(toNumber(b.balance)) : EUR.format(toNumber(b.balance))}</div>
                           </div>
                         ))}
                       </div>

@@ -564,7 +564,7 @@ export default function ProvenanceTab() {
                   <td className="py-2 font-mono text-xs truncate max-w-[420px]">{p.page}</td>
                   <td className="py-2 text-right">{p.count}</td>
                   <td className="py-2 text-right text-green-600">{p.won}</td>
-                  <td className="py-2 text-right">{p.conversion}%</td>
+                  <td className="py-2 text-right">{isDemoMode ? "••%" : `${p.conversion}%`}</td>
                   <td className="py-2 text-right">{p.avgValue ? (isDemoMode ? maskAmount(p.avgValue) : eur(p.avgValue)) : "—"}</td>
                 </tr>
               ))}

@@ -258,7 +258,7 @@ const CrmReports = () => {
               <KpiCard
                 title="Taux de conversion"
                 icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />}
-                mainValue={`${winRate}%`}
+                mainValue={isDemoMode ? "••%" : `${winRate}%`}
                 secondary={`sur ${reports.wonCount + reports.lostCount} clôturée${reports.wonCount + reports.lostCount > 1 ? "s" : ""}`}
                 active={activeChart === "conversion"}
                 onClick={() => toggleChart("conversion")}

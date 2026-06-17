@@ -6,6 +6,8 @@ import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, Cal
 import { toast } from "sonner";
 import { formatFileSize } from "@/lib/file-utils";
 import MediaTagEditor from "./MediaTagEditor";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 const sourceIcon = (sourceType: string) => {
   switch (sourceType) {
@@ -35,6 +37,7 @@ const PAGE_SIZE = 40;
 
 const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
   const deleteMutation = useDeleteMedia();
+  const { isDemoMode } = useDemoMode();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -188,7 +191,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
               {sourceIconLarge(item.source_type)}
               <span className="truncate">
                 {item.source_emoji ? `${item.source_emoji} ` : ""}
-                {item.source_label}
+                {isDemoMode ? maskText(item.source_label) : item.source_label}
               </span>
             </div>
             {item.file_size && (
@@ -203,7 +206,7 @@ const MediaGrid = ({ items, onOpenLightbox, allTags }: MediaGridProps) => {
               className="text-[10px] px-1.5 py-0 bg-black/50 text-white border-0 "
             >
               {item.source_emoji || sourceIcon(item.source_type)}
-              <span className="ml-1 max-w-[80px] truncate">{item.source_label}</span>
+              <span className="ml-1 max-w-[80px] truncate">{isDemoMode ? maskText(item.source_label) : item.source_label}</span>
             </Badge>
           </div>
 

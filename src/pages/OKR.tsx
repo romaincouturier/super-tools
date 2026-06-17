@@ -71,10 +71,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, ShieldAlert } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 const OKR = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isDemoMode } = useDemoMode();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -305,7 +308,7 @@ const OKR = () => {
                     {okrStatusConfig[objective.status].label}
                   </Badge>
                 </div>
-                <CardTitle className="text-lg mt-2">{objective.title}</CardTitle>
+                <CardTitle className="text-lg mt-2">{isDemoMode ? maskText(objective.title) : objective.title}</CardTitle>
                 {objective.next_review_date && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                     <Calendar className="h-3 w-3" />
@@ -535,6 +538,7 @@ const ObjectiveCard = ({
   onOpenDetail,
 }: ObjectiveCardProps) => {
   const { data: keyResults } = useOKRKeyResults(isExpanded ? objective.id : null);
+  const { isDemoMode } = useDemoMode();
 
   return (
     <div
@@ -553,7 +557,7 @@ const ObjectiveCard = ({
 
           <div className="flex-1 cursor-pointer" onClick={onOpenDetail}>
             <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium">{objective.title}</h3>
+              <h3 className="font-medium">{isDemoMode ? maskText(objective.title) : objective.title}</h3>
               <Badge
                 variant="outline"
                 style={{
@@ -645,11 +649,12 @@ const ObjectiveCard = ({
 
 // Key Result Row Component
 const KeyResultRow = ({ keyResult }: { keyResult: OKRKeyResult }) => {
+  const { isDemoMode } = useDemoMode();
   return (
     <div className="flex items-center gap-4 py-2 px-3 bg-card rounded border">
       <TrendingUp className="h-4 w-4 text-muted-foreground" />
       <div className="flex-1">
-        <div className="text-sm font-medium">{keyResult.title}</div>
+        <div className="text-sm font-medium">{isDemoMode ? maskText(keyResult.title) : keyResult.title}</div>
         {keyResult.target_value && (
           <div className="text-xs text-muted-foreground">
             {keyResult.current_value} / {keyResult.target_value} {keyResult.unit}

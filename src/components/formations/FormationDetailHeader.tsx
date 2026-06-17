@@ -33,6 +33,8 @@ import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 import { openExternalLink } from "@/lib/utils";
 
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskText } from "@/lib/demoMask";
 
 interface Props {
   training: Training;
@@ -67,6 +69,8 @@ const FormationDetailHeader = ({
 }: Props) => {
   const { trackFeature } = useFeatureTracking();
   const { copy } = useCopyToClipboard();
+  const { isDemoMode } = useDemoMode();
+  const isIntra = training.session_type === "intra" || training.format_formation === "intra";
 
   const isOnline = training.location?.toLowerCase().includes("visio") ||
     training.location?.toLowerCase().includes("en ligne") ||
@@ -171,7 +175,7 @@ const FormationDetailHeader = ({
         </Button>
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h1 className={`text-lg md:text-2xl font-bold truncate ${training.is_cancelled ? "line-through text-muted-foreground" : ""}`}>{training.training_name}</h1>
+            <h1 className={`text-lg md:text-2xl font-bold truncate ${training.is_cancelled ? "line-through text-muted-foreground" : ""}`}>{isDemoMode && isIntra ? maskText(training.training_name) : training.training_name}</h1>
             {training.is_cancelled && <Badge variant="destructive">Annulée</Badge>}
           </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate">

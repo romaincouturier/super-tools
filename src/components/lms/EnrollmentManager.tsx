@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Users, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useDemoMode } from "@/contexts/DemoModeContext";
+import { maskEmail } from "@/lib/demoMask";
 
 interface Props {
   courseId: string;
@@ -32,6 +34,7 @@ export default function LmsEnrollmentManager({ courseId }: Props) {
   const { data: enrollments = [], isLoading } = useCourseEnrollments(courseId);
   const enrollLearner = useEnrollLearner();
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const [email, setEmail] = useState("");
 
   const handleEnroll = async () => {
@@ -78,7 +81,7 @@ export default function LmsEnrollmentManager({ courseId }: Props) {
             <Card key={e.id}>
               <CardContent className="flex items-center gap-4 py-3">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{e.learner_email}</p>
+                  <p className="text-sm font-medium">{isDemoMode ? maskEmail(e.learner_email) : e.learner_email}</p>
                   <p className="text-xs text-muted-foreground">
                     Inscrit le {format(new Date(e.enrolled_at), "dd MMM yyyy", { locale: fr })}
                   </p>

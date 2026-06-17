@@ -20,6 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { toastError } from "@/lib/toastError";
+import { useDemoMode } from "@/contexts/DemoModeContext";
 import {
   fetchAdminDocuments,
   fetchAdminDocumentYears,
@@ -58,6 +59,7 @@ function statusBadge(doc: AdminDocument) {
 
 export default function AdminArchives() {
   const { toast } = useToast();
+  const { isDemoMode } = useDemoMode();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -359,7 +361,7 @@ export default function AdminArchives() {
                     {doc.analysis_status === "done" ? (
                       <>
                         {doc.summary && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{doc.summary}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{isDemoMode ? "••••••••••••••" : doc.summary}</p>
                         )}
                         <div className="flex flex-wrap gap-1 mt-1">
                           {doc.year && (
