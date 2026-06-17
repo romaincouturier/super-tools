@@ -1,6 +1,28 @@
 import { useState, useMemo, useRef } from "react";
-import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  startOfYear,
+  addDays,
+  addWeeks,
+  addMonths,
+  addYears,
+  subDays,
+  getISOWeek,
+} from "date-fns";
 import { fr } from "date-fns/locale";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import {
   Clock,
   Plus,
@@ -22,6 +44,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { supabase } from "@/integrations/supabase/client";
