@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2 } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
@@ -662,9 +662,16 @@ const EntityMediaManager = ({
                       </div>
                       )}
 
+                      {/* Drag handle indicator (reorder mode) */}
+                      {allowReorder && item.file_type !== "audio" && (
+                        <div className="absolute top-1 left-1 opacity-60">
+                          <GripVertical className="h-3.5 w-3.5 text-white drop-shadow" />
+                        </div>
+                      )}
+
                       {/* Deliverable badge */}
                       {item.is_deliverable && item.file_type !== "audio" && (
-                        <div className="absolute top-1 left-1">
+                        <div className={cn("absolute top-1", allowReorder ? "left-5" : "left-1")}>
                           <Package className="h-3.5 w-3.5 text-white drop-shadow" />
                         </div>
                       )}
@@ -729,19 +736,14 @@ const EntityMediaManager = ({
           </CardTitle>
           <div className="flex items-center gap-2">
             {(imageItems.length + videoItems.length) > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={openPresentation}
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    <Maximize2 className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Lancer la présentation</TooltipContent>
-              </Tooltip>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={openPresentation}
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Présentation
+              </Button>
             )}
             {downloadableMedia.length > 0 && (
               <Button

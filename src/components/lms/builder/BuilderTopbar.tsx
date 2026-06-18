@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Menu, ArrowLeft, Eye, ImageIcon, Mic } from "lucide-react";
 import { LmsLesson, useCourse, useUpdateCourse } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
+import { fetchEmptyLessonsForCourse, deleteLessonsByIds } from "@/services/lms-blocks";
 import BulkImageUploadDialog from "./BulkImageUploadDialog";
 import BulkAudioUploadDialog from "./BulkAudioUploadDialog";
 
@@ -20,6 +23,8 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   const { data: course } = useCourse(courseId);
   const updateCourse = useUpdateCourse();
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const qc = useQueryClient();
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [audioDialogOpen, setAudioDialogOpen] = useState(false);
 
@@ -35,6 +40,29 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
 
   const togglePublish = async () => {
     const next = isPublished ? "draft" : "published";
+
+    if (next === "published") {
+      try {
+        const emptyLessons = await fetchEmptyLessonsForCourse(courseId);
+        if (emptyLessons.length > 0) {
+          const names = emptyLessons.map((l) => `• ${l.title}`).join("\n");
+          const shouldDelete = await confirm({
+            title: `${emptyLessons.length} leçon${emptyLessons.length > 1 ? "s" : ""} sans contenu`,
+            description: `Les leçons suivantes sont vides :\n${names}\n\nVoulez-vous les supprimer avant de publier ?`,
+            confirmText: "Supprimer et publier",
+            cancelText: "Publier quand même",
+          });
+          if (shouldDelete) {
+            await deleteLessonsByIds(emptyLessons.map((l) => l.id));
+            qc.invalidateQueries({ queryKey: ["lms-lessons"] });
+            qc.invalidateQueries({ queryKey: ["lms-course-lessons"] });
+          }
+        }
+      } catch {
+        // non-blocking — proceed to publish even if check fails
+      }
+    }
+
     try {
       await updateCourse.mutateAsync({ id: courseId, status: next });
       toast({ title: next === "published" ? "Formation publiée" : "Formation repassée en brouillon" });
@@ -185,6 +213,7 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
         onClose={() => setAudioDialogOpen(false)}
         courseId={courseId}
       />
+      <ConfirmDialog />
     </header>
   );
 }
