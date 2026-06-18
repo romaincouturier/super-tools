@@ -409,6 +409,40 @@ export default function LmsCourses() {
           </div>
         </div>
 
+        {/* Mobile folder navigation (hidden on lg where sidebar is visible) */}
+        {folders.length > 0 && (
+          <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            <button
+              onClick={() => setActiveFolderId(null)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${activeFolderId === null ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            >
+              <BookOpen size={13} /> Tous
+            </button>
+            <button
+              onClick={() => setActiveFolderId("root")}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${activeFolderId === "root" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            >
+              <Folder size={13} /> Sans dossier
+            </button>
+            {rootFolders.map((folder) => (
+              <button
+                key={folder.id}
+                onClick={() => setActiveFolderId(folder.id)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${activeFolderId === folder.id ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+              >
+                <FolderOpen size={13} /> {folder.name}
+              </button>
+            ))}
+            <button
+              onClick={() => handleCreateFolder()}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-dashed border-border hover:bg-muted transition-colors"
+              title="Nouveau dossier"
+            >
+              <FolderPlus size={13} />
+            </button>
+          </div>
+        )}
+
         {/* Course Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -479,7 +513,7 @@ export default function LmsCourses() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="opacity-0 group-hover:opacity-100 shrink-0 h-8 w-8"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0 h-8 w-8"
                           onClick={(e) => e.stopPropagation()}
                           disabled={duplicatingId === course.id}
                         >

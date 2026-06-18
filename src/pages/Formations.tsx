@@ -415,9 +415,9 @@ const Formations = () => {
           actions={
             <div className="flex items-center gap-2">
               <Link to="/formations/bpf">
-                <Button variant="outline" size="sm" className="shrink-0 hidden md:flex">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Bilan BPF
+                <Button variant="outline" size={isMobile ? "icon" : "sm"} className="shrink-0" title="Bilan BPF">
+                  <FileText className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Bilan BPF</span>
                 </Button>
               </Link>
               <Button size={isMobile ? "icon" : "default"} onClick={() => navigate("/formations/new")} className="shrink-0">
