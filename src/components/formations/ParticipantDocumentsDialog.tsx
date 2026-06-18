@@ -334,7 +334,7 @@ const ParticipantDocumentsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md overflow-hidden">
+      <DialogContent className="sm:max-w-xl overflow-hidden">
         <DialogHeader>
           <DialogTitle>Documents - {participantName}</DialogTitle>
           <DialogDescription>
