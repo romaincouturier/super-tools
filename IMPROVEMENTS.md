@@ -229,6 +229,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Responsive
 
+### [033] Navigation mobile — boutons retour et sidebars toujours accessibles sur touch
+- **Constat** : Trois bugs mobiles récurrents découverts en juin 2026 : (1) `BuilderTopbar` avait son bouton Retour en `hidden lg:flex` → aucun moyen de quitter un e-learning sur mobile ; (2) la sidebar dossiers de `LmsCourses` était en `hidden lg:flex` → les dossiers invisibles sur mobile ; (3) le renommage d'un cours e-learning déclenchable uniquement par `onDoubleClick` → inopérant sur touch.
+- **Règle** : (a) Jamais de `hidden lg:*` sur un élément de navigation critique (bouton retour, breadcrumb, menu principal) — masquer le texte sur mobile est acceptable (`hidden lg:inline`), masquer l'élément entier ne l'est pas. (b) Toute sidebar desktop-only (`hidden lg:flex`) doit avoir un équivalent mobile : drawer, chips scrollables, ou select. (c) Toute interaction déclenchée uniquement par `onDoubleClick` ou `hover` doit avoir un fallback accessible par tap (bouton explicite ou entrée de menu contextuel).
+- **Vérification** : `grep -rn "hidden lg:" src/` — chaque résultat sur un élément de navigation (bouton retour, lien, back, sidebar) est une violation potentielle. Vérifier que tout `onDoubleClick` a un équivalent dans un menu contextuel ou un bouton visible.
+- **Fichiers de référence** : `src/components/lms/builder/BuilderTopbar.tsx` (bouton retour mobile), `src/pages/LmsCourses.tsx` (chips dossiers mobile `lg:hidden`)
+- **Origine** : rapport utilisateur — impossible de revenir en arrière dans un e-learning sur mobile, dossiers LMS invisibles sur mobile
+- **Date** : 2026-06-18
+
 ### [007] Modales et dialogues — toujours `w-full sm:max-w-{size}` pour le mobile
 - **Constat** : 11 modales (CRM, formations, onboarding) avaient des largeurs fixes (`max-w-2xl`, `max-w-lg`, etc.) sans `w-full` mobile. Sur un écran < 480px, la partie gauche était tronquée et le contenu inaccessible. Même problème sur les `SheetContent` (ex: Support `w-[480px]` sans `w-full`).
 - **Règle** : Tout `DialogContent`, `AlertDialogContent` ou `SheetContent` doit utiliser `w-full sm:max-w-{size}`. Toute grille de formulaire (`grid-cols-2`, `grid-cols-3`) doit avoir un fallback mobile `grid-cols-1 sm:grid-cols-N`.
