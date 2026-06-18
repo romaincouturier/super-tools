@@ -65,11 +65,11 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
       {/* Back → courses list */}
       <button
         onClick={() => navigate("/lms")}
-        className="hidden lg:flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70 shrink-0"
+        className="flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70 shrink-0"
         style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
       >
         <ArrowLeft size={15} />
-        Retour
+        <span className="hidden lg:inline">Retour</span>
       </button>
 
       {/* Divider */}
