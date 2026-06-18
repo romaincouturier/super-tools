@@ -282,7 +282,6 @@ export function useFormGroups(postId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ groupSize }: { groupSize: number }) => {
-      // Fetch all pending registrations in order
       const { data: pending, error } = await (supabase as any)
         .from("group_matching_registrations")
         .select("id, learner_email")
@@ -292,7 +291,6 @@ export function useFormGroups(postId: string) {
       if (error) throw error;
       if (!pending?.length) return [];
 
-      // Determine current wave
       const { data: lastGroup } = await (supabase as any)
         .from("group_matching_groups")
         .select("wave")
@@ -303,9 +301,14 @@ export function useFormGroups(postId: string) {
       const wave = ((lastGroup as any)?.wave ?? 0) + 1;
 
       const rows = pending as Array<{ id: string; learner_email: string }>;
+      // Only build COMPLETE groups; the remainder stays pending so the admin
+      // can attach them to an existing group.
+      const fullGroupsCount = Math.floor(rows.length / groupSize);
+      if (fullGroupsCount === 0) return [];
+
       const chunks: typeof rows[] = [];
-      for (let i = 0; i < rows.length; i += groupSize) {
-        chunks.push(rows.slice(i, i + groupSize));
+      for (let i = 0; i < fullGroupsCount; i++) {
+        chunks.push(rows.slice(i * groupSize, (i + 1) * groupSize));
       }
 
       const createdGroups: GroupMatchingGroup[] = [];
@@ -321,6 +324,11 @@ export function useFormGroups(postId: string) {
         await (supabase as any)
           .from("group_matching_members")
           .insert(chunk.map((r) => ({ group_id: groupId, registration_id: r.id, learner_email: r.learner_email })));
+
+        await (supabase as any)
+          .from("group_matching_registrations")
+          .update({ status: "assigned" })
+          .in("id", chunk.map((r) => r.id));
 
         createdGroups.push({ ...(newGroup as any), members: chunk.map((r) => ({ learner_email: r.learner_email })) });
       }
@@ -342,6 +350,10 @@ export function useAddMemberToGroup(postId: string) {
         .from("group_matching_members")
         .insert({ group_id: groupId, registration_id: registrationId, learner_email: learnerEmail });
       if (error) throw error;
+      await (supabase as any)
+        .from("group_matching_registrations")
+        .update({ status: "assigned" })
+        .eq("id", registrationId);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: GROUPS_KEY(postId) });
