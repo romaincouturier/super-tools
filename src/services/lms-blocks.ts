@@ -312,3 +312,40 @@ export async function insertLessonTemplate(lessonId: string, templateBlocks: Tem
 }
 
 export type { LessonBlock, LessonBlockContent, LessonBlockType };
+
+/** Deletes lessons by their IDs. */
+export async function deleteLessonsByIds(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  await supabase.from("lms_lessons").delete().in("id", ids);
+}
+
+/** Returns lessons belonging to a course that have zero content blocks. */
+export async function fetchEmptyLessonsForCourse(
+  courseId: string,
+): Promise<{ id: string; title: string }[]> {
+  const { data: modules } = await supabase
+    .from("lms_modules")
+    .select("id")
+    .eq("course_id", courseId);
+
+  const moduleIds = (modules ?? []).map((m: { id: string }) => m.id);
+  if (!moduleIds.length) return [];
+
+  const { data: lessons } = await supabase
+    .from("lms_lessons")
+    .select("id, title")
+    .in("module_id", moduleIds);
+
+  if (!lessons?.length) return [];
+
+  const lessonIds = lessons.map((l: { id: string }) => l.id);
+  const { data: blocksData } = await supabase
+    .from("lms_lesson_blocks")
+    .select("lesson_id")
+    .in("lesson_id", lessonIds);
+
+  const withBlocks = new Set((blocksData ?? []).map((b: { lesson_id: string }) => b.lesson_id));
+  return lessons
+    .filter((l: { id: string }) => !withBlocks.has(l.id))
+    .map((l: { id: string; title: string }) => ({ id: l.id, title: l.title }));
+}
