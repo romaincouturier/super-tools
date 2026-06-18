@@ -44,17 +44,19 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
   const formGroups = useFormGroups(post.post_id);
   const addMember = useAddMemberToGroup(post.post_id);
   const sendEmail = useSendGroupEmail();
-  const [draftGroups, setDraftGroups] = useState<GroupMatchingGroup[] | null>(null);
   const [sending, setSending] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const activeGroups = draftGroups ?? groups;
-  const pendingRegs = draftGroups ? [] : unassigned;
+  const canFormAtLeastOne = unassigned.length >= post.group_size;
 
   const handleFormGroups = async () => {
     try {
       const created = await formGroups.mutateAsync({ groupSize: post.group_size });
-      setDraftGroups([...groups, ...created]);
+      if (created.length === 0) {
+        toast({ title: `Pas assez d'inscrits pour former un groupe de ${post.group_size}.` });
+      } else {
+        toast({ title: `${created.length} groupe(s) créé(s).` });
+      }
     } catch {
       toastError(toast, "Impossible de former les groupes.");
     }
@@ -63,14 +65,13 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
   const handleAddToGroup = async (group: GroupMatchingGroup, reg: GroupMatchingRegistration) => {
     try {
       await addMember.mutateAsync({ groupId: group.id, registrationId: reg.id, learnerEmail: reg.learner_email });
-      setDraftGroups(null);
     } catch {
       toastError(toast, "Impossible d'ajouter au groupe.");
     }
   };
 
   const handleSendAll = async () => {
-    const unsent = activeGroups.filter((g) => !g.email_sent_at);
+    const unsent = groups.filter((g) => !g.email_sent_at);
     if (!unsent.length) { toast({ title: "Tous les emails ont déjà été envoyés." }); return; }
     for (const g of unsent) {
       setSending(g.id);
@@ -82,7 +83,6 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
     }
     setSending(null);
     toast({ title: "Mises en relation envoyées !", description: `${unsent.length} groupe(s) notifié(s).` });
-    setDraftGroups(null);
   };
 
   const isLoading = groupsLoading || unassignedLoading;
@@ -91,7 +91,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full sm:max-w-2xl flex flex-col overflow-y-auto">
         <SheetHeader className="shrink-0">
-          <SheetTitle>Nouvelle vague — groupes de {post.group_size}</SheetTitle>
+          <SheetTitle>Mise en relation — groupes de {post.group_size}</SheetTitle>
           <p className="text-sm text-muted-foreground line-clamp-2">{post.post_content ?? "Post sans texte"}</p>
         </SheetHeader>
 
@@ -100,59 +100,66 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
         ) : (
           <div className="flex-1 space-y-6 py-4">
 
-            {/* Unassigned */}
-            {unassigned.length > 0 && !draftGroups && (
+            {/* Unassigned learners */}
+            {unassigned.length > 0 && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{unassigned.length} inscrit(s) non assigné(s)</p>
-                  <Button size="sm" onClick={handleFormGroups} disabled={formGroups.isPending}>
-                    {formGroups.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-                    Former les groupes
-                  </Button>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium">
+                    {unassigned.length} inscrit(s) en attente d'un groupe
+                  </p>
+                  {canFormAtLeastOne && (
+                    <Button size="sm" onClick={handleFormGroups} disabled={formGroups.isPending}>
+                      {formGroups.isPending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                      Créer {Math.floor(unassigned.length / post.group_size)} nouveau(x) groupe(s) de {post.group_size}
+                    </Button>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {unassigned.map((r) => (
-                    <div key={r.id} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
-                      style={{ background: "rgba(16,24,32,0.05)", color: "var(--st-ink)" }}>
-                      {r.learner_email.split("@")[0]}
+
+                {groups.length === 0 && !canFormAtLeastOne && (
+                  <p className="text-xs text-muted-foreground">
+                    Il faut au moins {post.group_size} inscrits pour former un premier groupe.
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  {unassigned.map((reg) => (
+                    <div key={reg.id} className="rounded-lg border p-3 space-y-2">
+                      <p className="text-sm font-medium">{reg.learner_email}</p>
+                      {groups.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          <span className="text-xs text-muted-foreground self-center">
+                            Ajouter à un groupe existant :
+                          </span>
+                          {groups.map((g, idx) => (
+                            <Button
+                              key={g.id}
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAddToGroup(g, reg)}
+                              disabled={addMember.isPending}
+                            >
+                              <UserPlus className="h-3 w-3 mr-1" />
+                              Groupe #{idx + 1} ({g.members.length})
+                            </Button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Aucun groupe existant pour le moment.
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* After form groups: show remaining unassigned */}
-            {draftGroups && pendingRegs.length === 0 && unassigned.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Non assignés après formation</p>
-                {unassigned.map((reg) => (
-                  <div key={reg.id} className="rounded-lg border p-3 space-y-2">
-                    <p className="text-sm font-medium">{reg.learner_email}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {draftGroups.map((g) => (
-                        <Button
-                          key={g.id}
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAddToGroup(g, reg)}
-                          disabled={addMember.isPending}
-                        >
-                          <UserPlus className="h-3 w-3 mr-1" />
-                          Groupe {g.members.map((m) => m.learner_email.split("@")[0]).join(" · ")}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* Formed groups */}
-            {activeGroups.length > 0 && (
+            {groups.length > 0 && (
               <div className="space-y-3">
-                <p className="text-sm font-medium">Groupes formés ({activeGroups.length})</p>
+                <p className="text-sm font-medium">Groupes formés ({groups.length})</p>
                 <div className="space-y-2">
-                  {activeGroups.map((g, i) => (
+                  {groups.map((g, i) => (
                     <div key={g.id} className="rounded-lg border p-3 flex items-center gap-3">
                       <div className="flex -space-x-1.5">
                         {g.members.map((m) => (
@@ -184,7 +191,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
               </div>
             )}
 
-            {activeGroups.length === 0 && unassigned.length === 0 && (
+            {groups.length === 0 && unassigned.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-8">
                 Aucun inscrit en attente.
               </p>
@@ -194,7 +201,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
 
         <SheetFooter className="shrink-0 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>Fermer</Button>
-          {activeGroups.some((g) => !g.email_sent_at) && (
+          {groups.some((g) => !g.email_sent_at) && (
             <Button onClick={handleSendAll} disabled={!!sending}>
               {sending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               Envoyer les mises en relation
