@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, Ruler, Calendar, Tag, StickyNote } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Ruler, Calendar, Tag, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { downloadWithWatermark } from '@/lib/book-watermark';
 import { useRecordView } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 
@@ -81,15 +80,6 @@ export default function BookProductionLightbox({
 
   if (!open || !production) return null;
 
-  async function handleDownload() {
-    if (!production) return;
-    await downloadWithWatermark(
-      production.file_url,
-      production.original_filename ?? `${production.title}.jpg`,
-      watermarkText,
-    );
-  }
-
   const hasDimensions = production.exif_width != null && production.exif_height != null;
 
   return (
@@ -113,16 +103,6 @@ export default function BookProductionLightbox({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {isPublic && production.file_type === 'image' && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10"
-              onClick={handleDownload}
-            >
-              <Download className="w-5 h-5" />
-            </Button>
-          )}
           <Button
             variant="ghost"
             size="icon"
@@ -139,7 +119,6 @@ export default function BookProductionLightbox({
         className="flex-1 flex items-center justify-center relative min-h-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Prev arrow */}
         {currentIndex > 0 && (
           <Button
             variant="ghost"
@@ -151,25 +130,40 @@ export default function BookProductionLightbox({
           </Button>
         )}
 
-        {production.file_type === 'video' ? (
-          <video
-            key={production.id}
-            src={production.file_url}
-            controls
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 160px)' }}
-          />
-        ) : (
-          <img
-            key={production.id}
-            src={production.file_url}
-            alt={production.title}
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 160px)' }}
-          />
-        )}
+        <div className="relative flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+          {production.file_type === 'video' ? (
+            <video
+              key={production.id}
+              src={production.file_url}
+              controls
+              controlsList={isPublic ? 'nodownload noremoteplayback' : undefined}
+              disablePictureInPicture={isPublic}
+              onContextMenu={isPublic ? (e) => e.preventDefault() : undefined}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{ maxHeight: 'calc(100vh - 160px)' }}
+            />
+          ) : (
+            <img
+              key={production.id}
+              src={production.file_url}
+              alt={production.title}
+              draggable={false}
+              onContextMenu={isPublic ? (e) => e.preventDefault() : undefined}
+              onDragStart={isPublic ? (e) => e.preventDefault() : undefined}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{ maxHeight: 'calc(100vh - 160px)', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+            />
+          )}
+          {isPublic && production.file_type === 'image' && (
+            <div
+              className="absolute inset-0"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+            />
+          )}
+        </div>
 
-        {/* Next arrow */}
         {currentIndex < productions.length - 1 && (
           <Button
             variant="ghost"
@@ -212,3 +206,4 @@ export default function BookProductionLightbox({
     </div>
   );
 }
+
