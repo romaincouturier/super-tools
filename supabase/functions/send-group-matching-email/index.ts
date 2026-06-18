@@ -72,6 +72,8 @@ serve(async (req) => {
       .join("");
 
     // Send one email per member
+    const bccList = await getBccList();
+
     for (const recipientEmail of emails) {
       const firstName = profileMap.get(recipientEmail)?.first_name;
       const greeting = firstName ? `Bonjour ${escapeHtml(firstName)},` : "Bonjour,";
