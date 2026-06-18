@@ -8,6 +8,7 @@ import {
   escapeHtml,
   getSupabaseClient,
 } from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
