@@ -175,5 +175,35 @@ export default function BookProductionLightbox({
           </Button>
         )}
       </div>
+
+      {/* Bottom bar */}
+      <div
+        className="px-4 py-3 bg-black/60 flex items-center gap-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {production.notes && (
+          <div className="flex items-start gap-1.5 text-white/80 text-sm min-w-0">
+            <StickyNote className="w-4 h-4 shrink-0 mt-0.5 text-white/50" />
+            <span className="truncate">{production.notes}</span>
+          </div>
+        )}
+        {production.exif_date && (
+          <div className="flex items-center gap-1.5 text-white/60 text-xs shrink-0">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{format(new Date(production.exif_date), 'd MMM yyyy', { locale: fr })}</span>
+          </div>
+        )}
+        {hasDimensions && (
+          <div className="flex items-center gap-1.5 text-white/60 text-xs shrink-0">
+            <Ruler className="w-3.5 h-3.5" />
+            <span>{production.exif_width} x {production.exif_height}</span>
+          </div>
+        )}
+        <span className="text-white/40 text-xs ml-auto shrink-0">
+          {currentIndex + 1} / {productions.length}
+        </span>
+      </div>
+    </div>
   );
 }
+
