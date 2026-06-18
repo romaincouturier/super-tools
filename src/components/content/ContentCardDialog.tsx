@@ -446,7 +446,7 @@ const ContentCardDialog = ({
 
             {/* Images */}
             <div className="space-y-2">
-              <Label>{card ? "Images" : "Image de couverture"}</Label>
+              <Label>{card ? "Images et documents" : "Image de couverture"}</Label>
               {card ? (
                 <>
                   {/* Cover image */}
@@ -500,6 +500,7 @@ const ContentCardDialog = ({
                     sourceId={card.id}
                     sourceLabel={title || "Contenu"}
                     variant="bare"
+                    allowDocuments
                   />
                 </>
               ) : (
