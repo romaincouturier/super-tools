@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
@@ -84,6 +84,7 @@ const EntityMediaManager = ({
   const [downloading, setDownloading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
+  const [presentationFullscreen, setPresentationFullscreen] = useState(false);
   const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
   const [localItems, setLocalItems] = useState<MediaItem[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -116,6 +117,18 @@ const EntityMediaManager = ({
       { sourceType, sourceId, items: reordered.map((m, i) => ({ id: m.id, position: i })) },
       { onSettled: () => setLocalItems(null) },
     );
+  };
+
+  const openPresentation = () => {
+    const first = gridItems.find((m) => m.file_type === "image" || m.file_type === "video");
+    if (!first) return;
+    setPresentationFullscreen(true);
+    setLightboxItem(first);
+  };
+
+  const handleLightboxClose = () => {
+    setLightboxItem(null);
+    setPresentationFullscreen(false);
   };
 
   const handleToggleDeliverable = (item: MediaItem) => {
@@ -686,9 +699,10 @@ const EntityMediaManager = ({
         <MediaLightbox
           item={lightboxItem}
           items={lightboxItems}
-          onClose={() => setLightboxItem(null)}
+          onClose={handleLightboxClose}
           onNavigate={setLightboxItem}
           onToggleDeliverable={handleToggleDeliverable}
+          autoFullscreen={presentationFullscreen}
         />
       )}
     </>
@@ -713,21 +727,38 @@ const EntityMediaManager = ({
               </span>
             )}
           </CardTitle>
-          {downloadableMedia.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDownloadAll}
-              disabled={downloading}
-            >
-              {downloading ? (
-                <Spinner className="mr-2" />
-              ) : (
-                <DownloadCloud className="h-4 w-4 mr-2" />
-              )}
-              Tout télécharger
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {(imageItems.length + videoItems.length) > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={openPresentation}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Lancer la présentation</TooltipContent>
+              </Tooltip>
+            )}
+            {downloadableMedia.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDownloadAll}
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <Spinner className="mr-2" />
+                ) : (
+                  <DownloadCloud className="h-4 w-4 mr-2" />
+                )}
+                Tout télécharger
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>{content}</CardContent>
