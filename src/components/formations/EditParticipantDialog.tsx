@@ -91,7 +91,7 @@ const EditParticipantDialog = ({
           <p>Modifier le participant</p>
         </TooltipContent>
       </Tooltip>
-      <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden w-full sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden w-full max-w-4xl">
         <DialogHeader>
           <DialogTitle>Modifier le participant</DialogTitle>
           <DialogDescription className="flex items-center gap-2">

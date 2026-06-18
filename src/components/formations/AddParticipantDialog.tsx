@@ -239,7 +239,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
           Ajouter
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] flex flex-col">
+      <DialogContent className="max-h-[85vh] flex flex-col w-full sm:max-w-3xl">
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Ajouter un participant</DialogTitle>
