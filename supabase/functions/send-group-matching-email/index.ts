@@ -64,7 +64,7 @@ serve(async (req) => {
       .eq("id", (group as any).post_id)
       .single();
     const postSnippet = (post as any)?.content
-      ? escapeHtml(((post as any).content as string).slice(0, 120)) + (((post as any).content as string).length > 120 ? "…" : "")
+      ? escapeHtml((post as any).content as string).replace(/\n/g, "<br>")
       : null;
 
     const membersHtml = emails
