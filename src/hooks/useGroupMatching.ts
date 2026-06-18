@@ -21,6 +21,7 @@ export interface GroupMatchingRegistration {
 
 export interface GroupMatchingMember {
   learner_email: string;
+  registration_id?: string;
   first_name?: string | null;
   last_name?: string | null;
   photo_url?: string | null;
@@ -105,7 +106,7 @@ export function usePostGroups(postId: string | null) {
       const groupIds = (groups as Array<{ id: string }>).map((g) => g.id);
       const { data: members } = await (supabase as any)
         .from("group_matching_members")
-        .select("group_id, learner_email")
+        .select("group_id, learner_email, registration_id")
         .in("group_id", groupIds);
 
       const memberEmails = [...new Set((members ?? []).map((m: any) => m.learner_email as string))];
@@ -116,16 +117,16 @@ export function usePostGroups(postId: string | null) {
             .in("email", memberEmails)
         : { data: [] };
 
-      const profileMap = new Map<string, GroupMatchingMember>();
+      const profileMap = new Map<string, Omit<GroupMatchingMember, "registration_id">>();
       for (const p of (profiles ?? []) as Array<{ email: string; first_name: string | null; last_name: string | null; photo_url: string | null }>) {
         profileMap.set(p.email, { learner_email: p.email, first_name: p.first_name, last_name: p.last_name, photo_url: p.photo_url });
       }
 
       return (groups as any[]).map((g) => ({
         ...g,
-        members: ((members ?? []) as Array<{ group_id: string; learner_email: string }>)
+        members: ((members ?? []) as Array<{ group_id: string; learner_email: string; registration_id: string }>)
           .filter((m) => m.group_id === g.id)
-          .map((m) => profileMap.get(m.learner_email) ?? { learner_email: m.learner_email }),
+          .map((m) => ({ ...(profileMap.get(m.learner_email) ?? { learner_email: m.learner_email }), registration_id: m.registration_id })),
       })) as GroupMatchingGroup[];
     },
   });
