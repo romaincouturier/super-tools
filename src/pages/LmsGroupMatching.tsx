@@ -44,6 +44,7 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
   const { data: unassigned = [], isLoading: unassignedLoading } = useUnassignedRegistrations(post.post_id);
   const formGroups = useFormGroups(post.post_id);
   const addMember = useAddMemberToGroup(post.post_id);
+  const removeMember = useRemoveMemberFromGroup(post.post_id);
   const sendEmail = useSendGroupEmail();
   const [sending, setSending] = useState<string | null>(null);
   const { toast } = useToast();
@@ -68,6 +69,15 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
       await addMember.mutateAsync({ groupId: group.id, registrationId: reg.id, learnerEmail: reg.learner_email });
     } catch {
       toastError(toast, "Impossible d'ajouter au groupe.");
+    }
+  };
+
+  const handleRemoveFromGroup = async (groupId: string, registrationId?: string) => {
+    if (!registrationId) return;
+    try {
+      await removeMember.mutateAsync({ groupId, registrationId });
+    } catch {
+      toastError(toast, "Impossible de détacher du groupe.");
     }
   };
 
