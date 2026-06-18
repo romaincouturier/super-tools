@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Users, Send, ChevronRight, UserPlus } from "lucide-react";
+import { Loader2, Users, Send, ChevronRight, UserPlus, UserMinus } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   useUnassignedRegistrations,
   useFormGroups,
   useAddMemberToGroup,
+  useRemoveMemberFromGroup,
   useSendGroupEmail,
   type MatchingPostSummary,
   type GroupMatchingGroup,
