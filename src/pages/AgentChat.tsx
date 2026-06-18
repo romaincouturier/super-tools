@@ -16,6 +16,8 @@ import { useAgentConversations } from "@/hooks/useAgentConversations";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import ModuleLayout from "@/components/ModuleLayout";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import DailyTodoPanel from "@/components/dashboard/DailyTodoPanel";
 import UpcomingCalendarPanel from "@/components/dashboard/UpcomingCalendarPanel";
 import ReactMarkdown from "react-markdown";
@@ -51,6 +53,7 @@ const AgentChat = () => {
   const [uploading, setUploading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
+  const isMobile = useIsMobile();
   const [showRightPanel, setShowRightPanel] = useState(true);
   const scrollEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -228,7 +231,7 @@ const AgentChat = () => {
                         deleteConversation.mutate(conv.id);
                         if (conv.id === conversationId) newConversation();
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -273,7 +276,7 @@ const AgentChat = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 hidden lg:flex"
+                className="h-8 w-8"
                 onClick={() => setShowRightPanel(!showRightPanel)}
               >
                 <PanelRight className="w-4 h-4" />
@@ -380,7 +383,7 @@ const AgentChat = () => {
           </div>
         </div>
 
-        {/* Right panel: Todo + Calendar */}
+        {/* Right panel: Todo + Calendar — sidebar on desktop, sheet on mobile */}
         {showRightPanel && (
           <aside className="hidden lg:flex flex-col w-80 shrink-0 border-l bg-muted/20 p-4 gap-4 overflow-y-auto">
             <Card className="p-4 min-h-0 flex flex-col overflow-hidden">
@@ -391,6 +394,16 @@ const AgentChat = () => {
             </Card>
           </aside>
         )}
+        <Sheet open={isMobile && showRightPanel} onOpenChange={(open) => !open && setShowRightPanel(false)}>
+          <SheetContent side="right" className="lg:hidden w-80 p-4 flex flex-col gap-4 overflow-y-auto">
+            <Card className="p-4 min-h-0 flex flex-col overflow-hidden">
+              <UpcomingCalendarPanel />
+            </Card>
+            <Card className="p-4 min-h-0 flex flex-col overflow-hidden">
+              <DailyTodoPanel />
+            </Card>
+          </SheetContent>
+        </Sheet>
       </div>
     </ModuleLayout>
   );
@@ -502,7 +515,7 @@ function MessageBubble({
         {/* Action buttons — visible on hover */}
         {!isStreaming && message.content && (
           <div className={cn(
-            "flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity",
+            "flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity",
             isUser && "flex-row-reverse",
           )}>
             <button

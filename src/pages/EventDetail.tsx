@@ -620,7 +620,7 @@ const EventDetail = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="opacity-0 group-hover:opacity-100 h-7 w-7 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteVideoLink(v.id)}
                     >
                       <X className="h-3.5 w-3.5" />

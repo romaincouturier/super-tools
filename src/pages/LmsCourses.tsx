@@ -513,7 +513,7 @@ export default function LmsCourses() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="opacity-0 group-hover:opacity-100 shrink-0 h-8 w-8"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0 h-8 w-8"
                           onClick={(e) => e.stopPropagation()}
                           disabled={duplicatingId === course.id}
                         >

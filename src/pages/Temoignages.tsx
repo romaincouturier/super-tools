@@ -151,7 +151,7 @@ function PublishedTestimonialCard({ t, onEdit }: { t: Testimonial; onEdit: () =>
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-7 w-7 shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(); }}
           title="Éditer"
         >
