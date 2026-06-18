@@ -8,6 +8,7 @@ import {
   escapeHtml,
   getSupabaseClient,
 } from "../_shared/mod.ts";
+import { getBccList } from "../_shared/email-settings.ts";
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -71,6 +72,8 @@ serve(async (req) => {
       .join("");
 
     // Send one email per member
+    const bccList = await getBccList();
+
     for (const recipientEmail of emails) {
       const firstName = profileMap.get(recipientEmail)?.first_name;
       const greeting = firstName ? `Bonjour ${escapeHtml(firstName)},` : "Bonjour,";
@@ -105,10 +108,12 @@ ${postSnippet ? `<p style="border-left:3px solid #FFD100;padding-left:12px;color
 
       await sendEmail({
         to: [recipientEmail],
+        bcc: bccList,
         subject: "Votre groupe est formé 🎉",
         html,
         _emailType: "group_matching",
       });
+      await new Promise((r) => setTimeout(r, 400));
     }
 
     // Mark email_sent_at
