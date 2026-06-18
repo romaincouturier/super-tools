@@ -171,30 +171,42 @@ function WaveSheet({ post, onClose }: { post: MatchingPostSummary; onClose: () =
                 <p className="text-sm font-medium">Groupes formés ({groups.length})</p>
                 <div className="space-y-2">
                   {groups.map((g, i) => (
-                    <div key={g.id} className="rounded-lg border p-3 flex items-center gap-3">
-                      <div className="flex -space-x-1.5">
+                    <div key={g.id} className="rounded-lg border p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">Groupe #{i + 1}</span>
+                        <div className="flex items-center gap-2">
+                          {g.email_sent_at ? (
+                            <Badge variant="outline" className="text-xs text-green-600 border-green-200">Email envoyé</Badge>
+                          ) : sending === g.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
                         {g.members.map((m) => (
-                          <MiniAvatar
-                            key={m.learner_email}
-                            email={m.learner_email}
-                            firstName={m.first_name}
-                            lastName={m.last_name}
-                            photoUrl={m.photo_url}
-                          />
+                          <div key={m.learner_email} className="flex items-center gap-2">
+                            <MiniAvatar
+                              email={m.learner_email}
+                              firstName={m.first_name}
+                              lastName={m.last_name}
+                              photoUrl={m.photo_url}
+                            />
+                            <span className="flex-1 min-w-0 text-sm truncate">
+                              {[m.first_name, m.last_name].filter(Boolean).join(" ") || m.learner_email}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                              onClick={() => handleRemoveFromGroup(g.id, m.registration_id)}
+                              disabled={removeMember.isPending || !m.registration_id}
+                              title="Détacher du groupe"
+                            >
+                              <UserMinus className="h-3 w-3 mr-1" />
+                              Détacher
+                            </Button>
+                          </div>
                         ))}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-muted-foreground truncate">
-                          {g.members.map((m) => [m.first_name, m.last_name].filter(Boolean).join(" ") || m.learner_email.split("@")[0]).join(" · ")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {g.email_sent_at ? (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-200">Email envoyé</Badge>
-                        ) : sending === g.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        ) : null}
-                        <span className="text-xs text-muted-foreground">#{i + 1}</span>
                       </div>
                     </div>
                   ))}
