@@ -15,7 +15,7 @@ import {
   useCourseFolders, useCreateCourseFolder, useRenameCourseFolder, useDeleteCourseFolder, useMoveCourseToFolder,
   type LmsCourseFolder,
 } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown } from "lucide-react";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -487,6 +487,10 @@ export default function LmsCourses() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={(e) => startEdit(e, course.id, course.title)}>
+                          <Pencil className="w-4 h-4 mr-2" /> Renommer
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={(e) => handleDuplicate(e, course.id, "structure")}>
                           <Copy className="w-4 h-4 mr-2" /> Dupliquer (structure)
                         </DropdownMenuItem>
