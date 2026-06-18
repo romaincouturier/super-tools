@@ -347,6 +347,14 @@ export function useAddMemberToGroup(postId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ groupId, registrationId, learnerEmail }: { groupId: string; registrationId: string; learnerEmail: string }) => {
+      // Find previous group (if member is being moved) so we can clean it up after
+      const { data: existing } = await (supabase as any)
+        .from("group_matching_members")
+        .select("group_id")
+        .eq("registration_id", registrationId)
+        .maybeSingle();
+      const previousGroupId = (existing as any)?.group_id as string | undefined;
+
       const { error } = await (supabase as any)
         .from("group_matching_members")
         .upsert(
@@ -359,6 +367,17 @@ export function useAddMemberToGroup(postId: string) {
         .update({ status: "assigned" })
         .eq("id", registrationId);
       if (updateError) throw updateError;
+
+      // If member was moved out of a previous group and it is now empty, delete it
+      if (previousGroupId && previousGroupId !== groupId) {
+        const { data: remaining } = await (supabase as any)
+          .from("group_matching_members")
+          .select("registration_id")
+          .eq("group_id", previousGroupId);
+        if (!remaining || (remaining as any[]).length === 0) {
+          await (supabase as any).from("group_matching_groups").delete().eq("id", previousGroupId);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: GROUPS_KEY(postId) });
