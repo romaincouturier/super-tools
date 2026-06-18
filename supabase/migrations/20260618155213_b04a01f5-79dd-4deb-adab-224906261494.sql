@@ -1,0 +1,1 @@
+UPDATE public.group_matching_groups SET email_sent_at = NULL WHERE id = '3524ecfc-a3c3-4daa-9ee0-b11a0bd86437';
