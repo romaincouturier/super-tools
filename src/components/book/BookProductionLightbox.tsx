@@ -80,15 +80,6 @@ export default function BookProductionLightbox({
 
   if (!open || !production) return null;
 
-  async function handleDownload() {
-    if (!production) return;
-    await downloadWithWatermark(
-      production.file_url,
-      production.original_filename ?? `${production.title}.jpg`,
-      watermarkText,
-    );
-  }
-
   const hasDimensions = production.exif_width != null && production.exif_height != null;
 
   return (
@@ -112,16 +103,6 @@ export default function BookProductionLightbox({
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {isPublic && production.file_type === 'image' && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/10"
-              onClick={handleDownload}
-            >
-              <Download className="w-5 h-5" />
-            </Button>
-          )}
           <Button
             variant="ghost"
             size="icon"
@@ -138,7 +119,6 @@ export default function BookProductionLightbox({
         className="flex-1 flex items-center justify-center relative min-h-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Prev arrow */}
         {currentIndex > 0 && (
           <Button
             variant="ghost"
@@ -150,25 +130,40 @@ export default function BookProductionLightbox({
           </Button>
         )}
 
-        {production.file_type === 'video' ? (
-          <video
-            key={production.id}
-            src={production.file_url}
-            controls
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 160px)' }}
-          />
-        ) : (
-          <img
-            key={production.id}
-            src={production.file_url}
-            alt={production.title}
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: 'calc(100vh - 160px)' }}
-          />
-        )}
+        <div className="relative flex items-center justify-center" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+          {production.file_type === 'video' ? (
+            <video
+              key={production.id}
+              src={production.file_url}
+              controls
+              controlsList={isPublic ? 'nodownload noremoteplayback' : undefined}
+              disablePictureInPicture={isPublic}
+              onContextMenu={isPublic ? (e) => e.preventDefault() : undefined}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{ maxHeight: 'calc(100vh - 160px)' }}
+            />
+          ) : (
+            <img
+              key={production.id}
+              src={production.file_url}
+              alt={production.title}
+              draggable={false}
+              onContextMenu={isPublic ? (e) => e.preventDefault() : undefined}
+              onDragStart={isPublic ? (e) => e.preventDefault() : undefined}
+              className="max-w-full max-h-full object-contain select-none"
+              style={{ maxHeight: 'calc(100vh - 160px)', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+            />
+          )}
+          {isPublic && production.file_type === 'image' && (
+            <div
+              className="absolute inset-0"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+            />
+          )}
+        </div>
 
-        {/* Next arrow */}
         {currentIndex < productions.length - 1 && (
           <Button
             variant="ghost"
@@ -180,34 +175,5 @@ export default function BookProductionLightbox({
           </Button>
         )}
       </div>
-
-      {/* Bottom bar */}
-      <div
-        className="px-4 py-3 bg-black/60 flex items-center gap-6"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {production.notes && (
-          <div className="flex items-start gap-1.5 text-white/80 text-sm min-w-0">
-            <StickyNote className="w-4 h-4 shrink-0 mt-0.5 text-white/50" />
-            <span className="truncate">{production.notes}</span>
-          </div>
-        )}
-        {production.exif_date && (
-          <div className="flex items-center gap-1.5 text-white/60 text-xs shrink-0">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{format(new Date(production.exif_date), 'd MMM yyyy', { locale: fr })}</span>
-          </div>
-        )}
-        {hasDimensions && (
-          <div className="flex items-center gap-1.5 text-white/60 text-xs shrink-0">
-            <Ruler className="w-3.5 h-3.5" />
-            <span>{production.exif_width} x {production.exif_height}</span>
-          </div>
-        )}
-        <span className="text-white/40 text-xs ml-auto shrink-0">
-          {currentIndex + 1} / {productions.length}
-        </span>
-      </div>
-    </div>
   );
 }
