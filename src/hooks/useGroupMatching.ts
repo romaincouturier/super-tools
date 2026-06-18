@@ -367,6 +367,41 @@ export function useAddMemberToGroup(postId: string) {
   });
 }
 
+export function useRemoveMemberFromGroup(postId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ groupId, registrationId }: { groupId: string; registrationId: string }) => {
+      const { error: delErr } = await (supabase as any)
+        .from("group_matching_members")
+        .delete()
+        .eq("group_id", groupId)
+        .eq("registration_id", registrationId);
+      if (delErr) throw delErr;
+
+      const { error: updErr } = await (supabase as any)
+        .from("group_matching_registrations")
+        .update({ status: "pending" })
+        .eq("id", registrationId);
+      if (updErr) throw updErr;
+
+      const { data: remaining, error: cErr } = await (supabase as any)
+        .from("group_matching_members")
+        .select("registration_id")
+        .eq("group_id", groupId);
+      if (cErr) throw cErr;
+
+      if (!remaining || (remaining as any[]).length === 0) {
+        await (supabase as any).from("group_matching_groups").delete().eq("id", groupId);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: GROUPS_KEY(postId) });
+      qc.invalidateQueries({ queryKey: UNASSIGNED_KEY(postId) });
+      qc.invalidateQueries({ queryKey: ALL_POSTS_KEY });
+    },
+  });
+}
+
 export function useSendGroupEmail() {
   return useMutation({
     mutationFn: async (groupId: string) => {
