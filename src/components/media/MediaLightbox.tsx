@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package, Newspaper, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { formatFileSize, downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -23,20 +24,35 @@ interface MediaLightboxProps {
   onClose: () => void;
   onNavigate: (item: MediaItem) => void;
   onToggleDeliverable?: (item: MediaItem) => void;
+  autoFullscreen?: boolean;
 }
 
-const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }: MediaLightboxProps) => {
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir >= 0 ? "100%" : "-100%", opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir >= 0 ? "-100%" : "100%", opacity: 0 }),
+};
+
+const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, autoFullscreen }: MediaLightboxProps) => {
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
   const renameMedia = useRenameMedia();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [direction, setDirection] = useState(0);
 
   useEffect(() => {
     const handleFSChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", handleFSChange);
     return () => document.removeEventListener("fullscreenchange", handleFSChange);
+  }, []);
+
+  useEffect(() => {
+    if (autoFullscreen) {
+      containerRef.current?.requestFullscreen().catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleFullscreen = useCallback(async () => {
@@ -72,11 +88,17 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
   };
 
   const goPrev = useCallback(() => {
-    if (hasPrev) onNavigate(items[currentIndex - 1]);
+    if (hasPrev) {
+      setDirection(-1);
+      onNavigate(items[currentIndex - 1]);
+    }
   }, [hasPrev, currentIndex, items, onNavigate]);
 
   const goNext = useCallback(() => {
-    if (hasNext) onNavigate(items[currentIndex + 1]);
+    if (hasNext) {
+      setDirection(1);
+      onNavigate(items[currentIndex + 1]);
+    }
   }, [hasNext, currentIndex, items, onNavigate]);
 
   useEffect(() => {
@@ -144,26 +166,38 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable }
 
       {/* Media */}
       <div
-        className="max-w-[90vw] max-h-[85vh]"
+        className="max-w-[90vw] max-h-[85vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {item.file_type === "image" ? (
-          <img
-            src={item.file_url}
-            alt={item.file_name}
-            className="max-w-full max-h-[85vh] object-contain rounded"
-          />
-        ) : (
-          <video
-            src={item.file_url}
-            controls
-            autoPlay
-            playsInline
-            className="max-w-full max-h-[85vh] rounded"
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={item.id}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            <source src={item.file_url} type={item.mime_type || "video/mp4"} />
-          </video>
-        )}
+            {item.file_type === "image" ? (
+              <img
+                src={item.file_url}
+                alt={item.file_name}
+                className="max-w-full max-h-[85vh] object-contain rounded"
+              />
+            ) : (
+              <video
+                src={item.file_url}
+                controls
+                autoPlay
+                playsInline
+                className="max-w-full max-h-[85vh] rounded"
+              >
+                <source src={item.file_url} type={item.mime_type || "video/mp4"} />
+              </video>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Info bar */}
