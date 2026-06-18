@@ -108,10 +108,12 @@ ${postSnippet ? `<p style="border-left:3px solid #FFD100;padding-left:12px;color
 
       await sendEmail({
         to: [recipientEmail],
+        bcc: bccList,
         subject: "Votre groupe est formé 🎉",
         html,
         _emailType: "group_matching",
       });
+      await new Promise((r) => setTimeout(r, 400));
     }
 
     // Mark email_sent_at
