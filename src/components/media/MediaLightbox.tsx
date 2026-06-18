@@ -50,15 +50,23 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, 
 
   useEffect(() => {
     if (autoFullscreen) {
-      containerRef.current?.requestFullscreen().catch(() => {});
+      try {
+        const el = containerRef.current as any;
+        const req = el?.requestFullscreen || el?.webkitRequestFullscreen;
+        req?.call(el)?.catch?.(() => {});
+      } catch {
+        // Fullscreen not supported (iOS Safari/Brave)
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const toggleFullscreen = useCallback(async () => {
     try {
+      const el = containerRef.current as any;
       if (!document.fullscreenElement) {
-        await containerRef.current?.requestFullscreen();
+        const req = el?.requestFullscreen || el?.webkitRequestFullscreen;
+        if (req) await req.call(el);
       } else {
         await document.exitFullscreen();
       }
