@@ -1,10 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, Download, Ruler, Calendar, Tag, StickyNote } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Ruler, Calendar, Tag, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { downloadWithWatermark } from '@/lib/book-watermark';
 import { useRecordView } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 
