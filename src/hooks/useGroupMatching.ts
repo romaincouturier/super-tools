@@ -348,12 +348,16 @@ export function useAddMemberToGroup(postId: string) {
     mutationFn: async ({ groupId, registrationId, learnerEmail }: { groupId: string; registrationId: string; learnerEmail: string }) => {
       const { error } = await (supabase as any)
         .from("group_matching_members")
-        .insert({ group_id: groupId, registration_id: registrationId, learner_email: learnerEmail });
+        .upsert(
+          { group_id: groupId, registration_id: registrationId, learner_email: learnerEmail },
+          { onConflict: "registration_id" }
+        );
       if (error) throw error;
-      await (supabase as any)
+      const { error: updateError } = await (supabase as any)
         .from("group_matching_registrations")
         .update({ status: "assigned" })
         .eq("id", registrationId);
+      if (updateError) throw updateError;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: GROUPS_KEY(postId) });
