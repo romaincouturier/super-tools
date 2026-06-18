@@ -81,6 +81,29 @@ const FormationDetailHeader = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+
+  const startRename = () => {
+    setRenameValue(training.training_name);
+    setRenaming(true);
+  };
+
+  const commitRename = async () => {
+    const trimmed = renameValue.trim();
+    setRenaming(false);
+    if (!trimmed || trimmed === training.training_name) return;
+    const { error } = await supabase
+      .from("trainings")
+      .update({ training_name: trimmed })
+      .eq("id", training.id);
+    if (!error) {
+      setTraining({ ...training, training_name: trimmed });
+      toast({ title: "Formation renommée" });
+    } else {
+      toastError(toast, "Erreur lors du renommage.");
+    }
+  };
 
   const handleDelete = async () => {
     if (deleteConfirmText !== "SUPPRIMER") return;
@@ -174,8 +197,31 @@ const FormationDetailHeader = ({
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className={`text-lg md:text-2xl font-bold truncate ${training.is_cancelled ? "line-through text-muted-foreground" : ""}`}>{isDemoMode && isIntra ? maskText(training.training_name) : training.training_name}</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            {renaming ? (
+              <input
+                className="text-lg md:text-2xl font-bold bg-transparent border-b-2 border-primary outline-none w-full"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.currentTarget.blur();
+                  if (e.key === "Escape") setRenaming(false);
+                }}
+                autoFocus
+              />
+            ) : (
+              <>
+                <h1 className={`text-lg md:text-2xl font-bold truncate ${training.is_cancelled ? "line-through text-muted-foreground" : ""}`}>
+                  {isDemoMode && isIntra ? maskText(training.training_name) : training.training_name}
+                </h1>
+                {!isDemoMode && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground" onClick={startRename} title="Renommer">
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </>
+            )}
             {training.is_cancelled && <Badge variant="destructive">Annulée</Badge>}
           </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate">
