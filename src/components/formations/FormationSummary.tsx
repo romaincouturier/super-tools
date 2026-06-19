@@ -4,7 +4,6 @@ import type { FormationFormula } from "@/types/training";
 interface FormationSummaryProps {
   formationDemandee: string;
   participants: string;
-  fraisDossier: "oui" | "non" | "";
   typeSubrogation?: "sans" | "avec" | "les2";
   getSelectedFormationConfig: () => FormationConfig | undefined;
   formationFormulas: FormationFormula[];
@@ -15,7 +14,6 @@ interface FormationSummaryProps {
 export default function FormationSummary({
   formationDemandee,
   participants,
-  fraisDossier,
   typeSubrogation,
   getSelectedFormationConfig,
   formationFormulas,
@@ -56,7 +54,7 @@ export default function FormationSummary({
   };
 
   return (
-    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${formationDemandee}-${participants}-${fraisDossier}-${typeSubrogation}`}>
+    <div className="mt-4 p-3 bg-background rounded border" key={`summary-${formationDemandee}-${participants}-${typeSubrogation}`}>
       <h4 className="font-medium text-sm mb-2">Résumé du devis</h4>
       <div className={showBoth ? "grid grid-cols-1 md:grid-cols-2 gap-4" : ""}>
         {showSans && renderColumn("sans")}

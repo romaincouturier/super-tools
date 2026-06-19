@@ -51,10 +51,8 @@ const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 const DOSSIER_FEE_WITH_SUBROGATION = 350;
 const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
 
-function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
-  // Frais de dossier ne s'appliquent que si la subrogation est demandée,
-  // que l'utilisateur a coché "frais de dossier", ou que c'est un OPCO.
-  if (!(subrogation || data.fraisDossier || data.isOpco)) return 0;
+function getDossierFeeAmount(_data: RequestBody, subrogation: boolean): number {
+  // Frais de dossier systématiques : 150€ sans subrogation, 350€ avec.
   return subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
 }
 
@@ -63,34 +61,25 @@ async function generatePdfWithPdfMonkey(
   subrogation: boolean
 ): Promise<{ pdfUrl: string; documentId: string }> {
   const pdfMonkeyApiKey = Deno.env.get("PDFMONKEY_API_KEY");
-  
+
   if (!pdfMonkeyApiKey) {
     throw new Error("PDFMONKEY_API_KEY is not set");
   }
 
   console.log(`Generating PDF with subrogation=${subrogation}...`);
 
-  // Parse participants list
   const participantsList = data.participants
     .split(/[,;\n]/)
     .map(p => p.trim())
     .filter(p => p.length > 0);
 
-  // Build cadeau text if included
-  const cadeauText = data.includeCadeau 
+  const cadeauText = data.includeCadeau
     ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
     : "";
 
-  // OPCO mode: merge admin fee (forfait global) into the unit price
-  // so only one line appears on the PDF. Total TTC stays identical.
   const adminFeeAmount = getDossierFeeAmount(data, subrogation);
   const qty = Math.max(1, data.nbParticipants);
-  const mergedUnitPrice = data.isOpco
-    ? data.prix + adminFeeAmount / qty
-    : data.prix;
-  const showAdminFeeLine = adminFeeAmount > 0 && !data.isOpco;
 
-  // Build the payload in the expected structure
   const payload = {
     client: {
       name: data.nomClient,
@@ -100,7 +89,7 @@ async function generatePdfWithPdfMonkey(
       country: data.pays,
     },
     note: data.noteDevis || "",
-    affiche_frais: showAdminFeeLine ? "Oui" : "Non",
+    affiche_frais: "Oui",
     subrogation: subrogation ? "Oui" : "Non",
     cadeau: cadeauText,
     items: [
@@ -111,11 +100,10 @@ async function generatePdfWithPdfMonkey(
         place: data.lieu,
         duration: `${data.dureeHeures}h`,
         quantity: qty,
-        unit_price: mergedUnitPrice,
+        unit_price: data.prix,
       },
     ],
-    admin_fee: showAdminFeeLine ? adminFeeAmount : 0,
-    is_opco: !!data.isOpco,
+    admin_fee: adminFeeAmount,
   };
 
   console.log(`PDF Monkey payload:`, JSON.stringify(payload));

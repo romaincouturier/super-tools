@@ -73,8 +73,6 @@ export interface FormationFormSectionProps {
   setLieuAutre: (v: string) => void;
   includeCadeau: boolean;
   setIncludeCadeau: (v: boolean) => void;
-  fraisDossier: "oui" | "non" | "";
-  setFraisDossier: (v: "oui" | "non" | "") => void;
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
   getSelectedFormationConfig: () => FormationConfig | undefined;

@@ -5,8 +5,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface FormationOptionsProps {
   includeCadeau: boolean;
   setIncludeCadeau: (v: boolean) => void;
-  fraisDossier: "oui" | "non" | "";
-  setFraisDossier: (v: "oui" | "non" | "") => void;
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
 }
@@ -14,8 +12,6 @@ interface FormationOptionsProps {
 export default function FormationOptions({
   includeCadeau,
   setIncludeCadeau,
-  fraisDossier,
-  setFraisDossier,
   typeSubrogation,
   setTypeSubrogation,
 }: FormationOptionsProps) {
@@ -36,21 +32,7 @@ export default function FormationOptions({
       </div>
 
       <div className="space-y-3">
-        <Label>Afficher les frais de dossier dans le devis * <span className="text-muted-foreground font-normal text-sm">(Oui pour appliquer 350€ avec subrogation, 150€ sans)</span></Label>
-        <RadioGroup value={fraisDossier} onValueChange={(v) => setFraisDossier(v as "oui" | "non")} className="flex gap-4">
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="oui" id="frais-oui" />
-            <Label htmlFor="frais-oui" className="font-normal cursor-pointer">Oui</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="non" id="frais-non" />
-            <Label htmlFor="frais-non" className="font-normal cursor-pointer">Non</Label>
-          </div>
-        </RadioGroup>
-      </div>
-
-      <div className="space-y-3">
-        <Label>Type de devis à générer *</Label>
+        <Label>Type de devis à générer * <span className="text-muted-foreground font-normal text-sm">(150€ de frais de dossier sans subrogation, 350€ avec)</span></Label>
         <RadioGroup value={typeSubrogation} onValueChange={(v) => setTypeSubrogation(v as "sans" | "avec" | "les2")} className="space-y-2">
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="sans" id="subrogation-sans" />
