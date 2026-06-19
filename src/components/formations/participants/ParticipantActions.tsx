@@ -43,6 +43,7 @@ const ParticipantActions = ({
   trainingStartDate,
   trainingEndDate,
   availableFormulas,
+  clientName,
   sendingId,
   remindingId,
   sendingMagicLinkId,
