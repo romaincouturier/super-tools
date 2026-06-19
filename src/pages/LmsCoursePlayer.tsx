@@ -138,11 +138,25 @@ export default function LmsCoursePlayer() {
       const target = e.target as HTMLElement | null;
       const anchor = target?.closest?.("a") as HTMLAnchorElement | null;
       if (!anchor) return;
-      const href = anchor.getAttribute("href");
-      if (!href) return;
-      // Match internal links: /lms/{courseId}/player(?...) or /lms/{courseId}/lesson/{lessonId}/builder
-      const playerMatch = href.match(/^\/lms\/([^/?#]+)\/player(?:\?(.*))?$/);
-      const builderMatch = href.match(/^\/lms\/([^/?#]+)\/lesson\/([^/?#]+)\/builder/);
+      const rawHref = anchor.getAttribute("href");
+      if (!rawHref) return;
+      // Normalize: accept both relative (/lms/...) and absolute URLs pointing
+      // to the same app (e.g. https://super-tools.lovable.app/lms/...).
+      let pathAndQuery = rawHref;
+      try {
+        const u = new URL(rawHref, window.location.origin);
+        // Only intercept same-origin links OR links to the published LMS host
+        const sameApp =
+          u.origin === window.location.origin ||
+          /(^|\.)lovable\.(app|dev)$/.test(u.hostname) ||
+          /(^|\.)super-tools\./.test(u.hostname);
+        if (!sameApp) return;
+        pathAndQuery = u.pathname + u.search;
+      } catch {
+        return;
+      }
+      const playerMatch = pathAndQuery.match(/^\/lms\/([^/?#]+)\/player(?:\?(.*))?$/);
+      const builderMatch = pathAndQuery.match(/^\/lms\/([^/?#]+)\/lesson\/([^/?#]+)\/builder/);
       let targetCourseId: string | null = null;
       let targetLessonId: string | null = null;
       if (playerMatch) {
