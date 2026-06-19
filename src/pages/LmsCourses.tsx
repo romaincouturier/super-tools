@@ -52,7 +52,7 @@ export default function LmsCourses() {
   const renameFolder = useRenameCourseFolder();
   const deleteFolder = useDeleteCourseFolder();
   const moveCourse = useMoveCourseToFolder();
-  const [activeFolderId, setActiveFolderId] = useState<string | null | "root">("root");
+  const [activeFolderId, setActiveFolderId] = useState<string | null | "root">(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [newFolderName, setNewFolderName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
