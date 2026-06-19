@@ -410,7 +410,7 @@ const FormationEdit = () => {
 
                   {/* Location and client */}
                   {form.isInter ? (
-                    !form.isElearning && (
+                    !form.isElearning && form.sessionFormat !== "distanciel_synchrone" && (
                       <div className="space-y-2">
                         <Label>Lieu *</Label>
                         <VenueSelector
@@ -422,16 +422,18 @@ const FormationEdit = () => {
                   ) : (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="location">Lieu *</Label>
-                          <Input
-                            id="location"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            placeholder="Ex: Paris, Visio, Chez le client"
-                            required
-                          />
-                        </div>
+                        {form.sessionFormat !== "distanciel_synchrone" && (
+                          <div className="space-y-2">
+                            <Label htmlFor="location">Lieu *</Label>
+                            <Input
+                              id="location"
+                              value={location}
+                              onChange={(e) => setLocation(e.target.value)}
+                              placeholder="Ex: Paris, Visio, Chez le client"
+                              required
+                            />
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <Label htmlFor="clientName">Client *</Label>
                           <Input
