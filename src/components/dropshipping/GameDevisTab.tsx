@@ -91,7 +91,7 @@ export default function GameDevisTab() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    const adresseCommanditaire = [civiliteCommanditaire, prenomCommanditaire, nomCommanditaire]
+    const adresseCommanditaire = [civiliteCommanditaire, nomCommanditaire]
       .filter(Boolean)
       .join(" ")
       .trim();
