@@ -35,7 +35,7 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
   const [imageUploading, setImageUploading] = useState(false);
   const handlePaste = useTiptapImagePaste(uploadWatchFile, setImageUploading);
 
-  const { editor, setLink } = useTiptapEditor({
+  const { editor, setLink, linkDialog } = useTiptapEditor({
     content,
     onChange,
     extraExtensions: [
