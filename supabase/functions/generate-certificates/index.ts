@@ -646,7 +646,7 @@ serve(async (req: Request): Promise<Response> => {
 
           if (existingPdfBuffer) {
             if (emailCommanditaire) {
-              const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+              const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
               pdfDataList.push({ fileName, pdfBuffer: existingPdfBuffer });
             }
             successCount++;
@@ -755,13 +755,13 @@ serve(async (req: Request): Promise<Response> => {
             // Download PDF for ZIP if commanditaire email is set
             if (emailCommanditaire) {
               if (pdfBuffer) {
-                const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+                const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
                 pdfDataList.push({ fileName, pdfBuffer });
               } else {
                 try {
                   const pdfResponse2 = await fetch(pdfUrl);
                   const buf = new Uint8Array(await pdfResponse2.arrayBuffer());
-                  const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+                  const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
                   pdfDataList.push({ fileName, pdfBuffer: buf });
                 } catch (error: any) {
                   console.warn(`Failed to download PDF for ZIP: ${error.message}`);
