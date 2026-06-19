@@ -1,4 +1,5 @@
 import React from "react";
+import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/button";
 
 type Props = { children: React.ReactNode };
@@ -29,6 +30,13 @@ export class RouteErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: unknown) {
     console.error("RouteErrorBoundary caught:", error);
+
+    // Report to Sentry — render errors caught here never reach window.onerror
+    // nor the top-level Sentry.ErrorBoundary. Chunk-load errors are expected
+    // (stale deploy) and excluded. No-op if Sentry isn't initialized.
+    if (!isChunkLoadError(error)) {
+      Sentry.captureException(error);
+    }
 
     // Auto-recover from stale chunk errors by reloading once. The session
     // flag prevents a reload loop if the failure persists.
