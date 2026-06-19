@@ -761,6 +761,7 @@ function GitHubImportTab() {
     } else {
       queryClient.invalidateQueries({ queryKey: ["app_settings", "github_personal_token"] });
       setToken("");
+      setIsEditingToken(false);
       toast({ title: "Token enregistré" });
     }
     setIsSavingToken(false);
