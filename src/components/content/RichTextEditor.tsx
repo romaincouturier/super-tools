@@ -271,7 +271,9 @@ const RichTextEditor = ({
       </div>
 
       <EditorContent editor={editor} />
+      {linkDialog}
     </div>
+
   );
 };
 
