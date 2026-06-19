@@ -16,8 +16,8 @@ import { toastError } from "@/lib/toastError";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import type { FormationConfig, DevisHistoryItem } from "@/types/formations";
-import { LIEUX } from "@/lib/formationConstants";
+import type { FormationConfig, FormationDate, DevisHistoryItem } from "@/types/formations";
+import { LIEUX, PERMANENT_SESSION_DATE_LABEL } from "@/lib/formationConstants";
 import { useFormationConfigs } from "@/hooks/useFormationConfigs";
 import { useFormationDates } from "@/hooks/useFormationDates";
 import { useFormationFormulas } from "@/hooks/useFormationFormulas";
@@ -166,11 +166,27 @@ const MicroDevis = () => {
     }
   }, [configsHook.formationConfigs, initialDefaultsApplied, formationDemandee]);
 
+  // Apply default inter session: dates + location reprised automatically
+  const applyInterSession = (d: FormationDate) => {
+    const label = d.is_permanent ? PERMANENT_SESSION_DATE_LABEL : d.date_label;
+    setDateFormation(label);
+    if (d.location) {
+      if (LIEUX.includes(d.location)) {
+        setLieu(d.location);
+        setLieuAutre("");
+      } else {
+        setLieu("autre");
+        setLieuAutre(d.location);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!initialDefaultsApplied && !dateFormation && datesHook.formationDates.length > 0) {
-      const def = datesHook.formationDates.find(d => d.is_default);
-      if (def) setDateFormation(def.date_label);
+      const def = datesHook.formationDates.find(d => d.is_default) ?? datesHook.formationDates[0];
+      if (def) applyInterSession(def);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datesHook.formationDates, initialDefaultsApplied, dateFormation]);
 
   useEffect(() => {
@@ -505,6 +521,7 @@ const MicroDevis = () => {
                   typeSubrogation={typeSubrogation} setTypeSubrogation={setTypeSubrogation}
                   offrirFraisAdmin={offrirFraisAdmin} setOffrirFraisAdmin={setOffrirFraisAdmin}
                   getSelectedFormationConfig={getSelectedFormationConfig}
+                  onSelectInterSession={applyInterSession}
                 />
               )}
 

@@ -14,6 +14,8 @@ export interface FormationDate {
   id: string;
   date_label: string;
   is_default: boolean;
+  location?: string | null;
+  is_permanent?: boolean;
 }
 
 export interface DevisFormData {
