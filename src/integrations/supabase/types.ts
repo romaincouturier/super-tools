@@ -2811,6 +2811,8 @@ export type Database = {
           date_label: string
           id: string
           is_default: boolean
+          is_permanent: boolean
+          location: string | null
           updated_at: string
         }
         Insert: {
@@ -2818,6 +2820,8 @@ export type Database = {
           date_label: string
           id?: string
           is_default?: boolean
+          is_permanent?: boolean
+          location?: string | null
           updated_at?: string
         }
         Update: {
@@ -2825,6 +2829,8 @@ export type Database = {
           date_label?: string
           id?: string
           is_default?: boolean
+          is_permanent?: boolean
+          location?: string | null
           updated_at?: string
         }
         Relationships: []
