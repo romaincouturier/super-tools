@@ -78,6 +78,9 @@ async function generatePdfWithPdfMonkey(
     : "";
 
   const qty = Math.max(1, data.nbParticipants);
+  const adminFeeAmount = getDossierFeeAmount(data, subrogation);
+  // Frais de dossier fondus dans le prix unitaire (le total = prix * qty + frais).
+  const unitPriceWithFee = data.prix + adminFeeAmount / qty;
 
   const payload = {
     client: {
@@ -97,7 +100,7 @@ async function generatePdfWithPdfMonkey(
         place: data.lieu,
         duration: `${data.dureeHeures}h`,
         quantity: qty,
-        unit_price: data.prix,
+        unit_price: unitPriceWithFee,
       },
     ],
   };
