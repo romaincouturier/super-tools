@@ -1,7 +1,7 @@
 # Super Tools - Product Requirements Document
 
 > Version reconstruite à partir du code réel
-> Référence auditée sur `main` GitHub le 2026-04-03
+> Référence auditée sur `main` GitHub le 2026-06-19
 
 ## 1. Pourquoi ce document existe
 
@@ -614,6 +614,24 @@ Ce bloc est très riche, mais encore sous-documenté.
 
 ---
 
+## 5.16 Modules apparus depuis le dernier audit
+
+Plusieurs briques ont été ajoutées entre avril et juin 2026 et ne figuraient pas dans la version précédente du PRD. Elles sont listées ici telles qu'observées via les routes et composants, et restent à documenter en profondeur.
+
+- **Book / portfolio** (`/book`, `/book/album/:albumId`, `/book/share/:token`) : albums, partage public par token, analytics de consultation (`BookAnalyticsDashboard`). Livré récemment (voir règle [032] d'`IMPROVEMENTS.md`).
+- **Finances** (`/finances`) : suivi financier.
+- **Time tracker** (`/time-tracker`) : suivi du temps.
+- **Transcripts** (`/transcripts`) : transcriptions (couplées à la pipeline audio des missions / médias).
+- **Web analytics** (`/web-analytics`) : statistiques web (dashboard type WP statistics).
+- **Témoignages** (`/temoignages`) : collecte et affichage de témoignages.
+- **Catalogue** (`/catalogue`) : catalogue de formation.
+- **Supertilt** (`/supertilt`) : actions Supertilt dédiées.
+- **Briques périphériques à documenter** : `/dropshipping`, `/commandes-jeux`, `/pictodico`, `/archives`, `/emails-a-valider`.
+
+Maturité globale : `hétérogène`. Ces modules confirment la tendance « workspace opérationnel unifié », mais creusent l'écart entre richesse fonctionnelle et documentation.
+
+---
+
 ## 6. Parcours majeurs
 
 ## 6.1 Parcours commercial vers delivery
@@ -713,14 +731,14 @@ Les intégrations visibles dans le code incluent :
 
 ## 8.3 Échelle observée dans le code
 
-À date d'audit :
+À date d'audit (2026-06-19) :
 
-- 65 pages React
-- 68 routes déclarées
-- 126 Edge Functions
-- 303 migrations SQL
+- 99 pages React
+- 104 routes déclarées
+- 218 Edge Functions
+- 535 migrations SQL
 
-Ces chiffres traduisent un produit déjà large, avec une dette de coordination naturelle.
+Évolution depuis l'audit du 2026-04-03 (65 pages, 68 routes, 126 functions, 303 migrations) : la surface a quasiment doublé en deux mois et demi. Ces chiffres traduisent un produit en croissance très rapide, avec une dette de coordination qui s'accentue au même rythme.
 
 ---
 
@@ -834,15 +852,24 @@ Ces chiffres traduisent un produit déjà large, avec une dette de coordination 
 - l'étendue fonctionnelle est une force, mais aussi une source de dispersion
 - certains modules coexistent sans hiérarchie produit totalement lisible pour un nouveau venu
 
+### 12.5 Observabilité
+
+- **218 Edge Functions, accès service-role, un agent IA capable de requêter toute la base, et zéro observabilité système.** Aucune dépendance de type Sentry / OpenTelemetry / logging structuré. Le diagnostic repose sur des `console.*` dispersés.
+- L'« analytics » présent (`BookAnalyticsDashboard`, `lms/AnalyticsTab`, `PageViewTracker`, web analytics) est du **product analytics métier**, pas de l'observabilité technique.
+- Conséquence directe : plusieurs régressions passées n'ont été détectées que par signalement utilisateur (boucle d'auto-save toutes les 2-3 s, cassure silencieuse des uploads pour les non-admins, fuites RLS). Voir règles [016], [026], [031] d'`IMPROVEMENTS.md`.
+- Les seams les plus risqués (pipeline upload, `agent-chat`, envois d'emails) sont précisément ceux sans trace ni corrélation.
+
 ---
 
-## 13. Recommandation documentaire
+## 13. Recommandation documentaire et observabilité
 
-Ce PRD doit être complété par trois autres documents de référence :
+Ce PRD doit être complété par plusieurs documents et chantiers de référence :
 
 - un `README.md` fiable orienté installation et architecture
 - un document `docs/cleanup-plan.md` pour la remise à plat technique
 - un document d'architecture de sécurité centré sur les accès publics, apprenants, authentifiés et agent IA
+- un **modèle d'architecture vivant au format C4** (Context / Containers / Components) tenu à jour comme artefact testé en CI. La structure de SuperTools est inhabituellement légère à modéliser car contrainte par des règles vérifiées (`scripts/check-rules.sh`, layering Pages→Hooks→Supabase, upload obligatoirement via edge function). Le diagramme peut donc rester synchro avec le code plutôt que de devenir une doc morte.
+- une **fondation d'observabilité** : helper de log structuré partagé dans `supabase/functions/_shared/` (correlation id, nom de fonction, durée, outcome, rôle appelant), puis projection de la télémétrie runtime sur le diagramme C4 des containers (santé par taux d'erreur / latence). Cible « exceptionnelle » : des **C4 dynamic diagrams tracés** sur les flux critiques (upload, run d'agent, emails), où documenter et observer deviennent le même geste.
 
 ---
 
