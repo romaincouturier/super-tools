@@ -283,3 +283,28 @@ export function formatEvaluationDisplayName(
   }
   return "Anonyme";
 }
+
+/**
+ * Build the standardized certificate file name:
+ *   Certificat_de_realisation_PRENOM_NOM_ENTREPRISE.pdf
+ *
+ * Spaces become underscores and any non-alphanumeric character is stripped.
+ * Empty segments are skipped so we never emit double underscores.
+ */
+export function buildCertificateFileName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  entreprise: string | null | undefined,
+): string {
+  const slug = (v: string | null | undefined) =>
+    (v ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+
+  const parts = ["Certificat_de_realisation", slug(firstName), slug(lastName), slug(entreprise)]
+    .filter((p) => p && p.length > 0);
+  return `${parts.join("_")}.pdf`;
+}
