@@ -23,6 +23,7 @@ export interface Game {
   woocommerce_product_id: number | null;
   cover_url: string | null;
   status: "active" | "inactive";
+  stock: number;
   created_at: string;
   updated_at: string;
   game_authors?: GameAuthor;
@@ -180,6 +181,48 @@ export function useGameSalesKpis() {
         .slice(0, 5);
 
       return { totalRevenue, totalRoyalties, totalSales: rows.length, topGames };
+    },
+  });
+}
+
+// ── Game Devis History ───────────────────────────────────────────────
+
+export interface GameDevisHistoryEntry {
+  id: string;
+  created_at: string;
+  recipient_email: string;
+  client_name: string | null;
+  total_amount: number;
+  items: GameDevisItem[];
+  pdf_url: string | null;
+}
+
+export interface GameDevisItem {
+  title: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export function useGameDevisHistory() {
+  return useQuery({
+    queryKey: ["game-devis-history"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("activity_logs")
+        .select("id, created_at, recipient_email, details")
+        .eq("action_type", "game_devis_sent")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data as Array<{ id: string; created_at: string; recipient_email: string; details: any }>).map((r) => ({
+        id: r.id,
+        created_at: r.created_at,
+        recipient_email: r.recipient_email,
+        client_name: r.details?.client_name ?? null,
+        total_amount: r.details?.total_amount ?? 0,
+        items: r.details?.items ?? [],
+        pdf_url: r.details?.pdf_url ?? null,
+      })) as GameDevisHistoryEntry[];
     },
   });
 }
