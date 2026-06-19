@@ -315,7 +315,7 @@ const FormationCreate = () => {
                     <SessionTypeFormatSelector
                       form={form}
                       onFormatChange={(val) => {
-                        if (val === "distanciel_asynchrone" && form.locationType !== "en_ligne") {
+                        if ((val === "distanciel_asynchrone" || val === "distanciel_synchrone") && form.locationType !== "en_ligne") {
                           form.setLocationType("en_ligne");
                         }
                       }}
