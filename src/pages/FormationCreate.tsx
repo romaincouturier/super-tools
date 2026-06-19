@@ -358,7 +358,7 @@ const FormationCreate = () => {
                   )}
 
                   {/* Location */}
-                  {!form.isPermanent && form.isInter && !form.isElearning && (
+                  {!form.isPermanent && form.isInter && !form.isElearning && form.sessionFormat !== "distanciel_synchrone" && (
                     <div className="space-y-2">
                       <Label>Lieu *</Label>
                       <VenueSelector
@@ -367,7 +367,7 @@ const FormationCreate = () => {
                       />
                     </div>
                   )}
-                  {!form.isPermanent && !form.isInter && <LocationRadioGroup form={form} />}
+                  {!form.isPermanent && !form.isInter && form.sessionFormat !== "distanciel_synchrone" && <LocationRadioGroup form={form} />}
 
                   {/* Sold price HT - hidden for permanent and inter */}
                   {!form.isPermanent && !form.isInter && (
