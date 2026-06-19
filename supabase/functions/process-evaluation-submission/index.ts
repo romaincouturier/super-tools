@@ -283,7 +283,13 @@ const handler = async (req: Request): Promise<Response> => {
         status: "pending",
         payload: {
           STAGIAIRE: fullName || "Participant",
-          ENTREPRISE: company || "—",
+          ENTREPRISE: company
+            || (
+              !["inter-entreprises", "e_learning"].includes(training.format_formation || "")
+                ? (training.client_name || "")
+                : ""
+            )
+            || "—",
           TITRE_FORMATION: training.training_name,
           DATE_FORMATION: dateFormation,
           DUREE: dureeStr,
