@@ -85,8 +85,9 @@ const FormationCreate = () => {
     if (!form.catalogId) missingFields.push("formation du catalogue (sélectionnez une entrée du catalogue)");
     if (form.isPermanent && !form.selectedFormulaId) missingFields.push("formule (sélectionnez une formule pour la session permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
-    if (!form.isPermanent && !form.isElearning && form.isInter && !venueId) missingFields.push("lieu de la formation (sélectionnez un lieu)");
-    if (!form.isPermanent && !form.isElearning && !form.isInter && !form.getFinalLocation()) missingFields.push("lieu de la formation");
+    const isDistancielSynchrone = form.sessionFormat === "distanciel_synchrone";
+    if (!form.isPermanent && !form.isElearning && !isDistancielSynchrone && form.isInter && !venueId) missingFields.push("lieu de la formation (sélectionnez un lieu)");
+    if (!form.isPermanent && !form.isElearning && !isDistancielSynchrone && !form.isInter && !form.getFinalLocation()) missingFields.push("lieu de la formation");
     if (!form.isInter && !form.clientName) missingFields.push("client");
     if (!form.isPermanent && (!form.maxParticipants || parseInt(form.maxParticipants, 10) < 1)) missingFields.push("nombre maximum de participants (minimum 1)");
 
