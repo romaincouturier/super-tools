@@ -35,7 +35,7 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
   const [imageUploading, setImageUploading] = useState(false);
   const handlePaste = useTiptapImagePaste(uploadWatchFile, setImageUploading);
 
-  const { editor, setLink } = useTiptapEditor({
+  const { editor, setLink, linkDialog } = useTiptapEditor({
     content,
     onChange,
     extraExtensions: [
@@ -149,6 +149,7 @@ const WatchRichEditor = ({ content, onChange, className }: WatchRichEditorProps)
       </div>
 
       <EditorContent editor={editor} />
+      {linkDialog}
 
       {imageUploading && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">

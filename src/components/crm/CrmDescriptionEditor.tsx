@@ -53,7 +53,7 @@ const CrmDescriptionEditor = ({
 
   const handlePaste = useTiptapImagePaste(cardId ? uploadImage : undefined, setImageUploading);
 
-  const { editor, setLink } = useTiptapEditor({
+  const { editor, setLink, linkDialog } = useTiptapEditor({
     content,
     onChange,
     extraExtensions: [
@@ -232,6 +232,7 @@ const CrmDescriptionEditor = ({
       </div>
 
       <EditorContent editor={editor} />
+      {linkDialog}
 
       {/* Image upload overlay */}
       {imageUploading && (

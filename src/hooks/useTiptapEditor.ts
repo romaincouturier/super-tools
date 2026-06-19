@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef } from "react";
+import { createElement, useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import LinkExtension from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
 import type { AnyExtension } from "@tiptap/core";
+import LmsLinkDialog from "@/components/lms/LmsLinkDialog";
 
 interface UseTiptapEditorOptions {
   content: string | null | undefined;
@@ -16,6 +17,7 @@ interface UseTiptapEditorOptions {
 /**
  * Shared Tiptap editor setup used by RichTextEditor and CrmDescriptionEditor.
  * Provides the common StarterKit + Link + Underline extensions and the setLink callback.
+ * Also returns a `linkDialog` React element to render — opened by `setLink()`.
  */
 export function useTiptapEditor({
   content,
@@ -27,6 +29,8 @@ export function useTiptapEditor({
   // Track whether the update came from the editor itself
   const isInternalUpdate = useRef(false);
   const safeContent = content ?? "";
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkDialogInitial, setLinkDialogInitial] = useState<string>("");
 
   const editor = useEditor({
     extensions: [
@@ -53,8 +57,6 @@ export function useTiptapEditor({
   });
 
   // Sync editor content when the prop changes externally.
-  // Skip while editor is focused — the user is actively editing and
-  // setContent() would destroy cursor position.
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     if (isInternalUpdate.current) {
@@ -70,15 +72,31 @@ export function useTiptapEditor({
 
   const setLink = useCallback(() => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes("link").href;
-    const url = window.prompt("URL du lien:", previousUrl);
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    const previousUrl = (editor.getAttributes("link").href as string) || "";
+    setLinkDialogInitial(previousUrl);
+    setLinkDialogOpen(true);
   }, [editor]);
 
-  return { editor, setLink };
+  const applyLink = useCallback(
+    (url: string) => {
+      if (!editor) return;
+      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    },
+    [editor],
+  );
+
+  const removeLink = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().extendMarkRange("link").unsetLink().run();
+  }, [editor]);
+
+  const linkDialog = createElement(LmsLinkDialog, {
+    open: linkDialogOpen,
+    initialUrl: linkDialogInitial,
+    onOpenChange: setLinkDialogOpen,
+    onApply: applyLink,
+    onRemove: removeLink,
+  });
+
+  return { editor, setLink, linkDialog };
 }

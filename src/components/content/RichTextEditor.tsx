@@ -62,7 +62,7 @@ const RichTextEditor = ({
     handlePaste,
   }), [minHeight, handlePaste]);
 
-  const { editor, setLink } = useTiptapEditor({
+  const { editor, setLink, linkDialog } = useTiptapEditor({
     content,
     onChange,
     extraExtensions: [
@@ -271,7 +271,9 @@ const RichTextEditor = ({
       </div>
 
       <EditorContent editor={editor} />
+      {linkDialog}
     </div>
+
   );
 };
 
