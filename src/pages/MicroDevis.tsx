@@ -378,8 +378,8 @@ const MicroDevis = () => {
     const withSubrogation = typeSubrogation === "avec" || typeSubrogation === "les2";
     const dossierFee = withSubrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
     return {
-      requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
-      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", affiche_frais: dossierFee > 0 && isOpco !== "oui" ? "Oui" : "Non", subrogation: "Oui / Non (2 versions)", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: isOpco === "oui" ? ep + dossierFee / np : ep }], admin_fee: dossierFee > 0 && isOpco !== "oui" ? dossierFee : 0, is_opco: isOpco === "oui" },
+      requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
+      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", affiche_frais: "Oui", subrogation: "Oui / Non (2 versions)", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }], admin_fee: dossierFee },
     };
   };
 
@@ -397,7 +397,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), isOpco: isOpco === "oui", noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, fraisDossier: fraisDossier === "oui", prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
@@ -418,9 +418,9 @@ const MicroDevis = () => {
       }
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
       setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
-      setIsOpco("non"); setNoteDevis(""); setParticipants("");
+      setNoteDevis(""); setParticipants("");
       setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
-      setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false); setFraisDossier("");
+      setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false);
     } catch (error: unknown) {
       console.error("Error generating micro-devis:", error);
       toastError(toast, error instanceof Error ? error : "Une erreur est survenue");
