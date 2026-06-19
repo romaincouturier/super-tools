@@ -17,6 +17,25 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function slugForFile(v: string | null | undefined): string {
+  return (v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function buildCertificateFileName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  entreprise: string | null | undefined,
+): string {
+  const parts = ["Certificat_de_realisation", slugForFile(firstName), slugForFile(lastName), slugForFile(entreprise)]
+    .filter((p) => p && p.length > 0);
+  return `${parts.join("_")}.pdf`;
+}
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -364,6 +383,8 @@ async function sendEmailWithResend(
   participantEmail: string,
   participantName: string,
   participantFirstName: string,
+  participantLastName: string,
+  entreprise: string,
   formationName: string,
   pdfUrl: string,
   emailDestinataire: string,
@@ -376,7 +397,7 @@ async function sendEmailWithResend(
   const pdfBuffer = await pdfResponse.arrayBuffer();
   const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
 
-  const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
+  const fileName = buildCertificateFileName(participantFirstName, participantLastName, entreprise);
 
   console.log(`Sending email to ${participantEmail}...`);
 
@@ -625,7 +646,7 @@ serve(async (req: Request): Promise<Response> => {
 
           if (existingPdfBuffer) {
             if (emailCommanditaire) {
-              const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+              const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
               pdfDataList.push({ fileName, pdfBuffer: existingPdfBuffer });
             }
             successCount++;
@@ -734,13 +755,13 @@ serve(async (req: Request): Promise<Response> => {
             // Download PDF for ZIP if commanditaire email is set
             if (emailCommanditaire) {
               if (pdfBuffer) {
-                const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+                const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
                 pdfDataList.push({ fileName, pdfBuffer });
               } else {
                 try {
                   const pdfResponse2 = await fetch(pdfUrl);
                   const buf = new Uint8Array(await pdfResponse2.arrayBuffer());
-                  const fileName = `Certificat_${participant.prenom}_${participant.nom}.pdf`;
+                  const fileName = buildCertificateFileName(participant.prenom, participant.nom, entreprise);
                   pdfDataList.push({ fileName, pdfBuffer: buf });
                 } catch (error: any) {
                   console.warn(`Failed to download PDF for ZIP: ${error.message}`);
@@ -803,6 +824,8 @@ serve(async (req: Request): Promise<Response> => {
                 participant.email,
                 participantName,
                 participant.prenom || "",
+                participant.nom || "",
+                entreprise,
                 formationName,
                 pdfUrl,
                 emailDestinataire,

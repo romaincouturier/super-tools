@@ -50,7 +50,7 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch evaluation
     const { data: evaluation, error: evalError } = await supabase
       .from("training_evaluations")
-      .select("*, training_id, certificate_url, first_name, last_name, email")
+      .select("*, training_id, certificate_url, first_name, last_name, email, company")
       .eq("id", evaluationId)
       .single();
 
@@ -66,7 +66,7 @@ serve(async (req: Request): Promise<Response> => {
     // Fetch training info
     const { data: training, error: trainingError } = await supabase
       .from("trainings")
-      .select("training_name, participants_formal_address")
+      .select("training_name, participants_formal_address, client_name")
       .eq("id", evaluation.training_id)
       .single();
 
@@ -93,7 +93,12 @@ serve(async (req: Request): Promise<Response> => {
     const pdfBytes = new Uint8Array(pdfArrayBuffer);
     const pdfBase64 = btoa(String.fromCharCode(...pdfBytes));
 
-    const fileName = `Certificat_${training.training_name.replace(/[^a-zA-Z0-9]/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
+    const slug = (v: string | null | undefined) => (v ?? "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .trim().replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+    const entreprise = (evaluation as any).company || (training as any).client_name || "";
+    const fileName = ["Certificat_de_realisation", slug(evaluation.first_name), slug(evaluation.last_name), slug(entreprise)]
+      .filter((p) => p && p.length > 0).join("_") + ".pdf";
 
     // Prepare and send email using shared helpers
     const variables = {
