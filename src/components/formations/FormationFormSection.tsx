@@ -71,13 +71,16 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
         datesDialogOpen={props.datesDialogOpen}
         setDatesDialogOpen={props.setDatesDialogOpen}
         dateManagerActions={dateManagerActions}
+        onSelectInterSession={props.onSelectInterSession}
       />
-      <LocationSelector
-        lieu={props.lieu}
-        setLieu={props.setLieu}
-        lieuAutre={props.lieuAutre}
-        setLieuAutre={props.setLieuAutre}
-      />
+      {props.formatFormation !== "inter" && (
+        <LocationSelector
+          lieu={props.lieu}
+          setLieu={props.setLieu}
+          lieuAutre={props.lieuAutre}
+          setLieuAutre={props.setLieuAutre}
+        />
+      )}
       <FormationOptions
         includeCadeau={props.includeCadeau}
         setIncludeCadeau={props.setIncludeCadeau}
