@@ -731,6 +731,7 @@ function GitHubImportTab() {
   const [isImporting, setIsImporting] = useState(false);
   const [token, setToken] = useState("");
   const [isSavingToken, setIsSavingToken] = useState(false);
+  const [isEditingToken, setIsEditingToken] = useState(false);
 
   const { data: tokenSetting } = useQuery<{ setting_value: string } | null>({
     queryKey: ["app_settings", "github_personal_token"],
