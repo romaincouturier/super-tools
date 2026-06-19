@@ -189,7 +189,35 @@ export default function LmsCoursePlayer() {
     return () => root.removeEventListener("click", handler);
   }, [courseId, learnerEmail, isPreview, navigate]);
 
-
+  // Internal links from the picker are stored bare (/lms/{courseId}/player?lesson=...)
+  // without learner identity. The click handler above re-injects ?email= for same-tab
+  // left-clicks, but native resolution (new tab, middle-click, copied URL) would hit the
+  // bare URL and land on the "Accès non autorisé" page. Rewrite the anchors after each
+  // render so the href itself always carries the current email/preview context.
+  useEffect(() => {
+    const root = mainRef.current;
+    if (!root) return;
+    if (!learnerEmail && !isPreview) return;
+    root.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((a) => {
+      const raw = a.getAttribute("href");
+      if (!raw) return;
+      let u: URL;
+      try {
+        u = new URL(raw, window.location.origin);
+      } catch {
+        return;
+      }
+      const sameApp =
+        u.origin === window.location.origin ||
+        /(^|\.)lovable\.(app|dev)$/.test(u.hostname) ||
+        /(^|\.)super-tools\./.test(u.hostname);
+      if (!sameApp) return;
+      if (!/^\/lms\/[^/?#]+\/player$/.test(u.pathname)) return;
+      if (learnerEmail && !u.searchParams.get("email")) u.searchParams.set("email", learnerEmail);
+      if (isPreview && u.searchParams.get("preview") !== "admin") u.searchParams.set("preview", "admin");
+      a.setAttribute("href", `${u.pathname}?${u.searchParams.toString()}`);
+    });
+  }, [selectedLessonId, lessonBlocks, learnerEmail, isPreview]);
 
 
   const selectedLesson = orderedLessons.find((l) => l.id === selectedLessonId);
