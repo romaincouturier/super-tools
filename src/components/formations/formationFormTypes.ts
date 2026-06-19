@@ -78,4 +78,5 @@ export interface FormationFormSectionProps {
   offrirFraisAdmin: boolean;
   setOffrirFraisAdmin: (v: boolean) => void;
   getSelectedFormationConfig: () => FormationConfig | undefined;
+  onSelectInterSession?: (d: import("@/types/formations").FormationDate) => void;
 }
