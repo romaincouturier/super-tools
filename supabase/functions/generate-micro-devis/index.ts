@@ -77,7 +77,6 @@ async function generatePdfWithPdfMonkey(
     ? "Chaque participant(e) aura : 1 kit de facilitation graphique ainsi qu'un accès illimité et à vie au e-learning de 25h pour continuer sa formation en facilitation graphique"
     : "";
 
-  const adminFeeAmount = getDossierFeeAmount(data, subrogation);
   const qty = Math.max(1, data.nbParticipants);
 
   const payload = {
@@ -89,8 +88,6 @@ async function generatePdfWithPdfMonkey(
       country: data.pays,
     },
     note: data.noteDevis || "",
-    affiche_frais: "Oui",
-    subrogation: subrogation ? "Oui" : "Non",
     cadeau: cadeauText,
     items: [
       {
@@ -103,7 +100,6 @@ async function generatePdfWithPdfMonkey(
         unit_price: data.prix,
       },
     ],
-    admin_fee: adminFeeAmount,
   };
 
   console.log(`PDF Monkey payload:`, JSON.stringify(payload));

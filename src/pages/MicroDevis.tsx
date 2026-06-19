@@ -379,7 +379,7 @@ const MicroDevis = () => {
     const dossierFee = withSubrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
     return {
       requestPayload: { nomClient, adresseClient, codePostalClient, villeClient, pays: fp, emailCommanditaire, adresseCommanditaire, noteDevis, formationDemandee: label, dateFormation, lieu: fl, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: np, participants },
-      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", affiche_frais: "Oui", subrogation: "Oui / Non (2 versions)", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }], admin_fee: dossierFee },
+      pdfMonkeyPayload: { client: { name: nomClient, address: adresseClient, zip: codePostalClient, city: villeClient, country: fp }, note: noteDevis || "", cadeau: ct, items: [{ name: label, participant_name: pl.length > 0 ? pl : [`${adresseCommanditaire} ${emailCommanditaire}`], date: dateFormation, place: fl, duration: `${ed}h`, quantity: np, unit_price: ep }] },
     };
   };
 
