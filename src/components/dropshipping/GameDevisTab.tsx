@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const FEES_STORAGE_KEY = "game-devis-last-fees";
 import { Plus, Trash2, Loader2, Send, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +48,16 @@ export default function GameDevisTab() {
   const [fraisDePort, setFraisDePort] = useState<number | "">("");
   const [fraisDossier, setFraisDossier] = useState<number | "">("");
   const [noteDevis, setNoteDevis] = useState("");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FEES_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { fraisDePort?: number; fraisDossier?: number };
+      if (typeof saved.fraisDePort === "number") setFraisDePort(saved.fraisDePort);
+      if (typeof saved.fraisDossier === "number") setFraisDossier(saved.fraisDossier);
+    } catch {}
+  }, []);
 
   const onSearchSiren = async () => {
     const r = await sirenSearch.handleSearchSiren();
@@ -119,6 +131,15 @@ export default function GameDevisTab() {
         noteDevis,
       });
       toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${emailCommanditaire}` });
+      try {
+        localStorage.setItem(
+          FEES_STORAGE_KEY,
+          JSON.stringify({
+            fraisDePort: typeof fraisDePort === "number" ? fraisDePort : 0,
+            fraisDossier: typeof fraisDossier === "number" ? fraisDossier : 0,
+          }),
+        );
+      } catch {}
       setLines([]);
       refetchHistory();
     } catch (err) {
