@@ -17,6 +17,25 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+function slugForFile(v: string | null | undefined): string {
+  return (v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function buildCertificateFileName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  entreprise: string | null | undefined,
+): string {
+  const parts = ["Certificat_de_realisation", slugForFile(firstName), slugForFile(lastName), slugForFile(entreprise)]
+    .filter((p) => p && p.length > 0);
+  return `${parts.join("_")}.pdf`;
+}
+
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
