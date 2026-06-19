@@ -203,11 +203,9 @@ const MicroDevis = () => {
         if (d.civiliteCommanditaire) setCiviliteCommanditaire(d.civiliteCommanditaire);
         if (d.prenomCommanditaire) setPrenomCommanditaire(d.prenomCommanditaire);
         if (d.nomCommanditaire) setNomCommanditaire(d.nomCommanditaire);
-        if (d.isOpco === "oui" || d.isOpco === "non") setIsOpco(d.isOpco);
         if (d.noteDevis) setNoteDevis(d.noteDevis);
         if (d.participants) setParticipants(d.participants);
         if (d.includeCadeau !== undefined) setIncludeCadeau(d.includeCadeau);
-        if (d.fraisDossier) setFraisDossier(d.fraisDossier);
         if (d.typeSubrogation) setTypeSubrogation(d.typeSubrogation);
       }
     } catch (e) { console.error("Failed to load saved form data:", e); }
