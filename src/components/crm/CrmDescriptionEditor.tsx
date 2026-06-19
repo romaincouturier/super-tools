@@ -232,6 +232,7 @@ const CrmDescriptionEditor = ({
       </div>
 
       <EditorContent editor={editor} />
+      {linkDialog}
 
       {/* Image upload overlay */}
       {imageUploading && (
