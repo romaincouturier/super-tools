@@ -521,6 +521,7 @@ const MicroDevis = () => {
                   typeSubrogation={typeSubrogation} setTypeSubrogation={setTypeSubrogation}
                   offrirFraisAdmin={offrirFraisAdmin} setOffrirFraisAdmin={setOffrirFraisAdmin}
                   getSelectedFormationConfig={getSelectedFormationConfig}
+                  onSelectInterSession={applyInterSession}
                 />
               )}
 
