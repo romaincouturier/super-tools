@@ -131,6 +131,15 @@ export default function GameDevisTab() {
         noteDevis,
       });
       toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${emailCommanditaire}` });
+      try {
+        localStorage.setItem(
+          FEES_STORAGE_KEY,
+          JSON.stringify({
+            fraisDePort: typeof fraisDePort === "number" ? fraisDePort : 0,
+            fraisDossier: typeof fraisDossier === "number" ? fraisDossier : 0,
+          }),
+        );
+      } catch {}
       setLines([]);
       refetchHistory();
     } catch (err) {
