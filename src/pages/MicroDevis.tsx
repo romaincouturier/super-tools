@@ -74,7 +74,8 @@ const MicroDevis = () => {
   // Extracted hooks
   const sirenSearch = useSirenSearch();
   const configsHook = useFormationConfigs(user, initialDefaultsApplied, formationDemandee);
-  const datesHook = useFormationDates(user, initialDefaultsApplied, dateFormation);
+  const selectedCatalogId = configsHook.formationConfigs.find(f => f.formation_name === formationDemandee)?.id ?? null;
+  const datesHook = useFormationDates(user, initialDefaultsApplied, dateFormation, selectedCatalogId);
   const formulasHook = useFormationFormulas(formationDemandee, configsHook.formationConfigs);
   const historyHook = useDevisHistory();
 

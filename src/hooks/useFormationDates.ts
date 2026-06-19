@@ -35,11 +35,9 @@ function formatSessionLabel(startISO: string, endISO: string): string {
   return `du ${format(start, "d MMMM", { locale: fr })} au ${format(end, "d MMMM yyyy", { locale: fr })}`;
 }
 
-export function useFormationDates(user: User | null, _initialDefaultsApplied: boolean, _dateFormation: string) {
+export function useFormationDates(user: User | null, _initialDefaultsApplied: boolean, _dateFormation: string, catalogId?: string | null) {
   const [formationDates, setFormationDates] = useState<FormationDate[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
-  // Kept for backward compatibility with FormationDatesSection props,
-  // but the dates now come from upcoming inter sessions and are not editable here.
   const [editingDate, setEditingDate] = useState<FormationDate | null>(null);
   const [datesDialogOpen, setDatesDialogOpen] = useState(false);
   const [newDate, setNewDate] = useState<Partial<FormationDate> | null>(null);
@@ -48,12 +46,17 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
   useEffect(() => {
     const loadFormationDates = async () => {
       try {
+        setLoadingDates(true);
+        if (!catalogId) {
+          setFormationDates([]);
+          return;
+        }
         const today = todayAsISO();
-        // Upcoming inter sessions across all formats (présentiel, classe virtuelle, e-learning), soonest first, excluding past ones.
         const { data, error } = await supabase
           .from("trainings")
-          .select("id, training_name, start_date, end_date, format_formation, session_type, location")
+          .select("id, training_name, start_date, end_date, format_formation, session_type, location, catalog_id")
           .eq("session_type", "inter")
+          .eq("catalog_id", catalogId)
           .in("format_formation", ["inter-entreprises", "classe_virtuelle", "e_learning"])
           .gte("end_date", today)
           .order("start_date", { ascending: true });
@@ -84,7 +87,7 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
     };
 
     if (user) loadFormationDates();
-  }, [user, toast]);
+  }, [user, toast, catalogId]);
 
   // Management handlers are no-ops: dates are derived from training sessions.
   const notManageable = async () => {
