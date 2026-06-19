@@ -23,7 +23,6 @@ export interface Game {
   woocommerce_product_id: number | null;
   cover_url: string | null;
   status: "active" | "inactive";
-  stock: number;
   created_at: string;
   updated_at: string;
   game_authors?: GameAuthor;
