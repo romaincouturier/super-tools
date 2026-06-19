@@ -301,24 +301,35 @@ const MicroDevis = () => {
   useEffect(() => {
     if (searchParams.get("source") !== "crm") return;
     if (!crmCardId) return;
+    if (!user) return; // wait for auth — activity_logs requires authenticated
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      // Fetch the few most recent devis for this card so we can fall back to
+      // an older one if the latest was sent without a formula selection.
+      const { data: rows } = await supabase
         .from("activity_logs")
         .select("details")
         .eq("action_type", "micro_devis_sent")
         .contains("details", { crm_card_id: crmCardId })
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (cancelled || !data) return;
-      const fd = (data as { details?: { form_data?: Record<string, unknown> } }).details?.form_data;
+        .limit(5);
+      if (cancelled || !rows || rows.length === 0) return;
+      const list = rows as Array<{ details?: { form_data?: Record<string, unknown> } }>;
+      // Prefer the most recent devis that actually has a selectedFormulaId;
+      // otherwise fall back to the most recent one.
+      const withFormula = list.find((r) => {
+        const fid = r.details?.form_data?.selectedFormulaId;
+        return typeof fid === "string" && fid.length > 0;
+      });
+      const chosen = withFormula || list[0];
+      const fd = chosen.details?.form_data;
       if (applyDevisFormData(fd)) {
         toast({ title: "Devis précédent retrouvé", description: "Le formulaire a été pré-rempli avec le dernier devis envoyé pour cette opportunité." });
       }
     })();
     return () => { cancelled = true; };
-  }, [crmCardId, searchParams, toast]);
+  }, [crmCardId, user, searchParams, toast]);
+
 
   const onSearchSiren = async () => {
     const r = await sirenSearch.handleSearchSiren();
