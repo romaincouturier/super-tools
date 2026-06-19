@@ -49,6 +49,16 @@ export default function GameDevisTab() {
   const [fraisDossier, setFraisDossier] = useState<number | "">("");
   const [noteDevis, setNoteDevis] = useState("");
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(FEES_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { fraisDePort?: number; fraisDossier?: number };
+      if (typeof saved.fraisDePort === "number") setFraisDePort(saved.fraisDePort);
+      if (typeof saved.fraisDossier === "number") setFraisDossier(saved.fraisDossier);
+    } catch {}
+  }, []);
+
   const onSearchSiren = async () => {
     const r = await sirenSearch.handleSearchSiren();
     if (!r) return;
