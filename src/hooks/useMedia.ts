@@ -8,7 +8,7 @@ export interface MediaItem {
   id: string;
   file_url: string;
   file_name: string;
-  file_type: "image" | "video" | "video_link" | "audio";
+  file_type: "image" | "video" | "video_link" | "audio" | "document";
   mime_type: string | null;
   file_size: number | null;
   position: number;
@@ -180,7 +180,7 @@ export const useAddMedia = () => {
     mutationFn: async (input: {
       file_url: string;
       file_name: string;
-      file_type: "image" | "video" | "video_link" | "audio";
+      file_type: "image" | "video" | "video_link" | "audio" | "document";
       mime_type: string | null;
       file_size: number | null;
       position: number;

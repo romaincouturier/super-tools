@@ -58,7 +58,11 @@ interface EntityMediaManagerProps {
   allowVideoLinks?: boolean;
   /** Enable drag-and-drop reordering of images and videos */
   allowReorder?: boolean;
+  /** Also allow PDF document uploads (e.g. a LinkedIn carousel as proof) */
+  allowDocuments?: boolean;
 }
+
+const MAX_DOCUMENT_SIZE = 50 * 1024 * 1024; // 50 Mo — matches the storage bucket limit
 
 const EntityMediaManager = ({
   sourceType,
@@ -68,7 +72,9 @@ const EntityMediaManager = ({
   enablePaste = false,
   allowVideoLinks = false,
   allowReorder = false,
+  allowDocuments = false,
 }: EntityMediaManagerProps) => {
+  const isPdf = (file: File) => resolveContentType(file) === "application/pdf";
   const { data: media = [], isLoading } = useEntityMedia(sourceType, sourceId);
   const addMedia = useAddMedia();
   const deleteMutation = useDeleteMedia();
@@ -144,10 +150,23 @@ const EntityMediaManager = ({
 
   const uploadFiles = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const validFiles = fileArray.filter((f) => getFileType(f) !== null);
+    const validFiles = fileArray.filter((f) => {
+      if (allowDocuments && isPdf(f)) {
+        if (f.size > MAX_DOCUMENT_SIZE) {
+          toast.error(`${f.name} dépasse la taille maximale de 50 Mo`);
+          return false;
+        }
+        return true;
+      }
+      return getFileType(f) !== null;
+    });
 
     if (validFiles.length === 0) {
-      toast.error("Seuls les images, vidéos et fichiers audio sont acceptés");
+      toast.error(
+        allowDocuments
+          ? "Seuls les images, vidéos, fichiers audio et PDF sont acceptés"
+          : "Seuls les images, vidéos et fichiers audio sont acceptés"
+      );
       return;
     }
 
@@ -177,7 +196,7 @@ const EntityMediaManager = ({
 
         for (const file of batch) {
           try {
-            const fileType = getFileType(file)!;
+            const fileType = allowDocuments && isPdf(file) ? "document" : getFileType(file)!;
 
             // Audio on missions → route through the documents pipeline so the
             // file shows in the "Documents" tab AND a transcript page is auto-
@@ -254,7 +273,7 @@ const EntityMediaManager = ({
       setUploading(false);
       setUploadProgress(null);
     }
-  }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient]);
+  }, [sourceType, sourceId, addMedia, uploadEventMedia, uploadMissionMedia, queryClient, allowDocuments]);
 
   const handleTranscribe = async (item: MediaItem) => {
     setTranscribingIds((prev) => new Set(prev).add(item.id));
@@ -428,8 +447,8 @@ const EntityMediaManager = ({
     return () => document.removeEventListener("paste", handlePaste);
   }, [handlePaste, enablePaste]);
 
-  // Items suitable for lightbox (exclude video_link)
-  const lightboxItems = downloadableMedia;
+  // Items suitable for lightbox (exclude video_link and documents — PDFs open in a new tab)
+  const lightboxItems = downloadableMedia.filter((m) => m.file_type !== "document");
 
   if (isLoading) {
     return (
@@ -445,7 +464,7 @@ const EntityMediaManager = ({
         ref={fileInputRef}
         type="file"
         multiple
-        accept="image/*,video/*,audio/*,.m4a,.mp3,.wav,.aac,.ogg,.caf,.svg"
+        accept={`image/*,video/*,audio/*,.m4a,.mp3,.wav,.aac,.ogg,.caf,.svg${allowDocuments ? ",application/pdf,.pdf" : ""}`}
         className="hidden"
         onChange={(e) => {
           if (e.target.files) uploadFiles(e.target.files);
@@ -481,6 +500,8 @@ const EntityMediaManager = ({
               <p className="text-sm text-muted-foreground">
                 {enablePaste
                   ? "Glissez, collez (Ctrl+V) ou cliquez pour ajouter des médias"
+                  : allowDocuments
+                  ? "Glissez vos photos, vidéos et PDF ici, ou cliquez pour sélectionner"
                   : "Glissez vos photos et vidéos ici, ou cliquez pour sélectionner"}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -525,7 +546,14 @@ const EntityMediaManager = ({
                           ? "border-amber-400"
                           : "border-border"
                       )}
-                      onClick={() => item.file_type !== "audio" && setLightboxItem(item)}
+                      onClick={() => {
+                        if (item.file_type === "audio") return;
+                        if (item.file_type === "document") {
+                          window.open(item.file_url, "_blank", "noopener,noreferrer");
+                          return;
+                        }
+                        setLightboxItem(item);
+                      }}
                     >
                       {item.file_type === "image" ? (
                         <img
@@ -581,6 +609,13 @@ const EntityMediaManager = ({
                               Transcription en cours...
                             </div>
                           )}
+                        </div>
+                      ) : item.file_type === "document" ? (
+                        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted p-2 text-center">
+                          <FileText className="h-8 w-8 text-muted-foreground" />
+                          <span className="text-[11px] leading-tight text-muted-foreground line-clamp-2 break-all">
+                            {item.file_name}
+                          </span>
                         </div>
                       ) : (
                         <div className="w-full h-full relative bg-muted">
