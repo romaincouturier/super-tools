@@ -383,6 +383,8 @@ async function sendEmailWithResend(
   participantEmail: string,
   participantName: string,
   participantFirstName: string,
+  participantLastName: string,
+  entreprise: string,
   formationName: string,
   pdfUrl: string,
   emailDestinataire: string,
@@ -395,7 +397,7 @@ async function sendEmailWithResend(
   const pdfBuffer = await pdfResponse.arrayBuffer();
   const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
 
-  const fileName = `Certificat_${formationName.replace(/\s+/g, "_")}_${participantName.replace(/\s+/g, "_")}.pdf`;
+  const fileName = buildCertificateFileName(participantFirstName, participantLastName, entreprise);
 
   console.log(`Sending email to ${participantEmail}...`);
 
