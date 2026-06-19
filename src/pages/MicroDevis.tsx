@@ -166,11 +166,27 @@ const MicroDevis = () => {
     }
   }, [configsHook.formationConfigs, initialDefaultsApplied, formationDemandee]);
 
+  // Apply default inter session: dates + location reprised automatically
+  const applyInterSession = (d: FormationDate) => {
+    const label = d.is_permanent ? PERMANENT_SESSION_DATE_LABEL : d.date_label;
+    setDateFormation(label);
+    if (d.location) {
+      if (LIEUX.includes(d.location)) {
+        setLieu(d.location);
+        setLieuAutre("");
+      } else {
+        setLieu("autre");
+        setLieuAutre(d.location);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!initialDefaultsApplied && !dateFormation && datesHook.formationDates.length > 0) {
-      const def = datesHook.formationDates.find(d => d.is_default);
-      if (def) setDateFormation(def.date_label);
+      const def = datesHook.formationDates.find(d => d.is_default) ?? datesHook.formationDates[0];
+      if (def) applyInterSession(def);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datesHook.formationDates, initialDefaultsApplied, dateFormation]);
 
   useEffect(() => {
