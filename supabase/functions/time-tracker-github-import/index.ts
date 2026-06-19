@@ -86,6 +86,12 @@ async function fetchAllMergedPRs(token: string, since: string, until: string, de
 
     if (!resp.ok) {
       const err = await resp.text();
+      if (resp.status === 401) {
+        throw new Error("Token GitHub invalide ou expiré. Cliquez sur « Modifier » pour le mettre à jour.");
+      }
+      if (resp.status === 403) {
+        throw new Error("Accès GitHub refusé (403). Vérifiez les permissions du token (repo).");
+      }
       throw new Error(`GitHub API error ${resp.status}: ${err}`);
     }
 

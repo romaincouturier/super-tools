@@ -772,7 +772,18 @@ function GitHubImportTab() {
       const { data, error } = await supabase.functions.invoke("time-tracker-github-import", {
         body: { since, until },
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // supabase-js wraps non-2xx as FunctionsHttpError; read the body to surface real message
+        let detail = error.message;
+        try {
+          const ctxRes = (error as { context?: Response }).context;
+          if (ctxRes && typeof ctxRes.json === "function") {
+            const body = await ctxRes.json();
+            if (body?.error) detail = body.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       const entries: Omit<ProposedEntry, "selected">[] = data?.entries ?? [];
       if (entries.length === 0) {
         toast({ title: "Aucune PR trouvée sur cette période" });
