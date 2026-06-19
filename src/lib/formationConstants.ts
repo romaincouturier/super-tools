@@ -4,3 +4,6 @@ export const LIEUX = [
   "Agile Tribu, 4ter Pass. de la Main d'Or, 75011 Paris",
   "Chez le client",
 ];
+
+export const PERMANENT_SESSION_DATE_LABEL =
+  "L'apprenant.e est autonome dans les dates de formation";
