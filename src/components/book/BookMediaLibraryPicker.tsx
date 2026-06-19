@@ -57,12 +57,14 @@ export default function BookMediaLibraryPicker({ open, onOpenChange, albumId }: 
     if (chosen.length === 0) return;
     await addToAlbum.mutateAsync({
       albumId,
-      items: chosen.map((m) => ({
-        id: m.id,
-        file_url: m.file_url,
-        file_name: m.file_name,
-        file_type: m.file_type,
-      })),
+      items: chosen
+        .filter((m) => m.file_type !== 'document')
+        .map((m) => ({
+          id: m.id,
+          file_url: m.file_url,
+          file_name: m.file_name,
+          file_type: m.file_type as 'image' | 'video' | 'video_link' | 'audio',
+        })),
     });
     toast({ title: `${chosen.length} élément(s) ajouté(s) à l'album` });
     close();
