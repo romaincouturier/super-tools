@@ -421,6 +421,21 @@ serve(async (req) => {
           })
       );
 
+      // 15b. SuperTilt — commandes reçues à traiter
+      add("📦", "SuperTilt — commandes reçues", COLORS.blue,
+        data.supertiltAlerts
+          .filter(v => v.kanbanStatus === "received")
+          .map(v => {
+            const ageDays = Math.max(0, Math.floor((Date.now() - new Date(v.createdAt).getTime()) / 86400000));
+            const ageLabel = ageDays === 0 ? "aujourd'hui" : ageDays === 1 ? "depuis hier" : `depuis ${ageDays} j`;
+            const orderRef = `Commande ${v.orderNumber ?? v.wcOrderId}`;
+            const productLabel = v.productName ?? `Produit #${v.wcOrderId}`;
+            const customer = v.customerEmail ? ` — ${v.customerEmail}` : "";
+            return `<li>${linkHtml(`${appUrl}/commandes-jeux`, `${productLabel} — ${orderRef}`)} — à traiter (${ageLabel})${customer}</li>`;
+          })
+      );
+
+
       // 16. Tickets support en attente
       const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
       const statusLabels: Record<string, string> = { nouveau: "Nouveau", qualification: "Qualification", vibe_coding: "Vibe Coding" };
