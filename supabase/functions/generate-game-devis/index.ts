@@ -165,7 +165,7 @@ serve(async (req) => {
     const bccList = await getBccList();
 
     const itemsHtml = body.items
-      .map((i) => `<li>${i.title} × ${i.quantity} — ${(i.quantity * i.unitPrice).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}</li>`)
+      .map((i) => `<li>${i.title} × ${i.quantity}</li>`)
       .join("\n");
 
     const htmlContent = `
