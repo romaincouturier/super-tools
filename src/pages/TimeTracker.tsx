@@ -840,12 +840,12 @@ function GitHubImportTab() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Token config */}
-      {!hasToken && (
+      {(!hasToken || isEditingToken) && (
         <Card className="border-amber-200 bg-amber-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-amber-800">
               <Key className="h-4 w-4" />
-              Token GitHub requis
+              {isEditingToken ? "Modifier le token GitHub" : "Token GitHub requis"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -863,16 +863,21 @@ function GitHubImportTab() {
               <Button onClick={saveToken} disabled={!token.trim() || isSavingToken}>
                 {isSavingToken ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Enregistrer"}
               </Button>
+              {isEditingToken && (
+                <Button variant="ghost" onClick={() => { setIsEditingToken(false); setToken(""); }}>
+                  Annuler
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {hasToken && (
+      {hasToken && !isEditingToken && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Check className="h-4 w-4 text-green-500" />
           Token GitHub configuré
-          <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setToken("(modifier)")}>
+          <Button variant="ghost" size="sm" className="text-xs h-6" onClick={() => setIsEditingToken(true)}>
             Modifier
           </Button>
         </div>
