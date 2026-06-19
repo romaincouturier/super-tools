@@ -62,6 +62,7 @@ const MicroDevis = () => {
   const [includeCadeau, setIncludeCadeau] = useState(false);
   
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
+  const [offrirFraisAdmin, setOffrirFraisAdmin] = useState(false);
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
 
@@ -244,9 +245,9 @@ const MicroDevis = () => {
       selectedFormulaId: formulasHook.selectedFormulaId,
       adresseClient, codePostalClient, villeClient, pays, paysAutre,
       civiliteCommanditaire, prenomCommanditaire, nomCommanditaire,
-      noteDevis, participants, includeCadeau, typeSubrogation,
+      noteDevis, participants, includeCadeau, typeSubrogation, offrirFraisAdmin,
     }));
-  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, noteDevis, participants, includeCadeau, typeSubrogation]);
+  }, [formatFormation, formationDemandee, formationLibre, dateFormation, dateFormationLibre, lieu, lieuAutre, nomClient, emailCommanditaire, formulasHook.selectedFormulaId, adresseClient, codePostalClient, villeClient, pays, paysAutre, civiliteCommanditaire, prenomCommanditaire, nomCommanditaire, noteDevis, participants, includeCadeau, typeSubrogation, offrirFraisAdmin]);
 
   // Auto-set lieu
   useEffect(() => {
@@ -276,6 +277,7 @@ const MicroDevis = () => {
     setDateFormation((f.dateFormation as string) || ""); setDateFormationLibre((f.dateFormationLibre as string) || "");
     setParticipants((f.participants as string) || ""); setIncludeCadeau(!!f.includeCadeau);
     setTypeSubrogation(((f.typeSubrogation as "sans" | "avec" | "les2") || "les2"));
+    setOffrirFraisAdmin(!!f.offrirFraisAdmin);
     const lv = (f.lieu as string) || "";
     if (LIEUX.includes(lv)) { setLieu(lv); setLieuAutre((f.lieuAutre as string) || ""); }
     else if (lv) { setLieu("autre"); setLieuAutre((f.lieuAutre as string) || lv); }
@@ -397,7 +399,7 @@ const MicroDevis = () => {
       const ed = af?.duree_heures ?? sc.duree_heures;
       const label = formulasHook.selectedFormula ? `${formationDemandee} — ${formulasHook.selectedFormula}` : formationDemandee;
       const response = await supabase.functions.invoke("generate-micro-devis", {
-        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
+        body: { nomClient, adresseClient, codePostalClient, villeClient, pays: finalPays, emailCommanditaire: normalizedEmail, adresseCommanditaire: `${civiliteCommanditaire} ${nomCommanditaire}`.trim(), noteDevis, formationDemandee: label, dateFormation, lieu: finalLieu, includeCadeau, prix: ep, dureeHeures: ed, programmeUrl: sc.programme_url, nbParticipants: countParticipants(), participants, typeSubrogation, offrirFraisAdmin, typeDevis, formatFormation, formationLibre, dateFormationLibre, lieuAutre, selectedFormulaId: formulasHook.selectedFormulaId, ...(crmCardId && { crmCardId, senderEmail: user?.email }) },
       });
       if (response.error) throw new Error(response.error.message);
       toast({ title: typeSubrogation === "les2" ? "Devis envoyés !" : "Devis envoyé !", description: typeSubrogation === "les2" ? `Les 2 devis ont été générés et envoyés à ${normalizedEmail}` : `Le devis a été généré et envoyé à ${normalizedEmail}` });
@@ -501,6 +503,7 @@ const MicroDevis = () => {
                   lieu={lieu} setLieu={setLieu} lieuAutre={lieuAutre} setLieuAutre={setLieuAutre}
                   includeCadeau={includeCadeau} setIncludeCadeau={setIncludeCadeau}
                   typeSubrogation={typeSubrogation} setTypeSubrogation={setTypeSubrogation}
+                  offrirFraisAdmin={offrirFraisAdmin} setOffrirFraisAdmin={setOffrirFraisAdmin}
                   getSelectedFormationConfig={getSelectedFormationConfig}
                 />
               )}
