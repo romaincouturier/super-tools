@@ -186,7 +186,7 @@ export default function LmsCoursePlayer() {
     : 0;
 
   // Shared home-sidebar data
-  const navigate = useNavigate();
+
   const sidebarModules = useMemo(
     () => modules.filter((m) => !m.is_special_section).map((m) => ({ id: m.id, title: m.title, position: m.position })),
     [modules],
