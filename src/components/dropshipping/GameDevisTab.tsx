@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Plus, Trash2, Loader2, Send } from "lucide-react";
+import { Plus, Trash2, Loader2, Send, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ClientInfoSection from "@/components/formations/ClientInfoSection";
 import { useSirenSearch } from "@/hooks/useSirenSearch";
-import { useGames } from "@/hooks/useDropshipping";
+import { useGames, useGameDevisHistory } from "@/hooks/useDropshipping";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
 
 interface LineItem {
   id: string;
@@ -27,6 +29,7 @@ export default function GameDevisTab() {
   const { data: games = [] } = useGames();
   const generateDevis = useGenerateGameDevis();
   const sirenSearch = useSirenSearch();
+  const { refetch: refetchHistory } = useGameDevisHistory();
 
   const [nomClient, setNomClient] = useState("");
   const [adresseClient, setAdresseClient] = useState("");
@@ -116,12 +119,15 @@ export default function GameDevisTab() {
         noteDevis,
       });
       toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${emailCommanditaire}` });
+      setLines([]);
+      refetchHistory();
     } catch (err) {
       toastError(toast, err);
     }
   };
 
   return (
+    <div className="space-y-12">
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
       <ClientInfoSection
         siren={sirenSearch.siren}
@@ -293,5 +299,62 @@ export default function GameDevisTab() {
         )}
       </Button>
     </form>
+
+    <GameDevisHistory />
+    </div>
+  );
+}
+
+function GameDevisHistory() {
+  const { data: history = [], isLoading } = useGameDevisHistory();
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold border-b pb-2 flex items-center gap-2">
+        <FileText className="h-5 w-5" />Devis envoyés
+      </h3>
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
+      ) : history.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg">Aucun devis jeux envoyé pour le moment.</p>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Destinataire</TableHead>
+                <TableHead>Jeux</TableHead>
+                <TableHead className="text-right">Total HT</TableHead>
+                <TableHead className="w-16" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {history.map((d) => (
+                <TableRow key={d.id}>
+                  <TableCell className="text-sm">{DATE(d.created_at)}</TableCell>
+                  <TableCell className="text-sm font-medium">{d.client_name ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{d.recipient_email}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {d.items.reduce((s, i) => s + i.quantity, 0)} article(s)
+                  </TableCell>
+                  <TableCell className="text-right text-sm">{EUR(d.total_amount)}</TableCell>
+                  <TableCell>
+                    {d.pdf_url && (
+                      <Button asChild variant="ghost" size="icon">
+                        <a href={d.pdf_url} target="_blank" rel="noopener noreferrer" title="Ouvrir le PDF">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   );
 }
