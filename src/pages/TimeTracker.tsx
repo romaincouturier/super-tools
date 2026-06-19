@@ -771,22 +771,25 @@ function GitHubImportTab() {
     setIsAnalyzing(true);
     setProposed([]);
     try {
-      const { data, error } = await supabase.functions.invoke("time-tracker-github-import", {
-        body: { since, until },
+      const { data: { session } } = await supabase.auth.getSession();
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/time-tracker-github-import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${session?.access_token ?? SUPABASE_KEY}`,
+        },
+        body: JSON.stringify({ since, until }),
       });
-      if (error) {
-        // supabase-js wraps non-2xx as FunctionsHttpError; read the body to surface real message
-        let detail = error.message;
-        try {
-          const ctxRes = (error as { context?: Response }).context;
-          if (ctxRes && typeof ctxRes.json === "function") {
-            const body = await ctxRes.json();
-            if (body?.error) detail = body.error;
-          }
-        } catch { /* ignore */ }
-        throw new Error(detail);
+      const text = await resp.text();
+      let payload: { entries?: Omit<ProposedEntry, "selected">[]; error?: string } = {};
+      try { payload = text ? JSON.parse(text) : {}; } catch { /* keep empty */ }
+      if (!resp.ok) {
+        throw new Error(payload.error || `Erreur ${resp.status}`);
       }
-      const entries: Omit<ProposedEntry, "selected">[] = data?.entries ?? [];
+      const entries = payload.entries ?? [];
       if (entries.length === 0) {
         toast({ title: "Aucune PR trouvée sur cette période" });
       } else {
