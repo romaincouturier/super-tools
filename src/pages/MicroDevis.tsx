@@ -275,7 +275,7 @@ const MicroDevis = () => {
     if (f.selectedFormulaId) pendingFormulaIdRef.current = f.selectedFormulaId as string;
     setDateFormation((f.dateFormation as string) || ""); setDateFormationLibre((f.dateFormationLibre as string) || "");
     setParticipants((f.participants as string) || ""); setIncludeCadeau(!!f.includeCadeau);
-    setFraisDossier(f.fraisDossier ? "oui" : "non"); setTypeSubrogation(((f.typeSubrogation as "sans" | "avec" | "les2") || "les2"));
+    setTypeSubrogation(((f.typeSubrogation as "sans" | "avec" | "les2") || "les2"));
     const lv = (f.lieu as string) || "";
     if (LIEUX.includes(lv)) { setLieu(lv); setLieuAutre((f.lieuAutre as string) || ""); }
     else if (lv) { setLieu("autre"); setLieuAutre((f.lieuAutre as string) || lv); }
