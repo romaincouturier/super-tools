@@ -73,6 +73,8 @@ export default function LmsCoursePlayer() {
 
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const mainRef = useRef<HTMLElement>(null);
+  const navigate = useNavigate();
+
 
   const { data: lessonBlocks = [] } = useLessonBlocks(selectedLessonId);
   const { data: myDeposit, isLoading: myDepositLoading } = useMyDeposit(
