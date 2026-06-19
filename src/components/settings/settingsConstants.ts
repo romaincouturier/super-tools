@@ -654,13 +654,13 @@ Bonne réception.`,
 
 Merci pour votre demande concernant la formation "{{formation_name}}".
 
-Vous trouverez en pièces jointes :
-
-{{devis_description}}
-
 {{#programme_link}}
 Le programme de la formation est disponible en consultation et téléchargement ici : {{programme_link}}
 {{/programme_link}}
+
+Vous trouverez en pièces jointes :
+
+{{devis_description}}
 
 N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.
 
@@ -669,13 +669,13 @@ N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous somme
 
 Merci pour votre demande concernant la formation "{{formation_name}}".
 
-Vous trouverez en pièces jointes :
-
-{{devis_description}}
-
 {{#programme_link}}
 Le programme de la formation est disponible en consultation et téléchargement ici : {{programme_link}}
 {{/programme_link}}
+
+Vous trouverez en pièces jointes :
+
+{{devis_description}}
 
 N'hésitez pas à revenir vers nous si vous avez la moindre question. Nous sommes à votre disposition pour vous accompagner dans votre projet de formation.
 
