@@ -824,6 +824,8 @@ serve(async (req: Request): Promise<Response> => {
                 participant.email,
                 participantName,
                 participant.prenom || "",
+                participant.nom || "",
+                entreprise,
                 formationName,
                 pdfUrl,
                 emailDestinataire,
