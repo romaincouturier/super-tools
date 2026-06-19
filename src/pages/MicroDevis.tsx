@@ -49,7 +49,7 @@ const MicroDevis = () => {
   const [prenomCommanditaire, setPrenomCommanditaire] = useState("");
   const [nomCommanditaire, setNomCommanditaire] = useState("");
   const typeDevis = "formation" as const;
-  const [isOpco, setIsOpco] = useState<"oui" | "non">("non");
+  
   const [noteDevis, setNoteDevis] = useState("");
   const [formatFormation, setFormatFormation] = useState<"intra" | "inter" | "">("");
   const [participants, setParticipants] = useState("");
@@ -60,7 +60,7 @@ const MicroDevis = () => {
   const [lieu, setLieu] = useState("");
   const [lieuAutre, setLieuAutre] = useState("");
   const [includeCadeau, setIncludeCadeau] = useState(false);
-  const [fraisDossier, setFraisDossier] = useState<"oui" | "non" | "">("");
+  
   const [typeSubrogation, setTypeSubrogation] = useState<"sans" | "avec" | "les2">("les2");
   const [jsonPreviewOpen, setJsonPreviewOpen] = useState(false);
   const [initialDefaultsApplied, setInitialDefaultsApplied] = useState(false);
@@ -473,7 +473,6 @@ const MicroDevis = () => {
               />
 
               <TypeDevisSection
-                isOpco={isOpco} setIsOpco={setIsOpco}
                 noteDevis={noteDevis} setNoteDevis={setNoteDevis}
               />
 
@@ -503,7 +502,6 @@ const MicroDevis = () => {
                   onDeleteDate={datesHook.handleDeleteDate} onSaveDate={datesHook.handleSaveDate}
                   lieu={lieu} setLieu={setLieu} lieuAutre={lieuAutre} setLieuAutre={setLieuAutre}
                   includeCadeau={includeCadeau} setIncludeCadeau={setIncludeCadeau}
-                  fraisDossier={fraisDossier} setFraisDossier={setFraisDossier}
                   typeSubrogation={typeSubrogation} setTypeSubrogation={setTypeSubrogation}
                   getSelectedFormationConfig={getSelectedFormationConfig}
                 />
