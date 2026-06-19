@@ -3115,6 +3115,7 @@ export type Database = {
           restock_threshold: number | null
           secondary_author_email: string | null
           status: string
+          stock: number
           title: string
           updated_at: string
           woocommerce_product_id: number | null
@@ -3153,6 +3154,7 @@ export type Database = {
           restock_threshold?: number | null
           secondary_author_email?: string | null
           status?: string
+          stock?: number
           title: string
           updated_at?: string
           woocommerce_product_id?: number | null
@@ -3191,6 +3193,7 @@ export type Database = {
           restock_threshold?: number | null
           secondary_author_email?: string | null
           status?: string
+          stock?: number
           title?: string
           updated_at?: string
           woocommerce_product_id?: number | null
