@@ -23,6 +23,7 @@ interface RequestBody {
   lieu: string;
   includeCadeau: boolean;
   fraisDossier: boolean;
+  offrirFraisAdmin?: boolean;
   prix: number;
   dureeHeures: number;
   programmeUrl: string | null;
@@ -51,9 +52,12 @@ const PDFMONKEY_TEMPLATE_ID = "C3BC00C9-232F-4ADD-9D1F-9FD176573E93";
 const DOSSIER_FEE_WITH_SUBROGATION = 350;
 const DOSSIER_FEE_WITHOUT_SUBROGATION = 150;
 
-function getDossierFeeAmount(_data: RequestBody, subrogation: boolean): number {
+function getDossierFeeAmount(data: RequestBody, subrogation: boolean): number {
   // Frais de dossier systématiques : 150€ sans subrogation, 350€ avec.
-  return subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
+  // Si "offrir les frais administratifs" est coché, on retire 150€.
+  const base = subrogation ? DOSSIER_FEE_WITH_SUBROGATION : DOSSIER_FEE_WITHOUT_SUBROGATION;
+  const remise = data.offrirFraisAdmin ? 150 : 0;
+  return Math.max(0, base - remise);
 }
 
 async function generatePdfWithPdfMonkey(

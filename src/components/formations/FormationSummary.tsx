@@ -5,6 +5,7 @@ interface FormationSummaryProps {
   formationDemandee: string;
   participants: string;
   typeSubrogation?: "sans" | "avec" | "les2";
+  offrirFraisAdmin?: boolean;
   getSelectedFormationConfig: () => FormationConfig | undefined;
   formationFormulas: FormationFormula[];
   selectedFormulaId: string;
@@ -15,6 +16,7 @@ export default function FormationSummary({
   formationDemandee,
   participants,
   typeSubrogation,
+  offrirFraisAdmin,
   getSelectedFormationConfig,
   formationFormulas,
   selectedFormulaId,
@@ -34,7 +36,9 @@ export default function FormationSummary({
   const showSans = typeSubrogation === "sans" || showBoth;
   const renderColumn = (variant: "sans" | "avec") => {
     const withSub = variant === "avec";
-    const frais = withSub ? 350 : 150;
+    const baseFrais = withSub ? 350 : 150;
+    const remise = offrirFraisAdmin ? 150 : 0;
+    const frais = baseFrais - remise;
     const totalHT = prixFormation + frais;
     const totalTTC = totalHT;
     return (
@@ -45,7 +49,7 @@ export default function FormationSummary({
           </p>
         )}
         <p>Formation : {prixUnitaire}€ × {nbParticipants} = <strong>{prixFormation}€</strong></p>
-        {frais > 0 && <p>Frais de dossier : {frais}€</p>}
+        {baseFrais > 0 && <p>Frais de dossier : {baseFrais}€{remise > 0 && <span className="text-muted-foreground"> − {remise}€ offerts = <strong>{frais}€</strong></span>}</p>}
         <p>Total HT : <strong>{totalHT}€</strong></p>
         <p>TVA (0%) : Exonéré</p>
         <p className="text-base">Total TTC : <strong>{totalTTC.toFixed(2)}€</strong></p>

@@ -7,6 +7,8 @@ interface FormationOptionsProps {
   setIncludeCadeau: (v: boolean) => void;
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
+  offrirFraisAdmin: boolean;
+  setOffrirFraisAdmin: (v: boolean) => void;
 }
 
 export default function FormationOptions({
@@ -14,6 +16,8 @@ export default function FormationOptions({
   setIncludeCadeau,
   typeSubrogation,
   setTypeSubrogation,
+  offrirFraisAdmin,
+  setOffrirFraisAdmin,
 }: FormationOptionsProps) {
   return (
     <>
@@ -47,6 +51,19 @@ export default function FormationOptions({
             <Label htmlFor="subrogation-les2" className="font-normal cursor-pointer">Les 2</Label>
           </div>
         </RadioGroup>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-start space-x-2">
+          <Checkbox
+            id="offrir-frais-admin"
+            checked={offrirFraisAdmin}
+            onCheckedChange={(checked) => setOffrirFraisAdmin(checked === true)}
+          />
+          <Label htmlFor="offrir-frais-admin" className="font-normal cursor-pointer text-sm leading-relaxed">
+            Offrir les frais administratifs (-150€)
+          </Label>
+        </div>
       </div>
     </>
   );

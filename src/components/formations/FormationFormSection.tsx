@@ -83,11 +83,14 @@ export default function FormationFormSection(props: FormationFormSectionProps) {
         setIncludeCadeau={props.setIncludeCadeau}
         typeSubrogation={props.typeSubrogation}
         setTypeSubrogation={props.setTypeSubrogation}
+        offrirFraisAdmin={props.offrirFraisAdmin}
+        setOffrirFraisAdmin={props.setOffrirFraisAdmin}
       />
       <FormationSummary
         formationDemandee={props.formationDemandee}
         participants={props.participants}
         typeSubrogation={props.typeSubrogation}
+        offrirFraisAdmin={props.offrirFraisAdmin}
         getSelectedFormationConfig={props.getSelectedFormationConfig}
         formationFormulas={props.formationFormulas}
         selectedFormulaId={props.selectedFormulaId}

@@ -75,5 +75,7 @@ export interface FormationFormSectionProps {
   setIncludeCadeau: (v: boolean) => void;
   typeSubrogation: "sans" | "avec" | "les2";
   setTypeSubrogation: (v: "sans" | "avec" | "les2") => void;
+  offrirFraisAdmin: boolean;
+  setOffrirFraisAdmin: (v: boolean) => void;
   getSelectedFormationConfig: () => FormationConfig | undefined;
 }
