@@ -295,7 +295,7 @@ const ParticipantActions = ({
               <TooltipContent><p>Attestation</p></TooltipContent>
             </Tooltip>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => window.open(cert!.certificateUrl!, "_blank")}>
+              <DropdownMenuItem onClick={() => downloadFile(cert!.certificateUrl!, buildCertificateFileName(participant.first_name, participant.last_name, participant.company || clientName))}>
                 <Download className="h-4 w-4 mr-2" />Télécharger
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSendCertificate(participant, participant.email, participant.first_name || "")}>
