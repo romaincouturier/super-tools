@@ -416,11 +416,11 @@ const MicroDevis = () => {
         }, 1500);
         return;
       }
+      // Reset client-specific fields only — preserve formation, formule, lieu, date
+      // so they can be reused for the next devis.
       setNomClient(""); setAdresseClient(""); setCodePostalClient(""); setVilleClient("");
       setPays("france"); setPaysAutre(""); setEmailCommanditaire(""); setCiviliteCommanditaire(""); setPrenomCommanditaire(""); setNomCommanditaire("");
-      setNoteDevis(""); setParticipants("");
-      setFormationDemandee(configsHook.formationConfigs.find(f => f.is_default)?.formation_name || "");
-      setDateFormation(""); setLieu(""); setLieuAutre(""); setIncludeCadeau(false);
+      setNoteDevis(""); setParticipants(""); setIncludeCadeau(false);
     } catch (error: unknown) {
       console.error("Error generating micro-devis:", error);
       toastError(toast, error instanceof Error ? error : "Une erreur est survenue");
