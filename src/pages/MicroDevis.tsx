@@ -16,8 +16,8 @@ import { toastError } from "@/lib/toastError";
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import type { FormationConfig, DevisHistoryItem } from "@/types/formations";
-import { LIEUX } from "@/lib/formationConstants";
+import type { FormationConfig, FormationDate, DevisHistoryItem } from "@/types/formations";
+import { LIEUX, PERMANENT_SESSION_DATE_LABEL } from "@/lib/formationConstants";
 import { useFormationConfigs } from "@/hooks/useFormationConfigs";
 import { useFormationDates } from "@/hooks/useFormationDates";
 import { useFormationFormulas } from "@/hooks/useFormationFormulas";
