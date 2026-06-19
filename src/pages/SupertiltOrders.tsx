@@ -7,6 +7,7 @@ import {
   Euro, Users, BarChart3,
 } from "lucide-react";
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
+import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -1590,6 +1591,7 @@ export default function SupertiltOrders() {
           <TabsTrigger value="depenses"><BarChart3 className="h-4 w-4 mr-1.5" />Dépenses</TabsTrigger>
           <TabsTrigger value="stock"><Package className="h-4 w-4 mr-1.5" />Stock</TabsTrigger>
           <TabsTrigger value="auteurs"><Users className="h-4 w-4 mr-1.5" />Auteurs</TabsTrigger>
+          <TabsTrigger value="devis"><FileText className="h-4 w-4 mr-1.5" />Devis</TabsTrigger>
           <TabsTrigger value="emails"><Mail className="h-4 w-4 mr-1.5" />Emails</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard"><Dashboard /></TabsContent>
@@ -1601,6 +1603,7 @@ export default function SupertiltOrders() {
         <TabsContent value="depenses"><DepensesTab /></TabsContent>
         <TabsContent value="stock"><StockTab /></TabsContent>
         <TabsContent value="auteurs"><AuteursTab /></TabsContent>
+        <TabsContent value="devis"><GameDevisTab /></TabsContent>
         <TabsContent value="emails"><EmailLogTab /></TabsContent>
       </Tabs>
     </ModuleLayout>

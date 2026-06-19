@@ -316,11 +316,6 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
             <Input type="number" value={form.woocommerce_product_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, woocommerce_product_id: e.target.value ? parseInt(e.target.value) : null }))} placeholder="Ex: 1234" />
           </div>
           <div className="space-y-1">
-            <Label>Stock</Label>
-            <Input type="number" min="0" value={form.stock ?? 0} onChange={(e) => setForm((f) => ({ ...f, stock: Math.max(0, parseInt(e.target.value) || 0) }))} placeholder="0" />
-            <p className="text-xs text-muted-foreground">Décrémenté automatiquement à chaque vente importée.</p>
-          </div>
-          <div className="space-y-1">
             <Label>Statut</Label>
             <Select value={form.status ?? "active"} onValueChange={(v) => setForm((f) => ({ ...f, status: v as "active" | "inactive" }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -363,26 +358,19 @@ function GamesTable() {
               <TableHead>Titre</TableHead>
               <TableHead>Auteur</TableHead>
               <TableHead>ID WC</TableHead>
-              <TableHead className="text-right">Stock</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {!games?.length && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Aucun jeu — ajoutez le premier !</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Aucun jeu — ajoutez le premier !</TableCell></TableRow>
             )}
             {(games ?? []).map((g) => (
               <TableRow key={g.id}>
                 <TableCell className="font-medium">{g.title}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{(g.game_authors as any)?.name ?? "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{g.woocommerce_product_id ?? "—"}</TableCell>
-                <TableCell className="text-right">
-                  <span className={g.stock <= 0 ? "text-destructive font-medium" : g.stock <= 5 ? "text-orange-600 font-medium" : ""}>
-                    {g.stock ?? 0}
-                  </span>
-                  {g.stock <= 0 && <span className="ml-1.5 text-xs text-destructive">(rupture)</span>}
-                </TableCell>
                 <TableCell>
                   <Badge variant={g.status === "active" ? "default" : "secondary"}>{g.status === "active" ? "Actif" : "Inactif"}</Badge>
                 </TableCell>
