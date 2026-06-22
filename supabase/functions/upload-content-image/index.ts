@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
     if (!path) return createErrorResponse("Chemin manquant", 400);
 
     const contentType = resolveContentType(file);
-    if (!contentType.startsWith("image/")) {
-      return createErrorResponse("Seules les images sont acceptées", 400);
+    if (!contentType.startsWith("image/") && contentType !== "application/pdf") {
+      return createErrorResponse("Seules les images et les PDF sont acceptés", 400);
     }
 
     const admin = createClient(supabaseUrl, serviceKey);

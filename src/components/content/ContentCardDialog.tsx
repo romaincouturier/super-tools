@@ -68,6 +68,8 @@ const ContentCardDialog = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfName, setPdfName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [cardType, setCardType] = useState<ContentCardType>("article");
   const [emoji, setEmoji] = useState<string | null>(null);
@@ -77,6 +79,7 @@ const ContentCardDialog = ({
   const [initialComment, setInitialComment] = useState("");
   const [currentColumnId, setCurrentColumnId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const { copied: linkCopied, copy: copyLink } = useCopyToClipboard();
 
   const handleCopyShareLink = useCallback(() => {
@@ -94,6 +97,7 @@ const ContentCardDialog = ({
     uploading,
     handleAiAction: doAiAction,
     handleImageUpload: doImageUpload,
+    handlePdfUpload: doPdfUpload,
     handleNewsletterChange: doNewsletterChange,
     performAutoSave,
   } = useContentCardData({ open, card, onNewsletterChange });
@@ -102,6 +106,7 @@ const ContentCardDialog = ({
     if (!card) return false;
     return performAutoSave(card.id, values as {
       title: string; description: string; imageUrl: string;
+      pdfUrl: string; pdfName: string;
       tags: string[]; cardType: ContentCardType; emoji: string | null;
       deadline: string;
     });
@@ -109,7 +114,7 @@ const ContentCardDialog = ({
 
   const { autoSaving, lastSaved, resetTracking, flushAndGetPending } = useAutoSaveForm({
     open: open && !!card,
-    formValues: useMemo(() => ({ title, description, imageUrl, tags, cardType, emoji, deadline }), [title, description, imageUrl, tags, cardType, emoji, deadline]),
+    formValues: useMemo(() => ({ title, description, imageUrl, pdfUrl, pdfName, tags, cardType, emoji, deadline }), [title, description, imageUrl, pdfUrl, pdfName, tags, cardType, emoji, deadline]),
     onSave: handleAutoSave,
   });
 
@@ -118,6 +123,8 @@ const ContentCardDialog = ({
       setTitle(card.title);
       setDescription(card.description || "");
       setImageUrl(card.image_url || "");
+      setPdfUrl(card.pdf_url || "");
+      setPdfName(card.pdf_name || "");
       setTags(card.tags || []);
       setCardType(card.card_type || "article");
       setEmoji(card.emoji || null);
@@ -127,6 +134,8 @@ const ContentCardDialog = ({
       setTitle("");
       setDescription("");
       setImageUrl("");
+      setPdfUrl("");
+      setPdfName("");
       setTags([]);
       setCardType("article");
       setEmoji(null);
@@ -153,6 +162,17 @@ const ContentCardDialog = ({
     if (url) setImageUrl(url);
   };
 
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const res = await doPdfUpload(file);
+    if (res) {
+      setPdfUrl(res.url);
+      setPdfName(res.name);
+    }
+    e.target.value = "";
+  };
+
 // Manual save for create mode only
   const handleSave = () => {
     if (!title.trim()) {
@@ -172,6 +192,8 @@ const ContentCardDialog = ({
       title: title.trim(),
       description: description || null,
       image_url: imageUrl || null,
+      pdf_url: pdfUrl || null,
+      pdf_name: pdfName || null,
       tags,
       card_type: cardType,
       emoji,
@@ -549,6 +571,49 @@ const ContentCardDialog = ({
                   />
                 </>
               )}
+            </div>
+
+            {/* Document PDF */}
+            <div className="space-y-2">
+              <Label>Document PDF</Label>
+              {pdfUrl ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/40">
+                  <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 text-sm font-medium truncate hover:underline"
+                  >
+                    {pdfName || "Document.pdf"}
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive shrink-0"
+                    onClick={() => { setPdfUrl(""); setPdfName(""); }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => pdfInputRef.current?.click()}
+                >
+                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                  <p className="text-sm text-muted-foreground">
+                    {uploading ? "Téléchargement..." : "Cliquez pour ajouter un PDF (max 20 Mo)"}
+                  </p>
+                </div>
+              )}
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handlePdfUpload}
+              />
             </div>
 
             {/* Tags */}

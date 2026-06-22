@@ -51,6 +51,8 @@ export interface Card {
   title: string;
   description: string | null;
   image_url: string | null;
+  pdf_url?: string | null;
+  pdf_name?: string | null;
   tags: string[];
   display_order: number;
   review_status?: ReviewStatus;
@@ -240,6 +242,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           title: c.title,
           description: c.description,
           image_url: c.image_url,
+          pdf_url: (c as unknown as { pdf_url?: string | null }).pdf_url ?? null,
+          pdf_name: (c as unknown as { pdf_name?: string | null }).pdf_name ?? null,
           display_order: c.display_order,
           tags: Array.isArray(c.tags) ? (c.tags as string[]) : [],
           review_status: cardReviewStatus.get(c.id) || "none",
@@ -497,6 +501,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
             title: cardData.title,
             description: cardData.description,
             image_url: cardData.image_url,
+            pdf_url: cardData.pdf_url ?? null,
+            pdf_name: cardData.pdf_name ?? null,
             tags: cardData.tags,
             card_type: cardData.card_type || "article",
             emoji: cardData.emoji ?? null,
@@ -513,6 +519,8 @@ const KanbanBoard = ({ openCardId, onCloseCard, filterReviewOnly = false, showPu
           title: cardData.title || "Nouvelle carte",
           description: cardData.description,
           image_url: cardData.image_url,
+          pdf_url: cardData.pdf_url ?? null,
+          pdf_name: cardData.pdf_name ?? null,
           tags: cardData.tags || [],
           card_type: cardData.card_type || "article",
           emoji: cardData.emoji ?? null,
