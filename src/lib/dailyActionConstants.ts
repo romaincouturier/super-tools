@@ -33,9 +33,11 @@ export const CATEGORY_ORDER = [
   "support_tickets",
   "supertilt_a_valider",
   "supertilt_recues",
+  "supertilt_formation_a_router",
   "supertilt_dropshipping_relance",
   "supertilt_dropshipping",
   "supertilt",
+  "lms_communaute",
 ] as const;
 
 export const CATEGORIES: Record<string, CategoryConfig> = {
@@ -62,6 +64,8 @@ export const CATEGORIES: Record<string, CategoryConfig> = {
   support_tickets: { label: "Tickets support", emoji: "\ud83c\udfab", color: "text-rose-600" },
   supertilt_a_valider: { label: "SuperTilt — commandes à valider", emoji: "\ud83c\udfb2", color: "text-yellow-700" },
   supertilt_recues: { label: "SuperTilt — commandes reçues", emoji: "\ud83d\udce6", color: "text-blue-600" },
+  supertilt_formation_a_router: { label: "Formations à router", emoji: "🎓", color: "text-orange-600" },
+  lms_communaute: { label: "Communautés LMS — publications à traiter", emoji: "💬", color: "text-indigo-600" },
   supertilt_dropshipping: { label: "SuperTilt — Dropshipping en attente", emoji: "\ud83d\ude9a", color: "text-orange-600" },
   supertilt_dropshipping_relance: { label: "SuperTilt — Dropshipping relancé", emoji: "\ud83d\udd34", color: "text-red-700" },
   supertilt: { label: "SuperTilt", emoji: "\u26a1", color: "text-yellow-600" },

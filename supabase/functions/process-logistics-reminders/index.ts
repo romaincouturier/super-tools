@@ -422,9 +422,11 @@ serve(async (req) => {
       );
 
       // 15b. SuperTilt — commandes reçues à traiter
+      // Les formations routées passent en "received" mais sont déjà affectées
+      // (participant inscrit) : elles ne doivent pas apparaître ici.
       add("📦", "SuperTilt — commandes reçues", COLORS.blue,
         data.supertiltAlerts
-          .filter(v => v.kanbanStatus === "received")
+          .filter(v => v.kanbanStatus === "received" && v.gameType !== "formation")
           .map(v => {
             const ageDays = Math.max(0, Math.floor((Date.now() - new Date(v.createdAt).getTime()) / 86400000));
             const ageLabel = ageDays === 0 ? "aujourd'hui" : ageDays === 1 ? "depuis hier" : `depuis ${ageDays} j`;
@@ -433,6 +435,28 @@ serve(async (req) => {
             const customer = v.customerEmail ? ` — ${v.customerEmail}` : "";
             return `<li>${linkHtml(`${appUrl}/commandes-jeux`, `${productLabel} — ${orderRef}`)} — à traiter (${ageLabel})${customer}</li>`;
           })
+      );
+
+      // 15c. SuperTilt — commandes de formation non routées (à affecter manuellement)
+      add("🎓", "Formations à router", COLORS.orange,
+        data.supertiltAlerts
+          .filter(v => v.gameType === "formation" && v.kanbanStatus === "to_validate")
+          .map(v => {
+            const ageDays = Math.max(0, Math.floor((Date.now() - new Date(v.createdAt).getTime()) / 86400000));
+            const ageLabel = ageDays === 0 ? "aujourd'hui" : ageDays === 1 ? "depuis hier" : `depuis ${ageDays} j`;
+            const orderRef = `Commande ${v.orderNumber ?? v.wcOrderId}`;
+            const productLabel = v.productName ?? `Produit #${v.wcOrderId}`;
+            const reason = (v.blockReason ?? "").replace(/^\[Formation\]\s*/, "").trim();
+            const customer = v.customerEmail ? ` — ${v.customerEmail}` : "";
+            return `<li>${linkHtml(`${appUrl}/formations`, `${productLabel} — ${orderRef}`)} — ${reason || "à affecter"} (${ageLabel})${customer}</li>`;
+          })
+      );
+
+      // 15d. Communautés LMS — publications à traiter (travaux sans retour staff)
+      add("💬", "Communautés LMS — publications à traiter", COLORS.teal,
+        data.lmsCommunityPending.map(c =>
+          `<li>${linkHtml(`${appUrl}/lms/communautes/${c.courseId}`, c.courseTitle)} — ${c.pendingCount} publication${c.pendingCount > 1 ? "s" : ""} sans retour</li>`
+        )
       );
 
 
