@@ -1274,13 +1274,15 @@ export interface SupertiltAlertItem {
   customerEmail: string | null;
   createdAt: string;
   kanbanStatus: "to_validate" | "received" | "dropshipping";
+  gameType: string | null;
+  blockReason: string | null;
   relanceSent: boolean;
 }
 
 export async function fetchSupertiltAlerts(supabase: SupabaseClient): Promise<SupertiltAlertItem[]> {
   const { data, error } = await supabase
     .from("order_items")
-    .select("id, product_name, wc_order_id, created_at, kanban_status, woocommerce_orders(order_number, customer_email)")
+    .select("id, product_name, wc_order_id, created_at, kanban_status, game_type, block_reason, woocommerce_orders(order_number, customer_email)")
     .in("kanban_status", ["to_validate", "received", "dropshipping"])
     .order("created_at", { ascending: true })
     .limit(500);
@@ -1315,7 +1317,65 @@ export async function fetchSupertiltAlerts(supabase: SupabaseClient): Promise<Su
     customerEmail: r.woocommerce_orders?.customer_email ?? null,
     createdAt: r.created_at,
     kanbanStatus: r.kanban_status,
+    gameType: r.game_type ?? null,
+    blockReason: r.block_reason ?? null,
     relanceSent: relanceSet.has(r.id),
+  }));
+}
+
+/**
+ * Fetch LMS community publications awaiting staff handling.
+ * A "publication à traiter" = a practice post tied to a work deposit that is
+ * neither marked staff-treated nor has any staff reply. Grouped per course.
+ */
+export interface LmsCommunityPendingItem {
+  courseId: string;
+  courseTitle: string;
+  pendingCount: number;
+}
+
+export async function fetchLmsCommunityPending(supabase: SupabaseClient): Promise<LmsCommunityPendingItem[]> {
+  const { data: posts, error } = await supabase
+    .from("practice_posts")
+    .select("id, course_id, is_staff_treated")
+    .not("deposit_id", "is", null);
+  if (error) {
+    console.error("fetchLmsCommunityPending error:", error.message);
+    return [];
+  }
+  const allPosts = (posts ?? []) as any[];
+  if (allPosts.length === 0) return [];
+
+  const postIds = allPosts.map((p) => p.id);
+  const staffReplied = new Set<string>();
+  const { data: staffComments } = await supabase
+    .from("practice_post_comments")
+    .select("post_id")
+    .in("post_id", postIds)
+    .eq("is_staff_reply", true);
+  for (const c of (staffComments ?? []) as any[]) {
+    if (c.post_id) staffReplied.add(c.post_id);
+  }
+
+  const pendingByCourse = new Map<string, number>();
+  for (const p of allPosts) {
+    if (!p.is_staff_treated && !staffReplied.has(p.id)) {
+      pendingByCourse.set(p.course_id, (pendingByCourse.get(p.course_id) ?? 0) + 1);
+    }
+  }
+  if (pendingByCourse.size === 0) return [];
+
+  const courseIds = [...pendingByCourse.keys()];
+  const { data: courses } = await supabase
+    .from("lms_courses")
+    .select("id, title")
+    .in("id", courseIds);
+  const titleById = new Map<string, string>((courses ?? []).map((c: any) => [c.id, c.title]));
+
+  return courseIds.map((cid) => ({
+    courseId: cid,
+    courseTitle: titleById.get(cid) ?? "Communauté",
+    pendingCount: pendingByCourse.get(cid) ?? 0,
   }));
 }
 
@@ -1345,6 +1405,7 @@ export interface DailyData {
   logisticsReminders: LogisticsReminderItem[];
   supertiltAlerts: SupertiltAlertItem[];
   supertiltActions: SupertiltActionItem[];
+  lmsCommunityPending: LmsCommunityPendingItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1375,6 +1436,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     logisticsReminders,
     supertiltAlerts,
     supertiltActions,
+    lmsCommunityPending,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1399,6 +1461,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchLogisticsReminders(supabase, today),
     fetchSupertiltAlerts(supabase),
     fetchSupertiltActions(supabase, today),
+    fetchLmsCommunityPending(supabase),
   ]);
 
   return {
@@ -1407,7 +1470,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
-    logisticsReminders, supertiltAlerts, supertiltActions,
+    logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
   };
 }
 

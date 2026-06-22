@@ -390,6 +390,23 @@ serve(async (req) => {
       const orderRef = `Commande ${v.orderNumber ?? v.wcOrderId}`;
       const productLabel = v.productName ?? `Produit #${v.wcOrderId}`;
 
+      // Les formations ne passent pas par le kanban jeux : une formation routée
+      // (received) est déjà affectée → aucune action ; une formation bloquée
+      // (to_validate) doit être affectée manuellement côté module formations.
+      if (v.gameType === "formation") {
+        if (v.kanbanStatus !== "to_validate") continue;
+        const reason = (v.blockReason ?? "").replace(/^\[Formation\]\s*/, "").trim();
+        actions.push({
+          category: "supertilt_formation_a_router",
+          title: `🎓 ${productLabel} — ${orderRef}`,
+          description: `Formation à affecter — ${reason || "routage manuel"} (${ageLabel})${v.customerEmail ? ` — ${v.customerEmail}` : ""}`,
+          link: `${appUrl}/formations`,
+          entityType: "supertilt_order_item", entityId: v.id,
+          scope: "global",
+        });
+        continue;
+      }
+
       let category: string;
       let title: string;
       let description: string;
@@ -416,6 +433,18 @@ serve(async (req) => {
         description,
         link: `${appUrl}/commandes-jeux`,
         entityType: "supertilt_order_item", entityId: v.id,
+        scope: "global",
+      });
+    }
+
+    // 17bis. Communautés LMS — publications à traiter (travaux sans retour staff)
+    for (const c of data.lmsCommunityPending) {
+      actions.push({
+        category: "lms_communaute",
+        title: `💬 ${c.courseTitle}`,
+        description: `${c.pendingCount} publication${c.pendingCount > 1 ? "s" : ""} sans retour staff`,
+        link: `${appUrl}/lms/communautes/${c.courseId}`,
+        entityType: "lms_community", entityId: c.courseId,
         scope: "global",
       });
     }

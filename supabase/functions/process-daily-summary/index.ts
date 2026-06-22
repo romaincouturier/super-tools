@@ -38,6 +38,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   formations_facture: "Formations (facture)",
   supertilt_a_valider: "SuperTilt — commandes à valider",
   supertilt_recues: "SuperTilt — commandes reçues",
+  supertilt_formation_a_router: "Formations à router",
+  lms_communaute: "Communautés LMS — publications à traiter",
   supertilt_dropshipping: "SuperTilt — Dropshipping en attente",
   supertilt_dropshipping_relance: "🔴 SuperTilt — Dropshipping relancé sans réponse",
 };
