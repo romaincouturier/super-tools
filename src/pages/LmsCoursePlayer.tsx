@@ -23,7 +23,7 @@ import LessonBlocksPlayer from "@/components/lms/blocks/LessonBlocksPlayer";
 import CourseHomeSidebar, { CommunityCtaButton, type ModuleStatus } from "@/components/lms/CourseHomeSidebar";
 import LmsCourseLayout from "@/components/lms/LmsCourseLayout";
 import { useLessonBlocks } from "@/hooks/useLmsBlocks";
-import { useMyDeposit } from "@/hooks/useLmsWorkDeposit";
+import { useMyDeposits } from "@/hooks/useLmsWorkDeposit";
 import type { ExerciseBlockContent, WorkDepositBlockContent } from "@/types/lms-blocks";
 import {
   BookOpen, CheckCircle2, ChevronRight, ChevronLeft, ChevronDown,
@@ -77,7 +77,7 @@ export default function LmsCoursePlayer() {
 
 
   const { data: lessonBlocks = [] } = useLessonBlocks(selectedLessonId);
-  const { data: myDeposit, isLoading: myDepositLoading } = useMyDeposit(
+  const { data: myDeposits = [], isLoading: myDepositLoading } = useMyDeposits(
     selectedLessonId || undefined,
     learnerEmail || undefined,
   );
@@ -294,7 +294,7 @@ export default function LmsCoursePlayer() {
 
   const handleMarkComplete = async () => {
     if (!selectedLesson || !courseId || !learnerEmail) return;
-    if (requiresDeposit && !myDepositLoading && !myDeposit) {
+    if (requiresDeposit && !myDepositLoading && myDeposits.length === 0) {
       toast({
         title: "Déposez d'abord votre travail",
         description: "Cette leçon ne peut être marquée comme terminée qu'après le dépôt de votre travail.",

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  fetchMyDeposit,
+  fetchMyDeposits,
   fetchVisibleDeposits,
   createDeposit,
   updateDeposit,
@@ -30,17 +30,17 @@ import type {
 } from "@/types/lms-work-deposit";
 
 const KEYS = {
-  myDeposit: (lessonId: string, learnerEmail: string) => ["my-deposit", lessonId, learnerEmail] as const,
+  myDeposits: (lessonId: string, learnerEmail: string) => ["my-deposits", lessonId, learnerEmail] as const,
   visibleDeposits: (lessonId: string, learnerEmail: string) => ["visible-deposits", lessonId, learnerEmail] as const,
   comments: (depositId: string) => ["deposit-comments", depositId] as const,
   feedback: (depositId: string) => ["deposit-feedback", depositId] as const,
 };
 
-export function useMyDeposit(lessonId: string | undefined, learnerEmail: string | undefined) {
+export function useMyDeposits(lessonId: string | undefined, learnerEmail: string | undefined) {
   return useQuery({
-    queryKey: KEYS.myDeposit(lessonId || "", learnerEmail || ""),
+    queryKey: KEYS.myDeposits(lessonId || "", learnerEmail || ""),
     enabled: !!lessonId && !!learnerEmail,
-    queryFn: () => fetchMyDeposit(lessonId!, learnerEmail!),
+    queryFn: () => fetchMyDeposits(lessonId!, learnerEmail!),
   });
 }
 
@@ -54,7 +54,8 @@ export function useVisibleDeposits(lessonId: string | undefined, learnerEmail: s
 
 /** Invalidate every feed that may surface a deposit: the lesson peer view,
  *  the cross-course community feed, and the learner's "Mes travaux". */
-function invalidateDepositFeeds(qc: ReturnType<typeof useQueryClient>, lessonId: string) {
+function invalidateDepositFeeds(qc: ReturnType<typeof useQueryClient>, lessonId: string, learnerEmail: string) {
+  qc.invalidateQueries({ queryKey: KEYS.myDeposits(lessonId, learnerEmail) });
   qc.invalidateQueries({ queryKey: ["visible-deposits", lessonId] });
   qc.invalidateQueries({ queryKey: ["practice_deposits"] });
   qc.invalidateQueries({ queryKey: ["learner_work_deposits"] });
@@ -64,10 +65,7 @@ export function useCreateDeposit(lessonId: string, learnerEmail: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateWorkDepositInput) => createDeposit(input),
-    onSuccess: (data: WorkDeposit) => {
-      qc.setQueryData(KEYS.myDeposit(lessonId, learnerEmail), data);
-      invalidateDepositFeeds(qc, lessonId);
-    },
+    onSuccess: () => invalidateDepositFeeds(qc, lessonId, learnerEmail),
   });
 }
 
@@ -76,10 +74,7 @@ export function useUpdateDeposit(lessonId: string, learnerEmail: string) {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: UpdateWorkDepositInput }) =>
       updateDeposit(id, updates, learnerEmail),
-    onSuccess: (data: WorkDeposit) => {
-      qc.setQueryData(KEYS.myDeposit(lessonId, learnerEmail), data);
-      invalidateDepositFeeds(qc, lessonId);
-    },
+    onSuccess: () => invalidateDepositFeeds(qc, lessonId, learnerEmail),
   });
 }
 
@@ -87,10 +82,7 @@ export function useDeleteDeposit(lessonId: string, learnerEmail: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteDeposit(id, learnerEmail),
-    onSuccess: () => {
-      qc.removeQueries({ queryKey: KEYS.myDeposit(lessonId, learnerEmail) });
-      invalidateDepositFeeds(qc, lessonId);
-    },
+    onSuccess: () => invalidateDepositFeeds(qc, lessonId, learnerEmail),
   });
 }
 

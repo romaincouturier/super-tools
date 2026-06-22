@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { formatFileSize } from "@/lib/file-utils";
 import {
-  useMyDeposit,
+  useMyDeposits,
   useVisibleDeposits,
   useCreateDeposit,
   useUpdateDeposit,
@@ -63,7 +63,7 @@ export default function WorkDepositSection({
 }: Props) {
   const config = withDepositDefaults(rawConfig);
   const { toast } = useToast();
-  const { data: deposit, isLoading } = useMyDeposit(lessonId, learnerEmail);
+  const { data: myDeposits = [], isLoading } = useMyDeposits(lessonId, learnerEmail);
   const createDeposit = useCreateDeposit(lessonId, learnerEmail);
   const updateDeposit = useUpdateDeposit(lessonId, learnerEmail);
   const deleteDeposit = useDeleteDeposit(lessonId, learnerEmail);
@@ -76,10 +76,58 @@ export default function WorkDepositSection({
     );
   }
 
-  if (!deposit) {
-    return (
+  return (
+    <div className="space-y-4">
+      {myDeposits.map((deposit) => (
+        <div key={deposit.id} className="space-y-4">
+          <DepositSummary
+            deposit={deposit}
+            config={config}
+            saving={updateDeposit.isPending}
+            deleting={deleteDeposit.isPending}
+            onUpdate={async (updates) => {
+              await updateDeposit.mutateAsync({ id: deposit.id, updates });
+            }}
+            onReplaceFile={async (file) => {
+              const upload = await uploadDepositFile(file, lessonId, learnerEmail);
+              await updateDeposit.mutateAsync({
+                id: deposit.id,
+                updates: {
+                  file_url: upload.url,
+                  file_name: upload.name,
+                  file_size: upload.size,
+                  file_mime: upload.mime,
+                },
+              });
+              toast({ title: "Fichier remplacé." });
+            }}
+            onDelete={async () => {
+              if (!window.confirm("Supprimer définitivement ce dépôt ? Cette action est irréversible.")) return;
+              try {
+                await deleteDeposit.mutateAsync(deposit.id);
+                toast({ title: "Dépôt supprimé." });
+              } catch (err) {
+                toastError(toast, err instanceof Error ? err : "Erreur de suppression");
+              }
+            }}
+            onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
+          />
+
+          {config.feedback_enabled && (
+            <DepositFeedbackList depositId={deposit.id} learnerEmail={learnerEmail} />
+          )}
+
+          {config.comments_enabled && deposit.visibility === "shared" && (
+            <div className="rounded-lg border bg-card p-4 sm:p-5">
+              <DepositCommentList depositId={deposit.id} learnerEmail={learnerEmail} canPost={true} />
+            </div>
+          )}
+        </div>
+      ))}
+
       <DepositForm
         config={config}
+        hasExisting={myDeposits.length > 0}
         submitting={createDeposit.isPending}
         onSubmit={async ({ file, comment }) => {
           const upload = await uploadDepositFile(file, lessonId, learnerEmail);
@@ -99,58 +147,10 @@ export default function WorkDepositSection({
         }}
         onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur d'envoi")}
       />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <DepositSummary
-        deposit={deposit}
-        config={config}
-        saving={updateDeposit.isPending}
-        deleting={deleteDeposit.isPending}
-        onUpdate={async (updates) => {
-          await updateDeposit.mutateAsync({ id: deposit.id, updates });
-        }}
-        onReplaceFile={async (file) => {
-          const upload = await uploadDepositFile(file, lessonId, learnerEmail);
-          await updateDeposit.mutateAsync({
-            id: deposit.id,
-            updates: {
-              file_url: upload.url,
-              file_name: upload.name,
-              file_size: upload.size,
-              file_mime: upload.mime,
-            },
-          });
-          toast({ title: "Fichier remplacé." });
-        }}
-        onDelete={async () => {
-          if (!window.confirm("Supprimer définitivement votre dépôt ? Cette action est irréversible.")) return;
-          try {
-            await deleteDeposit.mutateAsync(deposit.id);
-            toast({ title: "Dépôt supprimé." });
-          } catch (err) {
-            toastError(toast, err instanceof Error ? err : "Erreur de suppression");
-          }
-        }}
-        onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur")}
-      />
-
-      {config.feedback_enabled && (
-        <DepositFeedbackList depositId={deposit.id} learnerEmail={learnerEmail} />
-      )}
-
-      {config.comments_enabled && deposit.visibility === "shared" && (
-        <div className="rounded-lg border bg-card p-4 sm:p-5">
-          <DepositCommentList depositId={deposit.id} learnerEmail={learnerEmail} canPost={true} />
-        </div>
-      )}
 
       <PeerDepositsSection
         lessonId={lessonId}
         learnerEmail={learnerEmail}
-        ownDepositId={deposit.id}
         commentsEnabled={config.comments_enabled}
       />
     </div>
@@ -162,16 +162,14 @@ export default function WorkDepositSection({
 function PeerDepositsSection({
   lessonId,
   learnerEmail,
-  ownDepositId,
   commentsEnabled,
 }: {
   lessonId: string;
   learnerEmail: string;
-  ownDepositId: string;
   commentsEnabled: boolean;
 }) {
   const { data: deposits = [] } = useVisibleDeposits(lessonId, learnerEmail);
-  const peers = deposits.filter((d) => d.id !== ownDepositId);
+  const peers = deposits.filter((d) => d.learner_email !== learnerEmail);
 
   if (peers.length === 0) return null;
 
@@ -207,11 +205,13 @@ function PeerDepositsSection({
 
 function DepositForm({
   config,
+  hasExisting,
   submitting,
   onSubmit,
   onError,
 }: {
   config: Required<WorkDepositConfig>;
+  hasExisting: boolean;
   submitting: boolean;
   onSubmit: (input: { file: File; comment: string }) => Promise<void>;
   onError: (err: unknown) => void;
@@ -251,10 +251,11 @@ function DepositForm({
   return (
     <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-4">
       <div>
-        <h3 className="font-semibold">{config.title}</h3>
+        <h3 className="font-semibold">{hasExisting ? "Ajouter un autre dépôt" : config.title}</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Ajoutez ici votre exercice pour garder une trace de votre progression et le partager avec
-          les autres apprenants de cette formation.
+          {hasExisting
+            ? "Vous pouvez déposer plusieurs travaux sur cette leçon. Chaque dépôt est conservé."
+            : "Ajoutez ici votre exercice pour garder une trace de votre progression et le partager avec les autres apprenants de cette formation."}
         </p>
       </div>
 

@@ -51,16 +51,16 @@ export async function updateLessonDepositConfig(
 
 // ── Deposits ────────────────────────────────────────────────────────
 
-/** Returns the learner's own deposit on a given lesson, if any. */
-export async function fetchMyDeposit(lessonId: string, learnerEmail: string): Promise<WorkDeposit | null> {
+/** Returns all of the learner's own deposits on a given lesson, newest first. */
+export async function fetchMyDeposits(lessonId: string, learnerEmail: string): Promise<WorkDeposit[]> {
   const c = clientFor(learnerEmail);
   const { data, error } = await deposits(c)
     .select("*")
     .eq("lesson_id", lessonId)
     .eq("learner_email", learnerEmail)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? null) as WorkDeposit | null;
+  return (data || []) as WorkDeposit[];
 }
 
 /**
