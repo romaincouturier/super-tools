@@ -504,7 +504,7 @@ export async function fetchCrmAlerts(supabase: SupabaseClient, today: string): P
 export async function fetchTrainingConventions(supabase: SupabaseClient, today: string): Promise<TrainingConventionItem[]> {
   const { data: allTrainings } = await supabase
     .from("trainings")
-    .select("id, training_name, start_date, format_formation, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled")
+    .select("id, training_name, start_date, format_formation, session_type, convention_file_url, signed_convention_urls, sponsor_email, assigned_to, is_cancelled")
     .gt("start_date", today)
     .or("is_cancelled.is.null,is_cancelled.eq.false");
 
@@ -540,8 +540,9 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
   const results: TrainingConventionItem[] = [];
 
   for (const t of trainings) {
-    const isIntra = t.format_formation === "intra" || t.format_formation === "classe_virtuelle";
-    const isInterOrElearning = t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
+    // session_type is the source of truth for inter vs intra (classe_virtuelle can be either)
+    const isInter = t.session_type === "inter" || t.format_formation === "inter-entreprises" || t.format_formation === "e_learning";
+    const isIntra = !isInter && (t.format_formation === "intra" || t.format_formation === "classe_virtuelle");
 
     // Convention non générée
     if (isIntra && !t.convention_file_url) {
@@ -552,7 +553,7 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
         assignedTo: t.assigned_to,
         issue: "not_generated",
       });
-    } else if (isInterOrElearning) {
+    } else if (isInter) {
       const tParticipants = participantsByTraining.get(t.id) || [];
       const missing = tParticipants.filter((p: any) => !p.convention_file_url && p.payment_mode !== "online");
       if (missing.length > 0) {
@@ -583,7 +584,7 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
           });
         }
       }
-    } else if (isInterOrElearning) {
+    } else if (isInter) {
       const tParticipants = participantsByTraining.get(t.id) || [];
       const unsignedNames: string[] = [];
       for (const p of tParticipants) {
