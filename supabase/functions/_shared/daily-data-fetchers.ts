@@ -633,6 +633,8 @@ export async function fetchReviewArticles(supabase: SupabaseClient): Promise<Rev
   const colMap = new Map<string, { name: string; users: string[] }>();
   for (const c of columns as any[]) {
     if (c.assigned_user_ids?.length) {
+      const nameLower = (c.name || "").toLowerCase();
+      if (nameLower.includes("bloqu") || nameLower.includes("attente")) continue;
       colMap.set(c.id, { name: c.name, users: c.assigned_user_ids });
     }
   }
