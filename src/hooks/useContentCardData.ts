@@ -140,6 +140,46 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
     }
   }, []);
 
+  const MAX_PDF_BYTES = 20 * 1024 * 1024;
+
+  const handlePdfUpload = useCallback(async (
+    file: File,
+  ): Promise<{ url: string; name: string } | null> => {
+    const resolvedContentType = resolveContentType(file);
+    if (resolvedContentType !== "application/pdf") {
+      toast.error("Veuillez sélectionner un fichier PDF");
+      return null;
+    }
+    if (file.size > MAX_PDF_BYTES) {
+      toast.error("PDF trop volumineux (max 20 Mo)");
+      return null;
+    }
+
+    setUploading(true);
+    try {
+      const safeName = sanitizeFileName(file.name);
+      const fileName = `pdf/${crypto.randomUUID()}_${safeName}`;
+
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+      formData.append("path", fileName);
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke("upload-content-image", { body: formData });
+      if (uploadError) throw uploadError;
+      const publicUrl = (uploadData as { publicUrl?: string } | null)?.publicUrl;
+      if (!publicUrl) throw new Error("URL introuvable après l'upload");
+
+      toast.success("PDF téléchargé");
+      return { url: publicUrl, name: file.name };
+    } catch (error) {
+      console.error("Error uploading PDF:", error);
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      toast.error(`Erreur lors du téléchargement: ${message}`);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }, [MAX_PDF_BYTES]);
+
   const handleNewsletterChange = useCallback(async (newsletterId: string, cardId: string) => {
     setAttachingNewsletter(true);
     try {
@@ -193,6 +233,7 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
     cardId: string,
     values: {
       title: string; description: string; imageUrl: string;
+      pdfUrl: string; pdfName: string;
       tags: string[]; cardType: ContentCardType; emoji: string | null;
       deadline: string;
     },
@@ -205,6 +246,8 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
         title: values.title.trim(),
         description: values.description || null,
         image_url: values.imageUrl || null,
+        pdf_url: values.pdfUrl || null,
+        pdf_name: values.pdfName || null,
         tags: values.tags,
         card_type: values.cardType || "article",
         emoji: values.emoji ?? null,
@@ -225,6 +268,7 @@ export function useContentCardData({ open, card, onNewsletterChange }: UseConten
     uploading,
     handleAiAction,
     handleImageUpload,
+    handlePdfUpload,
     handleNewsletterChange,
     performAutoSave,
   };

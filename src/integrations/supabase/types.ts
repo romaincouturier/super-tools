@@ -1271,6 +1271,8 @@ export type Database = {
           id: string
           image_url: string | null
           org_id: string | null
+          pdf_name: string | null
+          pdf_url: string | null
           tags: Json | null
           title: string
           updated_at: string
@@ -1287,6 +1289,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           org_id?: string | null
+          pdf_name?: string | null
+          pdf_url?: string | null
           tags?: Json | null
           title: string
           updated_at?: string
@@ -1303,6 +1307,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           org_id?: string | null
+          pdf_name?: string | null
+          pdf_url?: string | null
           tags?: Json | null
           title?: string
           updated_at?: string
