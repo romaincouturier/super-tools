@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
-  FileText, Link, Image, Mic, ExternalLink, Trash2,
-  Share2, MoreVertical, Copy, Clock, Plus, X, Pencil,
+  FileText, Link, Image, Mic, File, ExternalLink, Trash2,
+  Share2, MoreVertical, Copy, Clock, Plus, X, Pencil, MessageSquare,
 } from "lucide-react";
 import { stripWatchHtml } from "./WatchRichEditor";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ const contentTypeConfig: Record<string, { icon: typeof FileText; label: string; 
   url: { icon: Link, label: "URL", color: "bg-green-100 text-green-700" },
   image: { icon: Image, label: "Image", color: "bg-purple-100 text-purple-700" },
   audio: { icon: Mic, label: "Audio", color: "bg-orange-100 text-orange-700" },
+  document: { icon: File, label: "PDF", color: "bg-red-100 text-red-700" },
 };
 
 const WatchItemCard = ({ item }: WatchItemCardProps) => {
@@ -272,6 +273,27 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
               {expanded ? "Voir moins" : "Voir plus"}
             </span>
           )}
+        </div>
+      )}
+
+      {/* PDF / document */}
+      {item.content_type === "document" && item.file_url && (
+        <a
+          href={item.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-primary hover:underline flex items-center gap-1 truncate"
+        >
+          <File className="h-3 w-3 flex-shrink-0" />
+          {item.file_name || "Ouvrir le PDF"}
+        </a>
+      )}
+
+      {/* Comment — note libre de l'utilisateur */}
+      {item.comment && (
+        <div className="flex items-start gap-1.5 rounded-md bg-muted/40 p-2 text-sm text-foreground">
+          <MessageSquare className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-muted-foreground" />
+          <p className="whitespace-pre-wrap">{item.comment}</p>
         </div>
       )}
 

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Link, Image, Mic, FileText, X, AlertTriangle, Users } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
@@ -25,6 +26,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const [tab, setTab] = useState<string>("text");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [comment, setComment] = useState("");
   const [url, setUrl] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -40,6 +42,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const reset = () => {
     setTitle("");
     setBody("");
+    setComment("");
     setUrl("");
     setTags([]);
     setTagInput("");
@@ -62,7 +65,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   };
 
   const handleSubmit = async () => {
-    const contentType = tab as "text" | "url" | "image" | "audio";
+    const contentType = tab as "text" | "url" | "image" | "audio" | "document";
     const finalBody = body;
     // Plain-text representation used for duplicate detection + emptiness checks.
     // `body` may now contain HTML (rich paste), so we strip tags before comparing.
@@ -86,6 +89,11 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       return;
     }
 
+    if (contentType === "document" && !file) {
+      toast.error("Veuillez sélectionner un fichier PDF");
+      return;
+    }
+
     if (contentType === "text" && !plainBody.trim()) {
       toast.error("Veuillez saisir du contenu");
       return;
@@ -103,7 +111,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       // Upload file if needed
-      if (file && (contentType === "image" || contentType === "audio")) {
+      if (file && (contentType === "image" || contentType === "audio" || contentType === "document")) {
         fileUrl = await uploadWatchFile(file);
         fileName = file.name;
         fileSize = file.size;
@@ -111,8 +119,9 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       const item = await addMutation.mutateAsync({
-        title: title || "(Sans titre)",
+        title: title || (contentType === "document" && file ? file.name : "(Sans titre)"),
         body: finalBody,
+        comment: comment.trim(),
         content_type: contentType,
         source_url: sourceUrl,
         file_url: fileUrl,
@@ -152,13 +161,13 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setDuplicateWarning(null);
     setUploading(true);
     try {
-      const contentType = tab as "text" | "url" | "image" | "audio";
+      const contentType = tab as "text" | "url" | "image" | "audio" | "document";
       let fileUrl: string | null = null;
       let fileName: string | null = null;
       let fileSize: number | null = null;
       let mimeType: string | null = null;
 
-      if (file && (contentType === "image" || contentType === "audio")) {
+      if (file && (contentType === "image" || contentType === "audio" || contentType === "document")) {
         fileUrl = await uploadWatchFile(file);
         fileName = file.name;
         fileSize = file.size;
@@ -166,8 +175,9 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       const item = await addMutation.mutateAsync({
-        title: title || "(Sans titre)",
+        title: title || (contentType === "document" && file ? file.name : "(Sans titre)"),
         body,
+        comment: comment.trim(),
         content_type: contentType,
         source_url: contentType === "url" ? url : null,
         file_url: fileUrl,
@@ -230,6 +240,10 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
             <TabsTrigger value="audio" className="gap-1.5 flex-1">
               <Mic className="h-3.5 w-3.5" />
               Audio
+            </TabsTrigger>
+            <TabsTrigger value="document" className="gap-1.5 flex-1">
+              <File className="h-3.5 w-3.5" />
+              PDF
             </TabsTrigger>
           </TabsList>
 
@@ -335,6 +349,51 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
                 }}
               />
             </TabsContent>
+
+            <TabsContent value="document" className="mt-0">
+              <Label>Fichier PDF</Label>
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {file ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <File className="h-5 w-5 text-primary" />
+                    <span className="text-sm">{file.name}</span>
+                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.stopPropagation(); setFile(null); }}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <File className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Cliquez pour sélectionner un PDF</p>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setFile(f);
+                }}
+              />
+            </TabsContent>
+
+            {/* Comment — contexte libre saisi par l'utilisateur */}
+            <div>
+              <Label htmlFor="watch-comment">Commentaire (optionnel)</Label>
+              <Textarea
+                id="watch-comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Pourquoi ce contenu est intéressant…"
+                rows={2}
+              />
+            </div>
 
             {/* Tags */}
             <div>

@@ -58,6 +58,7 @@ import {
 import { LearnerGreetingDropdown } from "@/components/learner/portal/LearnerGreetingDropdown";
 import { LearnerEditProfileModal } from "@/components/learner/portal/LearnerEditProfileModal";
 import { LearnerSidebar } from "@/components/learner/portal/LearnerSidebar";
+import LearnerNotificationBell from "@/components/learner/portal/LearnerNotificationBell";
 import {
   progressMessage, ProgressCircle,
   FormationItem,
@@ -184,11 +185,13 @@ function DashboardView({
   onRequestCoach,
   requestingCoach,
   onNav,
+  onOpenNotifications,
 }: {
   data: LearnerData;
   onRequestCoach: (t: Training) => void;
   requestingCoach: string | null;
   onNav: (s: NavSection) => void;
+  onOpenNotifications?: () => void;
 }) {
   const firstName = data.trainings[0]?.first_name || "";
 
@@ -497,7 +500,7 @@ function DashboardView({
           <ul className="space-y-0.5">
             {[
               { label: "Accéder à l'aide", icon: HelpCircle, onClick: () => onNav("aide") },
-              { label: "Voir mes notifications", icon: Bell, onClick: () => {} },
+              { label: "Voir mes notifications", icon: Bell, onClick: () => onOpenNotifications?.() },
             ].map(({ label, icon: Icon, onClick }) => (
               <li key={label}>
                 <button
@@ -1659,6 +1662,7 @@ export default function LearnerPortal() {
   const [requestingCoach, setRequestingCoach] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<NavSection>(sectionFromUrl);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   // Sync URL → state when navigating via browser back/forward
@@ -1956,14 +1960,7 @@ export default function LearnerPortal() {
             </p>
           </div>
 
-          <button
-            type="button"
-            title="Vous n'avez pas eu de retour sur vos travaux"
-            aria-label="Notifications"
-            className="hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors hover:bg-black/5 shrink-0"
-          >
-            <Bell size={18} style={{ color: "var(--st-ink)" }} />
-          </button>
+          <LearnerNotificationBell email={email} open={notifOpen} onOpenChange={setNotifOpen} />
 
           <LearnerGreetingDropdown
             firstName={firstName}
@@ -1984,6 +1981,7 @@ export default function LearnerPortal() {
                 onRequestCoach={handleRequestCoach}
                 requestingCoach={requestingCoach}
                 onNav={handleNav}
+                onOpenNotifications={() => setNotifOpen(true)}
               />
             )}
             {activeSection === "formations" && (

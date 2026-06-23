@@ -148,6 +148,18 @@ const MissionProfitabilityDashboard = () => {
       return sum + (m?.initial_amount || 0);
     }, 0);
 
+    // Reste à facturer total : sur toutes les missions non annulées,
+    // budget initial - montants déjà facturés (activités is_billed).
+    const billedByMission = new Map<string, number>();
+    (allActivities || []).forEach((a) => {
+      if (a.is_billed === true) {
+        billedByMission.set(a.mission_id, (billedByMission.get(a.mission_id) || 0) + (Number(a.billable_amount) || 0));
+      }
+    });
+    const totalRemainingToBill = (missions || [])
+      .filter((m) => m.status !== "cancelled")
+      .reduce((sum, m) => sum + ((m.initial_amount || 0) - (billedByMission.get(m.id) || 0)), 0);
+
     // Average realised TJM
     const actualTJM = totalBilledDays > 0 ? Math.round(totalBilledCA / totalBilledDays) : 0;
 
@@ -172,6 +184,7 @@ const MissionProfitabilityDashboard = () => {
       recommendedTJM,
       breakEvenMonthly,
       totalBilledCA,
+      totalRemainingToBill,
       totalInitialBudget,
       totalBilledDays,
       totalWorkedDays,
@@ -363,6 +376,31 @@ const MissionProfitabilityDashboard = () => {
                   </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-muted-foreground/30" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Reste à facturer */}
+          <Card className="border-l-4 border-l-amber-500">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    Reste à facturer
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Montant total non encore facturé sur l'ensemble des missions non annulées (budget initial - activités déjà facturées).</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </p>
+                  <p className="text-xl font-bold text-amber-600">
+                    {indicators.totalRemainingToBill.toLocaleString("fr-FR")} €
+                  </p>
+                </div>
+                <Euro className="h-8 w-8 text-amber-500/30" />
               </div>
             </CardContent>
           </Card>

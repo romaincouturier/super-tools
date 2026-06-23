@@ -6,6 +6,7 @@ import { MessageSquare, Pencil, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useConfirm } from "@/hooks/useConfirm";
+import { maskEmail } from "@/lib/demoMask";
 import {
   useDepositComments,
   useCreateDepositComment,
@@ -100,7 +101,7 @@ export default function DepositCommentList({ depositId, learnerEmail, canPost }:
           return (
             <li key={c.id} className="rounded-md border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs text-muted-foreground break-all">{c.author_email}</p>
+                <p className="text-xs text-muted-foreground break-all">{isMine ? "Vous" : maskEmail(c.author_email)}</p>
                 <span className="text-[10px] text-muted-foreground shrink-0">
                   {new Date(c.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                 </span>

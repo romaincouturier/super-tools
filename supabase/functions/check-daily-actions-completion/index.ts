@@ -105,6 +105,19 @@ serve(async (req) => {
     // Cards that still have pending comments (card_comments entity type)
     const cardsWithPendingComments = new Set((cardCommentsResult.data || []).map((c: any) => c.card_id));
 
+    // CFP actions: resolve once the CFP has been submitted on the event.
+    const cfpEventIds = pendingActions
+      .filter((a) => a.category === "cfp_soumettre" || a.category === "cfp_surveiller")
+      .map((a) => a.entity_id);
+    const eventsMap = new Map<string, any>();
+    if (cfpEventIds.length > 0) {
+      const { data: cfpEvents } = await supabase
+        .from("events")
+        .select("id, cfp_submitted_at, status")
+        .in("id", cfpEventIds);
+      for (const e of cfpEvents || []) eventsMap.set(e.id, e);
+    }
+
     // Also fetch CRM columns to check if cards moved
     const { data: crmColumns } = await supabase
       .from("crm_columns")
@@ -278,11 +291,17 @@ serve(async (req) => {
           break;
         }
 
-        // Events and CFP: these are informational, don't auto-complete
+        // Events: informational, don't auto-complete.
         case "evenements":
-        case "cfp_soumettre":
-        case "cfp_surveiller":
           break;
+
+        // CFP: resolve once submitted (cfp_submitted_at set) or event gone/cancelled.
+        case "cfp_soumettre":
+        case "cfp_surveiller": {
+          const ev = eventsMap.get(action.entity_id);
+          if (!ev || ev.cfp_submitted_at || ev.status === "cancelled") resolved = true;
+          break;
+        }
       }
 
       if (resolved) {

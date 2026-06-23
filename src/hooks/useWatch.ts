@@ -4,12 +4,13 @@ import { resolveContentType } from "@/lib/file-utils";
 
 // ── Types ───────────────────────────────────────────────────────────
 
-export type WatchContentType = "text" | "url" | "image" | "audio";
+export type WatchContentType = "text" | "url" | "image" | "audio" | "document";
 
 export interface WatchItem {
   id: string;
   title: string;
   body: string;
+  comment: string;
   content_type: WatchContentType;
   source_url: string | null;
   file_url: string | null;
@@ -140,6 +141,7 @@ export const useWatchTags = () => {
 interface AddWatchItemInput {
   title: string;
   body: string;
+  comment?: string;
   content_type: WatchContentType;
   source_url?: string | null;
   file_url?: string | null;

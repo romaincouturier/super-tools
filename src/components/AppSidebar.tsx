@@ -70,7 +70,6 @@ const NAV_CONFIG: NavConfig[] = [
       { key: "ameliorations" },
     ],
   },
-  { type: "item", key: "micro-devis" },
   { type: "item", key: "okr" },
   { type: "item", key: "finances" },
   { type: "item", key: "events" },

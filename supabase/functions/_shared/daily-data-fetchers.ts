@@ -1374,11 +1374,15 @@ export async function fetchLmsCommunityPending(supabase: SupabaseClient): Promis
     .in("id", courseIds);
   const titleById = new Map<string, string>((courses ?? []).map((c: any) => [c.id, c.title]));
 
-  return courseIds.map((cid) => ({
-    courseId: cid,
-    courseTitle: titleById.get(cid) ?? "Communauté",
-    pendingCount: pendingByCourse.get(cid) ?? 0,
-  }));
+  // N'inclure que les cours qui existent encore (sinon lien cassé + entrées en double
+  // pour des cours supprimés/orphelins).
+  return courseIds
+    .filter((cid) => titleById.has(cid))
+    .map((cid) => ({
+      courseId: cid,
+      courseTitle: titleById.get(cid) || "Communauté",
+      pendingCount: pendingByCourse.get(cid) ?? 0,
+    }));
 }
 
 // ─── Convenience: fetch everything at once ───────────────────────────
