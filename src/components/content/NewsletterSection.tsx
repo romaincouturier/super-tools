@@ -11,14 +11,15 @@ import {
   CalendarDays,
   GripVertical,
   X,
-  Loader2,
   PartyPopper,
   ChevronRight,
   ChevronDown,
   MessageCircle,
+  MessageSquare,
   ExternalLink,
   History,
 } from "lucide-react";
+import NewsletterCommentsDrawer from "./NewsletterCommentsDrawer";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,8 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
   const [showHistory, setShowHistory] = useState(false);
   const [expandedNewsletterIds, setExpandedNewsletterIds] = useState<Set<string>>(new Set());
   const [historyCards, setHistoryCards] = useState<Record<string, NewsletterCard[]>>({});
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
 
   // Fetch newsletter tool URL from app_settings
   useEffect(() => {
@@ -102,6 +105,20 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
     };
     fetchToolUrl();
   }, []);
+
+  // Comment count for the active newsletter (badge)
+  useEffect(() => {
+    const id = currentNewsletter?.id;
+    if (!id) return;
+    (async () => {
+      const { count } = await supabase
+        .from("newsletter_comments")
+        .select("id", { count: "exact", head: true })
+        .eq("newsletter_id", id)
+        .eq("is_deleted", false);
+      setCommentCounts((prev) => ({ ...prev, [id]: count ?? 0 }));
+    })();
+  }, [currentNewsletter?.id]);
 
   const fetchNewsletters = useCallback(async () => {
     try {
@@ -410,6 +427,20 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => setCommentsOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Commentaires
+                    {(commentCounts[currentNewsletter.id] ?? 0) > 0 && (
+                      <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs">
+                        {commentCounts[currentNewsletter.id]}
+                      </Badge>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => setShowConfirmSend(true)}
                     className="gap-1.5"
                   >
@@ -557,7 +588,7 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
                               )
                             ) : (
                               <div className="flex justify-center py-2">
-                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                <Spinner className="h-3 w-3 text-muted-foreground" />
                               </div>
                             )}
                           </div>
@@ -634,6 +665,18 @@ const NewsletterSection = ({ onCardClick, refreshKey }: NewsletterSectionProps) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <NewsletterCommentsDrawer
+        newsletterId={currentNewsletter?.id ?? null}
+        newsletterTitle={
+          currentNewsletter
+            ? `${currentNewsletter.title || "Newsletter"} — ${format(new Date(currentNewsletter.scheduled_date), "d MMMM yyyy", { locale: fr })}`
+            : ""
+        }
+        open={commentsOpen}
+        onOpenChange={setCommentsOpen}
+        onCountChange={(id, count) => setCommentCounts((prev) => ({ ...prev, [id]: count }))}
+      />
     </>
   );
 };
