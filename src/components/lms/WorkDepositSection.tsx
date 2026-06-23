@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { formatFileSize } from "@/lib/file-utils";
+import { maskEmail } from "@/lib/demoMask";
+import { useLearnerProfile } from "@/hooks/useLearnerProfile";
 import {
   useMyDeposits,
   useVisibleDeposits,
@@ -43,6 +45,14 @@ import {
 } from "@/types/lms-work-deposit";
 import DepositFilePreview from "@/components/lms/DepositFilePreview";
 
+const MAX_DEPOSIT_FILES = 10;
+const SHOW_PEERS_STORAGE_KEY = "lms_show_peer_deposits";
+
+/** Label shown for a deposit author — never the raw e-mail address. */
+function depositAuthorLabel(d: { author_display_name: string | null; learner_email: string }): string {
+  return d.author_display_name?.trim() || maskEmail(d.learner_email);
+}
+
 interface Props {
   lessonId: string;
   courseId: string;
@@ -63,6 +73,9 @@ export default function WorkDepositSection({
 }: Props) {
   const config = withDepositDefaults(rawConfig);
   const { toast } = useToast();
+  const { data: myProfile } = useLearnerProfile(learnerEmail);
+  const myDisplayName =
+    [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ").trim() || null;
   const { data: myDeposits = [], isLoading } = useMyDeposits(lessonId, learnerEmail);
   const createDeposit = useCreateDeposit(lessonId, learnerEmail);
   const updateDeposit = useUpdateDeposit(lessonId, learnerEmail);
@@ -129,21 +142,28 @@ export default function WorkDepositSection({
         config={config}
         hasExisting={myDeposits.length > 0}
         submitting={createDeposit.isPending}
-        onSubmit={async ({ file, comment }) => {
-          const upload = await uploadDepositFile(file, lessonId, learnerEmail);
-          await createDeposit.mutateAsync({
-            lesson_id: lessonId,
-            course_id: courseId,
-            module_id: moduleId,
-            learner_email: learnerEmail,
-            file_url: upload.url,
-            file_name: upload.name,
-            file_size: upload.size,
-            file_mime: upload.mime,
-            comment: comment.trim() || null,
-            visibility: "shared",
+        onSubmit={async ({ files, comment }) => {
+          for (const file of files) {
+            const upload = await uploadDepositFile(file, lessonId, learnerEmail);
+            await createDeposit.mutateAsync({
+              lesson_id: lessonId,
+              course_id: courseId,
+              module_id: moduleId,
+              learner_email: learnerEmail,
+              author_display_name: myDisplayName,
+              file_url: upload.url,
+              file_name: upload.name,
+              file_size: upload.size,
+              file_mime: upload.mime,
+              comment: comment.trim() || null,
+              visibility: "shared",
+            });
+          }
+          toast({
+            title: files.length > 1
+              ? `${files.length} travaux ont bien été déposés.`
+              : "Votre travail a bien été déposé.",
           });
-          toast({ title: "Votre travail a bien été déposé." });
         }}
         onError={(err) => toastError(toast, err instanceof Error ? err : "Erreur d'envoi")}
       />
@@ -171,32 +191,57 @@ function PeerDepositsSection({
   const { data: deposits = [] } = useVisibleDeposits(lessonId, learnerEmail);
   const peers = deposits.filter((d) => d.learner_email !== learnerEmail);
 
+  // Masqués par défaut pour la lisibilité ; le choix est conservé entre leçons / reconnexions.
+  const [showPeers, setShowPeers] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(SHOW_PEERS_STORAGE_KEY) === "1";
+  });
+
+  const toggle = () => {
+    setShowPeers((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SHOW_PEERS_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
   if (peers.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold text-muted-foreground">
-        Travaux partagés par d'autres apprenants ({peers.length})
-      </h3>
-      <ul className="space-y-3">
-        {peers.map((d) => (
-          <li key={d.id} className="rounded-lg border bg-card p-4 space-y-3">
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-muted-foreground break-all">{d.learner_email}</span>
-              <span className="text-muted-foreground shrink-0">
-                {new Date(d.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
-              </span>
-            </div>
-            <DepositPreview deposit={d} />
-            {d.comment && (
-              <p className="text-sm italic text-muted-foreground break-words">« {d.comment} »</p>
-            )}
-            {commentsEnabled && (
-              <DepositCommentList depositId={d.id} learnerEmail={learnerEmail} canPost={true} />
-            )}
-          </li>
-        ))}
-      </ul>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-muted-foreground">
+          Travaux partagés par d'autres apprenants ({peers.length})
+        </h3>
+        <Button variant="ghost" size="sm" onClick={toggle} className="text-xs shrink-0">
+          {showPeers ? "Masquer" : "Afficher"}
+        </Button>
+      </div>
+      {showPeers && (
+        <ul className="space-y-3">
+          {peers.map((d) => (
+            <li key={d.id} className="rounded-lg border bg-card p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground break-all">{depositAuthorLabel(d)}</span>
+                <span className="text-muted-foreground shrink-0">
+                  {new Date(d.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                </span>
+              </div>
+              <DepositPreview deposit={d} />
+              {d.comment && (
+                <p className="text-sm italic text-muted-foreground break-words">« {d.comment} »</p>
+              )}
+              {commentsEnabled && (
+                <DepositCommentList depositId={d.id} learnerEmail={learnerEmail} canPost={true} />
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -213,35 +258,48 @@ function DepositForm({
   config: Required<WorkDepositConfig>;
   hasExisting: boolean;
   submitting: boolean;
-  onSubmit: (input: { file: File; comment: string }) => Promise<void>;
+  onSubmit: (input: { files: File[]; comment: string }) => Promise<void>;
   onError: (err: unknown) => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [comment, setComment] = useState("");
   const accept = config.accepted_formats.map((f) => FORMAT_MIME_ACCEPT[f]).join(",");
   const maxSizeBytes = config.max_size_mb * 1024 * 1024;
 
-  const pickFile = (f: File) => {
-    if (!isFileFormatAllowed(f.type, config.accepted_formats)) {
-      onError(new Error(`Format non accepté. Formats : ${config.accepted_formats.map((x) => FORMAT_LABELS[x]).join(", ")}.`));
-      return;
+  const pickFiles = (picked: File[]) => {
+    const valid: File[] = [];
+    for (const f of picked) {
+      if (!isFileFormatAllowed(f.type, config.accepted_formats)) {
+        onError(new Error(`Format non accepté pour "${f.name}". Formats : ${config.accepted_formats.map((x) => FORMAT_LABELS[x]).join(", ")}.`));
+        continue;
+      }
+      if (f.size > maxSizeBytes) {
+        onError(new Error(`"${f.name}" est trop volumineux (max ${config.max_size_mb} Mo).`));
+        continue;
+      }
+      valid.push(f);
     }
-    if (f.size > maxSizeBytes) {
-      onError(new Error(`Fichier trop volumineux (max ${config.max_size_mb} Mo).`));
-      return;
-    }
-    setFile(f);
+    setFiles((prev) => {
+      const next = [...prev, ...valid];
+      if (next.length > MAX_DEPOSIT_FILES) {
+        onError(new Error(`Vous pouvez déposer au maximum ${MAX_DEPOSIT_FILES} fichiers à la fois.`));
+        return next.slice(0, MAX_DEPOSIT_FILES);
+      }
+      return next;
+    });
   };
 
+  const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
+
   const handleSubmit = async () => {
-    if (!file) {
-      onError(new Error("Sélectionnez un fichier à déposer."));
+    if (files.length === 0) {
+      onError(new Error("Sélectionnez au moins un fichier à déposer."));
       return;
     }
     try {
-      await onSubmit({ file, comment });
-      setFile(null);
+      await onSubmit({ files, comment });
+      setFiles([]);
       setComment("");
     } catch (err) {
       onError(err);
@@ -273,44 +331,49 @@ function DepositForm({
       )}
 
       <div>
-        <Label>Fichier</Label>
+        <Label>Fichiers</Label>
         <input
           ref={fileRef}
           type="file"
           accept={accept}
+          multiple
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) pickFile(f);
+            const picked = Array.from(e.target.files ?? []);
+            if (picked.length) pickFiles(picked);
             e.target.value = "";
           }}
         />
-        {file ? (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1 p-3 rounded-md border bg-muted/40">
-            <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-            <div className="flex-1 min-w-0 text-sm">
-              <p className="font-medium break-words">{file.name}</p>
-              <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => setFile(null)} className="self-end sm:self-auto">
-              <X className="h-3.5 w-3.5 mr-1" /> Retirer
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-1">
-            <Button
-              variant="outline"
-              onClick={() => fileRef.current?.click()}
-              className="w-full sm:w-auto"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Choisir un fichier
-            </Button>
-            <p className="text-[11px] text-muted-foreground mt-1.5">
-              Formats : {config.accepted_formats.map((f) => FORMAT_LABELS[f]).join(", ")} — taille max {config.max_size_mb} Mo
-            </p>
-          </div>
+        {files.length > 0 && (
+          <ul className="space-y-2 mt-1">
+            {files.map((f, idx) => (
+              <li key={`${f.name}-${idx}`} className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-md border bg-muted/40">
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0 text-sm">
+                  <p className="font-medium break-words">{f.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatFileSize(f.size)}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => removeFile(idx)} className="self-end sm:self-auto">
+                  <X className="h-3.5 w-3.5 mr-1" /> Retirer
+                </Button>
+              </li>
+            ))}
+          </ul>
         )}
+        <div className="mt-2">
+          <Button
+            variant="outline"
+            onClick={() => fileRef.current?.click()}
+            className="w-full sm:w-auto"
+            disabled={files.length >= MAX_DEPOSIT_FILES}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {files.length > 0 ? "Ajouter d'autres fichiers" : "Choisir un ou plusieurs fichiers"}
+          </Button>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Formats : {config.accepted_formats.map((f) => FORMAT_LABELS[f]).join(", ")} — taille max {config.max_size_mb} Mo par fichier — {MAX_DEPOSIT_FILES} fichiers max
+          </p>
+        </div>
       </div>
 
       <div>
@@ -325,9 +388,9 @@ function DepositForm({
       </div>
 
       <div className="flex justify-end pt-2">
-        <Button onClick={handleSubmit} disabled={!file || submitting} className="w-full sm:w-auto">
+        <Button onClick={handleSubmit} disabled={files.length === 0 || submitting} className="w-full sm:w-auto">
           {submitting ? <Spinner className="mr-2" /> : null}
-          Envoyer mon travail
+          {files.length > 1 ? `Envoyer mes ${files.length} travaux` : "Envoyer mon travail"}
         </Button>
       </div>
     </div>

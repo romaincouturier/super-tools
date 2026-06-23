@@ -61,6 +61,7 @@ export interface WorkDeposit {
   course_id: string | null;
   module_id: string | null;
   learner_email: string;
+  author_display_name: string | null;
   file_url: string | null;
   file_name: string | null;
   file_size: number | null;
@@ -79,6 +80,7 @@ export interface CreateWorkDepositInput {
   course_id?: string | null;
   module_id?: string | null;
   learner_email: string;
+  author_display_name?: string | null;
   file_url: string | null;
   file_name: string | null;
   file_size: number | null;
