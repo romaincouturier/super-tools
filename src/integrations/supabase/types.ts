@@ -3640,6 +3640,42 @@ export type Database = {
           },
         ]
       }
+      learner_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          learner_email: string
+          link: string | null
+          reference_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email: string
+          link?: string | null
+          reference_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          learner_email?: string
+          link?: string | null
+          reference_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       learner_profiles: {
         Row: {
           email: string
@@ -4854,6 +4890,7 @@ export type Database = {
       }
       lms_work_deposits: {
         Row: {
+          author_display_name: string | null
           comment: string | null
           course_id: string | null
           created_at: string
@@ -4873,6 +4910,7 @@ export type Database = {
           visibility_changed_at: string | null
         }
         Insert: {
+          author_display_name?: string | null
           comment?: string | null
           course_id?: string | null
           created_at?: string
@@ -4892,6 +4930,7 @@ export type Database = {
           visibility_changed_at?: string | null
         }
         Update: {
+          author_display_name?: string | null
           comment?: string | null
           course_id?: string | null
           created_at?: string
