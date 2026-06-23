@@ -4,7 +4,7 @@ import { createLearnerClient } from "@/integrations/supabase/client";
 export interface LearnerNotification {
   id: string;
   learner_email: string;
-  type: "live_upcoming" | "replay_available";
+  type: "live_upcoming" | "replay_available" | "community_reply";
   title: string;
   body: string;
   link: string | null;

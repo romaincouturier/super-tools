@@ -1,4 +1,5 @@
-import { Bell, CalendarDays, PlayCircle } from "lucide-react";
+import { Bell, CalendarDays, PlayCircle, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -14,10 +15,14 @@ interface LearnerNotificationBellProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const typeIcon = (type: LearnerNotification["type"]) =>
-  type === "replay_available" ? PlayCircle : CalendarDays;
+const typeIcon = (type: LearnerNotification["type"]) => {
+  if (type === "replay_available") return PlayCircle;
+  if (type === "community_reply") return MessageSquare;
+  return CalendarDays;
+};
 
 const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificationBellProps) => {
+  const navigate = useNavigate();
   const { data: notifications = [] } = useLearnerNotifications(email);
   const markRead = useMarkLearnerNotificationsRead(email);
 
@@ -26,6 +31,10 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
 
   const handleItemClick = (n: LearnerNotification) => {
     if (!n.is_read) markRead.mutate([n.id]);
+    if (n.link) {
+      onOpenChange(false);
+      navigate(n.link);
+    }
   };
 
   const handleMarkAll = () => {

@@ -7,7 +7,7 @@ import { emailButton, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
-const VERSION = "notify-practice-comment@2026-05-26.1";
+const VERSION = "notify-practice-comment@2026-06-23.1";
 
 /**
  * Notify the author of a practice (community) post when a new comment is added.
@@ -52,20 +52,6 @@ serve(async (req) => {
 
     const ownerEmail = (post.author_email || "").toLowerCase();
     const commenter = (commenterEmail || "").toLowerCase();
-    if (!ownerEmail || ownerEmail === commenter) {
-      return new Response(
-        JSON.stringify({ success: true, skipped: "self_or_no_owner", _version: VERSION }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const enabled = await learnerHasNotifEnabled(supabase, ownerEmail, "email_notif_work_comment");
-    if (!enabled) {
-      return new Response(
-        JSON.stringify({ success: true, skipped: "pref_off", _version: VERSION }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
 
     const { data: comment } = await supabase
       .from("practice_post_comments")
@@ -87,31 +73,86 @@ serve(async (req) => {
     const { getAppUrls } = await import("../_shared/app-urls.ts");
     const urls = await getAppUrls();
     const link = `${urls.app_url}/espace-apprenant/pratique?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`;
-
-    const subject = `💬 Nouveau commentaire sur votre publication`;
+    const relativeLink = `/espace-apprenant/pratique?post=${encodeURIComponent(postId)}#post-${encodeURIComponent(postId)}`;
     const commentExcerpt = (comment?.content || "").slice(0, 280);
-    const bodyHtml = `
-      <p>Bonjour,</p>
-      <p><strong>${commenterName}</strong> a commenté votre publication dans la communauté :</p>
-      <blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">
-        ${commentExcerpt.replace(/\n/g, "<br>")}
-      </blockquote>
-      ${emailButton("Voir la discussion", link)}
-      <p>À bientôt,<br>L'équipe SuperTilt</p>
-    `;
-    const html = wrapEmailHtml(bodyHtml, signature);
+    const excerptHtml = commentExcerpt.replace(/\n/g, "<br>");
 
-    const result = await sendEmail({
-      from: senderFrom,
-      to: [ownerEmail],
-      bcc: bccList,
-      subject,
-      html,
-      _emailType: "practice_comment_notification",
-    });
+    // ── ST-2026-0206 : alerter TOUS les admins instantanement ──────────────────
+    const { data: admins } = await supabase
+      .from("profiles")
+      .select("email")
+      .eq("is_admin", true);
+    const adminEmails = (admins || [])
+      .map((a: { email: string | null }) => (a.email || "").toLowerCase())
+      .filter((e: string) => e && e !== commenter);
+    let adminEmailSent = false;
+    if (adminEmails.length > 0) {
+      const adminHtml = wrapEmailHtml(`
+        <p>Bonjour,</p>
+        <p><strong>${commenterName}</strong> a posté un commentaire dans la communauté :</p>
+        <blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">
+          ${excerptHtml}
+        </blockquote>
+        ${emailButton("Voir la discussion", link)}
+      `, signature);
+      const adminResult = await sendEmail({
+        from: senderFrom,
+        to: adminEmails,
+        bcc: bccList,
+        subject: `💬 Nouveau commentaire dans la communauté`,
+        html: adminHtml,
+        _emailType: "practice_comment_admin_notification",
+      });
+      adminEmailSent = !!adminResult.success;
+    }
+
+    // ── Notification in-app + email pour l'auteur de la publication ─────────────
+    let ownerEmailSent = false;
+    let inAppCreated = false;
+    if (ownerEmail && ownerEmail !== commenter) {
+      // In-app notification dans le centre de notifications apprenant.
+      const { error: notifError } = await supabase
+        .from("learner_notifications")
+        .upsert(
+          {
+            learner_email: ownerEmail,
+            type: "community_reply",
+            title: "Nouveau commentaire",
+            body: `${commenterName} a commenté votre publication.`,
+            link: relativeLink,
+            reference_id: commentId,
+          },
+          { onConflict: "learner_email,reference_id,type", ignoreDuplicates: true },
+        );
+      inAppCreated = !notifError;
+      if (notifError) console.warn("learner_notifications insert failed:", notifError);
+
+      // Email a l'auteur (respecte sa preference).
+      const enabled = await learnerHasNotifEnabled(supabase, ownerEmail, "email_notif_work_comment");
+      if (enabled) {
+        const ownerHtml = wrapEmailHtml(`
+          <p>Bonjour,</p>
+          <p><strong>${commenterName}</strong> a commenté votre publication dans la communauté :</p>
+          <blockquote style="border-left:3px solid #e5e7eb;padding:8px 16px;margin:16px 0;color:#374151;background:#f9fafb;border-radius:4px">
+            ${excerptHtml}
+          </blockquote>
+          ${emailButton("Voir la discussion", link)}
+          <p>À bientôt,<br>L'équipe SuperTilt</p>
+        `, signature);
+        const result = await sendEmail({
+          from: senderFrom,
+          to: [ownerEmail],
+          bcc: bccList,
+          subject: `💬 Nouveau commentaire sur votre publication`,
+          html: ownerHtml,
+          _emailType: "practice_comment_notification",
+        });
+        ownerEmailSent = !!result.success;
+      }
+    }
 
     return new Response(
-      JSON.stringify({ success: !!result.success, _version: VERSION }),
+      JSON.stringify({ success: true, adminEmailSent, ownerEmailSent, inAppCreated, _version: VERSION }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
