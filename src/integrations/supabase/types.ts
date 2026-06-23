@@ -6189,6 +6189,44 @@ export type Database = {
           },
         ]
       }
+      newsletter_comments: {
+        Row: {
+          author_id: string | null
+          author_name: string
+          content: string
+          created_at: string
+          id: string
+          is_deleted: boolean
+          newsletter_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name: string
+          content: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          newsletter_id: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          newsletter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_comments_newsletter_id_fkey"
+            columns: ["newsletter_id"]
+            isOneToOne: false
+            referencedRelation: "newsletters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       newsletters: {
         Row: {
           created_at: string
