@@ -169,7 +169,10 @@ const handler = async (req: Request): Promise<Response> => {
     };
 
     const firstName = participant?.first_name || "";
-    const formalAddress = training.sponsor_formal_address;
+    // Les emails ci-dessous sont destinés aux PARTICIPANTS : on utilise le réglage
+    // tu/vous des participants (et non celui du financeur/sponsor). Les emails
+    // sponsor (ex: cold_evaluation) lisent sponsor_formal_address directement.
+    const formalAddress = training.participants_formal_address;
     const greeting = firstName
       ? formalAddress
         ? `Bonjour ${firstName},`
