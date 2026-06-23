@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
@@ -20,6 +21,7 @@ interface WatchEditDialogProps {
 const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => {
   const [title, setTitle] = useState(item.title);
   const [body, setBody] = useState(item.body);
+  const [comment, setComment] = useState(item.comment ?? "");
   const [sourceUrl, setSourceUrl] = useState(item.source_url ?? "");
   const [tags, setTags] = useState<string[]>(item.tags || []);
   const [tagInput, setTagInput] = useState("");
@@ -30,6 +32,7 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
     if (open) {
       setTitle(item.title);
       setBody(item.body);
+      setComment(item.comment ?? "");
       setSourceUrl(item.source_url ?? "");
       setTags(item.tags || []);
       setTagInput("");
@@ -54,6 +57,7 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
         id: item.id,
         title: title.trim() || "(Sans titre)",
         body,
+        comment: comment.trim(),
         ...(item.content_type === "url" ? { source_url: sourceUrl.trim() || null } : {}),
         tags,
       });
@@ -109,6 +113,17 @@ const WatchEditDialog = ({ item, open, onOpenChange }: WatchEditDialogProps) => 
               />
             </div>
           )}
+
+          <div>
+            <Label htmlFor="edit-watch-comment">Commentaire</Label>
+            <Textarea
+              id="edit-watch-comment"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Pourquoi ce contenu est intéressant…"
+              rows={2}
+            />
+          </div>
 
           <div>
             <Label>Tags</Label>

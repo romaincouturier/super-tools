@@ -63,6 +63,7 @@ const WatchFilters = ({
           <SelectItem value="url">URL</SelectItem>
           <SelectItem value="image">Image</SelectItem>
           <SelectItem value="audio">Audio</SelectItem>
+          <SelectItem value="document">PDF</SelectItem>
         </SelectContent>
       </Select>
 
