@@ -189,6 +189,19 @@ serve(async (req) => {
       }
     }
 
+    if (item.content_type === "document" && item.file_url) {
+      // PDF text extraction so documents are searchable + AI title/tags/embedding.
+      try {
+        const extracted = await extractPdfText(item.file_url);
+        if (extracted) {
+          body = extracted;
+          await saveUpdates({ body: extracted.slice(0, 50000) });
+        }
+      } catch (e) {
+        console.warn("PDF extraction failed:", e);
+      }
+    }
+
     // ── Step 2: AI title & tags ─────────────────────────────────────
 
     const OPENAI_API_KEY_FOR_AI = await getOpenAIApiKey();
@@ -279,6 +292,18 @@ Retourne UNIQUEMENT le JSON, sans markdown ni explication.`,
     return createErrorResponse(msg);
   }
 });
+
+/** Downloads a PDF and extracts its text content using unpdf (Deno-compatible). */
+async function extractPdfText(url: string): Promise<string> {
+  const { extractText, getDocumentProxy } = await import("https://esm.sh/unpdf");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch PDF: ${res.status}`);
+  const buffer = new Uint8Array(await res.arrayBuffer());
+  const pdf = await getDocumentProxy(buffer);
+  const { text } = await extractText(pdf, { mergePages: true });
+  const merged = Array.isArray(text) ? text.join("\n") : text;
+  return (merged || "").replace(/\s+\n/g, "\n").trim();
+}
 
 /** Submits an audio URL to AssemblyAI and polls until completion (max 5 min). Returns transcript text or null. */
 async function transcribeWithAssemblyAI(audioUrl: string, apiKey: string): Promise<string | null> {
