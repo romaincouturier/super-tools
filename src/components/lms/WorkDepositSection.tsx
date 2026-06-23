@@ -176,7 +176,7 @@ function PeerDepositsSection({
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-muted-foreground">
-        Travaux partagés des autres apprenants ({peers.length})
+        Travaux partagés par d'autres apprenants ({peers.length})
       </h3>
       <ul className="space-y-3">
         {peers.map((d) => (
