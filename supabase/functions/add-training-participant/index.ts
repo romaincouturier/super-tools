@@ -196,10 +196,65 @@ Deno.serve(async (req: Request): Promise<Response> => {
       routingReason,
     } = body;
 
-    if (!trainingId || !body.email) {
+    const isDraft = (body as { draft?: boolean }).draft === true;
+
+    if (!trainingId || (!body.email && !isDraft)) {
       return new Response(
         JSON.stringify({ error: "trainingId et email sont requis" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ── Duplication "brouillon" ───────────────────────────────────────────────
+    // Copie un participant en effaçant nom/prénom/email (placeholder unique car
+    // email est NOT NULL + unique par formation). Aucun onboarding n'est déclenché.
+    if (isDraft) {
+      const placeholderEmail = `brouillon-${crypto.randomUUID().slice(0, 8)}@a-completer.local`;
+      const draftRow: Record<string, unknown> = {
+        training_id: trainingId,
+        email: placeholderEmail,
+        first_name: null,
+        last_name: null,
+        company: company?.trim() || null,
+        needs_survey_token: crypto.randomUUID(),
+        needs_survey_status: "non_envoye",
+        coaching_sessions_total: coachingSessionsTotal,
+        coaching_sessions_completed: 0,
+        coaching_deadline: coachingDeadline || null,
+        ...(formulaId && { formula: formulaName || null, formula_id: formulaId }),
+        ...(notes && { notes }),
+        ...(isInterEntreprise && {
+          company_address: companyAddress?.trim() || null,
+          company_city: companyCity?.trim() || null,
+          company_zip: companyZip?.trim() || null,
+          type_stagiaire_bpf: typeStagiaireBpf || null,
+          sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
+          payment_mode: paymentMode,
+          sponsor_first_name: capitalizeName(sponsorFirstName || ""),
+          sponsor_last_name: capitalizeName(sponsorLastName || ""),
+          sponsor_email: sponsorEmail?.trim().toLowerCase() || null,
+          financeur_same_as_sponsor: financeurSameAsSponsor,
+          financeur_name: financeurSameAsSponsor ? null : (financeurName?.trim() || null),
+          financeur_url: financeurSameAsSponsor ? null : (financeurUrl?.trim() || null),
+        }),
+      };
+
+      const { data: draftParticipant, error: draftErr } = await admin
+        .from("training_participants")
+        .insert(draftRow)
+        .select("id")
+        .single();
+
+      if (draftErr || !draftParticipant) {
+        return new Response(
+          JSON.stringify({ error: draftErr?.message ?? "Échec de la duplication" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, participantId: (draftParticipant as { id: string }).id, draft: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
