@@ -112,7 +112,7 @@ const CardDetailDialogs = (props: Props) => {
       const { data, error } = await supabase
         .from("trainings")
         .select("id, training_name, start_date, client_name, format_formation")
-        .in("format_formation", ["inter-entreprises", "e_learning"])
+        .in("format_formation", ["inter-entreprises", "e_learning", "classe_virtuelle"])
         .eq("is_cancelled", false)
         .gte("start_date", today)
         .order("start_date", { ascending: true })
