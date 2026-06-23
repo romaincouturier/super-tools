@@ -542,6 +542,9 @@ export default function PracticePostCard({
                     <div className="flex items-center gap-1.5 min-w-0">
                       <p className="text-xs font-semibold truncate" style={{ color: "var(--st-ink)" }}>{cName}</p>
                       {c.is_staff_reply && <StaffBadge />}
+                      <span className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>
+                        {formatDistanceToNow(new Date(c.created_at), { locale: fr, addSuffix: true })}
+                      </span>
                     </div>
                     {!isEditing && (
                       <div className="flex items-center gap-0.5 shrink-0">
