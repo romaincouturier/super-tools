@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Loader2, Calendar, MapPin, Users, Search } from "lucide-react";
+import { Copy, Calendar, MapPin, Users, Search } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -73,7 +74,6 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
           .or(
             `start_date.gte.${today},start_date.is.null,end_date.gte.${today}`,
           )
-          .neq("id", trainingId)
           .or("is_cancelled.is.null,is_cancelled.eq.false")
           .order("start_date", { ascending: true });
         if (error) throw error;
@@ -142,14 +142,12 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
         "add-training-participant",
         {
           body: {
+            draft: true,
             trainingId: target.id,
             trainingStartDate: target.start_date,
             trainingEndDate: target.end_date,
             formatFormation: target.format_formation,
             isInterEntreprise: isInter,
-            email: participant.email,
-            firstName: participant.first_name || "",
-            lastName: participant.last_name || "",
             company: participant.company || "",
             companyAddress: participant.company_address || null,
             companyZip: participant.company_zip || null,
@@ -177,7 +175,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
 
       toast({
         title: "Participant dupliqué",
-        description: `${participant.email} a été ajouté à « ${target.training_name} ».`,
+        description: `Un participant à compléter (nom, prénom, email vides) a été créé dans « ${target.training_name} ».`,
       });
       setOpen(false);
       onDuplicated();
@@ -200,7 +198,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
   const defaultTrigger = (
     <Button variant="outline" size="sm">
       <Copy className="h-3.5 w-3.5 mr-1.5" />
-      Dupliquer dans une autre formation
+      Dupliquer
     </Button>
   );
 
@@ -211,9 +209,9 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
         <DialogHeader className="shrink-0">
           <DialogTitle>Dupliquer le participant</DialogTitle>
           <DialogDescription>
-            Choisissez une session de formation cible (inter ou intra). Les
-            informations du participant seront copiées et l'onboarding (mails,
-            convention, etc.) sera lancé comme pour une nouvelle inscription.
+            Choisissez la formation cible (y compris la formation actuelle). Toutes
+            les informations sont copiées sauf le nom, le prénom et l'email qui
+            restent à compléter. Aucun onboarding (mails, convention) n'est lancé.
           </DialogDescription>
         </DialogHeader>
 
@@ -230,7 +228,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
         <div className="flex-1 overflow-y-auto min-h-0">
         {loading ? (
           <div className="py-12 flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Spinner className="h-6 w-6 text-primary" />
           </div>
         ) : filteredTargets.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground text-sm">
@@ -254,6 +252,9 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
                       <Badge variant="secondary" className="text-[10px]">
                         {formatLabel(t.format_formation)}
                       </Badge>
+                      {t.id === trainingId && (
+                        <Badge variant="outline" className="text-[10px]">Formation actuelle</Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
@@ -279,7 +280,7 @@ const DuplicateParticipantDialog = ({ participant, trainingId, onDuplicated, tri
                     disabled={submitting !== null || full}
                   >
                     {submitting === t.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Spinner className="h-3.5 w-3.5" />
                     ) : full ? (
                       "Complète"
                     ) : (
