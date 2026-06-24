@@ -76,6 +76,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import { VoiceDictationButton } from "@/components/ui/voice-dictation-button";
+import { MeetingRecorderButton } from "@/components/missions/MeetingRecorderButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -905,6 +906,27 @@ const PageEditor = ({
             if (!trimmed || !editor) return;
             // Append a trailing space so the user can keep dictating from the same point
             editor.chain().focus().insertContent(trimmed + " ").run();
+          }}
+        />
+
+        <MeetingRecorderButton
+          missionId={missionId}
+          onTranscript={(text) => {
+            const trimmed = text.trim();
+            if (!trimmed || !editor) return;
+            // Speaker-labelled transcript: render each block as its own paragraph.
+            const html = trimmed
+              .split(/\n{2,}/)
+              .map((block) => {
+                const safe = block
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace(/\n/g, "<br>");
+                return `<p>${safe}</p>`;
+              })
+              .join("");
+            editor.chain().focus().insertContent(html).run();
           }}
         />
 

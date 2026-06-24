@@ -518,6 +518,9 @@ verify_jwt = false
 [functions.upload-support-attachment]
 verify_jwt = false
 
+[functions.upload-meeting-recording]
+verify_jwt = false
+
 [functions.upload-trainer-document]
 verify_jwt = false
 
