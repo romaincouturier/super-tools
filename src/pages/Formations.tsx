@@ -37,6 +37,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import PageHeader from "@/components/PageHeader";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskText } from "@/lib/demoMask";
+import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import type { KanbanColumnDef, KanbanStatsItem } from "@/types/kanban";
+
+const FORMATION_STATS_COLUMNS: KanbanColumnDef[] = [
+  { id: "a_venir", name: "À venir", position: 0, color: "#3b82f6" },
+  { id: "en_cours", name: "En cours", position: 1, color: "#f59e0b" },
+  { id: "passee", name: "Passée", position: 2, color: "#22c55e" },
+  { id: "annulee", name: "Annulée", position: 3, color: "#ef4444" },
+];
 
 interface Training {
   id: string;
@@ -51,6 +60,7 @@ interface Training {
   format_formation: string | null;
   source_financement_bpf: string | null;
   is_cancelled: boolean | null;
+  sold_price_ht?: number | null;
   participant_count?: number;
   /** Number of participants with payment_mode=invoice and no invoice_file_url */
   unbilled_count?: number;
@@ -94,6 +104,7 @@ const Formations = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSessionType, setFilterSessionType] = useState<string>("all");
   const [filterSessionFormat, setFilterSessionFormat] = useState<string>("all");
+  const [showStats, setShowStats] = useState(false);
 
   // Sorting state (for past trainings only)
   const [sortField, setSortField] = useState<SortField>("date");
@@ -300,6 +311,33 @@ const Formations = () => {
     [trainings, matchesFilters]
   );
 
+  // Stats (flux cumulé / valeur / carte de contrôle) — sur toutes les formations datées
+  const statsItems: KanbanStatsItem[] = useMemo(() => {
+    return trainings
+      .filter((t) => t.start_date) // exclure les permanentes (hors cycle de vie daté)
+      .map((t) => {
+        const startDate = parseISO(t.start_date);
+        const columnId = t.is_cancelled
+          ? "annulee"
+          : isOngoing(t)
+            ? "en_cours"
+            : isFuture(startDate) && !isToday(startDate)
+              ? "a_venir"
+              : "passee";
+        const completedAt =
+          columnId === "passee" || columnId === "annulee"
+            ? t.end_date || t.start_date
+            : null;
+        return {
+          id: t.id,
+          columnId,
+          createdAt: t.created_at,
+          completedAt,
+          value: t.sold_price_ht ?? null,
+        };
+      });
+  }, [trainings]);
+
   // Check if a training has pending actions
   const hasActions = useMemo(() => {
     const actionsByTraining = new Set(trainingActions.map((a) => a.training_id));
@@ -414,6 +452,10 @@ const Formations = () => {
           title="Formations"
           actions={
             <div className="flex items-center gap-2">
+              <Button variant="outline" size={isMobile ? "icon" : "sm"} className="shrink-0" title="Statistiques" onClick={() => setShowStats(true)}>
+                <BarChart3 className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Statistiques</span>
+              </Button>
               <Link to="/formations/bpf">
                 <Button variant="outline" size={isMobile ? "icon" : "sm"} className="shrink-0" title="Bilan BPF">
                   <FileText className="h-4 w-4 md:mr-2" />
@@ -810,6 +852,16 @@ const Formations = () => {
 
         <FormationsStatsAccordion />
       </main>
+
+      <KanbanStatsDialog
+        open={showStats}
+        onOpenChange={setShowStats}
+        columns={FORMATION_STATS_COLUMNS}
+        items={statsItems}
+        doneColumnIds={["passee", "annulee"]}
+        wonColumnIds={["passee"]}
+        lostColumnIds={["annulee"]}
+      />
     </ModuleLayout>
   );
 };
