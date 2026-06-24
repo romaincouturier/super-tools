@@ -43,6 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAddParticipant } from "@/hooks/useAddParticipant";
 import { getEmailMode } from "@/lib/emailScheduling";
 import { fetchExistingFinanceurs } from "@/services/participants";
+import { SourceFinancementSelector } from "./FormationFormFields";
 
 interface AddParticipantDialogProps {
   trainingId: string;
@@ -66,11 +67,21 @@ interface AddParticipantDialogProps {
   initialSponsorLastName?: string;
   initialSponsorEmail?: string;
   initialSoldPriceHt?: string;
+  initialFormulaId?: string;
+  initialPaymentMode?: "online" | "invoice";
+  initialFinanceurSameAsSponsor?: boolean;
+  initialFinanceurName?: string;
+  initialFinanceurUrl?: string;
+  initialTypeStagiaireBpf?: string;
+  initialSourceFinancementBpf?: string;
   externalOpen?: boolean;
   onExternalOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
+  title?: string;
+  description?: string;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, externalOpen, onExternalOpenChange }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -85,6 +96,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   const [companyAddress, setCompanyAddress] = useState("");
   const [companyZip, setCompanyZip] = useState("");
   const [companyCity, setCompanyCity] = useState("");
+  const [typeStagiaireBpf, setTypeStagiaireBpf] = useState("");
+  const [sourceFinancementBpf, setSourceFinancementBpf] = useState("");
   const [sponsorSameAsParticipant, setSponsorSameAsParticipant] = useState(false);
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
@@ -112,6 +125,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
     setCompanyAddress("");
     setCompanyZip("");
     setCompanyCity("");
+    setTypeStagiaireBpf("");
+    setSourceFinancementBpf("");
     setSoldPriceHt("");
     setSponsorSameAsParticipant(false);
     setSponsorFirstName("");
@@ -155,6 +170,13 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       if (initialCompanyZip) setCompanyZip(initialCompanyZip);
       if (initialCompanyCity) setCompanyCity(initialCompanyCity);
       if (initialSoldPriceHt) setSoldPriceHt(initialSoldPriceHt);
+      if (initialTypeStagiaireBpf) setTypeStagiaireBpf(initialTypeStagiaireBpf);
+      if (initialSourceFinancementBpf) setSourceFinancementBpf(initialSourceFinancementBpf);
+      if (initialFormulaId) setFormulaId(initialFormulaId);
+      if (initialPaymentMode) setPaymentMode(initialPaymentMode);
+      if (initialFinanceurSameAsSponsor !== undefined) setFinanceurSameAsSponsor(initialFinanceurSameAsSponsor);
+      if (initialFinanceurName) setFinanceurName(initialFinanceurName);
+      if (initialFinanceurUrl) setFinanceurUrl(initialFinanceurUrl);
 
       // Prefill sponsor fields if provided (from CRM micro-devis flow)
       if (initialSponsorEmail || initialSponsorFirstName || initialSponsorLastName) {
@@ -169,7 +191,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
         }
       }
     }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, clientName, isInterEntreprise]);
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, initialTypeStagiaireBpf, initialSourceFinancementBpf, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, clientName, isInterEntreprise]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
@@ -226,6 +248,8 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       paymentMode,
       soldPriceHt,
       generateCoupon,
+      typeStagiaireBpf,
+      sourceFinancementBpf,
     });
   };
 
@@ -234,17 +258,19 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter
-        </Button>
+        {trigger ?? (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] flex flex-col w-full sm:max-w-3xl">
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Ajouter un participant</DialogTitle>
+            <DialogTitle>{title ?? "Ajouter un participant"}</DialogTitle>
             <DialogDescription>
-              Ajoutez un participant à cette formation. Seul l'email est obligatoire.
+              {description ?? "Ajoutez un participant à cette formation. Seul l'email est obligatoire."}
             </DialogDescription>
           </DialogHeader>
 
@@ -366,6 +392,31 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                   value={soldPriceHt}
                   onChange={(e) => setSoldPriceHt(e.target.value)}
                   placeholder="1500.00"
+                />
+              </div>
+            )}
+
+            {/* BPF: type de stagiaire + source de financement */}
+            {isInterEntreprise && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Type de stagiaire (BPF)</Label>
+                  <Select value={typeStagiaireBpf} onValueChange={setTypeStagiaireBpf}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner le type de stagiaire" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="salarie_prive">Salarié d'employeur privé</SelectItem>
+                      <SelectItem value="apprenti">Apprenti</SelectItem>
+                      <SelectItem value="demandeur_emploi">Demandeur d'emploi</SelectItem>
+                      <SelectItem value="particulier">Particulier à ses propres frais</SelectItem>
+                      <SelectItem value="autre">Autre stagiaire</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <SourceFinancementSelector
+                  value={sourceFinancementBpf || null}
+                  onChange={setSourceFinancementBpf}
                 />
               </div>
             )}
