@@ -141,6 +141,7 @@ const MissionsKanbanBoard = ({ prefillFromCrm, onPrefillConsumed, openMissionId 
       columnId: m.status,
       createdAt: m.created_at,
       completedAt: m.status === "completed" ? m.updated_at : null,
+      value: m.total_amount ?? m.initial_amount,
     }));
   }, [missions]);
 

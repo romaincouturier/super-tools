@@ -58,4 +58,6 @@ export interface KanbanStatsItem {
   createdAt: string;
   /** Date the item reached a "done" column (for cycle time). */
   completedAt?: string | null;
+  /** Monetary value of the item (e.g. opportunity amount), for the value-weighted CFD. */
+  value?: number | null;
 }

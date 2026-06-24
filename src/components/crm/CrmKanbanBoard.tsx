@@ -275,6 +275,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         columnId,
         createdAt: c.created_at,
         completedAt: c.won_at || c.lost_at,
+        value: c.estimated_value,
       };
     });
   }, [boardData?.cards]);
