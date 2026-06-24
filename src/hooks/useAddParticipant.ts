@@ -25,6 +25,8 @@ export interface AddParticipantParams {
   paymentMode: "online" | "invoice";
   soldPriceHt: string;
   generateCoupon: boolean;
+  typeStagiaireBpf: string;
+  sourceFinancementBpf: string;
 }
 
 interface UseAddParticipantOptions {
@@ -76,6 +78,8 @@ export function useAddParticipant({
             companyAddress: params.companyAddress || null,
             companyZip: params.companyZip || null,
             companyCity: params.companyCity || null,
+            typeStagiaireBpf: params.typeStagiaireBpf || null,
+            sourceFinancementBpf: params.sourceFinancementBpf || null,
             soldPriceHt: params.soldPriceHt ? parseFloat(params.soldPriceHt) : null,
             paymentMode: params.paymentMode,
             formulaId: params.formulaId || null,

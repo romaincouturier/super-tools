@@ -218,6 +218,11 @@ const EditParticipantDialog = ({
             <DuplicateParticipantDialog
               participant={participant}
               trainingId={trainingId}
+              trainingStartDate={trainingDates?.[0]}
+              trainingEndDate={trainingDates?.[1]}
+              formatFormation={formatFormation}
+              isInterEntreprise={isInterEntreprise}
+              availableFormulas={availableFormulas}
               onDuplicated={() => { hook.handleClose(); onParticipantUpdated(); }}
             />
           </div>

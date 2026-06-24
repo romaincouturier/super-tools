@@ -57,3 +57,21 @@ export async function getOpenAIApiKey(): Promise<string | null> {
   }
   return envKey;
 }
+
+/**
+ * Get Anthropic API key — first from app_settings, fallback to env var.
+ */
+export async function getAnthropicApiKey(): Promise<string | null> {
+  const fromSettings = await getAppSetting("anthropic_api_key");
+  if (fromSettings) {
+    console.log("[api-keys] Anthropic key resolved from app_settings");
+    return fromSettings;
+  }
+  const envKey = Deno.env.get("ANTHROPIC_API_KEY") || null;
+  if (envKey) {
+    console.log("[api-keys] Anthropic key resolved from env var");
+  } else {
+    console.warn("[api-keys] Anthropic key NOT found in app_settings nor env var");
+  }
+  return envKey;
+}

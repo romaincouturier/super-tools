@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { aiChat } from "../_shared/ai.ts";
 
 interface BriefQuestion {
   id: string;
@@ -130,34 +131,13 @@ async function extractWithAI(
   rawInput: string,
   availableTags: AvailableTag[],
 ): Promise<ExtractionResult> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
   const today = todayISO();
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: buildSystemPrompt(today, availableTags) },
-        { role: "user", content: rawInput },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("AI Gateway error:", errorText);
-    throw new Error(`Failed to extract information: ${response.status}`);
-  }
-
-  const result = await response.json();
-  const content = result.choices?.[0]?.message?.content || "{}";
+  const content = (await aiChat({
+    system: buildSystemPrompt(today, availableTags),
+    messages: [{ role: "user", content: rawInput }],
+    tier: "fast",
+  })) || "{}";
 
   // Strip markdown code fences if present
   const cleanContent = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();

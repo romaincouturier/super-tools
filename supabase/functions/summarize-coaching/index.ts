@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
-
-const LOVABLE_AI_URL = "https://api.lovable.dev/v1/chat/completions";
-const MODEL = "google/gemini-2.5-flash";
+import { aiChat } from "../_shared/ai.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -30,35 +28,12 @@ Contexte : Session de coaching pour ${participant_name || "un participant"} dans
 
 Réponds UNIQUEMENT en JSON valide, sans markdown.`;
 
-    const response = await fetch(LOVABLE_AI_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Notes de session :\n\n${notes}` },
-        ],
-        temperature: 0.3,
-      }),
+    const content = await aiChat({
+      system: systemPrompt,
+      messages: [{ role: "user", content: `Notes de session :\n\n${notes}` }],
+      tier: "fast",
+      temperature: 0.3,
     });
-
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Trop de requêtes. Réessayez dans quelques secondes." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error(`AI API error: ${status}`);
-    }
-
-    const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
 
     // Parse JSON from AI response
     let parsed;

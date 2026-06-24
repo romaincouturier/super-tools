@@ -97,6 +97,7 @@ export interface AddParticipantRequest {
   companyCity?: string | null;
   companyZip?: string | null;
   typeStagiaireBpf?: string | null;
+  sourceFinancementBpf?: string | null;
   soldPriceHt?: number | string | null;
   paymentMode?: "online" | "invoice";
   formulaId?: string | null;
@@ -176,6 +177,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       companyCity,
       companyZip,
       typeStagiaireBpf,
+      sourceFinancementBpf,
       soldPriceHt,
       paymentMode = "invoice",
       formulaId,
@@ -228,6 +230,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
           type_stagiaire_bpf: typeStagiaireBpf || null,
+          source_financement_bpf: sourceFinancementBpf || null,
           sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
           payment_mode: paymentMode,
           sponsor_first_name: capitalizeName(sponsorFirstName || ""),
@@ -346,6 +349,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           company_city: companyCity?.trim() || null,
           company_zip: companyZip?.trim() || null,
           type_stagiaire_bpf: typeStagiaireBpf || null,
+          source_financement_bpf: sourceFinancementBpf || null,
           sold_price_ht: soldPriceHt ? parseFloat(String(soldPriceHt)) : null,
           payment_mode: paymentMode,
           sponsor_first_name: capitalizeName(effectiveSponsorFirstName),

@@ -114,6 +114,24 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
 
           <Separator />
 
+          {/* Intelligence artificielle */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Intelligence artificielle</h3>
+            <p className="text-sm text-muted-foreground">Fournisseur IA utilisé pour les générations et analyses automatiques.</p>
+            <div className="space-y-2 max-w-lg">
+              <Label htmlFor="ai-provider">Fournisseur IA</Label>
+              <select id="ai-provider" value={settings.ai_provider ?? "lovable"} onChange={(e) => updateSetting("ai_provider", e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="lovable">Lovable AI</option>
+                <option value="anthropic">Claude (Anthropic)</option>
+                <option value="openai">OpenAI</option>
+                <option value="gemini">Gemini (Google)</option>
+              </select>
+              <p className="text-xs text-muted-foreground">Réglage exposé pour préparer la bascule. Le routage effectif des fonctions IA sera connecté dans un second temps (aucun impact pour l'instant).</p>
+            </div>
+          </div>
+
+          <Separator />
+
           <UrlSettingField label="Outil de newsletter" description="URL de votre outil de newsletter (ex: Brevo, Mailchimp). Un bouton « Préparer la newsletter » apparaîtra dans la section newsletter de la gestion de contenu." inputId="newsletter-tool-url" value={settings.newsletter_tool_url} onChange={(v) => updateSetting("newsletter_tool_url", v)} placeholder="https://app.brevo.com" />
 
           <Separator />

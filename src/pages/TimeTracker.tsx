@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
   format,
   parseISO,
@@ -720,6 +720,53 @@ function HistoryTab() {
 // Tab: Import GitHub
 // ---------------------------------------------------------------------------
 
+/**
+ * Champ de durée éditable au clavier : on garde un état texte local pendant la
+ * saisie et on ne parse/normalise qu'au blur (ou Entrée). Évite que la valeur
+ * se réécrive à chaque frappe et qu'un chiffre seul soit committé en minutes.
+ */
+function ProposedDurationInput({
+  minutes,
+  onCommit,
+}: {
+  minutes: number;
+  onCommit: (min: number) => void;
+}) {
+  const [raw, setRaw] = useState(() => formatDuration(minutes));
+
+  useEffect(() => {
+    setRaw(formatDuration(minutes));
+  }, [minutes]);
+
+  const parsed = parseDuration(raw);
+  const valid = parsed !== null && parsed > 0;
+
+  const commit = () => {
+    if (valid) {
+      onCommit(parsed!);
+      setRaw(formatDuration(parsed!));
+    } else {
+      setRaw(formatDuration(minutes));
+    }
+  };
+
+  return (
+    <Input
+      value={raw}
+      onChange={(e) => setRaw(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+      placeholder="ex: 1h30, 2h, 45min"
+      className={`h-7 w-24 text-sm ${raw && !valid ? "border-destructive" : ""}`}
+    />
+  );
+}
+
 function GitHubImportTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -948,7 +995,6 @@ function GitHubImportTab() {
 
           <div className="space-y-2">
             {proposed.map((entry, i) => {
-              const durMin = parseDuration(String(entry.duration_minutes));
               return (
                 <Card
                   key={i}
@@ -967,13 +1013,9 @@ function GitHubImportTab() {
                           <span className="text-sm font-medium">
                             {format(parseISO(entry.entry_date), "d MMMM yyyy", { locale: fr })}
                           </span>
-                          <Input
-                            value={formatDuration(entry.duration_minutes)}
-                            onChange={(e) => {
-                              const min = parseDuration(e.target.value);
-                              if (min) updateProposed(i, { duration_minutes: min });
-                            }}
-                            className="h-7 w-20 text-sm"
+                          <ProposedDurationInput
+                            minutes={entry.duration_minutes}
+                            onCommit={(min) => updateProposed(i, { duration_minutes: min })}
                           />
                           <a
                             href={entry.github_pr_url}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw, Trash2, ArchiveRestore } from "lucide-react";
+import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw, Trash2, ArchiveRestore, Copy } from "lucide-react";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   useTranscripts,
   useTranscript,
@@ -57,6 +58,12 @@ function formatDuration(seconds: number | null): string {
 function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) {
   const displayTitle = t.ai_title || t.title || "Sans titre";
   const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
+  const { copy } = useCopyToClipboard();
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!t.raw_text) return;
+    copy(t.raw_text, { title: "Transcript copié" });
+  };
   return (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
       <CardContent className="p-4 space-y-2">
@@ -70,6 +77,17 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {t.raw_text && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={handleCopy}
+                title="Copier le transcript"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Badge variant={t.source === "fireflies" ? "secondary" : "outline"} className="text-xs">
               {SOURCE_LABELS[t.source]}
             </Badge>
