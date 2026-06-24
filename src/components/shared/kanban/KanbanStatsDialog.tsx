@@ -103,6 +103,57 @@ function buildCFDForRange(
 }
 
 /**
+ * Build value-weighted cumulative flow diagram data.
+ * Same model as buildCFDData, but each day sums the monetary value of the
+ * items in each column instead of counting them.
+ */
+function buildValueCFDData(
+  items: KanbanStatsItem[],
+  columns: KanbanColumnDef[],
+): Array<Record<string, unknown>> {
+  if (items.length === 0) return [];
+
+  const dates = items.map((i) => new Date(i.createdAt).getTime());
+  const minDate = startOfDay(new Date(Math.min(...dates)));
+  const maxDate = startOfDay(new Date());
+
+  let rangeMin = minDate;
+  if (differenceInCalendarDays(maxDate, minDate) > 365) {
+    rangeMin = new Date(maxDate);
+    rangeMin.setDate(rangeMin.getDate() - 365);
+  }
+
+  const days = eachDayOfInterval({ start: rangeMin, end: maxDate });
+  const sortedCols = [...columns].sort((a, b) => a.position - b.position);
+
+  return days.map((day) => {
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const row: Record<string, unknown> = {
+      date: format(day, "dd/MM", { locale: fr }),
+      _raw: day,
+    };
+
+    for (const col of sortedCols) {
+      const sum = items
+        .filter(
+          (item) =>
+            item.columnId === col.id &&
+            new Date(item.createdAt) <= dayEnd,
+        )
+        .reduce((acc, item) => acc + (item.value ?? 0), 0);
+      row[col.id] = sum;
+    }
+
+    return row;
+  });
+}
+
+const formatEuro = (value: number) =>
+  `${Math.round(value).toLocaleString("fr-FR")} €`;
+
+/**
  * Build control chart data: cycle time per completed item.
  */
 function buildControlChartData(
@@ -172,6 +223,15 @@ export default function KanbanStatsDialog({
     [items, resolvedDoneIds],
   );
 
+  const hasValues = useMemo(
+    () => items.some((i) => (i.value ?? 0) > 0),
+    [items],
+  );
+  const valueCfdData = useMemo(
+    () => (hasValues ? buildValueCFDData(items, columns) : []),
+    [hasValues, items, columns],
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full sm:max-w-3xl max-h-[85vh] overflow-y-auto">
@@ -182,6 +242,9 @@ export default function KanbanStatsDialog({
         <Tabs defaultValue="cfd" className="w-full">
           <TabsList className="w-full">
             <TabsTrigger value="cfd" className="flex-1">Flux cumulé</TabsTrigger>
+            {hasValues && (
+              <TabsTrigger value="value-cfd" className="flex-1">Flux cumulé de valeur</TabsTrigger>
+            )}
             <TabsTrigger value="control" className="flex-1">Carte de contrôle</TabsTrigger>
           </TabsList>
 
@@ -236,6 +299,65 @@ export default function KanbanStatsDialog({
               Le diagramme de flux cumulé montre l'évolution du nombre d'éléments par colonne au fil du temps.
             </p>
           </TabsContent>
+
+          {hasValues && (
+            <TabsContent value="value-cfd" className="mt-4">
+              {valueCfdData.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  Pas encore de données pour le diagramme de flux cumulé de valeur.
+                </p>
+              ) : (
+                <div className="h-[350px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={valueCfdData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11 }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        width={70}
+                        tickFormatter={(v: number) => formatEuro(v)}
+                      />
+                      <Tooltip
+                        contentStyle={{ fontSize: 12 }}
+                        labelStyle={{ fontWeight: "bold" }}
+                        formatter={(value: number, name: string) => [formatEuro(value), name]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      {reversedCols.map((col) => {
+                        const isWon = wonColumnIds.includes(col.id);
+                        const isLost = lostColumnIds.includes(col.id);
+                        const originalIndex = sortedCols.findIndex((c) => c.id === col.id);
+                        const color = isWon
+                          ? WON_COLOR
+                          : isLost
+                            ? LOST_COLOR
+                            : col.color || CHART_COLORS[originalIndex % CHART_COLORS.length];
+                        return (
+                          <Area
+                            key={col.id}
+                            type="monotone"
+                            dataKey={col.id}
+                            name={col.name}
+                            stackId="1"
+                            stroke={color}
+                            fill={color}
+                            fillOpacity={isWon || isLost ? 0.75 : 0.6}
+                          />
+                        );
+                      })}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Le diagramme de flux cumulé de valeur montre l'évolution de la somme des montants par colonne au fil du temps.
+              </p>
+            </TabsContent>
+          )}
 
           <TabsContent value="control" className="mt-4">
             {controlChart.points.length === 0 ? (
