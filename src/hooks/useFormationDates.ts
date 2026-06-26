@@ -73,8 +73,12 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
             date_label: formatSessionLabel(t.start_date as string, t.end_date as string),
             is_default: idx === 0,
             location: (t.location as string | null) ?? null,
-            is_permanent: t.format_formation === "e_learning",
+            // A session is treated as "permanent" only when it has no real date range
+            // (start == end). Cohort sessions with explicit dates always display their dates,
+            // even in e-learning format.
+            is_permanent: false,
           }));
+
 
         setFormationDates(rows);
       } catch (error) {
