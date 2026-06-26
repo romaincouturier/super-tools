@@ -10562,6 +10562,7 @@ export type Database = {
           assigned_user_ids: string[]
           body: string
           cluster_id: string | null
+          comment: string
           content_type: string
           created_at: string
           created_by: string | null
@@ -10585,6 +10586,7 @@ export type Database = {
           assigned_user_ids?: string[]
           body?: string
           cluster_id?: string | null
+          comment?: string
           content_type?: string
           created_at?: string
           created_by?: string | null
@@ -10608,6 +10610,7 @@ export type Database = {
           assigned_user_ids?: string[]
           body?: string
           cluster_id?: string | null
+          comment?: string
           content_type?: string
           created_at?: string
           created_by?: string | null
