@@ -55,7 +55,10 @@ const minimalParams = {
   paymentMode: "invoice" as const,
   soldPriceHt: "",
   generateCoupon: false,
+  typeStagiaireBpf: "",
+  sourceFinancementBpf: "",
 };
+
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
