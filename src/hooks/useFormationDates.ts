@@ -48,12 +48,10 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
       try {
         setLoadingDates(true);
         if (!catalogId) {
-          console.info("[useFormationDates] no catalogId yet, skipping");
           setFormationDates([]);
           return;
         }
         const today = todayAsISO();
-        console.info("[useFormationDates] querying", { catalogId, today });
         const { data, error } = await supabase
           .from("trainings")
           .select("id, training_name, start_date, end_date, format_formation, session_type, location, catalog_id")
@@ -64,7 +62,7 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
           .order("start_date", { ascending: true });
 
         if (error) throw error;
-        console.info("[useFormationDates] received", data?.length ?? 0, "rows", data);
+
 
         const rows: FormationDate[] = (data || [])
           .filter((t) => t.start_date && t.end_date)
@@ -73,8 +71,12 @@ export function useFormationDates(user: User | null, _initialDefaultsApplied: bo
             date_label: formatSessionLabel(t.start_date as string, t.end_date as string),
             is_default: idx === 0,
             location: (t.location as string | null) ?? null,
-            is_permanent: t.format_formation === "e_learning",
+            // A session is treated as "permanent" only when it has no real date range
+            // (start == end). Cohort sessions with explicit dates always display their dates,
+            // even in e-learning format.
+            is_permanent: false,
           }));
+
 
         setFormationDates(rows);
       } catch (error) {
