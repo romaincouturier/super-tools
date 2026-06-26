@@ -96,12 +96,13 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   }, [open, company, opportunityTitle, contactEmail, initialSummary, defaultFormality]);
 
   const handleFormalityChange = (next: Formality) => {
+    if (next === formality) return;
     setFormality(next);
-    // Swap to matching template unless the user has manually edited the description.
-    if (!descriptionDirtyRef.current) {
-      setDescription(descriptionFor(next));
-    }
+    // Toggling tu/vous always swaps the message to the matching template.
+    setDescription(descriptionFor(next));
+    descriptionDirtyRef.current = false;
   };
+
 
 
   const handleOpen = (v: boolean) => {
