@@ -1,0 +1,1 @@
+UPDATE training_participants SET email = 'i.robert@ccfd-terresolidaire.org' WHERE id = '205c06f3-408f-4901-9e59-6f1f33fcb45f';
