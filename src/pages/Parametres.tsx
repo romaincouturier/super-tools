@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useModuleAccess } from "@/hooks/useModuleAccess";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import SettingsSearch from "@/components/settings/SettingsSearch";
+import { SETTINGS_CATALOG, type SettingsCatalogEntry } from "@/components/settings/settingsCatalog";
 import { useSettingsManager } from "@/hooks/useSettingsManager";
 import { useSettingsAlerts, type SettingsTabKey } from "@/hooks/useSettingsAlerts";
 import { AlertDot } from "@/components/ui/alert-dot";
@@ -35,6 +38,34 @@ const Parametres = () => {
   const { hasAccess, isAdmin, loading: accessLoading } = useModuleAccess();
   const { loading, settings, updateSetting, hasGoogleDrive, autoSaveStatus, initialLoadDone } = useSettingsManager();
   const { byTab: tabAlerts } = useSettingsAlerts();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState("general");
+
+  /** Switch to the entry's tab and scroll/highlight its field (if any). */
+  const goToSetting = (entry: SettingsCatalogEntry) => {
+    setActiveTab(entry.tab);
+    if (!entry.anchorId) return;
+    // Wait for the (lazily mounted) tab content to render before scrolling.
+    window.setTimeout(() => {
+      const el = document.getElementById(entry.anchorId!);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary", "ring-offset-2", "rounded-md");
+      window.setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-2"), 2200);
+      if (el instanceof HTMLElement) el.focus({ preventScroll: true });
+    }, 140);
+  };
+
+  // Deep link: /parametres?find=<id> (used by the global Cmd+K palette).
+  useEffect(() => {
+    const find = searchParams.get("find");
+    if (!find) return;
+    const entry = SETTINGS_CATALOG.find((e) => e.id === find);
+    if (entry) goToSetting(entry);
+    searchParams.delete("find");
+    setSearchParams(searchParams, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   /** Tab label wrapper that appends a red dot when the tab has an alert. */
   const tabLabel = (key: SettingsTabKey, label: string) => (
@@ -78,7 +109,10 @@ const Parametres = () => {
     <ModuleLayout>
       <main className="max-w-6xl mx-auto p-6">
         <PageHeader icon={Settings} title="Paramètres" />
-        <Tabs defaultValue="general" className="space-y-6">
+        <div className="mb-4">
+          <SettingsSearch isAdmin={isAdmin} onSelect={goToSetting} />
+        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1">
             <TabsTrigger value="profile" className="flex items-center gap-2"><UserCircle className="h-4 w-4" />Mon profil</TabsTrigger>
             <TabsTrigger value="general" className="flex items-center gap-2"><Cog className="h-4 w-4" />{tabLabel("general", "Général")}</TabsTrigger>

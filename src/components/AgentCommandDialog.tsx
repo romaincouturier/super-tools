@@ -1,8 +1,10 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Bot, Send, ArrowRight } from "lucide-react";
+import { Bot, Send, ArrowRight, Cog } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useModuleAccess } from "@/hooks/useModuleAccess";
+import { SETTINGS_CATALOG, SETTINGS_TAB_LABELS, matchesSettingQuery } from "@/components/settings/settingsCatalog";
 
 const QUICK_ACTIONS = [
   { label: "Résumé CRM de la semaine", query: "Donne-moi un résumé de l'activité CRM cette semaine : nouvelles opportunités, relances en attente, deals gagnés/perdus." },
@@ -16,6 +18,17 @@ export default function AgentCommandDialog() {
   const [input, setInput] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useModuleAccess();
+
+  const settingsMatches = input.trim()
+    ? SETTINGS_CATALOG.filter((e) => (isAdmin || !e.adminOnly) && matchesSettingQuery(e, input)).slice(0, 6)
+    : [];
+
+  const goToSetting = (id: string) => {
+    setOpen(false);
+    setInput("");
+    navigate(`/parametres?find=${encodeURIComponent(id)}`);
+  };
 
   // Listen for Cmd+K / Ctrl+K
   useEffect(() => {
@@ -73,6 +86,26 @@ export default function AgentCommandDialog() {
           </Button>
         </div>
         <div className="p-2 max-h-[280px] overflow-y-auto">
+          {settingsMatches.length > 0 && (
+            <div className="mb-1">
+              <p className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                Paramètres
+              </p>
+              {settingsMatches.map((entry) => (
+                <button
+                  key={entry.id}
+                  onClick={() => goToSetting(entry.id)}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-sm text-left hover:bg-muted transition-colors group"
+                >
+                  <Cog className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
+                  <span className="flex-1 truncate">{entry.label}</span>
+                  <span className="ml-auto pl-2 text-[10px] text-muted-foreground shrink-0">
+                    {SETTINGS_TAB_LABELS[entry.tab]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           <p className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
             Actions rapides
           </p>
