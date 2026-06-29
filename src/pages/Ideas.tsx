@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Lightbulb, Plus, ThumbsUp, ArrowUpRight, Trash2, Image as ImageIcon, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Lightbulb, Plus, ThumbsUp, ArrowUpRight, Trash2, Image as ImageIcon, X, BarChart3, Loader2 } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useConfirm } from "@/hooks/useConfirm";
-import { useIdeas, IDEA_COLUMNS, IDEA_STATUS_CONFIG, type Idea, type IdeaStatus } from "@/hooks/useIdeas";
+import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
+import type { KanbanColumnDef, KanbanStatsItem } from "@/types/kanban";
+import {
+  useIdeas,
+  IDEA_COLUMNS,
+  IDEA_STATUS_CONFIG,
+  IMPACT_WEIGHT,
+  type Idea,
+  type IdeaStatus,
+  type SimilarIdea,
+} from "@/hooks/useIdeas";
+
+const STATS_COLUMN_COLORS: Record<IdeaStatus, string> = {
+  nouvelle: "#3b82f6",
+  a_l_etude: "#f59e0b",
+  acceptee: "#10b981",
+  promue: "#8b5cf6",
+  realisee: "#22c55e",
+  rejetee: "#ef4444",
+};
+
+const IDEA_STATS_COLUMNS: KanbanColumnDef[] = IDEA_COLUMNS.map((s, i) => ({
+  id: s,
+  name: IDEA_STATUS_CONFIG[s].label,
+  position: i,
+  color: STATS_COLUMN_COLORS[s],
+}));
 
 function IdeaCard({
   idea,
@@ -72,6 +98,14 @@ function IdeaCard({
         </div>
       )}
 
+      {(idea.ai_category || idea.ai_impact || idea.ai_effort) && (
+        <div className="flex flex-wrap gap-1">
+          {idea.ai_category && <Badge variant="outline" className="text-[10px]">{idea.ai_category}</Badge>}
+          {idea.ai_impact && <Badge variant="secondary" className="text-[10px]">Impact {idea.ai_impact}</Badge>}
+          {idea.ai_effort && <Badge variant="secondary" className="text-[10px]">Effort {idea.ai_effort}</Badge>}
+        </div>
+      )}
+
       <div className="flex items-center gap-1.5 pt-1">
         <Select value={idea.status} onValueChange={(v) => onStatus(idea.id, v as IdeaStatus)}>
           <SelectTrigger className="h-7 text-xs flex-1">
@@ -114,23 +148,38 @@ function NewIdeaDialog({
   open,
   onOpenChange,
   onCreate,
+  onFindSimilar,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreate: (input: { title: string; description: string; tags: string[]; file: File | null }) => Promise<void>;
+  onFindSimilar: (query: string) => Promise<SimilarIdea[]>;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [similar, setSimilar] = useState<SimilarIdea[]>([]);
+  const [searching, setSearching] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const q = title.trim();
+    if (q.length < 4) { setSimilar([]); return; }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try { setSimilar(await onFindSimilar(q)); } finally { setSearching(false); }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [title, onFindSimilar]);
 
   const reset = () => {
     setTitle("");
     setDescription("");
     setTags("");
     setFile(null);
+    setSimilar([]);
   };
 
   const submit = async () => {
@@ -168,6 +217,27 @@ function NewIdeaDialog({
               placeholder="Décrivez l'idée en une phrase"
               autoFocus
             />
+            {(searching || similar.length > 0) && (
+              <div className="rounded-md border bg-muted/40 p-2 mt-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                  {searching && <Loader2 className="h-3 w-3 animate-spin" />}
+                  Idées proches déjà existantes
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {similar.map((s) => (
+                    <li key={s.id} className="text-xs flex items-center gap-1.5">
+                      <span className={`px-1 rounded text-[10px] ${IDEA_STATUS_CONFIG[s.status].color}`}>
+                        {IDEA_STATUS_CONFIG[s.status].label}
+                      </span>
+                      <span className="truncate">{s.title}</span>
+                    </li>
+                  ))}
+                  {!searching && similar.length === 0 && (
+                    <li className="text-xs text-muted-foreground">Aucune idée similaire — c'est nouveau 👍</li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="idea-desc">Description (optionnel)</Label>
@@ -226,9 +296,22 @@ function NewIdeaDialog({
 }
 
 export default function Ideas() {
-  const { grouped, loading, createIdea, toggleVote, changeStatus, promoteIdea, removeIdea } = useIdeas();
+  const { ideas, grouped, loading, createIdea, toggleVote, changeStatus, promoteIdea, removeIdea, findSimilarIdeas } = useIdeas();
   const { confirm, ConfirmDialog } = useConfirm();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+
+  const statsItems: KanbanStatsItem[] = useMemo(
+    () =>
+      ideas.map((i) => ({
+        id: i.id,
+        columnId: i.status,
+        createdAt: i.created_at,
+        completedAt: i.status === "realisee" || i.status === "rejetee" ? i.updated_at : null,
+        value: i.ai_impact ? IMPACT_WEIGHT[i.ai_impact] ?? 1 : 1,
+      })),
+    [ideas],
+  );
 
   const handleDelete = async (id: string) => {
     const ok = await confirm({
@@ -245,10 +328,16 @@ export default function Ideas() {
           icon={Lightbulb}
           title="Boîte à idées"
           actions={
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Nouvelle idée</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setStatsOpen(true)} title="Statistiques">
+                <BarChart3 className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Statistiques</span>
+              </Button>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Nouvelle idée</span>
+              </Button>
+            </div>
           }
         />
 
@@ -284,7 +373,21 @@ export default function Ideas() {
           </div>
         )}
 
-        <NewIdeaDialog open={dialogOpen} onOpenChange={setDialogOpen} onCreate={createIdea} />
+        <NewIdeaDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onCreate={createIdea}
+          onFindSimilar={findSimilarIdeas}
+        />
+        <KanbanStatsDialog
+          open={statsOpen}
+          onOpenChange={setStatsOpen}
+          columns={IDEA_STATS_COLUMNS}
+          items={statsItems}
+          doneColumnIds={["realisee", "rejetee"]}
+          wonColumnIds={["realisee"]}
+          lostColumnIds={["rejetee"]}
+        />
         <ConfirmDialog />
       </main>
     </ModuleLayout>

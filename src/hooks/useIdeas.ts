@@ -21,12 +21,26 @@ export interface Idea {
   tags: string[];
   status: IdeaStatus;
   promoted_to_improvement_id: string | null;
+  ai_category: string | null;
+  ai_impact: string | null;
+  ai_effort: string | null;
+  ai_summary: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
   vote_count: number;
   has_voted: boolean;
 }
+
+export interface SimilarIdea {
+  id: string;
+  title: string;
+  status: IdeaStatus;
+  similarity: number;
+}
+
+/** Poids numérique de l'impact IA, pour le flux cumulé de valeur. */
+export const IMPACT_WEIGHT: Record<string, number> = { faible: 1, moyen: 2, fort: 3 };
 
 export const IDEA_STATUS_CONFIG: Record<IdeaStatus, { label: string; color: string }> = {
   nouvelle: { label: "Nouvelle", color: "bg-blue-100 text-blue-800" },
@@ -120,15 +134,18 @@ export function useIdeas() {
       try {
         let imageUrl: string | null = null;
         if (input.file) imageUrl = await uploadIdeaFile(input.file);
-        const { error } = await anyDb.from("ideas").insert({
+        const { data: created, error } = await anyDb.from("ideas").insert({
           title: input.title.trim(),
           description: input.description?.trim() || null,
           tags: input.tags ?? [],
           image_url: imageUrl,
           created_by: user?.id ?? null,
-        } as never);
+        } as never).select("id").single();
         if (error) throw error;
         toast({ title: "Idée ajoutée" });
+        // Enrichissement IA en tâche de fond (non bloquant)
+        const newId = (created as { id?: string } | null)?.id;
+        if (newId) supabase.functions.invoke("enrich-idea", { body: { id: newId } }).catch(() => {});
         await fetchIdeas();
       } catch (err) {
         toastError(toast, err);
@@ -193,6 +210,15 @@ export function useIdeas() {
     [user?.id, toast, fetchIdeas],
   );
 
+  const findSimilarIdeas = useCallback(async (query: string, excludeId?: string): Promise<SimilarIdea[]> => {
+    if (!query || query.trim().length < 4) return [];
+    const { data, error } = await supabase.functions.invoke("find-similar-ideas", {
+      body: { query, excludeId },
+    });
+    if (error) return [];
+    return ((data as { matches?: SimilarIdea[] } | null)?.matches ?? []);
+  }, []);
+
   const removeIdea = useCallback(
     async (id: string) => {
       const { error } = await anyDb.from("ideas").delete().eq("id", id);
@@ -215,6 +241,7 @@ export function useIdeas() {
     changeStatus,
     promoteIdea,
     removeIdea,
+    findSimilarIdeas,
     refresh: fetchIdeas,
   };
 }
