@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   escapeHtml,
 } from "../_shared/mod.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -193,6 +194,7 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Error processing chatbot query:", error);
+    await reportEdgeError(error, { fn: "chatbot-query" });
     const errorMessage = error instanceof Error ? error.message : "Failed to process query";
     return createErrorResponse(errorMessage);
   }

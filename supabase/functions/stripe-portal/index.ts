@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
@@ -82,6 +83,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Portal error:", error);
+    await reportEdgeError(error, { fn: "stripe-portal" });
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

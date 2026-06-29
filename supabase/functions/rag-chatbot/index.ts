@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
@@ -138,6 +139,7 @@ Règles :
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
+    await reportEdgeError(error, { fn: "rag-chatbot" });
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

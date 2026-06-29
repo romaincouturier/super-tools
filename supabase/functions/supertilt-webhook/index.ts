@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -704,6 +705,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("supertilt-webhook error:", message);
+    await reportEdgeError(err, { fn: "supertilt-webhook" });
     await updateLog({ status: "error", response_status: 500, error_message: message, processed_at: new Date().toISOString() });
     return new Response(JSON.stringify({ error: message, log_id: logId }), {
       status: 500,
