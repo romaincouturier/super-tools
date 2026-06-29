@@ -19,6 +19,7 @@ import {
 } from "./cors.ts";
 import { verifyAuth } from "./supabase-client.ts";
 import { resolveContentType as defaultResolveContentType } from "./file-utils.ts";
+import { reportEdgeError } from "./sentry.ts";
 
 export interface UploadConfig<TParams> {
   /** Storage bucket name. */
@@ -164,6 +165,7 @@ export async function handleFileUpload<TParams>(
       responseData = await config.persist(admin, params, fileUrl, filePath, file, userId);
     } catch (persistError) {
       console.error(`[${fnName}] persist error — rolling back storage`, persistError);
+      await reportEdgeError(persistError, { fn: fnName, phase: "persist" });
       await admin.storage.from(config.bucket).remove([filePath]);
       const msg =
         persistError instanceof Error
@@ -175,6 +177,7 @@ export async function handleFileUpload<TParams>(
     return createJsonResponse(responseData);
   } catch (error) {
     console.error(`[${fnName}] unexpected error`, error);
+    await reportEdgeError(error, { fn: fnName });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

@@ -18,6 +18,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { fetchWorkingDays, subtractWorkingDays, addWorkingDays } from "../_shared/working-days.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 
@@ -718,6 +719,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[add-training-participant] Unhandled error:", message);
+    await reportEdgeError(err, { fn: "add-training-participant" });
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
