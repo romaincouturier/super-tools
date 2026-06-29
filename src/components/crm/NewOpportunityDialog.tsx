@@ -101,15 +101,24 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
   const entrantColumn = boardData?.columns.find((col) => col.name === "Entrant") || boardData?.columns[0];
 
   // When opened with an initialContact, skip extraction and prefill the review step.
+  // Only seed when the dialog transitions to open, to avoid wiping user edits
+  // on every parent re-render (initialContact is an inline object literal).
+  const initialContactRef = useRef(initialContact);
+  initialContactRef.current = initialContact;
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (!open || !initialContact) return;
+    if (!open) { wasOpenRef.current = false; return; }
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
+    const contact = initialContactRef.current;
+    if (!contact) return;
     const seeded: OpportunityExtraction = {
-      first_name: initialContact.first_name ?? null,
-      last_name: initialContact.last_name ?? null,
-      phone: initialContact.phone ?? null,
-      company: initialContact.company ?? null,
-      email: initialContact.email ?? null,
-      linkedin_url: initialContact.linkedin_url ?? null,
+      first_name: contact.first_name ?? null,
+      last_name: contact.last_name ?? null,
+      phone: contact.phone ?? null,
+      company: contact.company ?? null,
+      email: contact.email ?? null,
+      linkedin_url: contact.linkedin_url ?? null,
       service_type: null,
       title: "",
       brief_questions: [],
@@ -123,7 +132,7 @@ export function NewOpportunityDialog({ open, onOpenChange, userEmail, initialCon
     estimateValueFromHistory(seeded);
     fetchClientHistory(seeded.email, seeded.company);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialContact, forceAcquisitionSource]);
+  }, [open, forceAcquisitionSource]);
 
   // Estimate value from CRM history
   const estimateValueFromHistory = async (extraction: OpportunityExtraction) => {
