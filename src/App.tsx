@@ -1,6 +1,7 @@
 import { Suspense, lazy } from "react";
 import * as Sentry from "@sentry/react";
 import { AppErrorFallback } from "@/components/AppErrorFallback";
+import { useSentryInit } from "@/hooks/useSentryInit";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -140,7 +141,9 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
+const App = () => {
+  useSentryInit();
+  return (
   <Sentry.ErrorBoundary fallback={({ resetError }) => <AppErrorFallback resetError={resetError} />}>
   <QueryClientProvider client={queryClient}>
     <DemoModeProvider>
@@ -279,6 +282,7 @@ const App = () => (
     </DemoModeProvider>
   </QueryClientProvider>
   </Sentry.ErrorBoundary>
-);
+  );
+};
 
 export default App;

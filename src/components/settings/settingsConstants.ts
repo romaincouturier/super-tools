@@ -1369,6 +1369,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   fireflies_webhook_secret: { default: "", description: "Signing secret Fireflies pour valider les webhooks entrants (X-Webhook-Secret)" },
   google_drive_folder_transcripts: { default: "", description: "ID du dossier Google Drive pour les transcripts vidéo (polling automatique)" },
   google_drive_folder_testimonials: { default: "", description: "ID du dossier Google Drive pour les témoignages clients (polling automatique)" },
+  sentry_dsn: { default: "", description: "DSN Sentry pour le suivi des erreurs front (laisser vide pour désactiver). Public par conception. Actif en production uniquement." },
 };
 
 export const SETTINGS_DEFAULTS = Object.fromEntries(

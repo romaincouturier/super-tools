@@ -211,6 +211,22 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
 
           <Separator />
 
+          {/* Sentry — error monitoring */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium">Suivi des erreurs (Sentry)</h3>
+            <p className="text-sm text-muted-foreground">
+              Collez votre DSN Sentry pour activer le suivi des erreurs front. Créez un projet React sur{" "}
+              <a href="https://sentry.io" target="_blank" rel="noopener noreferrer" className="underline text-primary">sentry.io</a>{" "}
+              pour l'obtenir. Le DSN est public par conception. Le suivi n'est actif qu'en production et prend effet au prochain chargement de l'application. Laissez vide pour désactiver.
+            </p>
+            <div className="space-y-2 max-w-lg">
+              <Label htmlFor="sentry-dsn">Sentry DSN</Label>
+              <Input id="sentry-dsn" type="password" value={settings.sentry_dsn} onChange={(e) => updateSetting("sentry_dsn", e.target.value.trim())} placeholder="https://...@o000000.ingest.sentry.io/000000" />
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Delays section */}
           <SettingsGeneralDelays settings={settings} updateSetting={updateSetting} />
 
