@@ -1,5 +1,11 @@
 project_id = "yewffntzgrdgztrwtava"
 
+[functions.enrich-idea]
+verify_jwt = false
+
+[functions.ideas-weekly-digest]
+verify_jwt = false
+
 [functions.generate-practice-hashtags]
 verify_jwt = false
 

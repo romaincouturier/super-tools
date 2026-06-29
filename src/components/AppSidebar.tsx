@@ -70,6 +70,7 @@ const NAV_CONFIG: NavConfig[] = [
       { key: "ameliorations" },
     ],
   },
+  { type: "item", key: "ideas" },
   { type: "item", key: "okr" },
   { type: "item", key: "finances" },
   { type: "item", key: "events" },
@@ -122,6 +123,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const routingInboxAlert = useRoutingInboxAlert();
   const supportAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.support", table: "support_tickets", route: "/support" });
   const crmAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.crm", table: "crm_cards", route: "/crm" });
+  const ideasAlert = useNewItemsAlert({ storageKey: "supertools.lastSeen.ideas", table: "ideas", route: "/ideas" });
   const edgeFunctionsAlert = useEdgeFunctionsAlert();
   const emailDraftsAlert = useEmailDraftsAlert();
   const { data: communityPending } = useCommunityPendingPosts();
@@ -277,6 +279,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
               : entry.key === "crm" ? crmAlert
               : entry.key === "lms" ? lmsAlert
               : entry.key === "missions" ? missionsAlert
+              : entry.key === "ideas" ? ideasAlert
               : undefined;
             return (
               <RailItem

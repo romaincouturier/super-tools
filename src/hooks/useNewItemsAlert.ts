@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export function useNewItemsAlert(opts: {
   storageKey: string;
-  table: "support_tickets" | "crm_cards" | "training_evaluations" | "questionnaire_besoins";
+  table: "support_tickets" | "crm_cards" | "training_evaluations" | "questionnaire_besoins" | "ideas";
   route: string;
 }): boolean {
   const { storageKey, table, route } = opts;

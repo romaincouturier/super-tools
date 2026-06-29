@@ -38,6 +38,7 @@ const SponsorEvaluation = lazy(() => import("./pages/SponsorEvaluation"));
 const Evaluations = lazy(() => import("./pages/Evaluations"));
 const FormulaireRedirect = lazy(() => import("./pages/FormulaireRedirect"));
 const Ameliorations = lazy(() => import("./pages/Ameliorations"));
+const Ideas = lazy(() => import("./pages/Ideas"));
 const PolitiqueConfidentialite = lazy(() => import("./pages/PolitiqueConfidentialite"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -217,6 +218,7 @@ const App = () => {
                 <Route path="/besoins" element={<BesoinsParticipants />} />
                 <Route path="/evaluations" element={<Evaluations />} />
                 <Route path="/ameliorations" element={<Ameliorations />} />
+                <Route path="/ideas" element={<Ideas />} />
                 <Route path="/contenu" element={<ContentBoard />} />
                 <Route path="/chatbot-admin" element={<ChatbotAdmin />} />
                 <Route path="/emails" element={<InboundEmails />} />
