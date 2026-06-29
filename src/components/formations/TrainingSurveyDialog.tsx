@@ -132,7 +132,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
   const { toast: useToastFn } = useToast();
   const { copy, copied } = useCopyToClipboard();
   const { data: survey } = useTrainingSurvey(trainingId);
-  const { data: questions = [] } = useTrainingSurveyQuestions(survey?.id ?? "");
+  const { data: questions } = useTrainingSurveyQuestions(survey?.id ?? "");
   const upsertSurvey = useUpsertTrainingSurvey();
   const upsertQuestion = useUpsertTrainingSurveyQuestion();
   const deleteQuestion = useDeleteTrainingSurveyQuestion();
@@ -162,7 +162,7 @@ export default function TrainingSurveyDialog({ trainingId, trainingName, partici
     }
   }, [survey?.id, trainingName]);
 
-  useEffect(() => { setLocalQuestions(questions); }, [questions]);
+  useEffect(() => { if (questions) setLocalQuestions(questions); }, [questions]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
