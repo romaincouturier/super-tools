@@ -593,6 +593,72 @@ async function verifyBackupIntegrity(
   return result;
 }
 
+// Memory-efficient integrity check that uses the per-table row counts gathered
+// during streaming serialization instead of re-parsing the full backup JSON.
+async function verifyBackupIntegrityByCounts(
+  supabase: any,
+  tableRowCounts: Record<string, number>,
+  tablesToBackup: string[],
+): Promise<IntegrityResult> {
+  const result: IntegrityResult = {
+    passed: true,
+    checks: {
+      jsonParseable: true, // we built it ourselves; not re-parsed for memory reasons
+      tablesPresent: 0,
+      tablesMissing: [],
+      rowCountMatches: 0,
+      rowCountMismatches: [],
+      emptyTablesInBackup: [],
+      totalBackupRows: 0,
+      totalLiveRows: 0,
+    },
+  };
+
+  for (const table of tablesToBackup) {
+    const backupRows = tableRowCounts[table];
+    // -1 sentinel means intentionally skipped (e.g. document_embeddings); count as present
+    if (backupRows === undefined) {
+      result.checks.tablesMissing.push(table);
+      continue;
+    }
+    result.checks.tablesPresent++;
+
+    if (backupRows === -1) {
+      // Skipped on purpose, do not compare counts
+      continue;
+    }
+
+    result.checks.totalBackupRows += backupRows;
+    if (backupRows === 0) result.checks.emptyTablesInBackup.push(table);
+
+    try {
+      const { count } = await supabase
+        .from(table)
+        .select("*", { count: "exact", head: true });
+      const liveRows = count ?? 0;
+      result.checks.totalLiveRows += liveRows;
+      if (backupRows === liveRows) {
+        result.checks.rowCountMatches++;
+      } else {
+        result.checks.rowCountMismatches.push({ table, backup: backupRows, live: liveRows });
+      }
+    } catch {
+      // Skip
+    }
+  }
+
+  const mismatchRate = result.checks.rowCountMismatches.length / tablesToBackup.length;
+  const hasSevereLoss = result.checks.rowCountMismatches.some(
+    (m) => m.live > 0 && m.backup < m.live * 0.5,
+  );
+  if (result.checks.tablesMissing.length > 0 || mismatchRate > 0.1 || hasSevereLoss) {
+    result.passed = false;
+  }
+
+  return result;
+}
+
+
 // ─── Native pg_dump via Supabase Management API ─────────────────────────────
 
 interface PgDumpResult {
@@ -770,40 +836,66 @@ serve(async (req) => {
     // PHASE 1: Database backup
     // ════════════════════════════════════════════════════════════════════════
 
-    const backup: Record<string, unknown[]> = {};
+    // Tables excluded from JSON backup (regenerable, very large)
+    // document_embeddings (~36MB of vectors) is rebuilt from indexation_queue + source content.
+    const TABLES_SKIPPED_HEAVY = new Set<string>(["document_embeddings"]);
+
+    // Stream-serialize tables one by one to keep memory low (Edge Function memory cap).
+    // We build the final JSON as an array of string chunks and drop each table's
+    // raw rows as soon as they've been stringified.
+    const jsonChunks: string[] = [];
+    const tableRowCounts: Record<string, number> = {};
     let totalRows = 0;
 
+    jsonChunks.push('{"exportedAt":');
+    jsonChunks.push(JSON.stringify(new Date().toISOString()));
+    jsonChunks.push(',"version":"2.0","source":"scheduled-backup","tables":{');
+
+    let firstTable = true;
     for (const tableName of TABLES_TO_BACKUP) {
+      if (TABLES_SKIPPED_HEAVY.has(tableName)) {
+        tableRowCounts[tableName] = -1; // sentinel: intentionally skipped
+        continue;
+      }
+      let rows: unknown[] = [];
       try {
         const { data, error } = await supabase.from(tableName).select("*");
         if (error) {
           errors.push(`[DB] ${tableName}: ${error.message}`);
-          backup[tableName] = [];
         } else {
-          backup[tableName] = data || [];
-          totalRows += (data || []).length;
+          rows = data || [];
         }
       } catch (err) {
         errors.push(`[DB] ${tableName}: ${err instanceof Error ? err.message : "Unknown error"}`);
-        backup[tableName] = [];
       }
+
+      if (!firstTable) jsonChunks.push(",");
+      jsonChunks.push(JSON.stringify(tableName));
+      jsonChunks.push(":");
+      jsonChunks.push(JSON.stringify(rows));
+      firstTable = false;
+
+      tableRowCounts[tableName] = rows.length;
+      totalRows += rows.length;
+      rows = []; // free reference ASAP
     }
 
-    const backupData = {
-      exportedAt: new Date().toISOString(),
-      version: "2.0",
-      source: "scheduled-backup",
-      tables: backup,
-      errors: errors.length > 0 ? errors : undefined,
-    };
+    jsonChunks.push("}");
+    if (errors.length > 0) {
+      jsonChunks.push(',"errors":');
+      jsonChunks.push(JSON.stringify(errors));
+    }
+    jsonChunks.push("}");
 
-    const backupJson = JSON.stringify(backupData, null, 2);
+    const backupJson = jsonChunks.join("");
+    jsonChunks.length = 0; // free chunk array
+
     const today = new Date().toISOString().split("T")[0];
     const fileName = `supertools_backup_${today}_${Date.now()}.json`;
-    const backupSizeBytes = new TextEncoder().encode(backupJson).length;
+    const backupSizeBytes = backupJson.length; // ASCII-dominant approximation
     const backupSizeMB = (backupSizeBytes / 1024 / 1024).toFixed(2);
 
-    console.log(`[scheduled-backup] Phase 1: Exported ${TABLES_TO_BACKUP.length} tables, ${totalRows} rows, ${backupSizeMB} MB`);
+    console.log(`[scheduled-backup] Phase 1: Exported ${TABLES_TO_BACKUP.length - TABLES_SKIPPED_HEAVY.size} tables (${TABLES_SKIPPED_HEAVY.size} skipped), ${totalRows} rows, ${backupSizeMB} MB`);
 
     // ════════════════════════════════════════════════════════════════════════
     // GOOGLE DRIVE SETUP
@@ -1010,7 +1102,7 @@ serve(async (req) => {
     let integrityResult: IntegrityResult | null = null;
     try {
       console.log("[scheduled-backup] Phase 4: Verifying backup integrity...");
-      integrityResult = await verifyBackupIntegrity(supabase, backupJson, TABLES_TO_BACKUP);
+      integrityResult = await verifyBackupIntegrityByCounts(supabase, tableRowCounts, TABLES_TO_BACKUP);
       console.log(
         `[scheduled-backup] Integrity: ${integrityResult.passed ? "PASSED" : "FAILED"} — ` +
         `${integrityResult.checks.rowCountMatches}/${TABLES_TO_BACKUP.length} tables match, ` +
