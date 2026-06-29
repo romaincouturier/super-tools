@@ -3413,6 +3413,100 @@ export type Database = {
           },
         ]
       }
+      idea_votes: {
+        Row: {
+          created_at: string
+          idea_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          idea_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          idea_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_votes_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ideas: {
+        Row: {
+          ai_category: string | null
+          ai_effort: string | null
+          ai_enriched_at: string | null
+          ai_impact: string | null
+          ai_summary: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          embedding: string | null
+          id: string
+          image_url: string | null
+          org_id: string | null
+          promoted_to_improvement_id: string | null
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_category?: string | null
+          ai_effort?: string | null
+          ai_enriched_at?: string | null
+          ai_impact?: string | null
+          ai_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          embedding?: string | null
+          id?: string
+          image_url?: string | null
+          org_id?: string | null
+          promoted_to_improvement_id?: string | null
+          status?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_category?: string | null
+          ai_effort?: string | null
+          ai_enriched_at?: string | null
+          ai_impact?: string | null
+          ai_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          embedding?: string | null
+          id?: string
+          image_url?: string | null
+          org_id?: string | null
+          promoted_to_improvement_id?: string | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ideas_promoted_to_improvement_id_fkey"
+            columns: ["promoted_to_improvement_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       improvements: {
         Row: {
           category: string
@@ -11175,6 +11269,19 @@ export type Database = {
           source_id: string
           source_title: string
           source_type: string
+        }[]
+      }
+      match_ideas: {
+        Args: {
+          exclude_id?: string
+          match_count?: number
+          query_embedding: string
+        }
+        Returns: {
+          id: string
+          similarity: number
+          status: string
+          title: string
         }[]
       }
       match_watch_items: {
