@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { initSentry } from "./lib/sentry";
+import { initSentryFromCache } from "./lib/sentry";
 
-initSentry();
+initSentryFromCache();
 
 // Best-effort cleanup of legacy persistence layers (old Service Worker, old
 // React-Query IndexedDB cache). We never reload — that causes loops in the
