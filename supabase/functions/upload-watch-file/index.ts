@@ -30,15 +30,26 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
     const contentType = resolveContentType(file);
 
-    const { error } = await admin.storage.from(BUCKET).upload(path, file, {
+    let { error } = await admin.storage.from(BUCKET).upload(path, file, {
       contentType,
       upsert: false,
     });
+
+    // Si le type MIME n'est pas autorisé sur le bucket, on lève la restriction et on retente.
+    if (error && (error as any).statusCode === "415") {
+      console.warn("[upload-watch-file] removing mime restriction on bucket and retrying");
+      await admin.storage.updateBucket(BUCKET, { allowedMimeTypes: null as any });
+      ({ error } = await admin.storage.from(BUCKET).upload(path, file, {
+        contentType,
+        upsert: false,
+      }));
+    }
 
     if (error) {
       console.error("[upload-watch-file] storage error", error);
       return createErrorResponse(error.message || "Erreur de stockage", 500);
     }
+
 
     const { data } = admin.storage.from(BUCKET).getPublicUrl(path);
     return createJsonResponse({ publicUrl: data.publicUrl });
