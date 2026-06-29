@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { formatDateFr, formatDateFr as formatDateFrench } from "../_shared/date-utils.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -547,6 +548,7 @@ serve(async (req: Request): Promise<Response> => {
 
     throw new Error("Delai de generation PDF depasse");
   } catch (error: unknown) {
+    await reportEdgeError(error, { fn: "generate-convention-formation" });
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(

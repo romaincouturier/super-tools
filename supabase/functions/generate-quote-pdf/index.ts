@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
@@ -186,6 +187,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    await reportEdgeError(error, { fn: "generate-quote-pdf" });
     console.error("generate-quote-pdf error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),

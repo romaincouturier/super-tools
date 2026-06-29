@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -110,6 +111,7 @@ IMPORTANT : Retourne UNIQUEMENT le HTML, sans aucun wrapper markdown, sans \`\`\
 
     return createJsonResponse({ synthesis: raw });
   } catch (error: unknown) {
+    await reportEdgeError(error, { fn: "generate-quote-synthesis" });
     console.error("Error in generate-quote-synthesis:", error);
     const msg = error instanceof Error ? error.message : "Erreur inconnue";
     return createErrorResponse(msg);
