@@ -42,25 +42,21 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
     const res = await sendSentryTestEvent();
     if (res.ok) {
       toast({ title: "Événement reçu par Sentry ✅", description: `ID : ${res.eventId}` });
-      return;
-    }
-    if (res.reason === "network_blocked") {
+    } else if (res.reason === "network_blocked") {
       toast({
         title: "Sentry bloqué côté navigateur",
         description: "Un bloqueur de pubs (uBlock, Brave Shields, Ghostery, AdGuard…) bloque sentry.io. Désactivez-le sur ce domaine puis réessayez.",
         variant: "destructive",
       });
-      return;
-    }
-    if (res.reason === "flush_timeout") {
+    } else if (res.reason === "flush_timeout") {
       toast({
         title: "Sentry n'a pas confirmé la réception",
         description: "L'event a été émis mais le transport n'a pas pu vider sa file en 5 s. Cause probable : domaine non autorisé dans Sentry → Settings → Security & Privacy → Allowed Domains (ajoutez super-tools.lovable.app et *.lovable.app).",
         variant: "destructive",
       });
-      return;
+    } else {
+      toast({ title: "Sentry non initialisé", variant: "destructive" });
     }
-    toast({ title: "Sentry non initialisé", variant: "destructive" });
   };
 
   return (
