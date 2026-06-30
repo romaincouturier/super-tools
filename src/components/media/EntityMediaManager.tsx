@@ -127,11 +127,15 @@ const EntityMediaManager = ({
     );
   };
 
+  const openPresentationAt = (item: MediaItem) => {
+    setPresentationFullscreen(true);
+    setLightboxItem(item);
+  };
+
   const openPresentation = () => {
     const first = gridItems.find((m) => m.file_type === "image" || m.file_type === "video");
     if (!first) return;
-    setPresentationFullscreen(true);
-    setLightboxItem(first);
+    openPresentationAt(first);
   };
 
   const handleLightboxClose = () => {
@@ -659,6 +663,24 @@ const EntityMediaManager = ({
                       {item.file_type !== "audio" && (
                       <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex flex-col items-center justify-between p-2 z-10">
                         <div className="flex items-center justify-center gap-1 flex-1">
+                          {(item.file_type === "image" || item.file_type === "video") && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openPresentationAt(item);
+                                  }}
+                                >
+                                  <Play className="h-3.5 w-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Démarrer la présentation ici</TooltipContent>
+                            </Tooltip>
+                          )}
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
