@@ -6,6 +6,7 @@ interface DepositLike {
   file_name?: string | null;
   file_size?: number | null;
   file_mime?: string | null;
+  file_rotation?: number | null;
 }
 
 interface Props {
@@ -24,6 +25,9 @@ export default function DepositFilePreview({ deposit }: Props) {
   const isImage = mime.startsWith("image/");
   const isVideo = mime.startsWith("video/");
   const isPdf = mime === "application/pdf";
+  // Redressement persistant : on applique la rotation enregistree sur le depot
+  // (meme valeur cote admin et cote apprenant).
+  const rotation = (((deposit.file_rotation ?? 0) % 360) + 360) % 360;
 
   return (
     <div className="rounded-md border bg-muted/30 overflow-hidden">
@@ -32,6 +36,7 @@ export default function DepositFilePreview({ deposit }: Props) {
           src={deposit.file_url}
           alt={deposit.file_name || ""}
           className="w-full h-auto max-h-[420px] object-contain"
+          style={rotation ? { transform: `rotate(${rotation}deg)` } : undefined}
         />
       ) : isVideo ? (
         <video src={deposit.file_url} controls className="w-full h-auto max-h-[420px]" />

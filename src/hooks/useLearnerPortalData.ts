@@ -12,7 +12,7 @@ export function useLearnerWorkDeposits(email: string | null) {
       const { data, error } = await c
         .from("lms_work_deposits")
         .select(`
-          id, lesson_id, course_id, file_name, file_url, file_mime,
+          id, lesson_id, course_id, file_name, file_url, file_mime, file_rotation,
           comment, visibility, publication_status, pedagogical_status,
           created_at, updated_at,
           lms_courses ( title ),
@@ -70,7 +70,7 @@ export function usePracticeDeposits(courseIds: string[], learnerEmail?: string |
       const c = (learnerEmail ? createLearnerClient(learnerEmail) : supabase) as any;
       const { data, error } = await c
         .from("lms_work_deposits")
-        .select("id, lesson_id, course_id, learner_email, file_name, file_url, file_mime, comment, created_at")
+        .select("id, lesson_id, course_id, learner_email, file_name, file_url, file_mime, file_rotation, comment, created_at")
         .in("course_id", courseIds)
         .eq("publication_status", "published")
         .eq("visibility", "shared")

@@ -243,7 +243,15 @@ export function TravauxView({ email, trainings }: { email: string; trainings: Tr
 
                     {/* Image */}
                     {d.file_url && d.file_mime?.startsWith("image/") && (
-                      <img src={d.file_url} alt={d.file_name ?? "travail"} className="w-full object-cover" style={{ maxHeight: 420 }} />
+                      <img
+                        src={d.file_url}
+                        alt={d.file_name ?? "travail"}
+                        className="w-full object-cover"
+                        style={{
+                          maxHeight: 420,
+                          transform: d.file_rotation ? `rotate(${(((d.file_rotation % 360) + 360) % 360)}deg)` : undefined,
+                        }}
+                      />
                     )}
                     {d.file_url && !d.file_mime?.startsWith("image/") && (
                       <div className="mx-5 mb-3 rounded-xl flex items-center gap-3 p-3"

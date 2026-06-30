@@ -688,7 +688,16 @@ function DepositFeedCard({
         </p>
       )}
       {deposit.file_url && (isImage ? (
-        <img src={deposit.file_url} alt={deposit.file_name ?? ""} className="w-full" style={{ maxHeight: 480, objectFit: "cover" }} />
+        <img
+          src={deposit.file_url}
+          alt={deposit.file_name ?? ""}
+          className="w-full"
+          style={{
+            maxHeight: 480,
+            objectFit: "cover",
+            transform: deposit.file_rotation ? `rotate(${(((deposit.file_rotation % 360) + 360) % 360)}deg)` : undefined,
+          }}
+        />
       ) : (
         <a href={deposit.file_url} target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-2 px-4 py-3 border-t text-sm font-medium hover:bg-black/5"
