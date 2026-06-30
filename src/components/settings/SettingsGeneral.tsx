@@ -44,7 +44,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
       toast({ title: "Événement reçu par Sentry ✅", description: `ID : ${res.eventId}` });
       return;
     }
-    const reason = res.reason;
+    const reason = (res as { reason?: string }).reason;
     if (reason === "network_blocked") {
       toast({
         title: "Sentry bloqué côté navigateur",
