@@ -101,7 +101,7 @@ export default function DepositCommentList({ depositId, learnerEmail, canPost }:
           return (
             <li key={c.id} className="rounded-md border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-xs text-muted-foreground break-all">{isMine ? "Vous" : maskEmail(c.author_email)}</p>
+                <p className="text-xs text-muted-foreground break-all">{isMine ? "Vous" : (c.author_display_name || maskEmail(c.author_email))}</p>
                 <span className="text-[10px] text-muted-foreground shrink-0">
                   {new Date(c.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
                 </span>

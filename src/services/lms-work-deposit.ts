@@ -143,12 +143,28 @@ export async function uploadDepositFile(
 
 export async function fetchDepositComments(depositId: string, learnerEmail: string): Promise<DepositComment[]> {
   const c = clientFor(learnerEmail);
-  const { data, error } = await comments(c)
-    .select("*")
-    .eq("deposit_id", depositId)
-    .order("created_at", { ascending: true });
-  if (error) throw error;
-  return (data || []) as DepositComment[];
+  const [commentsRes, learnerProfilesRes, staffProfilesRes] = await Promise.all([
+    comments(c).select("*").eq("deposit_id", depositId).order("created_at", { ascending: true }),
+    supabase.from("learner_profiles").select("email, first_name, last_name"),
+    supabase.rpc("get_staff_public_profiles"),
+  ]);
+  if (commentsRes.error) throw commentsRes.error;
+
+  // Résolution du nom : le profil staff a priorité sur un éventuel profil
+  // apprenant de même email.
+  const profileMap = new Map<string, { first_name?: string | null; last_name?: string | null }>();
+  ((staffProfilesRes.data as { email: string; first_name?: string | null; last_name?: string | null }[]) || [])
+    .forEach((p) => profileMap.set(p.email, p));
+  ((learnerProfilesRes.data as { email: string; first_name?: string | null; last_name?: string | null }[]) || [])
+    .forEach((p) => { if (!profileMap.has(p.email)) profileMap.set(p.email, p); });
+
+  return ((commentsRes.data || []) as DepositComment[]).map((cm) => {
+    const p = profileMap.get(cm.author_email);
+    const name = p && (p.first_name || p.last_name)
+      ? [p.first_name, p.last_name].filter(Boolean).join(" ")
+      : null;
+    return { ...cm, author_display_name: name };
+  });
 }
 
 export async function createDepositComment(
