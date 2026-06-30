@@ -570,21 +570,6 @@ const EntityMediaManager = ({
                             <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <span className="text-sm font-medium truncate">{item.file_name}</span>
                             <div className="ml-auto flex items-center gap-1">
-                              {item.transcript && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={(e) => { e.stopPropagation(); copy(item.transcript!, { title: "Transcript copié" }); }}
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Copier le transcript</TooltipContent>
-                                </Tooltip>
-                              )}
                               {!item.transcript && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -616,8 +601,22 @@ const EntityMediaManager = ({
                           </div>
                           <audio src={item.file_url} controls className="w-full h-8" preload="metadata" />
                           {item.transcript && (
-                            <div className="mt-2 p-2 bg-background rounded border text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
-                              {item.transcript}
+                            <div className="mt-2 rounded border bg-background">
+                              <div className="flex items-center justify-between gap-2 border-b px-2 py-1">
+                                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Transcript</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs"
+                                  onClick={(e) => { e.stopPropagation(); copy(item.transcript!, { title: "Transcript copié" }); }}
+                                >
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  Copier
+                                </Button>
+                              </div>
+                              <div className="p-2 text-sm text-muted-foreground whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                {item.transcript}
+                              </div>
                             </div>
                           )}
                           {transcribingIds.has(item.id) && (
