@@ -100,13 +100,41 @@ export function isSentryActive(): boolean {
   return initialized;
 }
 
+export type SentryTestResult =
+  | { ok: true; eventId: string }
+  | { ok: false; reason: "not_initialized" | "flush_timeout" | "network_blocked"; detail?: string };
+
 /**
- * Sends a deliberate test event so the Sentry dashboard receives a first error.
- * Returns the event id, or null if Sentry is not active (dev/preview or no DSN).
+ * Sends a deliberate test event AND waits for the transport to flush so we can
+ * report whether the event truly reached Sentry. Detects the silent failure
+ * mode where an ad-blocker kills sentry.io requests while the SDK's transport
+ * swallows the error.
  */
-export function sendSentryTestEvent(): string | null {
-  if (!initialized) return null;
-  return Sentry.captureException(
+export async function sendSentryTestEvent(): Promise<SentryTestResult> {
+  if (!initialized) return { ok: false, reason: "not_initialized" };
+  const eventId = Sentry.captureException(
     new Error("Super Tools — événement de test Sentry (déclenché manuellement)"),
   );
+  // Probe the ingest endpoint independently: if a content blocker kills
+  // sentry.io, this fetch fails with "Failed to fetch" while Sentry's own
+  // transport swallows the same error and pretends success.
+  try {
+    const dsn = (localStorage.getItem(DSN_CACHE_KEY) || "").trim();
+    const match = dsn.match(/^https:\/\/([^@]+)@([^/]+)\/(\d+)$/);
+    if (match) {
+      await fetch(`https://${match[2]}/api/${match[3]}/envelope/`, {
+        method: "HEAD",
+        mode: "no-cors",
+      });
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "network_blocked",
+      detail: err instanceof Error ? err.message : String(err),
+    };
+  }
+  const flushed = await Sentry.flush(5000);
+  if (!flushed) return { ok: false, reason: "flush_timeout" };
+  return { ok: true, eventId: eventId ?? "(no id)" };
 }
