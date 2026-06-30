@@ -30,7 +30,7 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
 
   const bccEnabled = settings.bcc_enabled === "true";
 
-  const handleSentryTest = () => {
+  const handleSentryTest = async () => {
     if (!import.meta.env.PROD) {
       toast({ title: "Sentry inactif", description: "Le suivi n'est actif qu'en production. Testez sur le site déployé.", variant: "destructive" });
       return;
@@ -39,8 +39,28 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
       toast({ title: "Sentry non initialisé", description: "Enregistrez le DSN puis rechargez la page avant de tester.", variant: "destructive" });
       return;
     }
-    const eventId = sendSentryTestEvent();
-    toast({ title: "Événement de test envoyé", description: eventId ? `ID : ${eventId}` : "Vérifiez votre projet Sentry." });
+    const res = await sendSentryTestEvent();
+    if (res.ok) {
+      toast({ title: "Événement reçu par Sentry ✅", description: `ID : ${res.eventId}` });
+      return;
+    }
+    if (res.reason === "network_blocked") {
+      toast({
+        title: "Sentry bloqué côté navigateur",
+        description: "Un bloqueur de pubs (uBlock, Brave Shields, Ghostery, AdGuard…) bloque sentry.io. Désactivez-le sur ce domaine puis réessayez.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (res.reason === "flush_timeout") {
+      toast({
+        title: "Sentry n'a pas confirmé la réception",
+        description: "L'event a été émis mais le transport n'a pas pu vider sa file en 5 s. Cause probable : domaine non autorisé dans Sentry → Settings → Security & Privacy → Allowed Domains (ajoutez super-tools.lovable.app et *.lovable.app).",
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "Sentry non initialisé", variant: "destructive" });
   };
 
   return (
