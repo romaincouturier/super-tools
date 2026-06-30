@@ -28,11 +28,11 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
           .order("created_at", { ascending: true }),
         (supabase as any)
           .from("formation_configs")
-          .select("formation_name, supertilt_link, prix")
+          .select("formation_name, supertilt_link, prix, format_formation")
           .not("supertilt_link", "is", null),
       ]);
       if (cancelled) return;
-      const configs: Array<{ formation_name: string; supertilt_link: string | null; prix: number | null }> =
+      const configs: Array<{ formation_name: string; supertilt_link: string | null; prix: number | null; format_formation: string | null }> =
         configsRes.data || [];
       const matchConfig = (title: string) => {
         const t = (title || "").toLowerCase();
@@ -48,16 +48,30 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
         .filter((c: any) => !excludedSet.has(c.id))
         .map((c: any) => {
           const cfg = matchConfig(c.title);
+          const fmt = cfg?.format_formation ?? null;
+          const prix = cfg?.prix ?? null;
+          // Ne recommander que les formations inter-entreprises et les
+          // e-learning payants. On exclut l'intra (privé client) et les cours
+          // sans config vendable.
+          const eligible = !!cfg && (
+            fmt === "inter-entreprises" ||
+            (fmt === "e_learning" && (prix ?? 0) > 0)
+          );
           return {
-            id: c.id,
-            title: c.title,
-            description: c.description,
-            cover_image_url: c.cover_image_url,
-            estimated_duration_minutes: c.estimated_duration_minutes,
-            boutique_url: cfg?.supertilt_link ?? null,
-            prix: cfg?.prix ?? null,
+            eligible,
+            course: {
+              id: c.id,
+              title: c.title,
+              description: c.description,
+              cover_image_url: c.cover_image_url,
+              estimated_duration_minutes: c.estimated_duration_minutes,
+              boutique_url: cfg?.supertilt_link ?? null,
+              prix,
+            } as RecoCourse,
           };
-        });
+        })
+        .filter((x) => x.eligible)
+        .map((x) => x.course);
       setCourses(all);
       setLoading(false);
     })();
