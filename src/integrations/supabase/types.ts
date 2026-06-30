@@ -1761,6 +1761,7 @@ export type Database = {
           next_action_type: string | null
           org_id: string | null
           phone: string | null
+          phone_2: string | null
           position: number
           postal_code: string | null
           quote_url: string | null
@@ -1807,6 +1808,7 @@ export type Database = {
           next_action_type?: string | null
           org_id?: string | null
           phone?: string | null
+          phone_2?: string | null
           position?: number
           postal_code?: string | null
           quote_url?: string | null
@@ -1853,6 +1855,7 @@ export type Database = {
           next_action_type?: string | null
           org_id?: string | null
           phone?: string | null
+          phone_2?: string | null
           position?: number
           postal_code?: string | null
           quote_url?: string | null
