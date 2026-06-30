@@ -36,7 +36,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
     contactExpanded, setContactExpanded,
     firstName, setFirstName, lastName, setLastName,
     company, setCompany, email, setEmail,
-    phone, setPhone, linkedinUrl, websiteUrl, setWebsiteUrl,
+    phone, setPhone, phone2, setPhone2, linkedinUrl, websiteUrl, setWebsiteUrl,
     siren, setSiren, address, setAddress,
     postalCode, setPostalCode, city, setCity, country, setCountry,
   } = state;
@@ -47,6 +47,7 @@ const CardDetailContact = ({ state, handlers }: Props) => {
     company: isDemoMode ? maskText(company) : company,
     email: isDemoMode ? maskEmail(email) : email,
     phone: isDemoMode ? maskPhone(phone) : phone,
+    phone2: isDemoMode ? maskPhone(phone2) : phone2,
     address: isDemoMode ? maskAddress(address) : address,
     siren: isDemoMode ? maskSiren(siren) : siren,
     city: isDemoMode ? maskText(city) : city,
@@ -108,6 +109,13 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               </PopoverContent>
             </Popover>
           )}
+          <div className="space-y-1">
+            <Label className="text-xs flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              Téléphone 2
+            </Label>
+            <Input type="tel" value={d.phone2} onChange={(e) => setPhone2(e.target.value)} placeholder="Second numéro" className="h-8" readOnly={isDemoMode} />
+          </div>
           {linkedinUrl && (
             <Button
               variant="outline"

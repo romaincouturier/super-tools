@@ -42,6 +42,7 @@ export const useCreateCard = () => {
         first_name: capitalizeName(input.first_name),
         last_name: capitalizeName(input.last_name),
         phone: input.phone || null,
+        phone_2: input.phone_2 || null,
         company: input.company || null,
         email: normalizeEmail(input.email),
         linkedin_url: input.linkedin_url || null,

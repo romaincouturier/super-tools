@@ -29,6 +29,7 @@ interface ExtractionResult {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  phone_2: string | null;
   company: string | null;
   email: string | null;
   linkedin_url: string | null;
@@ -68,6 +69,7 @@ Date du jour : ${today} (utilise-la pour calculer la date de la prochaine action
 - first_name: prénom de la personne
 - last_name: nom de famille
 - phone: numéro de téléphone (formaté)
+- phone_2: deuxième numéro de téléphone si présent, sinon null
 - company: nom de l'entreprise
 - email: adresse email
 - linkedin_url: URL LinkedIn si mentionnée
@@ -174,6 +176,7 @@ async function extractWithAI(
       first_name: extracted.first_name || null,
       last_name: extracted.last_name || null,
       phone: extracted.phone || null,
+      phone_2: extracted.phone_2 || null,
       company: extracted.company || null,
       email: extracted.email || null,
       linkedin_url: extracted.linkedin_url || null,
@@ -189,6 +192,7 @@ async function extractWithAI(
       first_name: null,
       last_name: null,
       phone: null,
+      phone_2: null,
       company: null,
       email: null,
       linkedin_url: null,

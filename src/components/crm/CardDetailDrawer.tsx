@@ -112,6 +112,7 @@ const CardDetailDrawer = ({
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [phone2, setPhone2] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [siren, setSiren] = useState("");
@@ -198,6 +199,7 @@ const CardDetailDrawer = ({
       setCompany(card.company || "");
       setEmail(card.email || "");
       setPhone(card.phone || "");
+    setPhone2(card.phone_2 || "");
       setLinkedinUrl(card.linkedin_url || "");
       setWebsiteUrl(card.website_url || "");
       setSiren(card.siren || "");
@@ -242,7 +244,7 @@ const CardDetailDrawer = ({
     waiting_next_action_date: scheduledDate || null, waiting_next_action_text: scheduledText.trim() || null,
     first_name: firstName.trim() || null, last_name: lastName.trim() || null,
     company: company.trim() || null, email: email.trim() || null,
-    phone: phone.trim() || null, linkedin_url: linkedinUrl.trim() || null,
+    phone: phone.trim() || null, phone_2: phone2.trim() || null, linkedin_url: linkedinUrl.trim() || null,
     website_url: websiteUrl.trim() || null, service_type: serviceType,
     siren: siren.trim() || null, address: address.trim() || null,
     postal_code: postalCode.trim() || null, city: city.trim() || null,
@@ -252,7 +254,7 @@ const CardDetailDrawer = ({
     emoji: cardEmoji, confidence_score: confidenceScore,
     acquisition_source: acquisitionSource, assigned_to: assignedTo,
   }), [title, estimatedValue, quoteUrl, scheduledDate, scheduledText,
-      firstName, lastName, company, email, phone, linkedinUrl, websiteUrl, serviceType,
+      firstName, lastName, company, email, phone, phone2, linkedinUrl, websiteUrl, serviceType,
       siren, address, postalCode, city, country,
       nextActionText, nextActionDone, nextActionType, linkedMissionId, cardEmoji, confidenceScore, acquisitionSource, assignedTo]);
 
@@ -786,7 +788,7 @@ const CardDetailDrawer = ({
     estimatedValue, setEstimatedValue, quoteUrl, setQuoteUrl, columnId,
     contactExpanded, setContactExpanded,
     firstName, setFirstName, lastName, setLastName, company, setCompany,
-    email, setEmail, phone, setPhone, linkedinUrl, setLinkedinUrl,
+    email, setEmail, phone, setPhone, phone2, setPhone2, linkedinUrl, setLinkedinUrl,
     websiteUrl, setWebsiteUrl,
     siren, setSiren, address, setAddress,
     postalCode, setPostalCode, city, setCity, country, setCountry,
