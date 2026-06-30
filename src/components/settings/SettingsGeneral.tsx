@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { resolveContentType } from "@/lib/file-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { isSentryActive, sendSentryTestEvent } from "@/lib/sentry";
 import PageTemplateManager from "@/components/missions/PageTemplateManager";
 import { AutoSaveIndicator } from "@/components/settings/SettingsAutoSaveIndicator";
 import SettingsGeneralDelays from "@/components/settings/SettingsGeneralDelays";
@@ -28,6 +29,19 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
   const [uploadingStamp, setUploadingStamp] = useState(false);
 
   const bccEnabled = settings.bcc_enabled === "true";
+
+  const handleSentryTest = () => {
+    if (!import.meta.env.PROD) {
+      toast({ title: "Sentry inactif", description: "Le suivi n'est actif qu'en production. Testez sur le site déployé.", variant: "destructive" });
+      return;
+    }
+    if (!isSentryActive()) {
+      toast({ title: "Sentry non initialisé", description: "Enregistrez le DSN puis rechargez la page avant de tester.", variant: "destructive" });
+      return;
+    }
+    const eventId = sendSentryTestEvent();
+    toast({ title: "Événement de test envoyé", description: eventId ? `ID : ${eventId}` : "Vérifiez votre projet Sentry." });
+  };
 
   return (
     <>
@@ -222,6 +236,14 @@ const SettingsGeneral = ({ settings, updateSetting, autoSaveStatus }: SettingsGe
             <div className="space-y-2 max-w-lg">
               <Label htmlFor="sentry-dsn">Sentry DSN</Label>
               <Input id="sentry-dsn" type="password" value={settings.sentry_dsn} onChange={(e) => updateSetting("sentry_dsn", e.target.value.trim())} placeholder="https://...@o000000.ingest.sentry.io/000000" />
+            </div>
+            <div className="space-y-2">
+              <Button type="button" variant="outline" size="sm" onClick={handleSentryTest}>
+                Envoyer un événement de test
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Vérifie l'ingestion : un événement de test doit apparaître dans le projet Sentry sous quelques secondes. Actif uniquement en production avec un DSN chargé. Bouton temporaire à retirer une fois la vérification faite.
+              </p>
             </div>
           </div>
 

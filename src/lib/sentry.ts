@@ -94,3 +94,19 @@ export function configureSentry(dsn: string | null | undefined): void {
   }
   start(value);
 }
+
+/** Whether Sentry.init has run (prod + a DSN was available). */
+export function isSentryActive(): boolean {
+  return initialized;
+}
+
+/**
+ * Sends a deliberate test event so the Sentry dashboard receives a first error.
+ * Returns the event id, or null if Sentry is not active (dev/preview or no DSN).
+ */
+export function sendSentryTestEvent(): string | null {
+  if (!initialized) return null;
+  return Sentry.captureException(
+    new Error("Super Tools — événement de test Sentry (déclenché manuellement)"),
+  );
+}

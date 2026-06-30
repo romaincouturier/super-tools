@@ -26,7 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical, Copy } from "lucide-react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
@@ -84,6 +85,7 @@ const EntityMediaManager = ({
   const uploadEventMedia = useUploadEventMedia();
   const uploadMissionMedia = useUploadMissionMedia();
   const reorderMedia = useReorderMedia();
+  const { copy } = useCopyToClipboard();
 
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
@@ -568,6 +570,21 @@ const EntityMediaManager = ({
                             <FileAudio className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                             <span className="text-sm font-medium truncate">{item.file_name}</span>
                             <div className="ml-auto flex items-center gap-1">
+                              {item.transcript && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => { e.stopPropagation(); copy(item.transcript!, { title: "Transcript copié" }); }}
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Copier le transcript</TooltipContent>
+                                </Tooltip>
+                              )}
                               {!item.transcript && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>

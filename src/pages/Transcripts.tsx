@@ -114,6 +114,7 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
 
 function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { data: t, isLoading } = useTranscript(id);
+  const { copy: copyDetail } = useCopyToClipboard();
   const [regenerating, setRegenerating] = useState(false);
   const queryClient = useQueryClient();
   const trashMutation = useTrashTranscript();
@@ -243,7 +244,18 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
                 )}
                 {t.raw_text && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Transcript complet</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Transcript complet</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => copyDetail(t.raw_text!, { title: "Transcript copié" })}
+                      >
+                        <Copy className="h-3.5 w-3.5 mr-1.5" />
+                        Copier
+                      </Button>
+                    </div>
                     <pre className="text-xs whitespace-pre-wrap font-sans leading-relaxed text-foreground/80">{t.raw_text}</pre>
                   </div>
                 )}
