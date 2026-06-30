@@ -29,12 +29,25 @@ const LearnerNotificationBell = ({ email, open, onOpenChange }: LearnerNotificat
   const unread = notifications.filter((n) => !n.is_read);
   const unreadCount = unread.length;
 
+  // Destination par défaut selon le type, quand la notification n'a pas de lien
+  // explicite (ex. anciennes notifs ou notifs créées par trigger SQL sans link).
+  const fallbackTarget = (type: LearnerNotification["type"]): string => {
+    switch (type) {
+      case "community_reply":
+        return "/espace-apprenant/pratique";
+      case "replay_available":
+      case "live_upcoming":
+        return "/espace-apprenant/tableau-de-bord";
+      default:
+        return "/espace-apprenant/tableau-de-bord";
+    }
+  };
+
   const handleItemClick = (n: LearnerNotification) => {
     if (!n.is_read) markRead.mutate([n.id]);
-    if (n.link) {
-      onOpenChange(false);
-      navigate(n.link);
-    }
+    const target = n.link || fallbackTarget(n.type);
+    onOpenChange(false);
+    navigate(target);
   };
 
   const handleMarkAll = () => {

@@ -611,24 +611,34 @@ export default function PracticePostCard({
             );
           })}
           {/* Comment input */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 rounded-full border px-3 py-1.5"
+          <div className="flex items-end gap-2">
+            <div className="flex-1 flex items-end gap-2 rounded-2xl border px-3 py-1.5"
               style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.12)" }}>
-              <input
-                type="text"
+              <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
-                placeholder="Ajouter un commentaire..."
-                className="flex-1 text-sm bg-transparent outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleComment();
+                  }
+                }}
+                rows={1}
+                placeholder="Ajouter un commentaire... (Entrée pour envoyer, Maj+Entrée pour un retour à la ligne)"
+                className="flex-1 text-sm bg-transparent outline-none resize-none max-h-40 py-1 leading-snug"
                 style={{ color: "var(--st-ink)", fontFamily: "inherit" }}
+                onInput={(e) => {
+                  const el = e.currentTarget;
+                  el.style.height = "auto";
+                  el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+                }}
               />
               <EmojiInsert onInsert={(e) => setCommentText((t) => t + e)} />
             </div>
             <button
               onClick={handleComment}
               disabled={!commentText.trim() || createComment.isPending}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40"
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors disabled:opacity-40 shrink-0"
               style={{ background: "var(--st-yellow)", color: "#101820" }}
             >
               <Send size={14} />
