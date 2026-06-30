@@ -45,6 +45,7 @@ const Support = () => {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [filterType, setFilterType] = useState<"all" | TicketType>("all");
+  const [filterReporter, setFilterReporter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [detailTicket, setDetailTicket] = useState<SupportTicket | null>(null);
   const [showStats, setShowStats] = useState(false);
@@ -61,6 +62,7 @@ const Support = () => {
     return tickets
       .filter((t) => {
         if (filterType !== "all" && t.type !== filterType) return false;
+        if (filterReporter !== "all" && (t.submitted_by_email ?? "") !== filterReporter) return false;
         if (search) {
           const q = search.toLowerCase();
           return (
@@ -78,7 +80,16 @@ const Support = () => {
         position: t.position,
         ticket: t,
       }));
-  }, [tickets, search, filterType]);
+  }, [tickets, search, filterType, filterReporter]);
+
+  // Liste des déclarants distincts (pour le filtre par personne)
+  const reporters = useMemo(() => {
+    const set = new Set<string>();
+    (tickets ?? []).forEach((t) => {
+      if (t.submitted_by_email) set.add(t.submitted_by_email);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [tickets]);
 
   // Stats
   const stats = useMemo(() => {
@@ -354,16 +365,29 @@ const Support = () => {
           showStatsButton
           onStatsClick={() => setShowStats(true)}
           filters={
-            <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
-              <SelectTrigger className="w-32 text-sm h-9">
-                <SelectValue placeholder="Tous" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
-                <SelectItem value="bug">Bugs</SelectItem>
-                <SelectItem value="evolution">Évolutions</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={filterType} onValueChange={(v) => setFilterType(v as typeof filterType)}>
+                <SelectTrigger className="w-32 text-sm h-9">
+                  <SelectValue placeholder="Tous" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous</SelectItem>
+                  <SelectItem value="bug">Bugs</SelectItem>
+                  <SelectItem value="evolution">Évolutions</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterReporter} onValueChange={setFilterReporter}>
+                <SelectTrigger className="w-44 text-sm h-9">
+                  <SelectValue placeholder="Déclarant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les déclarants</SelectItem>
+                  {reporters.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           }
           actions={
             <Button size="sm" variant="outline" className="h-9" onClick={exportNewTickets} title="Copier les tickets nouveaux">
