@@ -41,6 +41,8 @@ export interface CardDetailState {
   setEmail: (v: string) => void;
   phone: string;
   setPhone: (v: string) => void;
+  phone2: string;
+  setPhone2: (v: string) => void;
   linkedinUrl: string;
   setLinkedinUrl: (v: string) => void;
   websiteUrl: string;

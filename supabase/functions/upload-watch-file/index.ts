@@ -6,6 +6,7 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 import { resolveContentType } from "../_shared/file-utils.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const BUCKET = "watch";
 
@@ -14,6 +15,11 @@ Deno.serve(async (req) => {
   if (preflight) return preflight;
 
   if (req.method !== "POST") return createErrorResponse("Method not allowed", 405);
+
+  // Le module de veille est reserve au staff : on exige un JWT valide pour
+  // empecher tout depot de fichier anonyme dans le bucket public "watch".
+  const user = await verifyAuth(req.headers.get("Authorization"));
+  if (!user) return createErrorResponse("Non autorise", 401);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");

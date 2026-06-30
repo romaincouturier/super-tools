@@ -241,8 +241,8 @@ export default function LearnerOnboarding() {
                       id="forgot-email"
                       type="email"
                       value={email}
-                      readOnly
-                      className="pl-10 bg-muted/50 cursor-not-allowed"
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
                       placeholder="exemple@entreprise.com"
                     />
                   </div>
@@ -356,8 +356,7 @@ export default function LearnerOnboarding() {
                 id="email"
                 type="email"
                 value={email}
-                readOnly
-                className="bg-muted/50 cursor-not-allowed"
+                onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
               />
             </div>

@@ -242,7 +242,7 @@ const FormationDetailInfo = ({
 
       <Separator />
       <div className="border rounded-lg p-3 bg-muted/30">
-        <LogisticsChecklist entityType="training" entityId={training.id} format={training.format_formation} sessionType={training.session_type} />
+        <LogisticsChecklist entityType="training" entityId={training.id} format={training.format_formation} sessionType={training.session_type} startDate={training.start_date} />
       </div>
 
       {/* Links */}

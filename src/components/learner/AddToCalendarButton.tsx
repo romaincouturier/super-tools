@@ -5,6 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { buildGoogleCalendarUrl } from "@/lib/calendarLinks";
 
 interface Props {
   title: string;
@@ -34,10 +35,6 @@ function toIcsDate(d: Date) {
     pad(d.getUTCMinutes()) +
     "00Z"
   );
-}
-
-function toGoogleDate(d: Date) {
-  return toIcsDate(d);
 }
 
 export default function AddToCalendarButton({
@@ -88,13 +85,14 @@ export default function AddToCalendarButton({
   };
 
   const openGoogle = () => {
-    const u = new URL("https://www.google.com/calendar/render");
-    u.searchParams.set("action", "TEMPLATE");
-    u.searchParams.set("text", title);
-    u.searchParams.set("dates", `${toGoogleDate(start)}/${toGoogleDate(end)}`);
-    u.searchParams.set("details", fullDescription);
-    if (location) u.searchParams.set("location", location);
-    window.open(u.toString(), "_blank", "noopener,noreferrer");
+    const href = buildGoogleCalendarUrl({
+      title,
+      startAt: start,
+      durationMinutes,
+      details: fullDescription,
+      location,
+    });
+    window.open(href, "_blank", "noopener,noreferrer");
   };
 
   const openOutlook = () => {

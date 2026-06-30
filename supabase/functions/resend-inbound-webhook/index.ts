@@ -5,6 +5,7 @@ import { encode as hexEncode } from "https://deno.land/std@0.190.0/encoding/hex.
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 
 const corsHeaders = extendCorsHeaders({
@@ -589,6 +590,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error processing inbound email:", error);
+    await reportEdgeError(error, { fn: "resend-inbound-webhook" });
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,

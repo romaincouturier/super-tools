@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Trash2,
   X,
+  Users,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -212,17 +214,29 @@ function PeerDepositsSection({
   if (peers.length === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-muted-foreground">
-          Travaux partagés par d'autres apprenants ({peers.length})
-        </h3>
-        <Button variant="ghost" size="sm" onClick={toggle} className="text-xs shrink-0">
-          {showPeers ? "Masquer" : "Afficher"}
-        </Button>
-      </div>
+    <div className="rounded-xl border bg-muted/30">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={showPeers}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          <Users className="h-4 w-4 text-primary shrink-0" />
+          Travaux partagés par d'autres apprenants
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-medium text-primary">
+            {peers.length}
+          </span>
+        </span>
+        <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          {showPeers ? "Replier" : "Afficher"}
+          <ChevronDown
+            className={cn("h-4 w-4 transition-transform", showPeers && "rotate-180")}
+          />
+        </span>
+      </button>
       {showPeers && (
-        <ul className="space-y-3">
+        <ul className="max-h-[60vh] space-y-3 overflow-y-auto border-t px-4 py-3">
           {peers.map((d) => (
             <li key={d.id} className="rounded-lg border bg-card p-4 space-y-3">
               <div className="flex items-center justify-between gap-2 text-xs">

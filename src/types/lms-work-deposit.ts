@@ -108,6 +108,8 @@ export interface DepositComment {
   status: DepositCommentStatus;
   created_at: string;
   updated_at: string;
+  /** Nom résolu de l'auteur (profil apprenant ou staff), pour l'affichage. */
+  author_display_name?: string | null;
 }
 
 export interface DepositFeedback {

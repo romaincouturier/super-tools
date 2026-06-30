@@ -182,7 +182,7 @@ const MissionSettingsTab = ({
 
       {/* Logistics checklist (replaces the train/hotel buttons UI) */}
       <div className="border rounded-lg p-3 bg-muted/30">
-        <LogisticsChecklist entityType="mission" entityId={missionId} />
+        <LogisticsChecklist entityType="mission" entityId={missionId} startDate={startDate} />
       </div>
 
       {/* Assigned user */}

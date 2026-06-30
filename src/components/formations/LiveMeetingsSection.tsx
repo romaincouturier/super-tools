@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { scheduleEmailsBulk } from "@/services/activityLog";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText, Save } from "lucide-react";
+import { Video, Plus, Trash2, Loader2, ExternalLink, Check, X, Pencil, Copy, FileText, Save, CalendarPlus } from "lucide-react";
+import { buildGoogleCalendarUrl } from "@/lib/calendarLinks";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -456,6 +457,27 @@ const LiveMeetingsSection = ({ trainingId }: LiveMeetingsSectionProps) => {
                     title="Dupliquer"
                   >
                     <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() =>
+                      window.open(
+                        buildGoogleCalendarUrl({
+                          title: meeting.title,
+                          startAt: meeting.scheduled_at,
+                          durationMinutes: meeting.duration_minutes,
+                          details: [meeting.description, meeting.meeting_url].filter(Boolean).join("\n\n"),
+                          location: meeting.meeting_url || undefined,
+                        }),
+                        "_blank",
+                        "noopener,noreferrer",
+                      )
+                    }
+                    title="Ajouter à mon agenda Google"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

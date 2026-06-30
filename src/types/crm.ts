@@ -20,6 +20,7 @@ export interface OpportunityExtraction {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  phone_2: string | null;
   company: string | null;
   email: string | null;
   linkedin_url: string | null;
@@ -67,6 +68,7 @@ export interface CrmCard {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  phone_2: string | null;
   company: string | null;
   email: string | null;
   linkedin_url: string | null;
@@ -204,6 +206,7 @@ export interface CreateCardInput {
   first_name?: string;
   last_name?: string;
   phone?: string;
+  phone_2?: string;
   company?: string;
   email?: string;
   linkedin_url?: string;
@@ -235,6 +238,7 @@ export interface UpdateCardInput {
   first_name?: string | null;
   last_name?: string | null;
   phone?: string | null;
+  phone_2?: string | null;
   company?: string | null;
   email?: string | null;
   linkedin_url?: string | null;

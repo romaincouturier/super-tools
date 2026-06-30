@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { guessMimeType } from "../_shared/mime-types.ts";
@@ -897,6 +898,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: unknown) {
+    await reportEdgeError(error, { fn: "generate-micro-devis" });
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(

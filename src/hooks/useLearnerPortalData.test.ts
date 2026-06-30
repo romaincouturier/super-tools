@@ -5,7 +5,7 @@ import React from "react";
 import {
   useLearnerWorkDeposits,
   usePracticeDeposits,
-  useLearnerReceivedComments,
+  useLearnerReceivedFeedback,
   useCoursePageViews,
 } from "./useLearnerPortalData";
 
@@ -126,37 +126,31 @@ describe("usePracticeDeposits", () => {
   });
 });
 
-// ── useLearnerReceivedComments ────────────────────────────────────────────────
+// ── useLearnerReceivedFeedback ────────────────────────────────────────────────
 
-describe("useLearnerReceivedComments", () => {
+describe("useLearnerReceivedFeedback", () => {
   it("is disabled when email is null", () => {
-    const { result } = renderHook(() => useLearnerReceivedComments(null, ["c1"]), { wrapper });
+    const { result } = renderHook(() => useLearnerReceivedFeedback(null), { wrapper });
     expect(result.current.fetchStatus).toBe("idle");
   });
 
-  it("is disabled when courseIds is empty", () => {
-    const { result } = renderHook(() => useLearnerReceivedComments("a@b.com", []), { wrapper });
-    expect(result.current.fetchStatus).toBe("idle");
-  });
-
-  it("returns comments from lms_lesson_comments", async () => {
-    const comments = [{ id: "c1", content: "Bravo !" }];
-    setNextResult({ data: comments, error: null });
+  it("returns an empty array when the learner has no deposits", async () => {
+    setNextResult({ data: [], error: null });
 
     const { result } = renderHook(
-      () => useLearnerReceivedComments("alice@example.com", ["course-1"]),
+      () => useLearnerReceivedFeedback("alice@example.com"),
       { wrapper },
     );
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockFrom).toHaveBeenCalledWith("lms_lesson_comments");
-    expect(result.current.data).toEqual(comments);
+    expect(mockFrom).toHaveBeenCalledWith("lms_work_deposits");
+    expect(result.current.data).toEqual([]);
   });
 
   it("propagates supabase errors", async () => {
     setNextResult({ data: null, error: { message: "timeout" } });
     const { result } = renderHook(
-      () => useLearnerReceivedComments("a@b.com", ["c1"]),
+      () => useLearnerReceivedFeedback("a@b.com"),
       { wrapper },
     );
     await waitFor(() => expect(result.current.isError).toBe(true));
