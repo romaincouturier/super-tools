@@ -137,22 +137,49 @@ export function useToggleDepositReaction(learnerEmail: string | null) {
 }
 
 // Derniers commentaires reçus (de la part d'autres apprenants sur les leçons du cours)
-export function useLearnerReceivedComments(email: string | null, courseIds: string[]) {
+/**
+ * Retours reçus du staff SuperTilt sur les travaux déposés par l'apprenant.
+ *
+ * La source est `lms_deposit_feedback` (le retour pédagogique écrit par le
+ * staff), lue via le client apprenant pour respecter la RLS. On agrège tous
+ * les retours sur l'ensemble des dépôts de l'apprenant, triés du plus récent
+ * au plus ancien, sans limite arbitraire afin d'afficher l'intégralité des
+ * retours reçus.
+ */
+export function useLearnerReceivedFeedback(email: string | null) {
   return useQuery({
-    queryKey: ["learner_received_comments", email, courseIds],
+    queryKey: ["learner_received_feedback", email],
     queryFn: async () => {
-      if (!email || !courseIds.length) return [];
-      const { data, error } = await (supabase as any)
-        .from("lms_lesson_comments")
-        .select("id, content, learner_email, learner_name, lesson_id, course_id, created_at")
-        .in("course_id", courseIds)
-        .neq("learner_email", email.toLowerCase())
-        .order("created_at", { ascending: false })
-        .limit(10);
+      if (!email) return [];
+      const c = createLearnerClient(email) as any;
+
+      const { data: deposits, error: depErr } = await c
+        .from("lms_work_deposits")
+        .select("id, course_id, lms_lessons ( title )")
+        .eq("learner_email", email.toLowerCase());
+      if (depErr) throw depErr;
+
+      const depositIds = (deposits || []).map((d: any) => d.id);
+      if (depositIds.length === 0) return [];
+
+      const lessonTitleById: Record<string, string | null> = {};
+      for (const d of deposits || []) {
+        lessonTitleById[d.id] = d.lms_lessons?.title ?? null;
+      }
+
+      const { data, error } = await c
+        .from("lms_deposit_feedback")
+        .select("id, deposit_id, content, created_at")
+        .in("deposit_id", depositIds)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+
+      return (data || []).map((f: any) => ({
+        ...f,
+        lesson_title: lessonTitleById[f.deposit_id] ?? null,
+      }));
     },
-    enabled: !!email && courseIds.length > 0,
+    enabled: !!email,
   });
 }
 

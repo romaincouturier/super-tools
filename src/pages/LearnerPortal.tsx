@@ -33,7 +33,7 @@ import {
   useLearnerWorkDeposits,
   useCreatePortfolioDeposit,
   usePracticeDeposits,
-  useLearnerReceivedComments,
+  useLearnerReceivedFeedback,
   useCoursePageViews,
   useToggleDepositReaction,
 } from "@/hooks/useLearnerPortalData";
@@ -182,12 +182,14 @@ function RecommendedCoursesBlock({
 
 function DashboardView({
   data,
+  profile,
   onRequestCoach,
   requestingCoach,
   onNav,
   onOpenNotifications,
 }: {
   data: LearnerData;
+  profile?: LearnerProfile | null;
   onRequestCoach: (t: Training) => void;
   requestingCoach: string | null;
   onNav: (s: NavSection) => void;
@@ -221,7 +223,7 @@ function DashboardView({
 
   // Hooks for dashboard blocks
   const { data: workDeposits = [] } = useLearnerWorkDeposits(data.email);
-  const { data: receivedComments = [] } = useLearnerReceivedComments(data.email, courseIds);
+  const { data: receivedComments = [] } = useLearnerReceivedFeedback(data.email);
   const { data: recentPosts = [] } = usePracticePosts(data.email, 3);
   const { data: viewedLessons = [] } = useCoursePageViews(
     mainTraining?.lms_course_id ?? null,
@@ -229,6 +231,21 @@ function DashboardView({
   );
 
   const isClosing = nextEvent?.meeting_type === "closing";
+
+  // Liste de tâches d'onboarding : éléments restants pour compléter le profil.
+  const onboardingTodos = useMemo(() => {
+    const items: { key: string; label: string; onClick: () => void }[] = [];
+    if (!profile?.photo_url) {
+      items.push({ key: "avatar", label: "Ajoutez votre photo de profil", onClick: () => onNav("compte") });
+    }
+    if (!profile?.first_name?.trim() || !profile?.last_name?.trim()) {
+      items.push({ key: "name", label: "Complétez votre nom et prénom", onClick: () => onNav("compte") });
+    }
+    if (workDeposits.length === 0) {
+      items.push({ key: "deposit", label: "Déposez votre premier travail", onClick: () => onNav("travaux") });
+    }
+    return items;
+  }, [profile?.photo_url, profile?.first_name, profile?.last_name, workDeposits.length, onNav]);
 
   return (
     <div className="space-y-6">
@@ -270,6 +287,39 @@ function DashboardView({
           </div>
         </div>
       </div>
+
+      {/* Onboarding — tâches restantes pour compléter le profil */}
+      {onboardingTodos.length > 0 && (
+        <div
+          className="rounded-2xl p-5"
+          style={{ background: "var(--st-white)", border: "1px solid rgba(16,24,32,0.08)", boxShadow: "0 2px 20px rgba(16,24,32,0.06)" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={16} style={{ color: "var(--st-yellow-ink, #101820)" }} />
+            <h3 className="text-sm font-bold" style={{ color: "var(--st-ink)" }}>
+              Pour bien démarrer
+            </h3>
+          </div>
+          <ul className="space-y-2">
+            {onboardingTodos.map((todo) => (
+              <li key={todo.key}>
+                <button
+                  onClick={todo.onClick}
+                  className="w-full flex items-center gap-3 text-left rounded-xl px-3 py-2 transition-colors hover:bg-black/[0.03]"
+                  style={{ fontFamily: "inherit" }}
+                >
+                  <span
+                    className="w-5 h-5 rounded-full border-2 shrink-0"
+                    style={{ borderColor: "rgba(16,24,32,0.2)" }}
+                  />
+                  <span className="text-sm flex-1" style={{ color: "var(--st-ink)" }}>{todo.label}</span>
+                  <ChevronRight size={16} style={{ color: "var(--st-ink-muted)" }} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Live banner */}
       {nextEvent && (
@@ -421,32 +471,31 @@ function DashboardView({
           ) : (
             <div className="space-y-3">
               {receivedComments.slice(0, 3).map((c: any) => {
-                const initials = (c.learner_name || c.learner_email || "?")
-                  .split(" ")
-                  .map((w: string) => w[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2);
                 const daysAgo = formatDistanceToNow(new Date(c.created_at), { locale: fr, addSuffix: true });
                 return (
                   <div key={c.id} className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
                       style={{ background: "var(--st-yellow)", color: "#101820" }}>
-                      {initials}
+                      ST
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs truncate" style={{ color: "var(--st-ink)" }}>{c.content}</p>
+                      {c.lesson_title && (
+                        <p className="text-[11px] font-medium truncate" style={{ color: "var(--st-ink-muted)" }}>
+                          {c.lesson_title}
+                        </p>
+                      )}
+                      <p className="text-xs whitespace-pre-wrap break-words" style={{ color: "var(--st-ink)" }}>{c.content}</p>
                       <p className="text-xs mt-0.5" style={{ color: "var(--st-ink-muted)" }}>{daysAgo}</p>
                     </div>
                   </div>
                 );
               })}
               <button
-                onClick={() => onNav("pratique")}
+                onClick={() => onNav("travaux")}
                 className="text-xs font-medium transition-colors hover:opacity-70 mt-1"
                 style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
               >
-                Voir les retours →
+                {receivedComments.length > 3 ? `Voir les ${receivedComments.length} retours →` : "Voir mes travaux →"}
               </button>
             </div>
           )}
@@ -1987,6 +2036,7 @@ export default function LearnerPortal() {
             {activeSection === "dashboard" && (
               <DashboardView
                 data={data}
+                profile={learnerProfile}
                 onRequestCoach={handleRequestCoach}
                 requestingCoach={requestingCoach}
                 onNav={handleNav}
