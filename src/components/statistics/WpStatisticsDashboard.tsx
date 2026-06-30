@@ -243,6 +243,26 @@ function ErrorState({ message }: { message: string }) {
 /* ─── Product page detection ─── */
 const KNOWN_PRODUCT_SLUGS = ["produit", "product", "produits", "products", "shop", "boutique"];
 
+/**
+ * Normalise une URI WP-Statistics en un tableau de segments de chemin en
+ * minuscules. Gère les URL absolues (http://site/produit/x), les prefixes de
+ * langue (/fr/produit/x) et les query strings (/produit/x?ref=...).
+ */
+function uriSegments(raw: string): string[] {
+  let path = raw.trim();
+  if (!path) return [];
+  // Retire le schema + domaine si l'URI est absolue.
+  const schemeIdx = path.indexOf("://");
+  if (schemeIdx !== -1) {
+    const afterScheme = path.slice(schemeIdx + 3);
+    const slashIdx = afterScheme.indexOf("/");
+    path = slashIdx === -1 ? "" : afterScheme.slice(slashIdx);
+  }
+  // Retire la query string et l'ancre.
+  path = path.split("?")[0].split("#")[0];
+  return path.split("/").map((s) => s.toLowerCase()).filter(Boolean);
+}
+
 function detectProductPages(pages: unknown): { slug: string | null; items: Record<string, unknown>[] } {
   if (!Array.isArray(pages) || pages.length === 0) return { slug: null, items: [] };
 
@@ -251,17 +271,24 @@ function detectProductPages(pages: unknown): { slug: string | null; items: Recor
   for (const page of typedPages) {
     const uri: string = String(page?.uri ?? page?.page ?? "");
     if (!uri) continue;
-    const first = uri.split("/").filter(Boolean)[0]?.toLowerCase();
-    if (first && KNOWN_PRODUCT_SLUGS.includes(first)) {
-      counts.set(first, (counts.get(first) || 0) + 1);
+    // On cherche le slug produit n'importe ou dans le chemin (gere les prefixes
+    // de langue type /fr/produit/... et les pages imbriquees).
+    for (const seg of uriSegments(uri)) {
+      if (KNOWN_PRODUCT_SLUGS.includes(seg)) {
+        counts.set(seg, (counts.get(seg) || 0) + 1);
+        break;
+      }
     }
   }
   if (counts.size === 0) return { slug: null, items: [] };
 
   const [slug] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   const items = typedPages.filter((p) => {
-    const uri: string = String(p?.uri ?? p?.page ?? "").toLowerCase();
-    return uri.startsWith(`/${slug}/`) || uri.startsWith(`${slug}/`);
+    const segs = uriSegments(String(p?.uri ?? p?.page ?? ""));
+    const i = segs.indexOf(slug);
+    // Page produit = le slug est present ET suivi d'au moins un segment (la
+    // fiche produit), pour exclure la page d'archive /produit/ elle-meme.
+    return i !== -1 && i < segs.length - 1;
   });
   return { slug, items };
 }
@@ -274,7 +301,10 @@ const WpStatisticsDashboard = () => {
   const periodLabel = `${PERIOD_LABELS[period]} · ${formatPeriodLabel(from, to)}`;
 
   const { data: summary, isLoading: loadingSummary, error: errorSummary } = useWpSummary();
-  const { data: pages, isLoading: loadingPages, error: errorPages } = useWpPages({ ...range, per_page: "100" });
+  // per_page (WP core) et number (WP-Statistics) : on envoie les deux pour que
+  // l'install honore au moins l'un des deux et renvoie assez de lignes pour que
+  // les pages produits (souvent moins vues) figurent dans le jeu de donnees.
+  const { data: pages, isLoading: loadingPages, error: errorPages } = useWpPages({ ...range, per_page: "500", number: "500" });
   const { data: browsers, isLoading: loadingBrowsers } = useWpBrowsers(range);
   const { data: referrers, isLoading: loadingReferrers } = useWpReferrers(range);
   const { data: hits, isLoading: loadingHits } = useWpHits(range);
