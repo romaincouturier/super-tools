@@ -194,6 +194,7 @@ export interface GameDevisHistoryEntry {
   total_amount: number;
   items: GameDevisItem[];
   pdf_url: string | null;
+  pdf_storage_path: string | null;
 }
 
 export interface GameDevisItem {
