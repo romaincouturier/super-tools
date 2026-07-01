@@ -242,3 +242,20 @@ export function useMarkSalesPaid() {
     },
   });
 }
+
+export function useDeleteGameSale() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any)
+        .from("game_sales")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["game-sales"] });
+      qc.invalidateQueries({ queryKey: ["game-sales-kpis"] });
+    },
+  });
+}

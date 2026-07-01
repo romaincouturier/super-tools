@@ -16,10 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
   useGameAuthors, useUpsertGameAuthor, useDeleteGameAuthor,
   useGames, useUpsertGame, useDeleteGame,
-  useGameSales, useGameSalesKpis, useMarkSalesPaid,
+  useGameSales, useGameSalesKpis, useMarkSalesPaid, useDeleteGameSale,
   type GameAuthor, type Game, type GameSale,
 } from "@/hooks/useDropshipping";
 
@@ -90,8 +91,11 @@ function Dashboard() {
 function SalesTable() {
   const { data: sales, isLoading } = useGameSales();
   const { mutateAsync: markPaid, isPending } = useMarkSalesPaid();
+  const { mutateAsync: deleteSale } = useDeleteGameSale();
   const [selected, setSelected] = useState<string[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const toggleSelect = (id: string) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
 
@@ -102,6 +106,27 @@ function SalesTable() {
       toast({ title: `${selected.length} vente(s) marquée(s) comme payée(s)` });
     } catch {
       toastError(toast, "Une erreur est survenue");
+    }
+  };
+
+  const handleDelete = async (sale: GameSale) => {
+    const label = (sale.games as any)?.title ?? sale.customer_name ?? sale.customer_email ?? "cette commande";
+    const ok = await confirm({
+      title: "Supprimer cette commande ?",
+      description: `La vente « ${label} » (${EUR(sale.total_amount)}) sera définitivement supprimée. Cette action est irréversible.`,
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setDeletingId(sale.id);
+    try {
+      await deleteSale(sale.id);
+      setSelected((s) => s.filter((x) => x !== sale.id));
+      toast({ title: "Commande supprimée" });
+    } catch {
+      toastError(toast, "Une erreur est survenue");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -133,6 +158,7 @@ function SalesTable() {
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Royalty</TableHead>
               <TableHead>Statut</TableHead>
+              <TableHead className="w-8" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -152,11 +178,24 @@ function SalesTable() {
                     {s.status === "paid" ? "Payé" : "En attente"}
                   </Badge>
                 </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    title="Supprimer la commande"
+                    disabled={deletingId === s.id}
+                    onClick={() => handleDelete(s)}
+                  >
+                    {deletingId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+      <ConfirmDialog />
     </div>
   );
 }
