@@ -624,17 +624,25 @@ const EntityMediaManager = ({
                 </div>
 
                 {gridItems.map((item) => {
+                  const isSelected = selectedIds.has(item.id);
+                  const canSelect = item.file_type !== "video_link";
                   const card = (
                     <div
                       key={item.id}
                       className={cn(
                         "group relative rounded-lg overflow-hidden bg-muted cursor-pointer",
                         item.file_type === "audio" ? "col-span-2 border" : "aspect-square border-2",
-                        item.is_deliverable && item.file_type !== "audio"
+                        selectionMode && isSelected
+                          ? "border-primary ring-2 ring-primary"
+                          : item.is_deliverable && item.file_type !== "audio"
                           ? "border-amber-400"
                           : "border-border"
                       )}
                       onClick={() => {
+                        if (selectionMode && canSelect) {
+                          toggleSelected(item.id);
+                          return;
+                        }
                         if (item.file_type === "audio") return;
                         if (item.file_type === "document") {
                           window.open(item.file_url, "_blank", "noopener,noreferrer");
