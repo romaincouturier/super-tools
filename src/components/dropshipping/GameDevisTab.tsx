@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const FEES_STORAGE_KEY = "game-devis-last-fees";
-import { Plus, Trash2, Loader2, Send, FileText, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,6 +149,7 @@ export default function GameDevisTab() {
 
   return (
     <div className="space-y-12">
+    <GameDevisHistory />
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
       <ClientInfoSection
         siren={sirenSearch.siren}
@@ -320,10 +321,26 @@ export default function GameDevisTab() {
         )}
       </Button>
     </form>
-
-    <GameDevisHistory />
     </div>
   );
+}
+
+async function downloadPdf(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(String(res.status));
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
 }
 
 function GameDevisHistory() {
@@ -348,11 +365,14 @@ function GameDevisHistory() {
                 <TableHead>Destinataire</TableHead>
                 <TableHead>Jeux</TableHead>
                 <TableHead className="text-right">Total HT</TableHead>
-                <TableHead className="w-16" />
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {history.map((d) => (
+              {history.map((d) => {
+                const safeClient = (d.client_name ?? "client").replace(/[^\w-]+/g, "_");
+                const filename = `Devis_${safeClient}_${d.created_at.slice(0, 10)}.pdf`;
+                return (
                 <TableRow key={d.id}>
                   <TableCell className="text-sm">{DATE(d.created_at)}</TableCell>
                   <TableCell className="text-sm font-medium">{d.client_name ?? "—"}</TableCell>
@@ -363,15 +383,25 @@ function GameDevisHistory() {
                   <TableCell className="text-right text-sm">{EUR(d.total_amount)}</TableCell>
                   <TableCell>
                     {d.pdf_url && (
-                      <Button asChild variant="ghost" size="icon">
-                        <a href={d.pdf_url} target="_blank" rel="noopener noreferrer" title="Ouvrir le PDF">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button asChild variant="ghost" size="icon" title="Ouvrir le PDF">
+                          <a href={d.pdf_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Télécharger le PDF"
+                          onClick={() => downloadPdf(d.pdf_url!, filename)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+              );})}
             </TableBody>
           </Table>
         </div>
