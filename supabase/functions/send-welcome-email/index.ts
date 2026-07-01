@@ -167,13 +167,16 @@ serve(async (req) => {
       return `${date} : ${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}`;
     }).join('<br/>') || '';
 
-    // Format training date
-    const trainingDate = new Date(training.start_date).toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    // Format training date (only if start_date is set - e-learning asynchrone may not have one)
+    const trainingDate = training.start_date
+      ? new Date(training.start_date).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        })
+      : '';
+
 
     // Build training summary page URL
     const trainingSummaryUrl = `${appUrl}/formation-info/${trainingId}`;
@@ -220,9 +223,10 @@ serve(async (req) => {
 
         <p><strong>📅 Informations pratiques :</strong></p>
         <ul style="margin-left: 20px; list-style: none; padding-left: 0;">
-          ${scheduleStr ? `<li style="margin-bottom: 8px;"><strong>Horaires :</strong><br/>${scheduleStr}</li>` : `<li style="margin-bottom: 8px;"><strong>Date :</strong> ${trainingDate}</li>`}
+          ${scheduleStr ? `<li style="margin-bottom: 8px;"><strong>Horaires :</strong><br/>${scheduleStr}</li>` : (trainingDate ? `<li style="margin-bottom: 8px;"><strong>Date :</strong> ${trainingDate}</li>` : '')}
           <li style="margin-bottom: 8px;"><strong>Lieu :</strong> ${safeLocation}</li>
         </ul>
+
 
         <p><strong>📋 Prochaines étapes :</strong></p>
         <p>Dans les prochains jours, vous recevrez un email de recueil de vos besoins pour cette formation. Ce questionnaire nous permettra de personnaliser au mieux le contenu en fonction de vos attentes.</p>
