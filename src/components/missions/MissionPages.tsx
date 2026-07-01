@@ -99,6 +99,7 @@ import {
 import { Mission } from "@/types/missions";
 import Generate8PDialog from "./Generate8PDialog";
 import SurveyBuilder from "./SurveyBuilder";
+import MissionTranscriptPagePicker from "./MissionTranscriptPagePicker";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
