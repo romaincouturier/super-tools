@@ -365,11 +365,14 @@ function GameDevisHistory() {
                 <TableHead>Destinataire</TableHead>
                 <TableHead>Jeux</TableHead>
                 <TableHead className="text-right">Total HT</TableHead>
-                <TableHead className="w-16" />
+                <TableHead className="w-24" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {history.map((d) => (
+              {history.map((d) => {
+                const safeClient = (d.client_name ?? "client").replace(/[^\w-]+/g, "_");
+                const filename = `Devis_${safeClient}_${d.created_at.slice(0, 10)}.pdf`;
+                return (
                 <TableRow key={d.id}>
                   <TableCell className="text-sm">{DATE(d.created_at)}</TableCell>
                   <TableCell className="text-sm font-medium">{d.client_name ?? "—"}</TableCell>
@@ -380,15 +383,25 @@ function GameDevisHistory() {
                   <TableCell className="text-right text-sm">{EUR(d.total_amount)}</TableCell>
                   <TableCell>
                     {d.pdf_url && (
-                      <Button asChild variant="ghost" size="icon">
-                        <a href={d.pdf_url} target="_blank" rel="noopener noreferrer" title="Ouvrir le PDF">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button asChild variant="ghost" size="icon" title="Ouvrir le PDF">
+                          <a href={d.pdf_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Télécharger le PDF"
+                          onClick={() => downloadPdf(d.pdf_url!, filename)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
-              ))}
+              );})}
             </TableBody>
           </Table>
         </div>
