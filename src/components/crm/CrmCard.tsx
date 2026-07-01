@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { GraduationCap, Briefcase, Building } from "lucide-react";
+import { GraduationCap, Briefcase, Building, Gamepad2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CrmCard } from "@/types/crm";
@@ -112,10 +112,12 @@ const CrmCardComponent = ({ card, isDragging: isDraggingProp, onClick, serviceTy
               >
                 {card.service_type === "formation" ? (
                   <GraduationCap className="h-3 w-3" />
+                ) : card.service_type === "jeu" ? (
+                  <Gamepad2 className="h-3 w-3" />
                 ) : (
                   <Briefcase className="h-3 w-3" />
                 )}
-                {card.service_type === "formation" ? "Formation" : "Mission"}
+                {card.service_type === "formation" ? "Formation" : card.service_type === "jeu" ? "Jeu" : "Mission"}
               </div>
             ) : null}
           </div>

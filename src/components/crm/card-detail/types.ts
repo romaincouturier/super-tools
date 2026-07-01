@@ -57,8 +57,8 @@ export interface CardDetailState {
   setCity: (v: string) => void;
   country: string;
   setCountry: (v: string) => void;
-  serviceType: "formation" | "mission" | null;
-  setServiceType: (v: "formation" | "mission" | null) => void;
+  serviceType: "formation" | "mission" | "jeu" | null;
+  setServiceType: (v: "formation" | "mission" | "jeu" | null) => void;
   assignedTo: string | null;
   setAssignedTo: (v: string | null) => void;
 

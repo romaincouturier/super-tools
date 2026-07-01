@@ -41,7 +41,7 @@ interface Props {
   email: string;
   company: string;
   estimatedValue: string;
-  serviceType: "formation" | "mission" | null;
+  serviceType: "formation" | "mission" | "jeu" | null;
 
   // Loss reason
   showLossReasonDialog: boolean;

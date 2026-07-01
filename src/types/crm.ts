@@ -2,7 +2,7 @@
 
 export type StatusOperational = 'TODAY' | 'WAITING';
 export type SalesStatus = 'OPEN' | 'WON' | 'LOST' | 'CANCELED';
-export type ServiceType = 'formation' | 'mission';
+export type ServiceType = 'formation' | 'mission' | 'jeu';
 export type AcquisitionSource = 'recommandation' | 'linkedin' | 'site_web' | 'evenement' | 'appel_froid' | 'email_entrant' | 'partenaire' | 'nouvelle_mission' | 'ancien_client' | 'recherche_google' | 'reseau' | 'demarchage' | 'autre';
 export type LossReason = 'prix' | 'timing' | 'concurrent' | 'besoin_non_qualifie' | 'pas_de_budget' | 'pas_de_reponse' | 'indisponible' | 'no_go' | 'changement_avis' | 'financement_cpf' | 'autre';
 export type NextActionType = 'email' | 'phone' | 'rdv_physique' | 'rdv_visio' | 'other';

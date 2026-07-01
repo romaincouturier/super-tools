@@ -72,7 +72,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
         <div className="flex items-center gap-2 flex-wrap">
           <Select
             value={serviceType || ""}
-            onValueChange={(v) => setServiceType(v as "formation" | "mission" | null)}
+            onValueChange={(v) => setServiceType(v as "formation" | "mission" | "jeu" | null)}
           >
             <SelectTrigger className="h-7 w-auto text-xs gap-1">
               <SelectValue placeholder="Type de prestation" />
@@ -80,6 +80,7 @@ const CardDetailQualification = ({ state, handlers }: Props) => {
             <SelectContent>
               <SelectItem value="formation">Formation</SelectItem>
               <SelectItem value="mission">Mission</SelectItem>
+              <SelectItem value="jeu">Jeu</SelectItem>
             </SelectContent>
           </Select>
           <Select

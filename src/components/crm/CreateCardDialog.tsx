@@ -135,6 +135,7 @@ const CreateCardDialog = ({ open, onOpenChange, columnId, columns }: CreateCardD
               <SelectContent>
                 <SelectItem value="formation">Formation</SelectItem>
                 <SelectItem value="mission">Mission</SelectItem>
+                <SelectItem value="jeu">Jeu</SelectItem>
               </SelectContent>
             </Select>
           </div>

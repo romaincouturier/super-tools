@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const FEES_STORAGE_KEY = "game-devis-last-fees";
 import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download } from "lucide-react";
@@ -58,6 +60,11 @@ export default function GameDevisTab() {
   const [fraisDossier, setFraisDossier] = useState<number | "">("");
   const [noteDevis, setNoteDevis] = useState("");
 
+  // Lien opportunité CRM : préremplissage + rattachement du devis à la carte.
+  const [searchParams] = useSearchParams();
+  const [crmCardId] = useState<string | null>(() => searchParams.get("crmCardId"));
+  const [senderEmail, setSenderEmail] = useState<string | null>(null);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(FEES_STORAGE_KEY);
@@ -66,6 +73,20 @@ export default function GameDevisTab() {
       if (typeof saved.fraisDePort === "number") setFraisDePort(saved.fraisDePort);
       if (typeof saved.fraisDossier === "number") setFraisDossier(saved.fraisDossier);
     } catch {}
+  }, []);
+
+  // Préremplissage depuis les paramètres d'URL (bouton "devis de jeu" du CRM).
+  useEffect(() => {
+    const p = (k: string) => searchParams.get(k) || "";
+    if (p("nomClient")) setNomClient(p("nomClient"));
+    if (p("emailCommanditaire")) setEmailCommanditaire(p("emailCommanditaire"));
+    if (p("prenomCommanditaire")) setPrenomCommanditaire(p("prenomCommanditaire"));
+    if (p("nomCommanditaire")) setNomCommanditaire(p("nomCommanditaire"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setSenderEmail(data.user?.email ?? null));
   }, []);
 
   const onSearchSiren = async () => {
@@ -138,6 +159,7 @@ export default function GameDevisTab() {
         fraisDePort: typeof fraisDePort === "number" ? fraisDePort : 0,
         fraisDossier: typeof fraisDossier === "number" ? fraisDossier : 0,
         noteDevis,
+        ...(crmCardId && { crmCardId, senderEmail: senderEmail ?? undefined }),
       });
       toast({ title: "Devis envoyé !", description: `Le devis a été généré et envoyé à ${emailCommanditaire}` });
       try {
@@ -160,6 +182,11 @@ export default function GameDevisTab() {
     <div className="space-y-12">
     <GameDevisHistory />
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
+      {crmCardId && (
+        <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+          Ce devis sera rattaché à l'opportunité CRM (montant, PDF, relance et informations client synchronisés).
+        </div>
+      )}
       <ClientInfoSection
         siren={sirenSearch.siren}
         setSiren={sirenSearch.setSiren}

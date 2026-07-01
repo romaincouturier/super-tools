@@ -15,16 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useConfirm } from "@/hooks/useConfirm";
+import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
 import KanbanStatsDialog from "@/components/shared/kanban/KanbanStatsDialog";
-import type { KanbanColumnDef, KanbanStatsItem } from "@/types/kanban";
+import type { KanbanColumnDef, KanbanCardDef, KanbanStatsItem } from "@/types/kanban";
 import {
   useIdeas,
   IDEA_COLUMNS,
@@ -51,16 +45,16 @@ const IDEA_STATS_COLUMNS: KanbanColumnDef[] = IDEA_COLUMNS.map((s, i) => ({
   color: STATS_COLUMN_COLORS[s],
 }));
 
+type IdeaKanbanCard = Idea & KanbanCardDef;
+
 function IdeaCard({
   idea,
   onVote,
-  onStatus,
   onPromote,
   onDelete,
 }: {
   idea: Idea;
   onVote: (i: Idea) => void;
-  onStatus: (id: string, s: IdeaStatus) => void;
   onPromote: (i: Idea) => void;
   onDelete: (id: string) => void;
 }) {
@@ -106,19 +100,7 @@ function IdeaCard({
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 pt-1">
-        <Select value={idea.status} onValueChange={(v) => onStatus(idea.id, v as IdeaStatus)}>
-          <SelectTrigger className="h-7 text-xs flex-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {IDEA_COLUMNS.map((s) => (
-              <SelectItem key={s} value={s} className="text-xs">
-                {IDEA_STATUS_CONFIG[s].label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-end gap-1.5 pt-1">
         {!idea.promoted_to_improvement_id && (
           <Button
             variant="outline"
@@ -321,6 +303,19 @@ export default function Ideas() {
     if (ok) removeIdea(id);
   };
 
+  const kanbanColumns: KanbanColumnDef[] = useMemo(
+    () => IDEA_COLUMNS.map((s, i) => ({ id: s, name: IDEA_STATUS_CONFIG[s].label, position: i })),
+    [],
+  );
+
+  const kanbanCards: IdeaKanbanCard[] = useMemo(
+    () =>
+      IDEA_COLUMNS.flatMap((status) =>
+        (grouped[status] || []).map((idea, idx) => ({ ...idea, columnId: status, position: idx })),
+      ),
+    [grouped],
+  );
+
   return (
     <ModuleLayout>
       <main className="max-w-7xl mx-auto p-3 md:p-6">
@@ -341,37 +336,32 @@ export default function Ideas() {
           }
         />
 
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <Spinner size="lg" className="text-primary" />
-          </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {IDEA_COLUMNS.map((status) => (
-              <div key={status} className="w-72 shrink-0">
-                <div className="flex items-center justify-between mb-2 px-1">
-                  <span className="text-sm font-medium">{IDEA_STATUS_CONFIG[status].label}</span>
-                  <Badge variant="secondary" className="text-xs">{grouped[status].length}</Badge>
-                </div>
-                <div className="space-y-2">
-                  {grouped[status].map((idea) => (
-                    <IdeaCard
-                      key={idea.id}
-                      idea={idea}
-                      onVote={toggleVote}
-                      onStatus={changeStatus}
-                      onPromote={promoteIdea}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                  {grouped[status].length === 0 && (
-                    <p className="text-xs text-muted-foreground px-1 py-4 text-center">—</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <GenericKanbanBoard<IdeaKanbanCard, KanbanColumnDef>
+          columns={kanbanColumns}
+          cards={kanbanCards}
+          loading={loading}
+          columnClassName="max-h-[calc(100vh-260px)]"
+          renderCard={(card, isDragging) => (
+            <IdeaCard
+              idea={card}
+              onVote={isDragging ? () => {} : toggleVote}
+              onPromote={isDragging ? () => {} : promoteIdea}
+              onDelete={isDragging ? () => {} : handleDelete}
+            />
+          )}
+          renderColumnHeader={(col, colCards) => (
+            <div className="flex items-center justify-between p-3 pb-0">
+              <span className="text-sm font-medium">{col.name}</span>
+              <Badge variant="secondary" className="text-xs">{colCards.length}</Badge>
+            </div>
+          )}
+          renderEmptyColumn={() => (
+            <p className="text-xs text-muted-foreground px-1 py-4 text-center">—</p>
+          )}
+          onCardMove={({ card, targetColumnId }) => {
+            if (card.status !== targetColumnId) changeStatus(card.id, targetColumnId as IdeaStatus);
+          }}
+        />
 
         <NewIdeaDialog
           open={dialogOpen}

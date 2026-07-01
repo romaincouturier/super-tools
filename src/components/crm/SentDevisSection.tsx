@@ -22,12 +22,17 @@ interface SentDevisDetails {
   pdf_avec_subrogation_url?: string;
   pdf_sans_storage_path?: string;
   pdf_avec_storage_path?: string;
+  // Devis de jeu (dropshipping) : un seul PDF.
+  pdf_url?: string;
+  pdf_storage_path?: string;
+  total_amount?: number;
   form_data?: Record<string, unknown>;
 }
 
 interface SentDevis {
   id: string;
   created_at: string;
+  action_type?: string;
   details: SentDevisDetails;
 }
 
@@ -63,11 +68,12 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
       if (!cardId) return [];
 
       // Query by cardId in JSONB details (primary) + fallback by email
+      const DEVIS_ACTIONS = ["micro_devis_sent", "game_devis_sent"];
       const queries = [
         supabase
           .from("activity_logs")
-          .select("id, created_at, details")
-          .eq("action_type", "micro_devis_sent")
+          .select("id, created_at, action_type, details")
+          .in("action_type", DEVIS_ACTIONS)
           .contains("details", { crm_card_id: cardId })
           .order("created_at", { ascending: false })
           .limit(50),
@@ -78,8 +84,8 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
         queries.push(
           supabase
             .from("activity_logs")
-            .select("id, created_at, details")
-            .eq("action_type", "micro_devis_sent")
+            .select("id, created_at, action_type, details")
+            .in("action_type", DEVIS_ACTIONS)
             .eq("recipient_email", email)
             .order("created_at", { ascending: false })
             .limit(50)
@@ -196,11 +202,14 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
           if (item.type === "devis" && item.devis) {
             const devis = item.devis;
             const details = devis.details;
+            const isGame = devis.action_type === "game_devis_sent";
             const hasSansStorage = !!details?.pdf_sans_storage_path;
             const hasAvecStorage = !!details?.pdf_avec_storage_path;
             const hasSansPdf = hasSansStorage || !!details?.pdf_sans_subrogation_url;
             const hasAvecPdf = hasAvecStorage || !!details?.pdf_avec_subrogation_url;
-            const hasPdf = hasSansPdf || hasAvecPdf;
+            const hasGamePdf = isGame && (!!details?.pdf_storage_path || !!details?.pdf_url);
+            const hasPdf = hasSansPdf || hasAvecPdf || hasGamePdf;
+            const devisTitle = details?.formation_name || (isGame ? "Devis jeu" : "Devis");
 
             return (
               <div
@@ -210,7 +219,7 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-xs flex items-center gap-1.5">
                     <Receipt className="h-3 w-3 text-orange-500" />
-                    {isDemoMode ? maskText(details?.formation_name) || "Devis" : (details?.formation_name || "Devis")}
+                    {isDemoMode ? (maskText(devisTitle) || "Devis") : devisTitle}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(devis.created_at), "dd MMM yyyy", { locale: fr })}
@@ -264,6 +273,22 @@ const SentDevisSection = ({ email, cardId, emails }: SentDevisSectionProps) => {
                         <FileDown className="h-3 w-3 mr-1" />
                       )}
                       {details?.type_subrogation === "les2" ? "PDF avec subrogation" : "Ouvrir le PDF"}
+                    </Button>
+                  )}
+                  {hasGamePdf && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7 px-2"
+                      disabled={loadingPdf === `${devis.id}-jeu`}
+                      onClick={() => handleOpenPdf(details.pdf_storage_path, details.pdf_url, `${devis.id}-jeu`)}
+                    >
+                      {loadingPdf === `${devis.id}-jeu` ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <FileDown className="h-3 w-3 mr-1" />
+                      )}
+                      Ouvrir le PDF
                     </Button>
                   )}
                   {!hasPdf && (
