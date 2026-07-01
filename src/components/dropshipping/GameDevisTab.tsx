@@ -149,6 +149,7 @@ export default function GameDevisTab() {
 
   return (
     <div className="space-y-12">
+    <GameDevisHistory />
     <form onSubmit={handleSubmit} className="space-y-8 max-w-3xl">
       <ClientInfoSection
         siren={sirenSearch.siren}
