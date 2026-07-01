@@ -14,6 +14,15 @@ import { useGames, useGameDevisHistory } from "@/hooks/useDropshipping";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { supabase } from "@/integrations/supabase/client";
+
+async function resolvePdfUrl(entry: { pdf_storage_path: string | null; pdf_url: string | null }): Promise<string | null> {
+  if (entry.pdf_storage_path) {
+    const { data } = await supabase.storage.from("devis-pdfs").createSignedUrl(entry.pdf_storage_path, 3600);
+    if (data?.signedUrl) return data.signedUrl;
+  }
+  return entry.pdf_url;
+}
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
