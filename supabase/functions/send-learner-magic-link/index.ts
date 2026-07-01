@@ -41,9 +41,8 @@ Deno.serve(async (req) => {
     // Check participant exists (silent fail for security)
     const { data: participants } = await supabase
       .from("training_participants")
-      .select("id, first_name")
-      .ilike("email", email)
-      .limit(1);
+      .select("id, first_name, training_id")
+      .ilike("email", email);
 
     if (!participants || participants.length === 0) {
       return new Response(
@@ -57,6 +56,7 @@ Deno.serve(async (req) => {
     let startDateRaw: string | null = null;
     let endDateRaw: string | null = null;
     let isTu = false;
+    let trainingsListHtml = "";
     if (trainingId) {
       const { data: training } = await supabase
         .from("trainings")
@@ -67,6 +67,36 @@ Deno.serve(async (req) => {
       startDateRaw = training?.start_date ?? null;
       endDateRaw = training?.end_date ?? null;
       isTu = !training?.sponsor_formal_address;
+    } else {
+      // Self-service: aggregate all trainings this participant is enrolled in
+      const trainingIds = Array.from(
+        new Set(participants.map((p: any) => p.training_id).filter(Boolean))
+      );
+      if (trainingIds.length > 0) {
+        const { data: trainings } = await supabase
+          .from("trainings")
+          .select("training_name, start_date, end_date, sponsor_formal_address")
+          .in("id", trainingIds)
+          .order("start_date", { ascending: false });
+        if (trainings && trainings.length > 0) {
+          // Use "vous" by default unless all trainings are "tu"
+          isTu = trainings.every((t: any) => !t.sponsor_formal_address);
+          if (trainings.length === 1) {
+            trainingName = trainings[0].training_name;
+            startDateRaw = trainings[0].start_date;
+            endDateRaw = trainings[0].end_date;
+          } else {
+            const items = trainings.map((t: any) => {
+              const s = t.start_date ? formatDateFr(t.start_date) : "";
+              const e = t.end_date ? formatDateFr(t.end_date) : "";
+              const dateStr = s && e && s !== e ? ` (${s} → ${e})` : s ? ` (${s})` : "";
+              return `<li><strong>${t.training_name ?? ""}</strong>${dateStr}</li>`;
+            }).join("");
+            trainingsListHtml = `<ul>${items}</ul>`;
+            trainingName = null;
+          }
+        }
+      }
     }
 
     // 1-year expiry

@@ -59,6 +59,7 @@ export function mapCards(
       first_name: card.first_name,
       last_name: card.last_name,
       phone: card.phone,
+      phone_2: (card.phone_2 as string | undefined) ?? null,
       company: card.company,
       email: card.email,
       linkedin_url: card.linkedin_url,
