@@ -280,17 +280,20 @@ export async function fetchRecipients(supabase: SupabaseClient): Promise<Recipie
 }
 
 export async function fetchMissionActions(supabase: SupabaseClient, today: string): Promise<MissionActionItem[]> {
+  // Visibility parity with the Kanban: include all missions still visible on
+  // the board (in progress) and completed missions not yet archived (no end_date).
   const { data } = await supabase
     .from("missions")
-    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text")
+    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, waiting_next_action_text, status, end_date")
     .not("waiting_next_action_text", "is", null)
     .lte("waiting_next_action_date", today)
-    .in("status", ["not_started", "in_progress", "pending"])
+    .in("status", ["not_started", "in_progress", "pending", "completed"])
     .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   return data
     .filter((m: any) => m.waiting_next_action_text?.trim())
+    .filter((m: any) => !(m.status === "completed" && m.end_date))
     .map((m: any) => ({
       id: m.id,
       title: m.title,
@@ -393,15 +396,17 @@ export async function fetchUnbilledActivities(supabase: SupabaseClient, today: s
 }
 
 export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: string): Promise<MissionNoDateItem[]> {
+  // Aligned with Kanban visibility: in progress + completed (still visible, no end_date).
   const { data } = await supabase
     .from("missions")
-    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
-    .in("status", ["not_started", "in_progress"])
+    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, status, end_date")
+    .in("status", ["not_started", "in_progress", "completed"])
     .is("start_date", null)
     .or("archived.is.null,archived.eq.false");
 
   if (!data) return [];
   return data
+    .filter((m: any) => !(m.status === "completed" && m.end_date))
     .filter((m: any) => !(m.waiting_next_action_date && m.waiting_next_action_date > today))
     .map((m: any) => ({
       id: m.id,
