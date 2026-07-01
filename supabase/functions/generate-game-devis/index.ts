@@ -196,14 +196,65 @@ serve(async (req) => {
       _emailType: "game_devis",
     });
 
-    // Track in CRM if linked
+    // Track in CRM if linked — même flux que les devis formation (micro-devis) :
+    // synchro des infos client, déplacement en "Devis envoyé", email tracé,
+    // relance programmée et recalcul du montant de l'opportunité.
     if (body.crmCardId) {
+      const { getSenderEmail } = await import("../_shared/email-settings.ts");
+      const contactEmail = await getSenderEmail();
+      const actorEmail = body.senderEmail || contactEmail;
+
+      // Sync des données société sur l'opportunité.
       try {
-        const { getSenderEmail } = await import("../_shared/email-settings.ts");
-        const contactEmail = await getSenderEmail();
+        const finalCountry = body.pays && body.pays.toLowerCase() !== "france" ? body.pays : "France";
+        await supabase.from("crm_cards").update({
+          company: body.nomClient || null,
+          address: body.adresseClient || null,
+          postal_code: body.codePostalClient || null,
+          city: body.villeClient || null,
+          country: finalCountry,
+        }).eq("id", body.crmCardId);
+      } catch (e) {
+        console.warn("CRM company sync failed:", e);
+      }
+
+      // Déplacement automatique en colonne "Devis envoyé".
+      try {
+        const { data: devisColumn } = await supabase
+          .from("crm_columns")
+          .select("id")
+          .ilike("name", "%devis envoy%")
+          .limit(1)
+          .single();
+        if (devisColumn) {
+          const { data: currentCard } = await supabase
+            .from("crm_cards")
+            .select("column_id")
+            .eq("id", body.crmCardId)
+            .single();
+          if (currentCard && currentCard.column_id !== devisColumn.id) {
+            await supabase.from("crm_cards")
+              .update({ column_id: devisColumn.id })
+              .eq("id", body.crmCardId);
+            await supabase.from("crm_activity_log").insert({
+              card_id: body.crmCardId,
+              action_type: "card_moved",
+              old_value: currentCard.column_id,
+              new_value: devisColumn.id,
+              metadata: { source: "auto_devis_sent" },
+              actor_email: actorEmail,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("CRM auto-move failed:", e);
+      }
+
+      // Email tracé + relance programmée (J+0).
+      try {
         await supabase.from("crm_card_emails").insert({
           card_id: body.crmCardId,
-          sender_email: body.senderEmail || contactEmail,
+          sender_email: actorEmail,
           recipient_email: body.emailCommanditaire,
           subject: `Votre devis jeux — ${body.nomClient}`,
           body_html: htmlContent,
@@ -215,10 +266,27 @@ serve(async (req) => {
           old_value: null,
           new_value: `Devis jeux envoyé à ${body.emailCommanditaire}`,
           metadata: { source: "game_devis" },
-          actor_email: body.senderEmail || contactEmail,
+          actor_email: actorEmail,
         });
+        const followUpDateStr = new Date().toISOString().split("T")[0];
+        await supabase.from("crm_cards")
+          .update({
+            status_operational: "WAITING",
+            waiting_next_action_date: followUpDateStr,
+            waiting_next_action_text: "Relancer le client suite à l'envoi du devis",
+          })
+          .eq("id", body.crmCardId);
       } catch (e) {
         console.warn("CRM tracking failed:", e);
+      }
+
+      // Recalcul du montant de l'opportunité (MIN des devis envoyés).
+      if (totalHT > 0) {
+        try {
+          await supabase.rpc("recompute_opportunity_estimated_value", { p_card_id: body.crmCardId });
+        } catch (e) {
+          console.warn("recompute estimated_value failed:", e);
+        }
       }
     }
 

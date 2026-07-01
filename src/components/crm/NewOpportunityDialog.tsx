@@ -498,7 +498,7 @@ Tel: 06 12 34 56 78"
                           <span className="font-medium truncate flex-1">{card.title}</span>
                           {card.service_type && (
                             <Badge variant="outline" className="text-[10px] h-4 px-1">
-                              {card.service_type === "formation" ? "Formation" : "Mission"}
+                              {card.service_type === "formation" ? "Formation" : card.service_type === "jeu" ? "Jeu" : "Mission"}
                             </Badge>
                           )}
                           {card.estimated_value ? (

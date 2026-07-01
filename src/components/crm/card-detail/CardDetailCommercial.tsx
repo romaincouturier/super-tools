@@ -77,6 +77,27 @@ const CardDetailCommercial = ({ state, handlers }: Props) => {
             Créer un devis formation
           </Button>
         )}
+        {serviceType === "jeu" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const params = new URLSearchParams({
+                tab: "devis",
+                ...(company && { nomClient: company }),
+                ...(email && { emailCommanditaire: email }),
+                ...(firstName && { prenomCommanditaire: firstName }),
+                ...(lastName && { nomCommanditaire: lastName }),
+                ...(card?.id && { crmCardId: card.id }),
+                source: "crm",
+              });
+              navigate(`/dropshipping?${params.toString()}`);
+            }}
+          >
+            <Receipt className="h-4 w-4 mr-2" />
+            Créer un devis de jeu
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"

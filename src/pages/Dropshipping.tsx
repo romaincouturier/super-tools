@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText } from "lucide-react";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -395,11 +396,13 @@ function GamesTable() {
 // ── Main page ──────────────────────────────────────────────────────
 
 export default function Dropshipping() {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") || "dashboard";
   return (
     <ModuleLayout>
       <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-0">
       <PageHeader title="Dropshipping" />
-      <Tabs defaultValue="dashboard">
+      <Tabs defaultValue={initialTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="dashboard"><TrendingUp className="h-4 w-4 mr-1.5" />Dashboard</TabsTrigger>
           <TabsTrigger value="sales"><ShoppingCart className="h-4 w-4 mr-1.5" />Ventes</TabsTrigger>
