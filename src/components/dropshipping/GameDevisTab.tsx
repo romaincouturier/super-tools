@@ -14,6 +14,15 @@ import { useGames, useGameDevisHistory } from "@/hooks/useDropshipping";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { supabase } from "@/integrations/supabase/client";
+
+async function resolvePdfUrl(entry: { pdf_storage_path: string | null; pdf_url: string | null }): Promise<string | null> {
+  if (entry.pdf_storage_path) {
+    const { data } = await supabase.storage.from("devis-pdfs").createSignedUrl(entry.pdf_storage_path, 3600);
+    if (data?.signedUrl) return data.signedUrl;
+  }
+  return entry.pdf_url;
+}
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -382,18 +391,27 @@ function GameDevisHistory() {
                   </TableCell>
                   <TableCell className="text-right text-sm">{EUR(d.total_amount)}</TableCell>
                   <TableCell>
-                    {d.pdf_url && (
+                    {(d.pdf_storage_path || d.pdf_url) && (
                       <div className="flex items-center justify-end gap-1">
-                        <Button asChild variant="ghost" size="icon" title="Ouvrir le PDF">
-                          <a href={d.pdf_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Ouvrir le PDF"
+                          onClick={async () => {
+                            const url = await resolvePdfUrl(d);
+                            if (url) window.open(url, "_blank", "noopener,noreferrer");
+                          }}
+                        >
+                          <ExternalLink className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           title="Télécharger le PDF"
-                          onClick={() => downloadPdf(d.pdf_url!, filename)}
+                          onClick={async () => {
+                            const url = await resolvePdfUrl(d);
+                            if (url) downloadPdf(url, filename);
+                          }}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
