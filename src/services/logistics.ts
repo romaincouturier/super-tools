@@ -220,12 +220,13 @@ export async function importTemplate(args: {
 
   const toInsert = (tmplItems as ChecklistTemplateItem[]).map((item, idx) => {
     let due_date: string | null = null;
-    if (args.startDate && item.day_offset !== 0) {
-      const d = new Date(args.startDate);
-      d.setDate(d.getDate() + item.day_offset);
-      due_date = d.toISOString().slice(0, 10);
-    } else if (args.startDate && item.day_offset === 0) {
-      due_date = args.startDate;
+    if (args.startDate) {
+      // Convention: day_offset positif = N jours AVANT la date de début
+      // (cohérent avec le champ "Rappel (j avant)" affiché juste à côté).
+      const [y, m, d] = args.startDate.slice(0, 10).split("-").map(Number);
+      const base = new Date(Date.UTC(y, m - 1, d));
+      base.setUTCDate(base.getUTCDate() - (item.day_offset || 0));
+      due_date = base.toISOString().slice(0, 10);
     }
     return {
       entity_type: args.entityType,
