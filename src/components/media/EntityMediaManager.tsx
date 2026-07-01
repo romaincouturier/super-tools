@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical, Copy } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical, Copy, CheckSquare, Square, Check, X } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
