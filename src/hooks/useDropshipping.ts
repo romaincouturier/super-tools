@@ -222,6 +222,7 @@ export function useGameDevisHistory() {
         total_amount: r.details?.total_amount ?? 0,
         items: r.details?.items ?? [],
         pdf_url: r.details?.pdf_url ?? null,
+        pdf_storage_path: r.details?.pdf_storage_path ?? null,
       })) as GameDevisHistoryEntry[];
     },
   });
