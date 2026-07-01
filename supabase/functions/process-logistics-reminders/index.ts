@@ -307,7 +307,8 @@ serve(async (req) => {
               : r.daysUntilDue === 1
                 ? "<strong>demain</strong>"
                 : `dans ${r.daysUntilDue} j`;
-            return `<li>${linkHtml(`${appUrl}/${path}/${r.entityId}`, r.entityTitle)} — ${r.label} (${dueLabel})</li>`;
+            const dateLabel = r.startDate ? ` (${fmtLogisticsDate(r.startDate, r.endDate)})` : "";
+            return `<li>${linkHtml(`${appUrl}/${path}/${r.entityId}`, `${r.entityTitle}${dateLabel}`)} — ${r.label} (${dueLabel})</li>`;
           })
       );
 
