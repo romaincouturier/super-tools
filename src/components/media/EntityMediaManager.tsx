@@ -388,7 +388,49 @@ const EntityMediaManager = ({
     }
   };
 
-  const handleRename = (e: React.MouseEvent, item: MediaItem) => {
+  const handleDownloadSelected = async () => {
+    const items = downloadableMedia.filter((m) => selectedIds.has(m.id));
+    if (items.length === 0) return;
+    setDownloading(true);
+    let successCount = 0;
+    try {
+      for (const item of items) {
+        try {
+          await downloadFileUtil(item.file_url, item.file_name);
+          successCount++;
+        } catch {
+          console.error(`Download error: ${item.file_name}`);
+        }
+      }
+      if (successCount > 0) {
+        toast.success(
+          successCount === 1 ? "1 fichier téléchargé" : `${successCount} fichiers téléchargés`,
+        );
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(downloadableMedia.map((m) => m.id)));
+  };
+
+
     e.stopPropagation();
     const finalName = promptRenameFile(item.file_name);
     if (!finalName) return;
