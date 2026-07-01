@@ -163,14 +163,14 @@ function TemplateItemRow({ item, onDelete }: { item: ChecklistTemplateItem; onDe
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Décalage (jours)</Label>
+            <Label className="text-xs">Jours avant début</Label>
             <Input
               type="number"
               value={dayOffset}
               onChange={(e) => setDayOffset(e.target.value)}
               placeholder="0"
               className="h-7 text-sm"
-              title="-7 = J-7 avant la date de début"
+              title="Ex : 7 = à faire 7 jours avant la date de début. Valeur négative pour après."
             />
           </div>
           <div className="space-y-1">
