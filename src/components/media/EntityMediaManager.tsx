@@ -430,7 +430,7 @@ const EntityMediaManager = ({
     setSelectedIds(new Set(downloadableMedia.map((m) => m.id)));
   };
 
-
+  const handleRename = (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
     const finalName = promptRenameFile(item.file_name);
     if (!finalName) return;
