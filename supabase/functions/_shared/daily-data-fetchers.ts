@@ -232,6 +232,8 @@ export interface LogisticsReminderItem {
   dueDate: string;
   daysUntilDue: number;
   assignedTo: string | null;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 /** Fetch columns that have at least one assigned user (dynamic review columns) */
