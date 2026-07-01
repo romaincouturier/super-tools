@@ -199,7 +199,7 @@ function TemplateItemRow({ item, onDelete }: { item: ChecklistTemplateItem; onDe
       <span className="text-sm flex-1">{item.label}</span>
       {item.day_offset !== 0 && (
         <span className="text-xs text-muted-foreground shrink-0">
-          {item.day_offset > 0 ? `J+${item.day_offset}` : `J${item.day_offset}`}
+          {item.day_offset > 0 ? `J-${item.day_offset}` : `J+${Math.abs(item.day_offset)}`}
         </span>
       )}
       {item.notify_days_before != null && (
