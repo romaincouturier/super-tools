@@ -1507,6 +1507,12 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         missionId={mission.id}
         onGenerated={handle8PGenerated}
       />
+
+      <MissionTranscriptPagePicker
+        open={showTranscriptPicker}
+        onOpenChange={setShowTranscriptPicker}
+        onPick={handleCreatePageFromTranscript}
+      />
     </div>
   );
 };
