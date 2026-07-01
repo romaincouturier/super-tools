@@ -1424,6 +1424,10 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
               className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Nouvelle page">
               <Plus className="h-3.5 w-3.5" />
             </button>
+            <button onClick={() => setShowTranscriptPicker(true)}
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Ajouter une page depuis un transcript">
+              <FileAudio className="h-3.5 w-3.5" />
+            </button>
             <button onClick={() => setSidebarCollapsed(true)}
               className="h-6 w-6 flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Masquer">
               <PanelLeftClose className="h-3.5 w-3.5" />
