@@ -16,7 +16,6 @@ import { useGames, useGameDevisHistory } from "@/hooks/useDropshipping";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-import { supabase } from "@/integrations/supabase/client";
 
 async function resolvePdfUrl(entry: { pdf_storage_path: string | null; pdf_url: string | null }): Promise<string | null> {
   if (entry.pdf_storage_path) {
