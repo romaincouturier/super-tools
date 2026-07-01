@@ -63,6 +63,7 @@ function makeCard(overrides: Partial<CrmCard> = {}): CrmCard {
     first_name: null,
     last_name: null,
     phone: null,
+    phone_2: null,
     company: null,
     email: null,
     linkedin_url: null,
