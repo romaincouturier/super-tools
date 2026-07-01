@@ -562,6 +562,44 @@ const EntityMediaManager = ({
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Selection toolbar */}
+          {downloadableMedia.length > 0 && (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              {!selectionMode ? (
+                <Button size="sm" variant="outline" onClick={() => setSelectionMode(true)}>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Sélectionner
+                </Button>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedIds.size} sélectionné{selectedIds.size !== 1 ? "s" : ""}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={selectAll}>
+                      Tout sélectionner
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={exitSelectionMode}>
+                      <X className="h-4 w-4 mr-1" />
+                      Annuler
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleDownloadSelected}
+                    disabled={downloading || selectedIds.size === 0}
+                  >
+                    {downloading ? (
+                      <Spinner className="mr-2" />
+                    ) : (
+                      <DownloadCloud className="h-4 w-4 mr-2" />
+                    )}
+                    Télécharger la sélection
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           {(() => {
             const grid = (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
