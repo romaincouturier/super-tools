@@ -749,8 +749,24 @@ const EntityMediaManager = ({
                         </div>
                       )}
 
+                      {/* Selection checkbox overlay */}
+                      {selectionMode && canSelect && (
+                        <div className="absolute inset-0 bg-black/30 z-20 flex items-start justify-end p-2 pointer-events-none">
+                          <div
+                            className={cn(
+                              "w-6 h-6 rounded-md flex items-center justify-center border-2",
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "bg-white/90 border-white"
+                            )}
+                          >
+                            {isSelected && <Check className="h-4 w-4" />}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Hover overlay (not for audio — handled inline) */}
-                      {item.file_type !== "audio" && (
+                      {item.file_type !== "audio" && !selectionMode && (
                       <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex flex-col items-center justify-between p-2 z-10">
                         <div className="flex items-center justify-center gap-1 flex-1">
                           {(item.file_type === "image" || item.file_type === "video") && (
