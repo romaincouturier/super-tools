@@ -1201,21 +1201,21 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
   const missionIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "mission").map((d) => d.row.entity_id)));
   const trainingIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "training").map((d) => d.row.entity_id)));
 
-  const titleMap = new Map<string, { title: string; assignedTo: string | null }>();
+  const titleMap = new Map<string, { title: string; assignedTo: string | null; startDate: string | null; endDate: string | null }>();
 
   if (missionIds.length) {
     const { data } = await supabase
       .from("missions")
-      .select("id, title, assigned_to")
+      .select("id, title, assigned_to, start_date")
       .in("id", missionIds);
-    (data || []).forEach((m: any) => titleMap.set(`mission:${m.id}`, { title: m.title, assignedTo: m.assigned_to }));
+    (data || []).forEach((m: any) => titleMap.set(`mission:${m.id}`, { title: m.title, assignedTo: m.assigned_to, startDate: m.start_date ?? null, endDate: null }));
   }
   if (trainingIds.length) {
     const { data } = await supabase
       .from("trainings")
-      .select("id, training_name, assigned_to")
+      .select("id, training_name, assigned_to, start_date, end_date")
       .in("id", trainingIds);
-    (data || []).forEach((t: any) => titleMap.set(`training:${t.id}`, { title: t.training_name, assignedTo: t.assigned_to }));
+    (data || []).forEach((t: any) => titleMap.set(`training:${t.id}`, { title: t.training_name, assignedTo: t.assigned_to, startDate: t.start_date ?? null, endDate: t.end_date ?? null }));
   }
 
   return due.map(({ row, daysUntil }) => {
@@ -1230,6 +1230,8 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
       dueDate: row.due_date,
       daysUntilDue: daysUntil,
       assignedTo: entity?.assignedTo ?? null,
+      startDate: entity?.startDate ?? null,
+      endDate: entity?.endDate ?? null,
     } satisfies LogisticsReminderItem;
   });
 }
