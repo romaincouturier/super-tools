@@ -71,6 +71,7 @@ import {
   StickyNote,
   X,
   Copy,
+  FileAudio,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
