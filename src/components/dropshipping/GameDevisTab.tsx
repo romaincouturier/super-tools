@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const FEES_STORAGE_KEY = "game-devis-last-fees";
-import { Plus, Trash2, Loader2, Send, FileText, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
