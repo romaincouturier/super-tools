@@ -1125,6 +1125,23 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
 
   const [show8PDialog, setShow8PDialog] = useState(false);
   const [pending8PTemplate, setPending8PTemplate] = useState<MissionPageTemplate | null>(null);
+  const [showTranscriptPicker, setShowTranscriptPicker] = useState(false);
+
+  const handleCreatePageFromTranscript = async ({ title, content, icon }: { title: string; content: string; icon: string }) => {
+    try {
+      const newPage = await createPage.mutateAsync({
+        mission_id: mission.id,
+        parent_page_id: null,
+        title,
+        content,
+        icon,
+      } as Parameters<typeof createPage.mutateAsync>[0]);
+      setSelectedPage(newPage);
+      toast({ title: "Page créée depuis le transcript" });
+    } catch (error: unknown) {
+      toastError(toast, error instanceof Error ? error : "Erreur inconnue");
+    }
+  };
 
   const handleCreateFromTemplate = async (template: MissionPageTemplate) => {
     const tplKey = (template.name || "").trim().toLowerCase();
