@@ -396,10 +396,11 @@ export async function fetchUnbilledActivities(supabase: SupabaseClient, today: s
 }
 
 export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: string): Promise<MissionNoDateItem[]> {
+  // Aligned with Kanban visibility: in progress + completed (still visible, no end_date).
   const { data } = await supabase
     .from("missions")
-    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date")
-    .in("status", ["not_started", "in_progress"])
+    .select("id, title, client_name, emoji, assigned_to, waiting_next_action_date, status, end_date")
+    .in("status", ["not_started", "in_progress", "completed"])
     .is("start_date", null)
     .or("archived.is.null,archived.eq.false");
 
