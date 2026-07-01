@@ -109,31 +109,23 @@ const CardDetailContact = ({ state, handlers }: Props) => {
               </PopoverContent>
             </Popover>
           )}
-          <div className="space-y-1">
-            <Label className="text-xs flex items-center gap-1">
-              <Phone className="h-3 w-3" />
-              Téléphone 2
-            </Label>
-            <div className="flex items-center gap-2">
-              <Input type="tel" value={d.phone2} onChange={(e) => setPhone2(e.target.value)} placeholder="Second numéro" className="h-8 flex-1" readOnly={isDemoMode} />
-              {phone2.trim() && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone 2">
-                      <Phone className="h-3.5 w-3.5" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-4" align="end">
-                    <div className="flex flex-col items-center gap-2">
-                      {!isDemoMode && <QRCodeSVG value={`tel:${phone2.trim()}`} size={140} />}
-                      {isDemoMode && <div className="w-[140px] h-[140px] bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">Masqué</div>}
-                      <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-          </div>
+          {phone2.trim() && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" title="QR Code téléphone 2">
+                  <Phone className="h-3 w-3" />
+                  {d.phone2}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-4" align="end">
+                <div className="flex flex-col items-center gap-2">
+                  {!isDemoMode && <QRCodeSVG value={`tel:${phone2.trim()}`} size={140} />}
+                  {isDemoMode && <div className="w-[140px] h-[140px] bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">Masqué</div>}
+                  <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           {linkedinUrl && (
             <Button
               variant="outline"
@@ -197,6 +189,31 @@ const CardDetailContact = ({ state, handlers }: Props) => {
                   <PopoverContent className="w-auto p-4" align="end">
                     <div className="flex flex-col items-center gap-2">
                       {!isDemoMode && <QRCodeSVG value={`tel:${phone.trim()}`} size={140} />}
+                      {isDemoMode && <div className="w-[140px] h-[140px] bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">Masqué</div>}
+                      <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              Téléphone 2
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input type="tel" value={d.phone2} onChange={(e) => setPhone2(e.target.value)} placeholder="Second numéro" className="h-8 flex-1" readOnly={isDemoMode} />
+              {phone2.trim() && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="QR Code téléphone 2">
+                      <Phone className="h-3.5 w-3.5" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-4" align="end">
+                    <div className="flex flex-col items-center gap-2">
+                      {!isDemoMode && <QRCodeSVG value={`tel:${phone2.trim()}`} size={140} />}
                       {isDemoMode && <div className="w-[140px] h-[140px] bg-muted rounded flex items-center justify-center text-muted-foreground text-xs">Masqué</div>}
                       <span className="text-xs text-muted-foreground">Scannez pour appeler</span>
                     </div>
