@@ -95,6 +95,8 @@ const EntityMediaManager = ({
   const [presentationFullscreen, setPresentationFullscreen] = useState(false);
   const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
   const [localItems, setLocalItems] = useState<MediaItem[] | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
     "transcribe-audio-long",
