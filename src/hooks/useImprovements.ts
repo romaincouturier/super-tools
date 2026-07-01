@@ -175,7 +175,7 @@ export function useImprovements() {
       const updateData: Record<string, unknown> = { status: newStatus };
       if (newStatus === "completed") updateData.completed_at = new Date().toISOString();
 
-      const { error } = await supabase.from("improvements").update(updateData).eq("id", id);
+      const { error } = await supabase.from("improvements").update(updateData as any).eq("id", id);
       if (error) {
         toastError(toast, "Impossible de mettre à jour le statut");
         return;
@@ -228,7 +228,7 @@ export function useImprovements() {
       if (existingId) {
         const { error } = await supabase
           .from("improvements")
-          .update(cleaned)
+          .update(cleaned as any)
           .eq("id", existingId);
         if (error) throw error;
         toast({ title: "Amélioration modifiée" });

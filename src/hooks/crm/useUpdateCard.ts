@@ -27,7 +27,7 @@ export const useUpdateCard = () => {
       if (updates.email !== undefined) updateData.email = normalizeEmail(updates.email as string);
       if (updates.brief_questions !== undefined) updateData.brief_questions = updates.brief_questions as unknown;
 
-      const { error } = await supabase.from("crm_cards").update(updateData).eq("id", id);
+      const { error } = await supabase.from("crm_cards").update(updateData as any).eq("id", id);
       if (error) throw error;
 
       if (updates.column_id && updates.column_id !== oldCard.column_id) {

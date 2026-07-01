@@ -168,7 +168,7 @@ export default function Step5Email({
           attachment_names: [`${quote.quote_number}.pdf`],
           attachment_paths: attachmentPaths?.length ? attachmentPaths : null,
           delivery_status: "sent",
-        }),
+        } as any),
       ]);
       const actorEmail = user?.email || senderEmail;
       await supabase.from("crm_activity_log").insert({

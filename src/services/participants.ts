@@ -344,7 +344,7 @@ export async function updateParticipant(
 ) {
   return supabase
     .from("training_participants")
-    .update(updateData)
+    .update(updateData as any)
     .eq("id", participantId);
 }
 
@@ -485,6 +485,6 @@ export async function deleteSignedConvention(
   }
   await supabase
     .from("training_participants")
-    .update({ signed_convention_url: null } as Record<string, unknown>)
+    .update({ signed_convention_url: null } as any)
     .eq("id", participantId);
 }

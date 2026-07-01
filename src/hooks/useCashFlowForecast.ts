@@ -83,7 +83,7 @@ export function useUpdateForecastLine() {
       if (input.amount !== undefined) update.amount = input.amount;
       if (input.category !== undefined) update.category = input.category;
       if (input.notes !== undefined) update.notes = input.notes;
-      const { error } = await supabase.from("cashflow_forecast").update(update).eq("id", input.id);
+      const { error } = await supabase.from("cashflow_forecast").update(update as any).eq("id", input.id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEY }),

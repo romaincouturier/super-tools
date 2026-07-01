@@ -134,6 +134,6 @@ export async function saveArenaApiKeys(keys: ApiKeys): Promise<void> {
   ];
 
   for (const setting of settings) {
-    await supabase.from("app_settings").upsert(setting, { onConflict: "setting_key" });
+    await supabase.from("app_settings").upsert(setting as any, { onConflict: "setting_key" });
   }
 }

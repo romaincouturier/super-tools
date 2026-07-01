@@ -84,7 +84,7 @@ const LogisticsBookingButtons = ({
     trackFeature(`toggle_${field}`, "logistics", { table, entity_id: entityId, value });
     const { error } = await supabase
       .from(table)
-      .update({ [field]: value } as Record<string, boolean>)
+      .update({ [field]: value } as any)
       .eq("id", entityId);
 
     if (!error) {

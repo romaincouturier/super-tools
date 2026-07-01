@@ -165,7 +165,7 @@ export const useToggleDocumentDeliverable = (entityType: DocumentEntityType) => 
     mutationFn: async ({ id, entityId, is_deliverable }: { id: string; entityId: string; is_deliverable: boolean }) => {
       const { error } = await supabase
         .from(config.table)
-        .update({ is_deliverable })
+        .update({ is_deliverable } as any)
         .eq("id", id);
       if (error) throw error;
       return entityId;
