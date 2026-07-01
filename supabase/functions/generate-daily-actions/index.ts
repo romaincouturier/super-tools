@@ -367,6 +367,16 @@ serve(async (req) => {
       mission: "missions",
       training: "formations",
     };
+    function fmtLogisticsDate(start: string | null, end: string | null): string {
+      if (!start) return "";
+      const s = new Date(start).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      if (!end || start === end) return `le ${s}`;
+      const e = new Date(end).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+      if (new Date(start).getMonth() === new Date(end).getMonth() && new Date(start).getFullYear() === new Date(end).getFullYear()) {
+        return `du ${new Date(start).getDate()} au ${new Date(end).getDate()} ${new Date(end).toLocaleDateString("fr-FR", { month: "long" })}`;
+      }
+      return `du ${s} au ${e}`;
+    }
     for (const item of data.logisticsReminders) {
       const path = pathMapLogistics[item.entityType];
       const dueLabel = item.daysUntilDue <= 0
@@ -374,9 +384,10 @@ serve(async (req) => {
         : item.daysUntilDue === 1
           ? "demain"
           : `dans ${item.daysUntilDue} j`;
+      const dateLabel = item.startDate ? ` (${fmtLogisticsDate(item.startDate, item.endDate)})` : "";
       actions.push({
         category: "reservations_mission",
-        title: `✅ ${item.entityTitle} — ${item.label}`,
+        title: `✅ ${item.entityTitle}${dateLabel} — ${item.label}`,
         description: `Logistique à traiter (${dueLabel})`,
         link: `${appUrl}/${path}/${item.entityId}`,
         entityType: "logistics_item", entityId: item.id,

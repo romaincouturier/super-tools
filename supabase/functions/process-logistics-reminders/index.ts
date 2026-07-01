@@ -96,6 +96,17 @@ function formatReservationItems(r: ReservationItem): string {
   return (r.pendingItems || []).join(" + ");
 }
 
+function fmtLogisticsDate(start: string | null, end: string | null): string {
+  if (!start) return "";
+  const s = new Date(start).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  if (!end || start === end) return `le ${s}`;
+  const e = new Date(end).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  if (new Date(start).getMonth() === new Date(end).getMonth() && new Date(start).getFullYear() === new Date(end).getFullYear()) {
+    return `du ${new Date(start).getDate()} au ${new Date(end).getDate()} ${new Date(end).toLocaleDateString("fr-FR", { month: "long" })}`;
+  }
+  return `du ${s} au ${e}`;
+}
+
 
 function conventionIssueLabel(issue: TrainingConventionItem["issue"]): string {
   switch (issue) {
@@ -296,7 +307,8 @@ serve(async (req) => {
               : r.daysUntilDue === 1
                 ? "<strong>demain</strong>"
                 : `dans ${r.daysUntilDue} j`;
-            return `<li>${linkHtml(`${appUrl}/${path}/${r.entityId}`, r.entityTitle)} — ${r.label} (${dueLabel})</li>`;
+            const dateLabel = r.startDate ? ` (${fmtLogisticsDate(r.startDate, r.endDate)})` : "";
+            return `<li>${linkHtml(`${appUrl}/${path}/${r.entityId}`, `${r.entityTitle}${dateLabel}`)} — ${r.label} (${dueLabel})</li>`;
           })
       );
 
