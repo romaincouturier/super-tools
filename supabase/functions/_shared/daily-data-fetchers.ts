@@ -406,6 +406,7 @@ export async function fetchMissionsNoStartDate(supabase: SupabaseClient, today: 
 
   if (!data) return [];
   return data
+    .filter((m: any) => !(m.status === "completed" && m.end_date))
     .filter((m: any) => !(m.waiting_next_action_date && m.waiting_next_action_date > today))
     .map((m: any) => ({
       id: m.id,
