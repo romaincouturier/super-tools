@@ -4993,6 +4993,7 @@ export type Database = {
           created_at: string
           file_mime: string | null
           file_name: string | null
+          file_rotation: number
           file_size: number | null
           file_url: string | null
           id: string
@@ -5013,6 +5014,7 @@ export type Database = {
           created_at?: string
           file_mime?: string | null
           file_name?: string | null
+          file_rotation?: number
           file_size?: number | null
           file_url?: string | null
           id?: string
@@ -5033,6 +5035,7 @@ export type Database = {
           created_at?: string
           file_mime?: string | null
           file_name?: string | null
+          file_rotation?: number
           file_size?: number | null
           file_url?: string | null
           id?: string
