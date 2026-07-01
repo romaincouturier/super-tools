@@ -415,7 +415,7 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
       };
       const { error } = await supabase
         .from("review_comments")
-        .update(updateData)
+        .update(updateData as any)
         .eq("id", editingId);
       if (error) throw error;
       cancelEditing();

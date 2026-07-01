@@ -207,7 +207,7 @@ const Reclamations = () => {
   const updateReclamation = async (id: string, updates: Partial<Reclamation>) => {
     const { error } = await supabase
       .from("reclamations")
-      .update(updates as Record<string, unknown>)
+      .update(updates as any)
       .eq("id", id);
 
     if (error) {

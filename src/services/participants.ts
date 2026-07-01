@@ -344,7 +344,7 @@ export async function updateParticipant(
 ) {
   return supabase
     .from("training_participants")
-    .update(updateData)
+    .update(updateData as any)
     .eq("id", participantId);
 }
 

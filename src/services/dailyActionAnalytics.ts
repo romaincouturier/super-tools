@@ -56,7 +56,7 @@ export async function toggleDailyAction(
 
   const { error } = await supabase
     .from("daily_actions")
-    .update(updatePayload)
+    .update(updatePayload as any)
     .eq("id", actionId);
 
   if (error) throw error;

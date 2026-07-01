@@ -280,7 +280,7 @@ const FormationEdit = () => {
 
       const { error: trainingError } = await supabase
         .from("trainings")
-        .update(payload as Record<string, unknown>)
+        .update(payload as any)
         .eq("id", id);
 
       if (trainingError) throw trainingError;
