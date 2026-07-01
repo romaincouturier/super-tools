@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
-import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical, Copy } from "lucide-react";
+import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical, Copy, CheckSquare, Square, Check, X } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -95,6 +95,8 @@ const EntityMediaManager = ({
   const [presentationFullscreen, setPresentationFullscreen] = useState(false);
   const [transcribingIds, setTranscribingIds] = useState<Set<string>>(new Set());
   const [localItems, setLocalItems] = useState<MediaItem[] | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { invoke: invokeTranscribe } = useEdgeFunction<{ transcript?: string }>(
     "transcribe-audio-long",
@@ -386,6 +388,48 @@ const EntityMediaManager = ({
     }
   };
 
+  const handleDownloadSelected = async () => {
+    const items = downloadableMedia.filter((m) => selectedIds.has(m.id));
+    if (items.length === 0) return;
+    setDownloading(true);
+    let successCount = 0;
+    try {
+      for (const item of items) {
+        try {
+          await downloadFileUtil(item.file_url, item.file_name);
+          successCount++;
+        } catch {
+          console.error(`Download error: ${item.file_name}`);
+        }
+      }
+      if (successCount > 0) {
+        toast.success(
+          successCount === 1 ? "1 fichier téléchargé" : `${successCount} fichiers téléchargés`,
+        );
+      }
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(downloadableMedia.map((m) => m.id)));
+  };
+
   const handleRename = (e: React.MouseEvent, item: MediaItem) => {
     e.stopPropagation();
     const finalName = promptRenameFile(item.file_name);
@@ -518,6 +562,44 @@ const EntityMediaManager = ({
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Selection toolbar */}
+          {downloadableMedia.length > 0 && (
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              {!selectionMode ? (
+                <Button size="sm" variant="outline" onClick={() => setSelectionMode(true)}>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Sélectionner
+                </Button>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted-foreground">
+                      {selectedIds.size} sélectionné{selectedIds.size !== 1 ? "s" : ""}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={selectAll}>
+                      Tout sélectionner
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={exitSelectionMode}>
+                      <X className="h-4 w-4 mr-1" />
+                      Annuler
+                    </Button>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleDownloadSelected}
+                    disabled={downloading || selectedIds.size === 0}
+                  >
+                    {downloading ? (
+                      <Spinner className="mr-2" />
+                    ) : (
+                      <DownloadCloud className="h-4 w-4 mr-2" />
+                    )}
+                    Télécharger la sélection
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           {(() => {
             const grid = (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
@@ -542,17 +624,25 @@ const EntityMediaManager = ({
                 </div>
 
                 {gridItems.map((item) => {
+                  const isSelected = selectedIds.has(item.id);
+                  const canSelect = item.file_type !== "video_link";
                   const card = (
                     <div
                       key={item.id}
                       className={cn(
                         "group relative rounded-lg overflow-hidden bg-muted cursor-pointer",
                         item.file_type === "audio" ? "col-span-2 border" : "aspect-square border-2",
-                        item.is_deliverable && item.file_type !== "audio"
+                        selectionMode && isSelected
+                          ? "border-primary ring-2 ring-primary"
+                          : item.is_deliverable && item.file_type !== "audio"
                           ? "border-amber-400"
                           : "border-border"
                       )}
                       onClick={() => {
+                        if (selectionMode && canSelect) {
+                          toggleSelected(item.id);
+                          return;
+                        }
                         if (item.file_type === "audio") return;
                         if (item.file_type === "document") {
                           window.open(item.file_url, "_blank", "noopener,noreferrer");
@@ -659,8 +749,24 @@ const EntityMediaManager = ({
                         </div>
                       )}
 
+                      {/* Selection checkbox overlay */}
+                      {selectionMode && canSelect && (
+                        <div className="absolute inset-0 bg-black/30 z-20 flex items-start justify-end p-2 pointer-events-none">
+                          <div
+                            className={cn(
+                              "w-6 h-6 rounded-md flex items-center justify-center border-2",
+                              isSelected
+                                ? "bg-primary border-primary text-primary-foreground"
+                                : "bg-white/90 border-white"
+                            )}
+                          >
+                            {isSelected && <Check className="h-4 w-4" />}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Hover overlay (not for audio — handled inline) */}
-                      {item.file_type !== "audio" && (
+                      {item.file_type !== "audio" && !selectionMode && (
                       <div className="absolute inset-0 bg-black/60 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity will-change-[opacity] flex flex-col items-center justify-between p-2 z-10">
                         <div className="flex items-center justify-center gap-1 flex-1">
                           {(item.file_type === "image" || item.file_type === "video") && (
