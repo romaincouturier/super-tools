@@ -167,13 +167,16 @@ serve(async (req) => {
       return `${date} : ${s.start_time.slice(0, 5)} - ${s.end_time.slice(0, 5)}`;
     }).join('<br/>') || '';
 
-    // Format training date
-    const trainingDate = new Date(training.start_date).toLocaleDateString('fr-FR', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
+    // Format training date (only if start_date is set - e-learning asynchrone may not have one)
+    const trainingDate = training.start_date
+      ? new Date(training.start_date).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        })
+      : '';
+
 
     // Build training summary page URL
     const trainingSummaryUrl = `${appUrl}/formation-info/${trainingId}`;
