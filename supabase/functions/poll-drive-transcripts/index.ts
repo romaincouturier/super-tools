@@ -125,6 +125,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         body: JSON.stringify({ transcript_id: row.id }),
       }).catch((e) => console.warn("[poll-drive-transcripts] title gen failed", e));
 
+      // Fiche éditoriale IA (ST-2026-0215, fire and forget)
+      fetch(`${SUPABASE_URL}/functions/v1/analyze-transcript-editorial`, {
+        method: "POST",
+        headers: { "x-internal-secret": SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript_id: row.id }),
+      }).catch((e) => console.warn("[poll-drive-transcripts] editorial analysis failed", e));
+
       // Auto-trigger article + LinkedIn post generation (fire and forget — long running)
       for (const kind of ["blog_article", "linkedin_post"] as const) {
         fetch(`${SUPABASE_URL}/functions/v1/generate-transcript-content`, {

@@ -56,6 +56,148 @@ function formatDuration(seconds: number | null): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// ── Fiche éditoriale (ST-2026-0215) ──────────────────────────────────────────
+
+const QUALIFICATION_CONFIG: Record<string, { label: string; className: string }> = {
+  pro_exploitable:       { label: "Pro exploitable",       className: "bg-green-100 text-green-800" },
+  pro_archiver:          { label: "Pro à archiver",        className: "bg-slate-100 text-slate-700" },
+  personnel_hors_sujet:  { label: "Personnel / hors sujet", className: "bg-zinc-100 text-zinc-500" },
+  sensible_confidentiel: { label: "Sensible / confidentiel", className: "bg-red-100 text-red-800" },
+  non_exploitable:       { label: "Non exploitable",       className: "bg-orange-100 text-orange-800" },
+};
+
+const UNIVERS_LABELS: Record<string, string> = {
+  facilitation_graphique: "Facilitation graphique",
+  facilitation_intelligence_collective: "Facilitation / intelligence collective",
+  agilite_produit_organisation: "Agilité / produit / organisation",
+  ia: "IA",
+  formation_pedagogie: "Formation / pédagogie",
+  gestion_temps_priorites: "Gestion du temps / priorités",
+  autre: "Autre",
+};
+
+const TYPE_MATIERE_LABELS: Record<string, string> = {
+  question_client_frequente: "Question client fréquente",
+  probleme_terrain: "Problème terrain",
+  objection_commerciale: "Objection commerciale",
+  feedback_formation: "Feedback formation",
+  temoignage_potentiel: "Témoignage potentiel",
+  cas_client_potentiel: "Cas client potentiel",
+  idee_article: "Idée d'article",
+  idee_newsletter: "Idée newsletter",
+  idee_post_linkedin: "Idée post LinkedIn",
+  ressource_pedagogique: "Ressource pédagogique",
+  aucun_potentiel: "Aucun potentiel éditorial",
+};
+
+const RISQUE_CLASSES: Record<string, string> = {
+  faible: "bg-green-100 text-green-800",
+  moyen: "bg-amber-100 text-amber-800",
+  fort: "bg-red-100 text-red-800",
+};
+
+function QualificationBadge({ q }: { q: string | null }) {
+  if (!q) return null;
+  const cfg = QUALIFICATION_CONFIG[q];
+  if (!cfg) return null;
+  return <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${cfg.className}`}>{cfg.label}</span>;
+}
+
+/** Fiche éditoriale IA affichée en tête du détail d'un transcript. */
+function EditorialSheet({ t }: { t: Transcript }) {
+  const queryClient = useQueryClient();
+  const [analyzing, setAnalyzing] = useState(false);
+  const a = t.editorial_analysis;
+  const q = t.editorial_qualification;
+
+  const runAnalysis = async () => {
+    setAnalyzing(true);
+    const { data, error } = await supabase.functions.invoke("analyze-transcript-editorial", {
+      body: { transcript_id: t.id },
+    });
+    setAnalyzing(false);
+    if (error || (data as any)?.error) {
+      toast.error((error?.message || (data as any)?.error) ?? "Erreur d'analyse");
+      return;
+    }
+    toast.success("Fiche éditoriale générée");
+    queryClient.invalidateQueries({ queryKey: ["transcript", t.id] });
+    queryClient.invalidateQueries({ queryKey: ["transcripts"] });
+  };
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fiche éditoriale</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={runAnalysis}
+          disabled={analyzing || !t.raw_text}
+        >
+          {analyzing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+          {q ? "Réanalyser" : "Analyser"}
+        </Button>
+      </div>
+
+      {!q ? (
+        <p className="text-xs text-muted-foreground italic">
+          Pas encore analysé. L'analyse se lance automatiquement pour les nouvelles transcriptions.
+        </p>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 flex-wrap">
+            <QualificationBadge q={q} />
+            {a?.univers && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                {UNIVERS_LABELS[a.univers] ?? a.univers}
+              </span>
+            )}
+            {a?.type_matiere && q === "pro_exploitable" && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                {TYPE_MATIERE_LABELS[a.type_matiere] ?? a.type_matiere}
+              </span>
+            )}
+            {a?.risque_confidentialite && (
+              <span
+                className={`text-[11px] px-2 py-0.5 rounded-full ${RISQUE_CLASSES[a.risque_confidentialite] ?? ""}`}
+                title={a.risque_justification || undefined}
+              >
+                Confidentialité : {a.risque_confidentialite}
+              </span>
+            )}
+          </div>
+
+          {a?.resume_editorial && (
+            <p className="text-sm whitespace-pre-wrap">{a.resume_editorial}</p>
+          )}
+
+          {a?.signaux && a.signaux.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground mb-1">Signaux intéressants</p>
+              <ul className="space-y-1">
+                {a.signaux.map((s, i) => (
+                  <li key={i} className="text-xs flex gap-1.5">
+                    <span className="text-muted-foreground shrink-0">•</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {q !== "pro_exploitable" && (
+            <p className="text-[11px] text-muted-foreground italic">
+              Aucune idée éditoriale générée pour cette qualification.
+            </p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) {
   const displayTitle = t.ai_title || t.title || "Sans titre";
   const showFilename = !!t.ai_title && !!t.title && t.ai_title !== t.title;
@@ -100,6 +242,7 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
         </div>
         {t.summary && <p className="text-xs text-muted-foreground line-clamp-2">{t.summary}</p>}
         <div className="flex items-center gap-2 flex-wrap">
+          <QualificationBadge q={t.editorial_qualification} />
           {t.tags?.map((tag) => (
             <span key={tag} className="text-xs bg-muted px-2 py-0.5 rounded-full">{tag}</span>
           ))}
@@ -226,6 +369,7 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
                 <TabsTrigger value="linkedin" disabled={t.status !== "ready"}>Post LinkedIn</TabsTrigger>
               </TabsList>
               <TabsContent value="transcript" className="space-y-4">
+                <EditorialSheet t={t} />
                 {t.summary && (
                   <>
                     <div>
@@ -284,13 +428,25 @@ export default function Transcripts() {
   const [search, setSearch] = useState("");
   const [source, setSource] = useState<TranscriptSource | "">("");
   const [status, setStatus] = useState<TranscriptStatus | "">("");
+  const [qualification, setQualification] = useState<string>("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useTranscripts({
+  const { data: rawData, isLoading, refetch } = useTranscripts({
     search,
     source,
     status: status === "trashed" ? "" : status,
     trashed: status === "trashed",
+  });
+
+  // Vue éditoriale : filtre par qualification IA. "editorial" = vue resserrée
+  // qui exclut automatiquement le personnel/hors sujet et le non exploitable.
+  const data = (rawData ?? []).filter((t) => {
+    if (!qualification) return true;
+    if (qualification === "editorial") {
+      return t.editorial_qualification === "pro_exploitable";
+    }
+    if (qualification === "none") return !t.editorial_qualification;
+    return t.editorial_qualification === qualification;
   });
 
   const counts = {
@@ -371,6 +527,21 @@ export default function Transcripts() {
             <SelectItem value="pending">En attente</SelectItem>
             <SelectItem value="error">Erreur</SelectItem>
             <SelectItem value="trashed">Corbeille</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={qualification || "all"} onValueChange={(v) => setQualification(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Toutes les qualifications" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Toutes les qualifications</SelectItem>
+            <SelectItem value="editorial">Vue éditoriale (exploitables)</SelectItem>
+            <SelectItem value="pro_exploitable">Pro exploitable</SelectItem>
+            <SelectItem value="pro_archiver">Pro à archiver</SelectItem>
+            <SelectItem value="personnel_hors_sujet">Personnel / hors sujet</SelectItem>
+            <SelectItem value="sensible_confidentiel">Sensible / confidentiel</SelectItem>
+            <SelectItem value="non_exploitable">Non exploitable</SelectItem>
+            <SelectItem value="none">Non analysé</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" onClick={() => refetch()} title="Rafraîchir">
