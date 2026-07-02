@@ -33,8 +33,8 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">Google (Drive + Calendar)</p>
-              <p className="text-xs text-muted-foreground">Stockage de fichiers, agenda et réunions</p>
+              <p className="text-sm font-medium">Google (Drive + Calendar + Search Console)</p>
+              <p className="text-xs text-muted-foreground">Stockage de fichiers, agenda, réunions et statistiques de recherche</p>
             </div>
             <GoogleConnect />
           </div>
@@ -298,6 +298,47 @@ const SettingsIntegrations = ({ settings, updateSetting, autoSaveStatus }: Setti
           />
           <p className="text-xs text-muted-foreground">
             Dans WordPress : WP Statistics → Réglages → onglet API → activez le REST API → copiez le token généré.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Google Search Console</CardTitle>
+          <CardDescription>Propriété Search Console utilisée dans le module Statistiques (onglet Search Console).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="gsc-site-url">Propriété Search Console</Label>
+          <Input
+            id="gsc-site-url"
+            value={settings.gsc_site_url || ""}
+            onChange={(e) => updateSetting("gsc_site_url", e.target.value)}
+            placeholder="sc-domain:supertilt.fr"
+          />
+          <p className="text-xs text-muted-foreground">
+            Format domaine : <code>sc-domain:supertilt.fr</code>, ou format préfixe d'URL : <code>https://www.supertilt.fr/</code> (identique à la propriété dans Search Console).
+            Nécessite la connexion Google ci-dessus, reconnectée avec le droit Search Console.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Brevo</CardTitle>
+          <CardDescription>Clé API pour importer les statistiques des campagnes email dans le module Statistiques (onglet Emailing).</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Label htmlFor="brevo-api-key">Clé API Brevo</Label>
+          <Input
+            id="brevo-api-key"
+            type="password"
+            value={isDemoMode && settings.brevo_api_key ? maskApiKey(settings.brevo_api_key) : (settings.brevo_api_key || "")}
+            onChange={(e) => updateSetting("brevo_api_key", e.target.value)}
+            readOnly={isDemoMode}
+            placeholder="xkeysib-..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Dans Brevo : Profil → SMTP &amp; API → onglet Clés API → générer une nouvelle clé.
           </p>
         </CardContent>
       </Card>
