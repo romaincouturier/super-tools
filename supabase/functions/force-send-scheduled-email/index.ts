@@ -597,7 +597,8 @@ const handler = async (req: Request): Promise<Response> => {
       case "cold_evaluation": {
         const coldAppUrl = appUrl;
         const sponsorEmail = participant?.sponsor_email || training.sponsor_email || "";
-        const sponsorName = participant?.sponsor_name ||
+        const sponsorName =
+          [participant?.sponsor_first_name, participant?.sponsor_last_name].filter(Boolean).join(" ") ||
           [training.sponsor_first_name, training.sponsor_last_name].filter(Boolean).join(" ") ||
           "";
         const sponsorCompany = participant?.company || training.client_name || "";
