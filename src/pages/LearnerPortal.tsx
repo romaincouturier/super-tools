@@ -11,9 +11,10 @@ import {
   Palette, HelpCircle, LogOut, Bell,
   Sparkles, Menu, Camera,
   FileImage, BookmarkCheck, User2,
-  ThumbsUp, Send, Trash2,
+  ThumbsUp, Send, Trash2, Copy,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import EmojiInsert from "@/components/ui/emoji-insert";
 import PostComposer from "@/components/learner/community/PostComposer";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
@@ -70,6 +71,10 @@ import { useCreateMatchingConfig } from "@/hooks/useGroupMatching";
 
 import { useRecommendedCourses, type RecoCourse } from "@/hooks/useRecommendedCourses";
 
+// Code promo de fidélité affiché sur les formations recommandées.
+// À créer côté WooCommerce (-10%). Mettre "" pour masquer le bandeau.
+const LOYALTY_PROMO_CODE = "FIDELITE10";
+
 function RecommendedCoursesBlock({
   excludedCourseIds,
   variant,
@@ -78,6 +83,23 @@ function RecommendedCoursesBlock({
   variant: "compact" | "full";
 }) {
   const { courses, loading } = useRecommendedCourses(excludedCourseIds);
+  const { copy } = useCopyToClipboard();
+
+  const promoBanner = LOYALTY_PROMO_CODE ? (
+    <button
+      type="button"
+      onClick={() => copy(LOYALTY_PROMO_CODE)}
+      className="w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 mb-2 text-left transition-all hover:opacity-90"
+      style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid var(--st-yellow)" }}
+      title="Copier le code"
+    >
+      <span className="text-xs" style={{ color: "var(--st-ink)" }}>
+        Merci pour votre fidélité : <strong>-10%</strong> avec le code{" "}
+        <span className="font-mono font-bold">{LOYALTY_PROMO_CODE}</span>
+      </span>
+      <Copy size={14} style={{ color: "var(--st-ink-muted)" }} />
+    </button>
+  ) : null;
 
   if (loading) {
     return (
@@ -98,6 +120,7 @@ function RecommendedCoursesBlock({
   if (variant === "compact") {
     return (
       <div className="space-y-2">
+        {promoBanner}
         {courses.slice(0, 3).map((c) => (
           <a
             key={c.id}
@@ -129,7 +152,9 @@ function RecommendedCoursesBlock({
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div>
+      {promoBanner}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {courses.map((c) => (
         <div key={c.id} className="rounded-2xl border overflow-hidden flex flex-col"
           style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
@@ -170,6 +195,7 @@ function RecommendedCoursesBlock({
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
