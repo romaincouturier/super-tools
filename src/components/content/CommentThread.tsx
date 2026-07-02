@@ -116,9 +116,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   };
 
   const fetchProfiles = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("user_id, first_name, last_name, email");
+    // RPC SECURITY DEFINER : lisible par tout staff (profiles direct = admin only).
+    const { data } = await (supabase as any).rpc("get_staff_directory");
     if (data) setProfiles(data);
   };
 
@@ -138,10 +137,10 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
 
       const profileMap: Record<string, string> = {};
       if (authorIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name, email")
-          .in("user_id", authorIds as string[]);
+        const { data: allProfs } = await (supabase as any).rpc("get_staff_directory");
+        const idSet = new Set(authorIds as string[]);
+        const profs = ((allProfs || []) as Array<{ user_id: string; first_name: string | null; last_name: string | null; email: string | null }>)
+          .filter((p) => idSet.has(p.user_id));
 
         if (profs) {
           for (const p of profs) {

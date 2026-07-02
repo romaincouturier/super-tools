@@ -66,14 +66,17 @@ const ShareEventDialog = ({ event }: ShareEventDialogProps) => {
     const { data: { session } } = await supabase.auth.getSession();
     const currentId = session?.user?.id;
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id, user_id, email, first_name, last_name, display_name")
-      .order("first_name");
+    // RPC SECURITY DEFINER : lisible par tout staff (profiles direct = admin only).
+    const { data, error } = await (supabase as any).rpc("get_staff_directory");
 
     if (!error && data) {
-      // Exclude current user
-      setProfiles(data.filter((p) => p.user_id !== currentId));
+      // Exclude current user; l'annuaire ne renvoie pas profiles.id, on
+      // reutilise user_id comme identifiant (sert de cle/selection UI).
+      setProfiles(
+        (data as Omit<Profile, "id">[])
+          .filter((p) => p.user_id !== currentId)
+          .map((p) => ({ ...p, id: p.user_id })),
+      );
     }
   };
 

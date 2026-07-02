@@ -57,11 +57,9 @@ const MentionTextarea = ({
 
   useEffect(() => {
     const fetchProfiles = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, email, first_name, last_name, display_name")
-        .order("first_name");
-      if (data) setProfiles(data);
+      // RPC SECURITY DEFINER : lisible par tout staff (profiles direct = admin only).
+      const { data } = await (supabase as any).rpc("get_staff_directory");
+      if (data) setProfiles(data as Profile[]);
     };
     fetchProfiles();
   }, []);

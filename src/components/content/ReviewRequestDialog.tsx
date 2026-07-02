@@ -59,17 +59,17 @@ const ReviewRequestDialog = ({
       if (error) throw error;
 
       if (data && data.length > 0) {
-        const userIds = data.map((d) => d.user_id);
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, email, display_name")
-          .in("user_id", userIds);
+        const userIds = new Set(data.map((d) => d.user_id));
+        // RPC SECURITY DEFINER : lisible par tout staff (profiles direct = admin only).
+        const { data: profiles } = await (supabase as any).rpc("get_staff_directory");
 
         if (profiles) {
-          setUsers(profiles.map((p) => ({
-            id: p.user_id,
-            email: p.email,
-          })));
+          setUsers((profiles as Array<{ user_id: string; email: string }>)
+            .filter((p) => userIds.has(p.user_id))
+            .map((p) => ({
+              id: p.user_id,
+              email: p.email,
+            })));
         }
       }
     } catch (error) {
