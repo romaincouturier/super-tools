@@ -39,10 +39,9 @@ export default function MultiUserSelector({
   const { data: users = [], isLoading } = useQuery<UserProfileLite[]>({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, first_name, last_name, email")
-        .order("first_name", { ascending: true, nullsFirst: false });
+      // RPC SECURITY DEFINER : annuaire staff sans exposer is_admin, lisible par
+      // tout staff (la lecture directe de profiles est reservee aux admins).
+      const { data, error } = await (supabase as any).rpc("get_staff_directory");
       if (error) throw error;
       return (data ?? []) as UserProfileLite[];
     },

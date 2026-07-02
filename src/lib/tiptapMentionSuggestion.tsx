@@ -79,16 +79,14 @@ let cachedProfiles: MentionItem[] | null = null;
 
 async function fetchMentionProfiles(): Promise<MentionItem[]> {
   if (cachedProfiles) return cachedProfiles;
-  const { data } = await supabase
-    .from("profiles")
-    .select("user_id, email, first_name, last_name, display_name")
-    .order("first_name");
-  cachedProfiles = (data || []).map((p) => ({
+  // RPC SECURITY DEFINER : lisible par tout staff (profiles direct = admin only).
+  const { data } = await (supabase as any).rpc("get_staff_directory");
+  cachedProfiles = ((data || []) as Array<{ user_id: string; email: string; first_name: string | null; last_name: string | null }>).map((p) => ({
     id: p.user_id,
     label:
       p.first_name && p.last_name
         ? `${p.first_name} ${p.last_name}`
-        : p.display_name || p.email,
+        : p.email,
   }));
   return cachedProfiles;
 }

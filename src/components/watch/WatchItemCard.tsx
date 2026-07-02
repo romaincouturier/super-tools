@@ -56,10 +56,8 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
   const { data: allUsers = [] } = useQuery<UserProfileLite[]>({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, first_name, last_name, email")
-        .order("first_name", { ascending: true, nullsFirst: false });
+      // RPC SECURITY DEFINER : lisible par tout staff (profiles direct = admin only).
+      const { data, error } = await (supabase as any).rpc("get_staff_directory");
       if (error) throw error;
       return (data ?? []) as UserProfileLite[];
     },
