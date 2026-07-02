@@ -11,9 +11,10 @@ import {
   Palette, HelpCircle, LogOut, Bell,
   Sparkles, Menu, Camera,
   FileImage, BookmarkCheck, User2,
-  ThumbsUp, Send, Trash2,
+  ThumbsUp, Send, Trash2, Copy,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import EmojiInsert from "@/components/ui/emoji-insert";
 import PostComposer from "@/components/learner/community/PostComposer";
 import PracticePostCard from "@/components/learner/community/PracticePostCard";
@@ -70,6 +71,10 @@ import { useCreateMatchingConfig } from "@/hooks/useGroupMatching";
 
 import { useRecommendedCourses, type RecoCourse } from "@/hooks/useRecommendedCourses";
 
+// Code promo de fidélité affiché sur les formations recommandées.
+// À créer côté WooCommerce (-10%). Mettre "" pour masquer le bandeau.
+const LOYALTY_PROMO_CODE = "FIDELITE10";
+
 function RecommendedCoursesBlock({
   excludedCourseIds,
   variant,
@@ -78,6 +83,23 @@ function RecommendedCoursesBlock({
   variant: "compact" | "full";
 }) {
   const { courses, loading } = useRecommendedCourses(excludedCourseIds);
+  const { copy } = useCopyToClipboard();
+
+  const promoBanner = LOYALTY_PROMO_CODE ? (
+    <button
+      type="button"
+      onClick={() => copy(LOYALTY_PROMO_CODE)}
+      className="w-full flex items-center justify-between gap-2 rounded-xl px-3 py-2 mb-2 text-left transition-all hover:opacity-90"
+      style={{ background: "var(--st-yellow-soft, #FFFBEA)", border: "1px solid var(--st-yellow)" }}
+      title="Copier le code"
+    >
+      <span className="text-xs" style={{ color: "var(--st-ink)" }}>
+        Merci pour votre fidélité : <strong>-10%</strong> avec le code{" "}
+        <span className="font-mono font-bold">{LOYALTY_PROMO_CODE}</span>
+      </span>
+      <Copy size={14} style={{ color: "var(--st-ink-muted)" }} />
+    </button>
+  ) : null;
 
   if (loading) {
     return (
@@ -98,12 +120,13 @@ function RecommendedCoursesBlock({
   if (variant === "compact") {
     return (
       <div className="space-y-2">
+        {promoBanner}
         {courses.slice(0, 3).map((c) => (
           <a
             key={c.id}
-            href={c.boutique_url ?? `/lms/${c.id}/home`}
-            target={c.boutique_url ? "_blank" : undefined}
-            rel={c.boutique_url ? "noreferrer" : undefined}
+            href={c.boutique_url ?? undefined}
+            target="_blank"
+            rel="noreferrer"
             className="flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-black/5"
           >
             {c.cover_image_url ? (
@@ -129,7 +152,9 @@ function RecommendedCoursesBlock({
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div>
+      {promoBanner}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {courses.map((c) => (
         <div key={c.id} className="rounded-2xl border overflow-hidden flex flex-col"
           style={{ background: "var(--st-white)", borderColor: "rgba(16,24,32,0.08)" }}>
@@ -170,6 +195,7 @@ function RecommendedCoursesBlock({
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -1500,8 +1526,10 @@ function AideView({
 
   const [openFaq, setOpenFaq] = useState<string | null>(null);
   const [category, setCategory] = useState("");
+  const [isBug, setIsBug] = useState(false);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
@@ -1509,17 +1537,24 @@ function AideView({
     setSending(true);
     try {
       await createTicket.mutateAsync({
-        type: "evolution",
-        priority: "low",
+        // Un problème technique est traité comme un bug (comme côté staff),
+        // sinon comme une demande/évolution.
+        type: isBug ? "bug" : "evolution",
+        priority: isBug ? "medium" : "low",
         title: subject.trim(),
         description: message.trim(),
-        page_url: null,
+        // Page concernée : on capture l'URL courante de l'espace apprenant.
+        page_url: typeof window !== "undefined" ? window.location.href : null,
         learner_category: category || null,
+        submitted_by_email: email,
+        files: files.length > 0 ? files : undefined,
       });
       toast({ title: "Demande envoyée", description: "Nous vous répondrons dans les plus brefs délais." });
       setCategory("");
+      setIsBug(false);
       setSubject("");
       setMessage("");
+      setFiles([]);
     } catch {
       toastError(toast, "Impossible d'envoyer la demande.");
     } finally {
@@ -1601,6 +1636,33 @@ function AideView({
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
+                  Nature
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { bug: false, label: "Une question / demande" },
+                    { bug: true, label: "Un problème technique" },
+                  ].map((opt) => (
+                    <button
+                      key={String(opt.bug)}
+                      type="button"
+                      onClick={() => setIsBug(opt.bug)}
+                      className="py-2 rounded-xl text-xs font-semibold border transition-all"
+                      style={{
+                        borderColor: isBug === opt.bug ? "var(--st-yellow)" : "rgba(16,24,32,0.12)",
+                        background: isBug === opt.bug ? "var(--st-yellow-soft, #FFFBEA)" : "var(--st-white)",
+                        color: "var(--st-ink)",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
                   Type de demande
                 </label>
                 <select
@@ -1655,13 +1717,32 @@ function AideView({
                 />
               </div>
 
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--st-ink-muted)" }}>
+                  Captures d'écran {isBug ? "(recommandé pour un bug)" : "(optionnel)"}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+                  className="w-full text-xs"
+                  style={{ color: "var(--st-ink-muted)", fontFamily: "inherit" }}
+                />
+                {files.length > 0 && (
+                  <p className="text-[11px] mt-1" style={{ color: "var(--st-ink-muted)" }}>
+                    {files.length} fichier{files.length > 1 ? "s" : ""} joint{files.length > 1 ? "s" : ""}
+                  </p>
+                )}
+              </div>
+
               <button
                 onClick={handleSend}
                 disabled={!subject.trim() || !message.trim() || sending}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:-translate-y-px disabled:opacity-50"
                 style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
               >
-                {sending ? "Envoi en cours..." : "Envoyer ma demande"}
+                {sending ? "Envoi en cours..." : (isBug ? "Signaler le problème" : "Envoyer ma demande")}
               </button>
             </div>
           </div>

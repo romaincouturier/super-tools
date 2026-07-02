@@ -76,11 +76,14 @@ export function useTrashTranscript() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("transcripts")
         .update({ status: "trashed" })
-        .eq("id", id);
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      // La RLS peut bloquer sans erreur (0 ligne) : on le signale explicitement.
+      if (!data || data.length === 0) throw new Error("Suppression refusée (droits insuffisants).");
     },
     onSuccess: (_d, id) => {
       qc.invalidateQueries({ queryKey: ["transcripts"] });

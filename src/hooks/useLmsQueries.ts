@@ -26,6 +26,9 @@ export interface CourseHomeConfig {
   welcome_title_1?: string | null;
   welcome_title_2?: string | null;
   tips?: string[];
+  /** Affichage des encadrés du tableau de bord e-learning (défaut: affichés). */
+  show_next_live?: boolean;
+  show_community?: boolean;
   plan_url?: string | null;
   period_start?: string | null;
   period_end?: string | null;

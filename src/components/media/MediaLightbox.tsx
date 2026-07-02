@@ -1,28 +1,15 @@
-import { MediaItem, useRenameMedia } from "@/hooks/useMedia";
+import { MediaItem } from "@/hooks/useMedia";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { X, Briefcase, ChevronLeft, ChevronRight, Download, Pencil, GraduationCap, CalendarDays, HandCoins, Package, Newspaper, Maximize2, Minimize2 } from "lucide-react";
-import { toast } from "sonner";
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { formatFileSize, downloadFile as downloadFileUtil, promptRenameFile } from "@/lib/file-utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-
-const sourceIcon = (sourceType: string) => {
-  switch (sourceType) {
-    case "training": return <GraduationCap className="h-3 w-3 mr-1" />;
-    case "event": return <CalendarDays className="h-3 w-3 mr-1" />;
-    case "crm": return <HandCoins className="h-3 w-3 mr-1" />;
-    case "content": return <Newspaper className="h-3 w-3 mr-1" />;
-    default: return <Briefcase className="h-3 w-3 mr-1" />;
-  }
-};
 
 interface MediaLightboxProps {
   item: MediaItem;
   items: MediaItem[];
   onClose: () => void;
   onNavigate: (item: MediaItem) => void;
+  /** Conservé pour compatibilité d'appel ; l'action livrable se fait depuis la grille. */
   onToggleDeliverable?: (item: MediaItem) => void;
   autoFullscreen?: boolean;
 }
@@ -33,11 +20,10 @@ const slideVariants = {
   exit: (dir: number) => ({ x: dir >= 0 ? "-100%" : "100%", opacity: 0 }),
 };
 
-const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, autoFullscreen }: MediaLightboxProps) => {
+const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: MediaLightboxProps) => {
   const currentIndex = items.findIndex((i) => i.id === item.id);
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < items.length - 1;
-  const renameMedia = useRenameMedia();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [direction, setDirection] = useState(0);
@@ -74,26 +60,6 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, 
       // Fullscreen not supported
     }
   }, []);
-
-  const handleRename = () => {
-    const finalName = promptRenameFile(item.file_name);
-    if (!finalName) return;
-    renameMedia.mutate(
-      { id: item.id, file_name: finalName },
-      {
-        onSuccess: () => toast.success(`Renommé en "${finalName}"`),
-        onError: () => toast.error("Erreur lors du renommage"),
-      }
-    );
-  };
-
-  const handleDownload = async () => {
-    try {
-      await downloadFileUtil(item.file_url, item.file_name);
-    } catch {
-      toast.error("Erreur lors du téléchargement");
-    }
-  };
 
   const goPrev = useCallback(() => {
     if (hasPrev) {
@@ -172,11 +138,9 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, 
         </Button>
       )}
 
-      {/* Media */}
-      <div
-        className="max-w-[90vw] max-h-[85vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
+      {/* Media — occupe tout l'espace disponible. Le clic sur le fond ferme ;
+          le clic sur le média lui-même ne ferme pas. */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-2">
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={item.id}
@@ -186,12 +150,14 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, 
             animate="center"
             exit="exit"
             transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="flex items-center justify-center max-w-full max-h-full"
           >
             {item.file_type === "image" ? (
               <img
                 src={item.file_url}
                 alt={item.file_name}
-                className="max-w-full max-h-[85vh] object-contain rounded"
+                className="pointer-events-auto max-w-full max-h-full object-contain rounded"
+                onClick={(e) => e.stopPropagation()}
               />
             ) : (
               <video
@@ -199,72 +165,14 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, onToggleDeliverable, 
                 controls
                 autoPlay
                 playsInline
-                className="max-w-full max-h-[85vh] rounded"
+                className="pointer-events-auto max-w-full max-h-full rounded"
+                onClick={(e) => e.stopPropagation()}
               >
                 <source src={item.file_url} type={item.mime_type || "video/mp4"} />
               </video>
             )}
           </motion.div>
         </AnimatePresence>
-      </div>
-
-      {/* Info bar */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg flex-wrap justify-center">
-        <Badge variant="secondary" className="bg-white/20 text-white border-0 text-xs">
-          {sourceIcon(item.source_type)}
-          {item.source_emoji ? `${item.source_emoji} ` : ""}
-          {item.source_label}
-        </Badge>
-        {(item.tags || []).length > 0 && (
-          <div className="flex items-center gap-1">
-            {item.tags.map((tag) => (
-              <Badge key={tag} variant="secondary" className="bg-primary/60 text-white border-0 text-xs">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-        <span className="text-white text-sm">{item.file_name}</span>
-        {item.file_size && (
-          <span className="text-white/60 text-sm">{formatFileSize(item.file_size)}</span>
-        )}
-        {onToggleDeliverable && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-7 w-7 ${item.is_deliverable ? "text-yellow-400 hover:bg-yellow-400/20" : "text-white hover:bg-white/20"}`}
-                onClick={(e) => { e.stopPropagation(); onToggleDeliverable(item); }}
-              >
-                <Package className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {item.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
-            </TooltipContent>
-          </Tooltip>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-white hover:bg-white/20"
-          onClick={(e) => { e.stopPropagation(); handleRename(); }}
-          title="Renommer"
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-white hover:bg-white/20"
-          onClick={(e) => { e.stopPropagation(); handleDownload(); }}
-        >
-          <Download className="h-4 w-4" />
-        </Button>
-        <span className="text-white/40 text-xs">
-          {currentIndex + 1} / {items.length}
-        </span>
       </div>
     </div>
   );

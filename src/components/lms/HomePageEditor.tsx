@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useUpdateCourse } from "@/hooks/useLms";
 import type { CourseHomeConfig } from "@/hooks/useLmsQueries";
@@ -100,6 +101,24 @@ export default function HomePageEditor({ course }: Props) {
             >
               <Plus className="w-4 h-4 mr-2" /> Ajouter un conseil
             </Button>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t pt-4">
+          <Label>Encadrés du tableau de bord</Label>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Afficher l'encadré « Prochain live »</span>
+            <Switch
+              checked={home.show_next_live !== false}
+              onCheckedChange={(v) => setHome({ ...home, show_next_live: v })}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Afficher l'encadré « Communauté »</span>
+            <Switch
+              checked={home.show_community !== false}
+              onCheckedChange={(v) => setHome({ ...home, show_community: v })}
+            />
           </div>
         </div>
 
