@@ -671,3 +671,9 @@ verify_jwt = true
 
 [functions.generate-game-devis]
 verify_jwt = false
+
+[functions.find-similar-ideas]
+verify_jwt = true
+
+[functions.upload-idea-file]
+verify_jwt = true

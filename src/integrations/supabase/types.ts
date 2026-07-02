@@ -10400,6 +10400,9 @@ export type Database = {
           assemblyai_id: string | null
           created_at: string
           duration_seconds: number | null
+          editorial_analysis: Json | null
+          editorial_analyzed_at: string | null
+          editorial_qualification: string | null
           error_message: string | null
           external_id: string
           id: string
@@ -10417,6 +10420,9 @@ export type Database = {
           assemblyai_id?: string | null
           created_at?: string
           duration_seconds?: number | null
+          editorial_analysis?: Json | null
+          editorial_analyzed_at?: string | null
+          editorial_qualification?: string | null
           error_message?: string | null
           external_id: string
           id?: string
@@ -10434,6 +10440,9 @@ export type Database = {
           assemblyai_id?: string | null
           created_at?: string
           duration_seconds?: number | null
+          editorial_analysis?: Json | null
+          editorial_analyzed_at?: string | null
+          editorial_qualification?: string | null
           error_message?: string | null
           external_id?: string
           id?: string
@@ -10975,6 +10984,63 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_articles: {
+        Row: {
+          author: string | null
+          category: string | null
+          content: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          imported_at: string
+          modified_at: string | null
+          published_at: string | null
+          status: string
+          tags: string[]
+          title: string
+          updated_at: string
+          url: string | null
+          views: number | null
+          wp_id: number | null
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          imported_at?: string
+          modified_at?: string | null
+          published_at?: string | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          url?: string | null
+          views?: number | null
+          wp_id?: number | null
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          content?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          imported_at?: string
+          modified_at?: string | null
+          published_at?: string | null
+          status?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          url?: string | null
+          views?: number | null
+          wp_id?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -11101,6 +11167,13 @@ export type Database = {
         Returns: Json
       }
       get_mission_survey_by_token: { Args: { p_token: string }; Returns: Json }
+      get_nav_usage_counts: {
+        Args: never
+        Returns: {
+          clicks: number
+          segment: string
+        }[]
+      }
       get_participant_public_info: {
         Args: { p_participant_id: string }
         Returns: Json
@@ -11167,6 +11240,15 @@ export type Database = {
       get_sponsor_evaluation_by_token: {
         Args: { p_token: string }
         Returns: Json
+      }
+      get_staff_directory: {
+        Args: never
+        Returns: {
+          email: string
+          first_name: string
+          last_name: string
+          user_id: string
+        }[]
       }
       get_staff_public_profiles: {
         Args: never
