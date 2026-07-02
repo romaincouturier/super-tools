@@ -196,6 +196,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
         },
         body: JSON.stringify({ source_type: "transcript", source_id: inserted.id }),
       }).catch(() => {});
+
+      // Fiche éditoriale IA (ST-2026-0215, fire and forget)
+      fetch(`${SUPABASE_URL}/functions/v1/analyze-transcript-editorial`, {
+        method: "POST",
+        headers: {
+          "x-internal-secret": SUPABASE_SERVICE_ROLE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ transcript_id: inserted.id }),
+      }).catch((e) => console.warn("[fireflies-webhook] editorial analysis failed", e));
     }
 
     return new Response(JSON.stringify({ ok: true, imported: t.id }), {

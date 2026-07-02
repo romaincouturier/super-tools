@@ -9,13 +9,13 @@
 -- des colonnes sûres (pas is_admin), accessible à tout utilisateur authentifié.
 
 CREATE OR REPLACE FUNCTION public.get_staff_directory()
-RETURNS TABLE (user_id uuid, first_name text, last_name text, email text)
+RETURNS TABLE (user_id uuid, first_name text, last_name text, email text, display_name text)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT user_id, first_name, last_name, email
+  SELECT user_id, first_name, last_name, email, display_name
   FROM public.profiles
   ORDER BY first_name ASC NULLS LAST;
 $$;

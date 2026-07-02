@@ -4,6 +4,22 @@ import { supabase } from "@/integrations/supabase/client";
 export type TranscriptSource = "google_drive" | "fireflies";
 export type TranscriptStatus = "pending" | "processing" | "ready" | "error" | "trashed";
 
+export type EditorialQualification =
+  | "pro_exploitable"
+  | "pro_archiver"
+  | "personnel_hors_sujet"
+  | "sensible_confidentiel"
+  | "non_exploitable";
+
+export interface EditorialAnalysis {
+  univers: string;
+  type_matiere: string;
+  resume_editorial: string;
+  signaux: string[];
+  risque_confidentialite: "faible" | "moyen" | "fort";
+  risque_justification: string;
+}
+
 export interface Transcript {
   id: string;
   source: TranscriptSource;
@@ -17,6 +33,9 @@ export interface Transcript {
   status: TranscriptStatus;
   error_message: string | null;
   metadata: Record<string, unknown>;
+  editorial_qualification: EditorialQualification | null;
+  editorial_analysis: EditorialAnalysis | null;
+  editorial_analyzed_at: string | null;
   created_at: string;
   updated_at: string;
 }

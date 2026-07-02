@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Bot, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, MailCheck, Settings, Shield } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -14,6 +14,7 @@ import { useNewSurveyResponses } from "@/hooks/useNewSurveyResponses";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 import { useEmailDraftsAlert } from "@/hooks/useEmailDraftsAlert";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
+import { useNavUsageCounts } from "@/hooks/useNavUsageCounts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDot } from "@/components/ui/alert-dot";
 import UserMenu from "@/components/UserMenu";
@@ -106,6 +107,38 @@ function toAppModule(key: string): AppModule {
   return key.replace(/-/g, "_") as AppModule;
 }
 
+/** Segment de chemin d'une entrée ("/crm/..." -> "crm"), pour matcher les stats d'usage. */
+function pathSegment(key: string): string | null {
+  const path = MODULE_ICONS[key]?.path;
+  return path ? path.split("/")[1] ?? null : null;
+}
+
+/**
+ * Trie la nav par popularité globale (clics 90 jours, tous utilisateurs),
+ * de la plus cliquée à la moins cliquée. Les groupes sont classés sur le
+ * total parent + enfants, et leurs sous-items sont triés aussi. Sans stats
+ * (table vide, RPC indisponible), l'ordre de NAV_CONFIG est conservé
+ * (tri stable, tout le monde à 0).
+ */
+function sortNavByUsage(config: NavConfig[], counts: Map<string, number>): NavConfig[] {
+  const clicksOf = (key: string): number => {
+    const seg = pathSegment(key);
+    return seg ? counts.get(seg) ?? 0 : 0;
+  };
+  const entryClicks = (entry: NavConfig): number =>
+    entry.type === "group"
+      ? clicksOf(entry.key) + entry.children.reduce((s, c) => s + clicksOf(c.key), 0)
+      : clicksOf(entry.key);
+
+  return [...config]
+    .map((entry) =>
+      entry.type === "group"
+        ? { ...entry, children: [...entry.children].sort((a, b) => clicksOf(b.key) - clicksOf(a.key)) }
+        : entry,
+    )
+    .sort((a, b) => entryClicks(b) - entryClicks(a));
+}
+
 // ── AppSidebar ─────────────────────────────────────────────────
 
 interface AppSidebarProps {
@@ -134,6 +167,9 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
   const { hasAny: missionSurveyAlert } = useNewSurveyResponses("mission");
   const formationsGroupAlert = evaluationsAlert || besoinsAlert || trainingSurveyAlert;
   const missionsAlert = missionSurveyAlert;
+
+  const navUsage = useNavUsageCounts();
+  const sortedNav = useMemo(() => sortNavByUsage(NAV_CONFIG, navUsage), [navUsage]);
 
 
 
@@ -268,7 +304,7 @@ const AppSidebar = ({ asDrawer = false, onNavigate }: AppSidebarProps) => {
           onClick={() => go("/dashboard")}
         />
 
-        {NAV_CONFIG.map((entry) => {
+        {sortedNav.map((entry) => {
           if (entry.type === "item") {
             const info = MODULE_ICONS[entry.key];
             if (!info) return null;
