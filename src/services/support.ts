@@ -145,17 +145,19 @@ export async function createSupportTicket(
     learner_category?: string | null;
     files?: File[];
     ai_analysis?: TicketAiAnalysis | null;
+    /** Email du déclarant, à passer pour les apprenants (pas de session auth staff). */
+    submitted_by_email?: string | null;
   }
 ): Promise<SupportTicket> {
   const { data: { user } } = await supabase.auth.getUser();
-  const { files, ai_analysis, ...ticketInput } = input;
+  const { files, ai_analysis, submitted_by_email, ...ticketInput } = input;
   const result = await db()
     .from("support_tickets")
     .insert({
       ...ticketInput,
       ticket_number: "",
       submitted_by: user?.id || null,
-      submitted_by_email: user?.email || null,
+      submitted_by_email: submitted_by_email || user?.email || null,
       ai_analysis: ai_analysis || null,
     })
     .select()
