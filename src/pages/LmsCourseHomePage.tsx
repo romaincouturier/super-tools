@@ -1190,11 +1190,15 @@ export default function LmsCourseHomePage() {
                     totalModules={regularModules.length}
                     
                   />
-                  <LiveCard
-                    meeting={currentOrNextMeeting}
-                    onViewCalendar={() => setActiveView("calendar")}
-                  />
-                  <CommunityInfoCard courseId={courseId!} email={email} isPreview={isPreview} />
+                  {course.home_config?.show_next_live !== false && (
+                    <LiveCard
+                      meeting={currentOrNextMeeting}
+                      onViewCalendar={() => setActiveView("calendar")}
+                    />
+                  )}
+                  {course.home_config?.show_community !== false && (
+                    <CommunityInfoCard courseId={courseId!} email={email} isPreview={isPreview} />
+                  )}
                   <TipsBlock tips={course.home_config?.tips} />
                 </div>
                 <InfoCardsGrid config={course.home_config} />
