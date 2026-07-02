@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import WpArticlesTab from "@/components/transcripts/WpArticlesTab";
 import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
@@ -302,6 +303,18 @@ export default function Transcripts() {
     <ModuleLayout>
       <PageHeader title="Transcripts" />
 
+      <Tabs defaultValue="transcripts">
+        <TabsList className="mb-4">
+          <TabsTrigger value="transcripts">Transcripts</TabsTrigger>
+          <TabsTrigger value="articles">Articles publiés</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="articles">
+          <WpArticlesTab />
+        </TabsContent>
+
+        <TabsContent value="transcripts">
+
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
@@ -389,6 +402,8 @@ export default function Transcripts() {
       )}
 
       {selectedId && <TranscriptDetail id={selectedId} onClose={() => setSelectedId(null)} />}
+        </TabsContent>
+      </Tabs>
     </ModuleLayout>
   );
 }
