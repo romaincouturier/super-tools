@@ -50,10 +50,16 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
           const cfg = matchConfig(c.title);
           const fmt = cfg?.format_formation ?? null;
           const prix = cfg?.prix ?? null;
+          // Lien boutique valide = URL externe qui ne renvoie pas dans le LMS.
+          // Une reco doit toujours mener à la page d'achat, jamais au LMS (où
+          // l'apprenant non inscrit se heurte à un "accès non autorisé").
+          const link = cfg?.supertilt_link ?? null;
+          const boutiqueUrl = link && /^https?:\/\//i.test(link) && !/\/lms\//i.test(link)
+            ? link
+            : null;
           // Ne recommander que les formations inter-entreprises et les
-          // e-learning payants. On exclut l'intra (privé client) et les cours
-          // sans config vendable.
-          const eligible = !!cfg && (
+          // e-learning payants, et uniquement si un lien boutique valide existe.
+          const eligible = !!cfg && !!boutiqueUrl && (
             fmt === "inter-entreprises" ||
             (fmt === "e_learning" && (prix ?? 0) > 0)
           );
@@ -65,7 +71,7 @@ export function useRecommendedCourses(excludedCourseIds: string[]) {
               description: c.description,
               cover_image_url: c.cover_image_url,
               estimated_duration_minutes: c.estimated_duration_minutes,
-              boutique_url: cfg?.supertilt_link ?? null,
+              boutique_url: boutiqueUrl,
               prix,
             } as RecoCourse,
           };

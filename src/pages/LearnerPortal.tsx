@@ -101,9 +101,9 @@ function RecommendedCoursesBlock({
         {courses.slice(0, 3).map((c) => (
           <a
             key={c.id}
-            href={c.boutique_url ?? `/lms/${c.id}/home`}
-            target={c.boutique_url ? "_blank" : undefined}
-            rel={c.boutique_url ? "noreferrer" : undefined}
+            href={c.boutique_url ?? undefined}
+            target="_blank"
+            rel="noreferrer"
             className="flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-black/5"
           >
             {c.cover_image_url ? (
