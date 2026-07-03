@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { downloadFile as downloadFileUtil, promptRenameFile, getFileType, resolveContentType } from "@/lib/file-utils";
 import { ImageIcon, Video, Plus, Loader2, Upload, Trash2, Play, Download, Package, DownloadCloud, Pencil, Mic, FileAudio, FileText, Maximize2, GripVertical, Copy, CheckSquare, Square, Check, X } from "lucide-react";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useOfflineImageCache } from "@/hooks/useOfflineImageCache";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import MediaLightbox from "@/components/media/MediaLightbox";
@@ -106,6 +107,11 @@ const EntityMediaManager = ({
 
   // Filter out video_link for display/download purposes
   const downloadableMedia = media.filter((m) => m.file_type !== "video_link");
+
+  // Présentations d'évènements : précharge les images en mémoire (blob URLs)
+  // pour garantir leur affichage même si la connexion est perdue en cours de route.
+  const offlineImages = useOfflineImageCache(media, sourceType === "event");
+  const displayUrl = (m: MediaItem) => offlineImages.get(m.file_url) ?? m.file_url;
   const imageItems = media.filter((m) => m.file_type === "image");
   const videoItems = media.filter((m) => m.file_type === "video");
   const audioItems = media.filter((m) => m.file_type === "audio");
@@ -653,7 +659,7 @@ const EntityMediaManager = ({
                     >
                       {item.file_type === "image" ? (
                         <img
-                          src={item.file_url}
+                          src={displayUrl(item)}
                           alt={item.file_name}
                           className="w-full h-full object-cover will-change-transform"
                           loading="lazy"
@@ -883,8 +889,8 @@ const EntityMediaManager = ({
       {/* Lightbox */}
       {lightboxItem && (
         <MediaLightbox
-          item={lightboxItem}
-          items={lightboxItems}
+          item={{ ...lightboxItem, file_url: displayUrl(lightboxItem) }}
+          items={lightboxItems.map((m) => ({ ...m, file_url: displayUrl(m) }))}
           onClose={handleLightboxClose}
           onNavigate={setLightboxItem}
           onToggleDeliverable={handleToggleDeliverable}

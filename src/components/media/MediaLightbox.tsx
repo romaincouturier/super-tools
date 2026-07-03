@@ -150,13 +150,13 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: Med
             animate="center"
             exit="exit"
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="flex items-center justify-center max-w-full max-h-full"
+            className="flex items-center justify-center w-full h-full"
           >
             {item.file_type === "image" ? (
               <img
                 src={item.file_url}
                 alt={item.file_name}
-                className="pointer-events-auto max-w-full max-h-full object-contain rounded"
+                className="pointer-events-auto w-full h-full object-contain rounded"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (

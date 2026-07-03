@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Send, Trash2 } from "lucide-react";
@@ -14,14 +12,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-
-interface NewsletterComment {
-  id: string;
-  author_id: string | null;
-  author_name: string;
-  content: string;
-  created_at: string;
-}
+import { useNewsletterComments } from "@/hooks/useNewsletterComments";
 
 interface NewsletterCommentsDrawerProps {
   newsletterId: string | null;
@@ -38,109 +29,17 @@ const NewsletterCommentsDrawer = ({
   onOpenChange,
   onCountChange,
 }: NewsletterCommentsDrawerProps) => {
-  const [comments, setComments] = useState<NewsletterComment[]>([]);
-  const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [authorName, setAuthorName] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const onCountChangeRef = useRef(onCountChange);
-  onCountChangeRef.current = onCountChange;
-
-  // Identité de l'auteur courant (display_name puis email)
-  useEffect(() => {
-    if (!open) return;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUserId(user.id);
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name, email")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setAuthorName(profile?.display_name || profile?.email || user.email || "Utilisateur");
-    })();
-  }, [open]);
-
-  const fetchComments = useCallback(async () => {
-    if (!newsletterId) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("newsletter_comments")
-      .select("id, author_id, author_name, content, created_at")
-      .eq("newsletter_id", newsletterId)
-      .eq("is_deleted", false)
-      .order("created_at", { ascending: true });
-    setLoading(false);
-    if (error) {
-      toast.error("Impossible de charger les commentaires");
-      return;
-    }
-    const rows = (data || []) as NewsletterComment[];
-    setComments(rows);
-    onCountChangeRef.current?.(newsletterId, rows.length);
-  }, [newsletterId]);
-
-  useEffect(() => {
-    if (open && newsletterId) fetchComments();
-  }, [open, newsletterId, fetchComments]);
-
-  // Realtime: nouveaux commentaires des autres utilisateurs
-  useEffect(() => {
-    if (!open || !newsletterId) return;
-    const channel = supabase
-      .channel(`newsletter_comments:${newsletterId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "newsletter_comments",
-          filter: `newsletter_id=eq.${newsletterId}`,
-        },
-        () => fetchComments(),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [open, newsletterId, fetchComments]);
+  const { comments, loading, submitting, userId, submitComment, deleteComment } =
+    useNewsletterComments({ newsletterId, enabled: open, onCountChange });
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [comments]);
 
   const handleSubmit = async () => {
-    const content = draft.trim();
-    if (!content || !newsletterId || !userId) return;
-    setSubmitting(true);
-    const { error } = await supabase.from("newsletter_comments").insert({
-      newsletter_id: newsletterId,
-      author_id: userId,
-      author_name: authorName,
-      content,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Échec de l'envoi du commentaire");
-      return;
-    }
-    setDraft("");
-    fetchComments();
-  };
-
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("newsletter_comments")
-      .update({ is_deleted: true })
-      .eq("id", id);
-    if (error) {
-      toast.error("Échec de la suppression");
-      return;
-    }
-    fetchComments();
+    if (await submitComment(draft)) setDraft("");
   };
 
   return (
@@ -173,7 +72,7 @@ const NewsletterCommentsDrawer = ({
                 {c.author_id === userId && (
                   <button
                     className="text-xs text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 mt-1"
-                    onClick={() => handleDelete(c.id)}
+                    onClick={() => deleteComment(c.id)}
                   >
                     <Trash2 className="h-3 w-3" />
                     Supprimer

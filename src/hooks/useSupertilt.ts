@@ -134,6 +134,46 @@ export function useSupertiltColumns() {
   };
 }
 
+/**
+ * Garantit qu'une action Supertilt a une mission liée (espace pages/documents/galerie).
+ * Crée la mission archivée et rattache son id à l'action si nécessaire.
+ */
+export function useEnsureActionMission() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (action: SupertiltAction) => {
+      if (action.mission_id) return action.mission_id;
+      const { data: u } = await supabase.auth.getUser();
+      const userId = u.user?.id;
+      const { data: mission, error } = await sb
+        .from("missions")
+        .insert({
+          title: action.title || "Action Supertilt",
+          status: "not_started",
+          archived: true,
+          created_by: userId,
+          assigned_to: userId,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      const newMissionId = mission.id as string;
+      const { error: updErr } = await sb
+        .from(TABLE)
+        .update({ mission_id: newMissionId })
+        .eq("id", action.id);
+      if (updErr) throw updErr;
+      return newMissionId;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["supertilt-actions"] });
+    },
+    onError: (err: unknown) => {
+      toast.error(err instanceof Error ? err.message : "Erreur création espace");
+    },
+  });
+}
+
 export function useSupertiltActions() {
   const { user } = useAuth();
   const qc = useQueryClient();
