@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Trash2, Check, X, FileText, Briefcase, FolderOpen, Image as ImageIcon } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -40,9 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import type { SupertiltAction } from "@/hooks/useSupertilt";
+import { useEnsureActionMission, type SupertiltAction } from "@/hooks/useSupertilt";
 import { fetchMissionById } from "@/services/missions";
 import MissionPages from "@/components/missions/MissionPages";
 import EntityDocumentsManager from "@/components/shared/EntityDocumentsManager";
@@ -82,7 +80,7 @@ export default function SupertiltActionDialog({
   const [tab, setTab] = useState<TabValue>("details");
   // Track the mission id once ensured (either pre-existing or freshly created).
   const [missionId, setMissionId] = useState<string | null>(null);
-  const qc = useQueryClient();
+  const ensureMission = useEnsureActionMission();
 
   useEffect(() => {
     if (open) {
@@ -95,46 +93,12 @@ export default function SupertiltActionDialog({
     }
   }, [open, action]);
 
-  const ensureMission = useMutation({
-    mutationFn: async () => {
-      if (!action?.id) throw new Error("Action introuvable");
-      if (action.mission_id) return action.mission_id;
-      const { data: u } = await supabase.auth.getUser();
-      const userId = u.user?.id;
-      const { data: mission, error } = await (supabase as any)
-        .from("missions")
-        .insert({
-          title: action.title || "Action Supertilt",
-          status: "not_started",
-          archived: true,
-          created_by: userId,
-          assigned_to: userId,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      const newMissionId = mission.id as string;
-      const { error: updErr } = await (supabase as any)
-        .from("supertilt_actions")
-        .update({ mission_id: newMissionId })
-        .eq("id", action.id);
-      if (updErr) throw updErr;
-      return newMissionId;
-    },
-    onSuccess: (id) => {
-      setMissionId(id);
-      qc.invalidateQueries({ queryKey: ["supertilt-actions"] });
-    },
-    onError: (err: unknown) => {
-      toast.error(err instanceof Error ? err.message : "Erreur création espace");
-    },
-  });
-
   const handleTabChange = async (v: string) => {
     const next = v as TabValue;
     if (next !== "details" && !missionId && action?.id && !ensureMission.isPending) {
       setTab(next);
-      await ensureMission.mutateAsync();
+      const id = await ensureMission.mutateAsync(action).catch(() => null);
+      if (id) setMissionId(id);
       return;
     }
     setTab(next);

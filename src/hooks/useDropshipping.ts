@@ -228,6 +228,17 @@ export function useGameDevisHistory() {
   });
 }
 
+/** URL du PDF d'un devis de jeu : signée depuis le storage si possible, sinon l'URL publique. */
+export async function resolveGameDevisPdfUrl(
+  entry: { pdf_storage_path: string | null; pdf_url: string | null },
+): Promise<string | null> {
+  if (entry.pdf_storage_path) {
+    const { data } = await supabase.storage.from("devis-pdfs").createSignedUrl(entry.pdf_storage_path, 3600);
+    if (data?.signedUrl) return data.signedUrl;
+  }
+  return entry.pdf_url;
+}
+
 export function useMarkSalesPaid() {
   const qc = useQueryClient();
   return useMutation({

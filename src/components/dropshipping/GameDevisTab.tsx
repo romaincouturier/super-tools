@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
 const FEES_STORAGE_KEY = "game-devis-last-fees";
 import { Plus, Trash2, Loader2, Send, FileText, ExternalLink, Download } from "lucide-react";
@@ -12,18 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import ClientInfoSection from "@/components/formations/ClientInfoSection";
 import { useSirenSearch } from "@/hooks/useSirenSearch";
-import { useGames, useGameDevisHistory } from "@/hooks/useDropshipping";
+import { useGames, useGameDevisHistory, resolveGameDevisPdfUrl } from "@/hooks/useDropshipping";
+import { useAuth } from "@/hooks/useAuth";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-
-async function resolvePdfUrl(entry: { pdf_storage_path: string | null; pdf_url: string | null }): Promise<string | null> {
-  if (entry.pdf_storage_path) {
-    const { data } = await supabase.storage.from("devis-pdfs").createSignedUrl(entry.pdf_storage_path, 3600);
-    if (data?.signedUrl) return data.signedUrl;
-  }
-  return entry.pdf_url;
-}
 
 const EUR = (v: number) => v.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
@@ -62,7 +54,8 @@ export default function GameDevisTab() {
   // Lien opportunité CRM : préremplissage + rattachement du devis à la carte.
   const [searchParams] = useSearchParams();
   const [crmCardId] = useState<string | null>(() => searchParams.get("crmCardId"));
-  const [senderEmail, setSenderEmail] = useState<string | null>(null);
+  const { user } = useAuth({ disableRedirect: true, checkPasswordChange: false });
+  const senderEmail = user?.email ?? null;
 
   useEffect(() => {
     try {
@@ -82,10 +75,6 @@ export default function GameDevisTab() {
     if (p("prenomCommanditaire")) setPrenomCommanditaire(p("prenomCommanditaire"));
     if (p("nomCommanditaire")) setNomCommanditaire(p("nomCommanditaire"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setSenderEmail(data.user?.email ?? null));
   }, []);
 
   const onSearchSiren = async () => {
@@ -424,7 +413,7 @@ function GameDevisHistory() {
                           size="icon"
                           title="Ouvrir le PDF"
                           onClick={async () => {
-                            const url = await resolvePdfUrl(d);
+                            const url = await resolveGameDevisPdfUrl(d);
                             if (url) window.open(url, "_blank", "noopener,noreferrer");
                           }}
                         >
@@ -435,7 +424,7 @@ function GameDevisHistory() {
                           size="icon"
                           title="Télécharger le PDF"
                           onClick={async () => {
-                            const url = await resolvePdfUrl(d);
+                            const url = await resolveGameDevisPdfUrl(d);
                             if (url) downloadPdf(url, filename);
                           }}
                         >
