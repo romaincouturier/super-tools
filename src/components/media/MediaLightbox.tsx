@@ -156,7 +156,7 @@ const MediaLightbox = ({ item, items, onClose, onNavigate, autoFullscreen }: Med
               <img
                 src={item.file_url}
                 alt={item.file_name}
-                className="pointer-events-auto max-w-full max-h-full object-contain rounded"
+                className="pointer-events-auto w-full h-full object-contain rounded"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
