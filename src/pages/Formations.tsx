@@ -146,7 +146,7 @@ const Formations = () => {
         .eq("status", "pending"),
       supabase
         .from("training_participants")
-        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode, source_financement_bpf, type_stagiaire_bpf"),
+        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode, source_financement_bpf, type_stagiaire_bpf, sold_price_ht"),
     ]);
 
     if (trainingsResult.error) {
