@@ -2315,6 +2315,142 @@ export type Database = {
         }
         Relationships: []
       }
+      editorial_recommendations: {
+        Row: {
+          action_recommandee: string
+          action_secondaire: string | null
+          besoin_cible: string
+          card_id: string | null
+          cibles: string[]
+          contenus_existants_proches: Json
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          donnees_performance: Json
+          embedding: string | null
+          format_recommande: string | null
+          id: string
+          justification: string
+          model: string | null
+          niveau_couverture: string | null
+          niveau_demande: string | null
+          prochaine_etape: string | null
+          risque_redondance: string | null
+          score_besoin: number | null
+          score_commercial: number | null
+          score_creativite: number | null
+          score_priorite: number | null
+          score_seo: number | null
+          sensible: boolean
+          signal_text: string
+          source_type: string
+          status: string
+          titre_provisoire: string
+          training_id: string | null
+          transcript_id: string | null
+          type_besoin: string | null
+          univers: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_recommandee?: string
+          action_secondaire?: string | null
+          besoin_cible?: string
+          card_id?: string | null
+          cibles?: string[]
+          contenus_existants_proches?: Json
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          donnees_performance?: Json
+          embedding?: string | null
+          format_recommande?: string | null
+          id?: string
+          justification?: string
+          model?: string | null
+          niveau_couverture?: string | null
+          niveau_demande?: string | null
+          prochaine_etape?: string | null
+          risque_redondance?: string | null
+          score_besoin?: number | null
+          score_commercial?: number | null
+          score_creativite?: number | null
+          score_priorite?: number | null
+          score_seo?: number | null
+          sensible?: boolean
+          signal_text?: string
+          source_type: string
+          status?: string
+          titre_provisoire?: string
+          training_id?: string | null
+          transcript_id?: string | null
+          type_besoin?: string | null
+          univers?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_recommandee?: string
+          action_secondaire?: string | null
+          besoin_cible?: string
+          card_id?: string | null
+          cibles?: string[]
+          contenus_existants_proches?: Json
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          donnees_performance?: Json
+          embedding?: string | null
+          format_recommande?: string | null
+          id?: string
+          justification?: string
+          model?: string | null
+          niveau_couverture?: string | null
+          niveau_demande?: string | null
+          prochaine_etape?: string | null
+          risque_redondance?: string | null
+          score_besoin?: number | null
+          score_commercial?: number | null
+          score_creativite?: number | null
+          score_priorite?: number | null
+          score_seo?: number | null
+          sensible?: boolean
+          signal_text?: string
+          source_type?: string
+          status?: string
+          titre_provisoire?: string
+          training_id?: string | null
+          transcript_id?: string | null
+          type_besoin?: string | null
+          univers?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editorial_recommendations_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "content_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "editorial_recommendations_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "editorial_recommendations_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_snippets: {
         Row: {
           category: string | null
@@ -10990,6 +11126,7 @@ export type Database = {
           category: string | null
           content: string | null
           created_at: string
+          embedding: string | null
           excerpt: string | null
           id: string
           imported_at: string
@@ -11008,6 +11145,7 @@ export type Database = {
           category?: string | null
           content?: string | null
           created_at?: string
+          embedding?: string | null
           excerpt?: string | null
           id?: string
           imported_at?: string
@@ -11026,6 +11164,7 @@ export type Database = {
           category?: string | null
           content?: string | null
           created_at?: string
+          embedding?: string | null
           excerpt?: string | null
           id?: string
           imported_at?: string
@@ -11359,6 +11498,15 @@ export type Database = {
           source_type: string
         }[]
       }
+      match_editorial_recommendations: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          id: string
+          similarity: number
+          status: string
+          titre_provisoire: string
+        }[]
+      }
       match_ideas: {
         Args: {
           exclude_id?: string
@@ -11382,6 +11530,18 @@ export type Database = {
           id: string
           similarity: number
           title: string
+        }[]
+      }
+      match_wp_articles: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          id: string
+          modified_at: string
+          published_at: string
+          similarity: number
+          title: string
+          url: string
+          views: number
         }[]
       }
       monitor_cron_failures: { Args: never; Returns: Json }
