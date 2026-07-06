@@ -241,14 +241,11 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
     const successAudios = updated.filter((a) => a.status === "done" && a.transcript);
     if (!successAudios.length) {
       const errors = updated.map((a) => a.error).filter(Boolean).join(" · ");
-      const hasEmptyTranscript = updated.some((a) => a.status === "done" && !a.transcript);
+      const msg = errors || "La transcription a échoué pour tous les fichiers.";
+      setGlobalError(`Transcription : ${msg}`);
       toast({
         title: "Aucun audio transcrit avec succès",
-        description: errors
-          ? errors
-          : hasEmptyTranscript
-          ? "La transcription est revenue vide. Vérifiez que le fichier contient bien de la voix."
-          : "La transcription a échoué pour tous les fichiers.",
+        description: msg,
         variant: "destructive",
       });
       return;
@@ -274,9 +271,17 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       );
       setStep("validate");
     } catch (err) {
-      toastError(toast, err instanceof Error ? err : "Erreur lors de l'analyse IA.");
+      const msg = err instanceof Error ? err.message : "Erreur lors de l'analyse IA.";
+      setGlobalError(`Analyse IA : ${msg}`);
+      toastError(toast, msg);
     }
   };
+
+  const retryAnalysis = async () => {
+    setGlobalError(null);
+    await transcribeAll(audios.map((a) => ({ ...a, status: "pending", transcript: "", error: undefined })));
+  };
+
 
   // ── Step 3: Confirm ───────────────────────────────────────────────────
 
