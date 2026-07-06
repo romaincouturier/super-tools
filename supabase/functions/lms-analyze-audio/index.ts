@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -8,6 +9,54 @@ import {
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const SETTING_KEY = "lms_audio_reformulation_prompt";
+
+const DEFAULT_PROMPT_TEMPLATE = `Tu es un assistant pédagogique. Tu reçois la transcription d'enregistrements audio d'une formation, ainsi que la liste des leçons d'un e-learning.
+
+Leçons disponibles :
+{{lessons}}
+
+Transcriptions audio :
+{{transcripts}}
+
+Pour chaque audio, tu dois :
+1. Identifier la leçon la plus pertinente parmi celles listées (en te basant sur le contenu)
+2. Si aucune leçon ne correspond clairement, mettre lesson_id à null (le contenu ira dans une leçon "Ressources")
+3. Reformuler le contenu de manière claire et pédagogique (style formation professionnelle, sans les hésitations orales)
+4. Extraire les 3 à 6 points clés les plus importants
+
+Réponds UNIQUEMENT en JSON valide avec ce format exact :
+{
+  "assignments": [
+    {
+      "audio_id": "id de l'audio",
+      "lesson_id": "id de la leçon ou null",
+      "reformulated_text": "texte reformulé en HTML basique (<p>, <strong>, <em>)",
+      "key_points": ["point 1", "point 2", "point 3"]
+    }
+  ]
+}`;
+
+async function loadPromptTemplate(): Promise<string> {
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return DEFAULT_PROMPT_TEMPLATE;
+    const admin = createClient(url, key);
+    const { data } = await admin
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", SETTING_KEY)
+      .maybeSingle();
+    const raw = data?.setting_value;
+    const value = typeof raw === "string" ? raw : (raw as any)?.value;
+    if (typeof value === "string" && value.trim().length > 0) return value;
+    return DEFAULT_PROMPT_TEMPLATE;
+  } catch (e) {
+    console.warn("[lms-analyze-audio] falling back to default prompt:", e);
+    return DEFAULT_PROMPT_TEMPLATE;
+  }
+}
 
 interface AudioTranscript {
   id: string;
