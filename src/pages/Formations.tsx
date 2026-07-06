@@ -330,15 +330,22 @@ const Formations = () => {
           columnId === "passee" || columnId === "annulee"
             ? t.end_date || t.start_date
             : null;
+        // Valeur = prix intra si session intra, sinon somme des prix participants (inter / e-learning)
+        const parts = participantsByTraining.get(t.id) || [];
+        const participantsTotal = parts.reduce((sum, p) => sum + (p.sold_price_ht ?? 0), 0);
+        const value = t.is_intra
+          ? (t.sold_price_ht ?? null)
+          : (participantsTotal > 0 ? participantsTotal : (t.sold_price_ht ?? null));
         return {
           id: t.id,
           columnId,
           createdAt: t.created_at,
           completedAt,
-          value: t.sold_price_ht ?? null,
+          value,
         };
       });
-  }, [trainings]);
+  }, [trainings, participantsByTraining]);
+
 
   // Check if a training has pending actions
   const hasActions = useMemo(() => {
