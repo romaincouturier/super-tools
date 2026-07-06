@@ -6,6 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
+import { aiChat } from "../_shared/ai.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -90,7 +91,8 @@ serve(async (req) => {
         format_formation,
         participants_formal_address,
         supports_url,
-        trainer_id
+        trainer_id,
+        objectives
       `)
       .in("id", trainingIds);
 
@@ -131,6 +133,30 @@ serve(async (req) => {
       for (const tr of trainerRows || []) {
         trainerMap[tr.id] = { first_name: tr.first_name || "", email: tr.email || "" };
       }
+    }
+
+    // Fetch the communication manager (added in CC of the trainer email)
+    let commManagerEmail: string | null = null;
+    let commManagerFirstName = "";
+    try {
+      const { data: setting } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "communication_manager_user_id")
+        .maybeSingle();
+      if (setting?.setting_value) {
+        const { data: cm } = await supabase
+          .from("profiles")
+          .select("email, first_name")
+          .eq("user_id", setting.setting_value)
+          .maybeSingle();
+        if (cm?.email) {
+          commManagerEmail = cm.email;
+          commManagerFirstName = cm.first_name || "";
+        }
+      }
+    } catch (e) {
+      console.warn("[process-today-reminders] Could not fetch communication manager:", e);
     }
 
     const bccList = await getBccList();
@@ -318,12 +344,50 @@ serve(async (req) => {
 
           const hasAttendance = (attendanceCount || 0) > 0;
 
+          // Generate 4-6 AI-suggested Instagram/LinkedIn story phrases, tailored
+          // to this training. Best-effort: on failure we fall back to a generic
+          // block so the email always goes out.
+          let storyPhrasesHtml = "";
+          try {
+            const objectives = Array.isArray((training as any).objectives)
+              ? ((training as any).objectives as string[]).filter(Boolean).join(" • ")
+              : "";
+            const promptContext = [
+              `Formation : ${training.training_name}`,
+              objectives ? `Objectifs : ${objectives}` : "",
+            ].filter(Boolean).join("\n");
+
+            const raw = await aiChat({
+              tier: "fast",
+              temperature: 0.8,
+              maxTokens: 500,
+              system: "Tu es responsable de communication d'un organisme de formation. Tu écris des phrases courtes, sincères, orales, pour des stories Instagram/LinkedIn face cam. Pas d'emojis, pas de hashtags, pas de guillemets.",
+              messages: [{
+                role: "user",
+                content: `Propose 5 amorces de phrases (une par ligne, sans numérotation) que le formateur peut dire face cam en story aujourd'hui, en lien avec cette formation. Mix "avant la journée" et "à chaud en fin de journée". Ton direct, incarné, 1 phrase par ligne max 20 mots.\n\n${promptContext}`,
+              }],
+            });
+            const phrases = raw
+              .split("\n")
+              .map((l) => l.replace(/^[-*•\d.)\s]+/, "").trim())
+              .filter((l) => l.length > 3)
+              .slice(0, 6);
+            if (phrases.length > 0) {
+              storyPhrasesHtml = "<ul>" + phrases.map((p) => `<li>${p.replace(/</g, "&lt;")}</li>`).join("") + "</ul>";
+            }
+          } catch (e) {
+            console.warn("[process-today-reminders] Story phrases generation failed:", e);
+          }
+
           const trainerVars: Record<string, string | null | undefined> = {
             trainer_first_name: trainer.first_name || "",
             training_name: training.training_name,
             schedule: scheduleText || "Horaires à confirmer",
             meeting_url: meetingUrl || undefined,
             has_attendance: hasAttendance ? "1" : undefined,
+            comm_manager_first_name: commManagerFirstName || undefined,
+            comm_manager_email: commManagerEmail || undefined,
+            story_phrases: storyPhrasesHtml || undefined,
           };
 
           const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
@@ -335,6 +399,7 @@ serve(async (req) => {
 
           const trainerResult = await sendEmail({
             to: trainer.email,
+            cc: commManagerEmail ? [commManagerEmail] : undefined,
             bcc: bccList,
             subject: trainerSubject,
             html: trainerHtml,
