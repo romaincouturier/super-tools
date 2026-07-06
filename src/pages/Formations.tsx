@@ -88,7 +88,9 @@ interface ParticipantSearchData {
   payment_mode: string | null;
   source_financement_bpf: string | null;
   type_stagiaire_bpf: string | null;
+  sold_price_ht: number | null;
 }
+
 
 type SortField = "date" | "title" | "client" | "location";
 type SortOrder = "asc" | "desc";
