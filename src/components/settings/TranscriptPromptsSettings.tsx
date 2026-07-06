@@ -192,6 +192,7 @@ export default function TranscriptPromptsSettings() {
   return (
     <div className="space-y-4">
       <TagsEditor />
+      <LmsAudioPromptSettings />
       {data?.map((row) => (
         <PromptCard key={row.id} row={row} onSaved={() => qc.invalidateQueries({ queryKey: ["transcript_ai_prompts_admin"] })} />
       ))}
