@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
+import LmsAudioPromptSettings from "./LmsAudioPromptSettings";
 
 type Kind = "blog_article" | "linkedin_post" | "title" | "editorial" | "editorial_engine";
 
