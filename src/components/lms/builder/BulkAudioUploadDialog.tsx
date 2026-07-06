@@ -361,6 +361,18 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         {/* Upload drop zone */}
         {step === "upload" && (
           <div className="flex flex-col items-center justify-center gap-4 py-8">
+            {uploadError && (
+              <div className="w-full rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-destructive">Échec de l'upload</p>
+                    <p className="text-xs text-destructive/80 mt-0.5 whitespace-pre-wrap break-words">{uploadError}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyError(uploadError)}>Copier</Button>
+                </div>
+              </div>
+            )}
             <div
               className="w-full border-2 border-dashed rounded-xl p-12 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
               onDrop={(e) => { e.preventDefault(); handleFiles(Array.from(e.dataTransfer.files)); }}
@@ -388,23 +400,45 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
             <p className="text-sm text-muted-foreground mb-3">
               Transcription en cours… L'analyse IA démarrera une fois tous les audios traités.
             </p>
-            {audios.map((audio) => (
-              <div key={audio.id} className="flex items-center gap-3 border rounded-lg px-3 py-2.5">
-                <div className="shrink-0">
-                  {audio.status === "transcribing" || audio.status === "pending"
-                    ? <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    : audio.status === "done"
-                    ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    : <AlertCircle className="h-4 w-4 text-destructive" />}
+            {globalError && (
+              <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2 mb-2">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-destructive">Le traitement a échoué</p>
+                    <p className="text-xs text-destructive/80 mt-0.5 whitespace-pre-wrap break-words font-mono">{globalError}</p>
+                  </div>
                 </div>
-                <span className="text-sm flex-1 truncate">{audio.file.name}</span>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {audio.status === "pending" ? "En attente" : audio.status === "transcribing" ? "Transcription…" : audio.status === "done" ? "Transcrit" : "Erreur"}
-                </span>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyError(globalError)}>Copier</Button>
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={retryAnalysis}>Réessayer</Button>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={resetAndClose}>Fermer</Button>
+                </div>
+              </div>
+            )}
+            {audios.map((audio) => (
+              <div key={audio.id} className="border rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="shrink-0">
+                    {audio.status === "transcribing" || audio.status === "pending"
+                      ? <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      : audio.status === "done"
+                      ? <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      : <AlertCircle className="h-4 w-4 text-destructive" />}
+                  </div>
+                  <span className="text-sm flex-1 truncate">{audio.file.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {audio.status === "pending" ? "En attente" : audio.status === "transcribing" ? "Transcription…" : audio.status === "done" ? "Transcrit" : "Erreur"}
+                  </span>
+                </div>
+                {audio.status === "error" && audio.error && (
+                  <p className="text-xs text-destructive/80 mt-1.5 pl-7 whitespace-pre-wrap break-words font-mono">{audio.error}</p>
+                )}
               </div>
             ))}
           </div>
         )}
+
 
         {/* Validation */}
         {(step === "validate" || step === "confirming") && (
