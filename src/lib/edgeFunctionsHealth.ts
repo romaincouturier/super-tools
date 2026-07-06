@@ -71,6 +71,7 @@ export const EXPECTED_FUNCTIONS = [
   "generate-transcript-content",
   "generate-transcript-title",
   "generate-woocommerce-coupon",
+  "gsc-statistics",
   "google-auth",
   "google-calendar-events",
   "google-drive-auth",
