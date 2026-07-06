@@ -9,7 +9,6 @@ export const EXPECTED_FUNCTIONS = [
   "analyze-evaluations",
   "analyze-needs-survey",
   "analyze-transcript-editorial",
-  "editorial-engine",
   "analyze-voice-review",
   "archive-resolved-tickets",
   "arena-orchestrate",
