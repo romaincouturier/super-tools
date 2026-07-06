@@ -144,9 +144,21 @@ function CommunitySidebarPreview({ email, courseId, lessonId, isPreview }: { ema
                         {post.content}
                       </p>
                     )}
-                    {!post.content && post.file_url && (
-                      <p className="text-xs mt-0.5 italic" style={{ color: "var(--st-ink-muted)" }}>A partagé une photo</p>
+                    {!post.content && post.file_url && !post.file_mime?.startsWith("image/") && (
+                      <p className="text-xs mt-0.5 italic" style={{ color: "var(--st-ink-muted)" }}>A partagé un fichier</p>
                     )}
+                    {post.file_url && post.file_mime?.startsWith("image/") && (
+                      <div className="mt-1.5 rounded-md overflow-hidden" style={{ maxWidth: 160 }}>
+                        <img
+                          src={post.file_url}
+                          alt=""
+                          loading="lazy"
+                          className="w-full h-auto object-cover"
+                          style={{ maxHeight: 120, display: "block" }}
+                        />
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2 mt-1 text-[10px]" style={{ color: "var(--st-ink-muted)" }}>
                       <span>{post.reaction_count} j'aime</span>
                       <span>·</span>
