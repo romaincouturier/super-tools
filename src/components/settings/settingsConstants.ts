@@ -1365,6 +1365,8 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   convention_frais_default: { default: "0", description: "Montant des frais par défaut sur la convention" },
   convention_affiche_frais: { default: "Non", description: "Afficher les frais sur la convention (Oui/Non)" },
   wp_statistics_api_token: { default: "", description: "Token API WP-Statistics pour récupérer les statistiques du site WordPress" },
+  gsc_site_url: { default: "", description: "Propriété Google Search Console pour le module Statistiques (ex: sc-domain:supertilt.fr ou https://www.supertilt.fr/)" },
+  brevo_api_key: { default: "", description: "Clé API Brevo pour importer les statistiques des campagnes email dans le module Statistiques" },
   pennylane_api_token: { default: "", description: "Token API Pennylane (Bearer token v2) pour le module Finances : factures clients, fournisseurs, trésorerie" },
   fireflies_webhook_secret: { default: "", description: "Signing secret Fireflies pour valider les webhooks entrants (X-Webhook-Secret)" },
   google_drive_folder_transcripts: { default: "", description: "ID du dossier Google Drive pour les transcripts vidéo (polling automatique)" },

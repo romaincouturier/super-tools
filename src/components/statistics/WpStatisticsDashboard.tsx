@@ -9,9 +9,7 @@ import {
   useWpHits, useWpVisitors, useWpSearch,
 } from "@/hooks/useWpStatistics";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area } from "recharts";
-import { dateAsISO } from "@/lib/dateFormatters";
-import { format, parseISO } from "date-fns";
-import { fr } from "date-fns/locale";
+import { PERIOD_LABELS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
 
 // Concrete palette — avoids relying on `--chart-N` CSS vars which may be
 // undefined in some themes and would render the pie cells as solid black.
@@ -25,32 +23,6 @@ const COLORS = [
   "#ec4899", // pink
   "#84cc16", // lime
 ];
-
-/* ─── Period helpers ─── */
-type Period = "7d" | "30d" | "90d" | "365d";
-
-const PERIOD_LABELS: Record<Period, string> = {
-  "7d": "7 jours",
-  "30d": "30 jours",
-  "90d": "3 mois",
-  "365d": "12 mois",
-};
-
-function periodToRange(period: Period): { from: string; to: string; days: number } {
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
-  const today = new Date();
-  const from = new Date(today);
-  from.setDate(today.getDate() - (days - 1));
-  return { from: dateAsISO(from), to: dateAsISO(today), days };
-}
-
-function formatPeriodLabel(from: string, to: string) {
-  const fmt = (iso: string) => {
-    const [, m, d] = iso.split("-");
-    return `${d}/${m}`;
-  };
-  return `${fmt(from)} → ${fmt(to)}`;
-}
 
 /* ─── Generic series normalizer ─── */
 type RawSeriesEntry = Record<string, unknown>;

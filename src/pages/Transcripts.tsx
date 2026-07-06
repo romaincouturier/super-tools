@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Mic, Radio, Clock, AlertCircle, CheckCircle2, Loader2, RefreshCw, Trash2, ArchiveRestore, Copy } from "lucide-react";
+import { Mic, Radio, Clock, AlertCircle, CheckCircle2, RefreshCw, Trash2, ArchiveRestore, Copy } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { PollingIndicator } from "@/components/shared/PollingIndicator";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -16,8 +17,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import WpArticlesTab from "@/components/transcripts/WpArticlesTab";
+import EditorialRecommendationsTab from "@/components/transcripts/EditorialRecommendationsTab";
 import { TranscriptGenerationPanel } from "@/components/transcripts/TranscriptGenerationPanel";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import {
   useTranscripts,
   useTranscript,
@@ -35,7 +38,7 @@ const SOURCE_LABELS: Record<TranscriptSource, string> = {
 
 const STATUS_ICONS: Record<TranscriptStatus, React.ReactNode> = {
   pending: <Clock className="h-3.5 w-3.5" />,
-  processing: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+  processing: <Spinner className="h-3.5 w-3.5" />,
   ready: <CheckCircle2 className="h-3.5 w-3.5" />,
   error: <AlertCircle className="h-3.5 w-3.5" />,
   trashed: <Trash2 className="h-3.5 w-3.5" />,
@@ -106,18 +109,15 @@ function QualificationBadge({ q }: { q: string | null }) {
 /** Fiche éditoriale IA affichée en tête du détail d'un transcript. */
 function EditorialSheet({ t }: { t: Transcript }) {
   const queryClient = useQueryClient();
-  const [analyzing, setAnalyzing] = useState(false);
+  const analyzeEditorial = useEdgeFunction<{ error?: string }>("analyze-transcript-editorial", { silentOnError: true });
+  const analyzing = analyzeEditorial.loading;
   const a = t.editorial_analysis;
   const q = t.editorial_qualification;
 
   const runAnalysis = async () => {
-    setAnalyzing(true);
-    const { data, error } = await supabase.functions.invoke("analyze-transcript-editorial", {
-      body: { transcript_id: t.id },
-    });
-    setAnalyzing(false);
-    if (error || (data as any)?.error) {
-      toast.error((error?.message || (data as any)?.error) ?? "Erreur d'analyse");
+    const data = await analyzeEditorial.invoke({ transcript_id: t.id });
+    if (!data || (data as any)?.error) {
+      toast.error(((data as any)?.error || analyzeEditorial.error?.message) ?? "Erreur d'analyse");
       return;
     }
     toast.success("Fiche éditoriale générée");
@@ -136,7 +136,7 @@ function EditorialSheet({ t }: { t: Transcript }) {
           onClick={runAnalysis}
           disabled={analyzing || !t.raw_text}
         >
-          {analyzing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+          {analyzing ? <Spinner className="h-3.5 w-3.5 mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
           {q ? "Réanalyser" : "Analyser"}
         </Button>
       </div>
@@ -259,20 +259,17 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
 function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) {
   const { data: t, isLoading } = useTranscript(id);
   const { copy: copyDetail } = useCopyToClipboard();
-  const [regenerating, setRegenerating] = useState(false);
+  const generateTitle = useEdgeFunction<{ error?: string }>("generate-transcript-title", { silentOnError: true });
+  const regenerating = generateTitle.loading;
   const queryClient = useQueryClient();
   const trashMutation = useTrashTranscript();
   const restoreMutation = useRestoreTranscript();
 
   const regenerateTitle = async () => {
     if (!t) return;
-    setRegenerating(true);
-    const { data, error } = await supabase.functions.invoke("generate-transcript-title", {
-      body: { transcript_id: t.id },
-    });
-    setRegenerating(false);
-    if (error || (data as any)?.error) {
-      toast.error((error?.message || (data as any)?.error) ?? "Erreur");
+    const data = await generateTitle.invoke({ transcript_id: t.id });
+    if (!data || (data as any)?.error) {
+      toast.error(((data as any)?.error || generateTitle.error?.message) ?? "Erreur");
       return;
     }
     toast.success("Titre régénéré");
@@ -319,7 +316,7 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
                   disabled={regenerating}
                   title="Régénérer le titre IA"
                 >
-                  {regenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {regenerating ? <Spinner /> : <RefreshCw className="h-4 w-4" />}
                 </Button>
               )}
               {t && t.status !== "trashed" && (
@@ -360,7 +357,7 @@ function TranscriptDetail({ id, onClose }: { id: string; onClose: () => void }) 
           )}
         </SheetHeader>
         <ScrollArea className="flex-1 mt-4">
-          {isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}
+          {isLoading && <div className="flex justify-center py-8"><Spinner size="md" /></div>}
           {t && (
             <Tabs defaultValue="transcript" className="pr-4">
               <TabsList>
@@ -463,10 +460,15 @@ export default function Transcripts() {
         <TabsList className="mb-4">
           <TabsTrigger value="transcripts">Transcripts</TabsTrigger>
           <TabsTrigger value="articles">Articles publiés</TabsTrigger>
+          <TabsTrigger value="recommendations">Recommandations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="articles">
           <WpArticlesTab />
+        </TabsContent>
+
+        <TabsContent value="recommendations">
+          <EditorialRecommendationsTab />
         </TabsContent>
 
         <TabsContent value="transcripts">
@@ -480,7 +482,7 @@ export default function Transcripts() {
             label: "En cours",
             value: counts.processing,
             icon: counts.processing > 0
-              ? <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+              ? <Spinner className="text-blue-600" />
               : <Clock className="h-4 w-4 text-blue-600" />,
           },
         ].map(({ label, value, icon }) => (
@@ -551,7 +553,7 @@ export default function Transcripts() {
 
       {/* List */}
       {isLoading && (
-        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        <div className="flex justify-center py-12"><Spinner size="md" /></div>
       )}
       {!isLoading && !data?.length && (
         <Card>

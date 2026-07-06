@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
-type Kind = "blog_article" | "linkedin_post" | "title";
+type Kind = "blog_article" | "linkedin_post" | "title" | "editorial" | "editorial_engine";
 
 interface PromptRow {
   id: string;
@@ -24,6 +24,8 @@ const LABELS: Record<Kind, string> = {
   title: "Titre auto (à la réception du transcript)",
   blog_article: "Article de blog",
   linkedin_post: "Post LinkedIn",
+  editorial: "Fiche éditoriale (qualification des transcripts)",
+  editorial_engine: "Moteur éditorial (référentiel cibles, saisonnalité, scoring)",
 };
 
 function PromptCard({ row, onSaved }: { row: PromptRow; onSaved: () => void }) {
