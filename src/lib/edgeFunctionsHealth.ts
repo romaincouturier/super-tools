@@ -19,6 +19,7 @@ export const EXPECTED_FUNCTIONS = [
   "backup-export",
   "backup-import",
   "book-public-album",
+  "brevo-statistics",
   "book-record-view",
   "book-upload-production",
   "business-health-score",
