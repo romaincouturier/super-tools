@@ -106,12 +106,17 @@ export const useMediaLibrary = () => {
       }
 
       if (lmsIds.length > 0) {
-        const { data } = await supabase
-          .from("lms_lessons")
-          .select("id, title")
-          .in("id", lmsIds);
-        (data || []).forEach((l) => {
-          labelMap[l.id] = { label: l.title, emoji: null, color: null, tags: ["formation en ligne"] };
+        // LMS media may be scoped to a course (bulk uploads) or a lesson (per-lesson uploads).
+        const [{ data: courseRows }, { data: lessonRows }] = await Promise.all([
+          supabase.from("lms_courses").select("id, title").in("id", lmsIds),
+          supabase.from("lms_lessons").select("id, title").in("id", lmsIds),
+        ]);
+        (courseRows || []).forEach((c) => {
+          labelMap[c.id] = { label: c.title, emoji: null, color: null, tags: ["formation en ligne"] };
+        });
+        (lessonRows || []).forEach((l) => {
+          // Lesson lookup takes precedence when the id resolves to a lesson.
+          labelMap[l.id] = { label: l.title, emoji: null, color: null, tags: ["formation en ligne", "leçon"] };
         });
       }
 
