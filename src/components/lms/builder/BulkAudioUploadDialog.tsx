@@ -128,11 +128,24 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   const [step, setStep] = useState<Step>("upload");
   const [audios, setAudios] = useState<AudioItem[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const resetAndClose = () => {
     setStep("upload");
     setAudios([]);
+    setGlobalError(null);
+    setUploadError(null);
     onClose();
+  };
+
+  const copyError = (msg: string) => {
+    try {
+      navigator.clipboard.writeText(msg);
+      toast({ title: "Erreur copiée dans le presse-papiers" });
+    } catch {
+      // ignore
+    }
   };
 
   // ── Step 1: Upload + transcribe ───────────────────────────────────────
