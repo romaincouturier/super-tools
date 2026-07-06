@@ -88,7 +88,9 @@ interface ParticipantSearchData {
   payment_mode: string | null;
   source_financement_bpf: string | null;
   type_stagiaire_bpf: string | null;
+  sold_price_ht: number | null;
 }
+
 
 type SortField = "date" | "title" | "client" | "location";
 type SortOrder = "asc" | "desc";
@@ -144,7 +146,7 @@ const Formations = () => {
         .eq("status", "pending"),
       supabase
         .from("training_participants")
-        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode, source_financement_bpf, type_stagiaire_bpf"),
+        .select("training_id, first_name, last_name, email, sponsor_first_name, sponsor_last_name, sponsor_email, invoice_file_url, payment_mode, source_financement_bpf, type_stagiaire_bpf, sold_price_ht"),
     ]);
 
     if (trainingsResult.error) {
@@ -328,15 +330,22 @@ const Formations = () => {
           columnId === "passee" || columnId === "annulee"
             ? t.end_date || t.start_date
             : null;
+        // Valeur = prix intra si session intra, sinon somme des prix participants (inter / e-learning)
+        const parts = participantsByTraining.get(t.id) || [];
+        const participantsTotal = parts.reduce((sum, p) => sum + (p.sold_price_ht ?? 0), 0);
+        const value = t.is_intra
+          ? (t.sold_price_ht ?? null)
+          : (participantsTotal > 0 ? participantsTotal : (t.sold_price_ht ?? null));
         return {
           id: t.id,
           columnId,
           createdAt: t.created_at,
           completedAt,
-          value: t.sold_price_ht ?? null,
+          value,
         };
       });
-  }, [trainings]);
+  }, [trainings, participantsByTraining]);
+
 
   // Check if a training has pending actions
   const hasActions = useMemo(() => {
