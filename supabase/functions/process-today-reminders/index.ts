@@ -134,6 +134,30 @@ serve(async (req) => {
       }
     }
 
+    // Fetch the communication manager (added in CC of the trainer email)
+    let commManagerEmail: string | null = null;
+    let commManagerFirstName = "";
+    try {
+      const { data: setting } = await supabase
+        .from("app_settings")
+        .select("setting_value")
+        .eq("setting_key", "communication_manager_user_id")
+        .maybeSingle();
+      if (setting?.setting_value) {
+        const { data: cm } = await supabase
+          .from("profiles")
+          .select("email, first_name")
+          .eq("user_id", setting.setting_value)
+          .maybeSingle();
+        if (cm?.email) {
+          commManagerEmail = cm.email;
+          commManagerFirstName = cm.first_name || "";
+        }
+      }
+    } catch (e) {
+      console.warn("[process-today-reminders] Could not fetch communication manager:", e);
+    }
+
     const bccList = await getBccList();
     const signatureHtml = await getSigniticSignature();
     const urls = await getAppUrls();
