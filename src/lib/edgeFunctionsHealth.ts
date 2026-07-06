@@ -40,6 +40,7 @@ export const EXPECTED_FUNCTIONS = [
   "crm-send-email",
   "crm-slack-notify",
   "duplicate-lms-course",
+  "editorial-engine",
   "enrich-idea",
   "extract-balance-sheet",
   "extract-objectives-from-pdf",
