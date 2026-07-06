@@ -156,32 +156,38 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
       if (!audioFiles.length) return;
 
       setUploading(true);
+      setUploadError(null);
       const newItems: AudioItem[] = [];
 
       try {
         for (const file of audioFiles) {
-          const url = await uploadMediaFile(file, "lms", courseId);
-          const media = await addMedia.mutateAsync({
-            file_url: url,
-            file_name: file.name,
-            file_type: "audio",
-            mime_type: resolveContentType(file),
-            file_size: file.size,
-            position: 0,
-            source_type: "lms",
-            source_id: courseId,
-          });
-          newItems.push({
-            id: crypto.randomUUID(),
-            file,
-            mediaId: media.id,
-            url,
-            status: "pending",
-            transcript: "",
-            lessonId: null,
-            reformulatedText: "",
-            keyPoints: [],
-          });
+          try {
+            const url = await uploadMediaFile(file, "lms", courseId);
+            const media = await addMedia.mutateAsync({
+              file_url: url,
+              file_name: file.name,
+              file_type: "audio",
+              mime_type: resolveContentType(file),
+              file_size: file.size,
+              position: 0,
+              source_type: "lms",
+              source_id: courseId,
+            });
+            newItems.push({
+              id: crypto.randomUUID(),
+              file,
+              mediaId: media.id,
+              url,
+              status: "pending",
+              transcript: "",
+              lessonId: null,
+              reformulatedText: "",
+              keyPoints: [],
+            });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Erreur inconnue";
+            throw new Error(`Upload de "${file.name}" a échoué : ${msg}`);
+          }
         }
 
         setAudios((prev) => [...prev, ...newItems]);
@@ -192,7 +198,9 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
         await transcribeAll([...audios, ...newItems]);
       } catch (err) {
         setUploading(false);
-        toastError(toast, err instanceof Error ? err : "Erreur lors de l'upload.");
+        const msg = err instanceof Error ? err.message : "Erreur lors de l'upload.";
+        setUploadError(msg);
+        toastError(toast, msg);
       }
     },
     [courseId, addMedia, audios, toast],
@@ -200,13 +208,22 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
 
   const transcribeAll = async (items: AudioItem[]) => {
     const updated = [...items];
+    setGlobalError(null);
 
     setAudios(updated.map((a) => ({ ...a, status: "transcribing" as TranscriptionStatus })));
 
     for (let i = 0; i < updated.length; i++) {
       try {
         const transcript = await transcribeAudio(updated[i].url);
-        updated[i] = { ...updated[i], status: "done", transcript };
+        if (!transcript || !transcript.trim()) {
+          updated[i] = {
+            ...updated[i],
+            status: "error",
+            error: "Transcription vide — aucune voix détectée ou fichier illisible.",
+          };
+        } else {
+          updated[i] = { ...updated[i], status: "done", transcript };
+        }
       } catch (err) {
         updated[i] = { ...updated[i], status: "error", error: err instanceof Error ? err.message : "Erreur" };
       }
