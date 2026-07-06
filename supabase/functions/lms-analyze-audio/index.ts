@@ -100,31 +100,10 @@ serve(async (req) => {
       .map((t) => `=== Audio: ${t.file_name} (id: ${t.id}) ===\n${t.text}`)
       .join("\n\n");
 
-    const prompt = `Tu es un assistant pédagogique. Tu reçois la transcription d'enregistrements audio d'une formation, ainsi que la liste des leçons d'un e-learning.
-
-Leçons disponibles :
-${lessonsBlock}
-
-Transcriptions audio :
-${transcriptsBlock}
-
-Pour chaque audio, tu dois :
-1. Identifier la leçon la plus pertinente parmi celles listées (en te basant sur le contenu)
-2. Si aucune leçon ne correspond clairement, mettre lesson_id à null (le contenu ira dans une leçon "Ressources")
-3. Reformuler le contenu de manière claire et pédagogique (style formation professionnelle, sans les hésitations orales)
-4. Extraire les 3 à 6 points clés les plus importants
-
-Réponds UNIQUEMENT en JSON valide avec ce format exact :
-{
-  "assignments": [
-    {
-      "audio_id": "id de l'audio",
-      "lesson_id": "id de la leçon ou null",
-      "reformulated_text": "texte reformulé en HTML basique (<p>, <strong>, <em>)",
-      "key_points": ["point 1", "point 2", "point 3"]
-    }
-  ]
-}`;
+    const template = await loadPromptTemplate();
+    const prompt = template
+      .replaceAll("{{lessons}}", lessonsBlock)
+      .replaceAll("{{transcripts}}", transcriptsBlock);
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
