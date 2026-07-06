@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useCourseModules, useModuleLessons, useCreateLesson } from "@/hooks/useLms";
 import { useCreateLessonBlock } from "@/hooks/useLmsBlocks";
 import { uploadMediaFile, useAddMedia } from "@/hooks/useMedia";
@@ -119,6 +120,7 @@ interface Props {
 
 export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props) {
   const { toast } = useToast();
+  const { copy } = useCopyToClipboard();
   const addMedia = useAddMedia();
   const createLesson = useCreateLesson();
   const { data: modules = [] } = useCourseModules(courseId);
@@ -140,12 +142,7 @@ export default function BulkAudioUploadDialog({ open, onClose, courseId }: Props
   };
 
   const copyError = (msg: string) => {
-    try {
-      navigator.clipboard.writeText(msg);
-      toast({ title: "Erreur copiée dans le presse-papiers" });
-    } catch {
-      // ignore
-    }
+    copy(msg, { title: "Erreur copiée dans le presse-papiers" });
   };
 
   // ── Step 1: Upload + transcribe ───────────────────────────────────────

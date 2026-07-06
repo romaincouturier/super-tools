@@ -32,6 +32,7 @@ import type {
   FillBlanksBlockContent,
   DragWordsBlockContent,
   SummaryBlockContent,
+  CtaBlockContent,
 } from "@/types/lms-blocks";
 import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
@@ -64,6 +65,7 @@ import BeforeAfterBlockViewer from "./viewers/BeforeAfterBlockViewer";
 import FillBlanksBlockViewer from "./viewers/FillBlanksBlockViewer";
 import DragWordsBlockViewer from "./viewers/DragWordsBlockViewer";
 import SummaryBlockViewer from "./viewers/SummaryBlockViewer";
+import CtaBlockViewer from "./viewers/CtaBlockViewer";
 
 interface Props {
   blocks: LessonBlock[];
@@ -248,6 +250,8 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
       return <DragWordsBlockViewer content={block.content as DragWordsBlockContent} />;
     case "summary":
       return <SummaryBlockViewer content={block.content as SummaryBlockContent} />;
+    case "cta":
+      return <CtaBlockViewer content={block.content as CtaBlockContent} />;
     default:
       return null;
   }

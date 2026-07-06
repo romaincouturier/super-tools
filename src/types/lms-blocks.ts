@@ -47,7 +47,8 @@ export type ContentBlockType =
   | "before_after"
   | "fill_blanks"
   | "drag_words"
-  | "summary";
+  | "summary"
+  | "cta";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -358,6 +359,20 @@ export interface SummaryBlockContent {
   statements: SummaryStatement[];
 }
 
+// ── CTA block ─────────────────────────────────────────────────────────
+
+export interface CtaBlockContent {
+  title?: string | null;
+  subtitle?: string | null;
+  image_url?: string | null;
+  body_html?: string | null;
+  button_label: string;
+  button_url: string;
+  open_in_new_tab?: boolean;
+  /** Couleur de la bordure du cadre. Défaut : jaune SuperTilt. */
+  accent_color?: string | null;
+}
+
 // ── Shortcode block ─────────────────────────────────────────────────
 
 /** Codes courts disponibles — formulaires intégrés au cours. */
@@ -448,7 +463,8 @@ export type LessonBlockContent =
   | BeforeAfterBlockContent
   | FillBlanksBlockContent
   | DragWordsBlockContent
-  | SummaryBlockContent;
+  | SummaryBlockContent
+  | CtaBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -585,6 +601,17 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
           { id: cryptoRandomId(), text: "Affirmation 2", is_correct: false },
           { id: cryptoRandomId(), text: "Affirmation 3", is_correct: true },
         ],
+      };
+    case "cta":
+      return {
+        title: null,
+        subtitle: null,
+        image_url: null,
+        body_html: "",
+        button_label: "Découvrir le programme",
+        button_url: "",
+        open_in_new_tab: true,
+        accent_color: null,
       };
   }
 }
@@ -740,6 +767,18 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
           { id: cryptoRandomId(), text: "La facilitation visuelle ne fonctionne que sur support numérique.", is_correct: false },
           { id: cryptoRandomId(), text: "Elle peut être utilisée aussi bien en atelier qu'en formation.", is_correct: true },
         ],
+      };
+    case "cta":
+      return {
+        title: "Formation PARC",
+        subtitle: "Pratiques d'Ateliers et de Réunions Créatifs",
+        image_url: null,
+        body_html:
+          "<p>Marre des réunions qui tournent en rond ou des ateliers plan-plan ? Dans cette formation dynamique, vous découvrirez comment transformer vos temps collectifs (réunions, ateliers, séminaires) en <strong>expériences engageantes, structurées et productives.</strong> Des jeux, des formats créatifs, des outils prêts à l'emploi… et surtout, la posture pour faire la différence.</p>",
+        button_label: "Découvrir le programme",
+        button_url: "https://example.com",
+        open_in_new_tab: true,
+        accent_color: null,
       };
     default:
       return null;

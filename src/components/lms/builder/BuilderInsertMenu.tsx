@@ -33,6 +33,7 @@ const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }
   fill_blanks:     { desc: "Texte à compléter ({{mots}})", kbd: "/ trous" },
   drag_words:      { desc: "Glisser les mots au bon endroit", kbd: "/ glisser" },
   summary:         { desc: "Cocher les affirmations correctes", kbd: "/ résumé" },
+  cta:             { desc: "Offre mise en avant : image, texte, bouton", kbd: "/ cta" },
   section:         { desc: "Conteneur pleine largeur", kbd: "/ section" },
   row:             { desc: "Colonnes côte à côte", kbd: "/ colonnes" },
   divider:         { desc: "Trait fin entre sections", kbd: "/ ---" },
@@ -45,7 +46,7 @@ const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
   "quiz", "checklist", "bullet_list", "button", "exercise",
   "self_assessment", "work_deposit", "assignment", "table", "shortcode",
   "gallery", "html_embed", "timeline", "flip_cards",
-  "accordion", "image_hotspot", "before_after", "fill_blanks", "drag_words", "summary",
+  "accordion", "image_hotspot", "before_after", "fill_blanks", "drag_words", "summary", "cta",
 ];
 
 const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [
