@@ -680,9 +680,9 @@ export default function BPFReport() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="2024">2024</SelectItem>
-                  <SelectItem value="2025">2025</SelectItem>
-                  <SelectItem value="2026">2026</SelectItem>
+                  {Array.from({ length: currentYear - 2024 + 1 }, (_, i) => 2024 + i).map((y) => (
+                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="sm" onClick={() => window.print()} className="print:hidden">
@@ -738,7 +738,7 @@ export default function BPFReport() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {BPF_LINES.filter((l) => produits[l.key] > 0 || true).map((l) => (
+                        {BPF_LINES.map((l) => (
                           <TableRow key={l.key} className={produits[l.key] === 0 ? "text-muted-foreground" : ""}>
                             <TableCell className="font-mono text-xs">{l.bpfRef}</TableCell>
                             <TableCell>{l.label}</TableCell>

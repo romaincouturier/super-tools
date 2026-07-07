@@ -1,13 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfWeek, subMonths, format, eachWeekOfInterval, parseISO } from "date-fns";
+import { subMonths, format, eachWeekOfInterval } from "date-fns";
 import { fr } from "date-fns/locale";
-
-interface WeeklyData {
-  week: string;
-  count: number;
-}
+import { processWeeklyData, type WeeklyData } from "@/lib/dashboardHelpers";
 
 interface DashboardStats {
   microDevisWeekly: WeeklyData[];
@@ -67,6 +63,7 @@ export const useDashboardStats = (): DashboardStats => {
       const { data, error } = await supabase
         .from("trainings")
         .select("start_date")
+        .or("is_cancelled.is.null,is_cancelled.eq.false")
         .gte("start_date", format(startDate, "yyyy-MM-dd"))
         .order("start_date", { ascending: true });
 
@@ -153,34 +150,3 @@ export const useDashboardStats = (): DashboardStats => {
     isLoading,
   };
 };
-
-function processWeeklyData(dates: string[], allWeeks: string[]): WeeklyData[] {
-  const weekCounts: Record<string, number> = {};
-
-  // Initialize all weeks with 0
-  allWeeks.forEach((week) => {
-    weekCounts[week] = 0;
-  });
-
-  // Count occurrences per week
-  dates.forEach((dateStr) => {
-    try {
-      // Handle both ISO date strings and date-only formats
-      const date = dateStr.includes("T") ? parseISO(dateStr) : new Date(dateStr);
-      if (isNaN(date.getTime())) return;
-      
-      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
-      const weekLabel = format(weekStart, "dd/MM", { locale: fr });
-      if (weekCounts[weekLabel] !== undefined) {
-        weekCounts[weekLabel]++;
-      }
-    } catch (e) {
-      console.error("Error parsing date:", dateStr, e);
-    }
-  });
-
-  return allWeeks.map((week) => ({
-    week,
-    count: weekCounts[week] || 0,
-  }));
-}

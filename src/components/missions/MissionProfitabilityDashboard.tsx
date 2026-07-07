@@ -26,28 +26,12 @@ import { useUserPreference } from "@/hooks/useUserPreferences";
 import { useMissions, useAllMissionActivities } from "@/hooks/useMissions";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
-
-/** Hours-to-days conversion used throughout the dashboard. */
-const HOURS_PER_DAY = 6;
-
-// Default profitability settings
-interface ProfitabilitySettings {
-  targetNetSalary: number; // Salaire net annuel visé
-  socialChargesRate: number; // Taux de charges sociales (%)
-  fixedChargesMonthly: number; // Charges fixes mensuelles
-  variableChargesRate: number; // Taux de charges variables (%)
-  targetMarginRate: number; // Marge bénéficiaire cible (%)
-  billableDaysPerYear: number; // Jours facturables par an
-}
-
-const defaultSettings: ProfitabilitySettings = {
-  targetNetSalary: 60000,
-  socialChargesRate: 45,
-  fixedChargesMonthly: 800,
-  variableChargesRate: 10,
-  targetMarginRate: 25,
-  billableDaysPerYear: 180,
-};
+import {
+  computeProfitabilityIndicators,
+  defaultProfitabilitySettings as defaultSettings,
+  HOURS_PER_DAY,
+  type ProfitabilitySettings,
+} from "@/lib/missionProfitability";
 
 const MissionProfitabilityDashboard = () => {
   const { toast } = useToast();
@@ -86,121 +70,12 @@ const MissionProfitabilityDashboard = () => {
     }
   };
 
-  // Calculate profitability indicators.
-  //
-  // Source of truth: `mission_activities` (not `missions.billed_amount`).
-  // We filter on two axes:
-  //   - mission.status === 'completed' → "missions terminées"
-  //   - activity.is_billed === true   → "activités facturées"
-  // All hour durations are converted to days via HOURS_PER_DAY (6h = 1j).
-  const indicators = useMemo(() => {
-    const s = settings || defaultSettings;
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const yearStart = new Date(currentYear, 0, 1);
-
-    // Annual cost + target
-    const socialCharges = s.targetNetSalary * (s.socialChargesRate / 100);
-    const fixedChargesAnnual = s.fixedChargesMonthly * 12;
-    const totalAnnualCosts = s.targetNetSalary + socialCharges + fixedChargesAnnual;
-    const totalWithMargin = totalAnnualCosts * (1 + s.targetMarginRate / 100);
-    const annualGoal = totalWithMargin;
-    const recommendedTJM = Math.ceil(totalWithMargin / s.billableDaysPerYear);
-
-    // Monthly break-even
-    const marginRateOnVariableCosts = (100 - s.variableChargesRate) / 100;
-    const breakEvenMonthly = Math.ceil(s.fixedChargesMonthly / marginRateOnVariableCosts);
-
-    // Map of completed missions for fast lookup.
-    const completedMissionMap = new Map<string, { id: string; title: string }>();
-    (missions || []).forEach((m) => {
-      if (m.status === "completed") completedMissionMap.set(m.id, { id: m.id, title: m.title });
-    });
-
-    // Consider activities that belong to a completed mission AND fall in the
-    // current year (by `activity_date`).
-    const yearActivities = (allActivities || []).filter((a) => {
-      if (!completedMissionMap.has(a.mission_id)) return false;
-      if (!a.activity_date) return false;
-      const d = new Date(a.activity_date);
-      return d >= yearStart && d <= now;
-    });
-
-    // Activity → billable days (1j = 6h).
-    const activityDays = (durationType: string, duration: number): number => {
-      const n = Number(duration) || 0;
-      if (n <= 0) return 0;
-      return durationType === "hours" ? n / HOURS_PER_DAY : n;
-    };
-
-    // Billed: activities marked is_billed === true
-    const billedActivities = yearActivities.filter((a) => a.is_billed === true);
-    const totalBilledCA = billedActivities.reduce((sum, a) => sum + (Number(a.billable_amount) || 0), 0);
-    const totalBilledDays = billedActivities.reduce((sum, a) => sum + activityDays(a.duration_type, a.duration), 0);
-
-    // Worked (all activities of completed missions, billed or not) — informational.
-    const totalWorkedDays = yearActivities.reduce((sum, a) => sum + activityDays(a.duration_type, a.duration), 0);
-
-    // Initial budget scope: sum of initial_amount on completed missions.
-    const totalInitialBudget = Array.from(completedMissionMap.keys()).reduce((sum, id) => {
-      const m = missions?.find((mm) => mm.id === id);
-      return sum + (m?.initial_amount || 0);
-    }, 0);
-
-    // Reste à facturer total : sur toutes les missions non annulées,
-    // budget initial - montants déjà facturés (activités is_billed).
-    const billedByMission = new Map<string, number>();
-    (allActivities || []).forEach((a) => {
-      if (a.is_billed === true) {
-        billedByMission.set(a.mission_id, (billedByMission.get(a.mission_id) || 0) + (Number(a.billable_amount) || 0));
-      }
-    });
-    const totalRemainingToBill = (missions || [])
-      .filter((m) => m.status !== "cancelled")
-      .reduce((sum, m) => sum + ((m.initial_amount || 0) - (billedByMission.get(m.id) || 0)), 0);
-
-    // Average realised TJM
-    const actualTJM = totalBilledDays > 0 ? Math.round(totalBilledCA / totalBilledDays) : 0;
-
-    // Progress vs. annual goal
-    const progressPercentage = annualGoal > 0
-      ? Math.min(100, Math.round((totalBilledCA / annualGoal) * 100))
-      : 0;
-
-    // Expected linear progress at this point in the year
-    const monthsElapsed = currentMonth + 1;
-    const expectedProgress = Math.round((monthsElapsed / 12) * 100);
-
-    // Net margin calc (billed basis)
-    const variableCosts = totalBilledCA * (s.variableChargesRate / 100);
-    const netProfit = totalBilledCA - variableCosts - (s.fixedChargesMonthly * monthsElapsed);
-    const netMarginRate = totalBilledCA > 0 ? Math.round((netProfit / totalBilledCA) * 100) : 0;
-
-    const isOnTrack = progressPercentage >= expectedProgress - 10;
-    const tjmIsGood = actualTJM >= recommendedTJM * 0.9;
-
-    return {
-      recommendedTJM,
-      breakEvenMonthly,
-      totalBilledCA,
-      totalRemainingToBill,
-      totalInitialBudget,
-      totalBilledDays,
-      totalWorkedDays,
-      actualTJM,
-      annualGoal,
-      progressPercentage,
-      expectedProgress,
-      netMarginRate,
-      netProfit,
-      isOnTrack,
-      tjmIsGood,
-      monthsElapsed,
-      activeMissions: (missions || []).filter((m) => m.status === "in_progress").length,
-      completedMissions: completedMissionMap.size,
-    };
-  }, [settings, missions, allActivities]);
+  // Profitability indicators — pure calculation extracted to
+  // src/lib/missionProfitability.ts (tested there).
+  const indicators = useMemo(
+    () => computeProfitabilityIndicators(settings || defaultSettings, missions || [], allActivities || []),
+    [settings, missions, allActivities],
+  );
 
   if (settingsLoading || missionsLoading || activitiesLoading) {
     return (

@@ -5,6 +5,7 @@ import {
   formatEur,
   formatToday,
   greetingFor,
+  processWeeklyData,
   toHourMin,
   type DashboardKpiSource,
 } from "./dashboardHelpers";
@@ -213,5 +214,41 @@ describe("buildKpis", () => {
       expect(kpi.spark.length).toBeGreaterThanOrEqual(2);
       expect(kpi.spark.every((v) => typeof v === "number" && !Number.isNaN(v))).toBe(true);
     }
+  });
+});
+
+describe("processWeeklyData", () => {
+  const allWeeks = ["01/06", "08/06", "15/06"]; // lundis de juin 2026
+
+  it("initialise toutes les semaines à 0 sans dates", () => {
+    expect(processWeeklyData([], allWeeks)).toEqual([
+      { week: "01/06", count: 0 },
+      { week: "08/06", count: 0 },
+      { week: "15/06", count: 0 },
+    ]);
+  });
+
+  it("compte les dates dans la semaine de leur lundi (semaine commençant lundi)", () => {
+    const dates = [
+      "2026-06-01", // lundi 01/06
+      "2026-06-03", // mercredi → semaine du 01/06
+      "2026-06-07", // dimanche → semaine du 01/06
+      "2026-06-08", // lundi 08/06
+    ];
+    expect(processWeeklyData(dates, allWeeks)).toEqual([
+      { week: "01/06", count: 3 },
+      { week: "08/06", count: 1 },
+      { week: "15/06", count: 0 },
+    ]);
+  });
+
+  it("gère les timestamps ISO complets", () => {
+    const result = processWeeklyData(["2026-06-10T14:30:00Z"], allWeeks);
+    expect(result.find((w) => w.week === "08/06")!.count).toBe(1);
+  });
+
+  it("ignore les dates invalides et hors fenêtre", () => {
+    const result = processWeeklyData(["invalid", "2020-01-01"], allWeeks);
+    expect(result.every((w) => w.count === 0)).toBe(true);
   });
 });

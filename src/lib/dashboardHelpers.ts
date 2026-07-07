@@ -1,6 +1,46 @@
 // Pure helpers for the Dashboard aggregation hook.
 // Kept in src/lib/ so they are testable without pulling React Query / Supabase.
 
+import { startOfWeek, format, parseISO } from "date-fns";
+import { fr } from "date-fns/locale";
+
+export interface WeeklyData {
+  week: string;
+  count: number;
+}
+
+/** Compte les dates par semaine (labels "dd/MM", lundi = début de semaine). */
+export function processWeeklyData(dates: string[], allWeeks: string[]): WeeklyData[] {
+  const weekCounts: Record<string, number> = {};
+
+  // Initialize all weeks with 0
+  allWeeks.forEach((week) => {
+    weekCounts[week] = 0;
+  });
+
+  // Count occurrences per week
+  dates.forEach((dateStr) => {
+    try {
+      // Handle both ISO date strings and date-only formats
+      const date = dateStr.includes("T") ? parseISO(dateStr) : new Date(dateStr);
+      if (isNaN(date.getTime())) return;
+
+      const weekStart = startOfWeek(date, { weekStartsOn: 1 });
+      const weekLabel = format(weekStart, "dd/MM", { locale: fr });
+      if (weekCounts[weekLabel] !== undefined) {
+        weekCounts[weekLabel]++;
+      }
+    } catch (e) {
+      console.error("Error parsing date:", dateStr, e);
+    }
+  });
+
+  return allWeeks.map((week) => ({
+    week,
+    count: weekCounts[week] || 0,
+  }));
+}
+
 export type DashboardKpiTrend = "up" | "warn" | "flat";
 
 export interface DashboardKpi {
