@@ -54,6 +54,7 @@ interface CatalogEntry {
   woocommerce_product_id: number | null;
   description: string | null;
   is_active: boolean;
+  is_permanent: boolean;
   display_order: number;
 }
 

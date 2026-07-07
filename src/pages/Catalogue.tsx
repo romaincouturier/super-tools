@@ -42,6 +42,7 @@ interface CatalogEntry {
   training_count: number;
   formula_names: string[];
   last_session_date: string | null;
+  is_permanent: boolean;
 }
 
 type SortColumn = "formation_name" | "duree_heures" | "training_count" | "formula_names" | "last_session_date";
@@ -439,6 +440,8 @@ const Catalogue = () => {
                       <TableCell>
                         {entry.last_session_date ? (
                           <span className="text-sm">{formatDate(entry.last_session_date)}</span>
+                        ) : entry.is_permanent ? (
+                          <span className="text-xs text-primary font-medium">Formation permanente</span>
                         ) : (
                           <span className="text-xs text-muted-foreground">Aucune</span>
                         )}

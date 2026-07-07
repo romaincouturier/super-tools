@@ -2875,6 +2875,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          is_permanent: boolean
           label_specialite_nsf: string | null
           learndash_course_id: number | null
           objectives: string[] | null
@@ -2901,6 +2902,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_permanent?: boolean
           label_specialite_nsf?: string | null
           learndash_course_id?: number | null
           objectives?: string[] | null
@@ -2927,6 +2929,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_permanent?: boolean
           label_specialite_nsf?: string | null
           learndash_course_id?: number | null
           objectives?: string[] | null
