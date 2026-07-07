@@ -40,10 +40,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function LmsCoursePlayer() {
   const { courseId } = useParams<{ courseId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const learnerEmail = searchParams.get("email") || "";
   const isPreview = searchParams.get("preview") === "admin";
   const initialLessonId = searchParams.get("lesson");
+  // Fallback pour les liens reçus sans ?email= (anciens emails) : le
+  // participant saisit son adresse au lieu d'un cul-de-sac.
+  const [emailPrompt, setEmailPrompt] = useState("");
 
   const { data: course } = useCourse(courseId);
   const { data: modules = [] } = useCourseModules(courseId);
@@ -350,13 +353,36 @@ export default function LmsCoursePlayer() {
   }
 
   if (!learnerEmail && !isPreview) {
+    const submitEmailPrompt = (e: React.FormEvent) => {
+      e.preventDefault();
+      const value = emailPrompt.trim().toLowerCase();
+      if (!value.includes("@")) return;
+      const next = new URLSearchParams(searchParams);
+      next.set("email", value);
+      setSearchParams(next, { replace: true });
+    };
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="max-w-md w-full">
           <CardContent className="py-8 text-center space-y-4">
             <BookOpen className="w-12 h-12 mx-auto text-primary" />
             <h2 className="text-xl font-bold">{course.title}</h2>
-            <p className="text-muted-foreground">Accès non autorisé. Veuillez utiliser le lien fourni par votre formateur.</p>
+            <p className="text-muted-foreground">
+              Saisissez l'adresse email à laquelle vous avez reçu l'invitation
+              pour accéder au cours et retrouver votre progression.
+            </p>
+            <form onSubmit={submitEmailPrompt} className="space-y-3">
+              <Input
+                type="email"
+                placeholder="votre@email.fr"
+                value={emailPrompt}
+                onChange={(e) => setEmailPrompt(e.target.value)}
+                autoFocus
+              />
+              <Button type="submit" className="w-full" disabled={!emailPrompt.includes("@")}>
+                Accéder au cours
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
