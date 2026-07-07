@@ -1,12 +1,33 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/check-rules.sh)",
+      "Bash(bash scripts/check-rules.sh *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx vitest run *)",
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npx playwright test)"
+    ]
+  },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.command' | grep -qE '^\\s*git\\s+(commit|add\\s+-A.*&&.*commit)' && bash scripts/check-rules.sh --staged || true",
+            "command": "if jq -r '.tool_input.command' | grep -qE '(^|[;&|(])[[:space:]]*git([[:space:]]+-[Cc][[:space:]]*[^[:space:]]+)*[[:space:]]+commit([[:space:]]|$)'; then bash scripts/check-rules.sh --staged >&2 || exit 2; fi",
             "timeout": 30,
             "statusMessage": "Vérification des règles IMPROVEMENTS.md..."
           }

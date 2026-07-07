@@ -33,3 +33,7 @@ dist-ssr
 supabase/.temp/
 coverage/
 .claude/worktrees/
+
+# Playwright
+test-results/
+playwright-report/
