@@ -93,7 +93,11 @@ export default function WpArticlesTab() {
             </TableHeader>
             <TableBody>
               {filtered.map((a) => (
-                <TableRow key={a.id}>
+                <TableRow
+                  key={a.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedId(a.id)}
+                >
                   <TableCell className="text-sm font-medium max-w-md">
                     <span className="line-clamp-2">{a.title}</span>
                     {a.tags?.length > 0 && (
@@ -117,7 +121,7 @@ export default function WpArticlesTab() {
                       </span>
                     ) : "—"}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     {a.url && (
                       <a href={a.url} target="_blank" rel="noopener noreferrer" title="Ouvrir l'article">
                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
