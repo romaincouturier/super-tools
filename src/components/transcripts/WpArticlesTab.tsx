@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Upload, Loader2, ExternalLink, Newspaper, Eye } from "lucide-react";
 import { toast } from "sonner";
+import WpArticleDetailDialog from "./WpArticleDetailDialog";
 
 export default function WpArticlesTab() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: articles = [], isLoading } = useWpArticles();
   const importCsv = useImportWpArticlesCsv();
 
