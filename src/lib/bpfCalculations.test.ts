@@ -88,6 +88,18 @@ describe("calcScheduleHours", () => {
     expect(calcScheduleHours(slots)).toBe(14);
   });
 
+  it("compte 0 pour un créneau invalide (durée nulle, négative ou heure malformée)", () => {
+    expect(calcScheduleHours([{ start_time: "09:00", end_time: "09:00" }])).toBe(0);
+    expect(calcScheduleHours([{ start_time: "17:00", end_time: "09:00" }])).toBe(0);
+    expect(calcScheduleHours([{ start_time: "", end_time: "12:00" }])).toBe(0);
+    expect(calcScheduleHours([{ start_time: "abc", end_time: "12:00" }])).toBe(0);
+    // Un créneau invalide n'affecte pas les créneaux valides
+    expect(calcScheduleHours([
+      { start_time: "09:00", end_time: "17:00" },
+      { start_time: "17:00", end_time: "09:00" },
+    ])).toBe(7);
+  });
+
   it("reproduit les 344.75h réels de SuperTilt 2025 sur 49.25 créneaux", () => {
     // 42 journées × 7h + 1 demi-journée × 3.5h = 294 + 3.5 = ... vérification approximative
     // On teste la cohérence du calcul avec un mix réaliste

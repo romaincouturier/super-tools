@@ -56,12 +56,14 @@ export interface ScheduleSlot {
 /**
  * Calcule les heures de formation selon la règle BPF :
  * créneau ≤ 4h → 3,5h comptabilisées ; créneau > 4h → 7h comptabilisées.
+ * Les créneaux invalides (heure malformée ou durée nulle/négative) comptent 0.
  */
 export function calcScheduleHours(schedules: ScheduleSlot[]): number {
   return schedules.reduce((total, s) => {
     const [sh, sm] = s.start_time.split(":").map(Number);
     const [eh, em] = s.end_time.split(":").map(Number);
     const durationHours = (eh * 60 + em - (sh * 60 + sm)) / 60;
+    if (!Number.isFinite(durationHours) || durationHours <= 0) return total;
     return total + (durationHours <= 4 ? 3.5 : 7);
   }, 0);
 }
