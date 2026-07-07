@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useEditableAppSetting } from "@/hooks/useAppSetting";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,23 +41,10 @@ Réponds UNIQUEMENT en JSON valide avec ce format exact :
  * the function reads the latest value on every invocation.
  */
 export default function LmsAudioPromptSettings() {
-  const qc = useQueryClient();
   const [value, setValue] = useState<string>(DEFAULT_PROMPT);
   const [saving, setSaving] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["app_setting", SETTING_KEY],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", SETTING_KEY)
-        .maybeSingle();
-      const raw = data?.setting_value as unknown;
-      if (typeof raw === "string" && raw.trim().length > 0) return raw;
-      return "";
-    },
-  });
+  const { data, isLoading, save: saveSetting } = useEditableAppSetting(SETTING_KEY);
 
   useEffect(() => {
     if (data && data.length > 0) setValue(data);
@@ -66,17 +52,13 @@ export default function LmsAudioPromptSettings() {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from("app_settings")
-      .upsert(
-        { setting_key: SETTING_KEY, setting_value: value as any, updated_at: new Date().toISOString() },
-        { onConflict: "setting_key" },
-      );
-    setSaving(false);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await saveSetting(value);
       toast.success("Prompt enregistré");
-      qc.invalidateQueries({ queryKey: ["app_setting", SETTING_KEY] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur d'enregistrement");
+    } finally {
+      setSaving(false);
     }
   };
 
