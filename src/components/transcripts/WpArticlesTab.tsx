@@ -134,6 +134,7 @@ export default function WpArticlesTab() {
           </Table>
         </div>
       )}
+      <WpArticleDetailDialog articleId={selectedId} onOpenChange={(o) => !o && setSelectedId(null)} />
     </div>
   );
 }
