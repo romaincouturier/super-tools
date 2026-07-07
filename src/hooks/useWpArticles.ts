@@ -8,11 +8,31 @@ export interface WpArticle {
   url: string | null;
   title: string;
   published_at: string | null;
+  modified_at?: string | null;
   author: string | null;
   category: string | null;
   tags: string[];
   views: number | null;
   status: string;
+  excerpt?: string | null;
+  content?: string | null;
+  imported_at?: string | null;
+}
+
+export function useWpArticle(id: string | null) {
+  return useQuery({
+    queryKey: ["wp-article", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("wp_articles")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data as WpArticle | null;
+    },
+  });
 }
 
 export interface WpImportResult {
