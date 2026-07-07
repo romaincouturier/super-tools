@@ -1,0 +1,29 @@
+name: RLS tests
+
+# Tests pgTAP d'isolation apprenant (règles 030/031 d'IMPROVEMENTS.md).
+# Déclenché quand la base ou les tests changent, ou à la main.
+# Applique toutes les migrations sur une instance Supabase locale puis
+# exécute supabase/tests/*.test.sql.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/tests/**"
+
+jobs:
+  rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local database (applies all migrations)
+        run: supabase db start
+
+      - name: Run pgTAP tests
+        run: supabase test db

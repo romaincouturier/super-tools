@@ -1,0 +1,7 @@
+# Ratchet des migrations progressives — la dette ne peut que descendre.
+# Format : RULE=COUNT. Si le compte réel dépasse la valeur ici, check-rules.sh échoue.
+# Quand tu réduis la dette, abaisse la valeur dans le même commit.
+# 017 : <Loader2 animate-spin> inline (cible : 0, puis basculer la règle en audit complet)
+# 020 : supabase.functions.invoke() hors services/lib/useEdgeFunction (cible : quelques cas justifiés)
+017=149
+020=120

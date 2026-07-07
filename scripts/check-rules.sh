@@ -216,6 +216,15 @@ check "031e" "Migration staff_select_guard existe" \
   checked=$((checked + 1))
 }
 
+# [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
+# Whitelist : règles legacy à vérification manuelle documentée.
+MANUAL_RULES="002|013|022|024|029|032|033"
+check "034" "Toute règle d'IMPROVEMENTS.md a un check machine (hors whitelist manuelle)" \
+  "for id in \$(grep -oE '^### \[[0-9]{3}\]' IMPROVEMENTS.md | tr -d '#[] '); do \
+     echo \"\$id\" | grep -qE '^($MANUAL_RULES)\$' && continue; \
+     grep -q \"check \\\"\$id\" scripts/check-rules.sh || grep -qF \"[\$id]\" scripts/check-rules.sh || echo \"VIOLATION: règle [\$id] sans check machine dans check-rules.sh\"; \
+   done"
+
 # ====================================================
 # 3. Audit complet uniquement (scans repo-wide lourds)
 # ====================================================
@@ -288,6 +297,35 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   check "031b" "Pas de FOR ALL TO anon USING (true) sauf formulaires token-based" \
     "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ | grep -v '20260308225436\|fix_rls_anon\|20260321130000\|20260308224610'"
+
+  # Ratchet [017] / [020] — migrations progressives : la dette ne peut que descendre.
+  # Baselines dans scripts/rules-ratchet.txt. Compte > baseline = violation.
+  # Compte < baseline = abaisser la baseline dans le même commit.
+  ratchet() {
+    local rule_id="$1"
+    local description="$2"
+    local current="$3"
+    local baseline
+    baseline=$(grep "^${rule_id}=" scripts/rules-ratchet.txt | cut -d= -f2)
+    checked=$((checked + 1))
+    if [ -z "$baseline" ]; then
+      echo -e "${RED}FAIL${NC} [$rule_id] baseline manquante dans scripts/rules-ratchet.txt"
+      violations=$((violations + 1))
+    elif [ "$current" -gt "$baseline" ]; then
+      echo -e "${RED}FAIL${NC} [$rule_id] $description : $current occurrences (baseline: $baseline) — la dette a augmenté"
+      violations=$((violations + 1))
+    elif [ "$current" -lt "$baseline" ]; then
+      echo -e "${GREEN}OK${NC}   [$rule_id] $description : $current/$baseline — abaisser la baseline à $current dans scripts/rules-ratchet.txt"
+    else
+      echo -e "${GREEN}OK${NC}   [$rule_id] $description : $current/$baseline"
+    fi
+  }
+
+  count_017=$(grep -rEn '<Loader2[^>]*animate-spin' src/ --include='*.tsx' --include='*.ts' 2>/dev/null | grep -v 'components/ui/spinner.tsx' | wc -l)
+  ratchet "017" "Ratchet <Loader2 animate-spin> inline (utiliser <Spinner>)" "$count_017"
+
+  count_020=$(grep -rn 'supabase\.functions\.invoke' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'hooks/useEdgeFunction.ts' | wc -l)
+  ratchet "020" "Ratchet supabase.functions.invoke() inline (utiliser useEdgeFunction)" "$count_020"
 
 fi
 
