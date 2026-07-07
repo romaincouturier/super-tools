@@ -7,6 +7,7 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
+import { appendEmailParam, personalizeSupportsLinks } from "../_shared/supports-url.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -217,7 +218,7 @@ serve(async (req) => {
             live_date: liveDate,
             live_time: liveTime,
             meeting_url: liveMeetingUrl || undefined,
-            supports_url: supportsUrl || undefined,
+            supports_url: appendEmailParam(supportsUrl, p.email) || undefined,
           };
 
           subject = processTemplate(template.subject, variables, false);
@@ -226,6 +227,10 @@ serve(async (req) => {
             + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
             + "\n" + signatureHtml;
         }
+
+        // Le player LMS exige ?email= : personnalise les liens support,
+        // y compris ceux collés en dur dans un template custom.
+        htmlContent = personalizeSupportsLinks(htmlContent, p.email);
 
         const result = await sendEmail({
           to: p.email,
@@ -283,7 +288,7 @@ serve(async (req) => {
             live_time: liveTime,
             meeting_url: liveMeetingUrl || undefined,
             has_attendance: hasAttendance ? "1" : undefined,
-            supports_url: supportsUrl || undefined,
+            supports_url: appendEmailParam(supportsUrl, trainer.email) || undefined,
           };
 
           const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
@@ -293,9 +298,12 @@ serve(async (req) => {
 
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
           const trainerBody = processTemplate(trainerTemplate.content, trainerVars, false);
-          const trainerHtml = templateTextToHtml(trainerBody)
-            + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
-            + "\n" + signatureHtml;
+          const trainerHtml = personalizeSupportsLinks(
+            templateTextToHtml(trainerBody)
+              + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+              + "\n" + signatureHtml,
+            trainer.email,
+          );
 
           await new Promise(resolve => setTimeout(resolve, 400));
 

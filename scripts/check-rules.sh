@@ -216,6 +216,11 @@ check "031e" "Migration staff_select_guard existe" \
   checked=$((checked + 1))
 }
 
+# [035] Liens supports/LMS dans les emails — toute fonction manipulant supports_url
+# doit passer par _shared/supports-url.ts (personnalisation ?email= par destinataire).
+check "035" "Les edge functions utilisant supports_url importent _shared/supports-url.ts" \
+  "grep -rln 'supports_url' supabase/functions/ --include='index.ts' | xargs -r grep -L 'supports-url.ts' 2>/dev/null"
+
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
 MANUAL_RULES="002|013|022|024|029|032|033"

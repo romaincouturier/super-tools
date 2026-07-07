@@ -112,6 +112,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [035] Liens supports/LMS dans les emails — toujours personnalisés par destinataire avec ?email=
+- **Constat** : Le player LMS public identifie l'apprenant par le paramètre `?email=` de l'URL (pas de login). Le mail de remerciement post-formation envoyait le lien vers l'e-learning sans ce paramètre dans plusieurs chemins (URL explicite sur la formation, envoi planifié `force-send-scheduled-email` qui n'avait aucune résolution LMS, lien collé en dur dans un template personnalisé) : les participants obtenaient "Accès non autorisé. Veuillez utiliser le lien fourni par votre formateur."
+- **Règle** : Toute edge function qui envoie un email contenant un lien vers `/formation-support/` ou `/lms/` DOIT utiliser `_shared/supports-url.ts` : `resolveSupportsUrlBase()` pour construire la variable `{{supports_url}}`, `appendEmailParam()` pour la personnaliser, et `personalizeSupportsLinks()` en balayage final sur le HTML avant `sendEmail()` (couvre les liens collés en dur dans les templates custom). Les URLs externes (Drive, Notion…) ne sont pas modifiées.
+- **Vérification** : `grep -rln 'supports_url' supabase/functions/ --include='index.ts' | xargs grep -L 'supports-url.ts'` doit être vide — toute fonction qui manipule supports_url sans importer le helper est une violation (check [035] de check-rules.sh).
+- **Fichiers de référence** : `supabase/functions/_shared/supports-url.ts` (+ tests), `supabase/functions/send-thank-you-email/index.ts`, `supabase/functions/force-send-scheduled-email/index.ts`, `supabase/functions/process-live-reminders/index.ts`, `supabase/functions/process-today-reminders/index.ts`, `src/pages/LmsCoursePlayer.tsx` (la garde `!learnerEmail`)
+- **Origine** : bug user — participants d'une formation intra recevant "Accès non autorisé" en cliquant le lien e-learning du mail de remerciement
+- **Date** : 2026-07-07
+
 ### [029] LmsCourseHomePage — invariants de layout à ne jamais régresser
 - **Constat** : La page d'accueil du cours LMS a été redesignée 3+ fois pour corriger les mêmes problèmes : (1) hero avec vidéo à gauche au lieu de droite, (2) absence de la rangée de 3 cards stats (progression / prochain live / communauté), (3) absence de barres de progression par module dans la sidebar, (4) absence de la liste des modules avec CTAs (Commencer/Continuer/Revoir) sur la home.
 - **Règle** : `LmsCourseHomePage` doit toujours respecter cette structure sur la vue `home` : (1) `HeroSection` avec **texte gauche, vidéo droite** (premier enfant du grid = texte, second = vidéo) ; (2) rangée `sm:grid-cols-3` : `ProgressCard` + `LiveCard` + `CommunityInfoCard` ; (3) `ModulesListSection` (barres de progression + bouton CTA par module) + `TipsBlock` en grille `lg:grid-cols-[1fr_300px]` ; (4) les deux instances de `Sidebar` reçoivent la prop `lessonsDoneByModule` pour afficher les barres de progression par module.

@@ -6,6 +6,11 @@ import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import {
+  appendEmailParam,
+  personalizeSupportsLinks,
+  resolveSupportsUrlBase,
+} from "../_shared/supports-url.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -405,19 +410,25 @@ const handler = async (req: Request): Promise<Response> => {
         }
 
         const evaluationUrl = `${appUrl}/evaluation/${evaluationToken}`;
+        // Résout le lien supports (URL explicite, cours LMS lié, ou support éditeur)
+        // et le personnalise : le player LMS exige ?email=<participant>.
+        const thankYouSupportsUrl = appendEmailParam(
+          await resolveSupportsUrlBase(supabase, training, training.id, appUrl),
+          recipientEmail,
+        );
         const vars = {
           first_name: firstName,
           training_name: training.training_name,
           evaluation_link: `<a href="${evaluationUrl}" style="display: inline-block; background-color: #e6bc00; color: #1a1a1a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Remplir l'évaluation</a>`,
-          supports_url: training.supports_url || "",
+          supports_url: thankYouSupportsUrl,
         };
         const resolved = resolveEmailTemplate("thank_you", formalAddress, vars);
         if (resolved) {
           subject = resolved.subject;
           htmlContent = resolved.htmlContent;
         } else {
-          const supportsSection = training.supports_url
-            ? `<p>${formalAddress ? "Vous trouverez" : "Tu trouveras"} également tous les supports de la formation ici :<br><a href="${training.supports_url}">${training.supports_url}</a></p>`
+          const supportsSection = thankYouSupportsUrl
+            ? `<p>${formalAddress ? "Vous trouverez" : "Tu trouveras"} également tous les supports de la formation ici :<br><a href="${thankYouSupportsUrl}">${thankYouSupportsUrl}</a></p>`
             : "";
 
           subject = `${training.training_name} – Merci pour ${formalAddress ? "votre" : "ta"} participation !`;
@@ -1161,6 +1172,10 @@ Règles :
     const senderFrom = await getSenderFrom();
 
     console.log(`BCC list: ${bccList.join(", ")}`);
+
+    // Balayage final : personnalise les liens support (y compris collés en dur
+    // dans un template custom) — le player LMS exige ?email=<destinataire>.
+    htmlContent = personalizeSupportsLinks(htmlContent, recipientEmail);
 
     const emailResponse = await sendEmail({
       from: senderFrom,
