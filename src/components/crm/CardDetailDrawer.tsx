@@ -472,6 +472,11 @@ const CardDetailDrawer = ({
     if (title) params.set("trainingName", title.replace(/^\([^)]+\)\s*/, ""));
     if (card?.id) params.set("fromCrmCardId", card.id);
     if (estimatedValue && parseFloat(estimatedValue) > 0) params.set("estimatedValue", estimatedValue);
+    const addr = [
+      address,
+      [postalCode, city].filter(Boolean).join(" ").trim() || null,
+    ].filter(Boolean).join(", ");
+    if (addr) params.set("clientAddress", addr);
     return params;
   };
 
