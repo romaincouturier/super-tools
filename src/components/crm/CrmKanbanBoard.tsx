@@ -417,6 +417,11 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     if (card.estimated_value && card.estimated_value > 0) {
       params.set("estimatedValue", String(card.estimated_value));
     }
+    const addr = [
+      card.address,
+      [card.postal_code, card.city].filter(Boolean).join(" ").trim() || null,
+    ].filter(Boolean).join(", ");
+    if (addr) params.set("clientAddress", addr);
     return params;
   };
 

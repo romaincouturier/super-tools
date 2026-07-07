@@ -49,20 +49,109 @@ const FormationCreate = () => {
     form.fetchSupertiltSiteUrl();
   }, []);
 
-  // Pre-fill from URL params (coming from CRM)
+  // Pre-fill from URL params (coming from CRM) + enrich from CRM card / latest quote
   useEffect(() => {
     const paramClientName = searchParams.get("clientName");
     const paramSponsorFirstName = searchParams.get("sponsorFirstName");
     const paramSponsorLastName = searchParams.get("sponsorLastName");
     const paramSponsorEmail = searchParams.get("sponsorEmail");
     const paramTrainingName = searchParams.get("trainingName");
+    const paramClientAddress = searchParams.get("clientAddress");
+    const paramEstimatedValue = searchParams.get("estimatedValue");
 
     if (paramClientName) form.setClientName(paramClientName);
     if (paramSponsorFirstName) form.setSponsorFirstName(paramSponsorFirstName);
     if (paramSponsorLastName) form.setSponsorLastName(paramSponsorLastName);
     if (paramSponsorEmail) form.setSponsorEmail(paramSponsorEmail);
     if (paramTrainingName) form.setTrainingName(paramTrainingName);
-  }, [searchParams]);
+    if (paramClientAddress) form.setClientAddress(paramClientAddress);
+    if (paramEstimatedValue && parseFloat(paramEstimatedValue) > 0) {
+      form.setSoldPriceHt(paramEstimatedValue);
+    }
+
+    if (!fromCrmCardId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [{ data: crmCard }, { data: quote }] = await Promise.all([
+          supabase
+            .from("crm_cards")
+            .select("company, address, postal_code, city, country, first_name, last_name, email, phone, estimated_value")
+            .eq("id", fromCrmCardId)
+            .maybeSingle(),
+          supabase
+            .from("quotes")
+            .select("total_ht, client_address, client_zip, client_city, line_items")
+            .eq("crm_card_id", fromCrmCardId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+        if (cancelled) return;
+
+        // Client address: prefer CRM structured fields, fall back to quote
+        const addrParts = [
+          crmCard?.address,
+          [crmCard?.postal_code, crmCard?.city].filter(Boolean).join(" ").trim() || null,
+          crmCard?.country && crmCard.country !== "France" ? crmCard.country : null,
+        ].filter(Boolean);
+        const crmAddr = addrParts.join(", ");
+        const quoteAddr = [quote?.client_address, [quote?.client_zip, quote?.client_city].filter(Boolean).join(" ").trim() || null]
+          .filter(Boolean)
+          .join(", ");
+        const bestAddr = crmAddr || quoteAddr;
+        if (bestAddr && !paramClientAddress) form.setClientAddress(bestAddr);
+
+        // Sold price: prefer quote total, then CRM estimated_value
+        if (!paramEstimatedValue) {
+          const price = (quote?.total_ht && quote.total_ht > 0)
+            ? quote.total_ht
+            : (crmCard?.estimated_value && crmCard.estimated_value > 0 ? crmCard.estimated_value : null);
+          if (price) form.setSoldPriceHt(String(price));
+        }
+
+        // Max participants from quote line items (first item quantity)
+        const lineItems = (quote?.line_items ?? []) as Array<{ quantity?: number; participant_name?: string[] }>;
+        const firstQty = lineItems[0]?.quantity;
+        const firstParts = lineItems[0]?.participant_name?.length;
+        const nb = typeof firstQty === "number" && firstQty > 0
+          ? firstQty
+          : (typeof firstParts === "number" && firstParts > 0 ? firstParts : null);
+        if (nb) form.setMaxParticipants(String(nb));
+
+        // Try to match a catalog formation by name and apply its fields
+        const nameForMatch = paramTrainingName || crmCard?.company || "";
+        if (nameForMatch) {
+          const { data: match } = await supabase
+            .from("formation_configs")
+            .select("id, formation_name, duree_heures, prix, programme_url, objectives, prerequisites, supports_url, elearning_access_email_content, supertilt_link, woocommerce_product_id, description, is_active, format_formation")
+            .ilike("formation_name", nameForMatch)
+            .eq("is_active", true)
+            .limit(1)
+            .maybeSingle();
+          if (!cancelled && match) {
+            form.setTrainingName(match.formation_name);
+            form.applyCatalogFields(match as unknown as FormationConfig);
+            const { data: formulas } = await supabase
+              .from("formation_formulas")
+              .select("*")
+              .eq("formation_config_id", match.id)
+              .order("display_order");
+            if (!cancelled) {
+              form.setCatalogFormulas((formulas as FormationFormula[]) || []);
+              form.setHasFormulas((formulas?.length ?? 0) > 0);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Prefill from CRM failed:", err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, fromCrmCardId]);
 
   // Generate schedules when selected dates change
   useEffect(() => {
