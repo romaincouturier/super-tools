@@ -2327,6 +2327,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           decision_note: string | null
+          decision_reason: string | null
           donnees_performance: Json
           embedding: string | null
           format_recommande: string | null
@@ -2366,6 +2367,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           decision_note?: string | null
+          decision_reason?: string | null
           donnees_performance?: Json
           embedding?: string | null
           format_recommande?: string | null
@@ -2405,6 +2407,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           decision_note?: string | null
+          decision_reason?: string | null
           donnees_performance?: Json
           embedding?: string | null
           format_recommande?: string | null
@@ -11314,6 +11317,14 @@ export type Database = {
       decrypt_token: {
         Args: { encrypted_token: string; encryption_key: string }
         Returns: string
+      }
+      editorial_cron_failures_last_week: {
+        Args: never
+        Returns: {
+          failed_runs: number
+          jobname: string
+          last_error: string
+        }[]
       }
       encrypt_token: {
         Args: { encryption_key: string; plain_token: string }
