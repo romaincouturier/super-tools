@@ -2343,9 +2343,11 @@ export type Database = {
           score_priorite: number | null
           score_seo: number | null
           sensible: boolean
+          signal_count: number
           signal_text: string
           source_type: string
           status: string
+          theme_id: string | null
           titre_provisoire: string
           training_id: string | null
           transcript_id: string | null
@@ -2380,9 +2382,11 @@ export type Database = {
           score_priorite?: number | null
           score_seo?: number | null
           sensible?: boolean
+          signal_count?: number
           signal_text?: string
           source_type: string
           status?: string
+          theme_id?: string | null
           titre_provisoire?: string
           training_id?: string | null
           transcript_id?: string | null
@@ -2417,9 +2421,11 @@ export type Database = {
           score_priorite?: number | null
           score_seo?: number | null
           sensible?: boolean
+          signal_count?: number
           signal_text?: string
           source_type?: string
           status?: string
+          theme_id?: string | null
           titre_provisoire?: string
           training_id?: string | null
           transcript_id?: string | null
@@ -2436,6 +2442,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "editorial_recommendations_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_themes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "editorial_recommendations_training_id_fkey"
             columns: ["training_id"]
             isOneToOne: false
@@ -2447,6 +2460,88 @@ export type Database = {
             columns: ["transcript_id"]
             isOneToOne: false
             referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editorial_theme_sources: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          signal_text: string
+          source_id: string
+          source_type: string
+          theme_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          signal_text?: string
+          source_id: string
+          source_type: string
+          theme_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          signal_text?: string
+          source_id?: string
+          source_type?: string
+          theme_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editorial_theme_sources_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      editorial_themes: {
+        Row: {
+          created_at: string
+          embedding: string | null
+          id: string
+          label: string
+          last_reinforced_at: string
+          recommendation_id: string | null
+          signal_count: number
+          univers: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          label?: string
+          last_reinforced_at?: string
+          recommendation_id?: string | null
+          signal_count?: number
+          univers?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string | null
+          id?: string
+          label?: string
+          last_reinforced_at?: string
+          recommendation_id?: string | null
+          signal_count?: number
+          univers?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "editorial_themes_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "editorial_recommendations"
             referencedColumns: ["id"]
           },
         ]
@@ -11516,6 +11611,16 @@ export type Database = {
           titre_provisoire: string
         }[]
       }
+      match_editorial_themes: {
+        Args: { match_count?: number; query_embedding: string }
+        Returns: {
+          id: string
+          label: string
+          signal_count: number
+          similarity: number
+          univers: string
+        }[]
+      }
       match_ideas: {
         Args: {
           exclude_id?: string
@@ -11545,7 +11650,9 @@ export type Database = {
         Args: { match_count?: number; query_embedding: string }
         Returns: {
           id: string
+          internal_note: string
           modified_at: string
+          popularity: string
           published_at: string
           similarity: number
           title: string
