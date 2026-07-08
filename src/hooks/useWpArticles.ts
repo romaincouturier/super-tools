@@ -17,6 +17,8 @@ export interface WpArticle {
   excerpt?: string | null;
   content?: string | null;
   imported_at?: string | null;
+  popularity?: "forte" | "moyenne" | "faible" | null;
+  internal_note?: string | null;
 }
 
 export function useWpArticle(id: string | null) {
