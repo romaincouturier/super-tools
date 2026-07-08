@@ -84,6 +84,7 @@ export default function WpArticlesTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>Titre</TableHead>
+                <TableHead>Popularité</TableHead>
                 <TableHead>Publication</TableHead>
                 <TableHead>Auteur</TableHead>
                 <TableHead>Catégorie</TableHead>
@@ -107,6 +108,16 @@ export default function WpArticlesTab() {
                         ))}
                       </span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    {a.popularity ? (
+                      <Badge
+                        variant={a.popularity === "forte" ? "default" : a.popularity === "moyenne" ? "secondary" : "outline"}
+                        className="capitalize"
+                      >
+                        {a.popularity}
+                      </Badge>
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {a.published_at ? new Date(a.published_at).toLocaleDateString("fr-FR") : "—"}

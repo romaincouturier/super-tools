@@ -11133,7 +11133,9 @@ export type Database = {
           excerpt: string | null
           id: string
           imported_at: string
+          internal_note: string | null
           modified_at: string | null
+          popularity: string | null
           published_at: string | null
           status: string
           tags: string[]
@@ -11152,7 +11154,9 @@ export type Database = {
           excerpt?: string | null
           id?: string
           imported_at?: string
+          internal_note?: string | null
           modified_at?: string | null
+          popularity?: string | null
           published_at?: string | null
           status?: string
           tags?: string[]
@@ -11171,7 +11175,9 @@ export type Database = {
           excerpt?: string | null
           id?: string
           imported_at?: string
+          internal_note?: string | null
           modified_at?: string | null
+          popularity?: string | null
           published_at?: string | null
           status?: string
           tags?: string[]

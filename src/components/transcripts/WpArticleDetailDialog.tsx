@@ -52,6 +52,19 @@ export default function WpArticleDetailDialog({ articleId, onOpenChange }: Props
                     <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" />{a.views.toLocaleString("fr-FR")}</span>
                   ) : null}
                 </Field>
+                <Field label="Popularité">
+                  {a.popularity ? (
+                    <Badge
+                      variant={a.popularity === "forte" ? "default" : a.popularity === "moyenne" ? "secondary" : "outline"}
+                      className="capitalize"
+                    >
+                      {a.popularity}
+                    </Badge>
+                  ) : null}
+                </Field>
+                <Field label="Note interne">
+                  {a.internal_note ? <span className="text-xs italic">{a.internal_note}</span> : null}
+                </Field>
                 <Field label="Tags">
                   {a.tags?.length ? (
                     <span className="flex gap-1 flex-wrap">

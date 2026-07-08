@@ -17,6 +17,8 @@ export interface WpArticle {
   excerpt?: string | null;
   content?: string | null;
   imported_at?: string | null;
+  popularity?: "forte" | "moyenne" | "faible" | null;
+  internal_note?: string | null;
 }
 
 export function useWpArticle(id: string | null) {
@@ -90,7 +92,7 @@ export function useWpArticles() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("wp_articles")
-        .select("id, wp_id, url, title, published_at, author, category, tags, views, status")
+        .select("id, wp_id, url, title, published_at, author, category, tags, views, status, popularity, internal_note")
         .order("published_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
       return (data || []) as WpArticle[];
