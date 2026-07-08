@@ -1,16 +1,18 @@
 import { useState } from "react";
 import {
   Sparkles, MailQuestion, Check, X, ExternalLink, ShieldAlert,
-  Mic, MessageSquareText, RefreshCw,
+  Mic, MessageSquareText, RefreshCw, Layers, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
-  useEditorialRecommendations, useRunEditorialEngine, useDecideRecommendation,
+  useEditorialRecommendations, useRunEditorialEngine, useRunEditorialBackfill,
+  useEditorialFunnel, useDecideRecommendation,
   type EditorialRecommendation,
 } from "@/hooks/useEditorialRecommendations";
 
@@ -41,6 +43,16 @@ const STATUS_LABELS: Record<string, string> = {
   accepted: "Acceptée",
   rejected: "Refusée",
   discuss: "En discussion",
+};
+
+const UNIVERS_LABELS: Record<string, string> = {
+  facilitation_graphique: "Facilitation graphique",
+  facilitation_intelligence_collective: "Facilitation / intelligence collective",
+  agilite_produit_organisation: "Agilité / produit / organisation",
+  ia: "IA",
+  formation_pedagogie: "Formation / pédagogie",
+  gestion_temps_priorites: "Gestion du temps / priorités",
+  autre: "Autre",
 };
 
 const CIBLE_LABELS: Record<string, string> = {
@@ -105,6 +117,11 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
                 {rec.source_type === "transcript" ? <Mic className="h-3 w-3" /> : <MessageSquareText className="h-3 w-3" />}
                 {rec.source_type === "transcript" ? "Transcript" : "Feedbacks formation"}
               </Badge>
+              {rec.signal_count > 1 && (
+                <Badge variant="secondary" className="gap-1">
+                  <Layers className="h-3 w-3" />{rec.signal_count} signaux regroupés
+                </Badge>
+              )}
               {rec.sensible && (
                 <Badge variant="outline" className="gap-1 bg-amber-100 text-amber-800 border-amber-200">
                   <ShieldAlert className="h-3 w-3" />Sensible — validation humaine
@@ -127,7 +144,7 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
 
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
           <span><span className="font-medium text-foreground">Cibles :</span> {rec.cibles.map((c) => CIBLE_LABELS[c] ?? c).join(", ") || "—"}</span>
-          <span><span className="font-medium text-foreground">Univers :</span> {rec.univers ?? "—"}</span>
+          <span><span className="font-medium text-foreground">Univers :</span> {rec.univers ? (UNIVERS_LABELS[rec.univers] ?? rec.univers) : "—"}</span>
           <span><span className="font-medium text-foreground">Format :</span> {rec.format_recommande?.replace(/_/g, " ") ?? "—"}</span>
           <span><span className="font-medium text-foreground">Couverture :</span> {rec.niveau_couverture?.replace(/_/g, " ") ?? "—"}</span>
           <span><span className="font-medium text-foreground">Demande :</span> {rec.niveau_demande ?? "—"}</span>
@@ -149,6 +166,14 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
                     <span>{p.title}</span>
                   )}
                   {p.views != null && <span>· {p.views} vues</span>}
+                  {p.popularity && (
+                    <Badge
+                      variant={p.popularity === "forte" ? "default" : p.popularity === "moyenne" ? "secondary" : "outline"}
+                      className="capitalize text-[10px] px-1.5 py-0"
+                    >
+                      {p.popularity}
+                    </Badge>
+                  )}
                   {p.gsc && <span>· {p.gsc.clicks} clics SEO, pos. {p.gsc.position.toFixed(1)}</span>}
                 </li>
               ))}
@@ -191,18 +216,74 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
   );
 }
 
+function FunnelBanner() {
+  const { data: funnel, isLoading } = useEditorialFunnel();
+  const runBackfill = useRunEditorialBackfill();
+
+  const launchBackfill = async () => {
+    try {
+      const res = await runBackfill.mutateAsync({ limit: 20 });
+      toast.success(
+        `${res.processed} transcript(s) qualifié(s)` +
+        (res.failed ? `, ${res.failed} en erreur` : "") +
+        (res.remaining > 0 ? ` — ${res.remaining} restant(s) (le cron continue toutes les 10 min).` : " — historique à jour."),
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de la qualification");
+    }
+  };
+
+  if (isLoading || !funnel) return null;
+
+  const steps = [
+    { label: "à qualifier", value: funnel.transcriptsAQualifier },
+    { label: "exploitables", value: funnel.transcriptsExploitables },
+    { label: "signaux à regrouper", value: funnel.signauxNonClusterises },
+    { label: "thèmes à analyser", value: funnel.themesSansReco },
+    { label: "recos à arbitrer", value: funnel.recosEnAttente },
+  ];
+
+  return (
+    <Card>
+      <CardContent className="py-3 px-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-1 text-sm">
+          {steps.map((s, i) => (
+            <span key={s.label} className="flex items-center gap-1">
+              <span className={`font-bold ${s.value > 0 ? "text-primary" : "text-muted-foreground"}`}>{s.value}</span>
+              <span className="text-xs text-muted-foreground">{s.label}</span>
+              {i < steps.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 mx-0.5" />}
+            </span>
+          ))}
+        </div>
+        {funnel.transcriptsAQualifier > 0 && (
+          <Button variant="outline" size="sm" onClick={launchBackfill} disabled={runBackfill.isPending} className="gap-1.5">
+            {runBackfill.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Qualifier l'historique (20 par passage)
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 const EditorialRecommendationsTab = () => {
   const [statusFilter, setStatusFilter] = useState<string>("pending");
-  const { data: recommendations, isLoading, error } = useEditorialRecommendations(statusFilter);
+  const [universFilter, setUniversFilter] = useState<string>("all");
+  const { data: recommendations, isLoading, error } = useEditorialRecommendations(statusFilter, universFilter);
   const runEngine = useRunEditorialEngine();
 
   const launch = async () => {
     try {
       const res = await runEngine.mutateAsync({ limit: 10 });
       const created = res.results.filter((r) => r.status === "créée").length;
+      if (res.embeddings_unavailable) {
+        toast.error("Embeddings indisponibles : vérifiez la clé OpenAI dans Paramètres → Intégrations.");
+        return;
+      }
       toast.success(
-        `Analyse terminée : ${created} recommandation(s) créée(s) sur ${res.processed} signal(aux) analysé(s)` +
-        (res.remaining > 0 ? ` — ${res.remaining} restant(s), relancez pour continuer.` : "."),
+        `Analyse terminée : ${res.signals_clustered} signal(aux) regroupé(s) en thèmes, ` +
+        `${created} recommandation(s) créée(s)` +
+        (res.remaining > 0 ? ` — ${res.remaining} en attente, relancez pour continuer.` : "."),
       );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur lors de l'analyse");
@@ -211,20 +292,35 @@ const EditorialRecommendationsTab = () => {
 
   return (
     <div className="space-y-4">
+      <FunnelBanner />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <ToggleGroup
-          type="single"
-          value={statusFilter}
-          onValueChange={(v) => { if (v) setStatusFilter(v); }}
-          variant="outline"
-          size="sm"
-        >
-          <ToggleGroupItem value="pending">À arbitrer</ToggleGroupItem>
-          <ToggleGroupItem value="accepted">Acceptées</ToggleGroupItem>
-          <ToggleGroupItem value="discuss">En discussion</ToggleGroupItem>
-          <ToggleGroupItem value="rejected">Refusées</ToggleGroupItem>
-          <ToggleGroupItem value="all">Toutes</ToggleGroupItem>
-        </ToggleGroup>
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            type="single"
+            value={statusFilter}
+            onValueChange={(v) => { if (v) setStatusFilter(v); }}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="pending">À arbitrer</ToggleGroupItem>
+            <ToggleGroupItem value="accepted">Acceptées</ToggleGroupItem>
+            <ToggleGroupItem value="discuss">En discussion</ToggleGroupItem>
+            <ToggleGroupItem value="rejected">Refusées</ToggleGroupItem>
+            <ToggleGroupItem value="all">Toutes</ToggleGroupItem>
+          </ToggleGroup>
+          <Select value={universFilter} onValueChange={setUniversFilter}>
+            <SelectTrigger className="h-8 w-[220px] text-xs">
+              <SelectValue placeholder="Toutes les expertises" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les expertises</SelectItem>
+              {Object.entries(UNIVERS_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button onClick={launch} disabled={runEngine.isPending} className="gap-1.5">
           {runEngine.isPending
             ? <RefreshCw className="h-4 w-4 animate-spin" />
@@ -234,9 +330,11 @@ const EditorialRecommendationsTab = () => {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Le moteur croise les transcripts exploitables et les feedbacks de formation avec les articles publiés,
-        les statistiques (Search Console, site, newsletter), les OKR et les sessions programmées.
-        L'IA recommande, la décision finale reste humaine. Une analyse automatique tourne chaque lundi matin.
+        Le moteur regroupe les signaux proches (transcripts exploitables, feedbacks de formation) en thèmes,
+        puis produit une recommandation par thème en les croisant avec les articles publiés, les statistiques
+        (Search Console, site, newsletter), les OKR et les sessions programmées. La sélection alterne entre les
+        expertises pour couvrir tous les univers. L'IA recommande, la décision finale reste humaine.
+        Une analyse automatique tourne chaque lundi matin.
       </p>
 
       {isLoading ? (

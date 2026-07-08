@@ -20,6 +20,8 @@ export interface EditorialRecommendation {
     similarity?: number;
     published_at?: string;
     views?: number | null;
+    popularity?: "forte" | "moyenne" | "faible" | null;
+    internal_note?: string | null;
     gsc?: { clicks: number; impressions: number; ctr: number; position: number } | null;
   }>;
   niveau_couverture: string | null;
@@ -39,21 +41,43 @@ export interface EditorialRecommendation {
   status: "pending" | "accepted" | "rejected" | "discuss";
   card_id: string | null;
   decision_note: string | null;
+  theme_id: string | null;
+  signal_count: number;
   created_at: string;
 }
 
 export interface EngineRunResult {
   ok: boolean;
-  candidates_found: number;
+  signals_found: number;
+  signals_clustered: number;
+  themes_created: number;
+  themes_pending: number;
   processed: number;
   remaining: number;
+  embeddings_unavailable?: boolean;
   sources_disponibles: string[];
   results: Array<{ label: string; status: string; id?: string }>;
 }
 
-export function useEditorialRecommendations(status?: string) {
+export interface BackfillRunResult {
+  ok: boolean;
+  processed: number;
+  failed: number;
+  remaining: number;
+  rate_limited?: boolean;
+}
+
+export interface EditorialFunnel {
+  transcriptsAQualifier: number;
+  transcriptsExploitables: number;
+  signauxNonClusterises: number;
+  themesSansReco: number;
+  recosEnAttente: number;
+}
+
+export function useEditorialRecommendations(status?: string, univers?: string) {
   return useQuery({
-    queryKey: ["editorial-recommendations", status ?? "all"],
+    queryKey: ["editorial-recommendations", status ?? "all", univers ?? "all"],
     queryFn: async (): Promise<EditorialRecommendation[]> => {
       let query = (supabase as any)
         .from("editorial_recommendations")
@@ -61,6 +85,7 @@ export function useEditorialRecommendations(status?: string) {
         .order("score_priorite", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (status && status !== "all") query = query.eq("status", status);
+      if (univers && univers !== "all") query = query.eq("univers", univers);
       const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
@@ -68,10 +93,37 @@ export function useEditorialRecommendations(status?: string) {
   });
 }
 
-async function invokeEngine(body: { transcript_id?: string; limit?: number }): Promise<EngineRunResult> {
+export function useEditorialFunnel() {
+  return useQuery({
+    queryKey: ["editorial-funnel"],
+    queryFn: async (): Promise<EditorialFunnel> => {
+      const [aQualifier, exploitables, clusterises, themesSansReco, recosPending] = await Promise.all([
+        (supabase as any).from("transcripts").select("id", { count: "exact", head: true })
+          .eq("status", "ready").not("raw_text", "is", null).is("editorial_qualification", null),
+        (supabase as any).from("transcripts").select("id", { count: "exact", head: true })
+          .eq("editorial_qualification", "pro_exploitable"),
+        (supabase as any).from("editorial_theme_sources").select("id", { count: "exact", head: true })
+          .eq("source_type", "transcript"),
+        (supabase as any).from("editorial_themes").select("id", { count: "exact", head: true })
+          .is("recommendation_id", null),
+        (supabase as any).from("editorial_recommendations").select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
+      ]);
+      return {
+        transcriptsAQualifier: aQualifier.count ?? 0,
+        transcriptsExploitables: exploitables.count ?? 0,
+        signauxNonClusterises: Math.max(0, (exploitables.count ?? 0) - (clusterises.count ?? 0)),
+        themesSansReco: themesSansReco.count ?? 0,
+        recosEnAttente: recosPending.count ?? 0,
+      };
+    },
+  });
+}
+
+async function invokeEditorialFunction<T>(fn: string, body: Record<string, unknown>): Promise<T> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const { data: session } = await supabase.auth.getSession();
-  const response = await fetch(`${supabaseUrl}/functions/v1/editorial-engine`, {
+  const response = await fetch(`${supabaseUrl}/functions/v1/${fn}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -90,9 +142,23 @@ async function invokeEngine(body: { transcript_id?: string; limit?: number }): P
 export function useRunEditorialEngine() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: invokeEngine,
+    mutationFn: (body: { transcript_id?: string; limit?: number }) =>
+      invokeEditorialFunction<EngineRunResult>("editorial-engine", body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["editorial-recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["editorial-funnel"] });
+    },
+  });
+}
+
+export function useRunEditorialBackfill() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { limit?: number }) =>
+      invokeEditorialFunction<BackfillRunResult>("editorial-backfill", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["editorial-funnel"] });
+      queryClient.invalidateQueries({ queryKey: ["transcripts"] });
     },
   });
 }
