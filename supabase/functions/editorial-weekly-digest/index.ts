@@ -1,10 +1,10 @@
 /**
  * editorial-weekly-digest
  *
- * Digest hebdomadaire du moteur éditorial, posté sur Slack (canal
- * `slack_ideas_channel`, repli `slack_crm_channel`) : recommandations créées
- * et arbitrées sur 7 jours, état de l'entonnoir, alerte si le pipeline est
- * bloqué (transcripts à qualifier qui stagnent ou échecs de cron).
+ * Digest hebdomadaire du moteur éditorial, posté sur Slack (canal "article"
+ * par défaut, surchargeable via le setting `slack_editorial_channel`) :
+ * recommandations créées et arbitrées sur 7 jours, état de l'entonnoir,
+ * alerte si le pipeline est bloqué (qualification qui stagne, échecs de cron).
  *
  * Auth : x-cron-secret (EDITORIAL_CRON_SECRET), x-internal-secret ou JWT.
  * Cron : lundi 07:00, à planifier DIRECTEMENT en base (règle [036]).
@@ -102,19 +102,17 @@ Deno.serve(async (req) => {
       alerts,
     };
 
-    // Résolution du canal Slack (même mécanique que ideas-weekly-digest).
-    const { data: chanRows } = await (admin as any)
+    // Canal Slack : "article" par défaut, surchargeable via slack_editorial_channel.
+    const { data: chanRow } = await (admin as any)
       .from("app_settings")
-      .select("setting_key, setting_value")
-      .in("setting_key", ["slack_ideas_channel", "slack_crm_channel"]);
-    const channel = (chanRows ?? [])
-      .sort((a: any) => (a.setting_key === "slack_ideas_channel" ? -1 : 1))
-      .map((r: any) => r.setting_value)
-      .find((v: string | null) => v && v.trim());
+      .select("setting_value")
+      .eq("setting_key", "slack_editorial_channel")
+      .maybeSingle();
+    const channel = chanRow?.setting_value?.trim() || "article";
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!channel || !apiKey) {
-      return createJsonResponse({ posted: false, reason: "no_channel_or_key", digest });
+    if (!apiKey) {
+      return createJsonResponse({ posted: false, reason: "no_api_key", digest });
     }
 
     const lines = [
