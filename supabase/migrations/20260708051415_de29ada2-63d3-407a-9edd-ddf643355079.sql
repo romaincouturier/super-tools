@@ -1,0 +1,26 @@
+
+UPDATE wp_articles SET views = 1780 WHERE title ILIKE '%veille%IA simple%';
+UPDATE wp_articles SET views = 1711 WHERE title ILIKE '%6 pictos essentiels%bibliothèque%';
+UPDATE wp_articles SET views = 1674 WHERE title ILIKE '%communication non-violente%désamorcer%';
+UPDATE wp_articles SET views = 1621 WHERE title ILIKE '%Sketchnoter sur tablette%';
+UPDATE wp_articles SET views = 1526 WHERE title ILIKE '%4 jeux de société%travail%';
+UPDATE wp_articles SET views = 1514 WHERE title ILIKE '%10 étapes pour apprendre à sketchnoter%';
+UPDATE wp_articles SET views = 1417 WHERE title ILIKE '%Facilitation graphique et IA%valent vraiment%';
+UPDATE wp_articles SET views = 1225 WHERE title ILIKE '%jeux pour apprendre%Agilité%';
+UPDATE wp_articles SET views = 1152 WHERE title ILIKE '%pictos à télécharger%formation%';
+UPDATE wp_articles SET views = 1099 WHERE title ILIKE '%livres incontournables%facilitation graphique%';
+UPDATE wp_articles SET views = 1031 WHERE title ILIKE '%6 raisons de détester%IA%';
+UPDATE wp_articles SET views = 1019 WHERE title ILIKE '%Matrice d%Eisenhower%';
+UPDATE wp_articles SET views = 984 WHERE title ILIKE '%Icebreaker Bingo%';
+UPDATE wp_articles SET views = 982 WHERE title ILIKE '%Rédiger ses User Stories%';
+UPDATE wp_articles SET views = 971 WHERE title ILIKE '%20 usages de la facilitation graphique%';
+UPDATE wp_articles SET views = 859 WHERE title ILIKE '%illustrer un concept en pictogramme%';
+UPDATE wp_articles SET views = 854 WHERE title ILIKE '%Jean-Michel Bisous%';
+UPDATE wp_articles SET views = 850 WHERE title ILIKE '%Pensée visuelle%manières%couleur%';
+UPDATE wp_articles SET views = 723 WHERE title ILIKE '%gourmandise en couleurs%';
+UPDATE wp_articles SET views = 715 WHERE title ILIKE '%ÉCHO%émerger%besoins%';
+UPDATE wp_articles SET views = 703 WHERE title ILIKE '%72 ressources spéciales icebreakers%';
+UPDATE wp_articles SET views = 702 WHERE title ILIKE '%rôles clés%équipe Agile%Product Owner%';
+UPDATE wp_articles SET views = 702 WHERE title ILIKE '%5 dysfonctionnements%équipe%';
+UPDATE wp_articles SET views = 694 WHERE title ILIKE '%LEGO%SERIOUS PLAY%';
+UPDATE wp_articles SET views = 681 WHERE title ILIKE '%piétiner ses valeurs%burn-out%';
