@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveContentType, sanitizeFileName } from "@/lib/file-utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import type { Card, ContentCardType } from "@/components/content/KanbanBoard";
 

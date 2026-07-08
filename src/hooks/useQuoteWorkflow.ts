@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useCreateQuote, useUpdateQuote, useQuote } from "@/hooks/useQuotes";
 import { fetchQuotesByCard } from "@/services/quotes";
 import { getErrorMessage } from "@/lib/error-utils";

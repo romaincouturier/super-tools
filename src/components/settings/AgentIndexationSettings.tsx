@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert, Activity, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 

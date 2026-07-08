@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   handleCorsPreflightIfNeeded,
   createErrorResponse,
@@ -167,9 +166,8 @@ IMPORTANT : Utilise la fonction suggest_quote_lines pour retourner les lignes.`;
       sale_type_suggestion: parsed.sale_type_suggestion || null,
     });
   } catch (error: unknown) {
-    await reportEdgeError(error, { fn: "generate-quote-lines" });
     console.error("Error in generate-quote-lines:", error);
     const msg = error instanceof Error ? error.message : "Erreur inconnue";
-    return createErrorResponse(msg);
+    return createErrorResponse(msg, 500, { cause: error, fn: "generate-quote-lines" });
   }
 });

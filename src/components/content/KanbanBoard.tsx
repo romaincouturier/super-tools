@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useContentBoardUsers } from "@/hooks/useContentBoard";
 import { computeMeanCycleTime, cardAgeDays } from "@/lib/kanban-metrics";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { notifyContentUser } from "@/services/contentNotifications";
 import { Plus, Settings2, MoreHorizontal, Pencil, Trash2, BarChart3, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";

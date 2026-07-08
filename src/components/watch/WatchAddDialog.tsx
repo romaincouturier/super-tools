@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
 import { resolveContentType } from "@/lib/file-utils";

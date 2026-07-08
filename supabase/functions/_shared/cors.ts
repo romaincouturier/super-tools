@@ -33,16 +33,22 @@ export function handleCorsPreflightIfNeeded(req: Request): Response | null {
 /**
  * Create a JSON error response with CORS headers.
  *
- * Règle [037] : les statuts 5xx et les erreurs de quota IA (402, 429) sont
- * reportés à Sentry sans bloquer la réponse (no-op si SENTRY_DSN absent).
+ * Règle [037] : point de sortie unique des réponses d'erreur. Les statuts 5xx
+ * et les erreurs de quota IA (402, 429) sont reportés à Sentry sans bloquer la
+ * réponse (no-op si SENTRY_DSN absent). Dans un catch, passer l'erreur
+ * d'origine via `opts.cause` (stack trace) et le nom de la fonction via
+ * `opts.fn` — et ne PAS appeler reportEdgeError en plus (double événement).
  */
 export function createErrorResponse(
   message: string,
-  status = 500
+  status = 500,
+  opts?: { cause?: unknown; fn?: string }
 ): Response {
   if (status >= 500 || status === 402 || status === 429) {
     const report = import("./sentry.ts")
-      .then(({ reportEdgeError }) => reportEdgeError(new Error(message), { status }))
+      .then(({ reportEdgeError }) =>
+        reportEdgeError(opts?.cause ?? new Error(message), { status, fn: opts?.fn, message })
+      )
       .catch(() => {});
     const edgeRuntime = (globalThis as typeof globalThis & {
       EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };

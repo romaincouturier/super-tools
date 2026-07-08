@@ -12,7 +12,7 @@ import { VoiceTextarea } from "@/components/ui/voice-textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   SUPPORT_COLUMNS,
   TICKET_TYPE_CONFIG,

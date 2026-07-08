@@ -6,7 +6,6 @@ import {
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { embedText } from "../_shared/embeddings.ts";
 import { aiChat } from "../_shared/ai.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Enrichissement d'une idée en tâche de fond (lot 3) :
@@ -103,7 +102,6 @@ Deno.serve(async (req) => {
     return createJsonResponse({ enriched: 1 });
   } catch (err) {
     console.error("[enrich-idea] error", err);
-    await reportEdgeError(err, { fn: "enrich-idea" });
-    return createErrorResponse(err instanceof Error ? err.message : "Erreur inconnue", 500);
+    return createErrorResponse(err instanceof Error ? err.message : "Erreur inconnue", 500, { cause: err, fn: "enrich-idea" });
   }
 });

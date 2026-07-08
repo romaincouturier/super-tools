@@ -7,7 +7,11 @@
  * - `flush` est inclus : en environnement serverless, l'isolate peut être figé
  *   dès la réponse renvoyée — il faut vider la file AVANT de rendre la réponse.
  *
- * Usage (dans un catch) :
+ * Règle [037] : si le catch rend une réponse d'erreur JSON, passer par
+ * `createErrorResponse(msg, status, { cause, fn })` qui reporte déjà — ne pas
+ * combiner les deux (double événement). reportEdgeError direct est réservé
+ * aux chemins sans Response standard (crons, webhooks à format imposé,
+ * erreurs partielles d'un batch) :
  *   await reportEdgeError(err, { fn: "add-training-participant" });
  */
 

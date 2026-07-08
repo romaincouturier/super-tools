@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Users, Flag, Shield, BarChart3, CreditCard, Save, Zap, Rocket, Crown } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import PageLoading from "@/components/PageLoading";
 
 interface Organization {

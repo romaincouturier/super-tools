@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { LayoutTemplate, Plus, Trash2, Save } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   useSupportTemplates, useDeleteTemplate, useSaveAsTemplate,
 } from "@/hooks/useTrainingSupport";

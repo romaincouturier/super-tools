@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Image, Video, Loader2, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { resolveContentType, getFileType, formatFileSize } from "@/lib/file-utils";
 import { useAddSupportImport, uploadSupportFile, type SupportImport } from "@/hooks/useTrainingSupport";
 

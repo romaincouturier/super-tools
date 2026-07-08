@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail } from "@/lib/demoMask";
 import { useUpdateQuote, useQuoteSettings } from "@/hooks/useQuotes";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Quote } from "@/types/quotes";
 
 interface Props {

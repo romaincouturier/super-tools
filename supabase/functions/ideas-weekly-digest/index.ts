@@ -4,7 +4,6 @@ import {
   createJsonResponse,
 } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Digest hebdo de la boîte à idées (lot 4).
@@ -87,7 +86,6 @@ Deno.serve(async (req) => {
     return createJsonResponse({ posted: true, digest });
   } catch (err) {
     console.error("[ideas-weekly-digest] error", err);
-    await reportEdgeError(err, { fn: "ideas-weekly-digest" });
-    return createErrorResponse(err instanceof Error ? err.message : "Erreur inconnue", 500);
+    return createErrorResponse(err instanceof Error ? err.message : "Erreur inconnue", 500, { cause: err, fn: "ideas-weekly-digest" });
   }
 });

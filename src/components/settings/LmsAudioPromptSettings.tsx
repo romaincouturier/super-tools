@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Save, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const SETTING_KEY = "lms_audio_reformulation_prompt";
 

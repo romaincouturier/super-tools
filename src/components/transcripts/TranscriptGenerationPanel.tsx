@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, RefreshCw, Copy, Send, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   useGenerateTranscriptContent,
   useTranscriptGenerations,

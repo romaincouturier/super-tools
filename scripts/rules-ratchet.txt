@@ -5,3 +5,7 @@
 # 020 : supabase.functions.invoke() hors services/lib/useEdgeFunction (cible : quelques cas justifiés)
 017=149
 020=120
+# 037a : catch {} sans binding dans src (erreur avalée, invisible pour Sentry)
+# 037b : réponses d'erreur JSON construites à la main dans les edge functions (utiliser createErrorResponse)
+037a=245
+037b=406

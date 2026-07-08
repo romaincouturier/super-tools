@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { Sparkles, FileText, Linkedin, Instagram, Copy, Check, RefreshCw } from "lucide-react";

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { WatchItem } from "@/hooks/useWatch";
 import { useUpdateWatchItem, useWatchTags } from "@/hooks/useWatch";
 import WatchRichEditor from "./WatchRichEditor";

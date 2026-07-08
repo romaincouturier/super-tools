@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import * as Sentry from "@sentry/react";
 import { AppErrorFallback } from "@/components/AppErrorFallback";
 import { useSentryInit } from "@/hooks/useSentryInit";
+import { reportHandledError } from "@/lib/sentry";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -131,12 +132,12 @@ const queryClient = new QueryClient({
   // elle est ensuite absorbée par un toast local.
   queryCache: new QueryCache({
     onError: (error, query) => {
-      Sentry.captureException(error, { extra: { queryKey: query.queryKey } });
+      reportHandledError(error, { queryKey: query.queryKey });
     },
   }),
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
-      Sentry.captureException(error, { extra: { mutationKey: mutation.options.mutationKey } });
+      reportHandledError(error, { mutationKey: mutation.options.mutationKey });
     },
   }),
   defaultOptions: {
