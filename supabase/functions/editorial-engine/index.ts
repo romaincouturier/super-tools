@@ -481,6 +481,43 @@ Deno.serve(async (req) => {
         : "Sessions programmées : (aucune)",
     ].join("\n\n");
 
+    // Arbitrages humains récents : le moteur imite les préférences exprimées
+    // (refus avec motifs = anti-patterns, acceptations = patterns à suivre).
+    const REASON_LABELS: Record<string, string> = {
+      trop_generique: "trop générique",
+      deja_couvert: "déjà couvert",
+      mauvaise_cible: "mauvaise cible",
+      sujet_sensible: "sujet sensible",
+      pas_le_moment: "pas le moment",
+      autre: "autre",
+    };
+    const [{ data: rejectedRecos }, { data: acceptedRecos }] = await Promise.all([
+      (admin as any)
+        .from("editorial_recommendations")
+        .select("titre_provisoire, action_recommandee, decision_reason, decision_note")
+        .eq("status", "rejected")
+        .order("decided_at", { ascending: false })
+        .limit(10),
+      (admin as any)
+        .from("editorial_recommendations")
+        .select("titre_provisoire, action_recommandee, decision_note")
+        .eq("status", "accepted")
+        .order("decided_at", { ascending: false })
+        .limit(5),
+    ]);
+    const decisionLines: string[] = [];
+    for (const r of rejectedRecos ?? []) {
+      const reason = [
+        r.decision_reason ? REASON_LABELS[r.decision_reason] ?? r.decision_reason : null,
+        r.decision_note ? String(r.decision_note).slice(0, 150) : null,
+      ].filter(Boolean).join(" — ");
+      decisionLines.push(`- REFUSÉE : "${r.titre_provisoire}" (${r.action_recommandee})${reason ? ` — motif : ${reason}` : ""}`);
+    }
+    for (const r of acceptedRecos ?? []) {
+      decisionLines.push(`- ACCEPTÉE : "${r.titre_provisoire}" (${r.action_recommandee})${r.decision_note ? ` — note : ${String(r.decision_note).slice(0, 150)}` : ""}`);
+    }
+    const decisionsRecentes = decisionLines.length ? decisionLines.join("\n") : "(aucun arbitrage pour le moment)";
+
     const available: string[] = [];
     if (gsc.ok) available.push("search_console");
     if (wp.ok) available.push("wp_statistics");
@@ -600,6 +637,7 @@ Deno.serve(async (req) => {
         idees_existantes: ideesExistantes,
         performance_context: performanceContext,
         business_context: businessContext,
+        decisions_recentes: decisionsRecentes,
       });
 
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

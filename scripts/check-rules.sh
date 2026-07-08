@@ -221,6 +221,12 @@ check "031e" "Migration staff_select_guard existe" \
 check "035" "Les edge functions utilisant supports_url importent _shared/supports-url.ts" \
   "grep -rln 'supports_url' supabase/functions/ --include='index.ts' | xargs -r grep -L 'supports-url.ts' 2>/dev/null"
 
+# [036] Crons pg_cron — pas de vault.decrypted_secrets ni de secret de cron dans
+# les nouvelles migrations versionnées (secret dédié inline posé directement en base).
+# Les migrations legacy (<= 2026-07-08) sont tolérées : crons re-planifiés en base.
+check "036" "Pas de vault.decrypted_secrets / x-cron-secret dans les nouvelles migrations" \
+  "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260708235959 ] 2>/dev/null || continue; grep -vE '^\s*--' \"\$f\" | grep -qE 'vault\.decrypted_secrets|x-cron-secret' && echo \"VIOLATION: \$f\"; done; true"
+
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
 MANUAL_RULES="002|013|022|024|029|032|033"

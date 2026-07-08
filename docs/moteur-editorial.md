@@ -77,6 +77,16 @@ Exemples d'ajustements : ajouter une cible, écrire « en ce moment, priorité a
 - Inventer des chiffres : si Search Console ou Brevo n'ont pas de données, la fiche indique « données indisponibles » et le score s'appuie sur les autres signaux.
 - Transformer du personnel ou du confidentiel en idée publique : ces transcripts sont écartés en amont (score 0 ou marquage sensible).
 
+## La boucle d'amélioration
+
+Chaque arbitrage nourrit le moteur :
+
+- **Refuser** demande un motif (trop générique, déjà couvert, mauvaise cible, sujet sensible, pas le moment, autre) + une précision libre optionnelle. Ces motifs sont agrégés et **réinjectés dans le prompt** : le moteur reçoit les 10 derniers refus (avec motifs) et les 5 dernières acceptations à chaque analyse, et évite de reproposer ce qui a été refusé.
+- Le **panneau Alignement** (visible dès 3 décisions) affiche : taux d'acceptation global, taux pour les scores ≥ 70 vs < 70 (si les deux sont égaux, le scoring ne prédit rien → ajuster le référentiel), motifs de refus les plus fréquents, et acceptation par univers.
+- Un **digest hebdomadaire Slack** (lundi matin, canal idées ou CRM) récapitule : recommandations créées/acceptées/refusées sur la semaine, état de la file, et **alerte si un cron éditorial a échoué** (plus jamais de panne silencieuse).
+
+La boucle mensuelle recommandée : relire les motifs de refus dans le panneau Alignement → traduire chaque pattern récurrent en règle dans le référentiel (Paramètres → Prompts Transcripts → Moteur éditorial).
+
 ## Routine suggérée
 
 - **Lundi, 15 minutes** : parcourir la file « À arbitrer » du haut vers le bas. Accepter ce qui va au kanban, refuser franchement (ça nourrit l'anti-doublon), mettre « à discuter » ce qui demande un avis.
