@@ -118,6 +118,17 @@ const STORAGE_BUCKETS = [
   "signature-proofs",
   "media",
   "devis-pdfs",
+  "admin-archives",
+  "balance-sheets",
+  "book-productions",
+  "ideas",
+  "learner-photos",
+  "lms-content",
+  "meeting-recordings",
+  "participant-files",
+  "support-attachments",
+  "training-supports",
+  "watch",
 ];
 
 // ─── GFS Retention ──────────────────────────────────────────────────────────

@@ -53,4 +53,37 @@ for t in $excluded; do
   echo "$existing" | grep -qx "$t" \
     || echo "VIOLATION: exclusion '$t' ne correspond à aucune table existante — nettoyer $EXCLUSIONS"
 done
+
+# ── Buckets storage ─────────────────────────────────────────────────────────
+# Buckets connus : INSERT/UPDATE storage.buckets dans les migrations (preuve
+# d'existence) + storage.from("...") dans le code (preuve d'usage).
+BUCKET_EXCLUSIONS="scripts/backup-bucket-exclusions.txt"
+
+known_buckets=$(
+  {
+    for f in supabase/migrations/*.sql; do
+      tr '\n' ' ' < "$f" | grep -ioE '(insert into|update) storage\.buckets[^;]*' || true
+    done | grep -oE "'[a-z0-9][a-z0-9-]*'" | tr -d "'"
+    grep -rhoE 'storage[[:space:]]*\.from\("[a-z0-9][a-z0-9-]*"\)' src supabase/functions 2>/dev/null \
+      | grep -oE '"[a-z0-9-]+"' | tr -d '"' || true
+  } | grep '[a-z]' | sort -u
+)
+
+bucket_list=$(sed -n '/const STORAGE_BUCKETS = \[/,/\];/p' "$SCHEDULED_FN" | grep -oE '"[a-z0-9-]+"' | tr -d '"' | sort -u)
+bucket_excluded=$(grep -vE '^[[:space:]]*(#|$)' "$BUCKET_EXCLUSIONS" 2>/dev/null | sort -u || true)
+
+# 4. Tout bucket connu doit être backupé ou exclu explicitement.
+for b in $known_buckets; do
+  echo "$bucket_excluded" | grep -qx "$b" && continue
+  echo "$bucket_list" | grep -qx "$b" \
+    || echo "VIOLATION: bucket '$b' utilisé (migrations ou code) mais absent de STORAGE_BUCKETS ($SCHEDULED_FN) — l'ajouter ou l'exclure dans $BUCKET_EXCLUSIONS"
+done
+
+# 5. Exclusions de buckets mortes ou contradictoires.
+for b in $bucket_excluded; do
+  echo "$bucket_list" | grep -qx "$b" \
+    && echo "VIOLATION: '$b' est dans $BUCKET_EXCLUSIONS mais aussi dans STORAGE_BUCKETS — retirer l'un des deux"
+  echo "$known_buckets" | grep -qx "$b" \
+    || echo "VIOLATION: exclusion '$b' ne correspond à aucun bucket connu — nettoyer $BUCKET_EXCLUSIONS"
+done
 exit 0
