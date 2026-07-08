@@ -79,7 +79,7 @@ export default function WpArticlesTab() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-y-auto max-h-[calc(100vh-280px)]">
           <Table>
             <TableHeader>
               <TableRow>
