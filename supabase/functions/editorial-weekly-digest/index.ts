@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       `File actuelle : *${digest.pending}* à arbitrer · ${digest.themes_sans_reco} thème(s) à analyser · ${digest.a_qualifier} transcript(s) à qualifier`,
       ...alerts,
       "",
-      `→ SuperTools : /transcripts, onglet Recommandations`,
+      `→ <https://super-tools.lovable.app/transcripts|Ouvrir l'onglet Recommandations dans SuperTools>`,
     ].filter((l) => l !== "").join("\n");
 
     await fetch(`${GATEWAY_URL}/chat.postMessage`, {
