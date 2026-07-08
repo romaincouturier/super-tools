@@ -84,6 +84,7 @@ export default function WpArticlesTab() {
             <TableHeader>
               <TableRow>
                 <TableHead>Titre</TableHead>
+                <TableHead>Popularité</TableHead>
                 <TableHead>Publication</TableHead>
                 <TableHead>Auteur</TableHead>
                 <TableHead>Catégorie</TableHead>
