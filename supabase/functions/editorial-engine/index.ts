@@ -412,14 +412,33 @@ Deno.serve(async (req) => {
       fetchBrevo(settings),
     ]);
 
-    const { data: topArticlesRows } = await (admin as any)
-      .from("wp_articles")
-      .select("title, url, views, published_at")
-      .not("views", "is", null)
-      .order("views", { ascending: false })
-      .limit(15);
-    const topArticles = (topArticlesRows ?? [])
-      .map((a: any) => `"${a.title}" (${a.views} vues, publié ${String(a.published_at ?? "").slice(0, 10)})`)
+    // Articles les plus consultés + articles notés "forte" popularité par
+    // l'équipe (jugement éditorial manuel, complémentaire des vues brutes).
+    const [{ data: topByViews }, { data: topByPopularity }] = await Promise.all([
+      (admin as any)
+        .from("wp_articles")
+        .select("id, title, views, popularity, published_at")
+        .not("views", "is", null)
+        .order("views", { ascending: false })
+        .limit(15),
+      (admin as any)
+        .from("wp_articles")
+        .select("id, title, views, popularity, published_at")
+        .eq("popularity", "forte")
+        .limit(15),
+    ]);
+    const topArticlesMap = new Map<string, any>();
+    for (const a of [...(topByViews ?? []), ...(topByPopularity ?? [])]) topArticlesMap.set(a.id, a);
+    const topArticles = [...topArticlesMap.values()]
+      .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
+      .map((a: any) => {
+        const parts = [
+          a.views != null ? `${a.views} vues` : null,
+          a.popularity ? `popularité éditoriale ${a.popularity}` : null,
+          `publié ${String(a.published_at ?? "").slice(0, 10)}`,
+        ].filter(Boolean).join(", ");
+        return `"${a.title}" (${parts})`;
+      })
       .join("\n");
 
     const { data: ideasCol } = await (admin as any)
@@ -547,15 +566,19 @@ Deno.serve(async (req) => {
               published_at: m.published_at,
               modified_at: m.modified_at,
               views: m.views ?? wpViews ?? null,
+              popularity: m.popularity ?? null,
+              internal_note: m.internal_note ?? null,
               gsc: gscM ?? null,
             });
           }
           articlesProches = proches.map((p: any) => {
             const perf = [
               p.views != null ? `${p.views} vues` : null,
+              p.popularity ? `popularité éditoriale ${p.popularity}` : null,
               p.gsc ? `${p.gsc.clicks} clics SEO, ${p.gsc.impressions} impressions, position ${p.gsc.position.toFixed(1)}, CTR ${(p.gsc.ctr * 100).toFixed(1)}%` : null,
             ].filter(Boolean).join(" ; ") || "aucune donnée de performance";
-            return `- "${p.title}" (similarité ${Math.round(p.similarity * 100)}%, publié ${String(p.published_at ?? "?").slice(0, 10)}, modifié ${String(p.modified_at ?? "?").slice(0, 10)}) — ${perf}`;
+            const note = p.internal_note ? ` — note interne : ${String(p.internal_note).slice(0, 200)}` : "";
+            return `- "${p.title}" (similarité ${Math.round(p.similarity * 100)}%, publié ${String(p.published_at ?? "?").slice(0, 10)}, modifié ${String(p.modified_at ?? "?").slice(0, 10)}) — ${perf}${note}`;
           }).join("\n");
         } else {
           articlesProches = "(aucun article proche trouvé)";

@@ -166,6 +166,14 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
                     <span>{p.title}</span>
                   )}
                   {p.views != null && <span>· {p.views} vues</span>}
+                  {p.popularity && (
+                    <Badge
+                      variant={p.popularity === "forte" ? "default" : p.popularity === "moyenne" ? "secondary" : "outline"}
+                      className="capitalize text-[10px] px-1.5 py-0"
+                    >
+                      {p.popularity}
+                    </Badge>
+                  )}
                   {p.gsc && <span>· {p.gsc.clicks} clics SEO, pos. {p.gsc.position.toFixed(1)}</span>}
                 </li>
               ))}

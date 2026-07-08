@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ExternalLink, Eye } from "lucide-react";
+import { ExternalLink, Eye } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { useWpArticle } from "@/hooks/useWpArticles";
 
 interface Props {
@@ -23,12 +24,12 @@ export default function WpArticleDetailDialog({ articleId, onOpenChange }: Props
 
   return (
     <Dialog open={!!articleId} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-full sm:max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="pr-8">{a?.title ?? "Article"}</DialogTitle>
         </DialogHeader>
         {isLoading || !a ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          <div className="flex justify-center py-12"><Spinner size="md" /></div>
         ) : (
           <ScrollArea className="flex-1 pr-3">
             <div className="space-y-4">

@@ -20,6 +20,8 @@ export interface EditorialRecommendation {
     similarity?: number;
     published_at?: string;
     views?: number | null;
+    popularity?: "forte" | "moyenne" | "faible" | null;
+    internal_note?: string | null;
     gsc?: { clicks: number; impressions: number; ctr: number; position: number } | null;
   }>;
   niveau_couverture: string | null;
