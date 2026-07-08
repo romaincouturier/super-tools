@@ -1,15 +1,22 @@
 /**
- * editorial-engine (ST-2026-0220)
+ * editorial-engine (ST-2026-0220, clustering ST-2026-0225/0226)
  *
- * Moteur d'analyse éditoriale : croise les signaux (transcripts
- * pro_exploitables, feedbacks de formation) avec le corpus existant
- * (wp_articles via embeddings, colonne Idées du kanban contenus) et les
- * données de performance réelles (Search Console, WP-Statistics, Brevo),
- * plus le contexte business (OKR, sessions programmées), pour produire une
- * recommandation éditoriale scorée dans editorial_recommendations.
+ * Moteur d'analyse éditoriale en deux temps :
  *
- * La décision finale est humaine : les recommandations restent en statut
- * "pending" jusqu'à arbitrage dans l'UI (/transcripts, onglet Recommandations).
+ * 1. CLUSTERING (pas cher : embeddings seulement) — chaque signal
+ *    (transcript pro_exploitable, feedbacks d'une formation) est rattaché à
+ *    un thème existant par similarité sémantique, ou crée un nouveau thème.
+ *    Des dizaines de transcripts se replient ainsi en quelques thèmes.
+ *
+ * 2. RECOMMANDATION (le coût LLM) — une recommandation par thème sans
+ *    recommandation, nourrie par TOUTES les sources du thème, comparée au
+ *    corpus wp_articles et aux données de performance réelles (GSC,
+ *    WP-Statistics, Brevo), avec contexte business (OKR, sessions).
+ *    Sélection en round-robin par univers pour couvrir toutes les
+ *    expertises à chaque passage (ST-2026-0225).
+ *
+ * La décision finale est humaine : statut "pending" jusqu'à arbitrage dans
+ * l'UI (/transcripts, onglet Recommandations).
  *
  * Déclenchement : bouton UI (JWT) ou cron hebdomadaire (x-internal-secret).
  * Body : { transcript_id?: string, limit?: number }
@@ -40,8 +47,12 @@ const ACTIONS = new Set([
   "creer_post_linkedin", "a_discuter", "ne_rien_faire",
 ]);
 
-// Un signal déjà couvert par une recommandation existante à >= ce seuil est ignoré.
+// Deux signaux à >= ce seuil parlent du même thème.
+const THEME_SIMILARITY = 0.82;
+// Une reco déjà émise à >= ce seuil rend le thème redondant.
 const DEDUP_SIMILARITY = 0.9;
+// Plafond de signaux rattachés aux thèmes par passage (coût embeddings only).
+const MAX_SIGNALS_PER_RUN = 60;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -91,25 +102,16 @@ function urlPath(raw: string | null | undefined): string {
 
 type Candidate = {
   source_type: "transcript" | "feedback";
-  transcript_id: string | null;
-  training_id: string | null;
+  source_id: string;
   label: string;
   signal: string;
-};
-
-type PerfContext = {
-  gscPages: Map<string, { clicks: number; impressions: number; ctr: number; position: number }>;
-  gscTopQueries: string;
-  wpPages: Map<string, number>;
-  topArticles: string;
-  newsletter: string;
-  available: string[];
+  univers: string | null;
 };
 
 // ── Collecte des données de performance (best effort, jamais inventées) ─────
 
-async function fetchGsc(admin: ReturnType<typeof createClient>, settings: Record<string, string>): Promise<Pick<PerfContext, "gscPages" | "gscTopQueries"> & { ok: boolean }> {
-  const empty = { gscPages: new Map(), gscTopQueries: "", ok: false };
+async function fetchGsc(admin: ReturnType<typeof createClient>, settings: Record<string, string>) {
+  const empty = { gscPages: new Map<string, { clicks: number; impressions: number; ctr: number; position: number }>(), gscTopQueries: "", ok: false };
   const siteUrl = settings.gsc_site_url;
   if (!siteUrl) return empty;
   const accessToken = await getValidDriveAccessToken(admin);
@@ -152,8 +154,8 @@ async function fetchGsc(admin: ReturnType<typeof createClient>, settings: Record
   return { gscPages, gscTopQueries, ok: true };
 }
 
-async function fetchWpStats(settings: Record<string, string>): Promise<{ wpPages: Map<string, number>; ok: boolean }> {
-  const empty = { wpPages: new Map(), ok: false };
+async function fetchWpStats(settings: Record<string, string>) {
+  const empty = { wpPages: new Map<string, number>(), ok: false };
   const token = settings.wp_statistics_api_token;
   const storeUrl = settings.woocommerce_store_url;
   if (!token || !storeUrl) return empty;
@@ -186,7 +188,7 @@ async function fetchWpStats(settings: Record<string, string>): Promise<{ wpPages
   }
 }
 
-async function fetchBrevo(settings: Record<string, string>): Promise<{ newsletter: string; ok: boolean }> {
+async function fetchBrevo(settings: Record<string, string>) {
   const apiKey = settings.brevo_api_key;
   if (!apiKey) return { newsletter: "", ok: false };
   try {
@@ -268,7 +270,142 @@ Deno.serve(async (req) => {
       embedded++;
     }
 
-    // ── 2. Contexte partagé (performance + business + corpus) ────────────────
+    // ── 2. Candidats non encore rattachés à un thème ──────────────────────────
+    const { data: themedSources } = await (admin as any)
+      .from("editorial_theme_sources")
+      .select("source_type, source_id");
+    const themed = new Set((themedSources ?? []).map((s: any) => `${s.source_type}:${s.source_id}`));
+
+    const candidates: Candidate[] = [];
+
+    let transcriptQuery = (admin as any)
+      .from("transcripts")
+      .select("id, title, editorial_analysis")
+      .eq("editorial_qualification", "pro_exploitable")
+      .not("editorial_analysis", "is", null);
+    if (body.transcript_id) transcriptQuery = transcriptQuery.eq("id", body.transcript_id);
+    const { data: transcripts } = await transcriptQuery.order("created_at", { ascending: false }).limit(200);
+
+    for (const t of transcripts ?? []) {
+      if (themed.has(`transcript:${t.id}`)) continue;
+      const a = t.editorial_analysis ?? {};
+      const signal = [
+        `Titre du transcript : ${t.title ?? "(sans titre)"}`,
+        `Univers : ${a.univers ?? "?"} — Type de matière : ${a.type_matiere ?? "?"}`,
+        `Risque confidentialité : ${a.risque_confidentialite ?? "?"} (${a.risque_justification ?? ""})`,
+        `Résumé éditorial : ${a.resume_editorial ?? ""}`,
+        `Signaux : ${(a.signaux ?? []).join(" | ")}`,
+      ].join("\n");
+      candidates.push({
+        source_type: "transcript", source_id: t.id,
+        label: t.title ?? t.id, signal,
+        univers: a.univers ?? null,
+      });
+    }
+
+    if (!body.transcript_id) {
+      const { data: evals } = await (admin as any)
+        .from("training_evaluations")
+        .select("training_id, amelioration_suggeree, freins_application, remarques_libres, message_recommandation, trainings!inner(id, training_name, end_date)")
+        .eq("etat", "soumis")
+        .gte("trainings.end_date", isoDaysAgo(90));
+
+      const byTraining = new Map<string, { name: string; texts: string[] }>();
+      for (const e of evals ?? []) {
+        if (!e.training_id || themed.has(`feedback:${e.training_id}`)) continue;
+        const cur = byTraining.get(e.training_id) ?? { name: e.trainings?.training_name ?? "Formation", texts: [] };
+        for (const f of [e.amelioration_suggeree, e.freins_application, e.remarques_libres, e.message_recommandation]) {
+          if (f && String(f).trim().length > 15) cur.texts.push(String(f).trim());
+        }
+        byTraining.set(e.training_id, cur);
+      }
+
+      const trainingIds = [...byTraining.keys()];
+      if (trainingIds.length) {
+        const { data: besoins } = await (admin as any)
+          .from("questionnaire_besoins")
+          .select("training_id, competences_visees, lien_mission, commentaires_libres")
+          .in("training_id", trainingIds)
+          .not("date_soumission", "is", null);
+        for (const b of besoins ?? []) {
+          const cur = byTraining.get(b.training_id);
+          if (!cur) continue;
+          for (const f of [b.competences_visees, b.lien_mission, b.commentaires_libres]) {
+            if (f && String(f).trim().length > 15) cur.texts.push(`[besoin] ${String(f).trim()}`);
+          }
+        }
+      }
+
+      for (const [trainingId, bundle] of byTraining) {
+        // Moins de 2 verbatims : matière trop pauvre.
+        if (bundle.texts.length < 2) continue;
+        const signal = [
+          `Formation : ${bundle.name}`,
+          `Verbatims des participants (feedbacks + recueil de besoins) :`,
+          ...bundle.texts.slice(0, 40).map((t) => `- ${t}`),
+        ].join("\n").slice(0, 6000);
+        candidates.push({ source_type: "feedback", source_id: trainingId, label: bundle.name, signal, univers: null });
+      }
+    }
+
+    // ── 3. Clustering : rattacher chaque signal à un thème ───────────────────
+    const toCluster = candidates.slice(0, MAX_SIGNALS_PER_RUN);
+    let attached = 0;
+    let themesCreated = 0;
+    let embeddingsUnavailable = false;
+
+    for (const c of toCluster) {
+      const embedding = await embedText(c.signal);
+      if (!embedding) { embeddingsUnavailable = true; break; }
+
+      const { data: matches } = await (admin as any).rpc("match_editorial_themes", {
+        query_embedding: embedding,
+        match_count: 1,
+      });
+
+      let themeId: string;
+      if (matches?.[0]?.similarity >= THEME_SIMILARITY) {
+        themeId = matches[0].id;
+        await (admin as any)
+          .from("editorial_themes")
+          .update({
+            signal_count: (matches[0].signal_count ?? 0) + 1,
+            last_reinforced_at: new Date().toISOString(),
+          })
+          .eq("id", themeId);
+        attached++;
+      } else {
+        const { data: theme, error: themeErr } = await (admin as any)
+          .from("editorial_themes")
+          .insert({
+            label: c.label.slice(0, 200),
+            univers: c.univers,
+            embedding,
+            signal_count: 1,
+          })
+          .select("id")
+          .single();
+        if (themeErr) {
+          console.error("[editorial-engine] theme insert error", themeErr);
+          continue;
+        }
+        themeId = theme.id;
+        themesCreated++;
+      }
+
+      const { error: srcErr } = await (admin as any)
+        .from("editorial_theme_sources")
+        .insert({
+          theme_id: themeId,
+          source_type: c.source_type,
+          source_id: c.source_id,
+          label: c.label.slice(0, 300),
+          signal_text: c.signal.slice(0, 8000),
+        });
+      if (srcErr) console.error("[editorial-engine] source insert error", srcErr);
+    }
+
+    // ── 4. Contexte partagé (performance + business + corpus) ────────────────
     const [gsc, wp, brevo] = await Promise.all([
       fetchGsc(admin, settings),
       fetchWpStats(settings),
@@ -330,111 +467,71 @@ Deno.serve(async (req) => {
       brevo.newsletter ? `Dernières newsletters (Brevo) :\n${brevo.newsletter}` : "Newsletter : données indisponibles.",
     ].join("\n\n");
 
-    // ── 3. Candidats ──────────────────────────────────────────────────────────
-    const candidates: Candidate[] = [];
+    // ── 5. Thèmes à analyser : round-robin par univers (ST-2026-0225) ────────
+    const { data: pendingThemes } = await (admin as any)
+      .from("editorial_themes")
+      .select("id, label, univers, signal_count, embedding")
+      .is("recommendation_id", null)
+      .order("signal_count", { ascending: false })
+      .limit(100);
 
-    let transcriptQuery = (admin as any)
-      .from("transcripts")
-      .select("id, title, editorial_analysis")
-      .eq("editorial_qualification", "pro_exploitable")
-      .not("editorial_analysis", "is", null);
-    if (body.transcript_id) transcriptQuery = transcriptQuery.eq("id", body.transcript_id);
-    const { data: transcripts } = await transcriptQuery.order("created_at", { ascending: false }).limit(60);
-
-    const { data: doneTranscripts } = await (admin as any)
-      .from("editorial_recommendations")
-      .select("transcript_id")
-      .not("transcript_id", "is", null);
-    const doneTranscriptIds = new Set((doneTranscripts ?? []).map((r: any) => r.transcript_id));
-
-    for (const t of transcripts ?? []) {
-      if (doneTranscriptIds.has(t.id)) continue;
-      const a = t.editorial_analysis ?? {};
-      const signal = [
-        `Titre du transcript : ${t.title ?? "(sans titre)"}`,
-        `Univers : ${a.univers ?? "?"} — Type de matière : ${a.type_matiere ?? "?"}`,
-        `Risque confidentialité : ${a.risque_confidentialite ?? "?"} (${a.risque_justification ?? ""})`,
-        `Résumé éditorial : ${a.resume_editorial ?? ""}`,
-        `Signaux : ${(a.signaux ?? []).join(" | ")}`,
-      ].join("\n");
-      candidates.push({ source_type: "transcript", transcript_id: t.id, training_id: null, label: t.title ?? t.id, signal });
+    const byUnivers = new Map<string, any[]>();
+    for (const t of pendingThemes ?? []) {
+      const u = t.univers ?? "autre";
+      if (!byUnivers.has(u)) byUnivers.set(u, []);
+      byUnivers.get(u)!.push(t);
     }
-
-    // Feedbacks de formation (sans transcript_id ciblé uniquement)
-    if (!body.transcript_id) {
-      const { data: doneTrainings } = await (admin as any)
-        .from("editorial_recommendations")
-        .select("training_id")
-        .eq("source_type", "feedback")
-        .not("training_id", "is", null);
-      const doneTrainingIds = new Set((doneTrainings ?? []).map((r: any) => r.training_id));
-
-      const { data: evals } = await (admin as any)
-        .from("training_evaluations")
-        .select("training_id, appreciation_generale, amelioration_suggeree, freins_application, remarques_libres, message_recommandation, trainings!inner(id, training_name, end_date)")
-        .eq("etat", "soumis")
-        .gte("trainings.end_date", isoDaysAgo(90));
-
-      const byTraining = new Map<string, { name: string; texts: string[] }>();
-      for (const e of evals ?? []) {
-        if (!e.training_id || doneTrainingIds.has(e.training_id)) continue;
-        const cur = byTraining.get(e.training_id) ?? { name: e.trainings?.training_name ?? "Formation", texts: [] };
-        for (const f of [e.amelioration_suggeree, e.freins_application, e.remarques_libres, e.message_recommandation]) {
-          if (f && String(f).trim().length > 15) cur.texts.push(String(f).trim());
-        }
-        byTraining.set(e.training_id, cur);
+    const roundRobin: any[] = [];
+    const groups = [...byUnivers.values()];
+    for (let i = 0; roundRobin.length < (pendingThemes?.length ?? 0); i++) {
+      let added = false;
+      for (const g of groups) {
+        if (g[i]) { roundRobin.push(g[i]); added = true; }
       }
-
-      const trainingIds = [...byTraining.keys()];
-      if (trainingIds.length) {
-        const { data: besoins } = await (admin as any)
-          .from("questionnaire_besoins")
-          .select("training_id, competences_visees, lien_mission, commentaires_libres")
-          .in("training_id", trainingIds)
-          .not("date_soumission", "is", null);
-        for (const b of besoins ?? []) {
-          const cur = byTraining.get(b.training_id);
-          if (!cur) continue;
-          for (const f of [b.competences_visees, b.lien_mission, b.commentaires_libres]) {
-            if (f && String(f).trim().length > 15) cur.texts.push(`[besoin] ${String(f).trim()}`);
-          }
-        }
-      }
-
-      for (const [trainingId, bundle] of byTraining) {
-        // Moins de 2 verbatims : matière trop pauvre pour une recommandation.
-        if (bundle.texts.length < 2) continue;
-        const signal = [
-          `Formation : ${bundle.name}`,
-          `Verbatims des participants (feedbacks + recueil de besoins) :`,
-          ...bundle.texts.slice(0, 40).map((t) => `- ${t}`),
-        ].join("\n").slice(0, 6000);
-        candidates.push({ source_type: "feedback", transcript_id: null, training_id: trainingId, label: bundle.name, signal });
-      }
+      if (!added) break;
     }
+    const themesToAnalyze = roundRobin.slice(0, limit);
 
-    const toProcess = candidates.slice(0, limit);
     const results: Array<{ label: string; status: string; id?: string }> = [];
 
-    // ── 4. Analyse candidat par candidat ─────────────────────────────────────
-    for (const c of toProcess) {
-      const embedding = await embedText(c.signal);
+    // ── 6. Une recommandation par thème ──────────────────────────────────────
+    for (const theme of themesToAnalyze) {
+      const { data: sources } = await (admin as any)
+        .from("editorial_theme_sources")
+        .select("source_type, source_id, label, signal_text")
+        .eq("theme_id", theme.id)
+        .order("created_at", { ascending: true })
+        .limit(10);
+      if (!sources?.length) continue;
+
+      const mergedSignal = [
+        `THÈME (${sources.length} source(s), ${theme.signal_count} signal(aux) au total) :`,
+        ...sources.map((s: any, i: number) =>
+          `--- Source ${i + 1} (${s.source_type === "transcript" ? "transcript" : "feedbacks formation"}) : ${s.label} ---\n${s.signal_text.slice(0, 2500)}`),
+      ].join("\n\n").slice(0, 20000);
+
+      // theme.embedding revient en string depuis PostgREST : re-parser.
+      let themeEmbedding: number[] | null = null;
+      try {
+        themeEmbedding = typeof theme.embedding === "string" ? JSON.parse(theme.embedding) : theme.embedding;
+      } catch { themeEmbedding = null; }
 
       let articlesProches = "Similarité indisponible (embeddings non configurés).";
       const proches: Array<Record<string, unknown>> = [];
-      if (embedding) {
-        // Dédoublonnage contre les recommandations déjà émises.
+      if (themeEmbedding) {
         const { data: dupes } = await (admin as any).rpc("match_editorial_recommendations", {
-          query_embedding: embedding,
+          query_embedding: themeEmbedding,
           match_count: 1,
         });
         if (dupes?.[0]?.similarity >= DEDUP_SIMILARITY) {
-          results.push({ label: c.label, status: `doublon de "${dupes[0].titre_provisoire}"` });
+          // Thème redondant avec une reco existante : on le lie sans re-payer un appel LLM.
+          await (admin as any).from("editorial_themes").update({ recommendation_id: dupes[0].id }).eq("id", theme.id);
+          results.push({ label: theme.label, status: `rattaché à la reco existante "${dupes[0].titre_provisoire}"` });
           continue;
         }
 
         const { data: matches } = await (admin as any).rpc("match_wp_articles", {
-          query_embedding: embedding,
+          query_embedding: themeEmbedding,
           match_count: 5,
         });
         if (matches?.length) {
@@ -467,8 +564,8 @@ Deno.serve(async (req) => {
 
       const userPrompt = applyTemplate(prompt.user_prompt_template, {
         today: isoDaysAgo(0),
-        source_type: c.source_type === "transcript" ? "transcript de réunion/formation" : "feedbacks de formation",
-        signal: c.signal,
+        source_type: `thème regroupant ${sources.length} source(s)`,
+        signal: mergedSignal,
         articles_proches: articlesProches,
         idees_existantes: ideesExistantes,
         performance_context: performanceContext,
@@ -489,30 +586,34 @@ Deno.serve(async (req) => {
       if (!aiRes.ok) {
         const errText = await aiRes.text();
         console.error("[editorial-engine] AI error", aiRes.status, errText);
-        results.push({ label: c.label, status: `erreur IA ${aiRes.status}` });
+        results.push({ label: theme.label, status: `erreur IA ${aiRes.status}` });
         if (aiRes.status === 429 || aiRes.status === 402) break;
         continue;
       }
       const aiJson = await aiRes.json();
       const parsed = extractJson((aiJson?.choices?.[0]?.message?.content ?? "").trim());
       if (!parsed) {
-        results.push({ label: c.label, status: "réponse IA non parsable" });
+        results.push({ label: theme.label, status: "réponse IA non parsable" });
         continue;
       }
 
       const cibles = (Array.isArray(parsed.cibles) ? parsed.cibles : [])
         .map((x: unknown) => String(x)).filter((x: string) => CIBLES.has(x));
+      const firstTranscript = sources.find((s: any) => s.source_type === "transcript");
+      const firstFeedback = sources.find((s: any) => s.source_type === "feedback");
       const row = {
-        source_type: c.source_type,
-        transcript_id: c.transcript_id,
-        training_id: c.training_id,
-        signal_text: c.signal.slice(0, 8000),
-        embedding,
+        source_type: firstTranscript ? "transcript" : "feedback",
+        transcript_id: firstTranscript?.source_id ?? null,
+        training_id: !firstTranscript ? (firstFeedback?.source_id ?? null) : null,
+        theme_id: theme.id,
+        signal_count: theme.signal_count,
+        signal_text: mergedSignal.slice(0, 8000),
+        embedding: themeEmbedding,
         titre_provisoire: String(parsed.titre_provisoire ?? "").slice(0, 300),
         besoin_cible: String(parsed.besoin_cible ?? "").slice(0, 1000),
         type_besoin: TYPES_BESOIN.has(String(parsed.type_besoin)) ? String(parsed.type_besoin) : null,
         cibles: cibles.length ? cibles : ["autre"],
-        univers: String(parsed.univers ?? "autre").slice(0, 60),
+        univers: String(parsed.univers ?? theme.univers ?? "autre").slice(0, 60),
         format_recommande: FORMATS.has(String(parsed.format_recommande)) ? String(parsed.format_recommande) : null,
         contenus_existants_proches: proches,
         niveau_couverture: COUVERTURES.has(String(parsed.niveau_couverture)) ? String(parsed.niveau_couverture) : null,
@@ -539,18 +640,27 @@ Deno.serve(async (req) => {
         .single();
       if (insErr) {
         console.error("[editorial-engine] insert error", insErr);
-        results.push({ label: c.label, status: `erreur insertion : ${insErr.message}` });
+        results.push({ label: theme.label, status: `erreur insertion : ${insErr.message}` });
       } else {
-        results.push({ label: c.label, status: "créée", id: inserted.id });
+        await (admin as any)
+          .from("editorial_themes")
+          .update({ recommendation_id: inserted.id, univers: row.univers })
+          .eq("id", theme.id);
+        results.push({ label: theme.label, status: "créée", id: inserted.id });
       }
     }
 
     return json({
       ok: true,
       embedded_articles: embedded,
-      candidates_found: candidates.length,
-      processed: toProcess.length,
-      remaining: Math.max(0, candidates.length - toProcess.length),
+      signals_found: candidates.length,
+      signals_clustered: attached + themesCreated,
+      themes_created: themesCreated,
+      themes_pending: Math.max(0, (pendingThemes?.length ?? 0) - themesToAnalyze.length),
+      processed: themesToAnalyze.length,
+      remaining: Math.max(0, (pendingThemes?.length ?? 0) - themesToAnalyze.length)
+        + Math.max(0, candidates.length - toCluster.length),
+      embeddings_unavailable: embeddingsUnavailable,
       sources_disponibles: available,
       results,
     });

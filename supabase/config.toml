@@ -477,6 +477,9 @@ verify_jwt = false
 [functions.editorial-engine]
 verify_jwt = false
 
+[functions.editorial-backfill]
+verify_jwt = false
+
 [functions.notify-watch-tag]
 verify_jwt = false
 

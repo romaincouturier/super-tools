@@ -12,8 +12,19 @@ Module **Transcripts** (`/transcripts`) → onglet **Recommandations**. C'est la
 
 ## Comment les recommandations arrivent
 
-- **Automatique** : chaque lundi matin (05:00 UTC), le moteur analyse les nouveaux transcripts exploitables et les feedbacks des formations des 90 derniers jours.
-- **Manuel** : le bouton **« Lancer l'analyse éditoriale »** traite immédiatement jusqu'à 10 signaux en attente. S'il en reste, le message l'indique — relancer pour continuer.
+Le pipeline fonctionne en entonnoir, visible dans le bandeau en haut de l'onglet :
+
+> transcripts **à qualifier** → **exploitables** → **signaux à regrouper** → **thèmes à analyser** → **recos à arbitrer**
+
+1. **Qualification** : chaque transcript reçoit une fiche éditoriale (automatique à la réception ; un cron toutes les 10 minutes rattrape l'historique et les échecs, et le bouton « Qualifier l'historique » force un lot de 20).
+2. **Regroupement en thèmes** : les signaux qui parlent du même sujet (transcripts + feedbacks) sont regroupés par similarité sémantique. Douze transcripts sur le même sujet = **un seul thème**, pas douze recommandations — c'est ce qui évite l'inflation de contenu.
+3. **Recommandation** : une fiche par thème, nourrie par toutes ses sources (badge « N signaux regroupés »). La sélection alterne entre les univers (expertises) pour couvrir tout le spectre à chaque passage.
+
+Déclenchement :
+- **Automatique** : chaque lundi matin (05:00 UTC).
+- **Manuel** : le bouton **« Lancer l'analyse éditoriale »** traite jusqu'à 10 thèmes. S'il en reste, le message l'indique — relancer pour continuer.
+
+Un filtre **par expertise** (univers) permet d'afficher les recommandations d'un domaine précis.
 
 ## Lire une fiche
 
