@@ -99,8 +99,8 @@ export function FeedbackForm({ prefillDescription, pageUrlOverride, onSubmitted 
         title: "Ticket créé",
         description: `L'IA a classifié votre demande comme ${analysis.type === "bug" ? "un bug" : "une évolution"}.`,
       });
-    } catch {
-      toastError(toast, "Impossible d'envoyer votre retour. Réessayez.");
+    } catch (err) {
+      toastError(toast, "Impossible d'envoyer votre retour. Réessayez.", { cause: err });
     }
   };
 

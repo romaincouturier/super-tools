@@ -31,12 +31,24 @@ export function handleCorsPreflightIfNeeded(req: Request): Response | null {
 }
 
 /**
- * Create a JSON error response with CORS headers
+ * Create a JSON error response with CORS headers.
+ *
+ * Règle [037] : les statuts 5xx et les erreurs de quota IA (402, 429) sont
+ * reportés à Sentry sans bloquer la réponse (no-op si SENTRY_DSN absent).
  */
 export function createErrorResponse(
   message: string,
   status = 500
 ): Response {
+  if (status >= 500 || status === 402 || status === 429) {
+    const report = import("./sentry.ts")
+      .then(({ reportEdgeError }) => reportEdgeError(new Error(message), { status }))
+      .catch(() => {});
+    const edgeRuntime = (globalThis as typeof globalThis & {
+      EdgeRuntime?: { waitUntil?: (promise: Promise<unknown>) => void };
+    }).EdgeRuntime;
+    edgeRuntime?.waitUntil?.(report);
+  }
   return new Response(
     JSON.stringify({ error: message }),
     {

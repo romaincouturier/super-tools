@@ -5,7 +5,7 @@ import { useSentryInit } from "@/hooks/useSentryInit";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { ChatbotProvider } from "@/components/chatbot/ChatbotProvider";
@@ -127,6 +127,18 @@ const SupertiltConfirmationEnvoi = lazy(() => import("./pages/SupertiltConfirmat
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
 const queryClient = new QueryClient({
+  // Règle [037] : toute erreur de query/mutation remonte à Sentry, même si
+  // elle est ensuite absorbée par un toast local.
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      Sentry.captureException(error, { extra: { queryKey: query.queryKey } });
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      Sentry.captureException(error, { extra: { mutationKey: mutation.options.mutationKey } });
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes

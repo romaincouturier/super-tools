@@ -221,6 +221,13 @@ check "031e" "Migration staff_select_guard existe" \
 check "035" "Les edge functions utilisant supports_url importent _shared/supports-url.ts" \
   "grep -rln 'supports_url' supabase/functions/ --include='index.ts' | xargs -r grep -L 'supports-url.ts' 2>/dev/null"
 
+# [037] Observabilité — les 3 points de capture Sentry ne doivent jamais disparaître.
+check "037" "Erreurs affichées à l'utilisateur reportées à Sentry (toastError, QueryClient, createErrorResponse)" \
+  "grep -q 'captureException' src/lib/toastError.ts || echo 'VIOLATION: toastError.ts ne capture plus vers Sentry'; \
+   grep -q 'queryCache: new QueryCache' src/App.tsx && grep -q 'mutationCache: new MutationCache' src/App.tsx || echo 'VIOLATION: App.tsx sans onError global queryCache/mutationCache'; \
+   grep -q 'reportEdgeError' supabase/functions/_shared/cors.ts || echo 'VIOLATION: createErrorResponse ne reporte plus les 5xx à Sentry'; \
+   true"
+
 # [036] Crons pg_cron — pas de vault.decrypted_secrets ni de secret de cron dans
 # les nouvelles migrations versionnées (secret dédié inline posé directement en base).
 # Les migrations legacy (<= 2026-07-08) sont tolérées : crons re-planifiés en base.
