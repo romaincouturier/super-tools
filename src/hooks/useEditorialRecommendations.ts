@@ -41,10 +41,22 @@ export interface EditorialRecommendation {
   status: "pending" | "accepted" | "rejected" | "discuss";
   card_id: string | null;
   decision_note: string | null;
+  decision_reason: RejectReason | null;
   theme_id: string | null;
   signal_count: number;
   created_at: string;
 }
+
+export type RejectReason = "trop_generique" | "deja_couvert" | "mauvaise_cible" | "sujet_sensible" | "pas_le_moment" | "autre";
+
+export const REJECT_REASON_LABELS: Record<RejectReason, string> = {
+  trop_generique: "Trop générique",
+  deja_couvert: "Déjà couvert",
+  mauvaise_cible: "Mauvaise cible",
+  sujet_sensible: "Sujet sensible",
+  pas_le_moment: "Pas le moment",
+  autre: "Autre",
+};
 
 export interface EngineRunResult {
   ok: boolean;
@@ -186,10 +198,11 @@ function buildCardDescription(rec: EditorialRecommendation): string {
 export function useDecideRecommendation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ rec, decision, note }: {
+    mutationFn: async ({ rec, decision, note, reason }: {
       rec: EditorialRecommendation;
       decision: "accepted" | "rejected" | "discuss";
       note?: string;
+      reason?: RejectReason;
     }) => {
       const { data: userData } = await supabase.auth.getUser();
       let cardId: string | null = null;
@@ -227,6 +240,7 @@ export function useDecideRecommendation() {
           decided_at: new Date().toISOString(),
           decided_by: userData.user?.id ?? null,
           decision_note: note ?? null,
+          decision_reason: decision === "rejected" ? (reason ?? null) : null,
         })
         .eq("id", rec.id);
       if (error) throw error;
@@ -234,6 +248,67 @@ export function useDecideRecommendation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["editorial-recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["editorial-alignment"] });
+    },
+  });
+}
+
+export interface EditorialAlignment {
+  decided: number;
+  accepted: number;
+  acceptanceRate: number | null;
+  highScoreAcceptance: number | null;
+  lowScoreAcceptance: number | null;
+  byUnivers: Array<{ univers: string; accepted: number; total: number }>;
+  topRejectReasons: Array<{ reason: string; count: number }>;
+}
+
+export function useEditorialAlignment() {
+  return useQuery({
+    queryKey: ["editorial-alignment"],
+    queryFn: async (): Promise<EditorialAlignment> => {
+      const { data, error } = await (supabase as any)
+        .from("editorial_recommendations")
+        .select("status, score_priorite, univers, decision_reason")
+        .neq("status", "pending");
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ status: string; score_priorite: number | null; univers: string | null; decision_reason: string | null }>;
+
+      const rate = (subset: typeof rows) =>
+        subset.length ? Math.round((subset.filter((r) => r.status === "accepted").length / subset.length) * 100) : null;
+
+      const high = rows.filter((r) => (r.score_priorite ?? 0) >= 70);
+      const low = rows.filter((r) => (r.score_priorite ?? 0) < 70);
+
+      const byUniversMap = new Map<string, { accepted: number; total: number }>();
+      for (const r of rows) {
+        const u = r.univers ?? "autre";
+        const cur = byUniversMap.get(u) ?? { accepted: 0, total: 0 };
+        cur.total++;
+        if (r.status === "accepted") cur.accepted++;
+        byUniversMap.set(u, cur);
+      }
+
+      const reasonMap = new Map<string, number>();
+      for (const r of rows) {
+        if (r.status === "rejected" && r.decision_reason) {
+          reasonMap.set(r.decision_reason, (reasonMap.get(r.decision_reason) ?? 0) + 1);
+        }
+      }
+
+      return {
+        decided: rows.length,
+        accepted: rows.filter((r) => r.status === "accepted").length,
+        acceptanceRate: rate(rows),
+        highScoreAcceptance: rate(high),
+        lowScoreAcceptance: rate(low),
+        byUnivers: [...byUniversMap.entries()]
+          .map(([univers, v]) => ({ univers, ...v }))
+          .sort((a, b) => b.total - a.total),
+        topRejectReasons: [...reasonMap.entries()]
+          .map(([reason, count]) => ({ reason, count }))
+          .sort((a, b) => b.count - a.count),
+      };
     },
   });
 }

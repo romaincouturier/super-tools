@@ -12,8 +12,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   useEditorialRecommendations, useRunEditorialEngine, useRunEditorialBackfill,
-  useEditorialFunnel, useDecideRecommendation,
-  type EditorialRecommendation,
+  useEditorialFunnel, useDecideRecommendation, useEditorialAlignment,
+  REJECT_REASON_LABELS,
+  type EditorialRecommendation, type RejectReason,
 } from "@/hooks/useEditorialRecommendations";
 
 const ACTION_LABELS: Record<string, string> = {
@@ -83,10 +84,15 @@ function ScoreBadge({ label, value, emphasis = false }: { label: string; value: 
 function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
   const decide = useDecideRecommendation();
   const [note, setNote] = useState("");
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectReason, setRejectReason] = useState<RejectReason | "">("");
 
   const onDecide = async (decision: "accepted" | "rejected" | "discuss") => {
     try {
-      const { cardId } = await decide.mutateAsync({ rec, decision, note: note || undefined });
+      const { cardId } = await decide.mutateAsync({
+        rec, decision, note: note || undefined,
+        reason: decision === "rejected" && rejectReason ? rejectReason : undefined,
+      });
       if (decision === "accepted") {
         toast.success("Carte créée dans la colonne Idées du kanban contenus.");
       } else if (decision === "discuss") {
@@ -188,11 +194,14 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
         {rec.prochaine_etape && (
           <p className="text-muted-foreground"><span className="font-medium text-foreground">Prochaine étape :</span> {rec.prochaine_etape}</p>
         )}
-        {rec.decision_note && (
-          <p className="text-xs text-muted-foreground italic">Note de décision : {rec.decision_note}</p>
+        {(rec.decision_reason || rec.decision_note) && (
+          <p className="text-xs text-muted-foreground italic">
+            {rec.decision_reason && <>Motif : {REJECT_REASON_LABELS[rec.decision_reason]}{rec.decision_note ? " — " : ""}</>}
+            {rec.decision_note}
+          </p>
         )}
 
-        {rec.status === "pending" && (
+        {rec.status === "pending" && !rejectMode && (
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Button size="sm" onClick={() => onDecide("accepted")} disabled={decide.isPending} className="gap-1.5">
               <Check className="h-3.5 w-3.5" />Accepter → carte Idées
@@ -200,7 +209,7 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
             <Button size="sm" variant="outline" onClick={() => onDecide("discuss")} disabled={decide.isPending} className="gap-1.5">
               <MailQuestion className="h-3.5 w-3.5" />À discuter
             </Button>
-            <Button size="sm" variant="outline" onClick={() => onDecide("rejected")} disabled={decide.isPending} className="gap-1.5 text-destructive">
+            <Button size="sm" variant="outline" onClick={() => setRejectMode(true)} disabled={decide.isPending} className="gap-1.5 text-destructive">
               <X className="h-3.5 w-3.5" />Refuser
             </Button>
             <input
@@ -211,6 +220,76 @@ function RecommendationCard({ rec }: { rec: EditorialRecommendation }) {
             />
           </div>
         )}
+
+        {rec.status === "pending" && rejectMode && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Select value={rejectReason} onValueChange={(v) => setRejectReason(v as RejectReason)}>
+              <SelectTrigger className="h-8 w-[190px] text-xs">
+                <SelectValue placeholder="Motif du refus…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(REJECT_REASON_LABELS) as [RejectReason, string][]).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input
+              className="flex-1 min-w-[180px] h-8 rounded-md border bg-background px-2 text-xs"
+              placeholder="Précision (optionnelle) — nourrit le moteur"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            <Button size="sm" variant="destructive" onClick={() => onDecide("rejected")} disabled={decide.isPending || !rejectReason} className="gap-1.5">
+              <X className="h-3.5 w-3.5" />Confirmer le refus
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setRejectMode(false); setRejectReason(""); }}>
+              Annuler
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Alignement moteur / arbitrages humains : si les recos bien scorées ne sont
+ * pas plus acceptées que les autres, le scoring doit être recalibré. */
+function AlignmentPanel() {
+  const { data: a } = useEditorialAlignment();
+  if (!a || a.decided < 3) return null;
+
+  const misaligned = a.highScoreAcceptance != null && a.lowScoreAcceptance != null
+    && a.highScoreAcceptance <= a.lowScoreAcceptance;
+
+  return (
+    <Card>
+      <CardContent className="py-3 px-4 space-y-2">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Alignement</span>
+          <span><span className="font-bold text-primary">{a.acceptanceRate}%</span> <span className="text-xs text-muted-foreground">d'acceptation ({a.accepted}/{a.decided})</span></span>
+          {a.highScoreAcceptance != null && (
+            <span className={misaligned ? "text-amber-700" : ""}>
+              <span className="font-bold">{a.highScoreAcceptance}%</span> <span className="text-xs text-muted-foreground">score ≥ 70</span>
+              {a.lowScoreAcceptance != null && <> · <span className="font-bold">{a.lowScoreAcceptance}%</span> <span className="text-xs text-muted-foreground">score &lt; 70</span></>}
+            </span>
+          )}
+          {a.topRejectReasons.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              Refus : {a.topRejectReasons.slice(0, 3).map((r) => `${REJECT_REASON_LABELS[r.reason as RejectReason] ?? r.reason} (${r.count})`).join(", ")}
+            </span>
+          )}
+        </div>
+        {misaligned && (
+          <p className="text-xs text-amber-700">
+            Les recommandations à score élevé ne sont pas plus acceptées que les autres : le scoring ne reflète pas les préférences.
+            Ajustez le référentiel (Paramètres → Prompts Transcripts → Moteur éditorial) avec les motifs de refus ci-dessus.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+          {a.byUnivers.map((u) => (
+            <span key={u.univers}>{UNIVERS_LABELS[u.univers] ?? u.univers} : {u.accepted}/{u.total}</span>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -293,6 +372,7 @@ const EditorialRecommendationsTab = () => {
   return (
     <div className="space-y-4">
       <FunnelBanner />
+      <AlignmentPanel />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
