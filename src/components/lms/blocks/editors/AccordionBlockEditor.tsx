@@ -2,6 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import RichTextEditor from "@/components/content/RichTextEditor";
 import { InlineEdit } from "./InlineEdit";
 import { cryptoRandomId } from "@/types/lms-blocks";
 import type { AccordionBlockContent, AccordionItem } from "@/types/lms-blocks";
@@ -64,12 +65,13 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
                   </button>
                 )}
               </div>
-              <InlineEdit
-                value={item.answer_html}
-                onChange={(v) => updateItem(i, { answer_html: v || "" })}
-                placeholder="Réponse…"
-                style={{ fontSize: "0.8125rem", color: "var(--st-ink-60)", outline: "none", marginTop: 4 }}
-              />
+              <div style={{ marginTop: 6 }}>
+                <RichTextEditor
+                  content={item.answer_html || ""}
+                  onChange={(answer_html) => updateItem(i, { answer_html })}
+                  placeholder="Réponse…"
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -122,13 +124,11 @@ export default function AccordionBlockEditor({ content, onChange, slim }: Props)
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Réponse (HTML)</Label>
-              <textarea
-                value={item.answer_html}
-                onChange={(e) => updateItem(i, { answer_html: e.target.value })}
+              <Label className="text-xs">Réponse</Label>
+              <RichTextEditor
+                content={item.answer_html || ""}
+                onChange={(answer_html) => updateItem(i, { answer_html })}
                 placeholder="Réponse…"
-                rows={3}
-                className="w-full rounded-md border border-input px-3 py-2 text-sm font-mono resize-y"
               />
             </div>
           </div>

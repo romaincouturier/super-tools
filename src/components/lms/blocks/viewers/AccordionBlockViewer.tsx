@@ -3,6 +3,18 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { AccordionBlockContent } from "@/types/lms-blocks";
 
+/** Les liens de la réponse s'ouvrent dans un nouvel onglet pour ne pas
+ * interrompre le cours (ST-2026-0229) — y compris le HTML historique
+ * saisi à la main sans attribut target. */
+function sanitizeAnswerHtml(html: string): string {
+  const doc = new DOMParser().parseFromString(DOMPurify.sanitize(html), "text/html");
+  for (const a of doc.querySelectorAll("a[href]")) {
+    a.setAttribute("target", "_blank");
+    a.setAttribute("rel", "noopener noreferrer");
+  }
+  return doc.body.innerHTML;
+}
+
 interface Props {
   content: AccordionBlockContent;
 }
@@ -52,8 +64,8 @@ export default function AccordionBlockViewer({ content }: Props) {
                 style={{ background: "#ffffff", borderTop: "1px solid rgba(255,209,0,0.25)" }}
               >
                 <div
-                  className="prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.answer_html) }}
+                  className="prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline"
+                  dangerouslySetInnerHTML={{ __html: sanitizeAnswerHtml(item.answer_html) }}
                 />
               </div>
             )}
