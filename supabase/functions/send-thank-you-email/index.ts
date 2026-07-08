@@ -12,6 +12,11 @@ import {
   textToHtml,
   emailButton,
 } from "../_shared/mod.ts";
+import {
+  appendEmailParam,
+  personalizeSupportsLinks,
+  resolveSupportsUrlBase,
+} from "../_shared/supports-url.ts";
 
 // Generate a secure token for evaluation access
 async function generateEvaluationToken(): Promise<string> {
@@ -153,35 +158,11 @@ serve(async (req) => {
     const urls = await getAppUrls();
     const baseUrl = urls.app_url;
 
-    // Resolve supports URL base: use explicit URL if set, otherwise check for LMS course or editor-created support.
-    // For internal /formation-support routes, the participant email is appended per recipient (LMS player requires it).
-    const explicitSupportsUrl = training.supports_url || "";
-    let supportsUrlBase = explicitSupportsUrl;
-    let supportsRequiresEmailParam = false;
-    if (!supportsUrlBase) {
-      if (training.supports_type === "lms" && training.supports_lms_course_id) {
-        supportsUrlBase = `${baseUrl}/formation-support/${trainingId}`;
-        supportsRequiresEmailParam = true;
-        console.log("Using LMS course support URL:", supportsUrlBase);
-      } else {
-        const { data: supportRecord } = await supabase
-          .from("training_supports")
-          .select("id")
-          .eq("training_id", trainingId)
-          .maybeSingle();
-        if (supportRecord) {
-          supportsUrlBase = `${baseUrl}/formation-support/${trainingId}`;
-          supportsRequiresEmailParam = true;
-          console.log("Using training support viewer URL:", supportsUrlBase);
-        }
-      }
-    }
-    const buildSupportsUrl = (email: string | null | undefined) => {
-      if (!supportsUrlBase) return "";
-      if (!supportsRequiresEmailParam || !email) return supportsUrlBase;
-      const sep = supportsUrlBase.includes("?") ? "&" : "?";
-      return `${supportsUrlBase}${sep}email=${encodeURIComponent(email)}`;
-    };
+    // Resolve supports URL base: explicit URL, linked LMS course, or editor-created support.
+    // The email param is appended per recipient (the LMS player requires it) — including
+    // when the URL is explicit, via appendEmailParam/personalizeSupportsLinks.
+    const supportsUrlBase = await resolveSupportsUrlBase(supabase, training, trainingId, baseUrl);
+    if (supportsUrlBase) console.log("Supports URL base:", supportsUrlBase);
     // Backwards-compat alias for the test-mode block below
     const supportsUrl = supportsUrlBase;
 
@@ -194,7 +175,7 @@ serve(async (req) => {
         first_name: "Test",
         training_name: trainingName,
         evaluation_link: `${baseUrl}/evaluation/test-token-preview`,
-        supports_url: supportsUrl,
+        supports_url: appendEmailParam(supportsUrl, testEmail),
         is_presentiel: !isElearningTest,
         is_elearning: isElearningTest,
       };
@@ -203,14 +184,14 @@ serve(async (req) => {
       const contentText = processTemplate(contentTemplate, variables, false);
       const contentHtml = textToHtml(contentText);
 
-      const htmlContent = `
+      const htmlContent = personalizeSupportsLinks(`
         <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
           <strong>⚠️ Ceci est un email de test</strong><br/>
           Le lien d'évaluation ci-dessous est un exemple et ne fonctionne pas.
         </div>
         ${contentHtml}
         ${signature}
-      `;
+      `, testEmail);
 
       const result = await sendEmail({
         to: [testEmail],
@@ -285,7 +266,7 @@ serve(async (req) => {
         first_name: participant.first_name,
         training_name: trainingName,
         evaluation_link: evaluationLink,
-        supports_url: buildSupportsUrl(participant.email),
+        supports_url: appendEmailParam(supportsUrlBase, participant.email),
         is_presentiel: !isElearning,
         is_elearning: isElearning,
       };
@@ -294,10 +275,12 @@ serve(async (req) => {
       const contentText = processTemplate(contentTemplate, variables, false);
       const contentHtml = textToHtml(contentText);
 
-      const htmlContent = `
+      // Balayage final : personnalise aussi les liens support collés en dur
+      // dans un template custom (le player LMS exige ?email=).
+      const htmlContent = personalizeSupportsLinks(`
         ${contentHtml}
         ${signature}
-      `;
+      `, participant.email);
 
       console.log("Sending thank you email to:", participant.email);
 

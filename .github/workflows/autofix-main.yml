@@ -1,0 +1,78 @@
+name: Autofix main
+
+# Détection-réparation : Lovable pousse librement sur main (aucune protection
+# de branche), le CI observe, et quand il passe au rouge ce workflow déclenche
+# Claude qui diagnostique, corrige sur une branche dédiée et ouvre une PR
+# corrective. Ne pousse jamais sur main.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+concurrency:
+  group: autofix-main
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Setup git
+        run: |
+          git config --global user.name "Claude Code"
+          git config --global user.email "claude-code[bot]@users.noreply.github.com"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fix failing CI with Claude Code
+        uses: anthropic/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: |
+            --model claude-opus-4-8
+            --allowedTools Bash,Read,Write,Edit,Glob,Grep,Agent
+          prompt: |
+            Le workflow CI vient d'échouer sur main
+            (commit ${{ github.event.workflow_run.head_sha }}).
+
+            1. Récupère les logs de l'échec :
+               gh run view ${{ github.event.workflow_run.id }} --log-failed
+            2. Reproduis en local (npx tsc --noEmit, bash scripts/check-rules.sh,
+               npm test) et identifie la cause racine.
+            3. Applique le correctif minimal. Consulte IMPROVEMENTS.md avant de
+               coder. Si le commit fautif vient de Lovable, applique aussi la
+               règle 013 : simplifie les couches d'abstraction inutiles
+               introduites au lieu de contourner le symptôme.
+            4. Vérifie : npx tsc --noEmit, bash scripts/check-rules.sh, et les
+               tests concernés.
+            5. Crée une branche fix/ci-main-<sha-court>, committe, pousse, puis
+               ouvre une PR vers main avec gh pr create en décrivant la cause
+               et le correctif.
+
+            Ne pousse JAMAIS directement sur main. Si le problème dépasse ton
+            périmètre (secret manquant, quota, infrastructure), ouvre une issue
+            GitHub avec le diagnostic complet au lieu d'une PR :
+            gh issue create --title "CI rouge sur main : <cause>" --body "<diagnostic>"

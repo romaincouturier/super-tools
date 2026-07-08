@@ -65,6 +65,11 @@ vi.mock("./file-utils.ts", () => ({
   resolveContentType: () => "application/octet-stream",
 }));
 
+// sentry.ts importe "npm:@sentry/deno" (spécifieur Deno) — irrésoluble par Vite.
+vi.mock("./sentry.ts", () => ({
+  reportEdgeError: vi.fn(),
+}));
+
 import { handleFileUpload, type UploadConfig } from "./upload-handler.ts";
 
 // ── Helpers ────────────────────────────────────────────────────────────────

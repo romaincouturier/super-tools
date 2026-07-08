@@ -126,14 +126,14 @@ describe("LearnerOnboarding — token validation", () => {
     expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument();
   });
 
-  it("pre-fills the email field from the token (read-only)", async () => {
+  it("pre-fills the email field from the token (editable)", async () => {
     previewOk(false, "bob@example.com");
     render(<LearnerOnboarding />);
 
     await waitFor(() => {
       const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
       expect(emailInput.value).toBe("bob@example.com");
-      expect(emailInput.readOnly).toBe(true);
+      expect(emailInput.readOnly).toBe(false);
     });
   });
 });

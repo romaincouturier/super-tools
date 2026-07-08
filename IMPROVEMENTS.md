@@ -8,6 +8,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
+### [034] Enforcement machine — toute règle doit être appliquée par un mécanisme bloquant, jamais par une consigne seule
+- **Constat** : Audit du harnais (juillet 2026) : le hook pre-commit se terminait par `|| true`, donc un échec de check-rules.sh n'a jamais bloqué un commit depuis sa création (les hooks PreToolUse ne bloquent que sur exit code 2). Par ailleurs, aucune règle n'était vérifiée sur les commits Lovable, qui ne passent pas par Claude Code — précisément la source de la majorité des régressions documentées ici (013, 027, 011, 012). Une règle qui n'existe que comme texte dans ce fichier ou dans CLAUDE.md n'est pas un invariant : c'est un vœu.
+- **Règle** : Toute règle ajoutée à ce fichier doit être appliquée par au moins un mécanisme machine bloquant : check dans `scripts/check-rules.sh` (exécuté par le hook pre-commit ET par le CI), job CI dédié, ou ratchet pour les migrations progressives. Les mécanismes doivent bloquer réellement (exit code 2 pour un hook PreToolUse, exit 1 pour un job CI). Une règle vérifiable uniquement à la main doit le justifier explicitement dans sa section Vérification.
+- **Vérification** : Le check [034] de `check-rules.sh` extrait les IDs de règles de ce fichier et échoue si une règle n'apparaît dans aucun check (whitelist explicite pour les règles legacy à vérification manuelle : 002, 013, 022, 024, 029, 032, 033).
+- **Fichiers de référence** : `scripts/check-rules.sh`, `.claude/settings.json` (hook exit 2), `.github/workflows/ci.yml`
+- **Origine** : audit du harnais — hook qui ne bloquait pas, règles invisibles pour les commits hors Claude Code
+- **Date** : 2026-07-07
+
 ### [032] Checklist merge d'un nouveau module — tsc + check-rules + test UI golden path obligatoires
 - **Constat** : Lors de la livraison du module Book (juin 2026), les checks tsc et check-rules ont été effectués mais le golden path UI (upload, lightbox, partage, analytics) n'a pas été testé dans un navigateur. Le TypeScript peut être valide et les règles respectées sans que le comportement UI soit correct.
 - **Règle** : Avant de merger tout nouveau module, exécuter dans cet ordre : (1) `npx tsc --noEmit` → zéro erreur ; (2) `bash scripts/check-rules.sh` → zéro violation ; (3) tester manuellement dans un navigateur le golden path du module (créer, consulter, partager, edge cases). Les checks (1) et (2) sont nécessaires mais ne suffisent pas — ils ne valident pas le comportement UI.
@@ -104,6 +112,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Pattern
 
+### [035] Liens supports/LMS dans les emails — toujours personnalisés par destinataire avec ?email=
+- **Constat** : Le player LMS public identifie l'apprenant par le paramètre `?email=` de l'URL (pas de login). Le mail de remerciement post-formation envoyait le lien vers l'e-learning sans ce paramètre dans plusieurs chemins (URL explicite sur la formation, envoi planifié `force-send-scheduled-email` qui n'avait aucune résolution LMS, lien collé en dur dans un template personnalisé) : les participants obtenaient "Accès non autorisé. Veuillez utiliser le lien fourni par votre formateur."
+- **Règle** : Toute edge function qui envoie un email contenant un lien vers `/formation-support/` ou `/lms/` DOIT utiliser `_shared/supports-url.ts` : `resolveSupportsUrlBase()` pour construire la variable `{{supports_url}}`, `appendEmailParam()` pour la personnaliser, et `personalizeSupportsLinks()` en balayage final sur le HTML avant `sendEmail()` (couvre les liens collés en dur dans les templates custom). Les URLs externes (Drive, Notion…) ne sont pas modifiées.
+- **Vérification** : `grep -rln 'supports_url' supabase/functions/ --include='index.ts' | xargs grep -L 'supports-url.ts'` doit être vide — toute fonction qui manipule supports_url sans importer le helper est une violation (check [035] de check-rules.sh).
+- **Fichiers de référence** : `supabase/functions/_shared/supports-url.ts` (+ tests), `supabase/functions/send-thank-you-email/index.ts`, `supabase/functions/force-send-scheduled-email/index.ts`, `supabase/functions/process-live-reminders/index.ts`, `supabase/functions/process-today-reminders/index.ts`, `src/pages/LmsCoursePlayer.tsx` (la garde `!learnerEmail`)
+- **Origine** : bug user — participants d'une formation intra recevant "Accès non autorisé" en cliquant le lien e-learning du mail de remerciement
+- **Date** : 2026-07-07
+
 ### [029] LmsCourseHomePage — invariants de layout à ne jamais régresser
 - **Constat** : La page d'accueil du cours LMS a été redesignée 3+ fois pour corriger les mêmes problèmes : (1) hero avec vidéo à gauche au lieu de droite, (2) absence de la rangée de 3 cards stats (progression / prochain live / communauté), (3) absence de barres de progression par module dans la sidebar, (4) absence de la liste des modules avec CTAs (Commencer/Continuer/Revoir) sur la home.
 - **Règle** : `LmsCourseHomePage` doit toujours respecter cette structure sur la vue `home` : (1) `HeroSection` avec **texte gauche, vidéo droite** (premier enfant du grid = texte, second = vidéo) ; (2) rangée `sm:grid-cols-3` : `ProgressCard` + `LiveCard` + `CommunityInfoCard` ; (3) `ModulesListSection` (barres de progression + bouton CTA par module) + `TipsBlock` en grille `lg:grid-cols-[1fr_300px]` ; (4) les deux instances de `Sidebar` reçoivent la prop `lessonsDoneByModule` pour afficher les barres de progression par module.
@@ -148,7 +164,7 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Constat** : `supabase.functions.invoke()` est appelé 107 fois dans 73 fichiers. Chaque caller réimplémente le même pattern : `useState(loading)` + `useState(result)` + try/catch + `toast` d'erreur + `setLoading(false)` en `finally`. Environ 30-40 lignes de boilerplate par invocation, avec des variations sur le format de réponse (`data.result` vs `data` vs réponse complète).
 - **Règle** : Utiliser le hook `useEdgeFunction<T>(functionName, { errorMessage?, successToast?, silentOnError? })` depuis `@/hooks/useEdgeFunction`. Il retourne `{ loading, result, error, invoke, reset }`. Appeler `await invoke(body)` qui retourne `T | null` (null en cas d'erreur). Ne PAS appeler `supabase.functions.invoke` directement dans un composant/hook non dédié.
 - **Exception** : les hooks dédiés à une fonction (ex: `useBackup.ts` qui invoque `backup-export` + `backup-import` en flow chaîné) peuvent rester inline si la logique dépasse ce que le hook générique gère. À garder <5% des cas.
-- **Vérification** : `grep -rn 'supabase\.functions\.invoke' src/` hors `src/hooks/useEdgeFunction.ts` doit être ≤ quelques cas justifiés.
+- **Vérification** : `grep -rn 'supabase\.functions\.invoke' src/` hors `src/hooks/useEdgeFunction.ts` doit être ≤ quelques cas justifiés. Migration progressive : check staged pour le pré-commit + ratchet [020] dans `scripts/rules-ratchet.txt` — le compte ne peut que baisser.
 - **Fichiers de référence** : `src/hooks/useEdgeFunction.ts`, `src/components/missions/MissionDetailDrawer.tsx` (usage type pour AI summary).
 - **Origine** : audit d'architecture — 107 occurrences dupliquées
 - **Date** : 2026-04-15
@@ -172,7 +188,7 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 ### [017] Spinner de chargement — toujours utiliser `<Spinner />`
 - **Constat** : Le pattern `<Loader2 className="h-4 w-4 animate-spin" />` est répété 351 fois dans 196 fichiers avec des variations (h-6 w-6, text-muted-foreground, mr-2, etc.) qui rendent toute modification stylistique impossible à propager.
 - **Règle** : Utiliser `<Spinner />` depuis `@/components/ui/spinner`. Props : `size` (sm=h-4/w-4 défaut, md=h-6/w-6, lg=h-8/w-8) et `className` pour les classes additionnelles (couleur, margins). Ne PAS écrire `<Loader2 className="..animate-spin" />` inline.
-- **Vérification** : `grep -rEn 'Loader2[^>]*animate-spin' src/` hors `src/components/ui/spinner.tsx` doit être vide (migration progressive acceptée ; check staged-only pour le pré-commit).
+- **Vérification** : `grep -rEn 'Loader2[^>]*animate-spin' src/` hors `src/components/ui/spinner.tsx` doit être vide (migration progressive : check staged pour le pré-commit + ratchet [017] dans `scripts/rules-ratchet.txt` — le compte ne peut que baisser).
 - **Fichiers de référence** : `src/components/ui/spinner.tsx`, `src/components/missions/MissionDetailDrawer.tsx`, `src/components/crm/CardDetailDrawer.tsx`, `src/components/shared/NextActionScheduler.tsx`, `src/components/missions/MissionSettingsTab.tsx` (tous migrés).
 - **Origine** : audit d'architecture — 351 occurrences, pattern purement répété
 - **Date** : 2026-04-15
@@ -261,7 +277,8 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
   - `grep -rn "FOR ALL TO anon" supabase/migrations/` — seuls les formulaires token-based sont acceptés.
   - `grep -n "learner" supabase/functions/agent-chat/index.ts` — doit retourner le bloc 403.
   - `grep -n "verifyAuth" supabase/functions/notify-lms-comment/index.ts` — doit être présent.
-- **Fichiers de référence** : `supabase/migrations/20260529100000_staff_select_guard.sql`, `supabase/migrations/20260529110000_fix_open_authenticated_policies.sql`, `supabase/functions/agent-chat/index.ts`, `supabase/functions/notify-lms-comment/index.ts`
+  - Tests comportementaux : `supabase/tests/rls_learner_isolation.test.sql` (pgTAP, workflow `rls-tests.yml`) vérifie qu'un apprenant authentifié lit zéro ligne — plus fiable que les greps sur les migrations.
+- **Fichiers de référence** : `supabase/migrations/20260529100000_staff_select_guard.sql`, `supabase/migrations/20260529110000_fix_open_authenticated_policies.sql`, `supabase/functions/agent-chat/index.ts`, `supabase/functions/notify-lms-comment/index.ts`, `supabase/tests/rls_learner_isolation.test.sql`
 - **Origine** : audit de sécurité — apprenant pouvait lire CRM/missions/devis via RLS `USING (true)` + extraire toutes les données via agent-chat (service role key sans guard rôle)
 - **Date** : 2026-05-29
 

@@ -7,6 +7,7 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { processTemplate, emailButton, templateTextToHtml } from "../_shared/templates.ts";
 import { tuVousSuffix, fetchTemplateOrDefault, logEmailActivity } from "../_shared/email-helpers.ts";
 import { aiChat } from "../_shared/ai.ts";
+import { personalizeSupportsLinks } from "../_shared/supports-url.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
@@ -291,9 +292,14 @@ serve(async (req) => {
         const summaryUrl = `${APP_URL}/formation-info/${trainingId}`;
         const resolvedSubject = processTemplate(template.subject, variables, false);
         const body = processTemplate(template.content, variables, false);
-        const resolvedHtml = templateTextToHtml(body)
-          + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
-          + "\n" + signatureHtml;
+        // Le player LMS exige ?email= : personnalise les liens support éventuels
+        // (notamment collés en dur dans un template custom).
+        const resolvedHtml = personalizeSupportsLinks(
+          templateTextToHtml(body)
+            + "\n" + emailButton("Infos & documents de la formation", summaryUrl)
+            + "\n" + signatureHtml,
+          p.email,
+        );
 
         const result = await sendEmail({
           to: p.email,
@@ -393,9 +399,12 @@ serve(async (req) => {
           const trainerSummaryUrl = `${APP_URL}/formation-info/${trainingId}`;
           const trainerSubject = processTemplate(trainerTemplate.subject, trainerVars, false);
           const trainerBody = processTemplate(trainerTemplate.content, trainerVars, false);
-          const trainerHtml = templateTextToHtml(trainerBody)
-            + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
-            + "\n" + signatureHtml;
+          const trainerHtml = personalizeSupportsLinks(
+            templateTextToHtml(trainerBody)
+              + "\n" + emailButton("Infos & documents de la formation", trainerSummaryUrl)
+              + "\n" + signatureHtml,
+            trainer.email,
+          );
 
           const trainerResult = await sendEmail({
             to: trainer.email,
