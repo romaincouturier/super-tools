@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
+import { TagsInput } from "@/components/ui/tags-input";
 import { uploadLmsImage } from "@/hooks/useLms";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -47,11 +48,30 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
+          <Label className="text-xs">Petit label</Label>
+          <Input
+            value={content.label ?? ""}
+            onChange={(e) => onChange({ ...content, label: e.target.value || null })}
+            placeholder="ex: Pour aller plus loin, À découvrir aussi…"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Badge (optionnel)</Label>
+          <Input
+            value={content.badge ?? ""}
+            onChange={(e) => onChange({ ...content, badge: e.target.value || null })}
+            placeholder="ex: Nouveau, Best-seller"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
           <Label className="text-xs">Titre</Label>
           <Input
             value={content.title ?? ""}
             onChange={(e) => onChange({ ...content, title: e.target.value || null })}
-            placeholder="ex: Formation PARC"
+            placeholder="ex: Envie d'animer des ateliers qui marquent les esprits ?"
           />
         </div>
         <div className="space-y-1">
@@ -107,13 +127,23 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
         />
       </div>
 
+      <div className="space-y-1">
+        <Label className="text-xs">Bénéfices (2 à 3 pastilles)</Label>
+        <TagsInput
+          value={content.benefits ?? []}
+          onChange={(benefits) => onChange({ ...content, benefits: benefits.slice(0, 3) })}
+          placeholder="ex: Formats concrets, Outils prêts à l'emploi…"
+          variant="pill"
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Texte du bouton</Label>
           <Input
             value={content.button_label}
             onChange={(e) => onChange({ ...content, button_label: e.target.value })}
-            placeholder="ex: Découvrir le programme"
+            placeholder="ex: Découvrir nos formations"
           />
         </div>
         <div className="space-y-1">
@@ -122,6 +152,26 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
             type="url"
             value={content.button_url}
             onChange={(e) => onChange({ ...content, button_url: e.target.value })}
+            placeholder="https://…"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Lien secondaire (optionnel)</Label>
+          <Input
+            value={content.secondary_label ?? ""}
+            onChange={(e) => onChange({ ...content, secondary_label: e.target.value || null })}
+            placeholder="ex: Voir le programme détaillé"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">URL du lien secondaire</Label>
+          <Input
+            type="url"
+            value={content.secondary_url ?? ""}
+            onChange={(e) => onChange({ ...content, secondary_url: e.target.value || null })}
             placeholder="https://…"
           />
         </div>
@@ -137,7 +187,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
           <Label htmlFor="cta-new-tab" className="cursor-pointer text-xs">Ouvrir dans un nouvel onglet</Label>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">Couleur du cadre :</span>
+          <span className="text-xs text-muted-foreground">Couleur d'accent :</span>
           {ACCENT_PRESETS.map((p) => (
             <button
               key={p.value}
@@ -163,8 +213,10 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
       <div
         style={{
           borderRadius: "var(--st-br, 20px)",
-          border: `3px solid ${accent}`,
+          border: "1px solid #ECECEF",
+          borderLeft: `4px solid ${accent}`,
           padding: "1.25rem",
+          boxShadow: "0 4px 16px rgba(16, 24, 32, 0.05)",
         }}
       >
         {form}
