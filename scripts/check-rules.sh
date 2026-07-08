@@ -227,6 +227,11 @@ check "035" "Les edge functions utilisant supports_url importent _shared/support
 check "036" "Pas de vault.decrypted_secrets / x-cron-secret dans les nouvelles migrations" \
   "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260708235959 ] 2>/dev/null || continue; grep -vE '^\s*--' \"\$f\" | grep -qE 'vault\.decrypted_secrets|x-cron-secret' && echo \"VIOLATION: \$f\"; done; true"
 
+# [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
+# des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).
+check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
+  "bash scripts/check-backup-tables.sh"
+
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
 MANUAL_RULES="002|013|022|024|029|032|033"

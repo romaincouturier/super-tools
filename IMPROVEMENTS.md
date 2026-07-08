@@ -8,6 +8,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## DX
 
+### [038] Backup — toute nouvelle table de migration doit être ajoutée aux listes TABLES_TO_BACKUP
+- **Constat** : Les fonctions `backup-export` et `scheduled-backup` exportent une liste de tables codée en dur (`TABLES_TO_BACKUP`, dupliquée dans les deux fichiers). Les migrations créent des tables sans que personne ne mette à jour ces listes : audit de juillet 2026, 19 tables absentes des backups, dont des données réelles (moteur éditorial complet, `ideas`/`idea_votes`, `wp_articles`, `crm_scheduled_emails`, `training_formulas`…). Une restauration aurait perdu ces données silencieusement.
+- **Règle** : Toute migration qui crée une table doit, dans le même commit, soit ajouter la table dans `TABLES_TO_BACKUP` des DEUX fonctions (`backup-export` et `scheduled-backup`), soit l'exclure explicitement dans `scripts/backup-exclusions.txt` (réservé aux données éphémères ou regénérables : caches, rate limits, files d'attente). Les deux listes doivent rester identiques.
+- **Vérification** : `bash scripts/check-backup-tables.sh` doit être vide — il rejoue les CREATE/DROP TABLE des migrations dans l'ordre et compare aux deux listes et aux exclusions (check [038] de check-rules.sh, exécuté en pre-commit et CI).
+- **Fichiers de référence** : `scripts/check-backup-tables.sh`, `scripts/backup-exclusions.txt`, `supabase/functions/backup-export/index.ts`, `supabase/functions/scheduled-backup/index.ts`
+- **Origine** : demande user — "ajouter au harnais la prise en compte des évolutions de la bdd dans la procédure de backup"
+- **Date** : 2026-07-08
+
 ### [034] Enforcement machine — toute règle doit être appliquée par un mécanisme bloquant, jamais par une consigne seule
 - **Constat** : Audit du harnais (juillet 2026) : le hook pre-commit se terminait par `|| true`, donc un échec de check-rules.sh n'a jamais bloqué un commit depuis sa création (les hooks PreToolUse ne bloquent que sur exit code 2). Par ailleurs, aucune règle n'était vérifiée sur les commits Lovable, qui ne passent pas par Claude Code — précisément la source de la majorité des régressions documentées ici (013, 027, 011, 012). Une règle qui n'existe que comme texte dans ce fichier ou dans CLAUDE.md n'est pas un invariant : c'est un vœu.
 - **Règle** : Toute règle ajoutée à ce fichier doit être appliquée par au moins un mécanisme machine bloquant : check dans `scripts/check-rules.sh` (exécuté par le hook pre-commit ET par le CI), job CI dédié, ou ratchet pour les migrations progressives. Les mécanismes doivent bloquer réellement (exit code 2 pour un hook PreToolUse, exit 1 pour un job CI). Une règle vérifiable uniquement à la main doit le justifier explicitement dans sa section Vérification.
