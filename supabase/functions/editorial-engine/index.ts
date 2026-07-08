@@ -18,7 +18,7 @@
  * La décision finale est humaine : statut "pending" jusqu'à arbitrage dans
  * l'UI (/transcripts, onglet Recommandations).
  *
- * Déclenchement : bouton UI (JWT) ou cron hebdomadaire (x-internal-secret).
+ * Déclenchement : bouton UI (JWT) ou cron hebdomadaire (x-cron-secret).
  * Body : { transcript_id?: string, limit?: number }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -226,8 +226,15 @@ Deno.serve(async (req) => {
     const limit = Math.max(1, Math.min(Number(body.limit) || 8, 20));
 
     // Auth : interne (cron) ou utilisateur connecté.
+    // Deux voies internes : service role (appels inter-fonctions) ou secret de
+    // cron dédié (EDITORIAL_CRON_SECRET, posé en secret d'edge function et
+    // inline dans le SQL du cron — la service_role n'est pas exposable sur
+    // Lovable Cloud et le vault du projet est vide).
+    const CRON_SECRET = Deno.env.get("EDITORIAL_CRON_SECRET") ?? "";
     const internalSecret = req.headers.get("x-internal-secret");
-    const isInternal = internalSecret && internalSecret === SERVICE_ROLE;
+    const cronSecret = req.headers.get("x-cron-secret");
+    const isInternal = (internalSecret && internalSecret === SERVICE_ROLE) ||
+      (CRON_SECRET !== "" && cronSecret === CRON_SECRET);
     if (!isInternal) {
       const auth = req.headers.get("Authorization");
       if (!auth) return json({ error: "Unauthorized" }, 401);

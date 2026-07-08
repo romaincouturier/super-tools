@@ -8,7 +8,7 @@
  * ramasse tout transcript dont l'analyse automatique aurait échoué.
  *
  * Body : { limit?: number } (défaut 20, max 40)
- * Auth : x-internal-secret (cron) ou JWT utilisateur (bouton UI).
+ * Auth : x-cron-secret (cron), x-internal-secret (inter-fonctions) ou JWT (UI).
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
@@ -34,8 +34,15 @@ Deno.serve(async (req) => {
     try { body = await req.json(); } catch { body = {}; }
     const limit = Math.max(1, Math.min(Number(body.limit) || 20, 40));
 
+    // Deux voies internes : service role (appels inter-fonctions) ou secret de
+    // cron dédié (EDITORIAL_CRON_SECRET, posé en secret d'edge function et
+    // inline dans le SQL du cron — la service_role n'est pas exposable sur
+    // Lovable Cloud et le vault du projet est vide).
+    const CRON_SECRET = Deno.env.get("EDITORIAL_CRON_SECRET") ?? "";
     const internalSecret = req.headers.get("x-internal-secret");
-    const isInternal = internalSecret && internalSecret === SERVICE_ROLE;
+    const cronSecret = req.headers.get("x-cron-secret");
+    const isInternal = (internalSecret && internalSecret === SERVICE_ROLE) ||
+      (CRON_SECRET !== "" && cronSecret === CRON_SECRET);
     if (!isInternal) {
       const auth = req.headers.get("Authorization");
       if (!auth) return json({ error: "Unauthorized" }, 401);
