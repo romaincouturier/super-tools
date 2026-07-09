@@ -40,6 +40,7 @@ import type {
   DragWordsBlockContent,
   SummaryBlockContent,
   CtaBlockContent,
+  CodeBlockContent,
 } from "@/types/lms-blocks";
 import { BLOCK_META } from "./registry";
 import { exampleBlockContent } from "@/types/lms-blocks";
@@ -75,6 +76,7 @@ import FillBlanksBlockEditor from "./editors/FillBlanksBlockEditor";
 import DragWordsBlockEditor from "./editors/DragWordsBlockEditor";
 import SummaryBlockEditor from "./editors/SummaryBlockEditor";
 import CtaBlockEditor from "./editors/CtaBlockEditor";
+import CodeBlockEditor from "./editors/CodeBlockEditor";
 
 interface Props {
   block: LessonBlock;
@@ -516,6 +518,14 @@ function BlockEditorBody({
         <CtaBlockEditor
           lessonId={lessonId}
           content={content as CtaBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
+        />
+      );
+    case "code":
+      return (
+        <CodeBlockEditor
+          content={content as CodeBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
         />
