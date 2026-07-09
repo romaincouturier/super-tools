@@ -198,6 +198,8 @@ const App = () => {
               <Route path="/sondage-formation/:token" element={<TrainingSurveyResponse />} />
               {/* Book public share */}
               <Route path="/book/share/:token" element={<BookPublicPage />} />
+              {/* SuperTilt shipment confirmation status page (target of edge function redirect) */}
+              <Route path="/supertilt/confirmation-envoi" element={<SupertiltConfirmationEnvoi />} />
               {/* OAuth callbacks */}
               <Route path="/google/callback" element={<GoogleCallback />} />
               <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
