@@ -7,6 +7,12 @@ interface Props {
 
 const GRID_COLS = ["grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-4"];
 
+function textFontSize(text: string): string {
+  if (text.length > 220) return "0.75rem";
+  if (text.length > 110) return "0.8125rem";
+  return "0.875rem";
+}
+
 export default function FlipCardsBlockViewer({ content }: Props) {
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const cards = content.cards ?? [];
@@ -136,22 +142,26 @@ function CardFace({
         <img
           src={imageUrl}
           alt=""
-          style={{ maxWidth: "100%", maxHeight: 80, objectFit: "contain", borderRadius: 8 }}
+          style={{ maxWidth: "100%", maxHeight: 80, objectFit: "contain", borderRadius: 8, flexShrink: 0 }}
         />
       )}
       {text && (
-        <p
-          style={{
-            margin: 0,
-            textAlign: "center",
-            fontSize: "0.875rem",
-            fontWeight: isBack ? 400 : 600,
-            color: "#101820",
-            lineHeight: 1.4,
-          }}
-        >
-          {text}
-        </p>
+        <div style={{ width: "100%", minHeight: 0, overflowY: "auto" }}>
+          <p
+            style={{
+              margin: 0,
+              textAlign: "center",
+              fontSize: textFontSize(text),
+              fontWeight: isBack ? 400 : 600,
+              color: "#101820",
+              lineHeight: 1.4,
+              whiteSpace: "pre-line",
+              overflowWrap: "break-word",
+            }}
+          >
+            {text}
+          </p>
+        </div>
       )}
       {!text && !imageUrl && (
         <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.75rem" }}>
