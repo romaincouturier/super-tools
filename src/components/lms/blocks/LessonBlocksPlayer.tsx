@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import DOMPurify from "dompurify";
 import type {
   LessonBlock,
   TextBlockContent,
