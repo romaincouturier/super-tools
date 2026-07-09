@@ -41,7 +41,18 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (callerUser.user_metadata?.role === "learner") {
+    // Server-side role check (user_metadata is user-writable and unsafe).
+    const { data: isAdm } = await supabase.rpc("is_admin", { _user_id: callerUser.id });
+    let allowed = !!isAdm;
+    if (!allowed) {
+      const { data: modAccess } = await supabase
+        .from("user_module_access")
+        .select("module_key")
+        .eq("user_id", callerUser.id)
+        .limit(1);
+      allowed = !!(modAccess && modAccess.length > 0);
+    }
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Accès refusé" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
