@@ -27,7 +27,12 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const { data: { user: caller }, error: authErr } = await callerClient.auth.getUser();
-  if (authErr || !caller || caller.user_metadata?.role === "learner") {
+  if (authErr || !caller) {
+    return createErrorResponse("Forbidden", 403);
+  }
+  // Server-side admin check (user_metadata is user-writable and unsafe).
+  const { data: isAdm, error: isAdmErr } = await admin.rpc("is_admin", { _user_id: caller.id });
+  if (isAdmErr || !isAdm) {
     return createErrorResponse("Forbidden", 403);
   }
 
