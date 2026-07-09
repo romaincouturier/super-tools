@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import DOMPurify from "dompurify";
 import type {
   LessonBlock,
   TextBlockContent,
@@ -162,7 +163,7 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
             {c.instructions_html && (
               <div
                 className="prose prose-sm max-w-none break-words"
-                dangerouslySetInnerHTML={{ __html: c.instructions_html }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(c.instructions_html) }}
               />
             )}
             {renderAssignment?.(block.lesson_id)}

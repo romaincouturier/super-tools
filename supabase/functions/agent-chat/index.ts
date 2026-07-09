@@ -768,15 +768,18 @@ serve(async (req) => {
     if (!authResult) return createErrorResponse("Non autorisé", 401);
 
     // Block learners: agent-chat has access to all SuperTools data via service role.
-    // Decode JWT locally (signature already verified by verifyAuth above).
-    const rawToken = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-    try {
-      const payload = JSON.parse(atob(rawToken.split(".")[1]));
-      if (payload?.user_metadata?.role === "learner") {
+    // Server-side check against profiles.is_admin — user_metadata is user-writable and unsafe.
+    const supabaseAdmin = getSupabaseClient();
+    const { data: isAdm } = await supabaseAdmin.rpc("is_admin", { _user_id: authResult.id });
+    if (!isAdm) {
+      const { data: modAccess } = await supabaseAdmin
+        .from("user_module_access")
+        .select("module_key")
+        .eq("user_id", authResult.id)
+        .limit(1);
+      if (!modAccess || modAccess.length === 0) {
         return createErrorResponse("Accès refusé", 403);
       }
-    } catch {
-      return createErrorResponse("Token invalide", 401);
     }
 
     const { message, conversation_id, attachments } = await req.json();

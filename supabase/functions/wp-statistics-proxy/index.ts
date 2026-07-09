@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
+import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const ENDPOINT_MAP: Record<string, string> = {
   summary: "summary",
@@ -60,6 +61,9 @@ Deno.serve(async (req) => {
   if (preflight) return preflight;
 
   try {
+    const user = await verifyAuth(req.headers.get("Authorization"));
+    if (!user) return createErrorResponse("Unauthorized", 401);
+
     const url = new URL(req.url);
     const endpoint = url.searchParams.get("endpoint");
     
