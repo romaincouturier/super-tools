@@ -122,6 +122,7 @@ const GoogleCallback = lazy(() => import("./pages/GoogleCallback"));
 const BookPage = lazy(() => import("./pages/Book"));
 const BookAlbumPage = lazy(() => import("./pages/BookAlbumPage"));
 const BookPublicPage = lazy(() => import("./pages/BookPublicPage"));
+const SupertiltConfirmationEnvoi = lazy(() => import("./pages/SupertiltConfirmationEnvoi"));
 
 // In-memory query client only — no IndexedDB persistence.
 // Persisting the cache caused stale UIs ("vieille interface") on returning visits.
