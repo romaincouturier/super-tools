@@ -230,9 +230,9 @@ check "037" "Erreurs affichées à l'utilisateur reportées à Sentry (toastErro
    true"
 
 # [037c] Sonner — jamais importé directement : passer par le wrapper @/lib/toast
-# (seules exceptions : le wrapper lui-même et le composant Toaster).
+# (exceptions : le wrapper lui-même, le composant Toaster, et les tests qui mockent le module).
 check "037c" "Pas d'import direct de sonner (utiliser @/lib/toast)" \
-  "grep -rln 'from \"sonner\"' src --include='*.ts' --include='*.tsx' | grep -v 'src/lib/toast.ts' | grep -v 'src/components/ui/sonner.tsx'"
+  "grep -rln 'from \"sonner\"' src --include='*.ts' --include='*.tsx' | grep -v 'src/lib/toast.ts' | grep -v 'src/components/ui/sonner.tsx' | grep -v '\.test\.'"
 
 # [037d] Un catch qui reporte à Sentry ne doit pas AUSSI appeler createErrorResponse
 # (double événement) : cause/fn se passent via createErrorResponse.
