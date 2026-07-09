@@ -19,6 +19,7 @@ import {
   type HtmlEmbedBlockContent,
   type TimelineBlockContent,
   type FlipCardsBlockContent,
+  type CtaBlockContent,
 } from "./lms-blocks";
 
 describe("isLayoutBlockType", () => {
@@ -241,6 +242,46 @@ describe("defaultBlockContent — flip_cards", () => {
 
   it("isLayoutBlockType returns false for flip_cards", () => {
     expect(isLayoutBlockType("flip_cards")).toBe(false);
+  });
+});
+
+describe("defaultBlockContent — cta", () => {
+  it("defaults to a label, a button label, empty benefits and no image", () => {
+    const c = defaultBlockContent("cta") as CtaBlockContent;
+    expect(c.label).toBe("Pour aller plus loin");
+    expect(c.button_label).toBe("Découvrir le programme");
+    expect(c.button_url).toBe("");
+    expect(c.benefits).toEqual([]);
+    expect(c.image_url).toBeNull();
+    expect(c.badge).toBeNull();
+    expect(c.open_in_new_tab).toBe(true);
+    expect(c.accent_color).toBeNull();
+  });
+
+  it("blockKindOf returns 'content' for cta", () => {
+    expect(blockKindOf("cta")).toBe("content");
+  });
+
+  it("isLayoutBlockType returns false for cta", () => {
+    expect(isLayoutBlockType("cta")).toBe(false);
+  });
+});
+
+describe("exampleBlockContent — cta", () => {
+  it("returns an example with at most 3 benefits, a badge and a secondary link", () => {
+    const c = exampleBlockContent("cta") as CtaBlockContent;
+    expect(c.benefits!.length).toBeGreaterThanOrEqual(2);
+    expect(c.benefits!.length).toBeLessThanOrEqual(3);
+    expect(c.badge).toBeTruthy();
+    expect(c.secondary_label).toBeTruthy();
+    expect(c.secondary_url).toBeTruthy();
+    expect(c.button_label).toBeTruthy();
+    expect(c.button_url).toBeTruthy();
+  });
+
+  it("example title carries an accented segment marked with asterisks", () => {
+    const c = exampleBlockContent("cta") as CtaBlockContent;
+    expect(c.title).toMatch(/\*[^*]+\*/);
   });
 });
 

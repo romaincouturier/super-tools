@@ -368,13 +368,14 @@ export interface SummaryBlockContent {
 export interface CtaBlockContent {
   /** Petit label au-dessus du titre, ex: "Pour aller plus loin". */
   label?: string | null;
+  /** Peut contenir un segment accentué entouré d'astérisques : `*mot*`. */
   title?: string | null;
   subtitle?: string | null;
   image_url?: string | null;
   body_html?: string | null;
   /** 2 à 3 bénéfices affichés en pastilles. */
   benefits?: string[];
-  /** Badge optionnel en coin de carte, ex: "Nouveau". */
+  /** Badge rond superposé à l'image (ou en coin de carte sans image), ex: "Nos formations". */
   badge?: string | null;
   button_label: string;
   button_url: string;
@@ -824,17 +825,17 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
     case "cta":
       return {
         label: "Pour aller plus loin",
-        title: "Envie d'animer des ateliers qui marquent les esprits ?",
+        title: "Envie d'animer des ateliers qui *marquent les esprits* ?",
         subtitle: null,
         image_url: null,
         body_html:
           "<p>Découvrez nos formations pour concevoir et animer des réunions, ateliers et séminaires plus engageants, visuels et efficaces.</p>",
         benefits: ["Formats concrets", "Outils prêts à l'emploi", "Posture d'animation"],
-        badge: null,
+        badge: "Nos formations",
         button_label: "Découvrir nos formations",
         button_url: "https://example.com",
-        secondary_label: null,
-        secondary_url: null,
+        secondary_label: "Voir le programme détaillé",
+        secondary_url: "https://example.com",
         open_in_new_tab: true,
         accent_color: null,
       };
