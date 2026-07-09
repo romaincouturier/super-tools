@@ -61,6 +61,9 @@ Deno.serve(async (req) => {
   if (preflight) return preflight;
 
   try {
+    const user = await verifyAuth(req.headers.get("Authorization"));
+    if (!user) return createErrorResponse("Unauthorized", 401);
+
     const url = new URL(req.url);
     const endpoint = url.searchParams.get("endpoint");
     
