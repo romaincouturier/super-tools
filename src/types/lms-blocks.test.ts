@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  acceptsChildren,
   blockKindOf,
   defaultBlockContent,
   exampleBlockContent,
@@ -7,6 +8,7 @@ import {
   LAYOUT_BLOCK_TYPES,
   type ContentBlockType,
   type LayoutBlockType,
+  type RevealBlockContent,
   type RowBlockContent,
   type SectionBlockContent,
   type SpacerBlockContent,
@@ -57,7 +59,7 @@ describe("isLayoutBlockType", () => {
 
 describe("blockKindOf", () => {
   it("returns 'layout' for layout types", () => {
-    const layoutTypes: LayoutBlockType[] = ["section", "row", "container", "divider", "spacer"];
+    const layoutTypes: LayoutBlockType[] = ["section", "row", "container", "reveal", "divider", "spacer"];
     for (const t of layoutTypes) {
       expect(blockKindOf(t)).toBe("layout");
     }
@@ -86,6 +88,18 @@ describe("defaultBlockContent — layout types", () => {
   it("container defaults to 'lg' max width", () => {
     const c = defaultBlockContent("container") as ContainerBlockContent;
     expect(c.max_width).toBe("lg");
+  });
+
+  it("reveal defaults to the 'Révéler la suite' button, no auto-hide, not collapsible", () => {
+    const c = defaultBlockContent("reveal") as RevealBlockContent;
+    expect(c.button_label).toBe("Révéler la suite");
+    expect(c.hide_button_after_click).toBe(false);
+    expect(c.collapsible).toBe(false);
+  });
+
+  it("reveal is a layout container that accepts children", () => {
+    expect(blockKindOf("reveal")).toBe("layout");
+    expect(acceptsChildren("reveal")).toBe(true);
   });
 
   it("divider defaults to a solid line", () => {

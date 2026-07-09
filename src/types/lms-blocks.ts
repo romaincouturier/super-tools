@@ -18,6 +18,7 @@ export type LayoutBlockType =
   | "section"
   | "row"
   | "container"
+  | "reveal"
   | "divider"
   | "spacer";
 
@@ -58,6 +59,7 @@ export const LAYOUT_BLOCK_TYPES: readonly LayoutBlockType[] = [
   "section",
   "row",
   "container",
+  "reveal",
   "divider",
   "spacer",
 ] as const;
@@ -75,6 +77,7 @@ export const LAYOUT_CONTAINER_TYPES: readonly LayoutBlockType[] = [
   "section",
   "row",
   "container",
+  "reveal",
 ] as const;
 
 export function acceptsChildren(type: LessonBlockType): boolean {
@@ -431,6 +434,18 @@ export interface ContainerBlockContent {
   max_width: ContainerMaxWidth;
 }
 
+/**
+ * Progressive-content container (ST-2026-0238). Children stay hidden in the
+ * player until the learner clicks the reveal button.
+ */
+export interface RevealBlockContent {
+  button_label: string;
+  /** When true, the button disappears once the content is revealed. */
+  hide_button_after_click?: boolean;
+  /** When true, the button becomes a toggle so the content can be closed again. */
+  collapsible?: boolean;
+}
+
 export type DividerStyle = "solid" | "dashed";
 
 export interface DividerBlockContent {
@@ -461,6 +476,7 @@ export type LessonBlockContent =
   | SectionBlockContent
   | RowBlockContent
   | ContainerBlockContent
+  | RevealBlockContent
   | DividerBlockContent
   | SpacerBlockContent
   | ShortcodeBlockContent
@@ -560,6 +576,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
       return { column_count: 2 };
     case "container":
       return { max_width: "lg" };
+    case "reveal":
+      return { button_label: "Révéler la suite", hide_button_after_click: false, collapsible: false };
     case "divider":
       return { style: "solid" };
     case "spacer":

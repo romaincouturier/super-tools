@@ -426,7 +426,8 @@ function SortableBuilderBlock({
   const isContainer =
     node.block.type === "section" ||
     node.block.type === "row" ||
-    node.block.type === "container";
+    node.block.type === "container" ||
+    node.block.type === "reveal";
   const hasChildren = node.children.length > 0;
   const childIds = node.children.map((c) => c.block.id);
   const gapClass = DENSITY_GAP[density] ?? "space-y-3";

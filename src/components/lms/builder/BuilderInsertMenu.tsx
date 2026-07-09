@@ -39,6 +39,7 @@ const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }
   divider:         { desc: "Trait fin entre sections", kbd: "/ ---" },
   spacer:          { desc: "Espace vertical", kbd: "/ espace" },
   container:       { desc: "Conteneur générique" },
+  reveal:          { desc: "Révéler du contenu au clic", kbd: "/ reveler" },
 };
 
 const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
@@ -50,7 +51,7 @@ const ACTIVE_CONTENT_TYPES: LessonBlockType[] = [
 ];
 
 const ACTIVE_LAYOUT_TYPES: LessonBlockType[] = [
-  "section", "row", "divider", "spacer", "container",
+  "section", "row", "divider", "spacer", "container", "reveal",
 ];
 
 interface Props {

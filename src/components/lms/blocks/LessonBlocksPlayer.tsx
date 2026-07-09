@@ -21,6 +21,7 @@ import type {
   SectionBlockContent,
   RowBlockContent,
   ContainerBlockContent,
+  RevealBlockContent,
   DividerBlockContent,
   SpacerBlockContent,
   ShortcodeBlockContent,
@@ -54,6 +55,7 @@ import ActionBlockShell from "./viewers/ActionBlockShell";
 import SectionBlockViewer from "./viewers/SectionBlockViewer";
 import RowBlockViewer from "./viewers/RowBlockViewer";
 import ContainerBlockViewer from "./viewers/ContainerBlockViewer";
+import RevealBlockViewer from "./viewers/RevealBlockViewer";
 import DividerBlockViewer from "./viewers/DividerBlockViewer";
 import SpacerBlockViewer from "./viewers/SpacerBlockViewer";
 import ShortcodeBlockViewer from "./viewers/ShortcodeBlockViewer";
@@ -220,6 +222,12 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
         <ContainerBlockViewer content={block.content as ContainerBlockContent}>
           {visibleChildren}
         </ContainerBlockViewer>
+      );
+    case "reveal":
+      return (
+        <RevealBlockViewer content={block.content as RevealBlockContent}>
+          {visibleChildren}
+        </RevealBlockViewer>
       );
     case "divider":
       return <DividerBlockViewer content={block.content as DividerBlockContent} />;

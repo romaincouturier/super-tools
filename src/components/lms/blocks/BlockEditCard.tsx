@@ -27,6 +27,7 @@ import type {
   SectionBlockContent,
   RowBlockContent,
   ContainerBlockContent,
+  RevealBlockContent,
   DividerBlockContent,
   SpacerBlockContent,
   ShortcodeBlockContent,
@@ -62,6 +63,7 @@ import WorkDepositBlockEditor from "./editors/WorkDepositBlockEditor";
 import SectionBlockEditor from "./editors/SectionBlockEditor";
 import RowBlockEditor from "./editors/RowBlockEditor";
 import ContainerBlockEditor from "./editors/ContainerBlockEditor";
+import RevealBlockEditor from "./editors/RevealBlockEditor";
 import DividerBlockEditor from "./editors/DividerBlockEditor";
 import SpacerBlockEditor from "./editors/SpacerBlockEditor";
 import ShortcodeBlockEditor from "./editors/ShortcodeBlockEditor";
@@ -410,6 +412,14 @@ function BlockEditorBody({
         <ContainerBlockEditor
           content={content as ContainerBlockContent}
           onChange={(c) => onChange(c)}
+        />
+      );
+    case "reveal":
+      return (
+        <RevealBlockEditor
+          content={content as RevealBlockContent}
+          onChange={(c) => onChange(c)}
+          slim={slim}
         />
       );
     case "divider":
