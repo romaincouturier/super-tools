@@ -13,19 +13,34 @@ import { Label } from "@/components/ui/label";
 import {
   useCourses, useCreateCourse, useDeleteCourse, useUpdateCourse, useDuplicateCourse,
   useCourseFolders, useCreateCourseFolder, useRenameCourseFolder, useDeleteCourseFolder, useMoveCourseToFolder,
-  type LmsCourseFolder,
+  useCourseEnrollmentCounts,
+  type LmsCourse, type LmsCourseFolder,
 } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown, Pencil } from "lucide-react";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown, Pencil, Settings2, Archive, ArchiveRestore, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useCommunityPendingPosts } from "@/hooks/useCommunityPendingPosts";
+import CourseMetaDialog from "@/components/lms/CourseMetaDialog";
+import {
+  QUICK_VIEWS, EXPERTISE_OPTIONS, ACCESS_OPTIONS, STATUS_OPTIONS,
+  DEFAULT_COURSE_META_FILTERS, courseMatchesMetaFilters,
+  statusLabel, accessLabel, expertiseLabel,
+  type CourseMetaFilters,
+} from "@/lib/lmsCourseMeta";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
   published: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+  to_review: "bg-amber-500/10 text-amber-700 border-amber-200",
   archived: "bg-orange-500/10 text-orange-700 border-orange-200",
+};
+
+const accessColors: Record<string, string> = {
+  gratuit: "bg-sky-500/10 text-sky-700 border-sky-200",
+  payant: "bg-violet-500/10 text-violet-700 border-violet-200",
+  intra: "bg-slate-500/10 text-slate-700 border-slate-200",
 };
 
 const difficultyLabels: Record<string, string> = {
@@ -130,7 +145,27 @@ export default function LmsCourses() {
   };
   const [form, setForm] = useState({ title: "", description: "", difficulty_level: "beginner" });
 
+  const { data: enrollmentCounts = {} } = useCourseEnrollmentCounts();
+  const [filters, setFilters] = useState<CourseMetaFilters>(DEFAULT_COURSE_META_FILTERS);
+  const [metaCourse, setMetaCourse] = useState<LmsCourse | null>(null);
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    filters.view !== "tous" ||
+    filters.expertise !== "all" ||
+    filters.access !== "all" ||
+    filters.status !== "all";
+
+  const resetFilters = () => {
+    setSearch("");
+    setFilters(DEFAULT_COURSE_META_FILTERS);
+  };
+
+  const toReviewCount = courses.filter((c) => c.status === "to_review").length;
+  const archivedCount = courses.filter((c) => c.status === "archived").length;
+
   const filtered = courses.filter((c) => {
+    if (!courseMatchesMetaFilters(c, filters)) return false;
     const matchSearch =
       c.title.toLowerCase().includes(search.toLowerCase()) ||
       c.description?.toLowerCase().includes(search.toLowerCase());
@@ -160,6 +195,17 @@ export default function LmsCourses() {
     setDuplicatingId(null);
   };
 
+  const handleArchiveToggle = async (e: React.MouseEvent, course: LmsCourse) => {
+    e.stopPropagation();
+    const isArchived = course.status === "archived";
+    try {
+      await updateCourse.mutateAsync({ id: course.id, status: isArchived ? "draft" : "archived" });
+      toast({ title: isArchived ? "Cours restauré en brouillon" : "Cours archivé" });
+    } catch (err) {
+      toastError(toast, err);
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     const ok = await confirm({
@@ -181,6 +227,7 @@ export default function LmsCourses() {
   return (
     <ModuleLayout>
       <ConfirmDialog />
+      <CourseMetaDialog course={metaCourse} onClose={() => setMetaCourse(null)} />
       <div className="flex h-full">
 
         {/* Folder sidebar */}
@@ -443,6 +490,70 @@ export default function LmsCourses() {
           </div>
         )}
 
+        {/* Vues rapides + filtres */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {QUICK_VIEWS.map((v) => {
+              const isActive = filters.view === v.key;
+              const count = v.key === "a_verifier" ? toReviewCount : v.key === "archives" ? archivedCount : null;
+              return (
+                <button
+                  key={v.key}
+                  onClick={() => setFilters({ ...filters, view: v.key })}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${isActive ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+                >
+                  {v.label}
+                  {count !== null && count > 0 && (
+                    <span className={`inline-flex items-center justify-center rounded-full text-[10px] font-bold px-1.5 py-0.5 min-w-[18px] ${v.key === "a_verifier" ? "bg-amber-500 text-white" : isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={filters.expertise} onValueChange={(v) => setFilters({ ...filters, expertise: v })}>
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Expertise" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les expertises</SelectItem>
+                {EXPERTISE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filters.access} onValueChange={(v) => setFilters({ ...filters, access: v })}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Accès" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les accès</SelectItem>
+                {ACCESS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                {STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
+                <X className="w-4 h-4 mr-1" /> Réinitialiser les filtres
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Course Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -458,7 +569,9 @@ export default function LmsCourses() {
               <GraduationCap className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
               <p className="text-lg font-medium text-muted-foreground">Aucun cours</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Créez votre premier cours pour commencer
+                {hasActiveFilters
+                  ? "Aucun cours ne correspond aux filtres"
+                  : "Créez votre premier cours pour commencer"}
               </p>
             </CardContent>
           </Card>
@@ -524,6 +637,9 @@ export default function LmsCourses() {
                         <DropdownMenuItem onClick={(e) => startEdit(e, course.id, course.title)}>
                           <Pencil className="w-4 h-4 mr-2" /> Renommer
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setMetaCourse(course); }}>
+                          <Settings2 className="w-4 h-4 mr-2" /> Paramètres
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={(e) => handleDuplicate(e, course.id, "structure")}>
                           <Copy className="w-4 h-4 mr-2" /> Dupliquer (structure)
@@ -559,6 +675,13 @@ export default function LmsCourses() {
                           </>
                         )}
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={(e) => handleArchiveToggle(e, course)}>
+                          {course.status === "archived" ? (
+                            <><ArchiveRestore className="w-4 h-4 mr-2" /> Restaurer</>
+                          ) : (
+                            <><Archive className="w-4 h-4 mr-2" /> Archiver</>
+                          )}
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={(e) => handleDelete(e, course.id)}
@@ -574,9 +697,15 @@ export default function LmsCourses() {
                     <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
                   )}
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className={statusColors[course.status]}>
-                      {course.status === "draft" ? "Brouillon" : course.status === "published" ? "Publié" : "Archivé"}
+                    <Badge variant="outline" className={statusColors[course.status] ?? statusColors.draft}>
+                      {statusLabel(course.status)}
                     </Badge>
+                    <Badge variant="outline" className={accessColors[course.access_type ?? "gratuit"]}>
+                      {accessLabel(course.access_type)}
+                    </Badge>
+                    {expertiseLabel(course.expertise) && (
+                      <Badge variant="outline">{expertiseLabel(course.expertise)}</Badge>
+                    )}
                     <Badge variant="outline">
                       {difficultyLabels[course.difficulty_level || "beginner"]}
                     </Badge>
@@ -584,6 +713,12 @@ export default function LmsCourses() {
                       <Badge variant="outline">
                         <Clock className="w-3 h-3 mr-1" />
                         {course.estimated_duration_minutes} min
+                      </Badge>
+                    )}
+                    {(enrollmentCounts[course.id] ?? 0) > 0 && (
+                      <Badge variant="outline" title="Apprenants inscrits">
+                        <Users className="w-3 h-3 mr-1" />
+                        {enrollmentCounts[course.id]}
                       </Badge>
                     )}
                   </div>
