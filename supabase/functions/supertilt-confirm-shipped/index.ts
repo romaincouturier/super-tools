@@ -39,7 +39,11 @@ function htmlPage(title: string, message: string, ok: boolean): Response {
 </style></head><body>
 <div class="card"><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p></div>
 </body></html>`;
-  return new Response(body, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  const headers = new Headers();
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Cache-Control", "no-store");
+  return new Response(body, { status: 200, headers });
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
