@@ -158,8 +158,17 @@ serve(async (req) => {
     if (!callerUser) {
       return createErrorResponse("Token invalide", 401);
     }
-    if (callerUser.user_metadata?.role === "learner") {
-      return createErrorResponse("Accès refusé", 403);
+    // Server-side role check (user_metadata is user-writable and unsafe).
+    const { data: isAdm } = await supabase.rpc("is_admin", { _user_id: callerUser.id });
+    if (!isAdm) {
+      const { data: modAccess } = await supabase
+        .from("user_module_access")
+        .select("module_key")
+        .eq("user_id", callerUser.id)
+        .limit(1);
+      if (!modAccess || modAccess.length === 0) {
+        return createErrorResponse("Accès refusé", 403);
+      }
     }
     const userId = callerUser.id;
 
