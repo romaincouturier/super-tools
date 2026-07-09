@@ -274,6 +274,13 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    const user = await verifyAuth(req.headers.get("Authorization"));
+    if (!user) return createErrorResponse("Unauthorized", 401);
+    const supa = getSupabaseClient();
+    const { data: isAdm } = await supa.rpc("is_admin", { _user_id: user.id });
+    if (!isAdm) return createErrorResponse("Forbidden", 403);
+
+
     const CONCURRENCY = 10;
     const results = new Map<string, "deployed" | "missing" | "unknown">();
 
