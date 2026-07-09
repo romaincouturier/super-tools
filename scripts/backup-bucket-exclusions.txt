@@ -1,4 +1,4 @@
-# Buckets storage volontairement exclus du backup (règle [036]).
+# Buckets storage volontairement exclus du backup (règle [038]).
 # Un bucket listé ici n'est PAS copié vers Google Drive par scheduled-backup.
 # N'exclure que du contenu éphémère ou regénérable. Une ligne par bucket.
 # app-screenshots : captures du module monitoring, regénérées en continu.
