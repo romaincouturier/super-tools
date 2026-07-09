@@ -69,8 +69,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     if (existing.shipped_confirmed_at) {
       return htmlPage(
-        "Déjà confirmé",
-        `Cet envoi a déjà été confirmé le ${new Date(existing.shipped_confirmed_at).toLocaleDateString("fr-FR")}. Merci !`,
+        "D&eacute;j&agrave; confirm&eacute;",
+        `Cet envoi a d&eacute;j&agrave; &eacute;t&eacute; confirm&eacute; le ${new Date(existing.shipped_confirmed_at).toLocaleDateString("fr-FR")}. Merci&nbsp;!`,
         true,
       );
     }
@@ -81,10 +81,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq("id", id);
 
     if (updErr) {
-      return htmlPage("Erreur", "Impossible d'enregistrer la confirmation. Réessaie ou préviens-moi.", false);
+      return htmlPage("Erreur", "Impossible d'enregistrer la confirmation. R&eacute;essaie ou pr&eacute;viens-moi.", false);
     }
 
-    return htmlPage("Envoi confirmé ✨", "Merci ! L'envoi a bien été enregistré côté SuperTilt.", true);
+    return htmlPage("Envoi confirm&eacute; &#10024;", "Merci&nbsp;! L'envoi a bien &eacute;t&eacute; enregistr&eacute; c&ocirc;t&eacute; SuperTilt.", true);
   } catch (_e) {
     return htmlPage("Erreur", "Une erreur inattendue s'est produite.", false);
   }
