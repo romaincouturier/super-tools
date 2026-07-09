@@ -1,9 +1,9 @@
-import DOMPurify from "dompurify";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronDown, ChevronRight, FileText, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import ActionBlockShell from "./ActionBlockShell";
 import { ImageWithLightbox } from "./ImageLightbox";
@@ -73,8 +73,8 @@ export default function ExerciseBlockViewer({ content }: Props) {
       )}
       {content.prompt_html && (
         <div
-          className="prose prose-base sm:prose-lg max-w-none break-words"
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.prompt_html) }}
+          className="prose prose-base sm:prose-lg max-w-none break-words [&_iframe]:max-w-full"
+          dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(content.prompt_html) }}
         />
       )}
 
@@ -135,8 +135,8 @@ export default function ExerciseBlockViewer({ content }: Props) {
               )}
               {content.answer_html && (
                 <div
-                  className="prose prose-base sm:prose-lg max-w-none break-words"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content.answer_html) }}
+                  className="prose prose-base sm:prose-lg max-w-none break-words [&_iframe]:max-w-full"
+                  dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(content.answer_html) }}
                 />
               )}
             </div>
