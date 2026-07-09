@@ -14,6 +14,7 @@ import {
   createErrorResponse,
   createJsonResponse,
 } from "../_shared/cors.ts";
+import { verifyAuth, getSupabaseClient } from "../_shared/supabase-client.ts";
 
 const EXPECTED_FUNCTIONS = [
   "add-training-participant",
