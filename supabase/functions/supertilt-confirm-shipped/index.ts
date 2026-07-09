@@ -39,10 +39,11 @@ function htmlPage(title: string, message: string, ok: boolean): Response {
 </style></head><body>
 <div class="card"><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p></div>
 </body></html>`;
-  return new Response(body, {
+  const bytes = new TextEncoder().encode(body);
+  return new Response(bytes, {
     status: 200,
     headers: {
-      "content-type": "text/html;charset=UTF-8",
+      "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
     },
   });
