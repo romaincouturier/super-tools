@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Trash2, GripVertical, Copy, ChevronUp, ChevronDown } from "lucide-react";
+import { Trash2, GripVertical, Copy, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { InsertButton } from "./BuilderInsertMenu";
 import BuilderInsertMenu from "./BuilderInsertMenu";
 import type { LessonBlockType } from "@/types/lms-blocks";
@@ -14,6 +14,10 @@ interface Props {
   onMoveUp?: () => void;
   /** Called when the user clicks "move down". Omit to hide the button. */
   onMoveDown?: () => void;
+  /** Row columns only — move the block to the previous column. Omit to hide the button. */
+  onMoveLeft?: () => void;
+  /** Row columns only — move the block to the next column. Omit to hide the button. */
+  onMoveRight?: () => void;
   /** Drag-handle attributes+listeners from useSortable — enables the grip button. */
   dragHandleProps?: Record<string, unknown>;
   children: React.ReactNode;
@@ -33,6 +37,8 @@ export default function BuilderBlockWrapper({
   onInsertAfter,
   onMoveUp,
   onMoveDown,
+  onMoveLeft,
+  onMoveRight,
   dragHandleProps,
   children,
 }: Props) {
@@ -130,6 +136,46 @@ export default function BuilderBlockWrapper({
                 aria-label="Descendre le bloc"
               >
                 <ChevronDown size={14} />
+              </button>
+            )}
+
+            {/* Move to previous column */}
+            {onMoveLeft && (
+              <button
+                onClick={onMoveLeft}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                }}
+                aria-label="Déplacer dans la colonne de gauche"
+              >
+                <ChevronLeft size={14} />
+              </button>
+            )}
+
+            {/* Move to next column */}
+            {onMoveRight && (
+              <button
+                onClick={onMoveRight}
+                className="w-7 h-7 flex items-center justify-center transition-colors"
+                style={{ color: "rgba(16,24,32,0.4)", borderRadius: 999 }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(16,24,32,0.06)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--st-ink)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "rgba(16,24,32,0.4)";
+                }}
+                aria-label="Déplacer dans la colonne de droite"
+              >
+                <ChevronRight size={14} />
               </button>
             )}
 

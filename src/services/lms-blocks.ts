@@ -14,6 +14,7 @@ import type {
   LessonBlockType,
   CreateLessonBlockInput,
   UpdateLessonBlockInput,
+  RowBlockContent,
 } from "@/types/lms-blocks";
 import { blockKindOf, defaultBlockContent } from "@/types/lms-blocks";
 import type { TemplateBlockDef } from "@/types/lms-templates";
@@ -149,6 +150,48 @@ export function buildBlockTree(blocks: LessonBlock[]): BlockTreeNode[] {
   return roots;
 }
 
+// ── Row columns (ST-2026-0236) ────────────────────────────────────────
+
+/**
+ * Effective 0-based column of each child of a row block. Explicit
+ * assignments from `content.column_assignments` win (clamped to the last
+ * column when column_count shrank); unassigned children fall back to
+ * `index % column_count`, which matches the legacy CSS grid auto-placement
+ * so rows created before ST-2026-0236 keep their layout.
+ */
+export function rowColumnAssignments(
+  content: RowBlockContent,
+  childIds: string[],
+): Record<string, number> {
+  const count = content.column_count || 1;
+  const explicit = content.column_assignments ?? {};
+  const result: Record<string, number> = {};
+  childIds.forEach((id, idx) => {
+    const raw = explicit[id];
+    result[id] =
+      typeof raw === "number" && Number.isInteger(raw) && raw >= 0
+        ? Math.min(raw, count - 1)
+        : idx % count;
+  });
+  return result;
+}
+
+/**
+ * Split the ordered children of a row into `column_count` independent
+ * stacks. Within a column, children keep their sibling order.
+ */
+export function splitRowColumns<T>(
+  content: RowBlockContent,
+  children: T[],
+  idOf: (child: T) => string,
+): T[][] {
+  const count = content.column_count || 1;
+  const assignments = rowColumnAssignments(content, children.map(idOf));
+  const columns: T[][] = Array.from({ length: count }, () => []);
+  for (const child of children) columns[assignments[idOf(child)]].push(child);
+  return columns;
+}
+
 // ── Move ──────────────────────────────────────────────────────────────
 
 /**
@@ -269,8 +312,23 @@ export async function duplicateLessonBlock(params: {
     const children = all
       .filter((b) => b.parent_block_id === node.id)
       .sort((a, b) => a.position - b.position);
+    const idMap = new Map<string, string>();
     for (let i = 0; i < children.length; i++) {
-      await cloneSubtree(children[i], created.id, i);
+      idMap.set(children[i].id, await cloneSubtree(children[i], created.id, i));
+    }
+    // Row column assignments reference child ids — remap them to the clones.
+    if (node.type === "row") {
+      const content = node.content as RowBlockContent;
+      if (content.column_assignments) {
+        const remapped: Record<string, number> = {};
+        for (const [oldId, col] of Object.entries(content.column_assignments)) {
+          const newId = idMap.get(oldId);
+          if (newId) remapped[newId] = col;
+        }
+        await updateLessonBlock(created.id, {
+          content: { ...content, column_assignments: remapped },
+        });
+      }
     }
     return created.id;
   }
