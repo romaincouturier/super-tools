@@ -33,7 +33,7 @@ const BLOCK_META: Partial<Record<LessonBlockType, { desc: string; kbd?: string }
   fill_blanks:     { desc: "Texte à compléter ({{mots}})", kbd: "/ trous" },
   drag_words:      { desc: "Glisser les mots au bon endroit", kbd: "/ glisser" },
   summary:         { desc: "Cocher les affirmations correctes", kbd: "/ résumé" },
-  cta:             { desc: "Offre mise en avant : image, texte, bouton", kbd: "/ cta" },
+  cta:             { desc: "Carte promo : label, bénéfices, bouton, image", kbd: "/ cta" },
   code:            { desc: "Code avec coloration syntaxique", kbd: "/ code" },
   section:         { desc: "Conteneur pleine largeur", kbd: "/ section" },
   row:             { desc: "Colonnes côte à côte", kbd: "/ colonnes" },

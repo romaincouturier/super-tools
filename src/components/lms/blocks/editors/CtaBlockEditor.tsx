@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
@@ -46,7 +47,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
 
   const form = (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Petit label</Label>
           <Input
@@ -56,23 +57,24 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Badge (optionnel)</Label>
+          <Label className="text-xs">Badge sur l'image (optionnel)</Label>
           <Input
             value={content.badge ?? ""}
             onChange={(e) => onChange({ ...content, badge: e.target.value || null })}
-            placeholder="ex: Nouveau, Best-seller"
+            placeholder="ex: Nos formations"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Titre</Label>
           <Input
             value={content.title ?? ""}
             onChange={(e) => onChange({ ...content, title: e.target.value || null })}
-            placeholder="ex: Envie d'animer des ateliers qui marquent les esprits ?"
+            placeholder="ex: Envie d'animer des ateliers *qui marquent les esprits* ?"
           />
+          <p className="text-[11px] text-muted-foreground">Entourez un mot d'astérisques pour le surligner : *mot*</p>
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Sous-titre (optionnel)</Label>
@@ -85,38 +87,42 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">Image</Label>
-        <div
-          className="relative h-32 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden hover:border-gray-400 transition-colors"
-          style={{ borderColor: "#FFD100", background: "#FFFBEA" }}
-          onClick={() => fileRef.current?.click()}
-        >
-          {uploading ? <Spinner size="sm" /> : content.image_url ? (
-            <>
-              <img src={content.image_url} alt="Illustration du CTA" className="h-full w-full object-cover" />
-              <button
-                type="button"
-                aria-label="Retirer l'image"
-                className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-                onClick={(e) => { e.stopPropagation(); onChange({ ...content, image_url: null }); }}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-1 text-gray-400">
-              <Upload className="h-5 w-5" />
-              <span className="text-xs">Importer une image</span>
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileRef}
-            style={{ display: "none" }}
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
-          />
+        <Label className="text-xs">Image / illustration</Label>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+          <div className="flex-1">
+            <Input
+              value={content.image_url ?? ""}
+              onChange={(e) => onChange({ ...content, image_url: e.target.value || null })}
+              placeholder="https://… ou téléversez un fichier"
+            />
+          </div>
+          <div>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileRef}
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ""; }}
+            />
+            <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} className="w-full sm:w-auto">
+              {uploading ? <Spinner className="mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+              {uploading ? "Upload…" : "Importer"}
+            </Button>
+          </div>
         </div>
+        {content.image_url && (
+          <div className="relative w-fit">
+            <img src={content.image_url} alt="Illustration du CTA" className="h-32 rounded-lg object-cover" />
+            <button
+              type="button"
+              aria-label="Retirer l'image"
+              className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+              onClick={() => onChange({ ...content, image_url: null })}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-1">
@@ -137,7 +143,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Texte du bouton</Label>
           <Input
@@ -157,7 +163,7 @@ export default function CtaBlockEditor({ lessonId, content, onChange, slim }: Pr
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Lien secondaire (optionnel)</Label>
           <Input
