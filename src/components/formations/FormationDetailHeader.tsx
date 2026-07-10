@@ -31,6 +31,7 @@ import type { Training, Schedule } from "@/hooks/useFormationDetail";
 import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 import { openExternalLink } from "@/lib/utils";
+import AddFormationToCalendarButton from "@/components/formations/AddFormationToCalendarButton";
 
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useDemoMode } from "@/contexts/DemoModeContext";
