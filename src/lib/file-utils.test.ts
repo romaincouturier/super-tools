@@ -109,6 +109,12 @@ describe("resolveContentType", () => {
     expect(resolveContentType(file)).toBe("application/octet-stream");
   });
 
+  it("falls back to extension for CSV with empty type", () => {
+    const file = new File([""], "donnees.csv");
+    Object.defineProperty(file, "type", { value: "" });
+    expect(resolveContentType(file)).toBe("text/csv");
+  });
+
   it("handles video extensions", () => {
     const file = new File([""], "clip.mp4");
     Object.defineProperty(file, "type", { value: "" });
