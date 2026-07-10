@@ -38,6 +38,8 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const ALERT_EMAIL = await getSenderEmail();
+    const urls = await getAppUrls();
+    const APP_URL = urls.app_url;
 
     // Fetch upcoming trainings (start_date >= today)
     const today = new Date().toISOString().split("T")[0];
