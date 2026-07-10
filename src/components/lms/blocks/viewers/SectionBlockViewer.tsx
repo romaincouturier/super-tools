@@ -19,7 +19,7 @@ export default function SectionBlockViewer({ content, children }: Props) {
   const bg = BACKGROUND_CLASSES[content.background ?? "default"];
   return (
     <section className={cn("rounded-lg", bg && "px-4 py-6", bg)}>
-      {content.title && <h3 className="font-semibold mb-3 break-words">{content.title}</h3>}
+      {content.title && <h3 className="text-xl sm:text-2xl font-bold mb-3 break-words">{content.title}</h3>}
       {children && <div className="space-y-6">{children}</div>}
     </section>
   );
