@@ -6906,6 +6906,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          archived_at: string | null
           block_reason: string | null
           commission_amount: number | null
           contrat_reference: string | null
@@ -6934,6 +6935,7 @@ export type Database = {
           woocommerce_order_id: string | null
         }
         Insert: {
+          archived_at?: string | null
           block_reason?: string | null
           commission_amount?: number | null
           contrat_reference?: string | null
@@ -6962,6 +6964,7 @@ export type Database = {
           woocommerce_order_id?: string | null
         }
         Update: {
+          archived_at?: string | null
           block_reason?: string | null
           commission_amount?: number | null
           contrat_reference?: string | null

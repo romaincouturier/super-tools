@@ -131,6 +131,7 @@ export interface OrderItem {
   notes: string | null;
   commission_amount: number | null;
   raw_line_item: Record<string, unknown> | null;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   // joins
@@ -253,6 +254,7 @@ export function useOrderItems(kanbanStatus?: KanbanStatus) {
       let q = db
         .from("order_items")
         .select(`*, woocommerce_orders(*), games(id, title, game_type, game_authors(name))`)
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .limit(300);
       if (kanbanStatus) q = q.eq("kanban_status", kanbanStatus);
@@ -270,6 +272,7 @@ export function useAllOrderItems() {
       const { data, error } = await db
         .from("order_items")
         .select(`*, woocommerce_orders(*), games(id, title, game_type, game_authors(name))`)
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -309,6 +312,27 @@ export function useUpdateOrderItemStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["order-items"] });
       qc.invalidateQueries({ queryKey: ["order-items-all"] });
+    },
+  });
+}
+
+export function useArchiveOrderItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Soft delete : un DELETE serait recréé par le webhook WooCommerce
+      // (upsert + filet "0 order_items"). archived_at masque la ligne
+      // du kanban tout en la laissant en base.
+      const { error } = await db
+        .from("order_items")
+        .update({ archived_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["order-items"] });
+      qc.invalidateQueries({ queryKey: ["order-items-all"] });
+      qc.invalidateQueries({ queryKey: ["order-kpis"] });
     },
   });
 }
@@ -539,7 +563,8 @@ export function useOrderKpis() {
     queryFn: async () => {
       const { data, error } = await db
         .from("order_items")
-        .select("kanban_status, line_total, game_type, created_at, game_id");
+        .select("kanban_status, line_total, game_type, created_at, game_id")
+        .is("archived_at", null);
       if (error) throw error;
 
       const items = data as Array<{
