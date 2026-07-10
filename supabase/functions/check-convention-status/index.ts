@@ -199,7 +199,7 @@ serve(async (req: Request): Promise<Response> => {
         return `
         <tr>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-            <strong>${item.trainingName}</strong><br/>
+            <a href="${APP_URL}/formations/${item.trainingId}" style="color: #2563eb; text-decoration: underline; font-weight: bold;">${item.trainingName}</a><br/>
             <span style="color: #6b7280; font-size: 13px;">${item.clientName} — ${item.format}</span>
           </td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
