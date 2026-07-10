@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
