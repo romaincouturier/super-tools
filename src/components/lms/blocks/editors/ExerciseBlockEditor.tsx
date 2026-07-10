@@ -3,9 +3,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Plus, X, Video, Image as ImageIcon, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, X, Video, Image as ImageIcon, FileText, Code } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
+import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 import { cryptoRandomId } from "@/types/lms-blocks";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import { uploadLmsImage, uploadLmsFile } from "@/hooks/useLms";
@@ -193,6 +195,58 @@ function ImageUploader({
   );
 }
 
+function PromptEditor({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  placeholder: string;
+}) {
+  const hasIframe = /<iframe/i.test(value);
+  const [htmlMode, setHtmlMode] = useState(hasIframe);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={htmlMode && hasIframe}
+          title={htmlMode && hasIframe ? "Le mode visuel ne prend pas en charge les iframes" : undefined}
+          onClick={() => setHtmlMode((v) => !v)}
+        >
+          <Code className="h-3.5 w-3.5" />
+          {htmlMode ? "Mode visuel" : "Mode HTML"}
+        </button>
+      </div>
+      {htmlMode ? (
+        <>
+          <Textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={6}
+            className="font-mono text-xs"
+            placeholder="Code HTML de la consigne (iframes https acceptées)…"
+          />
+          {value.trim() && (
+            <div className="rounded-lg border bg-muted/30 px-3 py-2">
+              <p className="text-xs text-muted-foreground mb-1.5">Aperçu</p>
+              <div
+                className="prose prose-sm max-w-none break-words [&_iframe]:max-w-full"
+                dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(value) }}
+              />
+            </div>
+          )}
+        </>
+      ) : (
+        <RichTextEditor content={value} onChange={onChange} placeholder={placeholder} />
+      )}
+    </div>
+  );
+}
+
 const MAX_IMAGES = 5;
 
 export default function ExerciseBlockEditor({ lessonId, content, onChange, slim }: Props) {
@@ -270,8 +324,8 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           onUpload={(url) => onChange({ ...content, pdf_url: url })}
           onRemove={() => onChange({ ...content, pdf_url: null })}
         />
-        <RichTextEditor
-          content={content.prompt_html || ""}
+        <PromptEditor
+          value={content.prompt_html || ""}
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
           placeholder="Énoncé de l'exercice…"
         />
@@ -384,8 +438,8 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
 
       <div>
         <Label>Énoncé de l'exercice</Label>
-        <RichTextEditor
-          content={content.prompt_html || ""}
+        <PromptEditor
+          value={content.prompt_html || ""}
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
           placeholder="Décrivez ce que l'apprenant doit faire…"
         />
