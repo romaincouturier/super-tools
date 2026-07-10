@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildBlockTree } from "./lms-blocks";
-import type { LessonBlock } from "@/types/lms-blocks";
+import { buildBlockTree, rowColumnAssignments, splitRowColumns } from "./lms-blocks";
+import type { LessonBlock, RowBlockContent } from "@/types/lms-blocks";
 
 const mkBlock = (overrides: Partial<LessonBlock> & { id: string }): LessonBlock => ({
   id: overrides.id,
@@ -89,5 +89,88 @@ describe("buildBlockTree", () => {
     ];
     const tree = buildBlockTree(blocks);
     expect(tree.map((n) => n.block.id)).toEqual(["a", "m", "z"]);
+  });
+});
+
+describe("rowColumnAssignments", () => {
+  it("falls back to index % column_count for legacy rows without assignments", () => {
+    const content: RowBlockContent = { column_count: 2 };
+    expect(rowColumnAssignments(content, ["a", "b", "c", "d"])).toEqual({
+      a: 0,
+      b: 1,
+      c: 0,
+      d: 1,
+    });
+  });
+
+  it("uses explicit assignments when present", () => {
+    const content: RowBlockContent = {
+      column_count: 2,
+      column_assignments: { a: 0, b: 0, c: 1 },
+    };
+    expect(rowColumnAssignments(content, ["a", "b", "c"])).toEqual({ a: 0, b: 0, c: 1 });
+  });
+
+  it("mixes explicit assignments and index fallback for unassigned children", () => {
+    const content: RowBlockContent = {
+      column_count: 2,
+      column_assignments: { b: 0 },
+    };
+    // a (idx 0) -> 0, b explicit -> 0, c (idx 2) -> 0, d (idx 3) -> 1
+    expect(rowColumnAssignments(content, ["a", "b", "c", "d"])).toEqual({
+      a: 0,
+      b: 0,
+      c: 0,
+      d: 1,
+    });
+  });
+
+  it("clamps assignments beyond column_count to the last column", () => {
+    const content: RowBlockContent = {
+      column_count: 2,
+      column_assignments: { a: 2, b: 5 },
+    };
+    expect(rowColumnAssignments(content, ["a", "b"])).toEqual({ a: 1, b: 1 });
+  });
+
+  it("ignores invalid assignment values (negative, non-integer)", () => {
+    const content: RowBlockContent = {
+      column_count: 2,
+      column_assignments: { a: -1, b: 0.5 },
+    };
+    expect(rowColumnAssignments(content, ["a", "b"])).toEqual({ a: 0, b: 1 });
+  });
+});
+
+describe("splitRowColumns", () => {
+  const items = (ids: string[]) => ids.map((id) => ({ id }));
+
+  it("reproduces the legacy grid auto-placement without assignments", () => {
+    const content: RowBlockContent = { column_count: 2 };
+    const cols = splitRowColumns(content, items(["a", "b", "c", "d"]), (c) => c.id);
+    expect(cols).toEqual([items(["a", "c"]), items(["b", "d"])]);
+  });
+
+  it("stacks assigned children in their column, keeping sibling order", () => {
+    const content: RowBlockContent = {
+      column_count: 2,
+      column_assignments: { a: 0, b: 0, c: 0, d: 1 },
+    };
+    const cols = splitRowColumns(content, items(["a", "b", "c", "d"]), (c) => c.id);
+    expect(cols).toEqual([items(["a", "b", "c"]), items(["d"])]);
+  });
+
+  it("returns empty stacks for empty columns", () => {
+    const content: RowBlockContent = {
+      column_count: 3,
+      column_assignments: { a: 2 },
+    };
+    const cols = splitRowColumns(content, items(["a"]), (c) => c.id);
+    expect(cols).toEqual([[], [], items(["a"])]);
+  });
+
+  it("always returns column_count stacks even with no children", () => {
+    const content: RowBlockContent = { column_count: 3 };
+    expect(splitRowColumns(content, [], (c: { id: string }) => c.id)).toEqual([[], [], []]);
   });
 });

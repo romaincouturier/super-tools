@@ -10,7 +10,7 @@ import {
   useInsertLessonTemplate,
 } from "@/hooks/useLmsBlocks";
 import { LESSON_TEMPLATES } from "@/types/lms-templates";
-import { buildBlockTree } from "@/services/lms-blocks";
+import { buildBlockTree, rowColumnAssignments, splitRowColumns } from "@/services/lms-blocks";
 import type { BlockTreeNode } from "@/services/lms-blocks";
 import type { LessonBlockType, LessonBlockContent, RowBlockContent } from "@/types/lms-blocks";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,6 @@ import {
   verticalListSortingStrategy,
   arrayMove,
   useSortable,
-  rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { dropzoneId, parseDropzoneId } from "@/components/lms/blocks/BlockTreeNode";
@@ -182,14 +181,58 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   // Keep ref for H1 input (was textarea, now input — kept for future use)
   const h1Ref = useRef<HTMLInputElement>(null);
 
-  const handleAdd = useCallback(
-    (type: LessonBlockType, parentBlockId: string | null = null, atPosition?: number) => {
-      createBlock.mutate(
-        { type, parentBlockId, atPosition },
-        { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de création") },
+  /**
+   * Row context of a block: returns null unless the block is a direct child
+   * of a row. Assignments are materialised (fallback included) so any
+   * structural action pins every child to its current column.
+   */
+  const rowContextOf = useCallback(
+    (blockId: string) => {
+      const block = blocksById.get(blockId);
+      if (!block?.parent_block_id) return null;
+      const parent = blocksById.get(block.parent_block_id);
+      if (!parent || parent.type !== "row") return null;
+      const content = parent.content as RowBlockContent;
+      const siblings = childrenIdsByParent.get(parent.id) || [];
+      return { parent, content, siblings, assignments: rowColumnAssignments(content, siblings) };
+    },
+    [blocksById, childrenIdsByParent],
+  );
+
+  const persistRowAssignments = useCallback(
+    (rowId: string, content: RowBlockContent, assignments: Record<string, number>) => {
+      updateBlock.mutate(
+        { id: rowId, updates: { content: { ...content, column_assignments: assignments } } },
+        { onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de mise à jour des colonnes") },
       );
     },
-    [createBlock, toast],
+    [updateBlock, toast],
+  );
+
+  const handleAdd = useCallback(
+    (type: LessonBlockType, parentBlockId: string | null = null, atPosition?: number, column?: number) => {
+      // Snapshot the row assignments BEFORE the insert shifts sibling
+      // positions, so existing children keep their current column.
+      const row = column != null && parentBlockId ? blocksById.get(parentBlockId) : undefined;
+      const snapshot =
+        row && row.type === "row"
+          ? rowColumnAssignments(row.content as RowBlockContent, childrenIdsByParent.get(parentBlockId!) || [])
+          : undefined;
+      createBlock.mutate(
+        { type, parentBlockId, atPosition },
+        {
+          onSuccess: (created) => {
+            if (!row || row.type !== "row" || !snapshot || column == null) return;
+            persistRowAssignments(row.id, row.content as RowBlockContent, {
+              ...snapshot,
+              [created.id]: column,
+            });
+          },
+          onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de création"),
+        },
+      );
+    },
+    [createBlock, blocksById, childrenIdsByParent, persistRowAssignments, toast],
   );
 
   const handleInsertTemplate = useCallback(
@@ -225,11 +268,20 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
   );
 
   const handleDuplicate = useCallback(
-    (blockId: string) =>
+    (blockId: string) => {
+      const ctx = rowContextOf(blockId);
       duplicateBlock.mutate(blockId, {
+        onSuccess: (newId) => {
+          if (!ctx) return;
+          persistRowAssignments(ctx.parent.id, ctx.content, {
+            ...ctx.assignments,
+            [newId]: ctx.assignments[blockId],
+          });
+        },
         onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de duplication"),
-      }),
-    [duplicateBlock, toast],
+      });
+    },
+    [duplicateBlock, rowContextOf, persistRowAssignments, toast],
   );
 
   const handleDragEnd = useCallback(
@@ -248,6 +300,24 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
       if (activeParentId !== targetParentId) return;
       const siblings = childrenIdsByParent.get(activeParentId) || [];
       const oldIdx = siblings.indexOf(String(active.id));
+      const parentBlock = activeParentId ? blocksById.get(activeParentId) : undefined;
+      if (parentBlock?.type === "row" && dropzoneParent === undefined) {
+        // Row children: dropping on a block also adopts its column, then the
+        // materialised assignments pin every child so the reorder cannot
+        // shift legacy fallback columns.
+        const content = parentBlock.content as RowBlockContent;
+        const assignments = rowColumnAssignments(content, siblings);
+        const overIdx = siblings.indexOf(overIdStr);
+        if (oldIdx < 0 || overIdx < 0) return;
+        assignments[String(active.id)] = assignments[overIdStr];
+        persistRowAssignments(parentBlock.id, content, assignments);
+        if (oldIdx !== overIdx) {
+          reorderBlocks.mutate(arrayMove(siblings, oldIdx, overIdx), {
+            onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de réorganisation"),
+          });
+        }
+        return;
+      }
       // When landing on a dropzone of the same parent, move to the end of the list.
       const newIdx =
         dropzoneParent !== undefined ? siblings.length - 1 : siblings.indexOf(overIdStr);
@@ -256,11 +326,35 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
         onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de réorganisation"),
       });
     },
-    [blocksById, childrenIdsByParent, reorderBlocks, toast],
+    [blocksById, childrenIdsByParent, reorderBlocks, persistRowAssignments, toast],
+  );
+
+  /** Swap the block with its previous/next neighbour WITHIN its row column. */
+  const moveWithinRowColumn = useCallback(
+    (blockId: string, direction: -1 | 1) => {
+      const ctx = rowContextOf(blockId);
+      if (!ctx) return false;
+      const col = ctx.assignments[blockId];
+      const members = ctx.siblings.filter((id) => ctx.assignments[id] === col);
+      const idx = members.indexOf(blockId);
+      const otherIdx = idx + direction;
+      if (idx < 0 || otherIdx < 0 || otherIdx >= members.length) return true;
+      const other = members[otherIdx];
+      const newOrder = ctx.siblings.map((id) =>
+        id === blockId ? other : id === other ? blockId : id,
+      );
+      persistRowAssignments(ctx.parent.id, ctx.content, ctx.assignments);
+      reorderBlocks.mutate(newOrder, {
+        onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement"),
+      });
+      return true;
+    },
+    [rowContextOf, persistRowAssignments, reorderBlocks, toast],
   );
 
   const handleMoveUp = useCallback(
     (blockId: string) => {
+      if (moveWithinRowColumn(blockId, -1)) return;
       const block = blocksById.get(blockId);
       if (!block) return;
       const parentId = block.parent_block_id ?? null;
@@ -271,11 +365,12 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
         onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement"),
       });
     },
-    [blocksById, childrenIdsByParent, reorderBlocks, toast],
+    [blocksById, childrenIdsByParent, reorderBlocks, moveWithinRowColumn, toast],
   );
 
   const handleMoveDown = useCallback(
     (blockId: string) => {
+      if (moveWithinRowColumn(blockId, 1)) return;
       const block = blocksById.get(blockId);
       if (!block) return;
       const parentId = block.parent_block_id ?? null;
@@ -286,7 +381,16 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
         onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur de déplacement"),
       });
     },
-    [blocksById, childrenIdsByParent, reorderBlocks, toast],
+    [blocksById, childrenIdsByParent, reorderBlocks, moveWithinRowColumn, toast],
+  );
+
+  const handleMoveToColumn = useCallback(
+    (blockId: string, column: number) => {
+      const ctx = rowContextOf(blockId);
+      if (!ctx) return;
+      persistRowAssignments(ctx.parent.id, ctx.content, { ...ctx.assignments, [blockId]: column });
+    },
+    [rowContextOf, persistRowAssignments],
   );
 
   const rootIds = childrenIdsByParent.get(null) || [];
@@ -374,6 +478,7 @@ export default function BuilderCanvas({ lesson, courseId, tweaks, moduleName, se
                       onToggleHidden={handleToggleHidden}
                       onMoveUp={handleMoveUp}
                       onMoveDown={handleMoveDown}
+                      onMoveToColumn={handleMoveToColumn}
                     />
                   ))}
                 </SortableContext>
@@ -391,6 +496,8 @@ function SortableBuilderBlock({
   node,
   siblingIndex,
   siblingCount,
+  columnIndex,
+  columnCount,
   lessonId,
   courseId,
   blockRadius,
@@ -402,21 +509,27 @@ function SortableBuilderBlock({
   onToggleHidden,
   onMoveUp,
   onMoveDown,
+  onMoveToColumn,
 }: {
   node: BlockTreeNode;
   siblingIndex: number;
   siblingCount: number;
+  /** Set when the block is a direct child of a row — its current column. */
+  columnIndex?: number;
+  /** Set when the block is a direct child of a row — the row's column count. */
+  columnCount?: number;
   lessonId: string;
   courseId: string;
   blockRadius: number;
   density: "compact" | "normal" | "spacious";
   onDelete: (blockId: string) => void;
   onDuplicate: (blockId: string) => void;
-  onAdd: (type: LessonBlockType, parentBlockId: string | null, atPosition?: number) => void;
+  onAdd: (type: LessonBlockType, parentBlockId: string | null, atPosition?: number, column?: number) => void;
   onUpdateContent: (blockId: string, content: LessonBlockContent) => Promise<void>;
   onToggleHidden: (blockId: string, hidden: boolean) => void;
   onMoveUp: (blockId: string) => void;
   onMoveDown: (blockId: string) => void;
+  onMoveToColumn: (blockId: string, column: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: node.block.id,
@@ -446,9 +559,19 @@ function SortableBuilderBlock({
         density={density}
         onDelete={() => onDelete(node.block.id)}
         onDuplicate={() => onDuplicate(node.block.id)}
-        onInsertAfter={(type) => onAdd(type, node.block.parent_block_id ?? null, node.block.position + 1)}
+        onInsertAfter={(type) => onAdd(type, node.block.parent_block_id ?? null, node.block.position + 1, columnIndex)}
         onMoveUp={siblingIndex > 0 ? () => onMoveUp(node.block.id) : undefined}
         onMoveDown={siblingIndex < siblingCount - 1 ? () => onMoveDown(node.block.id) : undefined}
+        onMoveLeft={
+          columnIndex != null && columnIndex > 0
+            ? () => onMoveToColumn(node.block.id, columnIndex - 1)
+            : undefined
+        }
+        onMoveRight={
+          columnIndex != null && columnCount != null && columnIndex < columnCount - 1
+            ? () => onMoveToColumn(node.block.id, columnIndex + 1)
+            : undefined
+        }
         dragHandleProps={{ ...attributes, ...listeners }}
       >
         <BlockEditCard
@@ -462,49 +585,87 @@ function SortableBuilderBlock({
           slim
         />
       </BuilderBlockWrapper>
-      {(isContainer || hasChildren) && (() => {
-        const isRow = node.block.type === "row";
-        const colCount = isRow ? ((node.block.content as RowBlockContent).column_count ?? 2) : 1;
+      {node.block.type === "row" && (() => {
+        const rowContent = node.block.content as RowBlockContent;
+        const colCount = rowContent.column_count ?? 2;
         const GRID_COLS: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" };
-        const COL_SPAN: Record<number, string> = { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3" };
+        const columns = splitRowColumns(
+          { ...rowContent, column_count: colCount },
+          node.children,
+          (c) => c.block.id,
+        );
         return (
-          <div
-            className={isRow
-              ? `mt-3 grid gap-3 ${GRID_COLS[colCount] ?? "grid-cols-2"}`
-              : cn(gapClass, "mt-3 ml-4 pl-4 border-l-2 border-dashed")}
-            style={isRow ? undefined : { borderColor: "rgba(16,24,32,0.12)" }}
-          >
-            {hasChildren && (
-              <SortableContext items={childIds} strategy={isRow ? rectSortingStrategy : verticalListSortingStrategy}>
-                {node.children.map((child, idx) => (
-                  <SortableBuilderBlock
-                    key={child.block.id}
-                    node={child}
-                    siblingIndex={idx}
-                    siblingCount={node.children.length}
-                    lessonId={lessonId}
-                    courseId={courseId}
-                    blockRadius={blockRadius}
-                    density={density}
-                    onDelete={onDelete}
-                    onDuplicate={onDuplicate}
-                    onAdd={onAdd}
-                    onUpdateContent={onUpdateContent}
-                    onToggleHidden={onToggleHidden}
-                    onMoveUp={onMoveUp}
-                    onMoveDown={onMoveDown}
-                  />
-                ))}
-              </SortableContext>
-            )}
-            {isContainer && (
-              <div className={isRow ? (COL_SPAN[colCount] ?? "col-span-2") : undefined}>
-                <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id)} />
+          <div className={`mt-3 grid gap-3 items-start ${GRID_COLS[colCount] ?? "grid-cols-2"}`}>
+            {columns.map((colNodes, colIdx) => (
+              <div
+                key={colIdx}
+                className="min-w-0 rounded-lg border border-dashed p-2"
+                style={{ borderColor: "rgba(16,24,32,0.12)" }}
+              >
+                <div className={gapClass}>
+                  <SortableContext items={colNodes.map((c) => c.block.id)} strategy={verticalListSortingStrategy}>
+                    {colNodes.map((child, idx) => (
+                      <SortableBuilderBlock
+                        key={child.block.id}
+                        node={child}
+                        siblingIndex={idx}
+                        siblingCount={colNodes.length}
+                        columnIndex={colIdx}
+                        columnCount={colCount}
+                        lessonId={lessonId}
+                        courseId={courseId}
+                        blockRadius={blockRadius}
+                        density={density}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                        onAdd={onAdd}
+                        onUpdateContent={onUpdateContent}
+                        onToggleHidden={onToggleHidden}
+                        onMoveUp={onMoveUp}
+                        onMoveDown={onMoveDown}
+                        onMoveToColumn={onMoveToColumn}
+                      />
+                    ))}
+                  </SortableContext>
+                </div>
+                <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id, undefined, colIdx)} />
               </div>
-            )}
+            ))}
           </div>
         );
       })()}
+      {node.block.type !== "row" && (isContainer || hasChildren) && (
+        <div
+          className={cn(gapClass, "mt-3 ml-4 pl-4 border-l-2 border-dashed")}
+          style={{ borderColor: "rgba(16,24,32,0.12)" }}
+        >
+          {hasChildren && (
+            <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+              {node.children.map((child, idx) => (
+                <SortableBuilderBlock
+                  key={child.block.id}
+                  node={child}
+                  siblingIndex={idx}
+                  siblingCount={node.children.length}
+                  lessonId={lessonId}
+                  courseId={courseId}
+                  blockRadius={blockRadius}
+                  density={density}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                  onAdd={onAdd}
+                  onUpdateContent={onUpdateContent}
+                  onToggleHidden={onToggleHidden}
+                  onMoveUp={onMoveUp}
+                  onMoveDown={onMoveDown}
+                  onMoveToColumn={onMoveToColumn}
+                />
+              ))}
+            </SortableContext>
+          )}
+          {isContainer && <AddAtEndButton onInsert={(type) => onAdd(type, node.block.id)} />}
+        </div>
+      )}
     </div>
   );
 }

@@ -434,6 +434,13 @@ export type RowColumnCount = 1 | 2 | 3;
 export interface RowBlockContent {
   /** Number of equal-width columns laid out horizontally on desktop. */
   column_count: RowColumnCount;
+  /**
+   * Column index (0-based) of each child block id. Children absent from the
+   * map (legacy rows created before ST-2026-0236) fall back to
+   * `childIndex % column_count`, which reproduces the historical CSS grid
+   * auto-placement, so existing lessons keep their layout.
+   */
+  column_assignments?: Record<string, number>;
 }
 
 export type ContainerMaxWidth = "sm" | "md" | "lg" | "xl" | "full";

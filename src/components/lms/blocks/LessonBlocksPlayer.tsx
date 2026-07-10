@@ -36,7 +36,7 @@ import type {
   CtaBlockContent,
   CodeBlockContent,
 } from "@/types/lms-blocks";
-import { buildBlockTree, type BlockTreeNode } from "@/services/lms-blocks";
+import { buildBlockTree, splitRowColumns, type BlockTreeNode } from "@/services/lms-blocks";
 import { HelpCircle, ClipboardList, Upload } from "lucide-react";
 import TextBlockViewer from "./viewers/TextBlockViewer";
 import TableBlockViewer from "./viewers/TableBlockViewer";
@@ -211,12 +211,27 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
           {visibleChildren}
         </SectionBlockViewer>
       );
-    case "row":
-      return (
-        <RowBlockViewer content={block.content as RowBlockContent}>
-          {visibleChildren}
-        </RowBlockViewer>
+    case "row": {
+      const content = block.content as RowBlockContent;
+      // Columns are computed on the full child list (hidden included) so a
+      // hidden block never shifts its siblings into another column.
+      const columns = splitRowColumns(content, children, (c) => c.block.id).map((colNodes) =>
+        colNodes
+          .filter((c) => !c.block.hidden)
+          .map((c) => (
+            <NodeRenderer
+              key={c.block.id}
+              node={c}
+              renderQuiz={renderQuiz}
+              renderAssignment={renderAssignment}
+              renderWorkDeposit={renderWorkDeposit}
+              learnerEmail={learnerEmail}
+              shortcodeCourseId={shortcodeCourseId}
+            />
+          )),
       );
+      return <RowBlockViewer content={content} columns={columns} />;
+    }
     case "container":
       return (
         <ContainerBlockViewer content={block.content as ContainerBlockContent}>
