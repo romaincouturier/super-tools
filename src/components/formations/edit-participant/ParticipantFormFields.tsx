@@ -155,7 +155,22 @@ const ParticipantFormFields = ({
       {setTypeStagiaireBpf && (
         <div className="space-y-2">
           <Label>Type de stagiaire (BPF)</Label>
-          <Select value={typeStagiaireBpf || ""} onValueChange={setTypeStagiaireBpf}>
+          <Select
+            value={typeStagiaireBpf || ""}
+            onValueChange={(v) => {
+              setTypeStagiaireBpf(v);
+              const defaultSource: Record<string, string> = {
+                salarie_prive: "entreprise",
+                particulier: "particulier",
+                autre: "pouvoirs_publics_agents",
+              };
+              const next = defaultSource[v];
+              if (next && setSourceFinancementBpf) {
+                setSourceFinancementBpf(next);
+              }
+            }}
+          >
+
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner le type de stagiaire" />
             </SelectTrigger>
