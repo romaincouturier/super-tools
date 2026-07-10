@@ -21,11 +21,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Spinner } from "@/components/ui/spinner";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import {
   KANBAN_COLUMNS,
   useAllOrderItems,
+  useArchiveOrderItem,
   useUpdateOrderItemStatus,
   useValidateOrderItem,
   useSendOrderEmail,
@@ -606,6 +609,8 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
   const { mutateAsync: updateStatus, isPending: updatingStatus } = useUpdateOrderItemStatus();
   const { mutateAsync: sendEmail, isPending: sendingEmail } = useSendOrderEmail();
   const { mutateAsync: markShipped, isPending: markingShipped } = useMarkShippedConfirmed();
+  const { mutateAsync: archiveItem, isPending: archiving } = useArchiveOrderItem();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { toast } = useToast();
 
   const order = item.woocommerce_orders;
@@ -634,6 +639,22 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
       await sendEmail(item.id);
       toast({ title: "Email envoyé" });
     } catch (e: any) { toastError(toast, e?.message || "Erreur envoi email"); }
+  };
+
+  const handleArchive = async () => {
+    const ok = await confirm({
+      title: "Supprimer cette carte ?",
+      description: "La carte sera retirée du kanban. La commande WooCommerce et son historique restent conservés.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await archiveItem(item.id);
+      toast({ title: "Carte supprimée", description: "La carte a été retirée du kanban." });
+    } catch (e) {
+      toastError(toast, "Erreur lors de la suppression de la carte", { cause: e });
+    }
   };
 
   return (
@@ -716,11 +737,16 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setShowNote(true)}>
           <FileText className="h-3 w-3 mr-1" />Note
         </Button>
+        <Button variant="ghost" size="sm" className="h-6 text-xs px-2 text-destructive" onClick={handleArchive} disabled={archiving}>
+          {archiving ? <Spinner className="h-3 w-3 mr-1" /> : <Trash2 className="h-3 w-3 mr-1" />}
+          Supprimer
+        </Button>
       </div>
 
       {showDetail && <ItemDetailDialog item={item} onClose={() => setShowDetail(false)} />}
       {showValidate && <ValidateItemDialog item={item} games={games} onClose={() => setShowValidate(false)} />}
       {showNote && <NoteDialog item={item} onClose={() => setShowNote(false)} />}
+      <ConfirmDialog />
     </div>
   );
 }

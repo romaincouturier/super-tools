@@ -681,6 +681,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ── Safety net: if the order produced no order_items at all,
     //    insert orphan rows so it surfaces in the WooCommerce inbox.
+    //    Intentionally counts ALL rows including archived ones (archived_at
+    //    set): an archived line must not be re-inserted as a visible duplicate.
     const { count: itemsCount } = await (admin as any)
       .from("order_items")
       .select("id", { count: "exact", head: true })
