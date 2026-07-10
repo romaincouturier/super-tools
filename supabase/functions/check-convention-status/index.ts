@@ -169,6 +169,7 @@ serve(async (req: Request): Promise<Response> => {
 
       if (issues.length > 0) {
         issuesList.push({
+          trainingId: training.id,
           trainingName: training.training_name,
           clientName: training.client_name || "Client inconnu",
           startDate: training.start_date,
