@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail } from "../_shared/resend.ts";
 import { getSenderEmail } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
@@ -12,6 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // ALERT_EMAIL is fetched dynamically via getSenderEmail()
 
 interface TrainingIssue {
+  trainingId: string;
   trainingName: string;
   clientName: string;
   startDate: string;
@@ -36,6 +38,8 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const ALERT_EMAIL = await getSenderEmail();
+    const urls = await getAppUrls();
+    const APP_URL = urls.app_url;
 
     // Fetch upcoming trainings (start_date >= today)
     const today = new Date().toISOString().split("T")[0];
@@ -165,6 +169,7 @@ serve(async (req: Request): Promise<Response> => {
 
       if (issues.length > 0) {
         issuesList.push({
+          trainingId: training.id,
           trainingName: training.training_name,
           clientName: training.client_name || "Client inconnu",
           startDate: training.start_date,
@@ -194,7 +199,7 @@ serve(async (req: Request): Promise<Response> => {
         return `
         <tr>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-            <strong>${item.trainingName}</strong><br/>
+            <a href="${APP_URL}/formations/${item.trainingId}" style="color: #2563eb; text-decoration: underline; font-weight: bold;">${item.trainingName}</a><br/>
             <span style="color: #6b7280; font-size: 13px;">${item.clientName} — ${item.format}</span>
           </td>
           <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
