@@ -18,6 +18,7 @@ import {
   Square,
   Minus,
   MoveVertical,
+  ChevronsDown,
   Table as TableIcon,
   Code2,
   Braces,
@@ -53,6 +54,7 @@ export const LAYOUT_BLOCKS: BlockTypeMeta[] = [
   { type: "section", label: "Section pleine largeur", icon: LayoutPanelTop, kind: "layout", editable: true },
   { type: "row", label: "Ligne / colonnes", icon: Columns3, kind: "layout", editable: true },
   { type: "container", label: "Conteneur", icon: Square, kind: "layout", editable: true },
+  { type: "reveal", label: "Contenu progressif", icon: ChevronsDown, kind: "layout", editable: true },
   { type: "divider", label: "Séparateur", icon: Minus, kind: "layout", editable: true },
   { type: "spacer", label: "Espace vertical", icon: MoveVertical, kind: "layout", editable: true },
 ];

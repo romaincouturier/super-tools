@@ -39,6 +39,7 @@ function getBlockSummary(block: LessonBlock): string {
     case "section":  return (c.bg_color && c.bg_color !== "default") ? `Fond : ${c.bg_color}` : "";
     case "row":      return c.column_count ? `${c.column_count} colonne(s)` : "";
     case "container": return c.max_width ? `Max ${c.max_width}` : "";
+    case "reveal":   return c.button_label ? String(c.button_label) : "Contenu progressif";
     case "divider":  return c.style ? String(c.style) : "";
     case "spacer":   return c.height_px ? `${c.height_px}px` : "";
     default:         return "";
