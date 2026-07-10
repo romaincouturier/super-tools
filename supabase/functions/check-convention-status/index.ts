@@ -13,6 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // ALERT_EMAIL is fetched dynamically via getSenderEmail()
 
 interface TrainingIssue {
+  trainingId: string;
   trainingName: string;
   clientName: string;
   startDate: string;
