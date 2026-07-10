@@ -189,6 +189,7 @@ const DuplicateTrainingDialog = ({
            supports_url: original.supports_url,
           private_group_url: original.private_group_url,
           assigned_to: original.assigned_to,
+          venue_id: original.venue_id,
           created_by: userId,
           // Reset these fields (not duplicated):
           // - convention_file_url (conventions)

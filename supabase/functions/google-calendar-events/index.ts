@@ -432,7 +432,7 @@ serve(async (req: Request): Promise<Response> => {
       }
 
       const body = await req.json();
-      const { summary, description, location, startDateTime, endDateTime, attendeeEmail } = body;
+      const { summary, description, location, startDateTime, endDateTime, attendeeEmail, skipMeet, timeZone } = body;
 
       if (!summary || !startDateTime || !endDateTime) {
         return new Response(JSON.stringify({ error: "Missing required fields: summary, startDateTime, endDateTime" }), {
@@ -441,18 +441,27 @@ serve(async (req: Request): Promise<Response> => {
         });
       }
 
+      const startObj: Record<string, string> = { dateTime: startDateTime };
+      const endObj: Record<string, string> = { dateTime: endDateTime };
+      if (timeZone) {
+        startObj.timeZone = timeZone;
+        endObj.timeZone = timeZone;
+      }
+
       const eventPayload: Record<string, unknown> = {
         summary,
-        start: { dateTime: startDateTime },
-        end: { dateTime: endDateTime },
+        start: startObj,
+        end: endObj,
         reminders: { useDefault: true },
-        conferenceData: {
+      };
+      if (!skipMeet) {
+        eventPayload.conferenceData = {
           createRequest: {
             requestId: crypto.randomUUID(),
             conferenceSolutionKey: { type: "hangoutsMeet" },
           },
-        },
-      };
+        };
+      }
       if (description) eventPayload.description = description;
       if (location) eventPayload.location = location;
       const attendeesList = Array.isArray(attendeeEmail)

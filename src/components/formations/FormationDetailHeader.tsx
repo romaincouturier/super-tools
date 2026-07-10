@@ -31,6 +31,7 @@ import type { Training, Schedule } from "@/hooks/useFormationDetail";
 import { Input } from "@/components/ui/input";
 import { getGoogleMapsNearbyUrl } from "@/lib/googleMaps";
 import { openExternalLink } from "@/lib/utils";
+import AddFormationToCalendarButton from "@/components/formations/AddFormationToCalendarButton";
 
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { useDemoMode } from "@/contexts/DemoModeContext";
@@ -315,6 +316,14 @@ const FormationDetailHeader = ({
           <Button variant="outline" onClick={() => setDuplicateDialogOpen(true)}>
             <Copy className="h-4 w-4 mr-2" />Dupliquer
           </Button>
+          <AddFormationToCalendarButton
+            trainingId={training.id}
+            trainingName={training.training_name}
+            clientName={training.client_name}
+            location={training.location}
+            schedules={schedules.map((s) => ({ day_date: s.day_date, start_time: s.start_time, end_time: s.end_time }))}
+            isPresentiel={isPresentiel}
+          />
           {isInterSession && !training.is_cancelled && (
             <Button variant="outline" className="text-orange-600 hover:text-orange-600" onClick={() => setCancelDialogOpen(true)}>
               <Ban className="h-4 w-4 mr-1" />
