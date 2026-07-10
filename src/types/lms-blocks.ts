@@ -48,7 +48,8 @@ export type ContentBlockType =
   | "fill_blanks"
   | "drag_words"
   | "summary"
-  | "cta";
+  | "cta"
+  | "code";
 
 export type LessonBlockType = LayoutBlockType | ContentBlockType;
 
@@ -382,6 +383,16 @@ export interface CtaBlockContent {
   accent_color?: string | null;
 }
 
+// ── Code block ────────────────────────────────────────────────────────
+
+export interface CodeBlockContent {
+  code: string;
+  /** Valeur de CODE_LANGUAGES (src/lib/codeHighlight.ts), ex. "javascript". */
+  language: string;
+  showLineNumbers?: boolean;
+  title?: string | null;
+}
+
 // ── Shortcode block ─────────────────────────────────────────────────
 
 /** Codes courts disponibles — formulaires intégrés au cours. */
@@ -473,7 +484,8 @@ export type LessonBlockContent =
   | FillBlanksBlockContent
   | DragWordsBlockContent
   | SummaryBlockContent
-  | CtaBlockContent;
+  | CtaBlockContent
+  | CodeBlockContent;
 
 export interface LessonBlock {
   id: string;
@@ -627,6 +639,8 @@ export function defaultBlockContent(type: LessonBlockType): LessonBlockContent {
         open_in_new_tab: true,
         accent_color: null,
       };
+    case "code":
+      return { code: "", language: "javascript", showLineNumbers: true, title: null };
   }
 }
 
@@ -798,6 +812,13 @@ export function exampleBlockContent(type: LessonBlockType): LessonBlockContent |
         secondary_url: null,
         open_in_new_tab: true,
         accent_color: null,
+      };
+    case "code":
+      return {
+        code: 'function greet(name) {\n  // Construit le message de bienvenue\n  const message = `Bonjour, ${name} !`;\n  console.log(message);\n  return message;\n}\n\ngreet("SuperTilt");',
+        language: "javascript",
+        showLineNumbers: true,
+        title: "Exemple : fonction de bienvenue",
       };
     default:
       return null;
