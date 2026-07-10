@@ -203,7 +203,10 @@ export interface ExerciseBlockContent {
   video_url?: string | null;
   image_url?: string | null;
   image_urls?: string[] | null;
+  // Fichier de consigne : PDF historiquement, aussi Excel/CSV/Word depuis ST-2026-0241.
   pdf_url?: string | null;
+  // Nom d'origine du fichier de consigne. Absent sur les anciens blocs (PDF uniquement).
+  file_name?: string | null;
   work_deposit_enabled?: boolean;
   work_deposit?: WorkDepositBlockContent | null;
 }

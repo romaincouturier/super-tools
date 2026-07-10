@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, ChevronRight, FileText, Pencil } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, FileSpreadsheet, FileText, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
@@ -55,17 +55,26 @@ export default function ExerciseBlockViewer({ content }: Props) {
           ))}
         </div>
       )}
-      {content.pdf_url && (
-        <a
-          href={content.pdf_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 rounded-lg border px-3 py-2.5 bg-muted/40 hover:bg-muted/70 transition-colors mb-3 no-underline"
-        >
-          <FileText size={16} className="shrink-0 text-muted-foreground" />
-          <span className="flex-1 text-sm font-medium">Télécharger la consigne en PDF</span>
-        </a>
-      )}
+      {content.pdf_url && (() => {
+        const ext = (content.file_name || content.pdf_url).split(".").pop()?.toLowerCase() ?? "";
+        const isSpreadsheet = ["xls", "xlsx", "csv"].includes(ext);
+        const Icon = isSpreadsheet ? FileSpreadsheet : FileText;
+        return (
+          <a
+            href={content.pdf_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={content.file_name || undefined}
+            className="flex items-center gap-3 rounded-lg border px-3 py-2.5 bg-muted/40 hover:bg-muted/70 transition-colors mb-3 no-underline"
+          >
+            <Icon size={16} className="shrink-0 text-muted-foreground" />
+            <span className="flex-1 min-w-0 truncate text-sm font-medium">
+              {content.file_name || "Télécharger la consigne en PDF"}
+            </span>
+            <Download size={16} className="shrink-0 text-muted-foreground" />
+          </a>
+        );
+      })()}
       {videoUrl && (
         <div className="mb-3">
           <LessonVideoPlayer url={videoUrl} radius={8} />

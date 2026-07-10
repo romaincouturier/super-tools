@@ -49,15 +49,28 @@ function VideoPreview({ url }: { url: string }) {
   );
 }
 
-function PdfUploader({
+const ACCEPTED_FILE_TYPES = [
+  "application/pdf",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+const ACCEPTED_FILE_EXTENSIONS = ".pdf,.xls,.xlsx,.csv,.doc,.docx";
+const ACCEPTED_FILE_LABEL = "PDF, Excel (.xls, .xlsx), CSV ou Word (.doc, .docx)";
+
+function ExerciseFileUploader({
   lessonId,
-  pdfUrl,
+  fileUrl,
+  fileName,
   onUpload,
   onRemove,
 }: {
   lessonId: string;
-  pdfUrl: string | null | undefined;
-  onUpload: (url: string) => void;
+  fileUrl: string | null | undefined;
+  fileName: string | null | undefined;
+  onUpload: (url: string, name: string) => void;
   onRemove: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -65,8 +78,8 @@ function PdfUploader({
   const { toast } = useToast();
 
   const handleFile = async (file: File) => {
-    if (resolveContentType(file) !== "application/pdf") {
-      toastError(toast, "Seuls les fichiers PDF sont acceptés.");
+    if (!ACCEPTED_FILE_TYPES.includes(resolveContentType(file))) {
+      toastError(toast, `Format non accepté. Formats autorisés : ${ACCEPTED_FILE_LABEL}.`);
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -76,7 +89,8 @@ function PdfUploader({
     setUploading(true);
     try {
       const result = await uploadLmsFile(file, lessonId);
-      onUpload(result.url);
+      onUpload(result.url, result.name);
+      toast({ title: `Fichier ajouté : ${result.name}` });
     } catch (err) {
       toastError(toast, err instanceof Error ? err : "Erreur d'upload");
     } finally {
@@ -84,14 +98,14 @@ function PdfUploader({
     }
   };
 
-  if (pdfUrl) {
+  if (fileUrl) {
     return (
       <div className="flex items-center gap-3 rounded-lg border px-3 py-2.5 bg-muted/40">
         <FileText size={16} className="shrink-0 text-muted-foreground" />
-        <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm truncate underline">
-          Voir le PDF de consigne
+        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-sm truncate underline">
+          {fileName || "Voir le PDF de consigne"}
         </a>
-        <button onClick={onRemove} aria-label="Supprimer le PDF" className="shrink-0">
+        <button onClick={onRemove} aria-label="Supprimer le fichier" className="shrink-0">
           <X size={14} className="text-muted-foreground hover:text-destructive" />
         </button>
       </div>
@@ -103,7 +117,7 @@ function PdfUploader({
       <input
         ref={fileRef}
         type="file"
-        accept="application/pdf"
+        accept={`${ACCEPTED_FILE_TYPES.join(",")},${ACCEPTED_FILE_EXTENSIONS}`}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -119,7 +133,7 @@ function PdfUploader({
         style={{ borderColor: "rgba(16,24,32,0.18)", color: "var(--st-ink-muted)" }}
       >
         {uploading ? <Spinner className="h-4 w-4" /> : <FileText size={16} />}
-        {uploading ? "Upload en cours…" : "Ajouter un PDF de consigne"}
+        {uploading ? "Upload en cours…" : "Ajouter un fichier de consigne"}
       </button>
     </>
   );
@@ -318,11 +332,12 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
             onRemove={() => {}}
           />
         )}
-        <PdfUploader
+        <ExerciseFileUploader
           lessonId={lessonId}
-          pdfUrl={content.pdf_url}
-          onUpload={(url) => onChange({ ...content, pdf_url: url })}
-          onRemove={() => onChange({ ...content, pdf_url: null })}
+          fileUrl={content.pdf_url}
+          fileName={content.file_name}
+          onUpload={(url, name) => onChange({ ...content, pdf_url: url, file_name: name })}
+          onRemove={() => onChange({ ...content, pdf_url: null, file_name: null })}
         />
         <PromptEditor
           value={content.prompt_html || ""}
@@ -422,17 +437,19 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
         )}
       </div>
 
-      {/* PDF de consigne */}
+      {/* Fichier de consigne */}
       <div className="rounded-lg border p-3 space-y-2">
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
-          <Label className="text-sm">PDF de consigne (optionnel)</Label>
+          <Label className="text-sm">Fichier de consigne (optionnel)</Label>
         </div>
-        <PdfUploader
+        <p className="text-xs text-muted-foreground">{ACCEPTED_FILE_LABEL} — 20 Mo max.</p>
+        <ExerciseFileUploader
           lessonId={lessonId}
-          pdfUrl={content.pdf_url}
-          onUpload={(url) => onChange({ ...content, pdf_url: url })}
-          onRemove={() => onChange({ ...content, pdf_url: null })}
+          fileUrl={content.pdf_url}
+          fileName={content.file_name}
+          onUpload={(url, name) => onChange({ ...content, pdf_url: url, file_name: name })}
+          onRemove={() => onChange({ ...content, pdf_url: null, file_name: null })}
         />
       </div>
 
