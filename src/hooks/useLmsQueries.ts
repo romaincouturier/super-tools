@@ -47,6 +47,8 @@ export interface LmsCourse {
   description: string | null;
   cover_image_url: string | null;
   status: string;
+  expertise: string | null;
+  access_type: string;
   difficulty_level: string | null;
   estimated_duration_minutes: number;
   tags: string[];
@@ -234,6 +236,22 @@ export function useCourses() {
       if (error) throw error;
       return data as LmsCourse[];
     },
+  });
+}
+
+export function useCourseEnrollmentCounts() {
+  return useQuery<Record<string, number>>({
+    queryKey: ["lms-enrollment-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("lms_enrollments").select("course_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data ?? []).forEach((e) => {
+        counts[e.course_id] = (counts[e.course_id] ?? 0) + 1;
+      });
+      return counts;
+    },
+    staleTime: 60 * 1000,
   });
 }
 

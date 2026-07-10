@@ -31,12 +31,15 @@ export default function BuilderTopbar({ lesson, courseId, titleValue, onTitleCha
   const status = course?.status ?? "draft";
   const isPublished = status === "published";
   const isArchived = status === "archived";
-  const statusLabel = isPublished ? "Publié" : isArchived ? "Archivé" : "Brouillon";
+  const isToReview = status === "to_review";
+  const statusLabel = isPublished ? "Publié" : isArchived ? "Archivé" : isToReview ? "À vérifier" : "Brouillon";
   const statusColor = isPublished
     ? { dot: "rgb(16,185,129)", text: "rgb(4,120,87)", border: "rgba(16,185,129,0.35)" }
     : isArchived
       ? { dot: "rgb(249,115,22)", text: "rgb(194,65,12)", border: "rgba(249,115,22,0.35)" }
-      : { dot: "var(--st-ink-muted)", text: "var(--st-ink-muted)", border: "rgba(16,24,32,0.15)" };
+      : isToReview
+        ? { dot: "rgb(245,158,11)", text: "rgb(180,83,9)", border: "rgba(245,158,11,0.35)" }
+        : { dot: "var(--st-ink-muted)", text: "var(--st-ink-muted)", border: "rgba(16,24,32,0.15)" };
 
   const togglePublish = async () => {
     const next = isPublished ? "draft" : "published";

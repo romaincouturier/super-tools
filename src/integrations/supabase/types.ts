@@ -4273,6 +4273,7 @@ export type Database = {
       }
       lms_courses: {
         Row: {
+          access_type: string
           community_preview_count: number
           cover_image_url: string | null
           created_at: string
@@ -4280,6 +4281,7 @@ export type Database = {
           description: string | null
           difficulty_level: string | null
           estimated_duration_minutes: number | null
+          expertise: string | null
           folder_id: string | null
           formation_config_id: string | null
           home_config: Json
@@ -4293,6 +4295,7 @@ export type Database = {
           welcome_video_url: string | null
         }
         Insert: {
+          access_type?: string
           community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
@@ -4300,6 +4303,7 @@ export type Database = {
           description?: string | null
           difficulty_level?: string | null
           estimated_duration_minutes?: number | null
+          expertise?: string | null
           folder_id?: string | null
           formation_config_id?: string | null
           home_config?: Json
@@ -4313,6 +4317,7 @@ export type Database = {
           welcome_video_url?: string | null
         }
         Update: {
+          access_type?: string
           community_preview_count?: number
           cover_image_url?: string | null
           created_at?: string
@@ -4320,6 +4325,7 @@ export type Database = {
           description?: string | null
           difficulty_level?: string | null
           estimated_duration_minutes?: number | null
+          expertise?: string | null
           folder_id?: string | null
           formation_config_id?: string | null
           home_config?: Json

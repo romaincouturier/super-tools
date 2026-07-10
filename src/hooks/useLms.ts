@@ -36,6 +36,7 @@ export {
   useCourseLiveMeetings,
   useCourseTrainingSessionsAdmin,
   useCourseFolders,
+  useCourseEnrollmentCounts,
 } from "./useLmsQueries";
 
 export {
