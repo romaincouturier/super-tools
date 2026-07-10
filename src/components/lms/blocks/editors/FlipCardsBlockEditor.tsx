@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Plus, X, RefreshCw, Upload, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { InlineEdit } from "./InlineEdit";
@@ -232,7 +232,8 @@ function SlimCard({
         value={text ?? ""}
         onChange={(v) => onChange({ [textKey]: v || null })}
         placeholder={showBack ? "Texte verso…" : "Texte recto…"}
-        style={{ fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none", textAlign: "center" }}
+        multiline
+        style={{ fontSize: "0.8125rem", color: "var(--st-ink)", outline: "none", textAlign: "center", whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 120, overflowY: "auto" }}
       />
 
       {canRemove && (
@@ -306,7 +307,7 @@ function CardFormFields({
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload("front", f); e.target.value = ""; }}
             />
           </div>
-          <Input value={card.front_text ?? ""} onChange={(e) => onChange({ front_text: e.target.value || null })} placeholder="Texte recto" />
+          <Textarea rows={2} className="min-h-[3rem]" value={card.front_text ?? ""} onChange={(e) => onChange({ front_text: e.target.value || null })} placeholder="Texte recto" />
         </div>
         {/* Back */}
         <div className="space-y-2">
@@ -322,7 +323,7 @@ function CardFormFields({
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload("back", f); e.target.value = ""; }}
             />
           </div>
-          <Input value={card.back_text ?? ""} onChange={(e) => onChange({ back_text: e.target.value || null })} placeholder="Texte verso" />
+          <Textarea rows={2} className="min-h-[3rem]" value={card.back_text ?? ""} onChange={(e) => onChange({ back_text: e.target.value || null })} placeholder="Texte verso" />
         </div>
       </div>
     </div>
