@@ -6,7 +6,6 @@ import {
 } from "../_shared/mod.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { embedText } from "../_shared/embeddings.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Anti-doublon à la saisie (lot 2) : embed la requête et renvoie les idées
@@ -45,7 +44,6 @@ Deno.serve(async (req) => {
     return createJsonResponse({ matches });
   } catch (err) {
     console.error("[find-similar-ideas] error", err);
-    await reportEdgeError(err, { fn: "find-similar-ideas" });
-    return createErrorResponse(err instanceof Error ? err.message : "Erreur inconnue", 500);
+    return createErrorResponse(err instanceof Error ? err.message : "Erreur inconnue", 500, { cause: err, fn: "find-similar-ideas" });
   }
 });

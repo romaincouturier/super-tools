@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { transcribeAudio } from "@/services/lmsMediaImport";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface UseMeetingRecorderOptions {
   /** Called once with the full transcript after the recording is processed. */

@@ -11,7 +11,6 @@ import {
   type Recipient,
 } from "../_shared/daily-data-fetchers.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Generate Daily Actions
@@ -560,8 +559,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error(`[${VERSION}] Error:`, error);
-    await reportEdgeError(error, { fn: "generate-daily-actions" });
     const msg = error instanceof Error ? error.message : "Unknown error";
-    return createErrorResponse(msg);
+    return createErrorResponse(msg, 500, { cause: error, fn: "generate-daily-actions" });
   }
 });

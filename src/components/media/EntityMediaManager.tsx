@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   useEntityMedia,
   useAddMedia,

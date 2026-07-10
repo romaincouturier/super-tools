@@ -221,11 +221,34 @@ check "031e" "Migration staff_select_guard existe" \
 check "035" "Les edge functions utilisant supports_url importent _shared/supports-url.ts" \
   "grep -rln 'supports_url' supabase/functions/ --include='index.ts' | xargs -r grep -L 'supports-url.ts' 2>/dev/null"
 
+# [037] Observabilité — les points de capture Sentry ne doivent jamais disparaître.
+check "037" "Erreurs affichées à l'utilisateur reportées à Sentry (toastError, toast sonner, QueryClient, createErrorResponse)" \
+  "grep -q 'reportHandledError' src/lib/toastError.ts || echo 'VIOLATION: toastError.ts ne capture plus vers Sentry'; \
+   grep -q 'reportHandledError' src/lib/toast.ts || echo 'VIOLATION: lib/toast.ts (wrapper sonner) ne capture plus vers Sentry'; \
+   grep -q 'queryCache: new QueryCache' src/App.tsx && grep -q 'mutationCache: new MutationCache' src/App.tsx || echo 'VIOLATION: App.tsx sans onError global queryCache/mutationCache'; \
+   grep -q 'reportEdgeError' supabase/functions/_shared/cors.ts || echo 'VIOLATION: createErrorResponse ne reporte plus les 5xx à Sentry'; \
+   true"
+
+# [037c] Sonner — jamais importé directement : passer par le wrapper @/lib/toast
+# (exceptions : le wrapper lui-même, le composant Toaster, et les tests qui mockent le module).
+check "037c" "Pas d'import direct de sonner (utiliser @/lib/toast)" \
+  "grep -rln 'from \"sonner\"' src --include='*.ts' --include='*.tsx' | grep -v 'src/lib/toast.ts' | grep -v 'src/components/ui/sonner.tsx' | grep -v '\.test\.'"
+
+# [037d] Un catch qui reporte à Sentry ne doit pas AUSSI appeler createErrorResponse
+# (double événement) : cause/fn se passent via createErrorResponse.
+check "037d" "Pas de reportEdgeError + createErrorResponse dans la même fonction edge" \
+  "for f in \$(grep -rl 'reportEdgeError' supabase/functions --include=index.ts); do grep -q 'createErrorResponse' \"\$f\" && echo \"VIOLATION: \$f — passer cause/fn à createErrorResponse au lieu de reportEdgeError\"; done"
+
 # [036] Crons pg_cron — pas de vault.decrypted_secrets ni de secret de cron dans
 # les nouvelles migrations versionnées (secret dédié inline posé directement en base).
 # Les migrations legacy (<= 2026-07-08) sont tolérées : crons re-planifiés en base.
 check "036" "Pas de vault.decrypted_secrets / x-cron-secret dans les nouvelles migrations" \
   "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260708235959 ] 2>/dev/null || continue; grep -vE '^\s*--' \"\$f\" | grep -qE 'vault\.decrypted_secrets|x-cron-secret' && echo \"VIOLATION: \$f\"; done; true"
+
+# [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
+# des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).
+check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
+  "bash scripts/check-backup-tables.sh"
 
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
@@ -337,6 +360,12 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   count_020=$(grep -rn 'supabase\.functions\.invoke' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | grep -v 'src/services/' | grep -v 'src/lib/' | grep -v 'hooks/useEdgeFunction.ts' | wc -l)
   ratchet "020" "Ratchet supabase.functions.invoke() inline (utiliser useEdgeFunction)" "$count_020"
+
+  count_037a=$(grep -rn '} catch {' src/ --include='*.ts' --include='*.tsx' 2>/dev/null | wc -l)
+  ratchet "037a" "Ratchet catch {} sans binding (erreur avalée — capturer et passer en cause)" "$count_037a"
+
+  count_037b=$(grep -rn 'JSON.stringify({ error\|JSON.stringify({error' supabase/functions/ --include='index.ts' 2>/dev/null | wc -l)
+  ratchet "037b" "Ratchet réponses d'erreur manuelles dans les edge functions (utiliser createErrorResponse)" "$count_037b"
 
 fi
 

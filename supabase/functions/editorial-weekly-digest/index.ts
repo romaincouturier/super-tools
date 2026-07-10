@@ -11,7 +11,6 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -139,8 +138,7 @@ Deno.serve(async (req) => {
 
     return createJsonResponse({ posted: true, digest });
   } catch (error) {
-    await reportEdgeError(error, { fn: "editorial-weekly-digest" });
     console.error("[editorial-weekly-digest] error", error);
-    return createErrorResponse(error instanceof Error ? error.message : "Erreur inconnue", 500);
+    return createErrorResponse(error instanceof Error ? error.message : "Erreur inconnue", 500, { cause: error, fn: "editorial-weekly-digest" });
   }
 });

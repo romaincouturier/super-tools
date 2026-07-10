@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Tag } from "lucide-react";
 import { useUpdateMediaTags } from "@/hooks/useMedia";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   Popover,
   PopoverContent,

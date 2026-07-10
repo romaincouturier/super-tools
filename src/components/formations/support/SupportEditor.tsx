@@ -9,7 +9,7 @@ import {
   BookOpen, Plus, Loader2, Eye, Save, ChevronDown,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   useTrainingSupport, useCreateSupport, useUpdateSupport,
   useSupportSections, useSectionMedia, useSupportImports,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mic, Radio, Clock, AlertCircle, CheckCircle2, RefreshCw, Trash2, ArchiveRestore, Copy } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";

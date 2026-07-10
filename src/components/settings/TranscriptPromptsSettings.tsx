@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Plus, Save } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import LmsAudioPromptSettings from "./LmsAudioPromptSettings";
 
 type Kind = "blog_article" | "linkedin_post" | "title" | "editorial" | "editorial_engine";

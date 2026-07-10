@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   corsHeaders,
   handleCorsPreflightIfNeeded,
@@ -270,9 +269,8 @@ serve(async (req) => {
       message: `Coupon ${couponCode} créé avec succès`,
     });
   } catch (error: unknown) {
-    await reportEdgeError(error, { fn: "generate-woocommerce-coupon" });
     console.error("Error in generate-woocommerce-coupon:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return createErrorResponse(errorMessage, 500);
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "generate-woocommerce-coupon" });
   }
 });

@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Save, Building2, CreditCard, Scale, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { QuoteSettings } from "@/types/quotes";
 
 export default function QuoteSettingsForm() {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { notifyContentUser } from "@/services/contentNotifications";
 import { Plus, CheckCircle2, Clock, MessageSquare, Bell, XCircle, Save } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";

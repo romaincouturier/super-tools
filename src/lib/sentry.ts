@@ -100,6 +100,29 @@ export function isSentryActive(): boolean {
   return initialized;
 }
 
+// Erreurs déjà capturées : un même objet Error peut transiter par plusieurs
+// points de passage (onError global React Query PUIS toastError avec cause) —
+// il ne doit produire qu'un seul événement Sentry.
+const alreadyCaptured = new WeakSet<object>();
+
+/**
+ * Point de capture unique des erreurs GÉRÉES (règle [037]) : toasts d'erreur,
+ * onError globaux. Capture les objets Error une seule fois; les messages
+ * simples (string) deviennent des breadcrumbs, pas des événements — les toasts
+ * de validation ("champ requis") ne sont pas des bugs.
+ */
+export function reportHandledError(err: unknown, extra?: Record<string, unknown>): void {
+  if (err instanceof Error || (typeof err === "object" && err !== null)) {
+    if (alreadyCaptured.has(err)) return;
+    alreadyCaptured.add(err);
+    Sentry.captureException(err, extra ? { extra } : undefined);
+    return;
+  }
+  if (typeof err === "string" && err) {
+    Sentry.addBreadcrumb({ category: "handled-error", message: err, level: "error" });
+  }
+}
+
 export type SentryTestResult =
   | { ok: true; eventId: string }
   | { ok: false; reason: "not_initialized" | "flush_timeout" | "network_blocked"; detail?: string };

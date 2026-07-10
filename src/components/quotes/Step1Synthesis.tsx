@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Sparkles, RefreshCw, Pencil, Eye, Copy, Check, FileText, Swords } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceTextarea } from "@/components/ui/voice-textarea";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { CrmCard } from "@/types/crm";
 import { htmlToPlainText, cleanHtmlOutput } from "@/lib/htmlUtils";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";

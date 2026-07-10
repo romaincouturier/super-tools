@@ -4,7 +4,7 @@ import { Loader2, BookOpen, Download, X, ChevronLeft, ChevronRight } from "lucid
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { downloadFile } from "@/lib/file-utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   useTrainingSupport, useSupportSections, useSectionMedia,
 } from "@/hooks/useTrainingSupport";

@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadFile } from "@/lib/file-utils";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface ImageLightboxProps {
   src: string;

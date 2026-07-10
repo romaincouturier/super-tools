@@ -6,7 +6,6 @@ import {
   verifyAuth,
   corsHeaders,
 } from "../_shared/mod.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Agent Chat — AI assistant with access to all SuperTools data.
@@ -907,8 +906,7 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error("Agent chat error:", error);
-    await reportEdgeError(error, { fn: "agent-chat" });
     const msg = error instanceof Error ? error.message : "Erreur interne";
-    return createErrorResponse(msg);
+    return createErrorResponse(msg, 500, { cause: error, fn: "agent-chat" });
   }
 });

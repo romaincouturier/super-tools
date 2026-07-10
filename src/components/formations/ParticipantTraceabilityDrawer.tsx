@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Mail, FileText, ClipboardCheck, ExternalLink, ChevronDown, ChevronUp, UserCheck, Send } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface ParticipantTraceabilityDrawerProps {
   open: boolean;

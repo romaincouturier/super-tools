@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   useTrainingSurveysList, useTrainingSurveyQuestions, useTrainingSurveyResponses,
   useTrainingSurveyRecipients, useSendTrainingSurvey,

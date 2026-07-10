@@ -3,7 +3,7 @@ import { MediaItem, useDeleteMedia, deleteMediaFile } from "@/hooks/useMedia";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Video, Play, Trash2, Briefcase, Download, GraduationCap, CalendarDays, HandCoins, Tag, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { formatFileSize } from "@/lib/file-utils";
 import MediaTagEditor from "./MediaTagEditor";
 import { useDemoMode } from "@/contexts/DemoModeContext";

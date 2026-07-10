@@ -10,7 +10,7 @@ import {
   Share2, MoreVertical, Copy, Clock, Plus, X, Pencil, MessageSquare,
 } from "lucide-react";
 import { stripWatchHtml } from "./WatchRichEditor";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { WatchItem } from "@/hooks/useWatch";
