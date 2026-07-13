@@ -5967,6 +5967,7 @@ export type Database = {
           created_at: string | null
           icon: string | null
           id: string
+          is_deliverable: boolean
           is_expanded: boolean | null
           mission_id: string
           page_type: string
@@ -5981,6 +5982,7 @@ export type Database = {
           created_at?: string | null
           icon?: string | null
           id?: string
+          is_deliverable?: boolean
           is_expanded?: boolean | null
           mission_id: string
           page_type?: string
@@ -5995,6 +5997,7 @@ export type Database = {
           created_at?: string | null
           icon?: string | null
           id?: string
+          is_deliverable?: boolean
           is_expanded?: boolean | null
           mission_id?: string
           page_type?: string
@@ -11422,6 +11425,10 @@ export type Database = {
         Returns: Json
       }
       get_mission_media_public: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_mission_pages_public_deliverables: {
         Args: { p_mission_id: string }
         Returns: Json
       }

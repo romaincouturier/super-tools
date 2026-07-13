@@ -5,6 +5,9 @@ import {
   createErrorResponse,
   getSupabaseClient,
 } from "../_shared/mod.ts";
+import { renderPagePdf } from "./renderPagePdf.ts";
+
+
 
 interface Deliverable {
   file_name: string;
@@ -142,7 +145,11 @@ serve(async (req) => {
       .single();
     if (missionError || !mission) return createErrorResponse("Mission not found", 404);
 
-    const [{ data: docs, error: docsError }, { data: media, error: mediaError }] = await Promise.all([
+    const [
+      { data: docs, error: docsError },
+      { data: media, error: mediaError },
+      { data: pages, error: pagesError },
+    ] = await Promise.all([
       supabase
         .from("mission_documents")
         .select("file_name, file_url")
@@ -154,19 +161,28 @@ serve(async (req) => {
         .eq("source_type", "mission")
         .eq("source_id", mission_id)
         .eq("is_deliverable", true),
+      supabase
+        .from("mission_pages")
+        .select("id, title, content, created_at")
+        .eq("mission_id", mission_id)
+        .eq("is_deliverable", true)
+        .order("created_at", { ascending: true }),
     ]);
 
     if (docsError) return createErrorResponse(`Documents query failed: ${docsError.message}`, 500);
     if (mediaError) return createErrorResponse(`Media query failed: ${mediaError.message}`, 500);
+    if (pagesError) return createErrorResponse(`Pages query failed: ${pagesError.message}`, 500);
 
     const deliverables: Deliverable[] = [
       ...((docs ?? []) as Deliverable[]),
       ...((media ?? []) as Deliverable[]),
     ];
+    const deliverablePages = (pages ?? []) as Array<{ id: string; title: string; content: string | null }>;
 
-    if (deliverables.length === 0) {
+    if (deliverables.length === 0 && deliverablePages.length === 0) {
       return createErrorResponse("No deliverables for this mission", 404);
     }
+
 
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -212,6 +228,33 @@ serve(async (req) => {
             enqueue(controller, dataDescriptor(crc, size), written);
             entries.push({ nameBytes, crc, size, offset, modTime, modDate });
           }
+
+          // Deliverable pages → generated PDFs under pages/
+          for (const p of deliverablePages) {
+            try {
+              const pdfBytes = await renderPagePdf(p.title || "Sans titre", p.content || "");
+              const safeTitle = (p.title || "page").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "page";
+              let name = `pages/${safeTitle}.pdf`;
+              if (seen.has(name)) {
+                const n = (seen.get(name) ?? 1) + 1;
+                seen.set(name, n);
+                name = `pages/${safeTitle} (${n}).pdf`;
+              } else {
+                seen.set(name, 1);
+              }
+
+              const nameBytes = encoder.encode(name);
+              const offset = written.value;
+              enqueue(controller, localFileHeader(nameBytes, modTime, modDate), written);
+              const crc = updateCrc32(0, pdfBytes);
+              enqueue(controller, pdfBytes, written);
+              enqueue(controller, dataDescriptor(crc, pdfBytes.length), written);
+              entries.push({ nameBytes, crc, size: pdfBytes.length, offset, modTime, modDate });
+            } catch (err) {
+              console.warn(`Skipping page ${p.id} PDF generation:`, err);
+            }
+          }
+
 
           const centralOffset = written.value;
           for (const entry of entries) enqueue(controller, centralDirectoryHeader(entry), written);

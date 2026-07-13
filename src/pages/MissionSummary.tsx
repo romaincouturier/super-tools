@@ -14,6 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import { toast } from "@/lib/toast";
+import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
+
 
 // ---------- Types ----------
 
@@ -124,6 +126,7 @@ const t: Record<Lang, Record<string, string>> = {
     location: "Lieu",
     directions: "Itinéraire",
     viewOnMap: "Voir sur Google Maps",
+    deliverablePages: "Pages livrables",
   },
   en: {
     loading: "Loading...",
@@ -165,6 +168,7 @@ const t: Record<Lang, Record<string, string>> = {
     location: "Location",
     directions: "Directions",
     viewOnMap: "View on Google Maps",
+    deliverablePages: "Deliverable pages",
   },
 };
 
@@ -412,6 +416,7 @@ const MissionSummary = () => {
   const [documents, setDocuments] = useState<MissionDocument[]>([]);
   const [mediaItems, setMediaItems] = useState<MissionMedia[]>([]);
   const [actions, setActions] = useState<MissionAction[]>([]);
+  const [pages, setPages] = useState<Array<{ id: string; title: string; icon: string | null; content: string | null; created_at: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lang, setLang] = useState<Lang>("fr");
@@ -431,12 +436,13 @@ const MissionSummary = () => {
     if (!missionId) return;
     const fetchData = async () => {
       try {
-        const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
+        const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes, pagesRes] = await Promise.all([
           rpc.getMissionPublicSummary(missionId!),
           rpc.getMissionActivitiesPublic(missionId!),
           rpc.getMissionDocumentsPublic(missionId!),
           rpc.getMissionActionsPublic(missionId!),
           rpc.getMissionMediaPublic(missionId!),
+          rpc.getMissionPagesPublicDeliverables(missionId!),
         ]);
 
         if (missionRes.error || !missionRes.data) {
@@ -450,6 +456,7 @@ const MissionSummary = () => {
         setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
         setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
         setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);
+        setPages(Array.isArray(pagesRes.data) ? pagesRes.data : []);
       } catch {
         setError(true);
       } finally {
@@ -614,6 +621,34 @@ const MissionSummary = () => {
         {/* Deliverables (only if there are any marked) */}
         {deliverables.length > 0 && (
           <DeliverablesBlock deliverables={deliverables} lang={lang} missionId={mission.id} missionTitle={mission.title} />
+        )}
+
+        {/* Deliverable Pages */}
+        {pages.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                {L.deliverablePages}
+                <Badge variant="secondary" className="text-xs ml-1">{pages.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {pages.map((p) => (
+                <article key={p.id} className="border rounded-lg p-5 bg-card">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    {p.icon && <span aria-hidden>{p.icon}</span>}
+                    <span>{p.title || "Sans titre"}</span>
+                  </h3>
+                  <div
+                    className="prose prose-sm max-w-none prose-headings:font-semibold prose-img:rounded-lg prose-img:my-3 prose-a:text-primary"
+                    dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(p.content || "") }}
+                  />
+
+                </article>
+              ))}
+            </CardContent>
+          </Card>
         )}
 
         {/* Financial Summary — authenticated only */}

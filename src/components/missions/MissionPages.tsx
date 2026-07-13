@@ -72,6 +72,7 @@ import {
   X,
   Copy,
   FileAudio,
+  Package,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -944,6 +945,26 @@ const PageEditor = ({
         >
           {aiSummaryLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
           Résumé IA
+        </button>
+
+        <button
+          onClick={() => {
+            updatePage.mutate({
+              id: page.id,
+              missionId,
+              updates: { is_deliverable: !page.is_deliverable },
+            });
+          }}
+          title={page.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable (visible sur la page publique de livraison)"}
+          className={cn(
+            "h-7 px-2 flex items-center gap-1 rounded transition-colors shrink-0 text-xs font-medium",
+            page.is_deliverable
+              ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <Package className="h-3.5 w-3.5" />
+          {page.is_deliverable ? "Livrable" : "Marquer livrable"}
         </button>
 
         {updatePage.isPending && (
