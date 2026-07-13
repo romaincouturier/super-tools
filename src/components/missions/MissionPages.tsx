@@ -86,6 +86,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import { toastError } from "@/lib/toastError";
 import {
   useMissionPages,
@@ -1044,6 +1045,7 @@ const getFileIcon = (name: string) => {
 
 const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreated }: MissionPagesProps) => {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: pages, isLoading } = useMissionPages(mission.id);
   const { data: pageTemplates } = useMissionPageTemplates();
   const createPage = useCreateMissionPage();
@@ -1246,7 +1248,13 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   };
 
   const handleDeletePage = async (page: MissionPage) => {
-    if (!confirm("Supprimer cette page et ses sous-pages ?")) return;
+    const ok = await confirm({
+      title: "Supprimer cette page ?",
+      description: "Cette page et ses sous-pages seront supprimées définitivement.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await deletePage.mutateAsync({ id: page.id, missionId: mission.id });
       if (selectedPage?.id === page.id) {
@@ -1376,6 +1384,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   }
 
   return (
+    <>
+    <ConfirmDialog />
     <div className="flex gap-0 -mx-6 -mb-6" style={{ height: "calc(100vh - 180px)" }}>
       {/* Sidebar toggle when collapsed */}
       {sidebarCollapsed && (
@@ -1535,6 +1545,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         onPick={handleCreatePageFromTranscript}
       />
     </div>
+    </>
   );
 };
 
