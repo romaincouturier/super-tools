@@ -1545,6 +1545,7 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         onPick={handleCreatePageFromTranscript}
       />
     </div>
+    </>
   );
 };
 
