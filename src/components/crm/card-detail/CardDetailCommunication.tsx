@@ -1,8 +1,9 @@
 // CardDetailCommunication
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail } from "@/lib/demoMask";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +17,18 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Mail, FileText, Paperclip, X, Wand2, Undo2, Calendar, ChevronDown, Copy, Pencil, Sparkles } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Mail, FileText, Paperclip, X, Wand2, Undo2, Calendar, ChevronDown, Copy, Pencil, Sparkles, Clock, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,6 +41,14 @@ import { toastError } from "@/lib/toastError";
 import EmailEditor from "../EmailEditor";
 import SentDevisSection from "../SentDevisSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
+
+interface ScheduledEmailRow {
+  id: string;
+  recipient_email: string;
+  subject: string;
+  scheduled_at: string;
+  status: string;
+}
 
 interface Props {
   state: CardDetailState;
@@ -57,6 +75,75 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
     emailSubjectBeforeAi, emailBodyBeforeAi,
     improvingSubject, improvingBody, sendEmailPending,
   } = state;
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerDateTime, setPickerDateTime] = useState<string>(() => {
+    const d = addDays(new Date(), 1);
+    d.setHours(8, 0, 0, 0);
+    // yyyy-MM-ddTHH:mm for datetime-local
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+
+  const scheduledEmailsQuery = useQuery({
+    queryKey: ["crm-scheduled-emails", card?.id],
+    enabled: !!card?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => ReturnType<typeof supabase.from>;
+      })
+        .from("crm_scheduled_emails")
+        .select("id, recipient_email, subject, scheduled_at, status")
+        .eq("card_id", card!.id)
+        .eq("status", "pending")
+        .order("scheduled_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as ScheduledEmailRow[];
+    },
+  });
+
+  const scheduleEmail = async (when: Date) => {
+    if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
+    if (when.getTime() <= Date.now()) {
+      toastError(toast, "La date doit être dans le futur.", { title: "Date invalide" });
+      return;
+    }
+    try {
+      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("crm_scheduled_emails").insert({
+        card_id: card.id,
+        recipient_email: emailTo.trim(),
+        subject: emailSubject.trim(),
+        body_html: DOMPurify.sanitize(emailBody),
+        scheduled_at: when.toISOString(),
+        sender_email: user.email,
+        attachments: emailAttachments.length > 0 ? emailAttachments : null,
+      });
+      toast({ title: "Email programmé", description: `Envoi prévu le ${format(when, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
+      queryClient.invalidateQueries({ queryKey: ["crm-scheduled-emails", card.id] });
+    } catch {
+      toastError(toast, "Impossible de programmer l'email.");
+    }
+  };
+
+  const cancelScheduledEmail = async (id: string) => {
+    try {
+      await (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> })
+        .from("crm_scheduled_emails")
+        .delete()
+        .eq("id", id);
+      toast({ title: "Envoi annulé" });
+      queryClient.invalidateQueries({ queryKey: ["crm-scheduled-emails", card?.id] });
+    } catch {
+      toastError(toast, "Impossible d'annuler l'envoi.");
+    }
+  };
+
+  const presets = [
+    { label: "Demain 8h", when: (() => { const d = addDays(new Date(), 1); d.setHours(8, 0, 0, 0); return d; })() },
+    { label: "Dans 3 jours ouvrés 8h", when: (() => { let d = new Date(); let r = 3; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+    { label: "Dans 5 jours ouvrés 8h", when: (() => { let d = new Date(); let r = 5; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+  ];
 
   return (
     <div className="space-y-4 mt-6 border-t pt-4">
@@ -310,49 +397,104 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
           </Button>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!emailTo.trim() || !emailSubject.trim() || sendEmailPending} className="px-2">
+              <Button variant="outline" disabled={!emailTo.trim() || !emailSubject.trim() || sendEmailPending} className="px-2" title="Programmer l'envoi">
                 <Calendar className="h-4 w-4" />
                 <ChevronDown className="h-3 w-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {[
-                { label: "Demain 8h", hours: (() => { const d = addDays(new Date(), 1); d.setHours(8, 0, 0, 0); return d; })() },
-                { label: "Dans 3 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 3; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
-                { label: "Dans 5 jours ouvrés 8h", hours: (() => { let d = new Date(); let r = 5; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
-              ].map(({ label, hours }) => (
-                <DropdownMenuItem
-                  key={label}
-                  onClick={async () => {
-                    if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
-                    try {
-                      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("crm_scheduled_emails").insert({
-                        card_id: card.id,
-                        recipient_email: emailTo.trim(),
-                        subject: emailSubject.trim(),
-                        body_html: DOMPurify.sanitize(emailBody),
-                        scheduled_at: hours.toISOString(),
-                        sender_email: user.email,
-                        attachments: emailAttachments.length > 0 ? emailAttachments : null,
-                      });
-                      toast({ title: "Email programmé", description: `Envoi prévu le ${format(hours, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
-                      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
-                    } catch {
-                      toastError(toast, "Impossible de programmer l'email.");
-                    }
-                  }}
-                >
+            <DropdownMenuContent align="end" className="w-64">
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                Programmer l'envoi
+              </div>
+              {presets.map(({ label, when }) => (
+                <DropdownMenuItem key={label} onClick={() => scheduleEmail(when)}>
                   <Calendar className="h-4 w-4 mr-2" />
                   {label}
                   <span className="ml-auto text-xs text-muted-foreground">
-                    {format(hours, "d MMM HH:mm", { locale: fr })}
+                    {format(when, "d MMM HH:mm", { locale: fr })}
                   </span>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setPickerOpen(true); }}>
+                <Clock className="h-4 w-4 mr-2" />
+                Choisir la date et l'heure…
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Pending scheduled emails */}
+        {scheduledEmailsQuery.data && scheduledEmailsQuery.data.length > 0 && (
+          <div className="rounded-md border border-dashed p-2 space-y-1.5 bg-muted/30">
+            <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              {scheduledEmailsQuery.data.length} email{scheduledEmailsQuery.data.length > 1 ? "s" : ""} programmé{scheduledEmailsQuery.data.length > 1 ? "s" : ""}
+            </div>
+            {scheduledEmailsQuery.data.map((se) => (
+              <div key={se.id} className="flex items-center gap-2 text-xs bg-background rounded px-2 py-1.5">
+                <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                <span className="text-muted-foreground shrink-0">
+                  {format(new Date(se.scheduled_at), "d MMM 'à' HH:mm", { locale: fr })}
+                </span>
+                <span className="truncate flex-1" title={`${se.recipient_email} — ${se.subject}`}>
+                  → {se.subject}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                  onClick={() => cancelScheduledEmail(se.id)}
+                  title="Annuler l'envoi programmé"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Custom date & time picker dialog */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Programmer l'envoi</DialogTitle>
+            <DialogDescription>
+              Choisissez la date et l'heure d'envoi de cet email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="scheduled-datetime" className="text-xs">Date et heure</Label>
+            <Input
+              id="scheduled-datetime"
+              type="datetime-local"
+              value={pickerDateTime}
+              onChange={(e) => setPickerDateTime(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickerOpen(false)}>Annuler</Button>
+            <Button
+              onClick={async () => {
+                if (!pickerDateTime) return;
+                const when = new Date(pickerDateTime);
+                if (Number.isNaN(when.getTime())) {
+                  toastError(toast, "Date invalide.");
+                  return;
+                }
+                await scheduleEmail(when);
+                setPickerOpen(false);
+              }}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Programmer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Email & devis history */}
       <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails} />
