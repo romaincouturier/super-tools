@@ -1384,6 +1384,8 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   }
 
   return (
+    <>
+    <ConfirmDialog />
     <div className="flex gap-0 -mx-6 -mb-6" style={{ height: "calc(100vh - 180px)" }}>
       {/* Sidebar toggle when collapsed */}
       {sidebarCollapsed && (
