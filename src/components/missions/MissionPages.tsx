@@ -1248,7 +1248,13 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   };
 
   const handleDeletePage = async (page: MissionPage) => {
-    if (!confirm("Supprimer cette page et ses sous-pages ?")) return;
+    const ok = await confirm({
+      title: "Supprimer cette page ?",
+      description: "Cette page et ses sous-pages seront supprimées définitivement.",
+      confirmText: "Supprimer",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await deletePage.mutateAsync({ id: page.id, missionId: mission.id });
       if (selectedPage?.id === page.id) {
