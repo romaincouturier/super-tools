@@ -229,6 +229,33 @@ serve(async (req) => {
             entries.push({ nameBytes, crc, size, offset, modTime, modDate });
           }
 
+          // Deliverable pages → generated PDFs under pages/
+          for (const p of deliverablePages) {
+            try {
+              const pdfBytes = await renderPagePdf(p.title || "Sans titre", p.content || "");
+              const safeTitle = (p.title || "page").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "page";
+              let name = `pages/${safeTitle}.pdf`;
+              if (seen.has(name)) {
+                const n = (seen.get(name) ?? 1) + 1;
+                seen.set(name, n);
+                name = `pages/${safeTitle} (${n}).pdf`;
+              } else {
+                seen.set(name, 1);
+              }
+
+              const nameBytes = encoder.encode(name);
+              const offset = written.value;
+              enqueue(controller, localFileHeader(nameBytes, modTime, modDate), written);
+              const crc = updateCrc32(0, pdfBytes);
+              enqueue(controller, pdfBytes, written);
+              enqueue(controller, dataDescriptor(crc, pdfBytes.length), written);
+              entries.push({ nameBytes, crc, size: pdfBytes.length, offset, modTime, modDate });
+            } catch (err) {
+              console.warn(`Skipping page ${p.id} PDF generation:`, err);
+            }
+          }
+
+
           const centralOffset = written.value;
           for (const entry of entries) enqueue(controller, centralDirectoryHeader(entry), written);
           const centralSize = written.value - centralOffset;
