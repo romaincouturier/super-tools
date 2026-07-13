@@ -72,6 +72,7 @@ import {
   X,
   Copy,
   FileAudio,
+  Package,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
