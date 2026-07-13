@@ -493,7 +493,8 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </div>
+
+
 
       {/* Email & devis history */}
       <SentDevisSection email={email || null} cardId={card?.id || null} emails={details?.emails} />
