@@ -1045,6 +1045,7 @@ const getFileIcon = (name: string) => {
 
 const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreated }: MissionPagesProps) => {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { data: pages, isLoading } = useMissionPages(mission.id);
   const { data: pageTemplates } = useMissionPageTemplates();
   const createPage = useCreateMissionPage();
