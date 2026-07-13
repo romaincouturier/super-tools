@@ -621,6 +621,33 @@ const MissionSummary = () => {
           <DeliverablesBlock deliverables={deliverables} lang={lang} missionId={mission.id} missionTitle={mission.title} />
         )}
 
+        {/* Deliverable Pages */}
+        {pages.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                {L.deliverablePages}
+                <Badge variant="secondary" className="text-xs ml-1">{pages.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {pages.map((p) => (
+                <article key={p.id} className="border rounded-lg p-5 bg-card">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    {p.icon && <span aria-hidden>{p.icon}</span>}
+                    <span>{p.title || "Sans titre"}</span>
+                  </h3>
+                  <div
+                    className="prose prose-sm max-w-none prose-headings:font-semibold prose-img:rounded-lg prose-img:my-3 prose-a:text-primary"
+                    dangerouslySetInnerHTML={{ __html: p.content || "" }}
+                  />
+                </article>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Financial Summary — authenticated only */}
         {isAuthenticated && (
           <Card>
