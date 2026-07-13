@@ -54,6 +54,7 @@ export interface MissionPage {
   position: number;
   is_expanded: boolean;
   page_type: string;
+  is_deliverable: boolean;
   created_at: string;
   updated_at: string;
 }
