@@ -10,7 +10,7 @@ import {
   StandardFonts,
   rgb,
 } from "https://esm.sh/pdf-lib@1.17.1";
-import { DOMParser, Element as DDElement } from "https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts";
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts";
 
 const PAGE_WIDTH = 595.28; // A4 pt
 const PAGE_HEIGHT = 841.89;
