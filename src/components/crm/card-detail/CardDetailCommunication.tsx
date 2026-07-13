@@ -1,8 +1,9 @@
 // CardDetailCommunication
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDemoMode } from "@/contexts/DemoModeContext";
 import { maskEmail } from "@/lib/demoMask";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +17,18 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Mail, FileText, Paperclip, X, Wand2, Undo2, Calendar, ChevronDown, Copy, Pencil, Sparkles } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Mail, FileText, Paperclip, X, Wand2, Undo2, Calendar, ChevronDown, Copy, Pencil, Sparkles, Clock, Trash2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,6 +41,14 @@ import { toastError } from "@/lib/toastError";
 import EmailEditor from "../EmailEditor";
 import SentDevisSection from "../SentDevisSection";
 import type { CardDetailState, CardDetailHandlers, CardDetails } from "./types";
+
+interface ScheduledEmailRow {
+  id: string;
+  recipient_email: string;
+  subject: string;
+  scheduled_at: string;
+  status: string;
+}
 
 interface Props {
   state: CardDetailState;
