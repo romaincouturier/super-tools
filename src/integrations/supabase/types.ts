@@ -11428,6 +11428,10 @@ export type Database = {
         Args: { p_mission_id: string }
         Returns: Json
       }
+      get_mission_pages_public_deliverables: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
       get_mission_public_summary: {
         Args: { p_mission_id: string }
         Returns: Json
