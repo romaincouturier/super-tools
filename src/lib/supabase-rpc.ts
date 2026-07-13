@@ -416,6 +416,12 @@ export const rpc = {
   getMissionMediaPublic: (missionId: string) =>
     call<MissionMediaPublic[]>("get_mission_media_public", { p_mission_id: missionId }),
 
+  getMissionPagesPublicDeliverables: (missionId: string) =>
+    call<Array<{ id: string; title: string; icon: string | null; content: string | null; created_at: string }>>(
+      "get_mission_pages_public_deliverables",
+      { p_mission_id: missionId },
+    ),
+
   // --- DB utilities ---
   getDbSize: () =>
     call<DbSize>("get_db_size", {}),
