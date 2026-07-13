@@ -642,8 +642,9 @@ const MissionSummary = () => {
                   </h3>
                   <div
                     className="prose prose-sm max-w-none prose-headings:font-semibold prose-img:rounded-lg prose-img:my-3 prose-a:text-primary"
-                    dangerouslySetInnerHTML={{ __html: p.content || "" }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(p.content || "") }}
                   />
+
                 </article>
               ))}
             </CardContent>
