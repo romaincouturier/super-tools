@@ -76,6 +76,75 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
     improvingSubject, improvingBody, sendEmailPending,
   } = state;
 
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerDateTime, setPickerDateTime] = useState<string>(() => {
+    const d = addDays(new Date(), 1);
+    d.setHours(8, 0, 0, 0);
+    // yyyy-MM-ddTHH:mm for datetime-local
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+
+  const scheduledEmailsQuery = useQuery({
+    queryKey: ["crm-scheduled-emails", card?.id],
+    enabled: !!card?.id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => ReturnType<typeof supabase.from>;
+      })
+        .from("crm_scheduled_emails")
+        .select("id, recipient_email, subject, scheduled_at, status")
+        .eq("card_id", card!.id)
+        .eq("status", "pending")
+        .order("scheduled_at", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as ScheduledEmailRow[];
+    },
+  });
+
+  const scheduleEmail = async (when: Date) => {
+    if (!card || !user?.email || !emailTo.trim() || !emailSubject.trim()) return;
+    if (when.getTime() <= Date.now()) {
+      toastError(toast, "La date doit être dans le futur.", { title: "Date invalide" });
+      return;
+    }
+    try {
+      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("crm_scheduled_emails").insert({
+        card_id: card.id,
+        recipient_email: emailTo.trim(),
+        subject: emailSubject.trim(),
+        body_html: DOMPurify.sanitize(emailBody),
+        scheduled_at: when.toISOString(),
+        sender_email: user.email,
+        attachments: emailAttachments.length > 0 ? emailAttachments : null,
+      });
+      toast({ title: "Email programmé", description: `Envoi prévu le ${format(when, "d MMM yyyy 'à' HH:mm", { locale: fr })}` });
+      setEmailTo(""); setEmailCc(""); setEmailBcc(""); setShowCcBcc(false); setEmailSubject(""); setEmailBody(""); setEmailAttachments([]);
+      queryClient.invalidateQueries({ queryKey: ["crm-scheduled-emails", card.id] });
+    } catch {
+      toastError(toast, "Impossible de programmer l'email.");
+    }
+  };
+
+  const cancelScheduledEmail = async (id: string) => {
+    try {
+      await (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> })
+        .from("crm_scheduled_emails")
+        .delete()
+        .eq("id", id);
+      toast({ title: "Envoi annulé" });
+      queryClient.invalidateQueries({ queryKey: ["crm-scheduled-emails", card?.id] });
+    } catch {
+      toastError(toast, "Impossible d'annuler l'envoi.");
+    }
+  };
+
+  const presets = [
+    { label: "Demain 8h", when: (() => { const d = addDays(new Date(), 1); d.setHours(8, 0, 0, 0); return d; })() },
+    { label: "Dans 3 jours ouvrés 8h", when: (() => { let d = new Date(); let r = 3; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+    { label: "Dans 5 jours ouvrés 8h", when: (() => { let d = new Date(); let r = 5; while (r > 0) { d = addDays(d, 1); if (d.getDay() !== 0 && d.getDay() !== 6) r--; } d.setHours(8, 0, 0, 0); return d; })() },
+  ];
+
   return (
     <div className="space-y-4 mt-6 border-t pt-4">
       <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
