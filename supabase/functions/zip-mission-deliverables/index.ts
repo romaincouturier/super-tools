@@ -5,6 +5,8 @@ import {
   createErrorResponse,
   getSupabaseClient,
 } from "../_shared/mod.ts";
+import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+
 
 interface Deliverable {
   file_name: string;
