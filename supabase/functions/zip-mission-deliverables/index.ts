@@ -145,7 +145,11 @@ serve(async (req) => {
       .single();
     if (missionError || !mission) return createErrorResponse("Mission not found", 404);
 
-    const [{ data: docs, error: docsError }, { data: media, error: mediaError }] = await Promise.all([
+    const [
+      { data: docs, error: docsError },
+      { data: media, error: mediaError },
+      { data: pages, error: pagesError },
+    ] = await Promise.all([
       supabase
         .from("mission_documents")
         .select("file_name, file_url")
@@ -157,19 +161,28 @@ serve(async (req) => {
         .eq("source_type", "mission")
         .eq("source_id", mission_id)
         .eq("is_deliverable", true),
+      supabase
+        .from("mission_pages")
+        .select("id, title, content, created_at")
+        .eq("mission_id", mission_id)
+        .eq("is_deliverable", true)
+        .order("created_at", { ascending: true }),
     ]);
 
     if (docsError) return createErrorResponse(`Documents query failed: ${docsError.message}`, 500);
     if (mediaError) return createErrorResponse(`Media query failed: ${mediaError.message}`, 500);
+    if (pagesError) return createErrorResponse(`Pages query failed: ${pagesError.message}`, 500);
 
     const deliverables: Deliverable[] = [
       ...((docs ?? []) as Deliverable[]),
       ...((media ?? []) as Deliverable[]),
     ];
+    const deliverablePages = (pages ?? []) as Array<{ id: string; title: string; content: string | null }>;
 
-    if (deliverables.length === 0) {
+    if (deliverables.length === 0 && deliverablePages.length === 0) {
       return createErrorResponse("No deliverables for this mission", 404);
     }
+
 
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
