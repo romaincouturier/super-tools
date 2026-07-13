@@ -412,6 +412,7 @@ const MissionSummary = () => {
   const [documents, setDocuments] = useState<MissionDocument[]>([]);
   const [mediaItems, setMediaItems] = useState<MissionMedia[]>([]);
   const [actions, setActions] = useState<MissionAction[]>([]);
+  const [pages, setPages] = useState<Array<{ id: string; title: string; icon: string | null; content: string | null; created_at: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lang, setLang] = useState<Lang>("fr");
@@ -431,12 +432,13 @@ const MissionSummary = () => {
     if (!missionId) return;
     const fetchData = async () => {
       try {
-        const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes] = await Promise.all([
+        const [missionRes, activitiesRes, documentsRes, actionsRes, mediaRes, pagesRes] = await Promise.all([
           rpc.getMissionPublicSummary(missionId!),
           rpc.getMissionActivitiesPublic(missionId!),
           rpc.getMissionDocumentsPublic(missionId!),
           rpc.getMissionActionsPublic(missionId!),
           rpc.getMissionMediaPublic(missionId!),
+          rpc.getMissionPagesPublicDeliverables(missionId!),
         ]);
 
         if (missionRes.error || !missionRes.data) {
@@ -450,6 +452,7 @@ const MissionSummary = () => {
         setDocuments(Array.isArray(documentsRes.data) ? documentsRes.data : []);
         setMediaItems(Array.isArray(mediaRes.data) ? mediaRes.data : []);
         setActions(Array.isArray(actionsRes.data) ? actionsRes.data : []);
+        setPages(Array.isArray(pagesRes.data) ? pagesRes.data : []);
       } catch {
         setError(true);
       } finally {
