@@ -14,6 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import { toast } from "@/lib/toast";
+import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
+
 
 // ---------- Types ----------
 
