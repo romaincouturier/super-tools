@@ -166,6 +166,7 @@ const t: Record<Lang, Record<string, string>> = {
     location: "Location",
     directions: "Directions",
     viewOnMap: "View on Google Maps",
+    deliverablePages: "Deliverable pages",
   },
 };
 
