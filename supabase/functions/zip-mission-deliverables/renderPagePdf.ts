@@ -253,11 +253,16 @@ export async function renderPagePdf(title: string, html: string): Promise<Uint8A
   drawText(ctx, title || "Sans titre", { size: 22, bold: true });
   spacer(ctx, 10);
 
-  const { document } = parseHTML(`<!doctype html><html><body><div id="root">${html || ""}</div></body></html>`);
-  const root = document.getElementById("root");
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(
+    `<!doctype html><html><body><div id="root">${html || ""}</div></body></html>`,
+    "text/html",
+  );
+  const root = doc?.getElementById("root");
   if (root) {
     for (const child of root.childNodes) await walk(ctx, child);
   }
+
 
   return await pdf.save();
 }
