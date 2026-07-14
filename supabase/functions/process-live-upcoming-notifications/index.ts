@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Process Live Upcoming Notifications
@@ -108,6 +109,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[process-live-upcoming-notifications] Error:", error);
+    await reportEdgeError(error, { fn: "process-live-upcoming-notifications" });
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: msg }),

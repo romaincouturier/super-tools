@@ -3,6 +3,7 @@ import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 import {
@@ -555,6 +556,7 @@ serve(async (req) => {
         await new Promise((r) => setTimeout(r, 600));
       } catch (error) {
         console.error(`[${VERSION}] Error sending to ${recipient.email}:`, error);
+        await reportEdgeError(error, { fn: "process-logistics-reminders", itemId: recipient.email });
       }
     }
 
@@ -572,6 +574,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error(`[${VERSION}] Error:`, error);
+    await reportEdgeError(error, { fn: "process-logistics-reminders" });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ success: false, error: errorMessage, _version: VERSION }),

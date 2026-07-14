@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { configureSentry } from "@/lib/sentry";
+import { configureSentry, setSentryUser } from "@/lib/sentry";
 
 /**
  * Loads the `sentry_dsn` app setting (Paramètres › Général) and initializes
@@ -8,6 +8,9 @@ import { configureSentry } from "@/lib/sentry";
  * browser with no cached value. The app_settings row is only readable by
  * authenticated users (RLS), which is fine — a DSN is public anyway, and staff
  * usage is behind auth.
+ *
+ * Attache aussi le contexte utilisateur (Sentry.setUser + tag role) à chaque
+ * changement d'état d'auth — règle [037].
  */
 export function useSentryInit(): void {
   useEffect(() => {
@@ -24,7 +27,12 @@ export function useSentryInit(): void {
 
     load();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setSentryUser(data.session?.user ?? null);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      setSentryUser(session?.user ?? null);
       if (event === "SIGNED_IN") load();
     });
 

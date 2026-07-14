@@ -7,6 +7,15 @@ d'erreurs, logs, alerting) en parcourant le système par niveaux C4
 Méthode : relecture du code (front `src/`, 224 edge functions Deno, migrations
 SQL + intégrations). Citations en `fichier:ligne` quand pertinent.
 
+> **État au 2026-07-14 (overhaul Sentry)** — P0.1 (onError react-query), P0.2
+> (setUser + tags role/module + release), P1.3 (TIER 1 + TIER 2 critiques
+> instrumentées : signatures, webhooks, crons/polls, send-*, supertilt,
+> notify-*, backups, auth), P1.4 (`.catch(() => {})` muets front) : **faits**.
+> P2.6 (report par item dans les batchs) : fait sur les crons instrumentés.
+> P1.5 (validation réponse HTTP des crons pg_cron) : différé → `DEFERRED.md`
+> [OBS-01]. P2.7/P2.8, P3 et TIER 2/3 restants : différés → [OBS-02].
+> Stratégie de référence : `docs/observabilite.md` (règle [037], check [037e]).
+
 ---
 
 ## Niveau 1 — Contexte

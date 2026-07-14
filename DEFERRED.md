@@ -6,6 +6,42 @@ zéro. À traiter dans les prochaines semaines/mois, pas en urgence.
 
 ---
 
+## [OBS-01] Journaliser le code de réponse des crons pg_cron (`net.http_post`)
+
+- **Date d'ajout** : 2026-07-14
+- **Contexte** : Roadmap P1.5 d'`OBSERVABILITY_AUDIT.md`. ~12 jobs pg_cron
+  appellent une edge function via `net.http_post` sans contrôler la réponse :
+  un 500/timeout paraît « succeeded » dans `cron.job_run_details` et
+  `monitor_cron_failures()` ne voit rien.
+- **Pourquoi attendre** : depuis la règle [036], les crons sont re-planifiés
+  directement en base (les migrations ne sont plus la source de vérité des
+  définitions de jobs). Modifier les 12 jobs à l'aveugle via migration
+  risquerait d'écraser des définitions prod. Il faut d'abord exporter les
+  définitions réelles (`select jobname, command from cron.job`) depuis le
+  dashboard.
+- **À faire** : créer une table `cron_execution_log` (job, status_code,
+  duration, error) ; wrapper SQL commun qui fait le `net.http_post`, vérifie
+  le status et journalise ; re-planifier les jobs en base via ce wrapper ;
+  étendre `monitor_cron_failures()` pour alerter sur les réponses non-2xx.
+- **Atténuation en attendant** : les edge functions cron reportent désormais
+  leurs erreurs internes à Sentry (`reportEdgeError`), donc seul le cas
+  « fonction jamais atteinte » (timeout réseau, fonction non déployée) reste
+  aveugle — partiellement couvert par `check-functions-health`.
+
+## [OBS-02] Couverture Sentry TIER 2/3 restante + bounces Resend
+
+- **Date d'ajout** : 2026-07-14
+- **Contexte** : L'overhaul Sentry de juillet 2026 a instrumenté le front
+  (contexte user/module/release) et les fonctions TIER 1 + TIER 2 critiques.
+  Restent non instrumentées les fonctions TIER 2/3 (générations IA
+  `generate-quiz`/`generate-training-program`/`analyze-*`/`summarize-*`,
+  proxys `google-*`, `search-*`, assistants IA) — à migrer vers
+  `createErrorResponse` au fil de l'eau (le ratchet [037b] garantit que la
+  dette ne remonte pas).
+- **À faire aussi** (P2.7 de l'audit) : brancher le webhook Resend
+  (bounces/plaintes) pour tracer les emails « acceptés mais non délivrés »,
+  et un cron de retry des `scheduled_emails` en échec (retry_count < 3).
+
 ## [LOGISTICS-01] Supprimer les triggers de sync et les colonnes `*_booked` legacy
 
 - **Date d'ajout** : 2026-04-17

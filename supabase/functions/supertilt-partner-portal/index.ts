@@ -13,7 +13,7 @@
  *   → admin action (requires service role in Authorization header)
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -59,7 +59,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // ── GET — fetch portal data ──────────────────────────────────
   if (req.method === "GET") {
     const token = url.searchParams.get("token");
-    if (!token) return json({ error: "token required" }, 400);
+    if (!token) return createErrorResponse("token required", 400);
 
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
@@ -71,9 +71,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq("token", token)
       .maybeSingle();
 
-    if (!tokenRow) return json({ error: "Lien invalide ou expiré" }, 404);
+    if (!tokenRow) return createErrorResponse("Lien invalide ou expiré", 404);
     if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
-      return json({ error: "Ce lien a expiré" }, 403);
+      return createErrorResponse("Ce lien a expiré", 403);
     }
 
     const game = (tokenRow as any).games;
@@ -169,7 +169,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const body = await req.json() as Record<string, unknown>;
     const token = body.token as string;
 
-    if (!token) return json({ error: "token required" }, 400);
+    if (!token) return createErrorResponse("token required", 400);
 
     // Validate token
     const { data: tokenRow } = await (admin as any)
@@ -178,9 +178,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq("token", token)
       .maybeSingle();
 
-    if (!tokenRow) return json({ error: "Lien invalide" }, 404);
+    if (!tokenRow) return createErrorResponse("Lien invalide", 404);
     if ((tokenRow as any).expires_at && new Date((tokenRow as any).expires_at) < new Date()) {
-      return json({ error: "Ce lien a expiré" }, 403);
+      return createErrorResponse("Ce lien a expiré", 403);
     }
 
     const gameId = (tokenRow as any).game_id;
@@ -189,23 +189,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (body.action === "verify" || body.action === "reject") {
       const authHeader = req.headers.get("Authorization") ?? "";
       const user = await verifyAuth(authHeader);
-      if (!user) return json({ error: "Unauthorized" }, 401);
+      if (!user) return createErrorResponse("Unauthorized", 401);
       const { data: isAdminData } = await (admin as any).rpc("is_admin", { _user_id: user.id });
-      if (!isAdminData) return json({ error: "Action admin non autorisée" }, 403);
+      if (!isAdminData) return createErrorResponse("Action admin non autorisée", 403);
       const newStatus = body.action === "verify" ? "verified" : "rejected";
       const { error } = await (admin as any)
         .from("partner_payments")
         .update({ status: newStatus, admin_notes: body.admin_notes ?? null })
         .eq("id", body.payment_id)
         .eq("game_id", gameId);
-      if (error) return json({ error: error.message }, 500);
+      if (error) return createErrorResponse(error.message, 500, { cause: error, fn: "supertilt-partner-portal" });
       return json({ ok: true, status: newStatus });
     }
 
     // Declare new payment
     const payment = body.payment as { amount: number; payment_date: string; comment?: string };
     if (!payment?.amount || !payment?.payment_date) {
-      return json({ error: "amount et payment_date requis" }, 400);
+      return createErrorResponse("amount et payment_date requis", 400);
     }
 
     const { data: newPayment, error } = await (admin as any)
@@ -221,9 +221,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .select()
       .single();
 
-    if (error) return json({ error: error.message }, 500);
+    if (error) return createErrorResponse(error.message, 500, { cause: error, fn: "supertilt-partner-portal" });
     return json({ ok: true, payment: newPayment });
   }
 
-  return json({ error: "Method not allowed" }, 405);
+  return createErrorResponse("Method not allowed", 405);
 });

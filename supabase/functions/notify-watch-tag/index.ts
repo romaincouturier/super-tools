@@ -4,6 +4,7 @@ import { getSenderFrom } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Notify users when they are tagged on a watch item.
@@ -86,9 +87,11 @@ serve(async (req) => {
           });
         } catch (err) {
           console.error("Failed to log activity:", err);
+          await reportEdgeError(err, { fn: "notify-watch-tag", itemId: p.email, step: "activity-log" });
         }
       } else {
         errors += 1;
+        await reportEdgeError(result.error || new Error("Email send failed"), { fn: "notify-watch-tag", itemId: p.email, step: "send-email" });
       }
     }
 
@@ -98,6 +101,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error in notify-watch-tag:", error);
+    await reportEdgeError(error, { fn: "notify-watch-tag" });
     const errorMessage = error instanceof Error ? error.message : "An error occurred";
     return new Response(
       JSON.stringify({ error: errorMessage }),

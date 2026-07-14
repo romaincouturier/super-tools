@@ -6,7 +6,7 @@ import { getAppUrls } from "../_shared/app-urls.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateWithDayFr } from "../_shared/date-utils.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
@@ -125,10 +125,7 @@ serve(async (req: Request): Promise<Response> => {
     } = body;
 
     if (!trainerEmail || !trainingName || !schedules || schedules.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Missing required fields", 400);
     }
 
     // Fetch specific_instructions from DB if not provided
@@ -235,12 +232,6 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error: unknown) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-training-calendar-invite" });
   }
 });

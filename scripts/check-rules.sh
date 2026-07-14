@@ -229,6 +229,15 @@ check "037" "Erreurs affichées à l'utilisateur reportées à Sentry (toastErro
    grep -q 'reportEdgeError' supabase/functions/_shared/cors.ts || echo 'VIOLATION: createErrorResponse ne reporte plus les 5xx à Sentry'; \
    true"
 
+# [037e] Contexte Sentry — chaque événement doit porter QUI (setUser + tag role)
+# et OÙ (tag module par route, tag fn côté edge, release au build).
+check "037e" "Contexte Sentry présent (setSentryUser, tag module, tag fn edge, release)" \
+  "grep -q 'setSentryUser' src/hooks/useSentryInit.ts || echo 'VIOLATION: useSentryInit ne pose plus le contexte utilisateur (setSentryUser)'; \
+   grep -q 'setSentryModule' src/components/PageViewTracker.tsx || echo 'VIOLATION: PageViewTracker ne pose plus le tag module'; \
+   grep -q 'tags:' supabase/functions/_shared/sentry.ts || echo 'VIOLATION: reportEdgeError ne pose plus le tag fn'; \
+   grep -q 'VITE_COMMIT_SHA' vite.config.ts || echo 'VIOLATION: release Sentry (VITE_COMMIT_SHA) absente du build'; \
+   true"
+
 # [037c] Sonner — jamais importé directement : passer par le wrapper @/lib/toast
 # (exceptions : le wrapper lui-même, le composant Toaster, et les tests qui mockent le module).
 check "037c" "Pas d'import direct de sonner (utiliser @/lib/toast)" \

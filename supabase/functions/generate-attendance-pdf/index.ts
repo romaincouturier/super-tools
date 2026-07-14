@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 serve(async (req) => {
@@ -10,10 +10,7 @@ serve(async (req) => {
     const { trainingId, participantId } = await req.json();
 
     if (!trainingId) {
-      return new Response(
-        JSON.stringify({ error: "trainingId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("trainingId is required", 400);
     }
 
     const supabase = getSupabaseClient();
@@ -98,9 +95,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error generating attendance PDF:", error);
     const errorMessage = error instanceof Error ? error.message : "An error occurred";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "generate-attendance-pdf" });
   }
 });

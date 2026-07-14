@@ -6,6 +6,7 @@ import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 // Default templates
 const DEFAULT_SUBJECT_TU = "Signature d'émargement - {{training_name}}";
 const DEFAULT_SUBJECT_VOUS = "Signature d'émargement - {{training_name}}";
@@ -284,6 +285,7 @@ serve(async (req) => {
         }
       } catch (err) {
         console.error(`Error processing participant ${participant.email}:`, err);
+        await reportEdgeError(err, { fn: "send-attendance-signature-request", itemId: participant.email });
         errorCount++;
       }
     }
@@ -299,6 +301,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error in send-attendance-signature-request:", error);
+    await reportEdgeError(error, { fn: "send-attendance-signature-request" });
     const errorMessage = error instanceof Error ? error.message : "An error occurred";
     return new Response(
       JSON.stringify({ error: errorMessage }),

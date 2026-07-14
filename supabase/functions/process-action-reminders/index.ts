@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { skipIfNonWorkingDay } from "../_shared/working-days.ts";
 
@@ -103,6 +104,7 @@ serve(async (req) => {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error(`[${VERSION}] Error for action ${action.id}:`, errorMessage);
+        await reportEdgeError(error, { fn: "process-action-reminders", itemId: action.id });
         results.push({ id: action.id, success: false, error: errorMessage });
       }
 
@@ -130,6 +132,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error(`[${VERSION}] Error:`, error);
+    await reportEdgeError(error, { fn: "process-action-reminders" });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ success: false, error: errorMessage, _version: VERSION }),

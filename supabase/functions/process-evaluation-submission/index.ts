@@ -5,7 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
@@ -650,13 +650,7 @@ Bonne continuation et à bientôt !`;
   } catch (error: any) {
     console.error("Error processing evaluation:", error);
 
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return createErrorResponse(error.message, 500, { cause: error, fn: "process-evaluation-submission" });
   }
 };
 

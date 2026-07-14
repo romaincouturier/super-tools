@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -114,6 +115,7 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Check login attempt error:", error);
+    await reportEdgeError(error, { fn: "check-login-attempt" });
     return new Response(
       JSON.stringify({ 
         allowed: true, // En cas d'erreur, on permet la tentative (fail-open)

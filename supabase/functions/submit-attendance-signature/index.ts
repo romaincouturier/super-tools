@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { generateHash, getClientIp } from "../_shared/crypto.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
@@ -110,6 +111,7 @@ serve(async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating signature:", updateError);
+      await reportEdgeError(updateError, { fn: "submit-attendance-signature", step: "update-signature" });
       return new Response(
         JSON.stringify({ error: "Erreur lors de l'enregistrement de la signature" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -293,6 +295,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     } catch (trainerNotifyErr) {
       console.error("Failed to notify trainer of signature:", trainerNotifyErr);
+      await reportEdgeError(trainerNotifyErr, { fn: "submit-attendance-signature", step: "trainer-notify" });
     }
 
     console.log(`Attendance signature submitted for token ${token} from IP ${ipAddress}`);
@@ -309,6 +312,7 @@ serve(async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     console.error("Error:", error);
+    await reportEdgeError(error, { fn: "submit-attendance-signature" });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),

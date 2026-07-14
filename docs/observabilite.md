@@ -35,6 +35,20 @@ métier ; ils n'exonèrent pas du passage par Sentry.
 `console.error` = debug local uniquement. Jamais le seul traitement d'un
 chemin d'erreur visible par l'utilisateur.
 
+## Contexte des événements (check [037e])
+
+Capturer ne suffit pas : chaque événement doit porter QUI et OÙ.
+
+| Dimension | Mécanisme | Point de passage |
+|---|---|---|
+| Qui (id, email) + tag `role` | `setSentryUser` (`src/lib/sentry.ts`) | `useSentryInit`, à chaque changement d'auth |
+| Tag `module` (métier) | `setSentryModule` (premier segment de route) | `PageViewTracker`, à chaque navigation |
+| Release (déploiement) | `VITE_COMMIT_SHA` injecté au build | `vite.config.ts` → `Sentry.init({ release })` |
+| Tag `fn` (edge) | `reportEdgeError` transforme `fn` en tag | `_shared/sentry.ts` |
+
+Ne pas poser ces tags à la main dans les composants — les points de passage
+ci-dessus les posent pour tout le monde.
+
 Un `catch {}` sans binding avale l'erreur : interdit d'en ajouter
 (ratchet [037a]), capturer la variable et la passer en `cause`.
 
@@ -48,6 +62,9 @@ Un `catch {}` sans binding avale l'erreur : interdit d'en ajouter
 - **`reportEdgeError` direct** (`_shared/sentry.ts`) : réservé aux chemins qui
   ne rendent pas de `Response` d'erreur JSON standard — crons fire-and-forget,
   webhooks à format de réponse imposé (Stripe…), erreurs partielles d'un batch.
+- **Batchs/crons** : reporter chaque item en échec avec son identifiant
+  (`reportEdgeError(err, { fn, itemId })` dans le catch interne de la boucle).
+  Un résumé `{ sent: 15, failed: 2 }` sans détail par item est un angle mort.
 - Les réponses d'erreur construites à la main (`new Response(JSON.stringify({ error ... }))`)
   sont de la dette : ratchet [037b], migrer vers `createErrorResponse` au fil de l'eau.
 

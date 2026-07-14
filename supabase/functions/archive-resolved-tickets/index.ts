@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-settings.ts";
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -172,6 +173,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[archive-resolved-tickets] error:", error);
+    await reportEdgeError(error, { fn: "archive-resolved-tickets" });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",

@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -12,10 +12,7 @@ serve(async (req) => {
     const { formType, token, errorMessage, userAgent, url } = await req.json();
 
     if (!formType || !errorMessage) {
-      return new Response(
-        JSON.stringify({ error: "formType and errorMessage are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("formType and errorMessage are required", 400);
     }
 
     const bccList = await getBccList();
@@ -75,9 +72,10 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[alert-form-error] Error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return createErrorResponse(
+      error instanceof Error ? error.message : "Unknown error",
+      500,
+      { cause: error, fn: "alert-form-error" }
     );
   }
 });

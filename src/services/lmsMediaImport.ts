@@ -99,3 +99,18 @@ export async function analyzeAudioForLessons(
   }
   return assignments;
 }
+
+/** Upload d'un enregistrement de réunion via l'edge function dédiée (règle [020]/[026d]). */
+export async function uploadMeetingRecording(
+  missionId: string,
+  file: File,
+): Promise<{ signed_url?: string; path?: string }> {
+  const form = new FormData();
+  form.append("missionId", missionId);
+  form.append("file", file);
+  const { data, error } = await supabase.functions.invoke("upload-meeting-recording", {
+    body: form,
+  });
+  if (error) throw await extractFunctionError(error, "upload-meeting-recording");
+  return (data ?? {}) as { signed_url?: string; path?: string };
+}

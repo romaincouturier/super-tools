@@ -7,6 +7,7 @@ import {
   wrapEmailHtml,
   sendEmail,
 } from "../_shared/mod.ts";
+import { createErrorResponse } from "../_shared/cors.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
@@ -30,10 +31,7 @@ Deno.serve(async (req) => {
   try {
     const { email, trainingId } = await req.json();
     if (!email) {
-      return new Response(JSON.stringify({ error: "Email requis" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Email requis", 400);
     }
 
     const supabase = getSupabaseClient();
@@ -191,9 +189,6 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: "Erreur interne" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse("Erreur interne", 500, { cause: error, fn: "send-learner-magic-link" });
   }
 });

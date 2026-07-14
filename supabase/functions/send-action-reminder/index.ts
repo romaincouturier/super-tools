@@ -7,6 +7,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const VERSION = "send-action-reminder@2026-02-02.3";
 
@@ -116,6 +117,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[send-action-reminder] Error:", error);
+    await reportEdgeError(error, { fn: "send-action-reminder" });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",

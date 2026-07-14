@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
@@ -133,6 +134,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     } catch (pdfErr) {
       console.warn("Could not download PDF for hash verification:", pdfErr);
+      await reportEdgeError(pdfErr, { fn: "submit-location-signature", step: "pdf-hash-verification" });
     }
 
     // ── Build audit data ──────────────────────────────────────────
@@ -183,6 +185,7 @@ serve(async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating location signature:", updateError);
+      await reportEdgeError(updateError, { fn: "submit-location-signature", step: "update-signature" });
       return new Response(
         JSON.stringify({ error: "Erreur lors de l'enregistrement de la signature" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -274,6 +277,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     } catch (signedPdfErr) {
       console.warn("Failed to generate signed PDF:", signedPdfErr);
+      await reportEdgeError(signedPdfErr, { fn: "submit-location-signature", step: "signed-pdf" });
     }
 
     // ── Update proof file record ──────────────────────────────────
@@ -329,6 +333,7 @@ ${sigBlock}`;
       }
     } catch (emailErr) {
       console.warn("Failed to send confirmation email:", emailErr);
+      await reportEdgeError(emailErr, { fn: "submit-location-signature", step: "confirmation-email" });
     }
 
     return new Response(
@@ -337,6 +342,7 @@ ${sigBlock}`;
     );
   } catch (error: unknown) {
     console.error("Error:", error);
+    await reportEdgeError(error, { fn: "submit-location-signature" });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

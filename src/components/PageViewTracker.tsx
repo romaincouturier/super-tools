@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useFeatureTracking } from "@/hooks/useFeatureTracking";
+import { setSentryModule } from "@/lib/sentry";
 
 // Detect crawlers/bots to avoid polluting analytics with non-human traffic.
 const BOT_REGEX = /bot|crawl|spider|slurp|bingpreview|mediapartners|facebookexternalhit|embedly|quora link preview|outbrain|pinterest|skype|telegrambot|whatsapp|discordbot|googlebot|gpt|claude|anthropic|perplexity|ccbot|bytespider|ahrefs|semrush|mj12|dotbot|petalbot|dataforseo|headlesschrome|phantomjs|puppeteer|playwright|lighthouse|chrome-lighthouse|screenshot/i;
@@ -24,6 +25,7 @@ export function PageViewTracker() {
   const { trackFeature } = useFeatureTracking();
 
   useEffect(() => {
+    setSentryModule(location.pathname);
     if (isBot()) return;
 
     // Strip dynamic IDs from path for cleaner aggregation

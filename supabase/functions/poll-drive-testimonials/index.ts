@@ -9,6 +9,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   assertDriveFolderAccessible,
   getModifiedAfterWithLookback,
@@ -106,7 +107,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         method: "POST",
         headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ transcript_id: transcriptId, drive_file_id: fileId }),
-      }).catch((e) => console.warn("[poll-drive-testimonials] submit-drive-transcript failed", e));
+      }).catch((e) => void reportEdgeError(e, { fn: "poll-drive-testimonials", step: "submit-drive-transcript" }));
       return true;
     };
 
@@ -140,6 +141,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
               results.backfilled++;
             } catch (err) {
               console.warn(`[poll-drive-testimonials] backfill failed for ${row.drive_file_id}:`, err);
+              await reportEdgeError(err, { fn: "poll-drive-testimonials", itemId: row.drive_file_id });
             }
           }
         }
@@ -226,6 +228,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         results.submitted++;
       } catch (err) {
         console.warn(`[poll-drive-testimonials] retry failed for ${row.id}:`, err);
+        await reportEdgeError(err, { fn: "poll-drive-testimonials", itemId: row.id });
         results.errors++;
       }
     }
@@ -322,6 +325,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           results.submitted++;
         } catch (err) {
           console.error(`Failed to process testimonial ${file.name}:`, err);
+          await reportEdgeError(err, { fn: "poll-drive-testimonials", itemId: file.id });
           results.errors++;
         }
       }
@@ -346,6 +350,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       || message.startsWith("Le dossier Google Drive")
       || message.startsWith("L'identifiant Google Drive");
     console.error("poll-drive-testimonials error:", message);
+    if (!isDriveAccessIssue) await reportEdgeError(err, { fn: "poll-drive-testimonials" });
     await (admin as any).from("polling_cursors")
       .update({ status: "error", last_error: message })
       .eq("source", "drive_testimonials");

@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const VERSION = "send-deposit-trainer-notification@2026-05-26.1";
 
@@ -179,6 +180,7 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("send-deposit-trainer-notification error", err);
+    await reportEdgeError(err, { fn: "send-deposit-trainer-notification" });
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error", _version: VERSION }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

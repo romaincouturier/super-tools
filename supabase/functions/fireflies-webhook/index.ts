@@ -7,6 +7,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { analyzeTranscript, notifySlack } from "../_shared/google-drive-helper.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -195,7 +196,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ source_type: "transcript", source_id: inserted.id }),
-      }).catch(() => {});
+      }).catch((e) => void reportEdgeError(e, { fn: "fireflies-webhook", step: "index-documents" }));
 
       // Fiche éditoriale IA (ST-2026-0215, fire and forget)
       fetch(`${SUPABASE_URL}/functions/v1/analyze-transcript-editorial`, {
@@ -205,7 +206,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ transcript_id: inserted.id }),
-      }).catch((e) => console.warn("[fireflies-webhook] editorial analysis failed", e));
+      }).catch((e) => void reportEdgeError(e, { fn: "fireflies-webhook", step: "editorial-analysis" }));
     }
 
     return new Response(JSON.stringify({ ok: true, imported: t.id }), {
@@ -213,6 +214,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: unknown) {
+    await reportEdgeError(err, { fn: "fireflies-webhook" });
     const message = err instanceof Error ? err.message : String(err);
     console.error("fireflies-webhook error:", message);
     return new Response(JSON.stringify({ error: message }), {

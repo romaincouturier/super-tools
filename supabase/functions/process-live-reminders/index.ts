@@ -10,6 +10,7 @@ import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 import { appendEmailParam, personalizeSupportsLinks } from "../_shared/supports-url.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Process Live Reminders
@@ -354,6 +355,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[process-live-reminders] Error:", error);
+    await reportEdgeError(error, { fn: "process-live-reminders" });
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: msg }),

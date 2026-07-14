@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { format, parseISO } from "https://esm.sh/date-fns@3";
 import { fr } from "https://esm.sh/date-fns@3/locale/fr";
 
@@ -159,6 +160,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in send-venue-booking-request:", error);
+    await reportEdgeError(error, { fn: "send-venue-booking-request" });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",

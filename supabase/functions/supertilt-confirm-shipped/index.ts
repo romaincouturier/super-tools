@@ -12,6 +12,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAppUrls } from "../_shared/app-urls.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -74,7 +75,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (updErr) return await redirectToStatus("update_error");
 
     return await redirectToStatus("confirmed", { at: now });
-  } catch (_e) {
+  } catch (e) {
+    await reportEdgeError(e, { fn: "supertilt-confirm-shipped" });
     return await redirectToStatus("unexpected_error");
   }
 });

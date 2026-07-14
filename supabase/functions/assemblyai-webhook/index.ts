@@ -13,6 +13,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   pollAssemblyAIJob,
   analyzeTranscript,
@@ -74,35 +75,41 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // ── Resolve which row this job belongs to ────────────────────
-  // Try transcripts first
-  const { data: trRow } = await (admin as any)
-    .from("transcripts")
-    .select("id, title")
-    .eq("assemblyai_id", jobId)
-    .maybeSingle();
+  try {
+    // ── Resolve which row this job belongs to ────────────────────
+    // Try transcripts first
+    const { data: trRow } = await (admin as any)
+      .from("transcripts")
+      .select("id, title")
+      .eq("assemblyai_id", jobId)
+      .maybeSingle();
 
-  if (trRow) {
-    return await finalizeTranscript(admin, jobId, trRow as { id: string; title: string });
+    if (trRow) {
+      return await finalizeTranscript(admin, jobId, trRow as { id: string; title: string });
+    }
+
+    // Then testimonials (assemblyai_id stored in metadata JSONB)
+    const { data: tmRows } = await (admin as any)
+      .from("testimonials")
+      .select("id, drive_file_id, drive_file_name, client_name, company, service_type, metadata")
+      .eq("metadata->>assemblyai_id", jobId)
+      .limit(1);
+
+    const tmRow = (tmRows ?? [])[0];
+    if (tmRow) {
+      return await finalizeTestimonial(admin, jobId, tmRow);
+    }
+
+    console.warn(`[assemblyai-webhook] no row found for jobId=${jobId}`);
+    return new Response(JSON.stringify({ ok: true, ignored: true, reason: "no matching row" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    await reportEdgeError(error, { fn: "assemblyai-webhook" });
+    console.error(`[assemblyai-webhook] error for jobId=${jobId}`, error);
+    return jsonResponse({ ok: false, error: "Internal error" }, 500);
   }
-
-  // Then testimonials (assemblyai_id stored in metadata JSONB)
-  const { data: tmRows } = await (admin as any)
-    .from("testimonials")
-    .select("id, drive_file_id, drive_file_name, client_name, company, service_type, metadata")
-    .eq("metadata->>assemblyai_id", jobId)
-    .limit(1);
-
-  const tmRow = (tmRows ?? [])[0];
-  if (tmRow) {
-    return await finalizeTestimonial(admin, jobId, tmRow);
-  }
-
-  console.warn(`[assemblyai-webhook] no row found for jobId=${jobId}`);
-  return new Response(JSON.stringify({ ok: true, ignored: true, reason: "no matching row" }), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 });
 
 async function finalizeTranscript(
@@ -171,7 +178,7 @@ async function finalizeTranscript(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ source_type: "transcript", source_id: row.id }),
-  }).catch(() => {});
+  }).catch((e) => void reportEdgeError(e, { fn: "assemblyai-webhook", step: "index-documents" }));
 
   // Trigger AI title generation (best-effort, fire and forget)
   fetch(`${SUPABASE_URL}/functions/v1/generate-transcript-title`, {
@@ -181,7 +188,7 @@ async function finalizeTranscript(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ transcript_id: row.id }),
-  }).catch((e) => console.warn("[assemblyai-webhook] title gen failed", e));
+  }).catch((e) => void reportEdgeError(e, { fn: "assemblyai-webhook", step: "title-gen" }));
 
   // Fiche éditoriale IA (ST-2026-0215, fire and forget)
   fetch(`${SUPABASE_URL}/functions/v1/analyze-transcript-editorial`, {
@@ -191,7 +198,7 @@ async function finalizeTranscript(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ transcript_id: row.id }),
-  }).catch((e) => console.warn("[assemblyai-webhook] editorial analysis failed", e));
+  }).catch((e) => void reportEdgeError(e, { fn: "assemblyai-webhook", step: "editorial-analysis" }));
 
   // Auto-trigger article + LinkedIn post generation (fire and forget — long running)
   for (const kind of ["blog_article", "linkedin_post"] as const) {
@@ -202,7 +209,7 @@ async function finalizeTranscript(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ transcript_id: row.id, kind }),
-    }).catch((e) => console.warn(`[assemblyai-webhook] auto-gen ${kind} failed`, e));
+    }).catch((e) => void reportEdgeError(e, { fn: "assemblyai-webhook", step: `auto-gen-${kind}` }));
   }
 
   return jsonResponse({ ok: true, finalized: "ready" });

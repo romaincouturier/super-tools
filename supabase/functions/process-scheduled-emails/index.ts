@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Process Scheduled Emails
@@ -91,6 +92,7 @@ serve(async (req) => {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
         console.error(`[process-scheduled-emails] Error processing email ${email.id}:`, errorMessage);
+        await reportEdgeError(error, { fn: "process-scheduled-emails", itemId: email.id });
         results.push({ id: email.id, success: false, error: errorMessage });
       }
 
@@ -118,6 +120,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[process-scheduled-emails] Error:", error);
+    await reportEdgeError(error, { fn: "process-scheduled-emails" });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ 

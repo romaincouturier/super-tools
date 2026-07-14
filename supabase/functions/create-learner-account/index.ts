@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -24,10 +24,7 @@ serve(async (req) => {
   try {
     const { token, password } = await req.json();
     if (!token || !password) {
-      return new Response(JSON.stringify({ error: "Missing token or password" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Missing token or password", 400);
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -41,23 +38,14 @@ serve(async (req) => {
     if (previewErr) throw previewErr;
     const result = preview as { status: string; email?: string; has_account?: boolean };
     if (!result || result.status === "invalid") {
-      return new Response(JSON.stringify({ error: "Lien invalide." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Lien invalide.", 400);
     }
     if (result.status === "expired") {
-      return new Response(JSON.stringify({ error: "Lien expiré." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Lien expiré.", 400);
     }
     const email = (result.email || "").toLowerCase();
     if (!email) {
-      return new Response(JSON.stringify({ error: "Email introuvable." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Email introuvable.", 400);
     }
 
     // Create the auth user with admin API (bypasses signup_disabled)
@@ -95,9 +83,6 @@ serve(async (req) => {
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erreur inconnue";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse(message, 500, { cause: err, fn: "create-learner-account" });
   }
 });

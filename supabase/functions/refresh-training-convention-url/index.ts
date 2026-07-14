@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -18,7 +18,7 @@ serve(async (req: Request): Promise<Response> => {
   try {
     const { trainingId, participantId } = await req.json();
     if (!trainingId && !participantId) {
-      return json({ error: "trainingId ou participantId requis" }, 400);
+      return createErrorResponse("trainingId ou participantId requis", 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -35,7 +35,7 @@ serve(async (req: Request): Promise<Response> => {
         .select("id, training_id, convention_file_url, convention_document_id")
         .eq("id", participantId)
         .single();
-      if (error || !data) return json({ error: "Participant introuvable" }, 404);
+      if (error || !data) return createErrorResponse("Participant introuvable", 404);
       currentUrl = data.convention_file_url;
       documentId = data.convention_document_id ?? null;
       table = "training_participants";
@@ -47,14 +47,14 @@ serve(async (req: Request): Promise<Response> => {
         .select("id, convention_file_url")
         .eq("id", trainingId)
         .single();
-      if (error || !data) return json({ error: "Formation introuvable" }, 404);
+      if (error || !data) return createErrorResponse("Formation introuvable", 404);
       currentUrl = data.convention_file_url;
       table = "trainings";
       rowId = data.id;
       trainingForPath = data.id;
     }
 
-    if (!currentUrl) return json({ error: "Aucune convention générée" }, 404);
+    if (!currentUrl) return createErrorResponse("Aucune convention générée", 404);
 
     // If already a permanent storage URL, return as-is
     if (!currentUrl.includes("X-Amz-Signature")) {
@@ -72,7 +72,7 @@ serve(async (req: Request): Promise<Response> => {
         documentId = docIdMatch?.[1] ?? null;
       }
       if (!pdfMonkeyApiKey || !documentId) {
-        return json({ error: "Impossible de rafraîchir l'URL du PDF" }, 500);
+        return createErrorResponse("Impossible de rafraîchir l'URL du PDF", 500, { fn: "refresh-training-convention-url" });
       }
 
       console.log("Refreshing PdfMonkey document:", documentId);
@@ -98,7 +98,7 @@ serve(async (req: Request): Promise<Response> => {
           if (regenError || (regenData as any)?.error) {
             const msg = regenError?.message || (regenData as any)?.error || "Regeneration failed";
             console.error("Auto-regeneration failed:", msg);
-            return json({ error: `Régénération automatique impossible: ${msg}` }, 500);
+            return createErrorResponse(`Régénération automatique impossible: ${msg}`, 500, { fn: "refresh-training-convention-url" });
           }
           const newUrl = (regenData as any)?.pdfUrl as string | undefined;
           // Re-read updated row to get the freshly stored URL (may be permanent storage URL)
@@ -108,14 +108,14 @@ serve(async (req: Request): Promise<Response> => {
             .eq("id", rowId)
             .single();
           const finalUrl = (refreshed as any)?.convention_file_url || newUrl;
-          if (!finalUrl) return json({ error: "Régénération sans URL retournée" }, 500);
+          if (!finalUrl) return createErrorResponse("Régénération sans URL retournée", 500, { fn: "refresh-training-convention-url" });
           return json({ pdf_url: finalUrl, refreshed: true, regenerated: true }, 200);
         }
-        return json({ error: `PdfMonkey API indisponible (${pmResponse.status})` }, 500);
+        return createErrorResponse(`PdfMonkey API indisponible (${pmResponse.status})`, 500, { fn: "refresh-training-convention-url" });
       }
       const pmData = await pmResponse.json();
       const freshUrl = pmData?.document?.download_url;
-      if (!freshUrl) return json({ error: "Pas d'URL de téléchargement PdfMonkey" }, 500);
+      if (!freshUrl) return createErrorResponse("Pas d'URL de téléchargement PdfMonkey", 500, { fn: "refresh-training-convention-url" });
 
       pdfResponse = await fetch(freshUrl);
       if (!pdfResponse.ok) {
@@ -148,7 +148,7 @@ serve(async (req: Request): Promise<Response> => {
     return json({ pdf_url: permanentUrl ?? currentUrl, refreshed: !!permanentUrl }, 200);
   } catch (error: unknown) {
     console.error("refresh-training-convention-url error:", error);
-    return json({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
+    return createErrorResponse(error instanceof Error ? error.message : "Unknown error", 500, { cause: error, fn: "refresh-training-convention-url" });
   }
 });
 

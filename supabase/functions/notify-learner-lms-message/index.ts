@@ -4,6 +4,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 interface RequestBody {
   learnerEmail: string;
@@ -43,6 +44,7 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("notify-learner-lms-message error:", error);
+    await reportEdgeError(error, { fn: "notify-learner-lms-message" });
     return new Response(
       JSON.stringify({ success: false, error: String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

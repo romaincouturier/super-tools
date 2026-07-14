@@ -3,9 +3,9 @@
 # Quand tu réduis la dette, abaisse la valeur dans le même commit.
 # 017 : <Loader2 animate-spin> inline (cible : 0, puis basculer la règle en audit complet)
 # 020 : supabase.functions.invoke() hors services/lib/useEdgeFunction (cible : quelques cas justifiés)
-017=149
-020=120
+017=147
+020=110
 # 037a : catch {} sans binding dans src (erreur avalée, invisible pour Sentry)
 # 037b : réponses d'erreur JSON construites à la main dans les edge functions (utiliser createErrorResponse)
-037a=245
-037b=406
+037a=244
+037b=357

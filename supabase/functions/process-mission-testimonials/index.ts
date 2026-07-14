@@ -20,6 +20,7 @@ import {
   corsHeaders,
   handleCorsPreflightIfNeeded,
 } from "../_shared/mod.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 serve(async (req: Request) => {
   const cors = handleCorsPreflightIfNeeded(req);
@@ -68,6 +69,7 @@ serve(async (req: Request) => {
 
     if (error) {
       console.error("Error fetching missions:", error);
+      await reportEdgeError(error, { fn: "process-mission-testimonials", step: "fetch-missions" });
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -284,6 +286,7 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Error processing mission testimonials:", error);
+    await reportEdgeError(error, { fn: "process-mission-testimonials" });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

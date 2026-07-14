@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { formatDateFr, formatDateWithDayFr } from "../_shared/date-utils.ts";
 
 /**
@@ -296,6 +297,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[participant-list-reminders] Error:", error);
+    await reportEdgeError(error, { fn: "process-participant-list-reminders" });
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

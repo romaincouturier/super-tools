@@ -38,7 +38,12 @@ export async function reportEdgeError(
   if (!dsn) return;
   try {
     await ensureSentry(dsn);
-    sentryMod.captureException(err, context ? { extra: context } : undefined);
+    // `fn` devient un tag (filtrable/groupable dans Sentry), le reste part en extra.
+    const { fn, ...extra } = context ?? {};
+    sentryMod.captureException(err, {
+      tags: typeof fn === "string" && fn ? { fn } : undefined,
+      extra: Object.keys(extra).length > 0 ? extra : undefined,
+    });
     await sentryMod.flush(2000);
   } catch (e) {
     console.error("[sentry] report failed", e);

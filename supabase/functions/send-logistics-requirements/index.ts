@@ -6,6 +6,7 @@ import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Send Logistics Requirements Email
@@ -197,6 +198,7 @@ serve(async (req) => {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Unknown error";
         console.error(`[${VERSION}] Error for training ${training.id}: ${msg}`);
+        await reportEdgeError(err, { fn: "send-logistics-requirements", itemId: training.id });
         results.push({ trainingId: training.id, success: false, error: msg });
       }
     }
@@ -210,6 +212,7 @@ serve(async (req) => {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error(`[${VERSION}] Fatal error: ${msg}`);
+    await reportEdgeError(error, { fn: "send-logistics-requirements" });
     return new Response(
       JSON.stringify({ error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

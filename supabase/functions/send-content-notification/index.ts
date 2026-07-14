@@ -6,6 +6,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 // Bump this when you deploy to confirm the latest code is running.
 const VERSION = "send-content-notification@2026-02-05.1";
 
@@ -163,6 +164,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in send-content-notification:", error);
+    await reportEdgeError(error, { fn: "send-content-notification" });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",

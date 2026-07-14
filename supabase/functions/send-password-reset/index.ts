@@ -6,6 +6,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -86,6 +87,7 @@ serve(async (req: Request) => {
 
     if (!emailResponse.success) {
       console.error("Email error:", emailResponse.error || "Unknown email error");
+      await reportEdgeError(emailResponse.error || new Error("Unknown email error"), { fn: "send-password-reset", step: "send-email" });
     }
 
     console.log(`Password reset email sent to: ${email}`);
@@ -99,6 +101,7 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Password reset error:", error);
+    await reportEdgeError(error, { fn: "send-password-reset" });
     return new Response(
       JSON.stringify({ 
         success: true, 

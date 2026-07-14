@@ -4,7 +4,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import {
   appendEmailParam,
@@ -1225,13 +1225,7 @@ Règles :
   } catch (error: any) {
     console.error("Error in force-send-scheduled-email:", error);
 
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return createErrorResponse(error.message, 500, { cause: error, fn: "force-send-scheduled-email" });
   }
 };
 

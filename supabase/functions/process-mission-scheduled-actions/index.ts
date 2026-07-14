@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 /**
@@ -106,6 +107,7 @@ serve(async (req) => {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[${VERSION}] failed for mission ${mission.id}:`, msg);
+        await reportEdgeError(err, { fn: "process-mission-scheduled-actions", itemId: mission.id });
         results.push({ id: mission.id, status: "error", error: msg });
       }
     }
@@ -117,6 +119,7 @@ serve(async (req) => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[${VERSION}] fatal:`, msg);
+    await reportEdgeError(err, { fn: "process-mission-scheduled-actions" });
     return new Response(
       JSON.stringify({ success: false, error: msg, _version: VERSION }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

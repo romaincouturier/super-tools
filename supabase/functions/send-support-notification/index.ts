@@ -5,6 +5,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, emailSuccessBox, wrapEmailHtml } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const VERSION = "send-support-notification@2026-05-07.1";
 
@@ -281,6 +282,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in send-support-notification:", error);
+    await reportEdgeError(error, { fn: "send-support-notification" });
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Unknown error",

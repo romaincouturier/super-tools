@@ -5,7 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Default templates
 const DEFAULT_SUBJECT_TU = "Tes besoins spécifiques pour la formation \"{{training_name}}\"";
 const DEFAULT_SUBJECT_VOUS = "Vos besoins spécifiques pour la formation \"{{training_name}}\"";
@@ -45,10 +45,7 @@ serve(async (req) => {
     const { questionnaireId, trainingId, participantEmail, participantFirstName, accessibilityNeeds, trainingName, formalAddress } = await req.json();
 
     if (!participantEmail || !accessibilityNeeds) {
-      return new Response(
-        JSON.stringify({ error: "participantEmail and accessibilityNeeds are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("participantEmail and accessibilityNeeds are required", 400);
     }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -154,9 +151,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error sending accessibility needs email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send accessibility needs email";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-accessibility-needs" });
   }
 });

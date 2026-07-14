@@ -8,6 +8,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getBccList } from "../_shared/email-settings.ts";
 import { processTemplate, wrapEmailHtml } from "../_shared/templates.ts";
@@ -141,6 +142,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    await reportEdgeError(err, { fn: "supertilt-restock-email" });
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

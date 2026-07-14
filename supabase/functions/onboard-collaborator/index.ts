@@ -4,7 +4,7 @@ import { getSenderFrom, getSenderEmail, getSenderName, getBccList } from "../_sh
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -233,9 +233,18 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Onboard collaborator error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Une erreur est survenue" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const message = error instanceof Error ? error.message : "Une erreur est survenue";
+    // Erreurs attendues (validation/autorisation) en 400 ; le reste en 500
+    // pour être reporté à Sentry par createErrorResponse.
+    const expected = [
+      "Non autorisé",
+      "Email invalide",
+      "Veuillez sélectionner au moins un module",
+      "Un compte existe déjà pour cet email",
+    ].some((m) => message.startsWith(m)) || message.startsWith("Seul ");
+    return createErrorResponse(message, expected ? 400 : 500, {
+      cause: error,
+      fn: "onboard-collaborator",
+    });
   }
 });

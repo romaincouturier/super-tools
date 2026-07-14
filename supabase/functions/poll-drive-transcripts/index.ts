@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   assertDriveFolderAccessible,
   getModifiedAfterWithLookback,
@@ -116,21 +117,21 @@ Deno.serve(async (req: Request): Promise<Response> => {
         method: "POST",
         headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({ source_type: "transcript", source_id: row.id }),
-      }).catch(() => {});
+      }).catch((e) => void reportEdgeError(e, { fn: "poll-drive-transcripts", step: "index-documents" }));
 
       // Trigger AI title generation (best-effort, fire and forget)
       fetch(`${SUPABASE_URL}/functions/v1/generate-transcript-title`, {
         method: "POST",
         headers: { "x-internal-secret": SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ transcript_id: row.id }),
-      }).catch((e) => console.warn("[poll-drive-transcripts] title gen failed", e));
+      }).catch((e) => void reportEdgeError(e, { fn: "poll-drive-transcripts", step: "generate-transcript-title" }));
 
       // Fiche éditoriale IA (ST-2026-0215, fire and forget)
       fetch(`${SUPABASE_URL}/functions/v1/analyze-transcript-editorial`, {
         method: "POST",
         headers: { "x-internal-secret": SUPABASE_SERVICE_ROLE_KEY, "Content-Type": "application/json" },
         body: JSON.stringify({ transcript_id: row.id }),
-      }).catch((e) => console.warn("[poll-drive-transcripts] editorial analysis failed", e));
+      }).catch((e) => void reportEdgeError(e, { fn: "poll-drive-transcripts", step: "analyze-transcript-editorial" }));
 
       // Auto-trigger article + LinkedIn post generation (fire and forget — long running)
       for (const kind of ["blog_article", "linkedin_post"] as const) {
@@ -138,7 +139,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           method: "POST",
           headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({ transcript_id: row.id, kind }),
-        }).catch((e) => console.warn(`[poll-drive-transcripts] auto-gen ${kind} failed`, e));
+        }).catch((e) => void reportEdgeError(e, { fn: "poll-drive-transcripts", step: `generate-transcript-content:${kind}` }));
       }
     }
 
@@ -219,11 +220,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
           method: "POST",
           headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({ transcript_id: inserted.id, drive_file_id: file.id }),
-        }).catch((e) => console.warn("[poll-drive-transcripts] submit failed", e));
+        }).catch((e) => void reportEdgeError(e, { fn: "poll-drive-transcripts", step: "submit-drive-transcript" }));
 
         results.submitted++;
       } catch (err) {
         console.error(`Failed to enqueue file ${file.name}:`, err);
+        await reportEdgeError(err, { fn: "poll-drive-transcripts", itemId: file.id });
         await (admin as any).from("transcripts")
           .update({ status: "error", error_message: String(err) })
           .eq("external_id", file.id)
@@ -248,6 +250,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       || message.startsWith("Le dossier Google Drive")
       || message.startsWith("L'identifiant Google Drive");
     console.error("poll-drive-transcripts error:", message);
+    if (!isDriveAccessIssue) await reportEdgeError(err, { fn: "poll-drive-transcripts" });
     await (admin as any).from("polling_cursors")
       .update({ status: "error", last_error: message })
       .eq("source", "drive_transcripts");

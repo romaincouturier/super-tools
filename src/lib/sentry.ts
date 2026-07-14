@@ -39,6 +39,7 @@ function start(dsn: string): void {
   Sentry.init({
     dsn,
     environment: (import.meta.env.VITE_SENTRY_ENVIRONMENT as string | undefined) || "production",
+    release: (import.meta.env.VITE_COMMIT_SHA as string | undefined) || undefined,
     // Performance monitoring disabled to stay on the free plan.
     tracesSampleRate: 0,
     ignoreErrors: IGNORED_ERRORS,
@@ -49,6 +50,34 @@ function start(dsn: string): void {
       return event;
     },
   });
+}
+
+/**
+ * Contexte utilisateur (règle [037]) : chaque événement porte QUI (id, email)
+ * et le tag `role` (staff/learner). Appelé par useSentryInit à chaque
+ * changement d'état d'auth ; `null` à la déconnexion. Sans effet tant que
+ * Sentry n'est pas initialisé (les appels au scope global sont sans risque).
+ */
+export function setSentryUser(
+  user: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null,
+): void {
+  if (!user) {
+    Sentry.setUser(null);
+    Sentry.setTag("role", undefined);
+    return;
+  }
+  Sentry.setUser({ id: user.id, email: user.email });
+  Sentry.setTag("role", user.user_metadata?.role === "learner" ? "learner" : "staff");
+}
+
+/**
+ * Tag `module` (règle [037]) : chaque événement porte le module métier courant,
+ * dérivé du premier segment de route. Appelé par PageViewTracker à chaque
+ * navigation.
+ */
+export function setSentryModule(pathname: string): void {
+  const segment = pathname.split("/").filter(Boolean)[0] ?? "landing";
+  Sentry.setTag("module", segment);
 }
 
 /**

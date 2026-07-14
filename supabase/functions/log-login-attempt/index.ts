@@ -4,6 +4,7 @@ import { getSenderEmail, getSenderFrom } from "../_shared/email-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -130,6 +131,7 @@ serve(async (req: Request) => {
             console.log("Unauthorized access alert email sent successfully");
           } catch (emailError) {
             console.error("Failed to send unauthorized access alert email:", emailError);
+            await reportEdgeError(emailError, { fn: "log-login-attempt", step: "unauthorized-alert-email" });
           }
         }
       }
@@ -206,6 +208,7 @@ serve(async (req: Request) => {
           console.log("Security alert email sent successfully");
         } catch (emailError) {
           console.error("Failed to send security alert email:", emailError);
+          await reportEdgeError(emailError, { fn: "log-login-attempt", step: "bruteforce-alert-email" });
         }
       }
     }
@@ -233,6 +236,7 @@ serve(async (req: Request) => {
     );
   } catch (error) {
     console.error("Log login attempt error:", error);
+    await reportEdgeError(error, { fn: "log-login-attempt" });
     return new Response(
       JSON.stringify({ success: false, error: "Erreur lors de l'enregistrement" }),
       { 

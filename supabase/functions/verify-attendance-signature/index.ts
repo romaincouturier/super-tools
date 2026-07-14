@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -27,10 +27,7 @@ serve(async (req: Request): Promise<Response> => {
     const { signatureId, token } = await req.json();
 
     if (!signatureId && !token) {
-      return new Response(
-        JSON.stringify({ error: "signatureId ou token requis" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("signatureId ou token requis", 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -45,10 +42,7 @@ serve(async (req: Request): Promise<Response> => {
     const { data: sig, error: fetchError } = await query.single();
 
     if (fetchError || !sig) {
-      return new Response(
-        JSON.stringify({ error: "Signature introuvable" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Signature introuvable", 404);
     }
 
     // Get participant info
@@ -210,9 +204,6 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error: unknown) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "verify-attendance-signature" });
   }
 });

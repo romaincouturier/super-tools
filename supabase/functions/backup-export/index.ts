@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 // List of all tables to backup
 const TABLES_TO_BACKUP = [
@@ -357,6 +358,7 @@ serve(async (req) => {
         }
       } catch (err) {
         console.error(`[backup-export] Exception exporting ${tableName}:`, err);
+        await reportEdgeError(err, { fn: "backup-export", itemId: tableName });
         errors.push(`${tableName}: ${err instanceof Error ? err.message : "Unknown error"}`);
         backup[tableName] = [];
       }
@@ -421,6 +423,7 @@ serve(async (req) => {
             .eq("user_id", userId);
         } catch (gdError) {
           console.error("[backup-export] Google Drive upload failed:", gdError);
+          await reportEdgeError(gdError, { fn: "backup-export", step: "gdrive-upload" });
           errors.push(`Google Drive: ${gdError instanceof Error ? gdError.message : "Upload failed"}`);
         }
       }
@@ -465,6 +468,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[backup-export] Error:", error);
+    await reportEdgeError(error, { fn: "backup-export" });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Backup failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

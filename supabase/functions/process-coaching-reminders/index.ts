@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 /**
@@ -166,6 +167,7 @@ serve(async (req) => {
     );
   } catch (error: any) {
     console.error("[process-coaching-reminders] Error:", error);
+    await reportEdgeError(error, { fn: "process-coaching-reminders" });
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }

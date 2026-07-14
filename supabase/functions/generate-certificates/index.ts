@@ -6,6 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 
 function uint8ToBase64(bytes: Uint8Array): string {
@@ -318,6 +319,7 @@ async function uploadToGoogleDrive(
     return uploadData.id;
   } catch (error) {
     console.error("Google Drive upload error:", error);
+    await reportEdgeError(error, { fn: "generate-certificates", step: "drive-upload" });
     return "";
   }
 }
@@ -692,6 +694,7 @@ serve(async (req: Request): Promise<Response> => {
             });
           } catch (error: any) {
             console.error(`PDF error for ${participantName}:`, error);
+            await reportEdgeError(error, { fn: "generate-certificates", itemId: participant.participantId || participant.email, step: "pdf" });
             errors.push(`PDF: ${error.message}`);
             sendEvent({ 
               type: "step", 
@@ -861,6 +864,7 @@ serve(async (req: Request): Promise<Response> => {
               }
             } catch (error: any) {
               console.warn(`Email failed for ${participantName}:`, error.message);
+              await reportEdgeError(error, { fn: "generate-certificates", itemId: participant.participantId || participant.email, step: "email" });
               errors.push(`Email: ${error.message}`);
               sendEvent({ 
                 type: "step", 
@@ -919,6 +923,7 @@ serve(async (req: Request): Promise<Response> => {
             });
           } catch (error: any) {
             console.error(`Failed to send to commanditaire: ${error.message}`);
+            await reportEdgeError(error, { fn: "generate-certificates", step: "commanditaire-email" });
             const messageType = pdfDataList.length === 1 ? "certificat" : "ZIP";
             sendEvent({ 
               type: "step", 
@@ -956,6 +961,7 @@ serve(async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Error in generate-certificates function:", error);
+    await reportEdgeError(error, { fn: "generate-certificates" });
     return new Response(
       JSON.stringify({ error: error.message }),
       {

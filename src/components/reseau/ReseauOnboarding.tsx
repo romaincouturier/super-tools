@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import ReseauChat from "./ReseauChat";
 import {
   useNetworkConversation,
@@ -37,12 +38,8 @@ const ReseauOnboarding = ({ onComplete }: ReseauOnboardingProps) => {
       if (result.positioning) {
         setExtractedPositioning(result.positioning);
       }
-    } catch {
-      toast({
-        title: "Erreur",
-        description: "Impossible d'envoyer le message. Réessayez.",
-        variant: "destructive",
-      });
+    } catch (err) {
+      toastError(toast, "Impossible d'envoyer le message. Réessayez.", { cause: err });
     }
   };
 
@@ -52,12 +49,8 @@ const ReseauOnboarding = ({ onComplete }: ReseauOnboardingProps) => {
       await upsertPositioning.mutateAsync(extractedPositioning);
       toast({ title: "Fiche validée !", description: "Votre positionnement a été enregistré." });
       onComplete();
-    } catch {
-      toast({
-        title: "Erreur",
-        description: "Impossible de sauvegarder la fiche.",
-        variant: "destructive",
-      });
+    } catch (err) {
+      toastError(toast, "Impossible de sauvegarder la fiche.", { cause: err });
     }
   };
 

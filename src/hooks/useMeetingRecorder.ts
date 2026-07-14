@@ -1,6 +1,7 @@
+import { reportHandledError } from "@/lib/sentry";
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { transcribeAudio } from "@/services/lmsMediaImport";
+import { transcribeAudio, uploadMeetingRecording } from "@/services/lmsMediaImport";
 import { toast } from "@/lib/toast";
 
 interface UseMeetingRecorderOptions {
@@ -84,17 +85,12 @@ export function useMeetingRecorder({
           setStatus("uploading");
           // Upload via edge function (project rule: no direct storage.upload in src).
           const ext = baseMime === "audio/mp4" ? "mp4" : "webm";
-          const form = new FormData();
-          form.append("missionId", missionId);
-          form.append("file", new File([blob], `meeting.${ext}`, { type: baseMime }));
-
-          const { data: up, error: upErr } = await supabase.functions.invoke(
-            "upload-meeting-recording",
-            { body: form },
+          const up = await uploadMeetingRecording(
+            missionId,
+            new File([blob], `meeting.${ext}`, { type: baseMime }),
           );
-          if (upErr) throw upErr;
-          const signedUrl = (up as { signed_url?: string } | null)?.signed_url;
-          storagePath = (up as { path?: string } | null)?.path ?? null;
+          const signedUrl = up.signed_url;
+          storagePath = up.path ?? null;
           if (!signedUrl) throw new Error("URL d'enregistrement indisponible");
 
           setStatus("transcribing");
@@ -110,7 +106,12 @@ export function useMeetingRecorder({
           toast.error("Erreur de transcription : " + (err instanceof Error ? err.message : "inconnue"));
         } finally {
           if (storagePath) {
-            supabase.storage.from("meeting-recordings").remove([storagePath]).catch(() => {});
+            supabase.storage
+              .from("meeting-recordings")
+              .remove([storagePath])
+              .catch((err) =>
+                reportHandledError(err, { action: "cleanup-meeting-recording", storagePath }),
+              );
           }
           setStatus("idle");
           setElapsedMs(0);

@@ -5,6 +5,7 @@ import { getSenderEmail } from "../_shared/email-settings.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -266,6 +267,7 @@ serve(async (req: Request): Promise<Response> => {
       });
     } catch (logError) {
       console.error("Failed to log activity:", logError);
+      await reportEdgeError(logError, { fn: "check-convention-status", step: "activity-log" });
     }
 
     console.log(`Alert email sent to ${ALERT_EMAIL} for ${issuesList.length} issue(s)`);
@@ -281,6 +283,7 @@ serve(async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     console.error("Error:", error);
+    await reportEdgeError(error, { fn: "check-convention-status" });
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: errorMessage }),

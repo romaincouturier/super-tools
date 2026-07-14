@@ -4,6 +4,7 @@ import { crypto } from "https://deno.land/std@0.190.0/crypto/mod.ts";
 import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
@@ -238,6 +239,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error processing tracking webhook:", error);
+    await reportEdgeError(error, { fn: "resend-email-tracking" });
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,

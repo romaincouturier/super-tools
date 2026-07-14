@@ -6,7 +6,7 @@ import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -43,10 +43,7 @@ serve(async (req: Request): Promise<Response> => {
     } = body;
 
     if (!trainingId || !conventionUrl || !recipientEmail) {
-      return new Response(
-        JSON.stringify({ error: "trainingId, conventionUrl et recipientEmail sont requis" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("trainingId, conventionUrl et recipientEmail sont requis", 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -59,10 +56,7 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (trainingError || !training) {
-      return new Response(
-        JSON.stringify({ error: "Formation introuvable" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Formation introuvable", 404);
     }
 
     // If online signature is enabled, create a signature token
@@ -315,9 +309,6 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error: unknown) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-convention-email" });
   }
 });

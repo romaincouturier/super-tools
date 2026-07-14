@@ -6,7 +6,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate, textToHtml } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Format date range for display (e.g., "du 15 au 17 janvier 2025")
 function formatDateRangeForDisplay(startDate: string, endDate: string | null): string {
   const start = new Date(startDate);
@@ -67,10 +67,7 @@ serve(async (req) => {
     } = await req.json();
 
     if (!recipientEmail) {
-      return new Response(
-        JSON.stringify({ error: "Recipient email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Recipient email is required", 400);
     }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -224,10 +221,7 @@ Bonne réception.`;
 
       if (!evaluations || evaluations.length === 0) {
         if (documentType === "evaluations") {
-          return new Response(
-            JSON.stringify({ error: "Aucune évaluation soumise pour cette formation" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return createErrorResponse("Aucune évaluation soumise pour cette formation", 400);
         }
         // For "all": just skip evaluations silently
       } else {
@@ -329,10 +323,7 @@ Bonne réception.`;
     }
 
     if (attachments.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "No documents to send" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("No documents to send", 400);
     }
 
     console.log("Sending email to:", recipientEmail);
@@ -390,9 +381,6 @@ Bonne réception.`;
   } catch (error: unknown) {
     console.error("Error sending documents:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send documents";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-training-documents" });
   }
 });

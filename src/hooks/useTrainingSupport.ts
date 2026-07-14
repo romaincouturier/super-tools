@@ -1,3 +1,4 @@
+import { reportHandledError } from "@/lib/sentry";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeFileName, resolveContentType } from "@/lib/file-utils";
@@ -382,7 +383,9 @@ export const useDeleteSectionMedia = () => {
         .delete()
         .eq("id", id);
       if (error) throw error;
-      await deleteMediaFile(fileUrl).catch(() => {});
+      await deleteMediaFile(fileUrl).catch((err) =>
+        reportHandledError(err, { action: "delete-support-media-file", fileUrl }),
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [MEDIA_KEY] });

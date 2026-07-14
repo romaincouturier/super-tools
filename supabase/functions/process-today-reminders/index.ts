@@ -10,6 +10,7 @@ import { aiChat } from "../_shared/ai.ts";
 import { personalizeSupportsLinks } from "../_shared/supports-url.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Process Today Reminders
@@ -446,6 +447,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[process-today-reminders] Error:", error);
+    await reportEdgeError(error, { fn: "process-today-reminders" });
     const msg = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: msg }),

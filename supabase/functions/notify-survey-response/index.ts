@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
 const VERSION = "notify-survey-response@2026-06-02.1";
@@ -112,6 +113,7 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("notify-survey-response error", err);
+    await reportEdgeError(err, { fn: "notify-survey-response" });
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error", _version: VERSION }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

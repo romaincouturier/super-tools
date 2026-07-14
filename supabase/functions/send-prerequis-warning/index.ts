@@ -5,7 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -16,10 +16,7 @@ serve(async (req) => {
     const { questionnaireId, participantEmail, participantName, trainingName, prerequisValidations } = await req.json();
 
     if (!participantEmail || !trainingName) {
-      return new Response(
-        JSON.stringify({ error: "participantEmail and trainingName are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("participantEmail and trainingName are required", 400);
     }
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -125,9 +122,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error sending prerequisite warning email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send prerequisite warning email";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-prerequis-warning" });
   }
 });

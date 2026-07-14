@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { processTemplate, wrapEmailHtml } from "../_shared/templates.ts";
 import { getBccList } from "../_shared/email-settings.ts";
@@ -403,6 +404,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             .eq("category", "supertilt_dropshipping");
         } catch (e) {
           console.error("[shipment_followup] daily_actions update failed:", e);
+          await reportEdgeError(e, { fn: "supertilt-send-email", step: "daily_actions_update" });
         }
       }
     } else {
@@ -454,6 +456,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       } catch (e) {
         console.error("partner notify error:", e);
+        await reportEdgeError(e, { fn: "supertilt-send-email", step: "partner_notify" });
       }
     }
 
@@ -464,6 +467,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("supertilt-send-email error:", message);
+    await reportEdgeError(err, { fn: "supertilt-send-email" });
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

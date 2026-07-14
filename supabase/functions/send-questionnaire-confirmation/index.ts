@@ -6,7 +6,7 @@ import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 // Format date to Google Calendar format: YYYYMMDDTHHMMSS
 function formatDateForCalendar(dateStr: string, timeStr: string): string {
   const [year, month, day] = dateStr.split('-').map(Number);
@@ -159,10 +159,7 @@ serve(async (req) => {
     const { questionnaireId, trainingId, participantEmail, participantFirstName, formatFormation } = await req.json();
 
     if (!participantEmail || !trainingId) {
-      return new Response(
-        JSON.stringify({ error: "participantEmail and trainingId are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("participantEmail and trainingId are required", 400);
     }
 
     const supabase = getSupabaseClient();
@@ -369,9 +366,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error sending questionnaire confirmation email:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send confirmation email";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-questionnaire-confirmation" });
   }
 });

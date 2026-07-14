@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -21,10 +21,7 @@ serve(async (req: Request): Promise<Response> => {
     const { token } = await req.json();
 
     if (!token) {
-      return new Response(
-        JSON.stringify({ error: "Token requis" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Token requis", 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -37,10 +34,7 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (fetchError || !sig) {
-      return new Response(
-        JSON.stringify({ error: "Convention introuvable" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Convention introuvable", 404);
     }
 
     const currentUrl = sig.pdf_url;
@@ -89,10 +83,7 @@ serve(async (req: Request): Promise<Response> => {
     const docIdMatch = currentUrl.match(/\/document\/([0-9a-f-]{36})\//i);
 
     if (!pdfMonkeyApiKey || !docIdMatch) {
-      return new Response(
-        JSON.stringify({ error: "Impossible de rafraîchir l'URL du PDF" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Impossible de rafraîchir l'URL du PDF", 500, { fn: "refresh-convention-pdf-url" });
     }
 
     const documentId = docIdMatch[1];
@@ -105,20 +96,14 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!pmResponse.ok) {
       console.error("PdfMonkey API call failed:", pmResponse.status);
-      return new Response(
-        JSON.stringify({ error: "Impossible de récupérer une nouvelle URL depuis PdfMonkey" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Impossible de récupérer une nouvelle URL depuis PdfMonkey", 500, { fn: "refresh-convention-pdf-url" });
     }
 
     const pmData = await pmResponse.json();
     const freshUrl = pmData?.document?.download_url;
 
     if (!freshUrl) {
-      return new Response(
-        JSON.stringify({ error: "PdfMonkey n'a pas retourné d'URL de téléchargement" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("PdfMonkey n'a pas retourné d'URL de téléchargement", 500, { fn: "refresh-convention-pdf-url" });
     }
 
     // Download with fresh URL and upload to permanent storage
@@ -158,10 +143,7 @@ serve(async (req: Request): Promise<Response> => {
   } catch (error: unknown) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "refresh-convention-pdf-url" });
   }
 });
 

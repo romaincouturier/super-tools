@@ -1,9 +1,11 @@
+import { reportHandledError } from "@/lib/sentry";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 import { resolveContentType } from "@/lib/file-utils";
+import { uploadIdeaFile, enrichIdea, invokeFindSimilarIdeas } from "@/services/ideas";
 
 export type IdeaStatus =
   | "nouvelle"
@@ -65,19 +67,7 @@ const anyDb = supabase as unknown as {
   from: (t: string) => ReturnType<typeof supabase.from>;
 };
 
-/** Upload d'un fichier (image/PDF) via l'edge function dédiée (pas de storage direct). */
-export async function uploadIdeaFile(file: File): Promise<string> {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
-  const path = `${Date.now()}_${safeName}`;
-  const formData = new FormData();
-  formData.append("file", file, file.name);
-  formData.append("path", path);
-  const { data, error } = await supabase.functions.invoke("upload-idea-file", { body: formData });
-  if (error) throw error;
-  const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
-  if (!publicUrl) throw new Error("URL introuvable après l'upload");
-  return publicUrl;
-}
+export { uploadIdeaFile } from "@/services/ideas";
 
 export interface CreateIdeaInput {
   title: string;
@@ -145,7 +135,10 @@ export function useIdeas() {
         toast({ title: "Idée ajoutée" });
         // Enrichissement IA en tâche de fond (non bloquant)
         const newId = (created as { id?: string } | null)?.id;
-        if (newId) supabase.functions.invoke("enrich-idea", { body: { id: newId } }).catch(() => {});
+        if (newId)
+          enrichIdea(newId).catch((err) =>
+            reportHandledError(err, { fn: "enrich-idea", ideaId: newId }),
+          );
         await fetchIdeas();
       } catch (err) {
         toastError(toast, err);
@@ -212,9 +205,7 @@ export function useIdeas() {
 
   const findSimilarIdeas = useCallback(async (query: string, excludeId?: string): Promise<SimilarIdea[]> => {
     if (!query || query.trim().length < 4) return [];
-    const { data, error } = await supabase.functions.invoke("find-similar-ideas", {
-      body: { query, excludeId },
-    });
+    const { data, error } = await invokeFindSimilarIdeas(query, excludeId);
     if (error) return [];
     return ((data as { matches?: SimilarIdea[] } | null)?.matches ?? []);
   }, []);

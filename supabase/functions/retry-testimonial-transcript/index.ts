@@ -7,6 +7,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   getValidDriveAccessToken,
   uploadDriveFileToAssemblyAI,
@@ -88,6 +89,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[retry-testimonial-transcript] ${row.id}:`, message);
+      await reportEdgeError(err, { fn: "retry-testimonial-transcript", itemId: row.id });
     }
   };
 
@@ -95,7 +97,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void };
   }).EdgeRuntime?.waitUntil;
   if (waitUntil) waitUntil(run());
-  else run().catch(() => {});
+  else run().catch((e) => void reportEdgeError(e, { fn: "retry-testimonial-transcript", step: "run" }));
 
   return new Response(
     JSON.stringify({ ok: true, accepted: true, testimonial_id: row.id }),

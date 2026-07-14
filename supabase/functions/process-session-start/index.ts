@@ -6,6 +6,7 @@ import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 /**
  * Process Session Start
@@ -286,6 +287,7 @@ serve(async (req) => {
             signaturesSent++;
           } catch (err) {
             console.error(`[process-session-start] Error processing participant ${participant.email}:`, err);
+            await reportEdgeError(err, { fn: "process-session-start", itemId: participant.id });
           }
         }
 
@@ -331,6 +333,7 @@ serve(async (req) => {
             }
           } catch (err) {
             console.error(`[process-session-start] Error sending trainer notification:`, err);
+            await reportEdgeError(err, { fn: "process-session-start", step: "trainer-notification" });
           }
         } else if (!trainerEmail) {
           console.warn(`[process-session-start] No trainer email for training ${trainingId}`);
@@ -372,6 +375,7 @@ serve(async (req) => {
         return { signaturesSent, trainerNotified };
       } catch (error) {
         console.error(`[process-session-start] Error while processing schedule ${scheduleId} ${period}:`, error);
+        await reportEdgeError(error, { fn: "process-session-start", itemId: scheduleId });
         return { signaturesSent: 0, trainerNotified: false };
       }
     };
@@ -679,6 +683,7 @@ serve(async (req) => {
               }
             } catch (err) {
               console.error(`[process-session-start] Error processing live participant ${participant.email}:`, err);
+              await reportEdgeError(err, { fn: "process-session-start", itemId: participant.id });
             }
           }
 
@@ -707,6 +712,7 @@ serve(async (req) => {
       }
     } catch (liveErr) {
       console.error("[process-session-start] Error processing lives:", liveErr);
+      await reportEdgeError(liveErr, { fn: "process-session-start", step: "lives" });
     }
 
     return new Response(
@@ -722,6 +728,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("[process-session-start] Error:", error);
+    await reportEdgeError(error, { fn: "process-session-start" });
     const errorMessage = error instanceof Error ? error.message : "An error occurred";
     return new Response(
       JSON.stringify({ error: errorMessage }),

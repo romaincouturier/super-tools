@@ -1,7 +1,9 @@
+import { reportHandledError } from "@/lib/sentry";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
+import { alertFormError, processEvaluationSubmission } from "@/services/publicForms";
 import { formatTrainingDates } from "@/lib/dateFormatters";
 import { assertTransition, evaluationMachine, type EvaluationStatus } from "@/lib/stateMachine";
 
@@ -145,18 +147,17 @@ export function useEvaluationForm(token: string | undefined) {
       }
     } catch (e: unknown) {
       console.error("Failed to load evaluation", e);
+      reportHandledError(e, { form: "evaluation", token });
       const errorMsg = "Impossible d'ouvrir cette évaluation (lien invalide, expiré, ou accès refusé).";
       setError(errorMsg);
       // Fire-and-forget alert to admin
-      supabase.functions.invoke("alert-form-error", {
-        body: {
-          formType: "evaluation",
-          token,
-          errorMessage: e instanceof Error ? e.message : errorMsg,
-          userAgent: navigator.userAgent,
-          url: window.location.href,
-        },
-      }).catch(() => {});
+      alertFormError({
+        formType: "evaluation",
+        token,
+        errorMessage: e instanceof Error ? e.message : errorMsg,
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+      }).catch((alertErr) => reportHandledError(alertErr, { fn: "alert-form-error" }));
     } finally {
       setLoading(false);
     }
@@ -221,10 +222,9 @@ export function useEvaluationForm(token: string | undefined) {
 
       // Trigger post-evaluation processing (certificate, emails, etc.)
       // Fire-and-forget: don't await to avoid edge function timeout blocking the UI
-      supabase.functions.invoke("process-evaluation-submission", {
-        body: { evaluationId: evaluation.id },
-      }).catch((processError) => {
+      processEvaluationSubmission(evaluation.id).catch((processError) => {
         console.error("Post-evaluation processing failed:", processError);
+        reportHandledError(processError, { fn: "process-evaluation-submission", evaluationId: evaluation.id });
       });
 
       toast({

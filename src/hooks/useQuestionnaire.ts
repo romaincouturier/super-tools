@@ -1,9 +1,11 @@
+import { reportHandledError } from "@/lib/sentry";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { rpc } from "@/lib/supabase-rpc";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
+import { alertFormError, sendQuestionnaireConfirmation, sendPrerequisWarning, sendAccessibilityNeeds } from "@/services/publicForms";
 import { formatDateWithDayOfWeek } from "@/lib/dateFormatters";
 import { assertTransition, questionnaireMachine, type QuestionnaireStatus } from "@/lib/stateMachine";
 
@@ -212,10 +214,11 @@ export function useQuestionnaire() {
       }
     } catch (e: unknown) {
       console.error("Failed to load questionnaire", e);
+      reportHandledError(e, { form: "besoins", token });
       const errDetail = e instanceof Error ? e.message : typeof e === "object" && e !== null && "code" in e ? String((e as { code: unknown }).code) : "unknown";
       const errorMsg = `Impossible d'ouvrir ce questionnaire. Erreur : ${errDetail}. Essayez de recharger la page.`;
       setError(errorMsg);
-      supabase.functions.invoke("alert-form-error", { body: { formType: "besoins", token, errorMessage: errDetail, userAgent: navigator.userAgent, url: window.location.href, attempt } }).catch(() => {});
+      alertFormError({ formType: "besoins", token, errorMessage: errDetail, userAgent: navigator.userAgent, url: window.location.href, attempt }).catch((alertErr) => reportHandledError(alertErr, { fn: "alert-form-error" }));
     } finally { setLoading(false); initialLoadCompleteRef.current = true; }
   };
 
@@ -278,17 +281,17 @@ export function useQuestionnaire() {
 
       await insertEvent(questionnaire.id, "submitted", { source: "public_link" });
 
-      try { await supabase.functions.invoke("send-questionnaire-confirmation", { body: { questionnaireId: questionnaire.id, trainingId: questionnaire.training_id, participantEmail: questionnaire.email, participantFirstName: questionnaire.prenom || "participant", formatFormation: training?.format_formation } }); }
-      catch (emailErr) { console.warn("Failed to send confirmation email", emailErr); }
+      try { await sendQuestionnaireConfirmation({ questionnaireId: questionnaire.id, trainingId: questionnaire.training_id, participantEmail: questionnaire.email, participantFirstName: questionnaire.prenom || "participant", formatFormation: training?.format_formation }); }
+      catch (emailErr) { console.warn("Failed to send confirmation email", emailErr); reportHandledError(emailErr, { fn: "send-questionnaire-confirmation" }); }
 
       if (needsPrerequisEmail) {
-        try { await supabase.functions.invoke("send-prerequis-warning", { body: { questionnaireId: questionnaire.id, participantEmail: questionnaire.email, participantName: displayName || questionnaire.prenom || "Participant", trainingName: training?.training_name || "Formation", prerequisValidations } }); }
-        catch (emailErr) { console.warn("Failed to send prerequisite warning email", emailErr); }
+        try { await sendPrerequisWarning({ questionnaireId: questionnaire.id, participantEmail: questionnaire.email, participantName: displayName || questionnaire.prenom || "Participant", trainingName: training?.training_name || "Formation", prerequisValidations }); }
+        catch (emailErr) { console.warn("Failed to send prerequisite warning email", emailErr); reportHandledError(emailErr, { fn: "send-prerequis-warning" }); }
       }
 
       if (questionnaire.besoins_accessibilite && questionnaire.besoins_accessibilite.trim()) {
-        try { await supabase.functions.invoke("send-accessibility-needs", { body: { questionnaireId: questionnaire.id, trainingId: questionnaire.training_id, participantEmail: questionnaire.email, participantFirstName: questionnaire.prenom || "", accessibilityNeeds: questionnaire.besoins_accessibilite, trainingName: training?.training_name || "Formation" } }); }
-        catch (emailErr) { console.warn("Failed to send accessibility needs email", emailErr); }
+        try { await sendAccessibilityNeeds({ questionnaireId: questionnaire.id, trainingId: questionnaire.training_id, participantEmail: questionnaire.email, participantFirstName: questionnaire.prenom || "", accessibilityNeeds: questionnaire.besoins_accessibilite, trainingName: training?.training_name || "Formation" }); }
+        catch (emailErr) { console.warn("Failed to send accessibility needs email", emailErr); reportHandledError(emailErr, { fn: "send-accessibility-needs" }); }
       }
 
       dirtyRef.current = false;

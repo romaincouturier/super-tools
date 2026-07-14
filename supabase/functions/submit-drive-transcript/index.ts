@@ -11,6 +11,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import {
   getValidDriveAccessToken,
   uploadDriveFileToAssemblyAI,
@@ -65,6 +66,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .eq("id", transcript_id);
       } catch (err) {
         console.error(`[submit-drive-transcript] ${transcript_id} failed:`, err);
+        await reportEdgeError(err, { fn: "submit-drive-transcript", itemId: transcript_id });
         await (admin as any)
           .from("transcripts")
           .update({
@@ -78,13 +80,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const waitUntil = (globalThis as unknown as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
       .EdgeRuntime?.waitUntil;
     if (waitUntil) waitUntil(run());
-    else run().catch(() => {});
+    else run().catch((e) => void reportEdgeError(e, { fn: "submit-drive-transcript", step: "run" }));
 
     return new Response(JSON.stringify({ accepted: true, transcript_id }), {
       status: 202,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    await reportEdgeError(err, { fn: "submit-drive-transcript" });
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

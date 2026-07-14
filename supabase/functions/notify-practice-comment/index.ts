@@ -5,6 +5,7 @@ import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, wrapEmailHtml } from "../_shared/templates.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { learnerHasNotifEnabled } from "../_shared/learner-prefs.ts";
 
 const VERSION = "notify-practice-comment@2026-06-23.1";
@@ -125,7 +126,10 @@ serve(async (req) => {
           { onConflict: "learner_email,reference_id,type", ignoreDuplicates: true },
         );
       inAppCreated = !notifError;
-      if (notifError) console.warn("learner_notifications insert failed:", notifError);
+      if (notifError) {
+        console.warn("learner_notifications insert failed:", notifError);
+        await reportEdgeError(notifError, { fn: "notify-practice-comment", step: "learner-notification" });
+      }
 
       // Email a l'auteur (respecte sa preference).
       const enabled = await learnerHasNotifEnabled(supabase, ownerEmail, "email_notif_work_comment");
@@ -157,6 +161,7 @@ serve(async (req) => {
     );
   } catch (err) {
     console.error("notify-practice-comment error", err);
+    await reportEdgeError(err, { fn: "notify-practice-comment" });
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error", _version: VERSION }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

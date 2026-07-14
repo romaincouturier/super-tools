@@ -8,6 +8,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient, sendEmail, corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/mod.ts";
 import { getSenderFrom, getBccList } from "../_shared/email-settings.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const VERSION = "send-mission-email-draft@1.0.0";
 
@@ -102,6 +103,7 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error(`[${VERSION}] Error:`, error);
+    await reportEdgeError(error, { fn: "send-mission-email-draft" });
     return new Response(
       JSON.stringify({ error: error.message, _version: VERSION }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

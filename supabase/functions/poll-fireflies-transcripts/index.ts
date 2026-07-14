@@ -7,6 +7,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { analyzeTranscript, notifySlack } from "../_shared/google-drive-helper.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -153,10 +154,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
             method: "POST",
             headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({ source_type: "transcript", source_id: inserted.id }),
-          }).catch(() => {});
+          }).catch((e) => void reportEdgeError(e, { fn: "poll-fireflies-transcripts", step: "index-documents" }));
         }
       } catch (err) {
         console.error(`Failed to import Fireflies transcript ${t.id}:`, err);
+        await reportEdgeError(err, { fn: "poll-fireflies-transcripts", itemId: t.id });
         results.errors++;
       }
     }
@@ -176,6 +178,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("poll-fireflies-transcripts error:", message);
+    await reportEdgeError(err, { fn: "poll-fireflies-transcripts" });
     await (admin as any).from("polling_cursors")
       .update({ status: "error", last_error: message })
       .eq("source", "fireflies");

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getSenderEmail } from "../_shared/email-settings.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 // Tables that should be cleared and restored (order matters for foreign keys)
 // Dependent tables are deleted first (reverse order), then inserted in this order.
 const TABLES_RESTORE_ORDER = [
@@ -228,6 +229,7 @@ serve(async (req) => {
         }
       } catch (err) {
         console.error(`[backup-import] Exception for ${tableName}:`, err);
+        await reportEdgeError(err, { fn: "backup-import", itemId: tableName });
         results[tableName] = {
           deleted: 0,
           inserted: 0,
@@ -260,6 +262,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("[backup-import] Error:", error);
+    await reportEdgeError(error, { fn: "backup-import" });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Restore failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

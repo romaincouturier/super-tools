@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -33,10 +33,7 @@ serve(async (req: Request): Promise<Response> => {
     const { orderItemId } = body;
 
     if (!orderItemId) {
-      return new Response(JSON.stringify({ error: "orderItemId requis" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("orderItemId requis", 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -62,20 +59,14 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (itemErr || !item) {
-      return new Response(JSON.stringify({ error: "Commande introuvable" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Commande introuvable", 404);
     }
 
     const order = (item as any).woocommerce_orders;
     const game = (item as any).games;
 
     if (!game?.pdfmonkey_template_id) {
-      return new Response(
-        JSON.stringify({ error: "Aucun template PDF Monkey configuré sur ce jeu (champ pdfmonkey_template_id)" }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Aucun template PDF Monkey configuré sur ce jeu (champ pdfmonkey_template_id)", 422);
     }
 
     // ── Fetch supertilt settings for bailleur info ────────────────
@@ -227,9 +218,6 @@ serve(async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(error instanceof Error ? error.message : "Erreur inconnue", 500, { cause: error, fn: "generate-location-contract" });
   }
 });

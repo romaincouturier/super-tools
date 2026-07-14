@@ -1,5 +1,7 @@
+import { reportHandledError } from "@/lib/sentry";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Upload, X, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Loader2, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock, Link2 } from "lucide-react";
+import { Upload, X, Maximize2, Minimize2, RefreshCw, FileText, Linkedin, Instagram, Save, Mail, Check, MessageSquare, ZoomIn, ChevronDown, Clock, Link2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { TagsInput } from "@/components/ui/tags-input";
 import {
   Dialog,
@@ -206,7 +208,9 @@ const ContentCardDialog = ({
     if (!isOpen && card) {
       const pending = flushAndGetPending();
       if (pending) {
-        handleAutoSave(pending).catch(() => {});
+        handleAutoSave(pending).catch((err) =>
+          reportHandledError(err, { action: "content-card-autosave-flush" }),
+        );
       }
     }
     onOpenChange(isOpen);
@@ -272,7 +276,7 @@ const ContentCardDialog = ({
                 <span className="text-xs text-muted-foreground">
                   {autoSaving ? (
                     <span className="flex items-center gap-1">
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <Spinner className="h-3 w-3" />
                       Enregistrement...
                     </span>
                   ) : lastSaved ? (
@@ -446,7 +450,7 @@ const ContentCardDialog = ({
                           title={action.label}
                         >
                           {isLoading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Spinner className="h-3.5 w-3.5" />
                           ) : (
                             <Icon className="h-3.5 w-3.5" />
                           )}

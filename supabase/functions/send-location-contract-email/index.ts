@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getAppUrls } from "../_shared/app-urls.ts";
 import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
@@ -26,10 +26,7 @@ serve(async (req: Request): Promise<Response> => {
     const { orderItemId, enableOnlineSignature = true } = body;
 
     if (!orderItemId) {
-      return new Response(JSON.stringify({ error: "orderItemId requis" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("orderItemId requis", 400);
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -50,10 +47,7 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (itemErr || !item) {
-      return new Response(JSON.stringify({ error: "Commande introuvable" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return createErrorResponse("Commande introuvable", 404);
     }
 
     const order = (item as any).woocommerce_orders;
@@ -61,10 +55,7 @@ serve(async (req: Request): Promise<Response> => {
     const contractUrl = (item as any).location_contract_file_url;
 
     if (!contractUrl) {
-      return new Response(
-        JSON.stringify({ error: "Le contrat n'a pas encore été généré. Générez-le d'abord." }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Le contrat n'a pas encore été généré. Générez-le d'abord.", 422);
     }
 
     const billing = (order?.billing_address ?? {}) as Record<string, string>;
@@ -78,10 +69,7 @@ serve(async (req: Request): Promise<Response> => {
     const contratReference = (item as any).contrat_reference ?? "";
 
     if (!recipientEmail) {
-      return new Response(
-        JSON.stringify({ error: "Email du locataire introuvable" }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return createErrorResponse("Email du locataire introuvable", 422);
     }
 
     // ── Download PDF and compute hash ─────────────────────────────
@@ -245,9 +233,6 @@ serve(async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(error instanceof Error ? error.message : "Erreur inconnue", 500, { cause: error, fn: "send-location-contract-email" });
   }
 });

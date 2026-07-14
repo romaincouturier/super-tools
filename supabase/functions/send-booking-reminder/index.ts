@@ -6,6 +6,7 @@ import { processTemplate } from "../_shared/templates.ts";
 import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 import { formatDateFr as formatDate } from "../_shared/date-utils.ts";
 
 interface ReminderResult {
@@ -111,6 +112,7 @@ async function sendBookingReminderEmail(
     };
   } catch (error) {
     console.error(`Error sending reminder for ${reminder.entityType} ${reminder.entityId}:`, error);
+    await reportEdgeError(error, { fn: "send-booking-reminder", itemId: reminder.entityId });
     return {
       entity_type: reminder.entityType,
       entity_id: reminder.entityId,
@@ -320,6 +322,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in send-booking-reminder:", error);
+    await reportEdgeError(error, { fn: "send-booking-reminder" });
     return new Response(
       JSON.stringify({ error: String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
