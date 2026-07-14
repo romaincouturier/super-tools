@@ -1981,6 +1981,59 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_scheduled_emails: {
+        Row: {
+          attachments: Json | null
+          body_html: string
+          card_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          recipient_email: string
+          scheduled_at: string
+          sender_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          attachments?: Json | null
+          body_html: string
+          card_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          scheduled_at: string
+          sender_email: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          attachments?: Json | null
+          body_html?: string
+          card_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          scheduled_at?: string
+          sender_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_scheduled_emails_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_settings: {
         Row: {
           created_at: string
