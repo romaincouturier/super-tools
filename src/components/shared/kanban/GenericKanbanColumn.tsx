@@ -75,7 +75,7 @@ export default function GenericKanbanColumn<
       }}
       style={style}
       className={cn(
-        "flex-shrink-0 w-72 bg-muted/30 rounded-lg flex flex-col",
+        "flex-shrink-0 w-[85vw] max-w-[288px] sm:w-72 snap-start bg-muted/30 rounded-lg flex flex-col",
         isColumnDragging && "opacity-50",
         className,
       )}

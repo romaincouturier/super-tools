@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import VenueSelector from "@/components/formations/VenueSelector";
 import type { TrainingVenue } from "@/types/training-venue";
-import { Calendar, Save } from "lucide-react";
+import { Calendar, Save, CalendarPlus, AlertTriangle, Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
@@ -33,6 +33,8 @@ import {
 } from "@/components/formations/FormationFormFields";
 import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
 import type { FormationFormula } from "@/types/training";
+import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
+import CreateCatalogEntryDialog from "@/components/formations/CreateCatalogEntryDialog";
 
 interface TrainingExtended {
   training_name: string;
@@ -85,6 +87,34 @@ const FormationEdit = () => {
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
   const [trainingIsPermanent, setTrainingIsPermanent] = useState<boolean>(false);
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+
+  const applyCreatedCatalog = async (created: { id: string; formation_name: string }) => {
+    form.setTrainingName(created.formation_name);
+    form.setCatalogId(created.id);
+    const { data: formulas } = await supabase
+      .from("formation_formulas")
+      .select("*")
+      .eq("formation_config_id", created.id)
+      .order("display_order");
+    setAvailableFormulas((formulas as FormationFormula[]) || []);
+    form.setHasFormulas((formulas?.length ?? 0) > 0);
+  };
+
+  const MEETING_DESCRIPTION = `Bonjour,
+
+Je vous propose ce point de préparation pour cadrer ensemble votre session de formation.
+
+Au programme :
+- Recueil des besoins
+- Échange sur le contenu
+- Adaptation aux spécificités de votre équipe
+- Revue de la planification et de la logistique
+
+N'hésitez pas à me contacter en amont pour toute question.
+
+À très vite,`;
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -347,6 +377,20 @@ const FormationEdit = () => {
             backTo="/formations"
             actions={
               <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMeetingDialogOpen(true)}
+                  disabled={!form.sponsorEmail}
+                  title={
+                    form.sponsorEmail
+                      ? "Créer un RDV Google Calendar avec le commanditaire"
+                      : "Renseignez l'email du commanditaire pour proposer un RDV"
+                  }
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Proposer un RDV
+                </Button>
                 <Button type="button" variant="outline" onClick={() => navigate(`/formations/${id}`)}>
                   Annuler
                 </Button>
@@ -369,6 +413,27 @@ const FormationEdit = () => {
         </div>
 
         <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">
+          {form.trainingName && !form.catalogId && (
+            <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <p>
+                  <strong>"{form.trainingName}"</strong> n'est pas rattachée à une entrée du catalogue.
+                  Créez l'entrée pour lier objectifs, prérequis et programme à cette session.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="bg-white"
+                  onClick={() => setCatalogDialogOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Créer "{form.trainingName}" au catalogue
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
@@ -626,6 +691,24 @@ const FormationEdit = () => {
             </div>
           </div>
         </form>
+
+        <CreateCalendarEventDialog
+          open={meetingDialogOpen}
+          onOpenChange={setMeetingDialogOpen}
+          opportunityTitle={form.trainingName || "préparation formation"}
+          company={form.clientName || ""}
+          contactEmail={form.sponsorEmail || ""}
+          initialSummary={`Point préparation — ${form.trainingName}${form.clientName ? ` — ${form.clientName}` : ""}`}
+          initialDescription={MEETING_DESCRIPTION}
+          defaultFormality={form.sponsorFormalAddress ? "vous" : "tu"}
+        />
+
+        <CreateCatalogEntryDialog
+          open={catalogDialogOpen}
+          onOpenChange={setCatalogDialogOpen}
+          initialName={form.trainingName}
+          onCreated={applyCreatedCatalog}
+        />
       </main>
     </ModuleLayout>
   );

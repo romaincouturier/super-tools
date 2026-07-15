@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import { sendVenueBookingRequest } from "@/services/training-venues";
-import { Calendar, Save } from "lucide-react";
+import { Calendar, Save, Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { format } from "date-fns";
@@ -31,6 +31,8 @@ import {
   FinanceurCard,
   CatalogSummaryCard,
 } from "@/components/formations/FormationFormFields";
+import CreateCatalogEntryDialog from "@/components/formations/CreateCatalogEntryDialog";
+import { AlertTriangle } from "lucide-react";
 
 const FormationCreate = () => {
   const [saving, setSaving] = useState(false);
@@ -41,6 +43,21 @@ const FormationCreate = () => {
   const form = useFormationForm();
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
+  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+
+  // Applique une entrée catalogue fraîchement créée au formulaire.
+  const applyCreatedCatalog = async (created: FormationConfig) => {
+    form.setTrainingName(created.formation_name);
+    form.applyCatalogFields(created);
+    const { data: formulas } = await supabase
+      .from("formation_formulas")
+      .select("*")
+      .eq("formation_config_id", created.id)
+      .order("display_order");
+    form.setCatalogFormulas((formulas as FormationFormula[]) || []);
+    form.setHasFormulas((formulas?.length ?? 0) > 0);
+    form.setSelectedFormulaId(null);
+  };
 
   const fromCrmCardId = searchParams.get("fromCrmCardId");
 
@@ -397,6 +414,28 @@ const FormationCreate = () => {
                         }
                       }}
                     />
+                    {form.trainingName && !form.catalogId && (
+                      <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <p>
+                            <strong>"{form.trainingName}"</strong> n'existe pas
+                            au catalogue. Créez l'entrée pour pouvoir enregistrer
+                            la formation.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="bg-white"
+                            onClick={() => setCatalogDialogOpen(true)}
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1.5" />
+                            Créer "{form.trainingName}" au catalogue
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Session type/format - hidden for permanent */}
@@ -587,6 +626,13 @@ const FormationCreate = () => {
             onActionsChange={form.setScheduledActions}
           />
         </form>
+
+        <CreateCatalogEntryDialog
+          open={catalogDialogOpen}
+          onOpenChange={setCatalogDialogOpen}
+          initialName={form.trainingName}
+          onCreated={applyCreatedCatalog}
+        />
       </main>
     </ModuleLayout>
   );
