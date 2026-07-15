@@ -20,6 +20,8 @@ interface Props {
   contactEmail: string;
   /** When provided, overrides the auto-generated buildTitle() computation. */
   initialSummary?: string;
+  /** When provided, overrides the auto-generated tu/vous description template. */
+  initialDescription?: string;
   /** Default tu/vous variant. CRM => "vous", missions => "tu". */
   defaultFormality?: Formality;
   /** Called when the event is successfully created, with the event date (YYYY-MM-DD) and summary. */
@@ -71,7 +73,7 @@ function toIso(dateLocal: string, timeLocal: string): string {
   return dt.toISOString();
 }
 
-export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, defaultFormality = "vous", onEventCreated }: Props) {
+export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, initialDescription, defaultFormality = "vous", onEventCreated }: Props) {
   const today = todayAsISO();
   const [summary, setSummary] = useState(() => initialSummary ?? buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
@@ -79,7 +81,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [endTime, setEndTime] = useState("10:30");
   const [attendeeEmail, setAttendeeEmail] = useState(contactEmail);
   const [formality, setFormality] = useState<Formality>(defaultFormality);
-  const [description, setDescription] = useState(descriptionFor(defaultFormality));
+  const [description, setDescription] = useState(initialDescription ?? descriptionFor(defaultFormality));
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ htmlLink: string; meetLink: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,10 +92,10 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
       setSummary(initialSummary ?? buildTitle(company, opportunityTitle));
       setAttendeeEmail(contactEmail || "");
       setFormality(defaultFormality);
-      setDescription(descriptionFor(defaultFormality));
+      setDescription(initialDescription ?? descriptionFor(defaultFormality));
       descriptionDirtyRef.current = false;
     }
-  }, [open, company, opportunityTitle, contactEmail, initialSummary, defaultFormality]);
+  }, [open, company, opportunityTitle, contactEmail, initialSummary, initialDescription, defaultFormality]);
 
   const handleFormalityChange = (next: Formality) => {
     if (next === formality) return;
