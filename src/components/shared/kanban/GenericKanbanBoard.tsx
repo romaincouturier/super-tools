@@ -315,7 +315,13 @@ export default function GenericKanbanBoard<
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className={cn("flex gap-4 overflow-x-auto pb-4 h-full", boardClassName)}>
+      <div
+        className={cn(
+          "flex gap-4 overflow-x-auto pb-4 h-full snap-x snap-mandatory md:snap-none",
+          boardClassName,
+        )}
+        style={{ WebkitOverflowScrolling: "touch" }}
+      >
         {columnSortable ? (
           <SortableContext items={columnSortableItems} strategy={horizontalListSortingStrategy}>
             {columnsContent}
