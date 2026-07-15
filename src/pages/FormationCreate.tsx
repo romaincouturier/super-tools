@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import { sendVenueBookingRequest } from "@/services/training-venues";
-import { Calendar, Save } from "lucide-react";
+import { Calendar, Save, Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { format } from "date-fns";
