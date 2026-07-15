@@ -31,6 +31,8 @@ import {
   FinanceurCard,
   CatalogSummaryCard,
 } from "@/components/formations/FormationFormFields";
+import CreateCatalogEntryDialog from "@/components/formations/CreateCatalogEntryDialog";
+import { AlertTriangle } from "lucide-react";
 
 const FormationCreate = () => {
   const [saving, setSaving] = useState(false);
@@ -41,6 +43,21 @@ const FormationCreate = () => {
   const form = useFormationForm();
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
+  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+
+  // Applique une entrée catalogue fraîchement créée au formulaire.
+  const applyCreatedCatalog = async (created: FormationConfig) => {
+    form.setTrainingName(created.formation_name);
+    form.applyCatalogFields(created);
+    const { data: formulas } = await supabase
+      .from("formation_formulas")
+      .select("*")
+      .eq("formation_config_id", created.id)
+      .order("display_order");
+    form.setCatalogFormulas((formulas as FormationFormula[]) || []);
+    form.setHasFormulas((formulas?.length ?? 0) > 0);
+    form.setSelectedFormulaId(null);
+  };
 
   const fromCrmCardId = searchParams.get("fromCrmCardId");
 
