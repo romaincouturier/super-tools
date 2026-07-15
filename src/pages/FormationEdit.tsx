@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/services/activityLog";
 import VenueSelector from "@/components/formations/VenueSelector";
 import type { TrainingVenue } from "@/types/training-venue";
-import { Calendar, Save } from "lucide-react";
+import { Calendar, Save, CalendarPlus, AlertTriangle, Plus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import PageHeader from "@/components/PageHeader";
 import { format, parseISO } from "date-fns";
@@ -33,6 +33,8 @@ import {
 } from "@/components/formations/FormationFormFields";
 import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
 import type { FormationFormula } from "@/types/training";
+import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
+import CreateCatalogEntryDialog from "@/components/formations/CreateCatalogEntryDialog";
 
 interface TrainingExtended {
   training_name: string;
@@ -85,6 +87,34 @@ const FormationEdit = () => {
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
   const [trainingIsPermanent, setTrainingIsPermanent] = useState<boolean>(false);
+  const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
+  const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+
+  const applyCreatedCatalog = async (created: { id: string; formation_name: string }) => {
+    form.setTrainingName(created.formation_name);
+    form.setCatalogId(created.id);
+    const { data: formulas } = await supabase
+      .from("formation_formulas")
+      .select("*")
+      .eq("formation_config_id", created.id)
+      .order("display_order");
+    setAvailableFormulas((formulas as FormationFormula[]) || []);
+    form.setHasFormulas((formulas?.length ?? 0) > 0);
+  };
+
+  const MEETING_DESCRIPTION = `Bonjour,
+
+Je vous propose ce point de préparation pour cadrer ensemble votre session de formation.
+
+Au programme :
+- Recueil des besoins
+- Échange sur le contenu
+- Adaptation aux spécificités de votre équipe
+- Revue de la planification et de la logistique
+
+N'hésitez pas à me contacter en amont pour toute question.
+
+À très vite,`;
 
   useEffect(() => {
     if (!authLoading && user) {
