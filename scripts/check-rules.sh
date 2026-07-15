@@ -332,6 +332,16 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "031b" "Pas de FOR ALL TO anon USING (true) sauf formulaires token-based" \
     "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ | grep -v '20260308225436\|fix_rls_anon\|20260321130000\|20260308224610'"
 
+  # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
+  # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
+  # structure mais pas le contenu — régression du 15/07/2026 sur lms_lesson_blocks).
+  check "039" "Tables LMS ont une policy SELECT TO authenticated" \
+    "for t in lms_courses lms_modules lms_lessons lms_lesson_blocks lms_quizzes lms_quiz_questions; do \
+       grep -rlE \"ON (public\\.)?\$t\" supabase/migrations/ --include='*.sql' 2>/dev/null \
+         | xargs grep -lE 'FOR SELECT[[:space:]]+TO authenticated|FOR ALL[[:space:]]+TO authenticated' 2>/dev/null \
+         | head -1 | grep -q . || echo \"VIOLATION: table \$t sans policy SELECT TO authenticated\"; \
+     done"
+
   # Ratchet [017] / [020] — migrations progressives : la dette ne peut que descendre.
   # Baselines dans scripts/rules-ratchet.txt. Compte > baseline = violation.
   # Compte < baseline = abaisser la baseline dans le même commit.
