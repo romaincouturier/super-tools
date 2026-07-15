@@ -377,6 +377,20 @@ N'hésitez pas à me contacter en amont pour toute question.
             backTo="/formations"
             actions={
               <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMeetingDialogOpen(true)}
+                  disabled={!form.sponsorEmail}
+                  title={
+                    form.sponsorEmail
+                      ? "Créer un RDV Google Calendar avec le commanditaire"
+                      : "Renseignez l'email du commanditaire pour proposer un RDV"
+                  }
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Proposer un RDV
+                </Button>
                 <Button type="button" variant="outline" onClick={() => navigate(`/formations/${id}`)}>
                   Annuler
                 </Button>
