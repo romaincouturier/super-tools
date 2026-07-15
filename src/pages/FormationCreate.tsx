@@ -626,6 +626,13 @@ const FormationCreate = () => {
             onActionsChange={form.setScheduledActions}
           />
         </form>
+
+        <CreateCatalogEntryDialog
+          open={catalogDialogOpen}
+          onOpenChange={setCatalogDialogOpen}
+          initialName={form.trainingName}
+          onCreated={applyCreatedCatalog}
+        />
       </main>
     </ModuleLayout>
   );
