@@ -413,6 +413,27 @@ N'hésitez pas à me contacter en amont pour toute question.
         </div>
 
         <form id="formation-form" onSubmit={handleSubmit} className="space-y-6">
+          {form.trainingName && !form.catalogId && (
+            <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <p>
+                  <strong>"{form.trainingName}"</strong> n'est pas rattachée à une entrée du catalogue.
+                  Créez l'entrée pour lier objectifs, prérequis et programme à cette session.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="bg-white"
+                  onClick={() => setCatalogDialogOpen(true)}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  Créer "{form.trainingName}" au catalogue
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
@@ -670,6 +691,24 @@ N'hésitez pas à me contacter en amont pour toute question.
             </div>
           </div>
         </form>
+
+        <CreateCalendarEventDialog
+          open={meetingDialogOpen}
+          onOpenChange={setMeetingDialogOpen}
+          opportunityTitle={form.trainingName || "préparation formation"}
+          company={form.clientName || ""}
+          contactEmail={form.sponsorEmail || ""}
+          initialSummary={`Point préparation — ${form.trainingName}${form.clientName ? ` — ${form.clientName}` : ""}`}
+          initialDescription={MEETING_DESCRIPTION}
+          defaultFormality={form.sponsorFormalAddress ? "vous" : "tu"}
+        />
+
+        <CreateCatalogEntryDialog
+          open={catalogDialogOpen}
+          onOpenChange={setCatalogDialogOpen}
+          initialName={form.trainingName}
+          onCreated={applyCreatedCatalog}
+        />
       </main>
     </ModuleLayout>
   );
