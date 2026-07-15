@@ -6,6 +6,18 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ---
 
+## Sécurité
+
+### [039] RLS LMS — toute table de contenu apprenant doit avoir une policy SELECT pour `authenticated`
+- **Constat** : Régression du 15/07/2026 — tous les apprenants de la formation "Facilitation graphique en ligne" ont vu la structure de leur cours (modules, titres de leçons) mais **aucun contenu** (textes, vidéos, images, quiz). Cause : la table `lms_lesson_blocks` (qui stocke le contenu réel des leçons) n'avait qu'une policy SELECT pour `anon` (aperçu public) et pour les staff/admins, **jamais pour `authenticated`**. Les apprenants connectés (rôle `authenticated`, pas `anon`) étaient donc bloqués par RLS. Les tables sœurs `lms_courses`, `lms_modules`, `lms_lessons` avaient elles une policy `USING (true)` pour `authenticated` → structure visible, contenu invisible. Correctif : migration `auth_read_lesson_blocks_published` ajoutant une policy SELECT scoped aux cours publiés.
+- **Règle** : Toute table LMS destinée à être lue par les apprenants (`lms_courses`, `lms_modules`, `lms_lessons`, `lms_lesson_blocks`, `lms_quizzes`, `lms_quiz_questions`) DOIT avoir au moins une policy `FOR SELECT TO authenticated` dans les migrations. Quand on durcit les policies (ajout de policies `TO anon` restrictives, ajout de guards staff), toujours vérifier que le rôle `authenticated` — cas d'usage majoritaire — conserve un chemin de lecture. Le scoping "cours publié uniquement" (`c.status = 'published'`) est le pattern recommandé.
+- **Vérification** : check [039] de `check-rules.sh` — pour chacune des tables listées, doit exister au moins une policy `FOR SELECT TO authenticated` dans `supabase/migrations/`.
+- **Fichiers de référence** : `supabase/migrations/20260715102209_*.sql`, table `lms_lesson_blocks`
+- **Origine** : régression production — tous les apprenants sans contenu pendant plusieurs heures
+- **Date** : 2026-07-15
+
+---
+
 ## DX
 
 ### [037] Observabilité — toute erreur affichée à l'utilisateur doit aussi être reportée à Sentry
