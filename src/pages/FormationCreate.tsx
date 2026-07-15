@@ -414,6 +414,28 @@ const FormationCreate = () => {
                         }
                       }}
                     />
+                    {form.trainingName && !form.catalogId && (
+                      <div className="flex items-start gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <p>
+                            <strong>"{form.trainingName}"</strong> n'existe pas
+                            au catalogue. Créez l'entrée pour pouvoir enregistrer
+                            la formation.
+                          </p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="bg-white"
+                            onClick={() => setCatalogDialogOpen(true)}
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1.5" />
+                            Créer "{form.trainingName}" au catalogue
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Session type/format - hidden for permanent */}
