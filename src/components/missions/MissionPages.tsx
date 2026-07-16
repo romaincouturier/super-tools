@@ -664,19 +664,29 @@ const PageEditor = ({
           return true;
         }
 
-        // Plain text paste: preserve line breaks
+        // Plain text paste: try markdown conversion, else preserve line breaks
         const html = event.clipboardData?.getData("text/html");
         if (!html) {
           const text = event.clipboardData?.getData("text/plain");
-          if (text && text.includes("\n")) {
-            event.preventDefault();
-            const htmlContent = text
-              .split(/\n\n+/)
-              .filter((b) => b.trim())
-              .map((b) => `<p>${b.replace(/\n/g, "<br>")}</p>`)
-              .join("");
-            editor?.commands.insertContent(htmlContent);
-            return true;
+          if (text && text.trim()) {
+            if (looksLikeMarkdown(text)) {
+              event.preventDefault();
+              const rendered = DOMPurify.sanitize(
+                marked.parse(text, { async: false, breaks: true, gfm: true }) as string
+              );
+              editor?.commands.insertContent(rendered);
+              return true;
+            }
+            if (text.includes("\n")) {
+              event.preventDefault();
+              const htmlContent = text
+                .split(/\n\n+/)
+                .filter((b) => b.trim())
+                .map((b) => `<p>${b.replace(/\n/g, "<br>")}</p>`)
+                .join("");
+              editor?.commands.insertContent(htmlContent);
+              return true;
+            }
           }
         }
 
