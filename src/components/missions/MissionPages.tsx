@@ -28,6 +28,27 @@ import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TextAlign from "@tiptap/extension-text-align";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+
+/** Heuristic: does the pasted plain text look like Markdown? */
+function looksLikeMarkdown(text: string): boolean {
+  const patterns = [
+    /^#{1,6}\s+\S/m,           // headings
+    /^\s*[-*+]\s+\S/m,          // bullet lists
+    /^\s*\d+\.\s+\S/m,          // numbered lists
+    /^\s*>\s+\S/m,              // blockquotes
+    /```[\s\S]*?```/,           // fenced code
+    /\*\*[^*\n]+\*\*/,          // bold
+    /(^|\s)_[^_\n]+_(\s|$)/,    // italic underscores
+    /\[[^\]\n]+\]\([^)\n]+\)/,  // links
+    /^\s*\|.+\|\s*$/m,          // tables
+    /^---\s*$/m,                // hr
+  ];
+  let hits = 0;
+  for (const re of patterns) if (re.test(text)) hits++;
+  return hits >= 2 || /^#{1,6}\s+\S/m.test(text) || /```[\s\S]*?```/.test(text);
+}
 import {
   ChevronRight,
   ChevronDown,
