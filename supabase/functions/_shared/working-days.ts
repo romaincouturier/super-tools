@@ -12,6 +12,9 @@ export function subtractWorkingDays(
   daysToSubtract: number,
   workingDays: boolean[] = DEFAULT_WORKING_DAYS,
 ): Date {
+  if (!(fromDate instanceof Date) || isNaN(fromDate.getTime())) {
+    throw new Error(`[working-days/subtractWorkingDays] invalid fromDate: ${String(fromDate)}`);
+  }
   const result = new Date(fromDate);
   let remaining = daysToSubtract;
   while (remaining > 0) {
@@ -30,6 +33,9 @@ export function addWorkingDays(
   daysToAdd: number,
   workingDays: boolean[] = DEFAULT_WORKING_DAYS,
 ): Date {
+  if (!(fromDate instanceof Date) || isNaN(fromDate.getTime())) {
+    throw new Error(`[working-days/addWorkingDays] invalid fromDate: ${String(fromDate)}`);
+  }
   const result = new Date(fromDate);
   let remaining = daysToAdd;
   while (remaining > 0) {
@@ -38,6 +44,7 @@ export function addWorkingDays(
   }
   return result;
 }
+
 
 /**
  * Fetches the working_days configuration from app_settings.
