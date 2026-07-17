@@ -566,25 +566,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                   </div>
                 </RadioGroup>
 
-                {/* WooCommerce coupon generation for e-learning manual enrollment */}
-                {formatFormation === "e_learning" && paymentMode !== "online" && (
-                  <div className="pt-4 border-t space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="generateCoupon"
-                        checked={generateCoupon}
-                        onCheckedChange={(checked) => setGenerateCoupon(checked === true)}
-                      />
-                      <Label htmlFor="generateCoupon" className="text-sm font-normal cursor-pointer flex items-center gap-1.5">
-                        <ShoppingCart className="h-3.5 w-3.5" />
-                        Générer un coupon WooCommerce (100% réduction)
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground pl-6">
-                      Un code promo unique sera créé sur WooCommerce et envoyé au participant avec les instructions d'accès.
-                    </p>
-                  </div>
-                )}
               </>
             )}
           </div>
