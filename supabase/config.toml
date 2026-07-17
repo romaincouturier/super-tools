@@ -3,9 +3,6 @@ project_id = "yewffntzgrdgztrwtava"
 [functions.enrich-idea]
 verify_jwt = false
 
-[functions.ideas-weekly-digest]
-verify_jwt = false
-
 [functions.generate-practice-hashtags]
 verify_jwt = false
 
@@ -141,9 +138,6 @@ verify_jwt = false
 [functions.send-convention-reminder]
 verify_jwt = false
 
-[functions.retry-failed-email]
-verify_jwt = false
-
 [functions.resend-logged-email]
 verify_jwt = false
 
@@ -154,9 +148,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.submit-attendance-signature]
-verify_jwt = false
-
-[functions.send-devis-signature-request]
 verify_jwt = false
 
 [functions.send-password-reset]
@@ -171,16 +162,10 @@ verify_jwt = false
 [functions.send-needs-survey-reminder]
 verify_jwt = false
 
-[functions.send-evaluation-reminder]
-verify_jwt = false
-
 [functions.send-thank-you-email]
 verify_jwt = false
 
 [functions.send-training-documents]
-verify_jwt = false
-
-[functions.send-training-calendar-invite]
 verify_jwt = false
 
 [functions.send-elearning-access]
@@ -234,7 +219,6 @@ verify_jwt = false
 [functions.process-participant-list-reminders]
 verify_jwt = false
 
-
 [functions.generate-daily-actions]
 verify_jwt = false
 
@@ -260,9 +244,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.alert-form-error]
-verify_jwt = false
-
-[functions.analyze-voice-review]
 verify_jwt = false
 
 [functions.send-learner-magic-link]
@@ -367,9 +348,6 @@ verify_jwt = false
 [functions.fireflies-backfill]
 verify_jwt = true
 
-[functions.generate-quote-pdf]
-verify_jwt = false
-
 [functions.generate-quote-synthesis]
 verify_jwt = false
 
@@ -389,9 +367,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-quote-email]
-verify_jwt = false
-
-[functions.transcribe-audio]
 verify_jwt = false
 
 [functions.commercial-challenge]
@@ -445,9 +420,6 @@ verify_jwt = false
 [functions.reconcile-indexation]
 verify_jwt = false
 
-[functions.reconcile-support-screenshots]
-verify_jwt = false
-
 [functions.media-slack-notify]
 verify_jwt = false
 
@@ -489,8 +461,6 @@ verify_jwt = false
 
 [functions.notify-practice-comment]
 verify_jwt = false
-
-
 
 [functions.generate-mission-8p]
 verify_jwt = false
@@ -578,13 +548,6 @@ verify_jwt = false
 
 [functions.poll-drive-testimonials]
 verify_jwt = false
-
-[functions.poll-fireflies-transcripts]
-verify_jwt = false
-
-[functions.poll-woocommerce-orders]
-verify_jwt = false
-
 
 [functions.generate-transcript-content]
 verify_jwt = true
