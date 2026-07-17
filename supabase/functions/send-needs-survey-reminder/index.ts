@@ -103,17 +103,19 @@ serve(async (req) => {
     console.log("Using template:", customTemplate ? "custom" : "default", "mode:", useTutoiement ? "tutoiement" : "vouvoiement");
 
     // Check if questionnaire exists and get token
-    const { data: existingQuestionnaire, error: fetchError } = await supabase
+    const { data: existingRows, error: fetchError } = await supabase
       .from("questionnaire_besoins")
       .select("*")
       .eq("participant_id", participantId)
       .eq("training_id", trainingId)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1);
 
-    if (fetchError && fetchError.code !== "PGRST116") {
+    if (fetchError) {
       console.error("Error fetching questionnaire:", fetchError);
     }
 
+    const existingQuestionnaire = existingRows && existingRows.length > 0 ? existingRows[0] : null;
     let token: string;
 
     if (existingQuestionnaire) {
@@ -140,16 +142,32 @@ serve(async (req) => {
         .single();
 
       if (insertError) {
-        console.error("Error creating questionnaire:", insertError, { participantId, trainingId });
-        throw new Error(`Failed to create questionnaire: ${insertError.message} (code=${insertError.code})`);
-      }
+        if ((insertError as any).code === "23505") {
+          console.warn("Duplicate questionnaire detected, re-fetching existing row", { participantId, trainingId });
+          const { data: duplicateRows, error: duplicateFetchError } = await supabase
+            .from("questionnaire_besoins")
+            .select("*")
+            .eq("participant_id", participantId)
+            .eq("training_id", trainingId)
+            .order("created_at", { ascending: false })
+            .limit(1);
 
-      if (!insertedData) {
+          if (duplicateFetchError || !duplicateRows || duplicateRows.length === 0) {
+            console.error("Error creating questionnaire (duplicate but not found):", insertError, duplicateFetchError, { participantId, trainingId });
+            throw new Error(`Failed to create questionnaire: ${insertError.message} (code=${insertError.code})`);
+          }
+
+          token = duplicateRows[0].token;
+        } else {
+          console.error("Error creating questionnaire:", insertError, { participantId, trainingId });
+          throw new Error(`Failed to create questionnaire: ${insertError.message} (code=${insertError.code})`);
+        }
+      } else if (!insertedData) {
         console.error("Questionnaire insert returned no data - possible RLS issue", { participantId, trainingId });
         throw new Error("Failed to create questionnaire - no data returned");
+      } else {
+        console.log("Successfully created questionnaire:", insertedData.id);
       }
-
-      console.log("Successfully created questionnaire:", insertedData.id);
     }
 
     // Update participant status
