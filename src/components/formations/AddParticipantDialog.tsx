@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, AlertTriangle, ShoppingCart } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import type { FormationFormula } from "@/types/training";
 import {
