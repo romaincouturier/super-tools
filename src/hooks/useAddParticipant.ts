@@ -91,7 +91,6 @@ export function useAddParticipant({
             financeurSameAsSponsor: params.financeurSameAsSponsor,
             financeurName: params.financeurName,
             financeurUrl: params.financeurUrl,
-            generateCoupon: params.generateCoupon,
             source: "manual",
           },
         },
