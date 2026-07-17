@@ -14,10 +14,26 @@ const DAYS_FR = [
 ];
 
 /**
+ * Coerce input into a valid Date, or throw a descriptive error.
+ * Guards against null/undefined/invalid strings that would otherwise
+ * surface as an opaque "Cannot read properties of null (reading 'getDay')".
+ */
+function toValidDate(input: string | Date | null | undefined, fnName: string): Date {
+  if (input == null) {
+    throw new Error(`[date-utils/${fnName}] received null/undefined date`);
+  }
+  const date = typeof input === "string" ? new Date(input) : input;
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    throw new Error(`[date-utils/${fnName}] invalid date input: ${String(input)}`);
+  }
+  return date;
+}
+
+/**
  * Format date in French long format: "1 janvier 2024"
  */
 export function formatDateFr(dateStr: string | Date): string {
-  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  const date = toValidDate(dateStr, "formatDateFr");
   const day = date.getDate();
   const month = MONTHS_FR[date.getMonth()];
   const year = date.getFullYear();
@@ -28,13 +44,14 @@ export function formatDateFr(dateStr: string | Date): string {
  * Format date with day name: "lundi 1 janvier 2024"
  */
 export function formatDateWithDayFr(dateStr: string | Date): string {
-  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  const date = toValidDate(dateStr, "formatDateWithDayFr");
   const dayName = DAYS_FR[date.getDay()];
   const day = date.getDate();
   const month = MONTHS_FR[date.getMonth()];
   const year = date.getFullYear();
   return `${dayName} ${day} ${month} ${year}`;
 }
+
 
 /**
  * Format date range: "1 au 3 janvier 2024" or "30 décembre 2023 au 2 janvier 2024"
