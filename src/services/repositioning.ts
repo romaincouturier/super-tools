@@ -4,7 +4,7 @@ import {
   createParticipant,
   logParticipantActivity,
   sendParticipantWelcomeEmail,
-  generateWoocommerceCoupon,
+  
   sendElearningAccess,
   scheduleParticipantEmail,
   scheduleTrainerSummary,
