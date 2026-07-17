@@ -140,12 +140,12 @@ serve(async (req) => {
         .single();
 
       if (insertError) {
-        console.error("Error creating questionnaire:", insertError);
-        throw new Error("Failed to create questionnaire");
+        console.error("Error creating questionnaire:", insertError, { participantId, trainingId });
+        throw new Error(`Failed to create questionnaire: ${insertError.message} (code=${insertError.code})`);
       }
 
       if (!insertedData) {
-        console.error("Questionnaire insert returned no data - possible RLS issue");
+        console.error("Questionnaire insert returned no data - possible RLS issue", { participantId, trainingId });
         throw new Error("Failed to create questionnaire - no data returned");
       }
 

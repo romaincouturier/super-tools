@@ -131,7 +131,7 @@ serve(async (req) => {
       if (insertError) {
         // Race / duplicate: re-fetch the existing one and reuse its token
         if ((insertError as any).code === "23505") {
-          console.warn("Duplicate questionnaire detected, re-fetching existing row");
+          console.warn("Duplicate questionnaire detected, re-fetching existing row", { participantId, trainingId });
           const { data: dup } = await supabase
             .from("questionnaire_besoins")
             .select("*")
@@ -142,15 +142,15 @@ serve(async (req) => {
           if (dup && dup.length > 0) {
             token = dup[0].token;
           } else {
-            console.error("Error creating questionnaire:", insertError);
-            throw new Error("Failed to create questionnaire");
+            console.error("Error creating questionnaire (duplicate but not found):", insertError, { participantId, trainingId });
+            throw new Error(`Failed to create questionnaire: ${insertError.message} (code=${insertError.code})`);
           }
         } else {
-          console.error("Error creating questionnaire:", insertError);
-          throw new Error("Failed to create questionnaire");
+          console.error("Error creating questionnaire:", insertError, { participantId, trainingId });
+          throw new Error(`Failed to create questionnaire: ${insertError.message} (code=${insertError.code})`);
         }
       } else if (!insertedData) {
-        console.error("Questionnaire insert returned no data - possible RLS issue");
+        console.error("Questionnaire insert returned no data - possible RLS issue", { participantId, trainingId });
         throw new Error("Failed to create questionnaire - no data returned");
       } else {
         console.log("Successfully created questionnaire:", insertedData.id);
