@@ -1,9 +1,11 @@
-import { Bug, Lightbulb, GitBranch } from "lucide-react";
+import { Bug, Lightbulb, GitBranch, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { useSortableCard } from "@/hooks/useSortableCard";
 import {
   TICKET_TYPE_CONFIG,
   TICKET_PRIORITY_CONFIG,
+  CODING_STATUS_CONFIG,
   type SupportTicketCard as SupportTicketCardType,
 } from "@/types/support";
 import { formatDistanceToNow } from "date-fns";
@@ -60,6 +62,27 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
             draggable={false}
           />
         </a>
+      )}
+      {t.coding_status && (
+        <div className="space-y-1">
+          <Badge
+            variant="outline"
+            style={{
+              borderColor: CODING_STATUS_CONFIG[t.coding_status].color,
+              color: CODING_STATUS_CONFIG[t.coding_status].color,
+            }}
+            className="text-[10px] px-1.5 py-0 gap-1"
+          >
+            {t.coding_status === "queued" && <Clock className="h-2.5 w-2.5" />}
+            {t.coding_status === "running" && <Spinner className="h-2.5 w-2.5" />}
+            {t.coding_status === "done" && <CheckCircle2 className="h-2.5 w-2.5" />}
+            {t.coding_status === "error" && <AlertCircle className="h-2.5 w-2.5" />}
+            {CODING_STATUS_CONFIG[t.coding_status].label}
+          </Badge>
+          {t.coding_status === "error" && t.coding_error && (
+            <p className="text-[10px] text-red-600 dark:text-red-400 line-clamp-2">{t.coding_error}</p>
+          )}
+        </div>
       )}
       {t.branch_url && (
         <a

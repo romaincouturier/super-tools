@@ -3,6 +3,7 @@ import type { KanbanCardDef, KanbanColumnDef } from "./kanban";
 export type TicketType = "bug" | "evolution";
 export type TicketPriority = "low" | "medium" | "high" | "critical";
 export type TicketStatus = "nouveau" | "qualification" | "vibe_coding" | "resolu" | "boite_a_idees";
+export type CodingStatus = "queued" | "running" | "done" | "error";
 
 export interface BugAnalysis {
   type: "bug";
@@ -44,6 +45,8 @@ export interface SupportTicket {
   learner_category: string | null;
   discussion_requested_at: string | null;
   branch_url: string | null;
+  coding_status: CodingStatus | null;
+  coding_error: string | null;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;
@@ -65,6 +68,13 @@ export const SUPPORT_COLUMNS: KanbanColumnDef[] = [
 export const TICKET_TYPE_CONFIG: Record<TicketType, { label: string; color: string }> = {
   bug: { label: "Bug", color: "#ef4444" },
   evolution: { label: "Évolution", color: "#8b5cf6" },
+};
+
+export const CODING_STATUS_CONFIG: Record<CodingStatus, { label: string; color: string }> = {
+  queued: { label: "Claude en file d'attente", color: "#6b7280" },
+  running: { label: "Claude code…", color: "#3b82f6" },
+  done: { label: "Dev terminé", color: "#22c55e" },
+  error: { label: "Erreur de dev", color: "#ef4444" },
 };
 
 export const TICKET_PRIORITY_CONFIG: Record<TicketPriority, { label: string; color: string }> = {

@@ -33,6 +33,43 @@ echo "$TICKET_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/d
 
 Si le résultat est `null` : afficher une erreur et arrêter.
 
+## 1bis. Récupérer les pièces jointes (images)
+
+Le ticket peut contenir des captures d'écran essentielles à l'analyse :
+`screenshot_url` sur le ticket, et les lignes de `support_ticket_attachments`.
+Télécharger toutes les images puis les LIRE avec l'outil Read avant d'analyser.
+
+```bash
+TICKET_ID=$(echo "$TICKET_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(d[0]?.id ?? '')")
+mkdir -p /tmp/ticket-attachments
+
+# Pièces jointes de la table support_ticket_attachments (bucket privé support-attachments)
+curl -sS \
+  -H "apikey: $SUPABASE_KEY" \
+  -H "Authorization: Bearer $SUPABASE_KEY" \
+  "$SUPABASE_URL/rest/v1/support_ticket_attachments?ticket_id=eq.$TICKET_ID&select=file_name,file_path,mime_type" \
+  | node -e "
+    const rows = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+    for (const r of rows) {
+      if (r.mime_type && r.mime_type.startsWith('image/')) console.log(r.file_path + '|' + r.file_name);
+    }" \
+  | while IFS='|' read -r FILE_PATH FILE_NAME; do
+      curl -sS -o "/tmp/ticket-attachments/$FILE_NAME" \
+        -H "apikey: $SUPABASE_KEY" \
+        -H "Authorization: Bearer $SUPABASE_KEY" \
+        "$SUPABASE_URL/storage/v1/object/support-attachments/$FILE_PATH"
+    done
+
+ls -la /tmp/ticket-attachments/
+```
+
+Si `screenshot_url` est renseigné sur le ticket, le télécharger aussi (même
+en-têtes d'authentification si l'URL pointe vers le storage Supabase).
+
+Ensuite, pour CHAQUE image téléchargée : l'ouvrir avec l'outil Read. Les
+captures montrent souvent le bug exact ou la maquette attendue — elles font
+partie intégrante de la spécification du ticket.
+
 ## 2. Analyser le ticket
 
 Lis les champs :
@@ -66,7 +103,7 @@ curl -sS -X PATCH \
   -H "Content-Type: application/json" \
   -H "Prefer: return=minimal" \
   "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
-  -d "{\"resolution_notes\": \"Questions Claude :\\n\\n1. ...\\n2. ...\", \"discussion_requested_at\": \"$NOW\", \"updated_at\": \"$NOW\"}"
+  -d "{\"resolution_notes\": \"Questions Claude :\\n\\n1. ...\\n2. ...\", \"discussion_requested_at\": \"$NOW\", \"coding_status\": null, \"coding_error\": null, \"updated_at\": \"$NOW\"}"
 ```
 
 Afficher les questions et arrêter.
@@ -140,7 +177,7 @@ curl -sS -X PATCH \
   -H "Content-Type: application/json" \
   -H "Prefer: return=minimal" \
   "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
-  -d "{\"status\": \"vibe_coding\", \"branch_url\": \"$PR_URL\", \"updated_at\": \"$NOW\"}"
+  -d "{\"status\": \"vibe_coding\", \"branch_url\": \"$PR_URL\", \"coding_status\": \"done\", \"coding_error\": null, \"updated_at\": \"$NOW\"}"
 ```
 
 ## 7. Résumé

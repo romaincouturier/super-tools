@@ -10,6 +10,9 @@ export function useSupportTickets() {
   return useQuery({
     queryKey: QUERY_KEY,
     queryFn: fetchSupportTickets,
+    // Le pipeline auto-coding (workflow GitHub) fait évoluer coding_status
+    // hors de l'app : on rafraîchit pour voir queued -> running -> done/error.
+    refetchInterval: 30_000,
   });
 }
 

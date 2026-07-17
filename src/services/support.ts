@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { db, throwIfError } from "@/lib/supabase-helpers";
+import { reportHandledError } from "@/lib/sentry";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 import type { KanbanRepository } from "./repository";
 import { MODULE_LABELS, type AppModule } from "@/hooks/useModuleAccess";
@@ -202,11 +203,19 @@ export async function createSupportTicket(
 /** Best-effort: dispatch the GitHub Actions workflow that runs Claude Code on this ticket. */
 async function triggerTicketProcessing(ticketNumber: string): Promise<void> {
   try {
-    await supabase.functions.invoke("trigger-ticket-processing", {
+    // invoke() ne throw pas sur un statut HTTP d'erreur : l'échec est dans `error`.
+    const { error } = await supabase.functions.invoke("trigger-ticket-processing", {
       body: { ticket_number: ticketNumber },
     });
+    if (error) throw error;
   } catch (err) {
     console.error("[triggerTicketProcessing] failed:", err);
+    reportHandledError(err, { fn: "triggerTicketProcessing", ticketNumber });
+    const message = err instanceof Error ? err.message : "Échec du déclenchement du workflow";
+    await db()
+      .from("support_tickets")
+      .update({ coding_status: "error", coding_error: `Déclenchement impossible : ${message}` })
+      .eq("ticket_number", ticketNumber);
   }
 }
 
@@ -335,12 +344,21 @@ export async function moveSupportTicket(
   const sourceStatus = currentTicket.status;
 
   // 2. Update the moved ticket itself (status + temporary position).
-  const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
+  const startsCoding = newStatus === "vibe_coding" && sourceStatus !== "vibe_coding";
+  const payload = withResolvedAt(
+    {
+      status: newStatus,
+      position: newPosition,
+      // Feedback immédiat sur la carte : le workflow passera à running/done/error.
+      ...(startsCoding ? { coding_status: "queued", coding_error: null } : {}),
+    },
+    newStatus,
+  );
   const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
   const data = throwIfError(result) as SupportTicket;
 
   // Trigger Claude Code processing only on transition INTO "vibe_coding".
-  if (newStatus === "vibe_coding" && sourceStatus !== "vibe_coding") {
+  if (startsCoding) {
     triggerTicketProcessing(data.ticket_number);
   }
 
