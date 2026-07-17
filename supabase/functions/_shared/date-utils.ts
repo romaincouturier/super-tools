@@ -18,16 +18,20 @@ const DAYS_FR = [
  * Guards against null/undefined/invalid strings that would otherwise
  * surface as an opaque "Cannot read properties of null (reading 'getDay')".
  */
-function toValidDate(input: string | Date | null | undefined, fnName: string): Date {
+function toValidDate(input: string | Date | null | undefined, fnName: string): Date | null {
   if (input == null) {
-    throw new Error(`[date-utils/${fnName}] received null/undefined date`);
+    console.warn(`[date-utils/${fnName}] received null/undefined date`);
+    return null;
   }
   const date = typeof input === "string" ? new Date(input) : input;
   if (!(date instanceof Date) || isNaN(date.getTime())) {
-    throw new Error(`[date-utils/${fnName}] invalid date input: ${String(input)}`);
+    console.warn(`[date-utils/${fnName}] invalid date input: ${String(input)}`);
+    return null;
   }
   return date;
 }
+
+const INVALID_DATE_FALLBACK = "date inconnue";
 
 /**
  * Format date in French long format: "1 janvier 2024"
