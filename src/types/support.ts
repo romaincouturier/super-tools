@@ -47,6 +47,7 @@ export interface SupportTicket {
   branch_url: string | null;
   coding_status: CodingStatus | null;
   coding_error: string | null;
+  coding_summary: string | null;
   created_at: string;
   updated_at: string;
   resolved_at: string | null;

@@ -17,6 +17,7 @@ import {
   SUPPORT_COLUMNS,
   TICKET_TYPE_CONFIG,
   TICKET_PRIORITY_CONFIG,
+  CODING_STATUS_CONFIG,
   type SupportTicket,
   type TicketType,
   type TicketPriority,
@@ -98,6 +99,11 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           const evo = a as EvolutionAnalysis;
           lines.push(`### User stories\n${evo.user_stories ?? ""}`, `### Critères d'acceptation\n${evo.criteres_acceptation ?? ""}`, `### Impact produit\n${evo.impact_produit ?? ""}`);
         }
+      }
+
+      if (ticket.coding_summary) {
+        lines.push("", "## Conclusion du dev Claude", ticket.coding_summary);
+        if (ticket.branch_url) lines.push("", `PR : ${ticket.branch_url}`);
       }
 
       if (ticket.resolution_notes) {
@@ -294,20 +300,53 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           </Button>
         )}
 
-        {/* Branch URL (set by /process-ticket skill) */}
-        {ticket.branch_url && (
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Branche GitHub</Label>
-            <a
-              href={ticket.branch_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-mono break-all"
-            >
-              <GitBranch className="h-4 w-4 shrink-0" />
-              {ticket.branch_url}
-            </a>
-          </div>
+        {/* Pipeline auto-coding : état, conclusion de Claude, accès à la PR */}
+        {(ticket.coding_status || ticket.branch_url) && (
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-sm">Développement Claude</CardTitle>
+                {ticket.coding_status && (
+                  <Badge
+                    variant="outline"
+                    style={{
+                      borderColor: CODING_STATUS_CONFIG[ticket.coding_status].color,
+                      color: CODING_STATUS_CONFIG[ticket.coding_status].color,
+                    }}
+                    className="gap-1"
+                  >
+                    {ticket.coding_status === "running" && <Spinner className="h-3 w-3" />}
+                    {CODING_STATUS_CONFIG[ticket.coding_status].label}
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {ticket.coding_status === "error" && ticket.coding_error && (
+                <p className="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap break-all">
+                  {ticket.coding_error}
+                </p>
+              )}
+              {ticket.coding_summary && (
+                <div className="text-sm whitespace-pre-wrap rounded-md border bg-muted/40 p-3">
+                  {ticket.coding_summary}
+                </div>
+              )}
+              {ticket.branch_url && (
+                <Button asChild size="sm" className="w-full gap-2">
+                  <a href={ticket.branch_url} target="_blank" rel="noopener noreferrer">
+                    <GitBranch className="h-4 w-4" />
+                    Ouvrir la PR pour review & merge
+                  </a>
+                </Button>
+              )}
+              {!ticket.coding_summary && ticket.coding_status === "queued" && (
+                <p className="text-xs text-muted-foreground">
+                  Le dev démarre dès que le workflow GitHub prend le ticket. La conclusion s'affichera ici.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Info read-only */}

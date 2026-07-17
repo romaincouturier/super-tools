@@ -169,15 +169,45 @@ echo "PR créée : $PR_URL"
 
 ## 6. Mettre à jour le ticket
 
+Rédiger d'abord la conclusion dans `/tmp/coding-summary.md`. Elle est affichée
+dans le détail du ticket : c'est sur cette base que le staff décide de merger.
+Structure imposée :
+
 ```bash
+cat > /tmp/coding-summary.md <<'SUMMARY'
+## Ce qui a été fait
+(2-4 phrases : le comportement avant / après)
+
+## Fichiers modifiés
+- chemin/fichier.tsx : quoi et pourquoi
+
+## Comment tester
+1. Étapes concrètes dans l'app pour vérifier
+
+## Points d'attention
+(risques, limites, dette assumée — "Aucun" si rien)
+SUMMARY
+
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+node -e "
+const fs = require('fs');
+fs.writeFileSync('/tmp/ticket-update.json', JSON.stringify({
+  status: 'vibe_coding',
+  branch_url: process.argv[1],
+  coding_status: 'done',
+  coding_error: null,
+  coding_summary: fs.readFileSync('/tmp/coding-summary.md', 'utf8'),
+  updated_at: process.argv[2],
+}));
+" "$PR_URL" "$NOW"
+
 curl -sS -X PATCH \
   -H "apikey: $SUPABASE_KEY" \
   -H "Authorization: Bearer $SUPABASE_KEY" \
   -H "Content-Type: application/json" \
   -H "Prefer: return=minimal" \
   "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
-  -d "{\"status\": \"vibe_coding\", \"branch_url\": \"$PR_URL\", \"coding_status\": \"done\", \"coding_error\": null, \"updated_at\": \"$NOW\"}"
+  -d @/tmp/ticket-update.json
 ```
 
 ## 7. Résumé
