@@ -246,7 +246,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       financeurUrl,
       paymentMode,
       soldPriceHt,
-      generateCoupon,
       typeStagiaireBpf,
       sourceFinancementBpf,
     });
