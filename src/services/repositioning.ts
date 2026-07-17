@@ -4,7 +4,7 @@ import {
   createParticipant,
   logParticipantActivity,
   sendParticipantWelcomeEmail,
-  generateWoocommerceCoupon,
+  
   sendElearningAccess,
   scheduleParticipantEmail,
   scheduleTrainerSummary,
@@ -188,15 +188,8 @@ export async function repositionParticipant(
   }
 
   if (!reusedExisting && formatFormation === "e_learning" && source.payment_mode !== "online") {
-    let couponCode: string | undefined;
     try {
-      const r = await generateWoocommerceCoupon(inserted.id, target.id);
-      if (!r.error && r.couponCode) couponCode = r.couponCode;
-    } catch (err) {
-      console.error("[reposition] coupon failed:", err);
-    }
-    try {
-      await sendElearningAccess(inserted.id, target.id, couponCode);
+      await sendElearningAccess(inserted.id, target.id);
     } catch (err) {
       console.error("[reposition] e-learning access failed:", err);
     }

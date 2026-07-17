@@ -143,29 +143,12 @@ describe("sendElearningAccessToBatch", () => {
     { id: "p1", email: "a@b.com", first_name: null, last_name: null, company: null, needs_survey_token: "t", sponsor_email: null },
   ];
 
-  it("generates coupon then sends e-learning access email", async () => {
-    mockInvoke
-      .mockResolvedValueOnce({ data: { coupon_code: "COUPON-1" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
+  it("sends e-learning access email without coupon", async () => {
+    mockInvoke.mockResolvedValueOnce({ data: null, error: null });
 
     await sendElearningAccessToBatch(batch, "t1");
-    expect(mockInvoke).toHaveBeenCalledTimes(2);
-    expect(mockInvoke).toHaveBeenNthCalledWith(1, "generate-woocommerce-coupon", {
-      body: { participantId: "p1", trainingId: "t1" },
-    });
-    expect(mockInvoke).toHaveBeenNthCalledWith(2, "send-elearning-access", {
-      body: { participantId: "p1", trainingId: "t1", couponCode: "COUPON-1" },
-    });
-  });
-
-  it("sends e-learning access even when coupon generation fails", async () => {
-    mockInvoke
-      .mockRejectedValueOnce(new Error("coupon fail"))
-      .mockResolvedValueOnce({ data: null, error: null });
-
-    await sendElearningAccessToBatch(batch, "t1");
-    expect(mockInvoke).toHaveBeenCalledTimes(2);
-    expect(mockInvoke).toHaveBeenNthCalledWith(2, "send-elearning-access", {
+    expect(mockInvoke).toHaveBeenCalledTimes(1);
+    expect(mockInvoke).toHaveBeenNthCalledWith(1, "send-elearning-access", {
       body: { participantId: "p1", trainingId: "t1", couponCode: undefined },
     });
   });

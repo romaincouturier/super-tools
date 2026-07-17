@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, AlertTriangle, ShoppingCart } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import type { FormationFormula } from "@/types/training";
 import {
@@ -106,7 +106,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
-  const [generateCoupon, setGenerateCoupon] = useState(true);
+  // WooCommerce coupon generation removed (feature decommissioned)
   const [formulaId, setFormulaId] = useState<string>(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   const selectedFormula = availableFormulas.find(f => f.id === formulaId);
   const formula = selectedFormula?.name || "";
@@ -136,7 +136,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
     setFinanceurName("");
     setFinanceurUrl("");
     setPaymentMode("invoice");
-    setGenerateCoupon(true);
     setFormulaId(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   };
 
@@ -247,7 +246,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       financeurUrl,
       paymentMode,
       soldPriceHt,
-      generateCoupon,
       typeStagiaireBpf,
       sourceFinancementBpf,
     });
@@ -568,25 +566,6 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                   </div>
                 </RadioGroup>
 
-                {/* WooCommerce coupon generation for e-learning manual enrollment */}
-                {formatFormation === "e_learning" && paymentMode !== "online" && (
-                  <div className="pt-4 border-t space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="generateCoupon"
-                        checked={generateCoupon}
-                        onCheckedChange={(checked) => setGenerateCoupon(checked === true)}
-                      />
-                      <Label htmlFor="generateCoupon" className="text-sm font-normal cursor-pointer flex items-center gap-1.5">
-                        <ShoppingCart className="h-3.5 w-3.5" />
-                        Générer un coupon WooCommerce (100% réduction)
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground pl-6">
-                      Un code promo unique sera créé sur WooCommerce et envoyé au participant avec les instructions d'accès.
-                    </p>
-                  </div>
-                )}
               </>
             )}
           </div>

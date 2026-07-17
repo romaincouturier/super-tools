@@ -189,31 +189,7 @@ export async function catchUpAttendanceSignaturesForParticipant(
   return { sentSlots, errors };
 }
 
-/**
- * Invoke the generate-woocommerce-coupon edge function.
- * Returns the coupon code if successful, undefined otherwise.
- */
-export async function generateWoocommerceCoupon(
-  participantId: string,
-  trainingId: string,
-): Promise<{ couponCode?: string; error?: boolean }> {
-  const { data: couponData, error: couponError } = await supabase.functions.invoke(
-    "generate-woocommerce-coupon",
-    {
-      body: {
-        participantId,
-        trainingId,
-      },
-    },
-  );
-
-  if (couponError) {
-    console.error("Failed to generate WooCommerce coupon:", couponError);
-    return { error: true };
-  }
-
-  return { couponCode: couponData?.coupon_code };
-}
+// generateWoocommerceCoupon removed — feature decommissioned.
 
 /**
  * Invoke the send-elearning-access edge function.

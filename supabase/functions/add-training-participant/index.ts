@@ -112,8 +112,7 @@ export interface AddParticipantRequest {
   financeurName?: string | null;
   financeurUrl?: string | null;
   notes?: string | null;
-  // Options e-learning (ajout manuel uniquement)
-  generateCoupon?: boolean;
+  // (WooCommerce coupon generation removed — feature decommissioned)
   // Origine de l'ajout — utilisé pour le log d'activité et certaines règles
   source?: "manual" | "woocommerce" | "bulk";
   // Champs WooCommerce pour le log
@@ -192,7 +191,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       financeurName,
       financeurUrl,
       notes,
-      generateCoupon = false,
       source = "manual",
       woocommerceOrderId,
       woocommerceProductId,
@@ -577,10 +575,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // Toujours envoyé pour les formations e_learning, quelle que soit la source
     // (manuel ou webhook WooCommerce) et le mode de paiement.
     let elearningAccessSent = false;
-    let couponGenerated = false;
+    const couponGenerated = false;
     const shouldSendElearningAccess = isElearning;
-
-
 
     if (shouldSendElearningAccess) {
       if (elearningAccessMode === "magic_link") {
@@ -593,22 +589,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
           console.error("[add-training-participant] send-learner-magic-link:", err);
         }
       } else {
-        let couponCode: string | undefined;
-        if (generateCoupon) {
-          try {
-            const { data: couponData } = await admin.functions.invoke(
-              "generate-woocommerce-coupon",
-              { body: { participantId, trainingId } },
-            );
-            couponCode = couponData?.coupon_code;
-            if (couponCode) couponGenerated = true;
-          } catch (err) {
-            console.error("[add-training-participant] generate-woocommerce-coupon:", err);
-          }
-        }
         try {
           await admin.functions.invoke("send-elearning-access", {
-            body: { participantId, trainingId, couponCode },
+            body: { participantId, trainingId },
           });
           elearningAccessSent = true;
         } catch (err) {

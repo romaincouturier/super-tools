@@ -24,7 +24,6 @@ export interface AddParticipantParams {
   financeurUrl: string;
   paymentMode: "online" | "invoice";
   soldPriceHt: string;
-  generateCoupon: boolean;
   typeStagiaireBpf: string;
   sourceFinancementBpf: string;
 }
@@ -92,7 +91,6 @@ export function useAddParticipant({
             financeurSameAsSponsor: params.financeurSameAsSponsor,
             financeurName: params.financeurName,
             financeurUrl: params.financeurUrl,
-            generateCoupon: params.generateCoupon,
             source: "manual",
           },
         },
@@ -108,7 +106,6 @@ export function useAddParticipant({
         formulaName: params.formulaName,
         formatFormation,
         paymentMode: params.paymentMode,
-        generateCoupon: params.generateCoupon,
       };
     },
 
@@ -121,8 +118,6 @@ export function useAddParticipant({
         if (result.elearningMode === "magic_link") {
           parts.push("lien magique d'accès envoyé");
         } else {
-          if (result.generateCoupon && result.couponGenerated) parts.push("coupon WooCommerce généré");
-          else if (result.generateCoupon && !result.couponGenerated) parts.push("⚠️ coupon non généré");
           parts.push("email d'accès envoyé");
         }
         statusMessage = parts.join(", ") + ".";

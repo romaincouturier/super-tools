@@ -6,7 +6,7 @@ import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import { scheduleEmailsBulk } from "@/services/activityLog";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
-import { sendParticipantWelcomeEmail, generateWoocommerceCoupon, sendElearningAccess } from "@/services/participants";
+import { sendParticipantWelcomeEmail, sendElearningAccess } from "@/services/participants";
 
 interface InsertedParticipant {
   id: string;
@@ -100,17 +100,7 @@ export async function sendElearningAccessToBatch(
 ): Promise<void> {
   for (const participant of participants) {
     try {
-      let couponCode: string | undefined;
-      try {
-        const result = await generateWoocommerceCoupon(participant.id, trainingId);
-        if (result.couponCode) {
-          couponCode = result.couponCode;
-        }
-      } catch (error: unknown) {
-        console.error("Failed to generate coupon for:", participant.email, getErrorMessage(error));
-      }
-
-      await sendElearningAccess(participant.id, trainingId, couponCode);
+      await sendElearningAccess(participant.id, trainingId);
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));

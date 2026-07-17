@@ -441,6 +441,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     let cardAddress: string | null = card.address ?? null;
     let cardZip: string | null = card.postal_code ?? null;
     let cardCity: string | null = card.city ?? null;
+    let selectedFormulaId: string | null = null;
     let participantFirstName: string | undefined;
     let participantLastName: string | undefined;
     let participantEmail: string | undefined;
@@ -473,6 +474,27 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       }
     }
 
+    // Fallback: micro-devis stores address + formule dans activity_logs.details.form_data
+    if (!cardAddress || !cardZip || !cardCity || !selectedFormulaId) {
+      const { data: mdLog } = await supabase
+        .from("activity_logs")
+        .select("details")
+        .eq("action_type", "micro_devis_sent")
+        .contains("details", { crm_card_id: card.id })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const fd = (mdLog?.details as { form_data?: Record<string, unknown> } | null)?.form_data;
+      if (fd) {
+        if (!cardAddress && typeof fd.adresseClient === "string") cardAddress = fd.adresseClient;
+        if (!cardZip && typeof fd.codePostalClient === "string") cardZip = fd.codePostalClient;
+        if (!cardCity && typeof fd.villeClient === "string") cardCity = fd.villeClient;
+        if (!selectedFormulaId && typeof fd.selectedFormulaId === "string" && fd.selectedFormulaId) {
+          selectedFormulaId = fd.selectedFormulaId;
+        }
+      }
+    }
+
     const params = new URLSearchParams();
     const pFirstName = participantFirstName || card.first_name;
     const pLastName = participantLastName || card.last_name;
@@ -484,6 +506,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
     if (cardZip) params.set("addParticipantCompanyZip", cardZip);
     if (cardCity) params.set("addParticipantCompanyCity", cardCity);
+    if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
 
     if (participantEmail && card.email && participantEmail !== card.email.toLowerCase()) {
       if (card.first_name) params.set("addParticipantSponsorFirstName", card.first_name);

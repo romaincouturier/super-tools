@@ -54,7 +54,6 @@ const minimalParams = {
   financeurUrl: "",
   paymentMode: "invoice" as const,
   soldPriceHt: "",
-  generateCoupon: false,
   typeStagiaireBpf: "",
   sourceFinancementBpf: "",
 };

@@ -113,6 +113,7 @@ export function useFormationDetail() {
     sponsorLastName?: string;
     sponsorEmail?: string;
     soldPriceHt?: string;
+    formulaId?: string;
   } | null>(null);
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
@@ -140,6 +141,7 @@ export function useFormationDetail() {
     const pSponsorLastName = searchParams.get("addParticipantSponsorLastName") || undefined;
     const pSponsorEmail = searchParams.get("addParticipantSponsorEmail") || undefined;
     const pSoldPriceHt = searchParams.get("addParticipantSoldPriceHt") || undefined;
+    const pFormulaId = searchParams.get("addParticipantFormulaId") || undefined;
     const hasParams = !!(pFirstName || pLastName || pEmail);
 
     if (hasParams && !loading && training) {
@@ -155,6 +157,7 @@ export function useFormationDetail() {
         sponsorLastName: pSponsorLastName,
         sponsorEmail: pSponsorEmail,
         soldPriceHt: pSoldPriceHt,
+        formulaId: pFormulaId,
       });
       setAutoAddParticipantOpen(true);
       const newParams = new URLSearchParams(searchParams);
@@ -169,6 +172,7 @@ export function useFormationDetail() {
       newParams.delete("addParticipantSponsorLastName");
       newParams.delete("addParticipantSponsorEmail");
       newParams.delete("addParticipantSoldPriceHt");
+      newParams.delete("addParticipantFormulaId");
       newParams.delete("fromCrmCardId");
       setSearchParams(newParams, { replace: true });
     }

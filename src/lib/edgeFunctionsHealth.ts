@@ -70,7 +70,7 @@ export const EXPECTED_FUNCTIONS = [
   "generate-training-program",
   "generate-transcript-content",
   "generate-transcript-title",
-  "generate-woocommerce-coupon",
+  
   "gsc-statistics",
   "google-auth",
   "google-calendar-events",

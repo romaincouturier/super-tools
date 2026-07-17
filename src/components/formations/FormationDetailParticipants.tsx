@@ -27,8 +27,8 @@ interface Props {
   availableFormulas: FormationFormula[];
   autoAddParticipantOpen: boolean;
   setAutoAddParticipantOpen: (v: boolean) => void;
-  addParticipantData: { firstName?: string; lastName?: string; email?: string; company?: string; companyAddress?: string; companyZip?: string; companyCity?: string; sponsorFirstName?: string; sponsorLastName?: string; sponsorEmail?: string; soldPriceHt?: string } | null;
-  setAddParticipantData: (v: { firstName?: string; lastName?: string; email?: string; company?: string; companyAddress?: string; companyZip?: string; companyCity?: string; sponsorFirstName?: string; sponsorLastName?: string; sponsorEmail?: string; soldPriceHt?: string } | null) => void;
+  addParticipantData: { firstName?: string; lastName?: string; email?: string; company?: string; companyAddress?: string; companyZip?: string; companyCity?: string; sponsorFirstName?: string; sponsorLastName?: string; sponsorEmail?: string; soldPriceHt?: string; formulaId?: string } | null;
+  setAddParticipantData: (v: { firstName?: string; lastName?: string; email?: string; company?: string; companyAddress?: string; companyZip?: string; companyCity?: string; sponsorFirstName?: string; sponsorLastName?: string; sponsorEmail?: string; soldPriceHt?: string; formulaId?: string } | null) => void;
   showThankYouPreview: boolean;
   setShowThankYouPreview: (v: boolean) => void;
   sendingThankYou: boolean;
@@ -199,6 +199,7 @@ const FormationDetailParticipants = ({
                 initialSponsorLastName={addParticipantData?.sponsorLastName}
                 initialSponsorEmail={addParticipantData?.sponsorEmail}
                 initialSoldPriceHt={addParticipantData?.soldPriceHt}
+                initialFormulaId={addParticipantData?.formulaId}
                 externalOpen={autoAddParticipantOpen}
                 onExternalOpenChange={(open) => { setAutoAddParticipantOpen(open); if (!open) setAddParticipantData(null); }}
               />

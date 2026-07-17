@@ -143,10 +143,11 @@ const CardDetailDialogs = (props: Props) => {
     setShowWinChoiceDialog(false);
     onOpenChange(false);
 
-    // Fetch full card (address) + latest quote (participant from micro-devis)
+    // Fetch full card (address) + latest quote / micro-devis for participant + address + formule
     let cardAddress: string | null = null;
     let cardZip: string | null = null;
     let cardCity: string | null = null;
+    let selectedFormulaId: string | null = null;
     let participantFirstName: string | undefined;
     let participantLastName: string | undefined;
     let participantEmail: string | undefined;
@@ -191,6 +192,27 @@ const CardDetailDialogs = (props: Props) => {
           }
         }
       }
+
+      // Fallback: micro-devis stores address + formule dans activity_logs.details.form_data
+      if (!cardAddress || !cardZip || !cardCity || !selectedFormulaId) {
+        const { data: mdLog } = await supabase
+          .from("activity_logs")
+          .select("details")
+          .eq("action_type", "micro_devis_sent")
+          .contains("details", { crm_card_id: cardId })
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const fd = (mdLog?.details as { form_data?: Record<string, unknown> } | null)?.form_data;
+        if (fd) {
+          if (!cardAddress && typeof fd.adresseClient === "string") cardAddress = fd.adresseClient;
+          if (!cardZip && typeof fd.codePostalClient === "string") cardZip = fd.codePostalClient;
+          if (!cardCity && typeof fd.villeClient === "string") cardCity = fd.villeClient;
+          if (!selectedFormulaId && typeof fd.selectedFormulaId === "string" && fd.selectedFormulaId) {
+            selectedFormulaId = fd.selectedFormulaId;
+          }
+        }
+      }
     }
 
     const params = new URLSearchParams();
@@ -206,6 +228,7 @@ const CardDetailDialogs = (props: Props) => {
     if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
     if (cardZip) params.set("addParticipantCompanyZip", cardZip);
     if (cardCity) params.set("addParticipantCompanyCity", cardCity);
+    if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
 
     // Sponsor = card contact (only forwarded if a distinct participant came from micro-devis)
     if (participantEmail && email && participantEmail !== email.toLowerCase()) {

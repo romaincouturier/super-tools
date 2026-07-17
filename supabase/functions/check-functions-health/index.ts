@@ -83,7 +83,6 @@ const EXPECTED_FUNCTIONS = [
   "generate-training-program",
   "generate-transcript-content",
   "generate-transcript-title",
-  "generate-woocommerce-coupon",
   "google-auth",
   "google-calendar-events",
   "google-drive-auth",
