@@ -24,7 +24,7 @@ const EXPECTED_FUNCTIONS = [
   "analyze-admin-document",
   "analyze-evaluations",
   "analyze-needs-survey",
-  "analyze-voice-review",
+
   "archive-resolved-tickets",
   "arena-orchestrate",
   "arena-orchestrator",
@@ -78,7 +78,7 @@ const EXPECTED_FUNCTIONS = [
   "generate-quiz",
   "generate-quote-email",
   "generate-quote-lines",
-  "generate-quote-pdf",
+
   "generate-quote-synthesis",
   "generate-training-program",
   "generate-transcript-content",
@@ -87,7 +87,7 @@ const EXPECTED_FUNCTIONS = [
   "google-calendar-events",
   "google-drive-auth",
   "google-routes",
-  "ideas-weekly-digest",
+
   "improve-email-content",
   "index-documents",
   "lms-analyze-audio",
@@ -110,8 +110,7 @@ const EXPECTED_FUNCTIONS = [
   "pictodico-webhook",
   "poll-drive-testimonials",
   "poll-drive-transcripts",
-  "poll-fireflies-transcripts",
-  "poll-woocommerce-orders",
+
   "process-action-reminders",
   "process-coaching-reminders",
   "process-daily-summary",
@@ -132,7 +131,7 @@ const EXPECTED_FUNCTIONS = [
   "rag-chatbot",
   "reclamation-ai-assist",
   "reconcile-indexation",
-  "reconcile-support-screenshots",
+
   "record-db-size",
   "refresh-convention-pdf-url",
   "refresh-training-convention-url",
@@ -142,7 +141,7 @@ const EXPECTED_FUNCTIONS = [
   "resend-inbound-webhook",
   "resend-logged-email",
   "resolve-formulaire",
-  "retry-failed-email",
+
   "retry-testimonial-transcript",
   "scheduled-backup",
   "search-content-ideas",
@@ -159,9 +158,9 @@ const EXPECTED_FUNCTIONS = [
   "send-convention-reminder",
   "send-deposit-feedback-notification",
   "send-deposit-trainer-notification",
-  "send-devis-signature-request",
+
   "send-elearning-access",
-  "send-evaluation-reminder",
+
   "send-event-share-email",
   "send-event-update-email",
   "send-group-matching-email",
@@ -181,7 +180,7 @@ const EXPECTED_FUNCTIONS = [
   "send-template-review-reminder",
   "send-thank-you-email",
   "send-trainer-evaluation-email",
-  "send-training-calendar-invite",
+
   "send-training-documents",
   "send-training-survey",
   "send-venue-booking-request",
@@ -205,7 +204,7 @@ const EXPECTED_FUNCTIONS = [
   "support-analyze-ticket",
   "time-tracker-github-import",
   "training-survey-reminders",
-  "transcribe-audio",
+
   "transcribe-audio-long",
   "trigger-ticket-processing",
   "upload-admin-document",
