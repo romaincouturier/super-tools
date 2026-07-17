@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { db, throwIfError } from "@/lib/supabase-helpers";
+import { reportHandledError } from "@/lib/sentry";
 import type { SupportTicket, TicketStatus, TicketAiAnalysis } from "@/types/support";
 import type { KanbanRepository } from "./repository";
 import { MODULE_LABELS, type AppModule } from "@/hooks/useModuleAccess";
@@ -202,11 +203,14 @@ export async function createSupportTicket(
 /** Best-effort: dispatch the GitHub Actions workflow that runs Claude Code on this ticket. */
 async function triggerTicketProcessing(ticketNumber: string): Promise<void> {
   try {
-    await supabase.functions.invoke("trigger-ticket-processing", {
+    // invoke() ne throw pas sur un statut HTTP d'erreur : l'échec est dans `error`.
+    const { error } = await supabase.functions.invoke("trigger-ticket-processing", {
       body: { ticket_number: ticketNumber },
     });
+    if (error) throw error;
   } catch (err) {
     console.error("[triggerTicketProcessing] failed:", err);
+    reportHandledError(err, { fn: "triggerTicketProcessing", ticketNumber });
   }
 }
 

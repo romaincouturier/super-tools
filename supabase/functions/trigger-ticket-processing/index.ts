@@ -43,7 +43,9 @@ serve(async (req) => {
     }
 
     if (!GITHUB_TOKEN) {
-      return createErrorResponse("GH_DISPATCH_TOKEN non configuré", 500);
+      return createErrorResponse("GH_DISPATCH_TOKEN non configuré", 500, {
+        fn: "trigger-ticket-processing",
+      });
     }
 
     const response = await fetch(
@@ -66,12 +68,18 @@ serve(async (req) => {
     if (!response.ok) {
       const body = await response.text();
       console.error("[trigger-ticket-processing] GitHub API error:", response.status, body);
-      return createErrorResponse(`GitHub API error ${response.status}`, 502);
+      return createErrorResponse(`GitHub API error ${response.status}`, 502, {
+        fn: "trigger-ticket-processing",
+        cause: new Error(`GitHub API ${response.status}: ${body.slice(0, 500)}`),
+      });
     }
 
     return createJsonResponse({ ok: true, ticket_number });
   } catch (err) {
     console.error("[trigger-ticket-processing]", err);
-    return createErrorResponse("Erreur interne", 500);
+    return createErrorResponse("Erreur interne", 500, {
+      fn: "trigger-ticket-processing",
+      cause: err,
+    });
   }
 });
