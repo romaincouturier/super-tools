@@ -94,7 +94,7 @@ export default function SupportTicketCard({ card, isDragging: isDraggingProp }: 
           className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline"
         >
           <GitBranch className="h-3 w-3 shrink-0" />
-          Voir la branche
+          Voir la PR
         </a>
       )}
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
