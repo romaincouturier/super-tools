@@ -191,7 +191,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       financeurName,
       financeurUrl,
       notes,
-      generateCoupon = false,
       source = "manual",
       woocommerceOrderId,
       woocommerceProductId,
