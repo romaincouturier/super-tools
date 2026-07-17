@@ -191,10 +191,10 @@ export async function createSupportTicket(
     }
   }
 
-  // Fire-and-forget: notify admin, send confirmation copy, trigger Claude Code processing
+  // Fire-and-forget: notify admin, send confirmation copy.
+  // Claude Code processing is only triggered when the ticket enters "vibe_coding" (see moveSupportTicket).
   notifyNewTicket(data);
   notifyNewTicketCopy(data);
-  triggerTicketProcessing(data.ticket_number);
 
   return data;
 }
