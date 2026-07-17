@@ -100,17 +100,7 @@ export async function sendElearningAccessToBatch(
 ): Promise<void> {
   for (const participant of participants) {
     try {
-      let couponCode: string | undefined;
-      try {
-        const result = await generateWoocommerceCoupon(participant.id, trainingId);
-        if (result.couponCode) {
-          couponCode = result.couponCode;
-        }
-      } catch (error: unknown) {
-        console.error("Failed to generate coupon for:", participant.email, getErrorMessage(error));
-      }
-
-      await sendElearningAccess(participant.id, trainingId, couponCode);
+      await sendElearningAccess(participant.id, trainingId);
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error: unknown) {
       console.error("Failed to send e-learning access email to:", participant.email, getErrorMessage(error));
