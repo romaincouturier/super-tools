@@ -106,7 +106,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
   const [paymentMode, setPaymentMode] = useState<"online" | "invoice">("invoice");
-  const [generateCoupon, setGenerateCoupon] = useState(true);
+  // WooCommerce coupon generation removed (feature decommissioned)
   const [formulaId, setFormulaId] = useState<string>(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   const selectedFormula = availableFormulas.find(f => f.id === formulaId);
   const formula = selectedFormula?.name || "";
