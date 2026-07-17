@@ -112,8 +112,7 @@ export interface AddParticipantRequest {
   financeurName?: string | null;
   financeurUrl?: string | null;
   notes?: string | null;
-  // Options e-learning (ajout manuel uniquement)
-  generateCoupon?: boolean;
+  // (WooCommerce coupon generation removed — feature decommissioned)
   // Origine de l'ajout — utilisé pour le log d'activité et certaines règles
   source?: "manual" | "woocommerce" | "bulk";
   // Champs WooCommerce pour le log
