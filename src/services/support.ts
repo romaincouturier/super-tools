@@ -191,10 +191,10 @@ export async function createSupportTicket(
     }
   }
 
-  // Fire-and-forget: notify admin, send confirmation copy, trigger Claude Code processing
+  // Fire-and-forget: notify admin, send confirmation copy.
+  // Claude Code processing is only triggered when the ticket enters "vibe_coding" (see moveSupportTicket).
   notifyNewTicket(data);
   notifyNewTicketCopy(data);
-  triggerTicketProcessing(data.ticket_number);
 
   return data;
 }
@@ -338,6 +338,11 @@ export async function moveSupportTicket(
   const payload = withResolvedAt({ status: newStatus, position: newPosition }, newStatus);
   const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
   const data = throwIfError(result) as SupportTicket;
+
+  // Trigger Claude Code processing only on transition INTO "vibe_coding".
+  if (newStatus === "vibe_coding" && sourceStatus !== "vibe_coding") {
+    triggerTicketProcessing(data.ticket_number);
+  }
 
   // 3. Renumber the target column so positions are unique & contiguous.
   //    Without this, every ticket keeps position=0 and drag-drop/status changes
