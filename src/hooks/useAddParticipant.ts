@@ -24,7 +24,6 @@ export interface AddParticipantParams {
   financeurUrl: string;
   paymentMode: "online" | "invoice";
   soldPriceHt: string;
-  generateCoupon: boolean;
   typeStagiaireBpf: string;
   sourceFinancementBpf: string;
 }
