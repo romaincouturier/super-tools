@@ -199,6 +199,7 @@ const FormationDetailParticipants = ({
                 initialSponsorLastName={addParticipantData?.sponsorLastName}
                 initialSponsorEmail={addParticipantData?.sponsorEmail}
                 initialSoldPriceHt={addParticipantData?.soldPriceHt}
+                initialFormulaId={addParticipantData?.formulaId}
                 externalOpen={autoAddParticipantOpen}
                 onExternalOpenChange={(open) => { setAutoAddParticipantOpen(open); if (!open) setAddParticipantData(null); }}
               />
