@@ -339,6 +339,11 @@ export async function moveSupportTicket(
   const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
   const data = throwIfError(result) as SupportTicket;
 
+  // Trigger Claude Code processing only on transition INTO "vibe_coding".
+  if (newStatus === "vibe_coding" && sourceStatus !== "vibe_coding") {
+    triggerTicketProcessing(data.ticket_number);
+  }
+
   // 3. Renumber the target column so positions are unique & contiguous.
   //    Without this, every ticket keeps position=0 and drag-drop/status changes
   //    don't visually reorder on refetch.
