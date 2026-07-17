@@ -410,10 +410,15 @@ serve(async (req: Request): Promise<Response> => {
         ? "avec subrogation de paiement"
         : "sans subrogation de paiement";
 
-      const [emailSig, bccList] = await Promise.all([
+      const [emailSig, bccList, appUrls] = await Promise.all([
         getSigniticSignature(),
         getBccSettings(supabase),
+        getAppUrls(),
       ]);
+
+      const appUrl = appUrls.app_url || appUrls.website_url || "";
+      const crmCardId = (devisSignature as Record<string, unknown>).crm_card_id as string | undefined;
+      const opportunityUrl = crmCardId ? `${appUrl}/crm/card/${crmCardId}` : null;
 
       const confirmationHtml = `
 <p>Bonjour ${signerName},</p>
@@ -426,6 +431,7 @@ serve(async (req: Request): Promise<Response> => {
 </ul>
 <p>Vous pouvez consulter le devis signé en cliquant sur le lien ci-dessous :</p>
 ${emailButton("📄 Télécharger le devis signé", signedPdfUrl || devisSignature.pdf_url)}
+${opportunityUrl ? `<p>Vous pouvez également consulter l'opportunité associée dans SuperTools :</p>\n${emailButton("👁️ Voir l'opportunité dans SuperTools", opportunityUrl)}` : ""}
 ${emailSig}`;
 
       await sendEmail({
