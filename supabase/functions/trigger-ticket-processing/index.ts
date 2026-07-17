@@ -11,9 +11,25 @@ const GITHUB_OWNER = "romaincouturier";
 const GITHUB_REPO = "super-tools";
 const WORKFLOW_ID = "process-ticket.yml";
 
+// deno-lint-ignore no-explicit-any
+async function markCodingError(supabase: any, ticketNumber: string, message: string): Promise<void> {
+  try {
+    await supabase
+      .from("support_tickets")
+      .update({ coding_status: "error", coding_error: message })
+      .eq("ticket_number", ticketNumber);
+  } catch (e) {
+    console.error("[trigger-ticket-processing] markCodingError failed:", e);
+  }
+}
+
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
   if (preflight) return preflight;
+
+  let ticketNumber: string | null = null;
+  // deno-lint-ignore no-explicit-any
+  let serviceClient: any = null;
 
   try {
     // Verify the caller is an authenticated staff member
@@ -24,6 +40,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    serviceClient = supabase;
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", ""),
@@ -41,8 +58,10 @@ serve(async (req) => {
     if (!ticket_number || typeof ticket_number !== "string") {
       return createErrorResponse("ticket_number requis", 400);
     }
+    ticketNumber = ticket_number;
 
     if (!GITHUB_TOKEN) {
+      await markCodingError(supabase, ticket_number, "GH_DISPATCH_TOKEN non configuré côté Supabase");
       return createErrorResponse("GH_DISPATCH_TOKEN non configuré", 500, {
         fn: "trigger-ticket-processing",
       });
@@ -68,6 +87,7 @@ serve(async (req) => {
     if (!response.ok) {
       const body = await response.text();
       console.error("[trigger-ticket-processing] GitHub API error:", response.status, body);
+      await markCodingError(supabase, ticket_number, `Dispatch GitHub refusé (HTTP ${response.status})`);
       return createErrorResponse(`GitHub API error ${response.status}`, 502, {
         fn: "trigger-ticket-processing",
         cause: new Error(`GitHub API ${response.status}: ${body.slice(0, 500)}`),
@@ -77,6 +97,9 @@ serve(async (req) => {
     return createJsonResponse({ ok: true, ticket_number });
   } catch (err) {
     console.error("[trigger-ticket-processing]", err);
+    if (serviceClient && ticketNumber) {
+      await markCodingError(serviceClient, ticketNumber, "Erreur interne au déclenchement du workflow");
+    }
     return createErrorResponse("Erreur interne", 500, {
       fn: "trigger-ticket-processing",
       cause: err,

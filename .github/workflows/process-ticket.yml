@@ -30,6 +30,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Mark ticket as running
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -sSf -X PATCH \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.${{ inputs.ticket_number }}" \
+            -d '{"coding_status": "running", "coding_error": null}'
+
       - name: Process ticket with Claude Code
         uses: anthropics/claude-code-action@v1
         env:
@@ -54,3 +67,18 @@ jobs:
 
             Pour créer la PR, utilise `gh pr create` via Bash (ne pas utiliser les outils MCP GitHub).
             La branche de base est `main`.
+
+      - name: Mark ticket as error on failure
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -sS -X PATCH \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=minimal" \
+            "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.${{ inputs.ticket_number }}" \
+            -d "{\"coding_status\": \"error\", \"coding_error\": \"Workflow GitHub Actions en échec : $RUN_URL\"}"
