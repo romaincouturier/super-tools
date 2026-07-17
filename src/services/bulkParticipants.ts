@@ -6,7 +6,7 @@ import { format, parseISO } from "date-fns";
 import { getErrorMessage } from "@/lib/error-utils";
 import { scheduleEmailsBulk } from "@/services/activityLog";
 import type { ParsedParticipant } from "@/hooks/useParticipantParser";
-import { sendParticipantWelcomeEmail, generateWoocommerceCoupon, sendElearningAccess } from "@/services/participants";
+import { sendParticipantWelcomeEmail, sendElearningAccess } from "@/services/participants";
 
 interface InsertedParticipant {
   id: string;
