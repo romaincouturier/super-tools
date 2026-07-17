@@ -36,8 +36,9 @@ const INVALID_DATE_FALLBACK = "date inconnue";
 /**
  * Format date in French long format: "1 janvier 2024"
  */
-export function formatDateFr(dateStr: string | Date): string {
+export function formatDateFr(dateStr: string | Date | null | undefined): string {
   const date = toValidDate(dateStr, "formatDateFr");
+  if (!date) return INVALID_DATE_FALLBACK;
   const day = date.getDate();
   const month = MONTHS_FR[date.getMonth()];
   const year = date.getFullYear();
@@ -47,8 +48,9 @@ export function formatDateFr(dateStr: string | Date): string {
 /**
  * Format date with day name: "lundi 1 janvier 2024"
  */
-export function formatDateWithDayFr(dateStr: string | Date): string {
+export function formatDateWithDayFr(dateStr: string | Date | null | undefined): string {
   const date = toValidDate(dateStr, "formatDateWithDayFr");
+  if (!date) return INVALID_DATE_FALLBACK;
   const dayName = DAYS_FR[date.getDay()];
   const day = date.getDate();
   const month = MONTHS_FR[date.getMonth()];
