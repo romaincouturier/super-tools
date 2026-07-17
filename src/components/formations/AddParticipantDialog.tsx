@@ -136,7 +136,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
     setFinanceurName("");
     setFinanceurUrl("");
     setPaymentMode("invoice");
-    setGenerateCoupon(true);
+    setPaymentMode("invoice");
     setFormulaId(trainingFormulaId || (availableFormulas.length === 1 ? availableFormulas[0].id : ""));
   };
 
