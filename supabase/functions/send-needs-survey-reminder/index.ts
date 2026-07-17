@@ -240,6 +240,6 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error("Error sending needs survey reminder:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to send reminder";
-    return createErrorResponse(errorMessage);
+    return createErrorResponse(errorMessage, 500, { cause: error, fn: "send-needs-survey-reminder" });
   }
 });
