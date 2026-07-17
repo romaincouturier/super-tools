@@ -5,6 +5,7 @@ import { getBccSettings } from "../_shared/bcc-settings.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton } from "../_shared/templates.ts";
 import { generateSignedPdf } from "../_shared/generate-signed-pdf.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateTime } from "../_shared/date-utils.ts";
