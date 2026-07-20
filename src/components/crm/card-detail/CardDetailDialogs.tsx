@@ -439,7 +439,7 @@ const CardDetailDialogs = (props: Props) => {
                     {interTrainings.map((training) => (
                       <button
                         key={training.id}
-                        onClick={() => handleAttachToTraining(training.id)}
+                        onClick={() => handleAttachToTrainingClick(training.id)}
                         className="w-full text-left px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors flex items-start gap-3"
                       >
                         <GraduationCap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
