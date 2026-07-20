@@ -327,6 +327,7 @@ export function useBookProductions(albumId: string) {
 interface UploadProductionParams {
   albumId: string;
   file: File;
+  thumbnailFile?: File | null;
   title?: string;
   notes?: string;
   tags?: string[];
@@ -341,6 +342,7 @@ export function useUploadProduction() {
     mutationFn: async ({
       albumId,
       file,
+      thumbnailFile,
       title,
       notes,
       tags,
@@ -350,6 +352,7 @@ export function useUploadProduction() {
     }: UploadProductionParams) => {
       const formData = new FormData();
       formData.append("file", file);
+      if (thumbnailFile) formData.append("thumbnail", thumbnailFile);
       formData.append("albumId", albumId);
       if (title != null) formData.append("title", title);
       if (notes != null) formData.append("notes", notes);
