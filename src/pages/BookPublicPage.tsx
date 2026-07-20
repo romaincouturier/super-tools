@@ -4,16 +4,9 @@ import { AlertCircle } from 'lucide-react';
 import BookProductionCard from '@/components/book/BookProductionCard';
 import BookProductionLightbox from '@/components/book/BookProductionLightbox';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { usePublicAlbum } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
-import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
+import { sortProductions } from '@/lib/bookSort';
 
 export default function BookPublicPage() {
   const { token } = useParams<{ token: string }>();
@@ -23,7 +16,6 @@ export default function BookPublicPage() {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [sortMode, setSortMode] = useState<BookSortMode>('custom');
 
   function openLightbox(index: number) {
     setLightboxIndex(index);
@@ -32,9 +24,10 @@ export default function BookPublicPage() {
 
   const rawProductions = data?.productions ?? [];
   const productions = useMemo(
-    () => sortProductions(rawProductions as BookProduction[], sortMode),
-    [rawProductions, sortMode],
+    () => sortProductions(rawProductions as BookProduction[], 'custom'),
+    [rawProductions],
   );
+
 
   if (!token) {
     return <NotFound />;
@@ -66,18 +59,8 @@ export default function BookPublicPage() {
             <p className="text-white/60 mt-2 text-lg">{album.description}</p>
           )}
         </div>
-        <Select value={sortMode} onValueChange={(v) => setSortMode(v as BookSortMode)}>
-          <SelectTrigger className="h-9 w-[190px] bg-white/10 border-white/20 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BOOK_SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+
       </div>
 
       {/* Productions grid */}
