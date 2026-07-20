@@ -31,6 +31,7 @@ const DATE = (s: string) => new Date(s).toLocaleDateString("fr-FR");
 
 function Dashboard() {
   const { data: kpis, isLoading } = useGameSalesKpis();
+  const [detail, setDetail] = useState<{ gameId: string | null; title: string } | null>(null);
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
@@ -70,7 +71,11 @@ function Dashboard() {
               </TableHeader>
               <TableBody>
                 {kpis.topGames.map((g, i) => (
-                  <TableRow key={g.title}>
+                  <TableRow
+                    key={g.title}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setDetail({ gameId: g.gameId, title: g.title })}
+                  >
                     <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                     <TableCell className="font-medium">{g.title}</TableCell>
                     <TableCell className="text-right">{g.sales}</TableCell>
@@ -82,7 +87,135 @@ function Dashboard() {
           </CardContent>
         </Card>
       ) : null}
+
+      {detail && (
+        <GameSalesDetailDialog
+          gameId={detail.gameId}
+          title={detail.title}
+          onClose={() => setDetail(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function GameSalesDetailDialog({
+  gameId,
+  title,
+  onClose,
+}: {
+  gameId: string | null;
+  title: string;
+  onClose: () => void;
+}) {
+  const { data: allSales, isLoading } = useGameSales();
+  const sales = (allSales ?? []).filter((s) => (s.game_id ?? null) === gameId);
+
+  const totalRevenue = sales.reduce((acc, s) => acc + s.total_amount, 0);
+  const totalRoyalties = sales.reduce((acc, s) => acc + s.royalty_amount, 0);
+
+  const exportCsv = () => {
+    const header = ["Date", "Commande WC", "Client", "Email", "Quantité", "Prix unitaire", "Total", "Royalty", "Statut"];
+    const escape = (v: string | number | null | undefined) => {
+      const s = v == null ? "" : String(v);
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [
+      header.join(";"),
+      ...sales.map((s) => [
+        new Date(s.sale_date).toISOString().slice(0, 10),
+        s.woocommerce_order_id,
+        s.customer_name ?? "",
+        s.customer_email ?? "",
+        s.quantity,
+        s.unit_price.toFixed(2).replace(".", ","),
+        s.total_amount.toFixed(2).replace(".", ","),
+        s.royalty_amount.toFixed(2).replace(".", ","),
+        s.status === "paid" ? "Payé" : "En attente",
+      ].map(escape).join(";")),
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ventes_${title.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between gap-2 pr-6">
+            <span className="truncate">{title}</span>
+            <Button size="sm" variant="outline" onClick={exportCsv} disabled={!sales.length}>
+              <FileText className="h-4 w-4 mr-1.5" />Export CSV
+            </Button>
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              <div className="rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">Ventes</p>
+                <p className="text-lg font-semibold">{sales.length}</p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">CA</p>
+                <p className="text-lg font-semibold">{EUR(totalRevenue)}</p>
+              </div>
+              <div className="rounded-md border p-3">
+                <p className="text-xs text-muted-foreground">Royalties</p>
+                <p className="text-lg font-semibold text-blue-700">{EUR(totalRoyalties)}</p>
+              </div>
+            </div>
+            <div className="overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Commande</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Qté</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Royalty</TableHead>
+                    <TableHead>Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sales.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Aucune vente</TableCell></TableRow>
+                  )}
+                  {sales.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="text-sm">{DATE(s.sale_date)}</TableCell>
+                      <TableCell className="text-xs font-mono text-muted-foreground">#{s.woocommerce_order_id}</TableCell>
+                      <TableCell className="text-sm">
+                        <div>{s.customer_name ?? "—"}</div>
+                        {s.customer_email && <div className="text-xs text-muted-foreground">{s.customer_email}</div>}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">{s.quantity}</TableCell>
+                      <TableCell className="text-right text-sm">{EUR(s.total_amount)}</TableCell>
+                      <TableCell className="text-right text-sm text-blue-700">{EUR(s.royalty_amount)}</TableCell>
+                      <TableCell>
+                        <Badge variant={s.status === "paid" ? "default" : "outline"} className="text-xs">
+                          {s.status === "paid" ? "Payé" : "En attente"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
