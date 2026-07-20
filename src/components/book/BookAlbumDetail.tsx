@@ -4,6 +4,13 @@ import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   useBookProductions,
   useDeleteProduction,
   useUpdateProduction,
@@ -21,6 +28,8 @@ import BookCreateAlbumDialog from './BookCreateAlbumDialog';
 import { useBookAlbums } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 import { toast } from '@/hooks/use-toast';
+import { useUserPreference } from '@/hooks/useUserPreferences';
+import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
 
 interface BookAlbumDetailProps {
   albumId: string;
