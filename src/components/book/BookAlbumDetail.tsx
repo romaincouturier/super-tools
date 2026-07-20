@@ -134,6 +134,18 @@ export default function BookAlbumDetail({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Select value={sortMode} onValueChange={(v) => saveSortMode(v as BookSortMode)}>
+            <SelectTrigger className="h-9 w-[190px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BOOK_SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="w-4 h-4 mr-1.5" />
             Renommer
