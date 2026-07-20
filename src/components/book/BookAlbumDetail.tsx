@@ -1,7 +1,25 @@
-import { useMemo, useState } from 'react';
-import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil, GripVertical } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,6 +34,7 @@ import {
   useUpdateProduction,
   useSetAlbumCover,
   useAlbumRawCover,
+  useReorderProductions,
   extractStoragePath,
 } from '@/hooks/useBook';
 import BookProductionCard from './BookProductionCard';
@@ -30,6 +49,49 @@ import type { BookProduction } from '@/types/book';
 import { toast } from '@/hooks/use-toast';
 import { useUserPreference } from '@/hooks/useUserPreferences';
 import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
+
+interface SortableTileProps {
+  production: BookProduction;
+  isCover: boolean;
+  onClick: () => void;
+  onDelete: () => void;
+  onEdit: () => void;
+  onSetCover: () => void;
+}
+
+function SortableTile({ production, isCover, onClick, onDelete, onEdit, onSetCover }: SortableTileProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: production.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label="Réordonner"
+        className="absolute top-1 left-1 z-20 p-1 rounded bg-background/80 backdrop-blur border shadow-sm opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing touch-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <BookProductionCard
+        production={production}
+        isCover={isCover}
+        onClick={onClick}
+        onDelete={onDelete}
+        onEdit={onEdit}
+        onSetCover={onSetCover}
+      />
+    </div>
+  );
+}
 
 interface BookAlbumDetailProps {
   albumId: string;
