@@ -558,6 +558,18 @@ function GamesTable() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    {(g as any).bilan_url && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                        title="Ouvrir le bilan partagé"
+                      >
+                        <a href={(g as any).bilan_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => setEditing(g)}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" onClick={async () => { try { await del(g.id); } catch { toastError(toast, "Une erreur est survenue"); } }}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
