@@ -511,12 +511,23 @@ function RunItemRow({
               <ExternalLink className="h-3.5 w-3.5" />{item.url}
             </a>
           )}
-          {item.instructions && (
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Instructions</div>
-              <p className="text-sm whitespace-pre-wrap">{item.instructions}</p>
-            </div>
-          )}
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Instructions</div>
+            <Textarea
+              rows={4}
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              disabled={readonly}
+              placeholder="Ajouter ou compléter les instructions pour cette action…"
+            />
+            {!readonly && (
+              <div className="mt-2">
+                <Button size="sm" variant="outline" onClick={saveInstructions} disabled={instructions === (item.instructions ?? "")}>
+                  Enregistrer les instructions
+                </Button>
+              </div>
+            )}
+          </div>
           {files.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Ressources</div>
