@@ -4,6 +4,13 @@ import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   useBookProductions,
   useDeleteProduction,
   useUpdateProduction,
@@ -21,6 +28,8 @@ import BookCreateAlbumDialog from './BookCreateAlbumDialog';
 import { useBookAlbums } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 import { toast } from '@/hooks/use-toast';
+import { useUserPreference } from '@/hooks/useUserPreferences';
+import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
 
 interface BookAlbumDetailProps {
   albumId: string;
@@ -34,11 +43,20 @@ export default function BookAlbumDetail({
   albumDescription,
 }: BookAlbumDetailProps) {
   const navigate = useNavigate();
-  const { data: productions = [], isLoading } = useBookProductions(albumId);
+  const { data: rawProductions = [], isLoading } = useBookProductions(albumId);
   const { data: rawCoverUrl } = useAlbumRawCover(albumId);
   const deleteProduction = useDeleteProduction();
   const updateProduction = useUpdateProduction();
   const setAlbumCover = useSetAlbumCover();
+
+  const { value: sortMode, save: saveSortMode } = useUserPreference<BookSortMode>(
+    'book.sortMode',
+    'recent',
+  );
+  const productions = useMemo(
+    () => sortProductions(rawProductions, sortMode),
+    [rawProductions, sortMode],
+  );
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -116,6 +134,18 @@ export default function BookAlbumDetail({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Select value={sortMode} onValueChange={(v) => saveSortMode(v as BookSortMode)}>
+            <SelectTrigger className="h-9 w-[190px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BOOK_SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="w-4 h-4 mr-1.5" />
             Renommer

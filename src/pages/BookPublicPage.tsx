@@ -1,11 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import BookProductionCard from '@/components/book/BookProductionCard';
 import BookProductionLightbox from '@/components/book/BookProductionLightbox';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { usePublicAlbum } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
+import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
 
 export default function BookPublicPage() {
   const { token } = useParams<{ token: string }>();
@@ -15,6 +23,7 @@ export default function BookPublicPage() {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [sortMode, setSortMode] = useState<BookSortMode>('recent');
 
   function openLightbox(index: number) {
     setLightboxIndex(index);
@@ -37,17 +46,35 @@ export default function BookPublicPage() {
     return <NotFound />;
   }
 
-  const { album, productions, profile } = data;
+  const { album, productions: rawProductions, profile } = data;
+  const productions = useMemo(
+    () => sortProductions(rawProductions as BookProduction[], sortMode),
+    [rawProductions, sortMode],
+  );
   const watermarkText = profile?.bio ?? 'Facilitation graphique';
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Top bar */}
-      <div className="px-6 py-8 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold">{album.title}</h1>
-        {album.description && (
-          <p className="text-white/60 mt-2 text-lg">{album.description}</p>
-        )}
+      <div className="px-6 py-8 max-w-7xl mx-auto flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold">{album.title}</h1>
+          {album.description && (
+            <p className="text-white/60 mt-2 text-lg">{album.description}</p>
+          )}
+        </div>
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as BookSortMode)}>
+          <SelectTrigger className="h-9 w-[190px] bg-white/10 border-white/20 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {BOOK_SORT_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Productions grid */}
