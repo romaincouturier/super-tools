@@ -43,7 +43,7 @@ export default function BookAlbumDetail({
   albumDescription,
 }: BookAlbumDetailProps) {
   const navigate = useNavigate();
-  const { data: productions = [], isLoading } = useBookProductions(albumId);
+  const { data: rawProductions = [], isLoading } = useBookProductions(albumId);
   const { data: rawCoverUrl } = useAlbumRawCover(albumId);
   const deleteProduction = useDeleteProduction();
   const updateProduction = useUpdateProduction();
