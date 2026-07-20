@@ -468,6 +468,53 @@ const CardDetailDialogs = (props: Props) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingAttachTrainingId}
+        onOpenChange={(open) => { if (!open) setPendingAttachTrainingId(null); }}
+      >
+        <AlertDialogContent className="w-full sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quel devis a été gagné ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Plusieurs devis ont été envoyés. Sélectionnez celui qui a été accepté — le montant vendu
+              du participant sera défini en conséquence.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1 max-h-72 overflow-y-auto border rounded-md p-1">
+            {cardQuotes.map((q) => (
+              <button
+                key={q.id}
+                onClick={() => {
+                  const trainingId = pendingAttachTrainingId;
+                  setPendingAttachTrainingId(null);
+                  if (trainingId) handleAttachToTraining(trainingId, { quoteId: q.id, totalHt: q.total_ht });
+                }}
+                className="w-full text-left px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors"
+              >
+                <div className="text-sm font-medium">
+                  {q.quote_number || "Devis sans numéro"} —{" "}
+                  {q.total_ht != null
+                    ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(q.total_ht)
+                    : "—"}{" "}
+                  HT
+                </div>
+                {q.synthesis && (
+                  <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{q.synthesis}</div>
+                )}
+                {q.issue_date && (
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Émis le {format(parseISO(q.issue_date), "d MMM yyyy", { locale: fr })}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
