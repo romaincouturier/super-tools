@@ -59,18 +59,8 @@ export default function BookPublicPage() {
             <p className="text-white/60 mt-2 text-lg">{album.description}</p>
           )}
         </div>
-        <Select value={sortMode} onValueChange={(v) => setSortMode(v as BookSortMode)}>
-          <SelectTrigger className="h-9 w-[190px] bg-white/10 border-white/20 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BOOK_SORT_OPTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+
       </div>
 
       {/* Productions grid */}
