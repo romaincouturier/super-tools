@@ -449,6 +449,7 @@ function RunItemRow({
   const [expanded, setExpanded] = useState(false);
   const [costHT, setCostHT] = useState<string>(item.final_cost_ht?.toString() ?? "");
   const [costTTC, setCostTTC] = useState<string>(item.final_cost_ttc?.toString() ?? "");
+  const [instructions, setInstructions] = useState<string>(item.instructions ?? "");
   const { toast } = useToast();
 
   const onStatus = async (status: RestockItemStatus) => {
@@ -469,6 +470,11 @@ function RunItemRow({
     const ttc = costTTC ? parseFloat(costTTC) : null;
     await onPatch({ final_cost_ht: ht, final_cost_ttc: ttc } as any);
     toast({ title: "Coûts enregistrés" });
+  };
+
+  const saveInstructions = async () => {
+    await onPatch({ instructions: instructions.trim() || null } as any);
+    toast({ title: "Instructions enregistrées" });
   };
 
   return (
@@ -505,12 +511,23 @@ function RunItemRow({
               <ExternalLink className="h-3.5 w-3.5" />{item.url}
             </a>
           )}
-          {item.instructions && (
-            <div>
-              <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Instructions</div>
-              <p className="text-sm whitespace-pre-wrap">{item.instructions}</p>
-            </div>
-          )}
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Instructions</div>
+            <Textarea
+              rows={4}
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              disabled={readonly}
+              placeholder="Ajouter ou compléter les instructions pour cette action…"
+            />
+            {!readonly && (
+              <div className="mt-2">
+                <Button size="sm" variant="outline" onClick={saveInstructions} disabled={instructions === (item.instructions ?? "")}>
+                  Enregistrer les instructions
+                </Button>
+              </div>
+            )}
+          </div>
           {files.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Ressources</div>
