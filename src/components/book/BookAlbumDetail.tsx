@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, Plus, Share2, BarChart2, Library } from 'lucide-react';
+import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil } from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
