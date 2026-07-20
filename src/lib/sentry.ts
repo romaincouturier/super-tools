@@ -112,10 +112,29 @@ const alreadyCaptured = new WeakSet<object>();
  * de validation ("champ requis") ne sont pas des bugs.
  */
 export function reportHandledError(err: unknown, extra?: Record<string, unknown>): void {
-  if (err instanceof Error || (typeof err === "object" && err !== null)) {
+  if (err instanceof Error) {
     if (alreadyCaptured.has(err)) return;
     alreadyCaptured.add(err);
     Sentry.captureException(err, extra ? { extra } : undefined);
+    return;
+  }
+  if (typeof err === "object" && err !== null) {
+    if (alreadyCaptured.has(err)) return;
+    alreadyCaptured.add(err);
+    // Plain objects (e.g. PostgrestError { code, details, hint, message })
+    // captured as-is produce no stacktrace in Sentry — wrap them into a real
+    // Error so we get the caller's stack and a readable title.
+    const o = err as Record<string, unknown>;
+    const msg =
+      (typeof o.message === "string" && o.message) ||
+      (typeof o.error === "string" && o.error) ||
+      "Handled non-Error object";
+    const code = typeof o.code === "string" || typeof o.code === "number" ? ` [${o.code}]` : "";
+    const wrapped = new Error(`${msg}${code}`);
+    wrapped.name = o.name && typeof o.name === "string" ? o.name : "HandledObjectError";
+    Sentry.captureException(wrapped, {
+      extra: { ...(extra ?? {}), original: o },
+    });
     return;
   }
   if (typeof err === "string" && err) {
