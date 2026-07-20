@@ -783,6 +783,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         onConfirmAddParticipant={handleConfirmAddParticipant}
         opportunityTitle={pendingTrainingCard?.title || ""}
         isFormation={pendingTrainingCard?.service_type === "formation" || !pendingTrainingCard?.service_type}
+        crmCardId={pendingTrainingCard?.id ?? null}
       />
 
       {/* Loss Reason Dialog for drag-to-lost */}
