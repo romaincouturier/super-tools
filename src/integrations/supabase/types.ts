@@ -3383,6 +3383,7 @@ export type Database = {
       games: {
         Row: {
           author_id: string | null
+          bilan_url: string | null
           commission_fixed: number | null
           commission_formula: string | null
           commission_rate: number | null
@@ -3422,6 +3423,7 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          bilan_url?: string | null
           commission_fixed?: number | null
           commission_formula?: string | null
           commission_rate?: number | null
@@ -3461,6 +3463,7 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          bilan_url?: string | null
           commission_fixed?: number | null
           commission_formula?: string | null
           commission_rate?: number | null

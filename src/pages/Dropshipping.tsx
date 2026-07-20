@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText } from "lucide-react";
+import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText, ExternalLink } from "lucide-react";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -489,6 +489,15 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
             <Input type="number" value={form.woocommerce_product_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, woocommerce_product_id: e.target.value ? parseInt(e.target.value) : null }))} placeholder="Ex: 1234" />
           </div>
           <div className="space-y-1">
+            <Label>URL du Bilan (partagée avec le co-auteur/co-autrice)</Label>
+            <Input
+              type="url"
+              value={(form as any).bilan_url ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, bilan_url: e.target.value || null } as any))}
+              placeholder="https://…"
+            />
+          </div>
+          <div className="space-y-1">
             <Label>Statut</Label>
             <Select value={form.status ?? "active"} onValueChange={(v) => setForm((f) => ({ ...f, status: v as "active" | "inactive" }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -549,6 +558,18 @@ function GamesTable() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    {(g as any).bilan_url && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                        title="Ouvrir le bilan partagé"
+                      >
+                        <a href={(g as any).bilan_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => setEditing(g)}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" onClick={async () => { try { await del(g.id); } catch { toastError(toast, "Une erreur est survenue"); } }}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
