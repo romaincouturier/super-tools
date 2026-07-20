@@ -309,6 +309,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     type GameRow = {
       id: string;
+      title: string | null;
       woocommerce_product_id: number;
       game_type: string;
       location_variation_id: number | null;
@@ -316,6 +317,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       commission_rate: number | null;
       commission_fixed: number | null;
       include_stripe_fees: boolean | null;
+      bilan_url: string | null;
     };
     const gamesByProductId = new Map(
       ((games ?? []) as GameRow[])
