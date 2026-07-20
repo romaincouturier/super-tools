@@ -9,7 +9,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/1tyKULmXGvoKse-09VkIQuVNN-hCMZjFjlEafA7IOSqs/edit?gid=1910192676#gid=1910192676";
+    const { data: game } = await admin.from("games").select("bilan_url").ilike("title", "%echo%").maybeSingle();
+    const sheetUrl = game?.bilan_url as string;
+    if (!sheetUrl) throw new Error("bilan_url introuvable pour Echo");
     const horodatage = new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" });
     const result = await appendRowToSheet(admin, sheetUrl, [
       horodatage,
