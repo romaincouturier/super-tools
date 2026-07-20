@@ -120,11 +120,39 @@ export default function BookAlbumDetail({
     [rawProductions, sortMode],
   );
 
-  const [uploadOpen, setUploadOpen] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [statsOpen, setStatsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const reorder = useReorderProductions();
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  useEffect(() => {
+    setOrderedIds(productions.map((p) => p.id));
+  }, [productions]);
+  const displayed = useMemo(() => {
+    const map = new Map(productions.map((p) => [p.id, p]));
+    const out: BookProduction[] = [];
+    for (const id of orderedIds) {
+      const p = map.get(id);
+      if (p) out.push(p);
+    }
+    return out.length === productions.length ? out : productions;
+  }, [orderedIds, productions]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = orderedIds.indexOf(String(active.id));
+    const newIndex = orderedIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(orderedIds, oldIndex, newIndex);
+    setOrderedIds(next);
+    if (sortMode !== 'custom') saveSortMode('custom');
+    reorder.mutate({ albumId, orderedIds: next });
+  }
+
 
   const { data: allAlbums = [] } = useBookAlbums();
   const currentAlbum = allAlbums.find((a) => a.id === albumId);
