@@ -245,6 +245,7 @@ export function extractStoragePath(fileUrl: string): string | null {
 export async function signBookUrls(
   inputs: (string | null | undefined)[],
   expiresIn = 60 * 60,
+  transform?: { width?: number; height?: number; resize?: "cover" | "contain" | "fill"; quality?: number },
 ): Promise<(string | null)[]> {
   const result: (string | null)[] = inputs.map((u) => u ?? null);
   const pathsToSign: string[] = [];
@@ -261,6 +262,23 @@ export async function signBookUrls(
   });
 
   if (pathsToSign.length === 0) return result;
+
+  // With transform we must sign one-by-one (createSignedUrls doesn't accept transform).
+  if (transform) {
+    const signed = await Promise.all(
+      pathsToSign.map((p) =>
+        supabase.storage
+          .from("book-productions")
+          .createSignedUrl(p, expiresIn, { transform })
+          .then((r) => r.data?.signedUrl ?? null)
+          .catch(() => null),
+      ),
+    );
+    signed.forEach((url, idx) => {
+      if (url) result[indexMap[idx]] = url;
+    });
+    return result;
+  }
 
   const { data, error } = await supabase.storage
     .from("book-productions")
@@ -287,15 +305,18 @@ export function useBookProductions(albumId: string) {
       if (error) throw error;
       const rows = (data ?? []) as BookProduction[];
       const fileUrls = rows.map((r) => r.file_url);
-      const thumbs = rows.map((r) => r.thumbnail_url);
+      // Prefer explicit thumbnail if present, otherwise derive a resized
+      // preview from the file itself via Supabase image transforms so the
+      // grid never downloads full-resolution originals.
+      const thumbSources = rows.map((r) => r.thumbnail_url ?? r.file_url);
       const [signedFiles, signedThumbs] = await Promise.all([
         signBookUrls(fileUrls),
-        signBookUrls(thumbs),
+        signBookUrls(thumbSources, 60 * 60, { width: 600, resize: "cover", quality: 70 }),
       ]);
       return rows.map((r, i) => ({
         ...r,
         file_url: signedFiles[i] ?? r.file_url,
-        thumbnail_url: signedThumbs[i],
+        thumbnail_url: signedThumbs[i] ?? r.thumbnail_url,
       }));
     },
     enabled: !!albumId,
