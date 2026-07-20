@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText } from "lucide-react";
+import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText, ExternalLink } from "lucide-react";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
