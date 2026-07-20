@@ -29,7 +29,7 @@ export default function BookProductionCard({
     production.file_type === 'image' &&
     production.exif_width != null &&
     production.exif_height != null &&
-    production.exif_width * production.exif_height > 100_000_000;
+    production.exif_width * production.exif_height > 50_000_000;
   const imageSrc = production.thumbnail_url ?? (isOversizedImage ? null : production.file_url);
 
   useEffect(() => {
