@@ -4,7 +4,7 @@ import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
   CheckCircle, Clock, Truck, RefreshCw, Ban, Loader2, Plus,
   Pencil, Trash2, Send, Eye, FileText, Search, Download,
-  Euro, Users, BarChart3,
+  Euro, Users, BarChart3, ExternalLink,
 } from "lucide-react";
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
