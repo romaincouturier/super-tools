@@ -4,7 +4,7 @@ import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
   CheckCircle, Clock, Truck, RefreshCw, Ban, Loader2, Plus,
   Pencil, Trash2, Send, Eye, FileText, Search, Download,
-  Euro, Users, BarChart3,
+  Euro, Users, BarChart3, ExternalLink,
 } from "lucide-react";
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
@@ -963,6 +963,15 @@ function GameDialog({
                   <Label>Email du partenaire</Label>
                   <Input value={form.partner_email ?? ""} onChange={(e) => set("partner_email", e.target.value)} />
                 </div>
+                <div className="col-span-2 space-y-1">
+                  <Label>URL du Bilan (partagée avec le co-auteur/co-autrice)</Label>
+                  <Input
+                    type="url"
+                    value={(form as any).bilan_url ?? ""}
+                    onChange={(e) => set("bilan_url" as any, e.target.value || null)}
+                    placeholder="https://…"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -1150,6 +1159,13 @@ function Catalog() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    {(g as any).bilan_url && (
+                      <Button variant="ghost" size="icon" asChild title="Ouvrir le bilan partagé">
+                        <a href={(g as any).bilan_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => setEditing(g)}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" onClick={async () => {
                       if (!confirm("Supprimer ce jeu ?")) return;
