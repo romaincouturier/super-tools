@@ -449,6 +449,7 @@ function RunItemRow({
   const [expanded, setExpanded] = useState(false);
   const [costHT, setCostHT] = useState<string>(item.final_cost_ht?.toString() ?? "");
   const [costTTC, setCostTTC] = useState<string>(item.final_cost_ttc?.toString() ?? "");
+  const [instructions, setInstructions] = useState<string>(item.instructions ?? "");
   const { toast } = useToast();
 
   const onStatus = async (status: RestockItemStatus) => {
@@ -469,6 +470,11 @@ function RunItemRow({
     const ttc = costTTC ? parseFloat(costTTC) : null;
     await onPatch({ final_cost_ht: ht, final_cost_ttc: ttc } as any);
     toast({ title: "Coûts enregistrés" });
+  };
+
+  const saveInstructions = async () => {
+    await onPatch({ instructions: instructions.trim() || null } as any);
+    toast({ title: "Instructions enregistrées" });
   };
 
   return (
