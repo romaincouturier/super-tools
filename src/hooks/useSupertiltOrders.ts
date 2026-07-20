@@ -760,10 +760,46 @@ export function useDeletePartnerPayment() {
 // V2 — FINANCIAL SUMMARY
 // ════════════════════════════════════════════════════════════════
 
+function calcPartnerCut(
+  lineTotal: number,
+  commissionType: string | null,
+  commissionRate: number | null,
+  commissionFixed: number | null,
+  quantity: number,
+  includeStripeFees: boolean,
+  stripeFeeRate: number,
+  stripeFeeFixed: number,
+): number {
+  let base = lineTotal;
+  if (includeStripeFees) {
+    base = base - base * stripeFeeRate - stripeFeeFixed;
+  }
+  if (commissionType === "percentage" && commissionRate != null) {
+    return Math.max(0, Math.round(base * Number(commissionRate) * 100) / 100);
+  }
+  if (commissionType === "fixed" && commissionFixed != null) {
+    return Math.max(0, Math.round(Number(commissionFixed) * (quantity || 1) * 100) / 100);
+  }
+  return 0;
+}
+
 export function useFinancialSummary(gameId?: string, from?: string, to?: string) {
   return useQuery({
     queryKey: ["financial-summary", gameId, from, to],
     queryFn: async () => {
+      // Stripe fee settings (needed to compute commissions when order_items.commission_amount is NULL)
+      const { data: settingsRows } = await db
+        .from("supertilt_settings")
+        .select("key, value")
+        .in("key", ["stripe_fee_rate", "stripe_fee_fixed"]);
+      const getSetting = (k: string, def: number) => {
+        const v = (settingsRows as Array<{ key: string; value: unknown }> | null)
+          ?.find((s) => s.key === k)?.value;
+        return v != null ? parseFloat(String(v)) : def;
+      };
+      const stripeFeeRate = getSetting("stripe_fee_rate", 0.014);
+      const stripeFeeFixed = getSetting("stripe_fee_fixed", 0.25);
+
       // Sales
       let salesQ = db
         .from("order_items")
@@ -775,7 +811,7 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       const { data: salesData, error: salesErr } = await salesQ;
       if (salesErr) throw salesErr;
 
-      // Expenses
+      // Expenses (keep general expenses — game_id NULL — in a dedicated bucket)
       let expQ = db
         .from("game_expenses")
         .select("game_id, amount_ttc, amount_ht");
@@ -784,18 +820,21 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
       if (to) expQ = expQ.lte("expense_date", to.slice(0, 10));
       const { data: expData } = await expQ;
 
-      // Payments
+      // Payments (filter by payment_date so "Restant" reste cohérent avec la période)
       let payQ = db
         .from("partner_payments")
-        .select("game_id, amount, status");
+        .select("game_id, amount, status, payment_date");
       if (gameId) payQ = payQ.eq("game_id", gameId);
+      if (from) payQ = payQ.gte("payment_date", from.slice(0, 10));
+      if (to) payQ = payQ.lte("payment_date", to.slice(0, 10));
       const { data: payData } = await payQ;
 
       const sales = (salesData ?? []) as Array<Record<string, unknown>>;
-      const expenses = (expData ?? []) as Array<{ game_id: string; amount_ttc: number | null; amount_ht: number | null }>;
-      const payments = (payData ?? []) as Array<{ game_id: string; amount: number; status: string }>;
+      const expenses = (expData ?? []) as Array<{ game_id: string | null; amount_ttc: number | null; amount_ht: number | null }>;
+      const payments = (payData ?? []) as Array<{ game_id: string | null; amount: number; status: string }>;
 
-      // Aggregate by game
+      const GENERAL_KEY = "__general__";
+
       const byGame = new Map<string, {
         title: string;
         game_type: string;
@@ -803,8 +842,8 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
         sales_count: number;
         total_qty: number;
         total_ttc: number;
-        total_commission: number; // ce que SuperTilt gagne (part SuperTilt sur partner/dropshipping)
-        partner_payout: number;   // ce qui est dû/versé au partenaire
+        total_commission: number; // part SuperTilt (0 pour jeux non partenaires)
+        partner_payout: number;   // part reversée au partenaire
         total_expenses: number;
         total_paid: number;
       }>();
@@ -814,15 +853,31 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
         const gid = (s.game_id as string) ?? "unknown";
         const gameType = (g?.game_type as string) ?? "unknown";
         const isPartnerLike = gameType === "partner" || gameType === "dropshipping";
-        const lineTotal = (s.line_total as number) ?? 0;
-        const partnerCut = (s.commission_amount as number) ?? 0;
-        const qty = (s.quantity as number) ?? 0;
+        const lineTotal = Number(s.line_total ?? 0);
+        const qty = Number(s.quantity ?? 0);
+        // Priorité au commission_amount stocké ; sinon recalcul depuis le paramétrage du jeu
+        let partnerCut = 0;
+        if (isPartnerLike) {
+          const stored = s.commission_amount as number | null;
+          partnerCut = stored != null
+            ? Number(stored)
+            : calcPartnerCut(
+                lineTotal,
+                (g?.commission_type as string) ?? null,
+                (g?.commission_rate as number) ?? null,
+                (g?.commission_fixed as number) ?? null,
+                qty,
+                (g?.include_stripe_fees as boolean) ?? false,
+                stripeFeeRate,
+                stripeFeeFixed,
+              );
+        }
         const supertiltCommission = isPartnerLike ? Math.max(0, lineTotal - partnerCut) : 0;
 
         const existing = byGame.get(gid) ?? {
           title: (g?.title as string) ?? "Inconnu",
           game_type: gameType,
-          cost_price: (g?.cost_price as number) ?? 0,
+          cost_price: Number(g?.cost_price ?? 0),
           sales_count: 0,
           total_qty: 0,
           total_ttc: 0,
@@ -835,27 +890,37 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
         existing.total_qty += qty;
         existing.total_ttc += lineTotal;
         existing.total_commission += supertiltCommission;
-        existing.partner_payout += isPartnerLike ? partnerCut : 0;
+        existing.partner_payout += partnerCut;
         byGame.set(gid, existing);
       }
 
+      // Bucket "Général" pour les dépenses/paiements non affectés à un jeu
+      let generalExpenses = 0;
+      let generalPayments = 0;
+
       for (const e of expenses) {
-        const gid = e.game_id ?? "unknown";
+        const gid = e.game_id;
+        const amount = Number(e.amount_ttc ?? 0);
+        if (!gid) { generalExpenses += amount; continue; }
         const existing = byGame.get(gid);
-        if (existing) existing.total_expenses += e.amount_ttc ?? 0;
+        if (existing) existing.total_expenses += amount;
+        else generalExpenses += amount; // dépense sur un jeu sans vente dans la période
       }
 
       for (const p of payments) {
         if (p.status !== "verified") continue;
-        const gid = p.game_id ?? "unknown";
+        const gid = p.game_id;
+        const amount = Number(p.amount ?? 0);
+        if (!gid) { generalPayments += amount; continue; }
         const existing = byGame.get(gid);
-        if (existing) existing.total_paid += p.amount ?? 0;
+        if (existing) existing.total_paid += amount;
+        else generalPayments += amount;
       }
 
-      return [...byGame.entries()].map(([id, data]) => {
+      const rows = [...byGame.entries()].map(([id, data]) => {
         const isPartnerLike = data.game_type === "partner" || data.game_type === "dropshipping";
-        const cogs = (data.cost_price ?? 0) * data.total_qty;
-        // Revenu SuperTilt : pour partner/dropshipping = part SuperTilt ; sinon = CA TTC
+        // Le coût de revient ne s'applique que quand SuperTilt achète effectivement le stock
+        const cogs = !isPartnerLike && data.cost_price > 0 ? data.cost_price * data.total_qty : 0;
         const supertiltRevenue = isPartnerLike ? data.total_commission : data.total_ttc;
         return {
           game_id: id,
@@ -865,6 +930,27 @@ export function useFinancialSummary(gameId?: string, from?: string, to?: string)
           commission_remaining: data.partner_payout - data.total_paid,
         };
       });
+
+      if (generalExpenses > 0 || generalPayments > 0) {
+        rows.push({
+          game_id: GENERAL_KEY,
+          title: "Général (non affecté à un jeu)",
+          game_type: "general",
+          cost_price: 0,
+          sales_count: 0,
+          total_qty: 0,
+          total_ttc: 0,
+          total_commission: 0,
+          partner_payout: 0,
+          total_expenses: generalExpenses,
+          total_paid: generalPayments,
+          cogs: 0,
+          margin: -generalExpenses,
+          commission_remaining: -generalPayments,
+        });
+      }
+
+      return rows;
     },
   });
 }
