@@ -116,6 +116,10 @@ export default function BookAlbumDetail({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="w-4 h-4 mr-1.5" />
+            Renommer
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setStatsOpen(true)}>
             <BarChart2 className="w-4 h-4 mr-1.5" />
             Stats
