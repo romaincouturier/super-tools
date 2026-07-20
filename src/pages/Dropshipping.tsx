@@ -489,6 +489,15 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
             <Input type="number" value={form.woocommerce_product_id ?? ""} onChange={(e) => setForm((f) => ({ ...f, woocommerce_product_id: e.target.value ? parseInt(e.target.value) : null }))} placeholder="Ex: 1234" />
           </div>
           <div className="space-y-1">
+            <Label>URL du Bilan (partagée avec le co-auteur/co-autrice)</Label>
+            <Input
+              type="url"
+              value={(form as any).bilan_url ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, bilan_url: e.target.value || null } as any))}
+              placeholder="https://…"
+            />
+          </div>
+          <div className="space-y-1">
             <Label>Statut</Label>
             <Select value={form.status ?? "active"} onValueChange={(v) => setForm((f) => ({ ...f, status: v as "active" | "inactive" }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
