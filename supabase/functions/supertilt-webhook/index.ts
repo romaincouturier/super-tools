@@ -12,6 +12,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
+import { appendRowToSheet } from "../_shared/google-sheets-helper.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -303,11 +304,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load games catalog ───────────────────────────────────────
     const { data: games } = await (admin as any)
       .from("games")
-      .select("id, woocommerce_product_id, game_type, location_variation_id, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees")
+      .select("id, title, woocommerce_product_id, game_type, location_variation_id, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees, bilan_url")
       .not("woocommerce_product_id", "is", null);
 
     type GameRow = {
       id: string;
+      title: string | null;
       woocommerce_product_id: number;
       game_type: string;
       location_variation_id: number | null;
@@ -315,6 +317,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       commission_rate: number | null;
       commission_fixed: number | null;
       include_stripe_fees: boolean | null;
+      bilan_url: string | null;
     };
     const gamesByProductId = new Map(
       ((games ?? []) as GameRow[])
@@ -647,6 +650,45 @@ Deno.serve(async (req: Request): Promise<Response> => {
             },
             { onConflict: "woocommerce_order_id" },
           );
+
+        // ── Bilan financier (Google Sheet) — onglet "Encaissements SuperTilt"
+        //    Écrit une ligne dans le sheet référencé par game.bilan_url si présent.
+        //    Colonnes: Horodatage | Produit acheté | Montant HT | Stripe perso (1,5%+0,25€)
+        //              | Stripe pro (1,9%+0,25€) | Frais de port | TVA produit 20% | TVA port 20%
+        if (game.bilan_url) {
+          try {
+            const shippingTotal = parseFloat(order.shipping_total ?? "0") || 0;
+            const orderHtSum = (order.line_items ?? []).reduce(
+              (s, li) => s + (parseFloat(li.total ?? "0") || 0),
+              0,
+            );
+            const shippingShare = orderHtSum > 0
+              ? +(shippingTotal * (lineHT / orderHtSum)).toFixed(2)
+              : 0;
+            const vatProduct = +(lineHT * 0.20).toFixed(2);
+            const vatShipping = +(shippingShare * 0.20).toFixed(2);
+            // Perso Stripe commission on TTC (produit + port TTC)
+            const perceivedTtc = +(lineTTC + shippingShare * 1.20).toFixed(2);
+            const stripePerso = +(perceivedTtc * 0.015 + 0.25).toFixed(2);
+            const horodatage = new Date(order.date_created).toLocaleString("fr-FR", {
+              timeZone: "Europe/Paris",
+            });
+            await appendRowToSheet(admin, game.bilan_url, [
+              horodatage,
+              item.name ?? game.title ?? "",
+              lineHT,
+              stripePerso,
+              "", // Stripe pro (non applicable, on utilise perso par défaut)
+              shippingShare,
+              vatProduct,
+              vatShipping,
+            ]);
+            console.log(`[bilan] appended row to sheet for game ${game.id} / order ${order.id}`);
+          } catch (sheetErr) {
+            const msg = sheetErr instanceof Error ? sheetErr.message : String(sheetErr);
+            console.error(`[bilan] append failed for game ${game.id}:`, msg);
+          }
+        }
       }
 
       // Trigger email if auto-send is on and we have a game

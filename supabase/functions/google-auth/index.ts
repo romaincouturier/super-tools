@@ -8,12 +8,13 @@ const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Combined scopes for Drive + Calendar + Search Console
+// Combined scopes for Drive + Calendar + Search Console + Sheets
 const SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
   "https://www.googleapis.com/auth/drive.readonly",
   "https://www.googleapis.com/auth/calendar",
   "https://www.googleapis.com/auth/webmasters.readonly",
+  "https://www.googleapis.com/auth/spreadsheets",
 ].join(" ");
 const REQUIRED_SCOPES = SCOPES.split(" ");
 
