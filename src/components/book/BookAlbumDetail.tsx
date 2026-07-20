@@ -17,6 +17,8 @@ import BookUploadDialog from './BookUploadDialog';
 import BookShareLinksManager from './BookShareLinksManager';
 import BookAnalyticsDashboard from './BookAnalyticsDashboard';
 import BookMediaLibraryPicker from './BookMediaLibraryPicker';
+import BookCreateAlbumDialog from './BookCreateAlbumDialog';
+import { useBookAlbums } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 import { toast } from '@/hooks/use-toast';
 
