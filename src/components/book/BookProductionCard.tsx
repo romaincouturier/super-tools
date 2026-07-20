@@ -50,6 +50,12 @@ export default function BookProductionCard({
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (production.thumbnail_url && img.src !== production.file_url) {
+              img.src = production.file_url;
+            }
+          }}
         />
       )}
 
