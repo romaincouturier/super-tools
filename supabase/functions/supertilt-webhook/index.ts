@@ -304,7 +304,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // ── Load games catalog ───────────────────────────────────────
     const { data: games } = await (admin as any)
       .from("games")
-      .select("id, woocommerce_product_id, game_type, location_variation_id, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees")
+      .select("id, title, woocommerce_product_id, game_type, location_variation_id, author_id, commission_type, commission_rate, commission_fixed, is_partner, partner_email, include_stripe_fees, bilan_url")
       .not("woocommerce_product_id", "is", null);
 
     type GameRow = {
