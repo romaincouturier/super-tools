@@ -98,12 +98,22 @@ const CardDetailDialogs = (props: Props) => {
   }>>([]);
   const [interTrainingsLoading, setInterTrainingsLoading] = useState(false);
 
+  const [cardQuotes, setCardQuotes] = useState<Array<{
+    id: string;
+    quote_number: string | null;
+    issue_date: string | null;
+    total_ht: number | null;
+    synthesis: string | null;
+  }>>([]);
+  const [pendingAttachTrainingId, setPendingAttachTrainingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!showWinChoiceDialog) {
       setShowAttachTraining(false);
       setShowFirstAction(false);
       setFirstActionDate("");
       setFirstActionText("");
+      setPendingAttachTrainingId(null);
       return;
     }
     const fetchInterTrainings = async () => {
@@ -120,8 +130,19 @@ const CardDetailDialogs = (props: Props) => {
       if (!error && data) setInterTrainings(data as any);
       setInterTrainingsLoading(false);
     };
+    const fetchQuotes = async () => {
+      if (!cardId) return;
+      const { data } = await supabase
+        .from("quotes")
+        .select("id, quote_number, issue_date, total_ht, synthesis")
+        .eq("crm_card_id", cardId)
+        .neq("status", "draft")
+        .order("created_at", { ascending: false });
+      setCardQuotes((data || []) as typeof cardQuotes);
+    };
     fetchInterTrainings();
-  }, [showWinChoiceDialog]);
+    fetchQuotes();
+  }, [showWinChoiceDialog, cardId]);
 
   const handleCreateMissionWithAction = async () => {
     if (firstActionDate && cardId) {
