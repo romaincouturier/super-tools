@@ -284,20 +284,25 @@ export default function BookAlbumDetail({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {productions.map((production, index) => (
-            <BookProductionCard
-              key={production.id}
-              production={production}
-              isCover={isCover(production)}
-              onClick={() => openLightbox(index)}
-              onDelete={() => handleDelete(production)}
-              onEdit={() => handleEdit(production)}
-              onSetCover={() => handleSetCover(production)}
-            />
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={displayed.map((p) => p.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {displayed.map((production, index) => (
+                <SortableTile
+                  key={production.id}
+                  production={production}
+                  isCover={isCover(production)}
+                  onClick={() => openLightbox(index)}
+                  onDelete={() => handleDelete(production)}
+                  onEdit={() => handleEdit(production)}
+                  onSetCover={() => handleSetCover(production)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
+
 
       {/* Dialogs */}
       <BookUploadDialog
