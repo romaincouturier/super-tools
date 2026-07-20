@@ -30,6 +30,12 @@ export default function BookPublicPage() {
     setLightboxOpen(true);
   }
 
+  const rawProductions = data?.productions ?? [];
+  const productions = useMemo(
+    () => sortProductions(rawProductions as BookProduction[], sortMode),
+    [rawProductions, sortMode],
+  );
+
   if (!token) {
     return <NotFound />;
   }
@@ -46,12 +52,9 @@ export default function BookPublicPage() {
     return <NotFound />;
   }
 
-  const { album, productions: rawProductions, profile } = data;
-  const productions = useMemo(
-    () => sortProductions(rawProductions as BookProduction[], sortMode),
-    [rawProductions, sortMode],
-  );
+  const { album, profile } = data;
   const watermarkText = profile?.bio ?? 'Facilitation graphique';
+
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
