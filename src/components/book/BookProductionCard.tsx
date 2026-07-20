@@ -1,4 +1,5 @@
-import { Video, Edit2, Trash2, Star, Link2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Video, Edit2, Trash2, Star, Link2, ImageIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { BookProduction } from '@/types/book';
@@ -20,9 +21,20 @@ export default function BookProductionCard({
   onEdit,
   onSetCover,
 }: BookProductionCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const visibleTags = production.tags.slice(0, 2);
   const extraTagCount = production.tags.length - visibleTags.length;
   const hasDimensions = production.exif_width != null && production.exif_height != null;
+  const isOversizedImage =
+    production.file_type === 'image' &&
+    production.exif_width != null &&
+    production.exif_height != null &&
+    production.exif_width * production.exif_height > 100_000_000;
+  const imageSrc = production.thumbnail_url ?? (isOversizedImage ? null : production.file_url);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [production.id, production.thumbnail_url, production.file_url]);
 
   return (
     <div
@@ -43,20 +55,27 @@ export default function BookProductionCard({
             <Video className="w-12 h-12 text-gray-400" />
           )}
         </div>
-      ) : (
+      ) : imageSrc && !imageFailed ? (
         <img
-          src={production.thumbnail_url ?? production.file_url}
+          src={imageSrc}
           alt={production.title}
           className="w-full h-full object-cover"
           loading="lazy"
           decoding="async"
           onError={(e) => {
             const img = e.currentTarget;
-            if (production.thumbnail_url && img.src !== production.file_url) {
+            if (production.thumbnail_url && !isOversizedImage && img.src !== production.file_url) {
               img.src = production.file_url;
+            } else {
+              setImageFailed(true);
             }
           }}
         />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gray-200 text-gray-500 p-4 text-center">
+          <ImageIcon className="w-8 h-8" />
+          <span className="text-xs font-medium truncate max-w-full">{production.title}</span>
+        </div>
       )}
 
       {/* Persistent badges */}
