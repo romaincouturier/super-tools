@@ -28,6 +28,7 @@ serve(async (req: Request): Promise<Response> => {
     if (!formData) return createErrorResponse("Invalid form data", 400);
 
     const file = formData.get("file") as File | null;
+    const thumbnail = formData.get("thumbnail") as File | null;
     const albumId = formData.get("albumId") as string | null;
 
     if (!file) return createErrorResponse("file is required", 400);
@@ -81,6 +82,26 @@ serve(async (req: Request): Promise<Response> => {
       .getPublicUrl(path);
 
     const fileUrl = publicData.publicUrl;
+    let thumbnailUrl: string | null = null;
+
+    if (thumbnail && fileType === "image") {
+      const thumbnailPath = `${user.id}/${albumId}/thumbnails/${timestamp}_${sanitizeFilename(thumbnail.name || "thumbnail.jpg")}`;
+      const { error: thumbnailUploadError } = await supabaseAdmin.storage
+        .from("book-productions")
+        .upload(thumbnailPath, await thumbnail.arrayBuffer(), {
+          contentType: thumbnail.type || "image/jpeg",
+          upsert: false,
+        });
+
+      if (thumbnailUploadError) {
+        console.warn("[book-upload-production] thumbnail upload error:", thumbnailUploadError);
+      } else {
+        const { data: thumbnailPublicData } = supabaseAdmin.storage
+          .from("book-productions")
+          .getPublicUrl(thumbnailPath);
+        thumbnailUrl = thumbnailPublicData.publicUrl;
+      }
+    }
 
     // Crée d'abord l'entrée dans la médiathèque
     const { data: mediaRow, error: mediaError } = await supabaseAdmin
@@ -111,7 +132,7 @@ serve(async (req: Request): Promise<Response> => {
         user_id: user.id,
         title,
         file_url: fileUrl,
-        thumbnail_url: null,
+        thumbnail_url: thumbnailUrl,
         file_type: fileType,
         exif_date: exifDate,
         exif_width: exifWidth,
