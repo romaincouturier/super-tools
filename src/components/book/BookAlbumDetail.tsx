@@ -203,6 +203,11 @@ export default function BookAlbumDetail({
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
       />
+      <BookCreateAlbumDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        album={currentAlbum}
+      />
     </div>
   );
 }
