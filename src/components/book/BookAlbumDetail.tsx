@@ -153,6 +153,11 @@ export default function BookAlbumDetail({
     reorder.mutate({ albumId, orderedIds: next });
   }
 
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: allAlbums = [] } = useBookAlbums();
   const currentAlbum = allAlbums.find((a) => a.id === albumId);
