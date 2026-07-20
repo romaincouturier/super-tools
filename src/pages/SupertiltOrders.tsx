@@ -963,6 +963,15 @@ function GameDialog({
                   <Label>Email du partenaire</Label>
                   <Input value={form.partner_email ?? ""} onChange={(e) => set("partner_email", e.target.value)} />
                 </div>
+                <div className="col-span-2 space-y-1">
+                  <Label>URL du Bilan (partagée avec le co-auteur/co-autrice)</Label>
+                  <Input
+                    type="url"
+                    value={(form as any).bilan_url ?? ""}
+                    onChange={(e) => set("bilan_url" as any, e.target.value || null)}
+                    placeholder="https://…"
+                  />
+                </div>
               </div>
             )}
           </div>
