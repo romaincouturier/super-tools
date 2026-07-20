@@ -36,6 +36,8 @@ export default function BookProductionCard({
               src={production.thumbnail_url}
               alt={production.title}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <Video className="w-12 h-12 text-gray-400" />
@@ -46,6 +48,8 @@ export default function BookProductionCard({
           src={production.thumbnail_url ?? production.file_url}
           alt={production.title}
           className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
         />
       )}
 
