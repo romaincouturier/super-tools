@@ -164,11 +164,13 @@ export function useGameSalesKpis() {
       const totalRevenue = rows.reduce((s, r) => s + r.total_amount, 0);
       const totalRoyalties = rows.reduce((s, r) => s + r.royalty_amount, 0);
 
-      const byGame = new Map<string, { title: string; revenue: number; sales: number }>();
+      const byGame = new Map<string, { gameId: string | null; title: string; revenue: number; sales: number }>();
       for (const r of rows) {
-        const title = r.games?.title ?? "Inconnu";
-        const existing = byGame.get(r.game_id ?? "") ?? { title, revenue: 0, sales: 0 };
-        byGame.set(r.game_id ?? "", {
+        const key = r.game_id ?? "__unknown__";
+        const title = r.games?.title?.trim() || "Inconnu (jeu supprimé ou non lié)";
+        const existing = byGame.get(key) ?? { gameId: r.game_id ?? null, title, revenue: 0, sales: 0 };
+        byGame.set(key, {
+          gameId: existing.gameId,
           title,
           revenue: existing.revenue + r.total_amount,
           sales: existing.sales + 1,
