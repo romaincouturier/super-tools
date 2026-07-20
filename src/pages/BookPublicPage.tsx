@@ -1,11 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import BookProductionCard from '@/components/book/BookProductionCard';
 import BookProductionLightbox from '@/components/book/BookProductionLightbox';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { usePublicAlbum } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
+import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
 
 export default function BookPublicPage() {
   const { token } = useParams<{ token: string }>();
