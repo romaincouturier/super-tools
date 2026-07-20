@@ -34,12 +34,17 @@ async function signProductionUrls(supabase: ReturnType<typeof createClient>, pro
       if (!path) return production;
 
       const isImage = production.file_type !== "video";
+      const thumbnailPath = production.thumbnail_url ? extractStoragePath(production.thumbnail_url) : null;
 
       // For images, generate a downscaled thumbnail (600px, q70) for the grid.
+      // If a real thumbnail file exists, sign it directly instead of transforming
+      // the original: very large source images can exceed transform limits.
       // Keep file_url pointing to a full-res signed URL for the lightbox.
       const [full, thumb] = await Promise.all([
         supabase.storage.from("book-productions").createSignedUrl(path, 60 * 60),
-        isImage
+        isImage && thumbnailPath
+          ? supabase.storage.from("book-productions").createSignedUrl(thumbnailPath, 60 * 60)
+          : isImage
           ? supabase.storage.from("book-productions").createSignedUrl(path, 60 * 60, {
               transform: { width: 600, quality: 70, resize: "contain" },
             })
