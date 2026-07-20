@@ -4,16 +4,9 @@ import { AlertCircle } from 'lucide-react';
 import BookProductionCard from '@/components/book/BookProductionCard';
 import BookProductionLightbox from '@/components/book/BookProductionLightbox';
 import BookProfileWidget from '@/components/book/BookProfileWidget';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { usePublicAlbum } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
-import { sortProductions, BOOK_SORT_OPTIONS, type BookSortMode } from '@/lib/bookSort';
+import { sortProductions } from '@/lib/bookSort';
 
 export default function BookPublicPage() {
   const { token } = useParams<{ token: string }>();
@@ -23,7 +16,6 @@ export default function BookPublicPage() {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [sortMode, setSortMode] = useState<BookSortMode>('custom');
 
   function openLightbox(index: number) {
     setLightboxIndex(index);
@@ -32,9 +24,10 @@ export default function BookPublicPage() {
 
   const rawProductions = data?.productions ?? [];
   const productions = useMemo(
-    () => sortProductions(rawProductions as BookProduction[], sortMode),
-    [rawProductions, sortMode],
+    () => sortProductions(rawProductions as BookProduction[], 'custom'),
+    [rawProductions],
   );
+
 
   if (!token) {
     return <NotFound />;
