@@ -23,6 +23,7 @@ export default function BookPublicPage() {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [sortMode, setSortMode] = useState<BookSortMode>('recent');
 
   function openLightbox(index: number) {
     setLightboxIndex(index);
