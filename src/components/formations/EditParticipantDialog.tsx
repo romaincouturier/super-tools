@@ -196,7 +196,11 @@ const EditParticipantDialog = ({
               <CopyParticipantInfoButton
                 firstName={hook.firstName}
                 lastName={hook.lastName}
-                duree={trainingDuree}
+                duree={
+                  (trainingDuree === "0h" || trainingDuree === "0.0h") && selectedFormula?.duree_heures
+                    ? `${selectedFormula.duree_heures}h`
+                    : trainingDuree
+                }
                 dates={formatDateRange(trainingDates[0], trainingDates[1])}
                 lieu={trainingLocation || ""}
               />
