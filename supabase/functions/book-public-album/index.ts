@@ -28,33 +28,34 @@ function extractStoragePath(fileUrl: string): string | null {
 }
 
 async function signProductionUrls(supabase: ReturnType<typeof createClient>, productions: any[]) {
-  const paths = productions
-    .map((production) => extractStoragePath(production.file_url))
-    .filter((path): path is string => Boolean(path));
+  const results = await Promise.all(
+    productions.map(async (production) => {
+      const path = extractStoragePath(production.file_url);
+      if (!path) return production;
 
-  if (paths.length === 0) return productions;
+      const isImage = production.file_type !== "video";
 
-  const { data, error } = await supabase.storage
-    .from("book-productions")
-    .createSignedUrls(paths, 60 * 60);
+      // For images, generate a downscaled thumbnail (600px, q70) for the grid.
+      // Keep file_url pointing to a full-res signed URL for the lightbox.
+      const [full, thumb] = await Promise.all([
+        supabase.storage.from("book-productions").createSignedUrl(path, 60 * 60),
+        isImage
+          ? supabase.storage.from("book-productions").createSignedUrl(path, 60 * 60, {
+              transform: { width: 600, quality: 70, resize: "contain" },
+            })
+          : Promise.resolve({ data: null, error: null } as any),
+      ]);
 
-  if (error || !data) {
-    console.warn("[book-public-album] signed urls error:", error);
-    return productions;
-  }
-
-  const signedByPath = new Map<string, string>();
-  data.forEach((item, index) => {
-    if (item.signedUrl) signedByPath.set(paths[index], item.signedUrl);
-  });
-
-  return productions.map((production) => {
-    const path = extractStoragePath(production.file_url);
-    return path && signedByPath.has(path)
-      ? { ...production, file_url: signedByPath.get(path) }
-      : production;
-  });
+      return {
+        ...production,
+        file_url: full.data?.signedUrl ?? production.file_url,
+        thumbnail_url: thumb?.data?.signedUrl ?? production.thumbnail_url ?? null,
+      };
+    })
+  );
+  return results;
 }
+
 
 serve(async (req: Request): Promise<Response> => {
   const preflight = handleCorsPreflightIfNeeded(req);
