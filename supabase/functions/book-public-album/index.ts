@@ -8,6 +8,8 @@ import {
 } from "../_shared/cors.ts";
 
 function extractStoragePath(fileUrl: string): string | null {
+  if (!fileUrl.startsWith("http")) return fileUrl;
+
   try {
     const url = new URL(fileUrl);
     const markers = [
