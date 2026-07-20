@@ -160,11 +160,24 @@ const CardDetailDialogs = (props: Props) => {
     handleConfirmCreateMission();
   };
 
-  const handleAttachToTraining = async (trainingId: string) => {
+  const handleAttachToTrainingClick = (trainingId: string) => {
+    // If several non-draft quotes exist, ask which one is the winning one first.
+    if (cardQuotes.length >= 2) {
+      setPendingAttachTrainingId(trainingId);
+      return;
+    }
+    const q = cardQuotes[0];
+    handleAttachToTraining(trainingId, q ? { quoteId: q.id, totalHt: q.total_ht } : null);
+  };
+
+  const handleAttachToTraining = async (
+    trainingId: string,
+    selectedQuote: { quoteId: string; totalHt: number | null } | null,
+  ) => {
     setShowWinChoiceDialog(false);
     onOpenChange(false);
 
-    // Fetch full card (address) + latest quote / micro-devis for participant + address + formule
+    // Fetch full card (address) + winning (or latest) quote / micro-devis for participant + address + formule
     let cardAddress: string | null = null;
     let cardZip: string | null = null;
     let cardCity: string | null = null;
@@ -185,13 +198,16 @@ const CardDetailDialogs = (props: Props) => {
         cardCity = cardRow.city;
       }
 
-      const { data: quoteRow } = await supabase
+      const baseQuote = supabase
         .from("quotes")
-        .select("line_items, client_address, client_zip, client_city")
-        .eq("crm_card_id", cardId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .select("line_items, client_address, client_zip, client_city, total_ht");
+      const { data: quoteRow } = selectedQuote
+        ? await baseQuote.eq("id", selectedQuote.quoteId).maybeSingle()
+        : await baseQuote
+            .eq("crm_card_id", cardId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
       if (quoteRow) {
         if (!cardAddress && quoteRow.client_address) cardAddress = quoteRow.client_address;
@@ -234,36 +250,38 @@ const CardDetailDialogs = (props: Props) => {
           }
         }
       }
+
+      // Sold price = winning quote total HT (fallback to latest quote total, then card estimated value)
+      const soldPriceHt =
+        selectedQuote?.totalHt ??
+        (quoteRow && "total_ht" in quoteRow ? (quoteRow as { total_ht: number | null }).total_ht : null) ??
+        (estimatedValue ? parseFloat(estimatedValue) : null);
+
+      const params = new URLSearchParams();
+      const pFirstName = participantFirstName || firstName;
+      const pLastName = participantLastName || lastName;
+      const pEmail = participantEmail || email;
+      if (pFirstName) params.set("addParticipantFirstName", pFirstName);
+      if (pLastName) params.set("addParticipantLastName", pLastName);
+      if (pEmail) params.set("addParticipantEmail", pEmail);
+      if (company) params.set("addParticipantCompany", company);
+      if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
+      if (cardZip) params.set("addParticipantCompanyZip", cardZip);
+      if (cardCity) params.set("addParticipantCompanyCity", cardCity);
+      if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
+
+      if (participantEmail && email && participantEmail !== email.toLowerCase()) {
+        if (firstName) params.set("addParticipantSponsorFirstName", firstName);
+        if (lastName) params.set("addParticipantSponsorLastName", lastName);
+        if (email) params.set("addParticipantSponsorEmail", email);
+      }
+
+      if (soldPriceHt != null && soldPriceHt > 0) {
+        params.set("addParticipantSoldPriceHt", String(soldPriceHt));
+      }
+      params.set("fromCrmCardId", cardId);
+      navigate(`/formations/${trainingId}?${params.toString()}`);
     }
-
-    const params = new URLSearchParams();
-
-    // Participant = micro-devis participant if present, else card contact
-    const pFirstName = participantFirstName || firstName;
-    const pLastName = participantLastName || lastName;
-    const pEmail = participantEmail || email;
-    if (pFirstName) params.set("addParticipantFirstName", pFirstName);
-    if (pLastName) params.set("addParticipantLastName", pLastName);
-    if (pEmail) params.set("addParticipantEmail", pEmail);
-    if (company) params.set("addParticipantCompany", company);
-    if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
-    if (cardZip) params.set("addParticipantCompanyZip", cardZip);
-    if (cardCity) params.set("addParticipantCompanyCity", cardCity);
-    if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
-
-    // Sponsor = card contact (only forwarded if a distinct participant came from micro-devis)
-    if (participantEmail && email && participantEmail !== email.toLowerCase()) {
-      if (firstName) params.set("addParticipantSponsorFirstName", firstName);
-      if (lastName) params.set("addParticipantSponsorLastName", lastName);
-      if (email) params.set("addParticipantSponsorEmail", email);
-    }
-
-    if (estimatedValue && parseFloat(estimatedValue) > 0) {
-      params.set("addParticipantSoldPriceHt", estimatedValue);
-    }
-    if (cardId) params.set("fromCrmCardId", cardId);
-    const qs = params.toString();
-    navigate(`/formations/${trainingId}${qs ? `?${qs}` : ""}`);
   };
 
   return (
