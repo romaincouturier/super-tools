@@ -49,6 +49,15 @@ export default function BookAlbumDetail({
   const updateProduction = useUpdateProduction();
   const setAlbumCover = useSetAlbumCover();
 
+  const { value: sortMode, save: saveSortMode } = useUserPreference<BookSortMode>(
+    'book.sortMode',
+    'recent',
+  );
+  const productions = useMemo(
+    () => sortProductions(rawProductions, sortMode),
+    [rawProductions, sortMode],
+  );
+
   const [uploadOpen, setUploadOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
