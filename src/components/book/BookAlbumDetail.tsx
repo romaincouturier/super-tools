@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, Plus, Share2, BarChart2, Library } from 'lucide-react';
+import { ChevronLeft, Plus, Share2, BarChart2, Library, Pencil } from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,8 @@ import BookUploadDialog from './BookUploadDialog';
 import BookShareLinksManager from './BookShareLinksManager';
 import BookAnalyticsDashboard from './BookAnalyticsDashboard';
 import BookMediaLibraryPicker from './BookMediaLibraryPicker';
+import BookCreateAlbumDialog from './BookCreateAlbumDialog';
+import { useBookAlbums } from '@/hooks/useBook';
 import type { BookProduction } from '@/types/book';
 import { toast } from '@/hooks/use-toast';
 
@@ -41,6 +44,10 @@ export default function BookAlbumDetail({
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const { data: allAlbums = [] } = useBookAlbums();
+  const currentAlbum = allAlbums.find((a) => a.id === albumId);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -109,6 +116,10 @@ export default function BookAlbumDetail({
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="w-4 h-4 mr-1.5" />
+            Renommer
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setStatsOpen(true)}>
             <BarChart2 className="w-4 h-4 mr-1.5" />
             Stats
@@ -191,6 +202,11 @@ export default function BookAlbumDetail({
         onIndexChange={setLightboxIndex}
         open={lightboxOpen}
         onOpenChange={setLightboxOpen}
+      />
+      <BookCreateAlbumDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        album={currentAlbum}
       />
     </div>
   );
