@@ -467,7 +467,8 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+
         <DialogHeader><DialogTitle>{form.id ? "Modifier le jeu" : "Nouveau jeu"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
