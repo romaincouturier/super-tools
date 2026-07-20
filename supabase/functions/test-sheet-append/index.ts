@@ -11,17 +11,17 @@ Deno.serve(async (req) => {
     );
     const sheetUrl = "https://docs.google.com/spreadsheets/d/1tyKULmXGvoKse-09VkIQuVNN-hCMZjFjlEafA7IOSqs/edit?gid=1910192676#gid=1910192676";
     const horodatage = new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" });
-    await appendRowToSheet(admin, sheetUrl, [
+    const result = await appendRowToSheet(admin, sheetUrl, [
       horodatage,
       "TEST — Echo (test manuel)",
       25.00,
-      0.63, // Stripe perso 1,5%+0,25€ sur 25,30 TTC
+      0.63,
       "",
       5.00,
       5.00,
       1.00,
     ]);
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
