@@ -39,6 +39,26 @@ function stripExtension(name: string): string {
   return name.replace(/\.[^/.]+$/, '');
 }
 
+async function createThumbnailFile(file: File): Promise<File | null> {
+  if (!resolveContentType(file).startsWith('image/')) return null;
+
+  const image = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const scale = Math.min(1, 900 / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d')?.drawImage(image, 0, 0, width, height);
+  image.close();
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.78),
+  );
+  if (!blob) return null;
+  return new File([blob], `${stripExtension(file.name)}-thumb.jpg`, { type: 'image/jpeg' });
+}
+
 export default function BookUploadDialog({ open, onOpenChange, albumId }: BookUploadDialogProps) {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [notes, setNotes] = useState('');
@@ -87,9 +107,11 @@ export default function BookUploadDialog({ open, onOpenChange, albumId }: BookUp
 
     for (const entry of files) {
       const exif = await extractExifData(entry.file);
+      const thumbnailFile = await createThumbnailFile(entry.file);
       await uploadProduction.mutateAsync({
         albumId,
         file: entry.file,
+        thumbnailFile,
         title: entry.title,
         notes: notes.trim() || undefined,
         tags: tags.length > 0 ? tags : undefined,
