@@ -7,6 +7,7 @@ import {
   Euro, Users, BarChart3, ExternalLink,
 } from "lucide-react";
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
+import { GameRestockTab } from "@/components/supertilt/GameRestockTab";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -844,6 +845,7 @@ function GameDialog({
   );
   const { mutateAsync: upsert, isPending } = useUpsertGameFull();
   const { toast } = useToast();
+  const [gameTab, setGameTab] = useState<"infos" | "restock">("infos");
 
   const set = (k: keyof GameFull, v: unknown) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -856,228 +858,239 @@ function GameDialog({
     } catch { toastError(toast, "Erreur lors de la sauvegarde"); }
   };
 
+  const showRestock = !!form.id && form.game_type !== "dropshipping";
+  const [launchOpen, setLaunchOpen] = useState(false);
+
+  const infosBody = (
+    <div className="space-y-4">
+      {/* Infos générales */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Informations générales</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2 space-y-1">
+            <Label>Titre *</Label>
+            <Input value={form.title ?? ""} onChange={(e) => set("title", e.target.value)} placeholder="Nom du jeu" />
+          </div>
+          <div className="space-y-1">
+            <Label>Type de jeu</Label>
+            <Select value={form.game_type ?? "dropshipping"} onValueChange={(v) => set("game_type", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="supertilt">Jeu SuperTilt</SelectItem>
+                <SelectItem value="dropshipping">Dropshipping</SelectItem>
+                <SelectItem value="location">Location</SelectItem>
+                <SelectItem value="partner">Partenaire / co-créé</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Statut</Label>
+            <Select value={form.status ?? "active"} onValueChange={(v) => set("status", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Actif</SelectItem>
+                <SelectItem value="inactive">Inactif</SelectItem>
+                <SelectItem value="to_check">À vérifier</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>ID produit WooCommerce</Label>
+            <Input type="number" value={form.woocommerce_product_id ?? ""} onChange={(e) => set("woocommerce_product_id", e.target.value ? parseInt(e.target.value) : null)} placeholder="Ex: 1234" />
+          </div>
+          <div className="space-y-1">
+            <Label>URL produit WooCommerce</Label>
+            <Input value={form.woocommerce_product_url ?? ""} onChange={(e) => set("woocommerce_product_url", e.target.value)} placeholder="https://…" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label>ID variation location WooCommerce (optionnel)</Label>
+            <Input
+              type="number"
+              value={form.location_variation_id ?? ""}
+              onChange={(e) => set("location_variation_id", e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="Ex: 4567 — ID de la variation « Location » dans WooCommerce"
+            />
+            <p className="text-xs text-muted-foreground">
+              Si ce jeu a deux variations WooCommerce (achat + location), renseignez ici l&apos;ID de la variation location.
+              Les commandes avec cette variation seront automatiquement routées en <strong>attente contrat</strong>,
+              quelle que soit la configuration du type de jeu.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Auteur */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Auteur / Fournisseur</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label>Auteur</Label>
+            <Select value={form.author_id ?? "__none__"} onValueChange={(v) => set("author_id", v === "__none__" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Aucun</SelectItem>
+                {authors.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label>Email secondaire (copie)</Label>
+            <Input value={form.secondary_author_email ?? ""} onChange={(e) => set("secondary_author_email", e.target.value)} placeholder="cc@exemple.fr" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label>Message personnalisé</Label>
+            <Textarea value={form.custom_message ?? ""} onChange={(e) => set("custom_message", e.target.value)} rows={2} placeholder="Message inclus dans les emails automatiques" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label>Instructions de traitement</Label>
+            <Textarea value={form.processing_instructions ?? ""} onChange={(e) => set("processing_instructions", e.target.value)} rows={2} placeholder="Notes internes sur le traitement de ce jeu" />
+          </div>
+        </div>
+      </div>
+
+      {/* Partenariat */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Partenariat</h3>
+        <div className="flex items-center gap-3">
+          <Switch checked={form.is_partner ?? false} onCheckedChange={(v) => set("is_partner", v)} />
+          <Label>Jeu en partenariat</Label>
+        </div>
+        {form.is_partner && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Nom du partenaire</Label>
+              <Input value={form.partner_name ?? ""} onChange={(e) => set("partner_name", e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Email du partenaire</Label>
+              <Input value={form.partner_email ?? ""} onChange={(e) => set("partner_email", e.target.value)} />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Commission */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Commission</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label>Type de commission</Label>
+            <Select value={form.commission_type ?? "percentage"} onValueChange={(v) => set("commission_type", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percentage">Pourcentage</SelectItem>
+                <SelectItem value="fixed">Montant fixe</SelectItem>
+                <SelectItem value="formula">Formule personnalisée</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {form.commission_type === "percentage" && (
+            <div className="space-y-1">
+              <Label>Taux (%)</Label>
+              <Input type="number" min="0" max="100" step="0.5"
+                value={form.commission_rate != null ? Math.round(form.commission_rate * 1000) / 10 : ""}
+                onChange={(e) => set("commission_rate", e.target.value ? parseFloat(e.target.value) / 100 : null)}
+              />
+            </div>
+          )}
+          {form.commission_type === "fixed" && (
+            <div className="space-y-1">
+              <Label>Montant fixe (€)</Label>
+              <Input type="number" min="0" step="0.01"
+                value={form.commission_fixed ?? ""}
+                onChange={(e) => set("commission_fixed", e.target.value ? parseFloat(e.target.value) : null)}
+              />
+            </div>
+          )}
+          {form.commission_type === "formula" && (
+            <div className="col-span-2 space-y-1">
+              <Label>Formule</Label>
+              <Input value={form.commission_formula ?? ""} onChange={(e) => set("commission_formula", e.target.value)} placeholder="ex: total * 0.15 - 2" />
+            </div>
+          )}
+          <div className="col-span-2 flex items-center gap-3">
+            <Switch checked={form.include_stripe_fees ?? false} onCheckedChange={(v) => set("include_stripe_fees", v)} />
+            <Label>Déduire les frais Stripe avant calcul</Label>
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label>Prix de revient unitaire HT (€)</Label>
+            <Input
+              type="number" min="0" step="0.01"
+              value={form.cost_price ?? ""}
+              onChange={(e) => set("cost_price", e.target.value ? parseFloat(e.target.value) : null)}
+              placeholder="Coût d'achat / fabrication par exemplaire"
+            />
+            <p className="text-xs text-muted-foreground">Utilisé pour calculer la marge réelle dans le bilan (CA SuperTilt − prix de revient × qté − dépenses).</p>
+          </div>
+          {form.game_type === "location" && (<>
+            <div className="col-span-2 space-y-1">
+              <Label>ID template PDF Monkey</Label>
+              <Input
+                placeholder="A9C4C140-4854-40AF-9EFA-BDD88EEA39A4"
+                value={form.pdfmonkey_template_id ?? ""}
+                onChange={(e) => set("pdfmonkey_template_id", e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Identifiant du template dans PDF Monkey pour générer le contrat.</p>
+            </div>
+            <div className="space-y-1">
+              <Label>Durée (libellé)</Label>
+              <Input
+                placeholder="1 mois"
+                value={form.location_duree_libelle ?? ""}
+                onChange={(e) => set("location_duree_libelle", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Durée (jours)</Label>
+              <Input
+                type="number" min="1"
+                placeholder="30"
+                value={form.location_duree_jours ?? ""}
+                onChange={(e) => set("location_duree_jours", e.target.value ? parseInt(e.target.value) : null)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Tarif retard / mois (€)</Label>
+              <Input
+                type="number" min="0" step="0.01"
+                placeholder="49"
+                value={form.location_tarif_retard_mois ?? ""}
+                onChange={(e) => set("location_tarif_retard_mois", e.target.value ? parseFloat(e.target.value) : null)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Prix remplacement (€)</Label>
+              <Input
+                type="number" min="0" step="0.01"
+                placeholder="390"
+                value={form.location_prix_remplacement ?? ""}
+                onChange={(e) => set("location_prix_remplacement", e.target.value ? parseFloat(e.target.value) : null)}
+              />
+            </div>
+          </>)}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-full max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{form.id ? "Modifier le jeu" : "Nouveau jeu"}</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          {/* Infos générales */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Informations générales</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1">
-                <Label>Titre *</Label>
-                <Input value={form.title ?? ""} onChange={(e) => set("title", e.target.value)} placeholder="Nom du jeu" />
-              </div>
-              <div className="space-y-1">
-                <Label>Type de jeu</Label>
-                <Select value={form.game_type ?? "dropshipping"} onValueChange={(v) => set("game_type", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="supertilt">Jeu SuperTilt</SelectItem>
-                    <SelectItem value="dropshipping">Dropshipping</SelectItem>
-                    <SelectItem value="location">Location</SelectItem>
-                    <SelectItem value="partner">Partenaire / co-créé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Statut</Label>
-                <Select value={form.status ?? "active"} onValueChange={(v) => set("status", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Actif</SelectItem>
-                    <SelectItem value="inactive">Inactif</SelectItem>
-                    <SelectItem value="to_check">À vérifier</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>ID produit WooCommerce</Label>
-                <Input type="number" value={form.woocommerce_product_id ?? ""} onChange={(e) => set("woocommerce_product_id", e.target.value ? parseInt(e.target.value) : null)} placeholder="Ex: 1234" />
-              </div>
-              <div className="space-y-1">
-                <Label>URL produit WooCommerce</Label>
-                <Input value={form.woocommerce_product_url ?? ""} onChange={(e) => set("woocommerce_product_url", e.target.value)} placeholder="https://…" />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>ID variation location WooCommerce (optionnel)</Label>
-                <Input
-                  type="number"
-                  value={form.location_variation_id ?? ""}
-                  onChange={(e) => set("location_variation_id", e.target.value ? parseInt(e.target.value) : null)}
-                  placeholder="Ex: 4567 — ID de la variation « Location » dans WooCommerce"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Si ce jeu a deux variations WooCommerce (achat + location), renseignez ici l&apos;ID de la variation location.
-                  Les commandes avec cette variation seront automatiquement routées en <strong>attente contrat</strong>,
-                  quelle que soit la configuration du type de jeu.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Auteur */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Auteur / Fournisseur</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Auteur</Label>
-                <Select value={form.author_id ?? "__none__"} onValueChange={(v) => set("author_id", v === "__none__" ? null : v)}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Aucun</SelectItem>
-                    {authors.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Email secondaire (copie)</Label>
-                <Input value={form.secondary_author_email ?? ""} onChange={(e) => set("secondary_author_email", e.target.value)} placeholder="cc@exemple.fr" />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Message personnalisé</Label>
-                <Textarea value={form.custom_message ?? ""} onChange={(e) => set("custom_message", e.target.value)} rows={2} placeholder="Message inclus dans les emails automatiques" />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Instructions de traitement</Label>
-                <Textarea value={form.processing_instructions ?? ""} onChange={(e) => set("processing_instructions", e.target.value)} rows={2} placeholder="Notes internes sur le traitement de ce jeu" />
-              </div>
-            </div>
-          </div>
-
-          {/* Partenariat */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Partenariat</h3>
-            <div className="flex items-center gap-3">
-              <Switch checked={form.is_partner ?? false} onCheckedChange={(v) => set("is_partner", v)} />
-              <Label>Jeu en partenariat</Label>
-            </div>
-            {form.is_partner && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Nom du partenaire</Label>
-                  <Input value={form.partner_name ?? ""} onChange={(e) => set("partner_name", e.target.value)} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Email du partenaire</Label>
-                  <Input value={form.partner_email ?? ""} onChange={(e) => set("partner_email", e.target.value)} />
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <Label>URL du Bilan (partagée avec le co-auteur/co-autrice)</Label>
-                  <Input
-                    type="url"
-                    value={(form as any).bilan_url ?? ""}
-                    onChange={(e) => set("bilan_url" as any, e.target.value || null)}
-                    placeholder="https://…"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Commission */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Commission</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Type de commission</Label>
-                <Select value={form.commission_type ?? "percentage"} onValueChange={(v) => set("commission_type", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Pourcentage</SelectItem>
-                    <SelectItem value="fixed">Montant fixe</SelectItem>
-                    <SelectItem value="formula">Formule personnalisée</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {form.commission_type === "percentage" && (
-                <div className="space-y-1">
-                  <Label>Taux (%)</Label>
-                  <Input type="number" min="0" max="100" step="0.5"
-                    value={form.commission_rate != null ? Math.round(form.commission_rate * 1000) / 10 : ""}
-                    onChange={(e) => set("commission_rate", e.target.value ? parseFloat(e.target.value) / 100 : null)}
-                  />
-                </div>
-              )}
-              {form.commission_type === "fixed" && (
-                <div className="space-y-1">
-                  <Label>Montant fixe (€)</Label>
-                  <Input type="number" min="0" step="0.01"
-                    value={form.commission_fixed ?? ""}
-                    onChange={(e) => set("commission_fixed", e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-              )}
-              {form.commission_type === "formula" && (
-                <div className="col-span-2 space-y-1">
-                  <Label>Formule</Label>
-                  <Input value={form.commission_formula ?? ""} onChange={(e) => set("commission_formula", e.target.value)} placeholder="ex: total * 0.15 - 2" />
-                </div>
-              )}
-              <div className="col-span-2 flex items-center gap-3">
-                <Switch checked={form.include_stripe_fees ?? false} onCheckedChange={(v) => set("include_stripe_fees", v)} />
-                <Label>Déduire les frais Stripe avant calcul</Label>
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Prix de revient unitaire HT (€)</Label>
-                <Input
-                  type="number" min="0" step="0.01"
-                  value={form.cost_price ?? ""}
-                  onChange={(e) => set("cost_price", e.target.value ? parseFloat(e.target.value) : null)}
-                  placeholder="Coût d'achat / fabrication par exemplaire"
-                />
-                <p className="text-xs text-muted-foreground">Utilisé pour calculer la marge réelle dans le bilan (CA SuperTilt − prix de revient × qté − dépenses).</p>
-              </div>
-              {form.game_type === "location" && (<>
-                <div className="col-span-2 space-y-1">
-                  <Label>ID template PDF Monkey</Label>
-                  <Input
-                    placeholder="A9C4C140-4854-40AF-9EFA-BDD88EEA39A4"
-                    value={form.pdfmonkey_template_id ?? ""}
-                    onChange={(e) => set("pdfmonkey_template_id", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">Identifiant du template dans PDF Monkey pour générer le contrat.</p>
-                </div>
-                <div className="space-y-1">
-                  <Label>Durée (libellé)</Label>
-                  <Input
-                    placeholder="1 mois"
-                    value={form.location_duree_libelle ?? ""}
-                    onChange={(e) => set("location_duree_libelle", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Durée (jours)</Label>
-                  <Input
-                    type="number" min="1"
-                    placeholder="30"
-                    value={form.location_duree_jours ?? ""}
-                    onChange={(e) => set("location_duree_jours", e.target.value ? parseInt(e.target.value) : null)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Tarif retard / mois (€)</Label>
-                  <Input
-                    type="number" min="0" step="0.01"
-                    placeholder="49"
-                    value={form.location_tarif_retard_mois ?? ""}
-                    onChange={(e) => set("location_tarif_retard_mois", e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label>Prix remplacement (€)</Label>
-                  <Input
-                    type="number" min="0" step="0.01"
-                    placeholder="390"
-                    value={form.location_prix_remplacement ?? ""}
-                    onChange={(e) => set("location_prix_remplacement", e.target.value ? parseFloat(e.target.value) : null)}
-                  />
-                </div>
-              </>)}
-            </div>
-          </div>
-        </div>
+        {showRestock ? (
+          <Tabs value={gameTab} onValueChange={(v) => setGameTab(v as "infos" | "restock")}>
+            <TabsList className="grid grid-cols-2 w-full">
+              <TabsTrigger value="infos">Informations</TabsTrigger>
+              <TabsTrigger value="restock"><Package className="h-4 w-4 mr-1.5" />Réassort</TabsTrigger>
+            </TabsList>
+            <TabsContent value="infos" className="pt-3">{infosBody}</TabsContent>
+            <TabsContent value="restock" className="pt-3">
+              <GameRestockTab gameId={form.id!} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          infosBody
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !form.title}>
@@ -1088,6 +1101,8 @@ function GameDialog({
     </Dialog>
   );
 }
+
+
 
 // ── Catalog ────────────────────────────────────────────────────────
 

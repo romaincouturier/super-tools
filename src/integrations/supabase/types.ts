@@ -3309,6 +3309,198 @@ export type Database = {
           },
         ]
       }
+      game_restock_action_files: {
+        Row: {
+          action_id: string
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_restock_action_files_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "game_restock_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_restock_actions: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: string
+          instructions: string | null
+          label: string
+          position: number
+          unit_price_ht: number | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: string
+          instructions?: string | null
+          label: string
+          position?: number
+          unit_price_ht?: number | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: string
+          instructions?: string | null
+          label?: string
+          position?: number
+          unit_price_ht?: number | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_restock_actions_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_restock_items: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          final_cost_ht: number | null
+          final_cost_ttc: number | null
+          id: string
+          instructions: string | null
+          label: string
+          position: number
+          restock_id: string
+          status: string
+          template_action_id: string | null
+          unit_price_ht: number | null
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          final_cost_ht?: number | null
+          final_cost_ttc?: number | null
+          id?: string
+          instructions?: string | null
+          label: string
+          position?: number
+          restock_id: string
+          status?: string
+          template_action_id?: string | null
+          unit_price_ht?: number | null
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          final_cost_ht?: number | null
+          final_cost_ttc?: number | null
+          id?: string
+          instructions?: string | null
+          label?: string
+          position?: number
+          restock_id?: string
+          status?: string
+          template_action_id?: string | null
+          unit_price_ht?: number | null
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_restock_items_restock_id_fkey"
+            columns: ["restock_id"]
+            isOneToOne: false
+            referencedRelation: "game_restocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_restock_items_template_action_id_fkey"
+            columns: ["template_action_id"]
+            isOneToOne: false
+            referencedRelation: "game_restock_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_restocks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          game_id: string
+          id: string
+          notes: string | null
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          game_id: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          game_id?: string
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_restocks_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_sales: {
         Row: {
           amount_ht: number | null
