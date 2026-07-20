@@ -41,7 +41,7 @@ export async function appendRowToSheet(
   admin: ReturnType<typeof createClient>,
   sheetUrl: string,
   values: Array<string | number | null>,
-): Promise<void> {
+): Promise<{ spreadsheetId: string; tabTitle: string; updatedRange: string }> {
   const parsed = parseSheetsUrl(sheetUrl);
   if (!parsed) throw new Error(`Invalid Google Sheets URL: ${sheetUrl}`);
 
@@ -68,4 +68,10 @@ export async function appendRowToSheet(
   if (!res.ok) {
     throw new Error(`Sheets append error ${res.status}: ${await res.text()}`);
   }
+  const data = await res.json() as { updates?: { updatedRange?: string } };
+  return {
+    spreadsheetId: parsed.spreadsheetId,
+    tabTitle,
+    updatedRange: data.updates?.updatedRange ?? "",
+  };
 }
