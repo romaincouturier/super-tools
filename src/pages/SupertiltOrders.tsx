@@ -7,6 +7,7 @@ import {
   Euro, Users, BarChart3, ExternalLink,
 } from "lucide-react";
 import { BilanTab, PartenairesTab, DepensesTab, StockTab, AuteursTab } from "@/components/supertilt/SupertiltOrdersV2";
+import { GameRestockTab } from "@/components/supertilt/GameRestockTab";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
