@@ -44,6 +44,10 @@ export default function BookAlbumDetail({
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+
+  const { data: allAlbums = [] } = useBookAlbums();
+  const currentAlbum = allAlbums.find((a) => a.id === albumId);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
