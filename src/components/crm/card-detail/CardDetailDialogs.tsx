@@ -98,12 +98,22 @@ const CardDetailDialogs = (props: Props) => {
   }>>([]);
   const [interTrainingsLoading, setInterTrainingsLoading] = useState(false);
 
+  const [cardQuotes, setCardQuotes] = useState<Array<{
+    id: string;
+    quote_number: string | null;
+    issue_date: string | null;
+    total_ht: number | null;
+    synthesis: string | null;
+  }>>([]);
+  const [pendingAttachTrainingId, setPendingAttachTrainingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!showWinChoiceDialog) {
       setShowAttachTraining(false);
       setShowFirstAction(false);
       setFirstActionDate("");
       setFirstActionText("");
+      setPendingAttachTrainingId(null);
       return;
     }
     const fetchInterTrainings = async () => {
@@ -120,8 +130,19 @@ const CardDetailDialogs = (props: Props) => {
       if (!error && data) setInterTrainings(data as any);
       setInterTrainingsLoading(false);
     };
+    const fetchQuotes = async () => {
+      if (!cardId) return;
+      const { data } = await supabase
+        .from("quotes")
+        .select("id, quote_number, issue_date, total_ht, synthesis")
+        .eq("crm_card_id", cardId)
+        .neq("status", "draft")
+        .order("created_at", { ascending: false });
+      setCardQuotes((data || []) as typeof cardQuotes);
+    };
     fetchInterTrainings();
-  }, [showWinChoiceDialog]);
+    fetchQuotes();
+  }, [showWinChoiceDialog, cardId]);
 
   const handleCreateMissionWithAction = async () => {
     if (firstActionDate && cardId) {
@@ -139,11 +160,24 @@ const CardDetailDialogs = (props: Props) => {
     handleConfirmCreateMission();
   };
 
-  const handleAttachToTraining = async (trainingId: string) => {
+  const handleAttachToTrainingClick = (trainingId: string) => {
+    // If several non-draft quotes exist, ask which one is the winning one first.
+    if (cardQuotes.length >= 2) {
+      setPendingAttachTrainingId(trainingId);
+      return;
+    }
+    const q = cardQuotes[0];
+    handleAttachToTraining(trainingId, q ? { quoteId: q.id, totalHt: q.total_ht } : null);
+  };
+
+  const handleAttachToTraining = async (
+    trainingId: string,
+    selectedQuote: { quoteId: string; totalHt: number | null } | null,
+  ) => {
     setShowWinChoiceDialog(false);
     onOpenChange(false);
 
-    // Fetch full card (address) + latest quote / micro-devis for participant + address + formule
+    // Fetch full card (address) + winning (or latest) quote / micro-devis for participant + address + formule
     let cardAddress: string | null = null;
     let cardZip: string | null = null;
     let cardCity: string | null = null;
@@ -164,13 +198,16 @@ const CardDetailDialogs = (props: Props) => {
         cardCity = cardRow.city;
       }
 
-      const { data: quoteRow } = await supabase
+      const baseQuote = supabase
         .from("quotes")
-        .select("line_items, client_address, client_zip, client_city")
-        .eq("crm_card_id", cardId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .select("line_items, client_address, client_zip, client_city, total_ht");
+      const { data: quoteRow } = selectedQuote
+        ? await baseQuote.eq("id", selectedQuote.quoteId).maybeSingle()
+        : await baseQuote
+            .eq("crm_card_id", cardId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
       if (quoteRow) {
         if (!cardAddress && quoteRow.client_address) cardAddress = quoteRow.client_address;
@@ -213,36 +250,38 @@ const CardDetailDialogs = (props: Props) => {
           }
         }
       }
+
+      // Sold price = winning quote total HT (fallback to latest quote total, then card estimated value)
+      const soldPriceHt =
+        selectedQuote?.totalHt ??
+        (quoteRow && "total_ht" in quoteRow ? (quoteRow as { total_ht: number | null }).total_ht : null) ??
+        (estimatedValue ? parseFloat(estimatedValue) : null);
+
+      const params = new URLSearchParams();
+      const pFirstName = participantFirstName || firstName;
+      const pLastName = participantLastName || lastName;
+      const pEmail = participantEmail || email;
+      if (pFirstName) params.set("addParticipantFirstName", pFirstName);
+      if (pLastName) params.set("addParticipantLastName", pLastName);
+      if (pEmail) params.set("addParticipantEmail", pEmail);
+      if (company) params.set("addParticipantCompany", company);
+      if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
+      if (cardZip) params.set("addParticipantCompanyZip", cardZip);
+      if (cardCity) params.set("addParticipantCompanyCity", cardCity);
+      if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
+
+      if (participantEmail && email && participantEmail !== email.toLowerCase()) {
+        if (firstName) params.set("addParticipantSponsorFirstName", firstName);
+        if (lastName) params.set("addParticipantSponsorLastName", lastName);
+        if (email) params.set("addParticipantSponsorEmail", email);
+      }
+
+      if (soldPriceHt != null && soldPriceHt > 0) {
+        params.set("addParticipantSoldPriceHt", String(soldPriceHt));
+      }
+      params.set("fromCrmCardId", cardId);
+      navigate(`/formations/${trainingId}?${params.toString()}`);
     }
-
-    const params = new URLSearchParams();
-
-    // Participant = micro-devis participant if present, else card contact
-    const pFirstName = participantFirstName || firstName;
-    const pLastName = participantLastName || lastName;
-    const pEmail = participantEmail || email;
-    if (pFirstName) params.set("addParticipantFirstName", pFirstName);
-    if (pLastName) params.set("addParticipantLastName", pLastName);
-    if (pEmail) params.set("addParticipantEmail", pEmail);
-    if (company) params.set("addParticipantCompany", company);
-    if (cardAddress) params.set("addParticipantCompanyAddress", cardAddress);
-    if (cardZip) params.set("addParticipantCompanyZip", cardZip);
-    if (cardCity) params.set("addParticipantCompanyCity", cardCity);
-    if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
-
-    // Sponsor = card contact (only forwarded if a distinct participant came from micro-devis)
-    if (participantEmail && email && participantEmail !== email.toLowerCase()) {
-      if (firstName) params.set("addParticipantSponsorFirstName", firstName);
-      if (lastName) params.set("addParticipantSponsorLastName", lastName);
-      if (email) params.set("addParticipantSponsorEmail", email);
-    }
-
-    if (estimatedValue && parseFloat(estimatedValue) > 0) {
-      params.set("addParticipantSoldPriceHt", estimatedValue);
-    }
-    if (cardId) params.set("fromCrmCardId", cardId);
-    const qs = params.toString();
-    navigate(`/formations/${trainingId}${qs ? `?${qs}` : ""}`);
   };
 
   return (
@@ -400,7 +439,7 @@ const CardDetailDialogs = (props: Props) => {
                     {interTrainings.map((training) => (
                       <button
                         key={training.id}
-                        onClick={() => handleAttachToTraining(training.id)}
+                        onClick={() => handleAttachToTrainingClick(training.id)}
                         className="w-full text-left px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors flex items-start gap-3"
                       >
                         <GraduationCap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -426,6 +465,53 @@ const CardDetailDialogs = (props: Props) => {
 
           <AlertDialogFooter>
             <AlertDialogCancel>Non, plus tard</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingAttachTrainingId}
+        onOpenChange={(open) => { if (!open) setPendingAttachTrainingId(null); }}
+      >
+        <AlertDialogContent className="w-full sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quel devis a été gagné ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Plusieurs devis ont été envoyés. Sélectionnez celui qui a été accepté — le montant vendu
+              du participant sera défini en conséquence.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1 max-h-72 overflow-y-auto border rounded-md p-1">
+            {cardQuotes.map((q) => (
+              <button
+                key={q.id}
+                onClick={() => {
+                  const trainingId = pendingAttachTrainingId;
+                  setPendingAttachTrainingId(null);
+                  if (trainingId) handleAttachToTraining(trainingId, { quoteId: q.id, totalHt: q.total_ht });
+                }}
+                className="w-full text-left px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors"
+              >
+                <div className="text-sm font-medium">
+                  {q.quote_number || "Devis sans numéro"} —{" "}
+                  {q.total_ht != null
+                    ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(q.total_ht)
+                    : "—"}{" "}
+                  HT
+                </div>
+                {q.synthesis && (
+                  <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{q.synthesis}</div>
+                )}
+                {q.issue_date && (
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Émis le {format(parseISO(q.issue_date), "d MMM yyyy", { locale: fr })}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

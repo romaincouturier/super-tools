@@ -434,7 +434,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     }
   };
 
-  const handleConfirmAddParticipant = async (trainingId: string) => {
+  const handleConfirmAddParticipant = async (
+    trainingId: string,
+    selectedQuote: { quoteId: string; totalHt: number | null } | null,
+  ) => {
     if (!pendingTrainingCard) return;
 
     const card = pendingTrainingCard;
@@ -446,14 +449,17 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     let participantLastName: string | undefined;
     let participantEmail: string | undefined;
 
-    // Pull participant from latest micro-devis (and fall back address from quote)
-    const { data: quoteRow } = await supabase
+    // Prefer the explicitly selected winning quote; fall back to latest quote for the card.
+    const quoteQuery = supabase
       .from("quotes")
-      .select("line_items, client_address, client_zip, client_city")
-      .eq("crm_card_id", card.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .select("line_items, client_address, client_zip, client_city, total_ht");
+    const { data: quoteRow } = selectedQuote
+      ? await quoteQuery.eq("id", selectedQuote.quoteId).maybeSingle()
+      : await quoteQuery
+          .eq("crm_card_id", card.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
     if (quoteRow) {
       if (!cardAddress && quoteRow.client_address) cardAddress = quoteRow.client_address;
@@ -507,6 +513,12 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
     if (cardZip) params.set("addParticipantCompanyZip", cardZip);
     if (cardCity) params.set("addParticipantCompanyCity", cardCity);
     if (selectedFormulaId) params.set("addParticipantFormulaId", selectedFormulaId);
+
+    // Sold price = the selected winning quote total HT (fallback to card estimated_value).
+    const soldPriceHt = selectedQuote?.totalHt ?? quoteRow?.total_ht ?? card.estimated_value ?? null;
+    if (soldPriceHt != null && soldPriceHt > 0) {
+      params.set("addParticipantSoldPriceHt", String(soldPriceHt));
+    }
 
     if (participantEmail && card.email && participantEmail !== card.email.toLowerCase()) {
       if (card.first_name) params.set("addParticipantSponsorFirstName", card.first_name);
@@ -771,6 +783,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         onConfirmAddParticipant={handleConfirmAddParticipant}
         opportunityTitle={pendingTrainingCard?.title || ""}
         isFormation={pendingTrainingCard?.service_type === "formation" || !pendingTrainingCard?.service_type}
+        crmCardId={pendingTrainingCard?.id ?? null}
       />
 
       {/* Loss Reason Dialog for drag-to-lost */}
