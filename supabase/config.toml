@@ -653,3 +653,6 @@ verify_jwt = true
 
 [functions.upload-idea-file]
 verify_jwt = true
+
+[functions.test-sheet-append]
+verify_jwt = false
