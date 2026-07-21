@@ -79,8 +79,6 @@ Deno.serve(async (req) => {
       coding_status: codingStatus,
       coding_error: body.coding_error ?? null,
     };
-    if (body.pr_url !== undefined) update.coding_pr_url = body.pr_url;
-    if (body.branch !== undefined) update.coding_branch = body.branch;
 
     const { data, error } = await supabase
       .from("support_tickets")
