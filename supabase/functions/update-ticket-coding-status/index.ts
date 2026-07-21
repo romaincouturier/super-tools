@@ -41,8 +41,6 @@ Deno.serve(async (req) => {
       ticket_number?: string;
       coding_status?: string;
       coding_error?: string | null;
-      pr_url?: string | null;
-      branch?: string | null;
     } = {};
     try {
       body = await req.json();
