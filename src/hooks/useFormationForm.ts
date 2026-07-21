@@ -48,6 +48,7 @@ export interface FormationFormState {
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
+  sponsorPhone: string;
   sponsorFormalAddress: boolean;
 
   // Financeur
