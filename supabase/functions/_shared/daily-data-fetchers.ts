@@ -1383,24 +1383,29 @@ export interface InProgressRestockItem {
 export async function fetchInProgressRestocks(supabase: SupabaseClient): Promise<InProgressRestockItem[]> {
   const { data, error } = await supabase
     .from("game_restocks")
-    .select("id, game_id, started_at, games(title), game_restock_items(id, status)")
-    .eq("status", "in_progress");
+    .select("id, game_id, status, started_at, games(title), game_restock_items(id, status)")
+    .neq("status", "cancelled");
   if (error) {
     console.error("fetchInProgressRestocks error:", error.message);
     return [];
   }
-  return (data ?? []).map((r: any) => {
-    const items = (r.game_restock_items ?? []) as any[];
-    return {
-      restockId: r.id,
-      gameId: r.game_id,
-      gameTitle: r.games?.title ?? "Jeu",
-      startedAt: r.started_at ?? null,
-      itemsTotal: items.length,
-      itemsDone: items.filter((i) => i.status === "received").length,
-    };
-  });
+  return (data ?? [])
+    .map((r: any) => {
+      const items = (r.game_restock_items ?? []) as any[];
+      const itemsDone = items.filter((i) => i.status === "received").length;
+      return {
+        restockId: r.id,
+        gameId: r.game_id,
+        gameTitle: r.games?.title ?? "Jeu",
+        startedAt: r.started_at ?? null,
+        itemsTotal: items.length,
+        itemsDone,
+      };
+    })
+    // Reste dans le mail tant que toutes les actions ne sont pas terminées
+    .filter((r) => r.itemsTotal === 0 || r.itemsDone < r.itemsTotal);
 }
+
 
 
 
