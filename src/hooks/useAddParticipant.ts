@@ -19,6 +19,7 @@ export interface AddParticipantParams {
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
+  sponsorPhone: string;
   financeurSameAsSponsor: boolean;
   financeurName: string;
   financeurUrl: string;
