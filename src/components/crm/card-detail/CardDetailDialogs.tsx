@@ -318,6 +318,9 @@ const CardDetailDialogs = (props: Props) => {
         }}
         opportunityTitle={title}
         isFormation={serviceType === "formation" || !serviceType}
+        crmCardId={cardId ?? null}
+        initialSiren={initialSiren}
+        onSirenResolved={onSirenResolved}
       />
 
       <AlertDialog open={showWinChoiceDialog} onOpenChange={setShowWinChoiceDialog}>
