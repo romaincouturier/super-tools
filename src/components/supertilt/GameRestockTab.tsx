@@ -351,7 +351,11 @@ function RestockRunDialog({
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const items = (run?.items ?? []).slice().sort((a, b) => a.position - b.position);
+  const STATUS_ORDER: Record<RestockItemStatus, number> = { todo: 0, in_progress: 1, awaiting_delivery: 2, received: 3 };
+  const items = (run?.items ?? []).slice().sort((a, b) => {
+    const s = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    return s !== 0 ? s : a.position - b.position;
+  });
   const templateIds = items.map((i) => i.template_action_id).filter(Boolean) as string[];
   const { data: allFiles } = useRestockActionFiles(templateIds);
   const filesByAction = (allFiles ?? []).reduce<Record<string, RestockActionFile[]>>((acc, f) => {
