@@ -450,6 +450,7 @@ function RunItemRow({
   const [costHT, setCostHT] = useState<string>(item.final_cost_ht?.toString() ?? "");
   const [costTTC, setCostTTC] = useState<string>(item.final_cost_ttc?.toString() ?? "");
   const [instructions, setInstructions] = useState<string>(item.instructions ?? "");
+  const [etaDate, setEtaDate] = useState<string>(item.estimated_delivery_date ?? "");
   const { toast } = useToast();
 
   const onStatus = async (status: RestockItemStatus) => {
@@ -460,10 +461,22 @@ function RunItemRow({
         return;
       }
       await onPatch({ status, completed_at: new Date().toISOString() } as any);
+    } else if (status === "awaiting_delivery") {
+      await onPatch({ status, completed_at: null } as any);
+      setExpanded(true);
+      if (!item.estimated_delivery_date) {
+        toast({ title: "Indiquez la date estimée de livraison" });
+      }
     } else {
       await onPatch({ status, completed_at: null } as any);
     }
   };
+
+  const saveEta = async () => {
+    await onPatch({ estimated_delivery_date: etaDate || null } as any);
+    toast({ title: "Date estimée enregistrée" });
+  };
+
 
   const saveCosts = async () => {
     const ht = costHT ? parseFloat(costHT) : null;
