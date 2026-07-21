@@ -158,6 +158,7 @@ export function useFormationDetail() {
         sponsorFirstName: pSponsorFirstName,
         sponsorLastName: pSponsorLastName,
         sponsorEmail: pSponsorEmail,
+        sponsorPhone: pSponsorPhone,
         soldPriceHt: pSoldPriceHt,
         formulaId: pFormulaId,
       });
