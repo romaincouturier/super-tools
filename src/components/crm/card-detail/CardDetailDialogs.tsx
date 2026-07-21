@@ -81,7 +81,7 @@ const CardDetailDialogs = (props: Props) => {
     showPricingDialog, setShowPricingDialog, pricingLines, setPricingLines,
     pricingTravelTotal, setPricingTravelTotal, setEstimatedValue,
     showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams: _pendingTrainingParams,
-    handleConfirmCreateTraining,
+    handleConfirmCreateTraining, initialSiren, onSirenResolved,
     showWinChoiceDialog, setShowWinChoiceDialog, handleConfirmCreateMission,
     onOpenChange,
   } = props;
