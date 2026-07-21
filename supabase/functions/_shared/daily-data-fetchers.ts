@@ -1344,15 +1344,14 @@ export interface RestockDeliveryItem {
   gameId: string;
   gameTitle: string;
   label: string;
-  estimatedDeliveryDate: string; // YYYY-MM-DD
+  estimatedDeliveryDate: string | null; // null => date manquante à renseigner
 }
 
 export async function fetchRestockDeliveries(supabase: SupabaseClient): Promise<RestockDeliveryItem[]> {
   const { data, error } = await supabase
     .from("game_restock_items")
     .select("id, restock_id, label, estimated_delivery_date, game_restocks!inner(id, game_id, status, games(title))")
-    .eq("status", "awaiting_delivery")
-    .not("estimated_delivery_date", "is", null);
+    .eq("status", "awaiting_delivery");
   if (error) {
     console.error("fetchRestockDeliveries error:", error.message);
     return [];
