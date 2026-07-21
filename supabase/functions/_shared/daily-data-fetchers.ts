@@ -1526,6 +1526,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
+    restockDeliveries,
   };
 }
 
