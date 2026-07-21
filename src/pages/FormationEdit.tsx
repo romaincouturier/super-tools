@@ -30,6 +30,7 @@ import {
   FinanceurCard,
   CatalogSummaryCard,
   SourceFinancementSelector,
+  TypeStagiaireBpfSelector,
 } from "@/components/formations/FormationFormFields";
 import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
 import type { FormationFormula } from "@/types/training";
