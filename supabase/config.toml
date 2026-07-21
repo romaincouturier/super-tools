@@ -659,3 +659,6 @@ verify_jwt = false
 
 [functions.update-ticket-coding-status]
 verify_jwt = false
+
+[functions.get-ticket-for-processing]
+verify_jwt = false
