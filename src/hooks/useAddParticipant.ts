@@ -89,6 +89,7 @@ export function useAddParticipant({
             sponsorFirstName: params.sponsorFirstName,
             sponsorLastName: params.sponsorLastName,
             sponsorEmail: params.sponsorEmail,
+            sponsorPhone: params.sponsorPhone,
             financeurSameAsSponsor: params.financeurSameAsSponsor,
             financeurName: params.financeurName,
             financeurUrl: params.financeurUrl,
