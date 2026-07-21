@@ -228,6 +228,15 @@ serve(async (req) => {
     const scheduledFailed = scheduledFailedRes.data ?? [];
     const totalFailedEmails = failedEmails.length + scheduledFailed.length;
 
+    // ── Tickets support en codage automatique (admins) ──
+    const { data: codingTicketsData } = await supabase
+      .from("support_tickets")
+      .select("id, ticket_number, title, status, coding_status, branch_url, coding_error, discussion_requested_at, updated_at")
+      .or("coding_status.in.(pending,running,ready_for_review,done,error),status.eq.vibe_coding")
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    const codingTickets = codingTicketsData ?? [];
+
     // ── Send per-user digest ──
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
 
@@ -571,6 +580,27 @@ serve(async (req) => {
         }
         add("🚨", "Emails en erreur", COLORS.red, items);
       }
+
+      // 19. Tickets support en codage automatique (admins uniquement)
+      if (recipient.isAdmin && codingTickets.length > 0) {
+        const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
+          pending:          { label: "En attente",    color: COLORS.gray || "#6b7280", icon: "⏳" },
+          running:          { label: "En cours",      color: "#3b82f6",                icon: "⚙️" },
+          ready_for_review: { label: "PR à relire",   color: "#8b5cf6",                icon: "👀" },
+          done:             { label: "Terminé",       color: "#10b981",                icon: "✅" },
+          error:            { label: "Erreur",        color: COLORS.red,               icon: "❌" },
+        };
+        const items = codingTickets.map((t: any) => {
+          const meta = statusLabels[t.coding_status] || { label: t.coding_status || t.status, color: "#6b7280", icon: "•" };
+          const branch = t.branch_url ? ` — ${linkHtml(t.branch_url, "voir la PR")}` : "";
+          const err = t.coding_error ? ` — <span style="color:${COLORS.red};">${String(t.coding_error).slice(0, 120)}</span>` : "";
+          const title = t.title ? ` — ${t.title.slice(0, 80)}` : "";
+          return `<li>${linkHtml(`${appUrl}/support`, `${t.ticket_number}${title}`)} — <span style="color:${meta.color};font-weight:600;">${meta.icon} ${meta.label}</span>${branch}${err}</li>`;
+        });
+        add("🔧", "Tickets en codage automatique", "#8b5cf6", items);
+      }
+
+
 
 
 
