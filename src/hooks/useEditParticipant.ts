@@ -28,6 +28,7 @@ export interface Participant {
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
+  sponsor_phone?: string | null;
   financeur_same_as_sponsor?: boolean;
   financeur_name?: string | null;
   financeur_url?: string | null;
