@@ -40,6 +40,8 @@ interface SponsorFormFieldsProps {
   setSponsorLastName: (v: string) => void;
   sponsorEmail: string;
   setSponsorEmail: (v: string) => void;
+  sponsorPhone: string;
+  setSponsorPhone: (v: string) => void;
   financeurSameAsSponsor: boolean;
   setFinanceurSameAsSponsor: (v: boolean) => void;
   financeurName: string;
