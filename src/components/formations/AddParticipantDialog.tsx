@@ -82,7 +82,7 @@ interface AddParticipantDialogProps {
   description?: string;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
