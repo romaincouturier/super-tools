@@ -12,6 +12,8 @@ export interface UseSponsorInfoReturn {
   setSponsorLastName: React.Dispatch<React.SetStateAction<string>>;
   sponsorEmail: string;
   setSponsorEmail: React.Dispatch<React.SetStateAction<string>>;
+  sponsorPhone: string;
+  setSponsorPhone: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export function useSponsorInfo({
@@ -26,11 +28,15 @@ export function useSponsorInfo({
   const [sponsorEmail, setSponsorEmail] = useState(
     participant.sponsor_email || "",
   );
+  const [sponsorPhone, setSponsorPhone] = useState(
+    participant.sponsor_phone || "",
+  );
 
   useEffect(() => {
     setSponsorFirstName(participant.sponsor_first_name || "");
     setSponsorLastName(participant.sponsor_last_name || "");
     setSponsorEmail(participant.sponsor_email || "");
+    setSponsorPhone(participant.sponsor_phone || "");
   }, [participant]);
 
   return {
@@ -40,5 +46,7 @@ export function useSponsorInfo({
     setSponsorLastName,
     sponsorEmail,
     setSponsorEmail,
+    sponsorPhone,
+    setSponsorPhone,
   };
 }
