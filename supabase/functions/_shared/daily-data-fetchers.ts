@@ -1490,6 +1490,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supertiltAlerts,
     supertiltActions,
     lmsCommunityPending,
+    restockDeliveries,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1515,6 +1516,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchSupertiltAlerts(supabase),
     fetchSupertiltActions(supabase, today),
     fetchLmsCommunityPending(supabase),
+    fetchRestockDeliveries(supabase),
   ]);
 
   return {
