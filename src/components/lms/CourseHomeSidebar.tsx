@@ -189,6 +189,8 @@ export interface CourseHomeSidebarProps {
   lessonsDoneByModule: Record<string, number>;
   communityPreviewCount: number;
   meetings: CourseLiveMeeting[];
+  showNextLive?: boolean;
+  showCommunity?: boolean;
   activeView: string;
   onModuleClick: (moduleId: string) => void;
   onViewChange: (view: string) => void;
@@ -209,6 +211,8 @@ export default function CourseHomeSidebar({
   lessonsDoneByModule,
   communityPreviewCount,
   meetings,
+  showNextLive = true,
+  showCommunity = true,
   activeView,
   onModuleClick,
   onViewChange,
@@ -233,7 +237,7 @@ export default function CourseHomeSidebar({
       style={{ background: "var(--st-white)" }}
     >
       {/* Live et replays */}
-      {meetings.length > 0 && (() => {
+      {showNextLive && meetings.length > 0 && (() => {
         const now = Date.now();
         const next = [...meetings]
           .filter((m) => new Date(m.scheduled_at).getTime() >= now)
@@ -277,7 +281,9 @@ export default function CourseHomeSidebar({
       })()}
 
 
-      <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} isPreview={isPreview} />
+      {showCommunity && (
+        <CommunitySidebarPreview email={email} courseId={courseId} lessonId={activeLessonId} isPreview={isPreview} />
+      )}
 
       <div className="p-5 flex-1">
         <ul className="space-y-1 mb-4">
