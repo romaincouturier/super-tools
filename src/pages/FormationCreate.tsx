@@ -255,13 +255,61 @@ const FormationCreate = () => {
 
       // Bootstrap logistics checklist from default template (best-effort).
       try {
-        const { bootstrapChecklist } = await import("@/services/logistics");
+        const { bootstrapChecklist, createItemsBatch, fetchItems } = await import("@/services/logistics");
         await bootstrapChecklist({
           entityType: "training",
           entityId: training.id,
           format: training.format_formation as string | null,
           sessionType: (training as { session_type?: string | null }).session_type ?? null,
         });
+
+        // For intra sessions, always add a "send training agreement" item, plus
+        // dedicated confirm-date / confirm-location items if those are missing.
+        // Reminder due date: tomorrow (aujourd'hui + 1 jour).
+        if (isIntraClassique) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const dueDate = format(tomorrow, "yyyy-MM-dd");
+          const existing = await fetchItems("training", training.id).catch(() => []);
+          const basePos = existing.length;
+          const extras: Array<{
+            entity_type: "training";
+            entity_id: string;
+            label: string;
+            position: number;
+            due_date: string;
+            notify_days_before: number;
+          }> = [];
+          extras.push({
+            entity_type: "training",
+            entity_id: training.id,
+            label: "Envoyer la convention de formation au client",
+            position: basePos + extras.length,
+            due_date: dueDate,
+            notify_days_before: 0,
+          });
+          if (!hasValidDates || form.selectedDates.length === 0) {
+            extras.push({
+              entity_type: "training",
+              entity_id: training.id,
+              label: "Confirmer la date de la formation avec le client",
+              position: basePos + extras.length,
+              due_date: dueDate,
+              notify_days_before: 0,
+            });
+          }
+          if (!form.getFinalLocation()) {
+            extras.push({
+              entity_type: "training",
+              entity_id: training.id,
+              label: "Confirmer le lieu de la formation avec le client",
+              position: basePos + extras.length,
+              due_date: dueDate,
+              notify_days_before: 0,
+            });
+          }
+          await createItemsBatch(extras);
+        }
       } catch (err) {
         console.warn("bootstrapChecklist (training) failed:", err);
       }
