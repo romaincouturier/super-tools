@@ -183,6 +183,62 @@ export function CreateTrainingDialog({
   const formatAmount = (n: number | null) =>
     n == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n);
 
+  // SIREN prompt screen — enrich the opportunity with company / address from INSEE
+  if (mode === "siren") {
+    const busy = searchingSiren || savingSiren;
+    return (
+      <AlertDialog open={open} onOpenChange={onOpenChange}>
+        <AlertDialogContent className="w-full sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-primary/10 text-primary">
+                <Building className="h-5 w-5" />
+              </div>
+              <AlertDialogTitle>SIREN du client</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-left">
+              Saisissez le SIREN (9 chiffres) pour récupérer automatiquement la raison sociale
+              et l'adresse du siège social. Ces informations seront enregistrées sur l'opportunité
+              et préremplies dans la formation ou le participant à créer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="py-2">
+            <Input
+              inputMode="numeric"
+              placeholder="123456789"
+              value={siren}
+              maxLength={9}
+              onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && /^\d{9}$/.test(siren) && !busy) {
+                  e.preventDefault();
+                  void applySirenAndContinue();
+                }
+              }}
+              autoFocus
+              disabled={busy}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <Button variant="ghost" onClick={() => setMode("choice")} disabled={busy}>
+              Passer
+            </Button>
+            <AlertDialogCancel disabled={busy}>Annuler</AlertDialogCancel>
+            <Button
+              onClick={() => void applySirenAndContinue()}
+              disabled={!/^\d{9}$/.test(siren) || busy}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2">Rechercher</span>
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
+
   // Choice screen
   if (mode === "choice") {
     return (
