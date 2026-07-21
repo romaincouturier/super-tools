@@ -31,6 +31,7 @@ import {
   Phone,
   Clock,
   Play,
+  Image as ImageIcon,
   ExternalLink,
   CalendarPlus,
   MessageSquare,
@@ -524,6 +525,9 @@ function HeroSection({
   onContinue: () => void;
 }) {
   const [playing, setPlaying] = useState(false);
+  const heroType = course.home_config?.hero_media_type ?? "video";
+  const heroImageUrl = course.home_config?.hero_image_url ?? null;
+  const heroText = course.home_config?.hero_text ?? null;
   const videoUrl = course.welcome_video_url ?? null;
   const embedUrl = videoUrl ? videoEmbed(videoUrl) : null;
   const videoPoster = videoUrl ? videoThumbnail(videoUrl) : null;
@@ -571,49 +575,84 @@ function HeroSection({
         </div>
       </div>
 
-      {/* Video / cover — RIGHT */}
-      <div
-        className="relative rounded-2xl overflow-hidden aspect-video bg-black flex items-center justify-center"
-        style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
-      >
-        {playing && videoUrl ? (
-          embedUrl ? (
-            <iframe
-              src={embedUrl}
-              className="w-full h-full"
-              allow="autoplay; fullscreen"
-              allowFullScreen
-            />
+      {/* Media — RIGHT */}
+      {heroType === "text" ? (
+        <div
+          className="rounded-2xl p-6 lg:p-8 flex items-center"
+          style={{
+            background: "var(--st-ink-04, rgba(16,24,32,0.03))",
+            border: "1px solid rgba(16,24,32,0.06)",
+            minHeight: 180,
+          }}
+        >
+          {heroText ? (
+            <p className="text-base lg:text-lg leading-relaxed whitespace-pre-line" style={{ color: "var(--st-ink)" }}>
+              {heroText}
+            </p>
           ) : (
-            <video src={videoUrl} className="w-full h-full" autoPlay controls />
-          )
-        ) : videoUrl || course.cover_image_url ? (
-          <>
-            {(course.cover_image_url || videoPoster) && (
-              <img src={course.cover_image_url || videoPoster!} alt="" className="w-full h-full object-cover" />
-            )}
-            {videoUrl && (
-              <button
-                onClick={() => setPlaying(true)}
-                className="absolute inset-0 flex items-center justify-center group"
-                aria-label="Lancer la vidéo"
-              >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
-                  style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+            <p className="text-sm opacity-40" style={{ color: "var(--st-ink)" }}>
+              Texte de présentation
+            </p>
+          )}
+        </div>
+      ) : heroType === "image" ? (
+        <div
+          className="relative rounded-2xl overflow-hidden aspect-video flex items-center justify-center"
+          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)", background: "var(--st-ink-04, rgba(16,24,32,0.03))" }}
+        >
+          {heroImageUrl || course.cover_image_url ? (
+            <img src={heroImageUrl || course.cover_image_url!} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="flex flex-col items-center gap-3 opacity-40">
+              <ImageIcon size={40} style={{ color: "var(--st-ink)" }} />
+              <p className="text-sm" style={{ color: "var(--st-ink)" }}>Image de présentation</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div
+          className="relative rounded-2xl overflow-hidden aspect-video bg-black flex items-center justify-center"
+          style={{ boxShadow: "0 8px 32px rgba(16,24,32,0.12)" }}
+        >
+          {playing && videoUrl ? (
+            embedUrl ? (
+              <iframe
+                src={embedUrl}
+                className="w-full h-full"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+              />
+            ) : (
+              <video src={videoUrl} className="w-full h-full" autoPlay controls />
+            )
+          ) : videoUrl || course.cover_image_url ? (
+            <>
+              {(course.cover_image_url || videoPoster) && (
+                <img src={course.cover_image_url || videoPoster!} alt="" className="w-full h-full object-cover" />
+              )}
+              {videoUrl && (
+                <button
+                  onClick={() => setPlaying(true)}
+                  className="absolute inset-0 flex items-center justify-center group"
+                  aria-label="Lancer la vidéo"
                 >
-                  <Play size={22} style={{ color: "#101820", marginLeft: 3 }} />
-                </div>
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="flex flex-col items-center gap-3 opacity-40">
-            <Play size={40} style={{ color: "#fff" }} />
-            <p className="text-white text-sm">Vidéo d'accueil</p>
-          </div>
-        )}
-      </div>
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
+                    style={{ background: "rgba(255,209,0,0.95)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+                  >
+                    <Play size={22} style={{ color: "#101820", marginLeft: 3 }} />
+                  </div>
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-3 opacity-40">
+              <Play size={40} style={{ color: "#fff" }} />
+              <p className="text-white text-sm">Vidéo d'accueil</p>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
