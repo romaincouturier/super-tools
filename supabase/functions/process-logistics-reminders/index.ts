@@ -464,7 +464,17 @@ serve(async (req) => {
           })
       );
 
+      // 15c-pre. Réassorts en cours (vue d'ensemble)
+      add("📦", "Réassorts en cours", COLORS.blue,
+        data.inProgressRestocks.map(r => {
+          const progress = r.itemsTotal > 0 ? ` — ${r.itemsDone}/${r.itemsTotal} action${r.itemsTotal > 1 ? "s" : ""} terminée${r.itemsDone > 1 ? "s" : ""}` : "";
+          const since = r.startedAt ? ` (démarré le ${formatDateFr(r.startedAt.slice(0, 10))})` : "";
+          return `<li>${linkHtml(`${appUrl}/commandes-jeux?game=${r.gameId}&restock=${r.restockId}`, r.gameTitle)}${progress}${since}</li>`;
+        })
+      );
+
       // 15c-bis. Réassorts — livraisons en attente (date connue)
+
       add("🚚", "Réassorts — livraisons attendues", COLORS.amber,
         data.restockDeliveries
           .filter(r => r.estimatedDeliveryDate)

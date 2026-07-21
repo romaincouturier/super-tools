@@ -1368,6 +1368,42 @@ export async function fetchRestockDeliveries(supabase: SupabaseClient): Promise<
     }));
 }
 
+/**
+ * All in-progress restocks (surfaced daily until closed).
+ */
+export interface InProgressRestockItem {
+  restockId: string;
+  gameId: string;
+  gameTitle: string;
+  startedAt: string | null;
+  itemsTotal: number;
+  itemsDone: number;
+}
+
+export async function fetchInProgressRestocks(supabase: SupabaseClient): Promise<InProgressRestockItem[]> {
+  const { data, error } = await supabase
+    .from("game_restocks")
+    .select("id, game_id, started_at, games(title), game_restock_items(id, status)")
+    .eq("status", "in_progress");
+  if (error) {
+    console.error("fetchInProgressRestocks error:", error.message);
+    return [];
+  }
+  return (data ?? []).map((r: any) => {
+    const items = (r.game_restock_items ?? []) as any[];
+    return {
+      restockId: r.id,
+      gameId: r.game_id,
+      gameTitle: r.games?.title ?? "Jeu",
+      startedAt: r.started_at ?? null,
+      itemsTotal: items.length,
+      itemsDone: items.filter((i) => i.status === "received").length,
+    };
+  });
+}
+
+
+
 
 
 /**
@@ -1458,6 +1494,8 @@ export interface DailyData {
   supertiltActions: SupertiltActionItem[];
   lmsCommunityPending: LmsCommunityPendingItem[];
   restockDeliveries: RestockDeliveryItem[];
+  inProgressRestocks: InProgressRestockItem[];
+
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1490,6 +1528,8 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supertiltActions,
     lmsCommunityPending,
     restockDeliveries,
+    inProgressRestocks,
+
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1516,7 +1556,9 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchSupertiltActions(supabase, today),
     fetchLmsCommunityPending(supabase),
     fetchRestockDeliveries(supabase),
+    fetchInProgressRestocks(supabase),
   ]);
+
 
   return {
     recipients, missionActions, elearningGroups, missionsToInvoice,
@@ -1526,7 +1568,9 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
+    inProgressRestocks,
   };
+
 }
 
 // ─── Visibility helpers ──────────────────────────────────────────────
