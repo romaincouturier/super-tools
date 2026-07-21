@@ -227,7 +227,7 @@ export function useEditParticipant({
     coachingSessionsTotal,
     typeStagiaireBpf,
     sourceFinancementBpf,
-  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, sponsorInfo.sponsorPhone, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(
