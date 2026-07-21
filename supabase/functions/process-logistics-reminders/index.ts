@@ -464,16 +464,29 @@ serve(async (req) => {
           })
       );
 
-      // 15c-bis. Réassorts — livraisons en attente
+      // 15c-bis. Réassorts — livraisons en attente (date connue)
       add("🚚", "Réassorts — livraisons attendues", COLORS.amber,
-        data.restockDeliveries.map(r => {
-          const eta = formatDateFr(r.estimatedDeliveryDate);
-          const today = new Date().toISOString().split("T")[0];
-          const overdue = r.estimatedDeliveryDate < today;
-          const marker = overdue ? " <strong style=\"color:#EF4444\">(en retard)</strong>" : "";
-          return `<li>${linkHtml(`${appUrl}/commandes-jeux`, `${r.gameTitle} — ${r.label}`)} — livraison prévue le ${eta}${marker}</li>`;
-        })
+        data.restockDeliveries
+          .filter(r => r.estimatedDeliveryDate)
+          .map(r => {
+            const eta = formatDateFr(r.estimatedDeliveryDate!);
+            const today = new Date().toISOString().split("T")[0];
+            const overdue = r.estimatedDeliveryDate! < today;
+            const marker = overdue ? " <strong style=\"color:#EF4444\">(en retard)</strong>" : "";
+            return `<li>${linkHtml(`${appUrl}/commandes-jeux?game=${r.gameId}&restock=${r.restockId}`, `${r.gameTitle} — ${r.label}`)} — livraison prévue le ${eta}${marker}</li>`;
+          })
       );
+
+      // 15c-ter. Réassorts — date de livraison à renseigner
+      add("⏰", "Réassorts — date de livraison à renseigner", COLORS.red,
+        data.restockDeliveries
+          .filter(r => !r.estimatedDeliveryDate)
+          .map(r =>
+            `<li>${linkHtml(`${appUrl}/commandes-jeux?game=${r.gameId}&restock=${r.restockId}`, `${r.gameTitle} — ${r.label}`)} — renseigner la date estimée de livraison</li>`
+          )
+      );
+
+
 
 
       // 15d. Communautés LMS — publications à traiter (travaux sans retour staff)
