@@ -263,6 +263,7 @@ const FormationCreate = () => {
           entityId: training.id,
           format: training.format_formation as string | null,
           sessionType: (training as { session_type?: string | null }).session_type ?? null,
+          startDate: (training as { start_date?: string | null }).start_date ?? null,
         });
 
         // For intra sessions, always add a "send training agreement" item, plus
