@@ -744,8 +744,15 @@ const PageEditor = ({
     onUpdate: ({ editor: ed }) => {
       const firstLineText = ed.state.doc.firstChild?.textContent?.trim() || "Sans titre";
       const title = firstLineText.substring(0, 100) || "Sans titre";
-      onPageUpdated({ ...page, title, content: ed.getHTML() });
-      setEditorValues({ content: ed.getHTML(), title });
+      const html = ed.getHTML();
+      setEditorValues({ content: html, title });
+      // Only propagate to parent when the title actually changes; parent uses
+      // it to render the sidebar entry. Propagating content on every keystroke
+      // re-rendered the whole sidebar (Dnd context + all pages) and made the
+      // editor lag heavily on long pages.
+      if (title !== (page.title || "Sans titre")) {
+        onPageUpdated({ ...page, title, content: html });
+      }
     },
   });
 
