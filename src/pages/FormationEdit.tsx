@@ -57,6 +57,7 @@ interface TrainingExtended {
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
+  sponsor_phone?: string | null;
   sponsor_formal_address?: boolean | null;
   trainer_id?: string | null;
   assigned_to?: string | null;
