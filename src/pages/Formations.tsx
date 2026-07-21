@@ -267,10 +267,13 @@ const Formations = () => {
   }, [searchQuery, filterSessionType, filterSessionFormat, participantsByTraining]);
 
   // Filter trainings
-  const isPermanent = (t: Training) => !t.start_date;
+  // "Permanent" = explicitly flagged permanent (autonome apprenant)
+  // "Undated" = intra without confirmed dates yet (goes in "À venir", red, on top)
+  const isPermanent = (t: Training) => !!t.is_permanent;
+  const isUndated = (t: Training) => !t.start_date && !t.is_permanent;
 
   const isOngoing = (t: Training) => {
-    if (!t.start_date) return false; // Permanent → separate tab
+    if (!t.start_date) return false; // Permanent or undated → separate handling
     const startDate = parseISO(t.start_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -283,15 +286,25 @@ const Formations = () => {
     return isToday(startDate);
   };
 
-  const upcomingTrainings = useMemo(() =>
-    trainings.filter((t) => {
-      if (!t.start_date) return false; // Permanent → not "upcoming"
-      if (t.is_cancelled) return false; // Exclude cancelled trainings
+  const upcomingTrainings = useMemo(() => {
+    const list = trainings.filter((t) => {
+      if (t.is_cancelled) return false;
+      if (isPermanent(t)) return false;
+      if (!matchesFilters(t)) return false;
+      if (isUndated(t)) return true; // no date yet → show in upcoming
       const startDate = parseISO(t.start_date);
-      return (isFuture(startDate) && !isToday(startDate)) && matchesFilters(t);
-    }),
-    [trainings, matchesFilters]
-  );
+      return isFuture(startDate) && !isToday(startDate);
+    });
+    // Undated first, then by start_date asc
+    return list.sort((a, b) => {
+      const au = isUndated(a);
+      const bu = isUndated(b);
+      if (au && !bu) return -1;
+      if (!au && bu) return 1;
+      if (au && bu) return a.created_at.localeCompare(b.created_at);
+      return (a.start_date || "").localeCompare(b.start_date || "");
+    });
+  }, [trainings, matchesFilters]);
 
   const ongoingTrainings = useMemo(() =>
     trainings.filter((t) => !t.is_cancelled && isOngoing(t) && matchesFilters(t)),
@@ -300,7 +313,7 @@ const Formations = () => {
 
   const pastTrainings = useMemo(() =>
     trainings.filter((t) => {
-      if (!t.start_date) return false; // Permanent → not "past"
+      if (!t.start_date) return false; // Permanent or undated → not "past"
       if (isOngoing(t)) return false;
       const startDate = parseISO(t.start_date);
       if (isFuture(startDate) && !isToday(startDate)) return false;
