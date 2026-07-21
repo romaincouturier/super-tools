@@ -174,6 +174,7 @@ export function useFormationDetail() {
       newParams.delete("addParticipantSponsorFirstName");
       newParams.delete("addParticipantSponsorLastName");
       newParams.delete("addParticipantSponsorEmail");
+      newParams.delete("addParticipantSponsorPhone");
       newParams.delete("addParticipantSoldPriceHt");
       newParams.delete("addParticipantFormulaId");
       newParams.delete("fromCrmCardId");
