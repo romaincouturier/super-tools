@@ -188,6 +188,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       sponsorFirstName,
       sponsorLastName,
       sponsorEmail,
+      sponsorPhone,
       financeurSameAsSponsor = false,
       financeurName,
       financeurUrl,
