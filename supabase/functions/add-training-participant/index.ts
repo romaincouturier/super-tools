@@ -108,6 +108,7 @@ export interface AddParticipantRequest {
   sponsorFirstName?: string | null;
   sponsorLastName?: string | null;
   sponsorEmail?: string | null;
+  sponsorPhone?: string | null;
   financeurSameAsSponsor?: boolean;
   financeurName?: string | null;
   financeurUrl?: string | null;
