@@ -432,12 +432,14 @@ const Formations = () => {
 
   // Billing status styling for past trainings
   const getPastTrainingStyle = (training: Training) => {
+    if (filter === "upcoming" && isUndated(training)) return "border-red-400 bg-red-50/70";
     if (filter !== "past") return "";
     if ((training.unbilled_count ?? 0) > 0 || training.bpf_incomplete) return "border-red-300 bg-red-50/50";
     return "opacity-60";
   };
 
   const getPastRowStyle = (training: Training) => {
+    if (filter === "upcoming" && isUndated(training)) return "bg-red-50/70 hover:bg-red-50/90";
     if (filter !== "past") return "";
     if ((training.unbilled_count ?? 0) > 0 || training.bpf_incomplete) return "bg-red-50/50 hover:bg-red-50/70";
     return "opacity-60";
