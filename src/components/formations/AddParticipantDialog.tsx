@@ -462,15 +462,27 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
-                      <Input
-                        id="sponsorEmail"
-                        type="email"
-                        value={sponsorEmail}
-                        onChange={(e) => setSponsorEmail(e.target.value)}
-                        placeholder="marie.martin@example.com"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
+                        <Input
+                          id="sponsorEmail"
+                          type="email"
+                          value={sponsorEmail}
+                          onChange={(e) => setSponsorEmail(e.target.value)}
+                          placeholder="marie.martin@example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sponsorPhone">Téléphone</Label>
+                        <Input
+                          id="sponsorPhone"
+                          type="tel"
+                          value={sponsorPhone}
+                          onChange={(e) => setSponsorPhone(e.target.value)}
+                          placeholder="06 12 34 56 78"
+                        />
+                      </div>
                     </div>
                   </>
                 )}
