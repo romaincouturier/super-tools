@@ -766,7 +766,13 @@ const CardDetailDrawer = ({
   };
 
   const handleConfirmCreateTraining = () => {
-    if (pendingTrainingParams) { setShowCreateTrainingDialog(false); setShowWinChoiceDialog(false); onOpenChange(false); navigate(`/formations/new?${pendingTrainingParams.toString()}`); setPendingTrainingParams(null); }
+    // Rebuild params at click time so the SIREN enrichment made in the dialog is reflected.
+    const params = buildTrainingParams();
+    setShowCreateTrainingDialog(false);
+    setShowWinChoiceDialog(false);
+    onOpenChange(false);
+    navigate(`/formations/new?${params.toString()}`);
+    setPendingTrainingParams(null);
   };
 
   const handleConfirmCreateMission = () => {
