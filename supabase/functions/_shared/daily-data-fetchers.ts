@@ -1528,6 +1528,8 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supertiltActions,
     lmsCommunityPending,
     restockDeliveries,
+    inProgressRestocks,
+
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
