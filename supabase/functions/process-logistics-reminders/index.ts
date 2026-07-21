@@ -228,6 +228,15 @@ serve(async (req) => {
     const scheduledFailed = scheduledFailedRes.data ?? [];
     const totalFailedEmails = failedEmails.length + scheduledFailed.length;
 
+    // ── Tickets support en codage automatique (admins) ──
+    const { data: codingTicketsData } = await supabase
+      .from("support_tickets")
+      .select("id, ticket_number, title, status, coding_status, branch_url, coding_error, discussion_requested_at, updated_at")
+      .or("coding_status.in.(pending,running,ready_for_review,done,error),status.eq.vibe_coding")
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    const codingTickets = codingTicketsData ?? [];
+
     // ── Send per-user digest ──
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
 
