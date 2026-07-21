@@ -786,7 +786,7 @@ const Formations = () => {
                         >
                           <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
-                              {formatDateRange(training.start_date, training.end_date)}
+                              {isUndated(training) ? <span className="text-destructive font-semibold">Date à définir</span> : formatDateRange(training.start_date, training.end_date)}
                               {isUpcoming && daysUntil >= 0 && (
                                 <Badge
                                   variant={daysUntil <= 7 ? "default" : "secondary"}
