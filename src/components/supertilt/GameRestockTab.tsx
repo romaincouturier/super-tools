@@ -541,6 +541,20 @@ function RunItemRow({
               </div>
             )}
           </div>
+          {item.status === "awaiting_delivery" && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Date estimée de livraison</div>
+              <div className="flex items-center gap-2">
+                <Input type="date" value={etaDate} onChange={(e) => setEtaDate(e.target.value)} disabled={readonly} className="w-[200px]" />
+                {!readonly && (
+                  <Button size="sm" variant="outline" onClick={saveEta} disabled={etaDate === (item.estimated_delivery_date ?? "")}>
+                    Enregistrer la date
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Tant que l'action n'est pas reçue, elle apparaîtra dans le récap quotidien.</p>
+            </div>
+          )}
           {files.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Ressources</div>
