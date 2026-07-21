@@ -237,6 +237,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           sponsor_first_name: capitalizeName(sponsorFirstName || ""),
           sponsor_last_name: capitalizeName(sponsorLastName || ""),
           sponsor_email: sponsorEmail?.trim().toLowerCase() || null,
+          sponsor_phone: sponsorPhone?.trim() || null,
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName?.trim() || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl?.trim() || null),
