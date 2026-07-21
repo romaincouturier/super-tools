@@ -709,7 +709,7 @@ const Formations = () => {
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {formatDateRange(training.start_date, training.end_date)}
+                            {isUndated(training) ? "Date à définir" : formatDateRange(training.start_date, training.end_date)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
