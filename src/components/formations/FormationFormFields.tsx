@@ -289,15 +289,27 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="sponsorEmail">Email</Label>
-          <Input
-            id="sponsorEmail"
-            type="email"
-            value={form.sponsorEmail}
-            onChange={(e) => form.setSponsorEmail(e.target.value)}
-            placeholder="jean.dupont@entreprise.fr"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="sponsorEmail">Email</Label>
+            <Input
+              id="sponsorEmail"
+              type="email"
+              value={form.sponsorEmail}
+              onChange={(e) => form.setSponsorEmail(e.target.value)}
+              placeholder="jean.dupont@entreprise.fr"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sponsorPhone">Téléphone</Label>
+            <Input
+              id="sponsorPhone"
+              type="tel"
+              value={form.sponsorPhone}
+              onChange={(e) => form.setSponsorPhone(e.target.value)}
+              placeholder="06 12 34 56 78"
+            />
+          </div>
         </div>
       </CardContent>
     </Card>
