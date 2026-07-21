@@ -183,7 +183,9 @@ const FormationCreate = () => {
     e.preventDefault();
 
     const startDate = form.getStartDate();
-    const hasValidDates = form.isElearning ? true : form.selectedDates.length > 0;
+    const isDistancielSynchrone = form.sessionFormat === "distanciel_synchrone";
+    const isIntraClassique = !form.isPermanent && !form.isElearning && !form.isInter;
+    const hasValidDates = form.isElearning ? true : (isIntraClassique ? true : form.selectedDates.length > 0);
 
     // Validate
     const missingFields: string[] = [];
@@ -191,9 +193,8 @@ const FormationCreate = () => {
     if (!form.catalogId) missingFields.push("formation du catalogue (sélectionnez une entrée du catalogue)");
     if (form.isPermanent && !form.selectedFormulaId) missingFields.push("formule (sélectionnez une formule pour la session permanente)");
     if (!hasValidDates) missingFields.push("jours de formation");
-    const isDistancielSynchrone = form.sessionFormat === "distanciel_synchrone";
     if (!form.isPermanent && !form.isElearning && !isDistancielSynchrone && form.isInter && !venueId) missingFields.push("lieu de la formation (sélectionnez un lieu)");
-    if (!form.isPermanent && !form.isElearning && !isDistancielSynchrone && !form.isInter && !form.getFinalLocation()) missingFields.push("lieu de la formation");
+    if (!form.isPermanent && !form.isElearning && !isDistancielSynchrone && !form.isInter && !isIntraClassique && !form.getFinalLocation()) missingFields.push("lieu de la formation");
     if (!form.isInter && !form.clientName) missingFields.push("client");
     if (!form.isPermanent && (!form.maxParticipants || parseInt(form.maxParticipants, 10) < 1)) missingFields.push("nombre maximum de participants (minimum 1)");
 
@@ -254,13 +255,61 @@ const FormationCreate = () => {
 
       // Bootstrap logistics checklist from default template (best-effort).
       try {
-        const { bootstrapChecklist } = await import("@/services/logistics");
+        const { bootstrapChecklist, createItemsBatch, fetchItems } = await import("@/services/logistics");
         await bootstrapChecklist({
           entityType: "training",
           entityId: training.id,
           format: training.format_formation as string | null,
           sessionType: (training as { session_type?: string | null }).session_type ?? null,
         });
+
+        // For intra sessions, always add a "send training agreement" item, plus
+        // dedicated confirm-date / confirm-location items if those are missing.
+        // Reminder due date: tomorrow (aujourd'hui + 1 jour).
+        if (isIntraClassique) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const dueDate = format(tomorrow, "yyyy-MM-dd");
+          const existing = await fetchItems("training", training.id).catch(() => []);
+          const basePos = existing.length;
+          const extras: Array<{
+            entity_type: "training";
+            entity_id: string;
+            label: string;
+            position: number;
+            due_date: string;
+            notify_days_before: number;
+          }> = [];
+          extras.push({
+            entity_type: "training",
+            entity_id: training.id,
+            label: "Envoyer la convention de formation au client",
+            position: basePos + extras.length,
+            due_date: dueDate,
+            notify_days_before: 0,
+          });
+          if (!hasValidDates || form.selectedDates.length === 0) {
+            extras.push({
+              entity_type: "training",
+              entity_id: training.id,
+              label: "Confirmer la date de la formation avec le client",
+              position: basePos + extras.length,
+              due_date: dueDate,
+              notify_days_before: 0,
+            });
+          }
+          if (!form.getFinalLocation()) {
+            extras.push({
+              entity_type: "training",
+              entity_id: training.id,
+              label: "Confirmer le lieu de la formation avec le client",
+              position: basePos + extras.length,
+              due_date: dueDate,
+              notify_days_before: 0,
+            });
+          }
+          await createItemsBatch(extras);
+        }
       } catch (err) {
         console.warn("bootstrapChecklist (training) failed:", err);
       }

@@ -394,6 +394,34 @@ export function SourceFinancementSelector({
   );
 }
 
+// --- Type stagiaire BPF Selector ---
+
+export function TypeStagiaireBpfSelector({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>Type de stagiaire (BPF)</Label>
+      <Select value={value || ""} onValueChange={onChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Sélectionner le type de stagiaire" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="salarie_prive">Salarié d'employeur privé</SelectItem>
+          <SelectItem value="apprenti">Apprenti</SelectItem>
+          <SelectItem value="demandeur_emploi">Demandeur d'emploi</SelectItem>
+          <SelectItem value="particulier">Particulier à ses propres frais</SelectItem>
+          <SelectItem value="autre">Autre stagiaire</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 // --- Catalog Summary Card ---
 
 export function CatalogSummaryCard({

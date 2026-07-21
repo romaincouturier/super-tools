@@ -30,6 +30,7 @@ import {
   FinanceurCard,
   CatalogSummaryCard,
   SourceFinancementSelector,
+  TypeStagiaireBpfSelector,
 } from "@/components/formations/FormationFormFields";
 import TrainingFormulasManager from "@/components/formations/TrainingFormulasManager";
 import type { FormationFormula } from "@/types/training";
@@ -66,6 +67,7 @@ interface TrainingExtended {
   specific_instructions?: string | null;
   catalog_id?: string | null;
   source_financement_bpf?: string | null;
+  type_stagiaire_bpf?: string | null;
   start_date?: string | null;
   end_date?: string | null;
   elearning_access_email_content?: string | null;
@@ -85,6 +87,7 @@ const FormationEdit = () => {
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [sourceFinancementBpf, setSourceFinancementBpf] = useState<string | null>(null);
+  const [typeStagiaireBpf, setTypeStagiaireBpf] = useState<string | null>(null);
   const [availableFormulas, setAvailableFormulas] = useState<FormationFormula[]>([]);
   const [trainingIsPermanent, setTrainingIsPermanent] = useState<boolean>(false);
   const [meetingDialogOpen, setMeetingDialogOpen] = useState(false);
@@ -181,6 +184,7 @@ N'hésitez pas à me contacter en amont pour toute question.
       form.setSpecificInstructions(t.specific_instructions || "");
       form.setCatalogId(t.catalog_id || null);
       setSourceFinancementBpf(t.source_financement_bpf || null);
+      setTypeStagiaireBpf(t.type_stagiaire_bpf || null);
 
       // For e-learning, load start/end dates directly
       const loadedIsElearning =
@@ -268,19 +272,22 @@ N'hésitez pas à me contacter en amont pour toute question.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const isIntraPresentielOrVisio = !form.isInter && !form.isElearning && !form.isPermanent;
     const hasValidDates = form.isPermanent
       ? true
       : form.isElearning
         ? !!(form.elearningStartDate && form.elearningEndDate)
-        : form.selectedDates.length > 0;
+        : (isIntraPresentielOrVisio ? true : form.selectedDates.length > 0);
 
-    const locationValid = form.isInter ? (form.isElearning || !!venueId) : !!location;
+    const locationValid = form.isInter
+      ? (form.isElearning || !!venueId)
+      : (isIntraPresentielOrVisio ? true : !!location);
     if (!hasValidDates || !form.trainingName || !locationValid || (!form.isInter && !form.clientName) || !user || !id) {
       toast({
         title: "Champs requis",
         description: form.isElearning
           ? "Veuillez remplir tous les champs obligatoires (dates de début et fin, nom, lieu, client)."
-          : "Veuillez remplir tous les champs obligatoires (dates, nom, lieu, client).",
+          : "Veuillez remplir les champs obligatoires (nom, client).",
         variant: "destructive",
       });
       return;
@@ -307,6 +314,7 @@ N'hésitez pas à me contacter en amont pour toute question.
       }
 
       payload.source_financement_bpf = sourceFinancementBpf || null;
+      (payload as Record<string, unknown>).type_stagiaire_bpf = typeStagiaireBpf || null;
 
       const { error: trainingError } = await supabase
         .from("trainings")
@@ -582,10 +590,16 @@ N'hésitez pas à me contacter en amont pour toute question.
 
                   {/* Source de financement BPF — intra only (inter sessions use per-participant source) */}
                   {!form.isInter && (
-                    <SourceFinancementSelector
-                      value={sourceFinancementBpf}
-                      onChange={setSourceFinancementBpf}
-                    />
+                    <>
+                      <SourceFinancementSelector
+                        value={sourceFinancementBpf}
+                        onChange={setSourceFinancementBpf}
+                      />
+                      <TypeStagiaireBpfSelector
+                        value={typeStagiaireBpf}
+                        onChange={setTypeStagiaireBpf}
+                      />
+                    </>
                   )}
 
                   {/* Trainer selector */}
