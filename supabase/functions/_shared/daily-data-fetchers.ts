@@ -1556,7 +1556,9 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchSupertiltActions(supabase, today),
     fetchLmsCommunityPending(supabase),
     fetchRestockDeliveries(supabase),
+    fetchInProgressRestocks(supabase),
   ]);
+
 
   return {
     recipients, missionActions, elearningGroups, missionsToInvoice,
