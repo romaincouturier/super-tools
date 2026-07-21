@@ -309,6 +309,7 @@ export function useFormationForm() {
         base.sponsor_first_name = isInter ? null : (sponsorFirstName || null);
         base.sponsor_last_name = isInter ? null : (sponsorLastName || null);
         base.sponsor_email = isInter ? null : (sponsorEmail || null);
+        base.sponsor_phone = isInter ? null : (sponsorPhone || null);
         base.financeur_name = (isPermanent || financeurSameAsSponsor) ? null : (financeurName || null);
         base.financeur_url = (isPermanent || financeurSameAsSponsor) ? null : (financeurUrl || null);
         base.trainer_id = null;
