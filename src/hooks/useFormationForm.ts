@@ -323,6 +323,7 @@ export function useFormationForm() {
         base.sponsor_first_name = sponsorFirstName || null;
         base.sponsor_last_name = sponsorLastName || null;
         base.sponsor_email = sponsorEmail || null;
+        base.sponsor_phone = sponsorPhone || null;
         base.financeur_name = financeurSameAsSponsor ? null : (financeurName || null);
         base.financeur_url = financeurSameAsSponsor ? null : (financeurUrl || null);
         base.trainer_id = trainerId || null;
