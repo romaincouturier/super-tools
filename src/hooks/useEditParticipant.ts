@@ -329,6 +329,8 @@ export function useEditParticipant({
     setSponsorLastName: sponsorInfo.setSponsorLastName,
     sponsorEmail: sponsorInfo.sponsorEmail,
     setSponsorEmail: sponsorInfo.setSponsorEmail,
+    sponsorPhone: sponsorInfo.sponsorPhone,
+    setSponsorPhone: sponsorInfo.setSponsorPhone,
 
     // Financeur fields
     financeurSameAsSponsor: financeurInfo.financeurSameAsSponsor,
