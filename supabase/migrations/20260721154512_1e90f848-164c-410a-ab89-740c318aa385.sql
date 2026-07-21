@@ -1,0 +1,1 @@
+ALTER TABLE public.trainings ADD COLUMN IF NOT EXISTS type_stagiaire_bpf text;
