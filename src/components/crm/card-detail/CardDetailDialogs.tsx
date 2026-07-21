@@ -62,6 +62,8 @@ interface Props {
   setShowCreateTrainingDialog: (v: boolean) => void;
   pendingTrainingParams: URLSearchParams | null;
   handleConfirmCreateTraining: () => void;
+  initialSiren?: string | null;
+  onSirenResolved?: (overrides: { siren?: string; company?: string; address?: string; postal_code?: string; city?: string }) => void;
 
   // Win choice
   showWinChoiceDialog: boolean;
