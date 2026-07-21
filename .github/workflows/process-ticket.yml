@@ -16,6 +16,10 @@ permissions:
 jobs:
   process:
     runs-on: ubuntu-latest
+    env:
+      TICKET_STATUS_URL: ${{ secrets.VITE_SUPABASE_URL }}/functions/v1/update-ticket-coding-status
+      TICKET_STATUS_WEBHOOK_SECRET: ${{ secrets.TICKET_STATUS_WEBHOOK_SECRET }}
+      TICKET_NUMBER: ${{ inputs.ticket_number }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,17 +35,21 @@ jobs:
         run: npm ci
 
       - name: Mark ticket as running
-        env:
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        # Ne pas faire échouer le job si l'update échoue : le watchdog SQL
+        # basculera le ticket en `error` après 60 min. Mais on log clairement
+        # le résultat pour diagnostic.
         run: |
-          curl -sSf -X PATCH \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+          set +e
+          RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
             -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
-            "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.${{ inputs.ticket_number }}" \
-            -d '{"coding_status": "running", "coding_error": null}'
+            "$TICKET_STATUS_URL" \
+            -d "{\"ticket_number\": \"$TICKET_NUMBER\", \"coding_status\": \"running\", \"coding_error\": null}")
+          echo "$RESPONSE"
+          STATUS=$(echo "$RESPONSE" | grep HTTP_STATUS | cut -d: -f2)
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::Failed to mark ticket as running (HTTP $STATUS). Watchdog will recover."
+          fi
 
       - name: Process ticket with Claude Code
         uses: anthropics/claude-code-action@v1
@@ -70,15 +78,16 @@ jobs:
 
       - name: Mark ticket as error on failure
         if: failure()
-        env:
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          curl -sS -X PATCH \
-            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+          set +e
+          RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
             -H "Content-Type: application/json" \
-            -H "Prefer: return=minimal" \
-            "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.${{ inputs.ticket_number }}" \
-            -d "{\"coding_status\": \"error\", \"coding_error\": \"Workflow GitHub Actions en échec : $RUN_URL\"}"
+            "$TICKET_STATUS_URL" \
+            -d "{\"ticket_number\": \"$TICKET_NUMBER\", \"coding_status\": \"error\", \"coding_error\": \"Workflow GitHub Actions en échec : $RUN_URL\"}")
+          echo "$RESPONSE"
+          STATUS=$(echo "$RESPONSE" | grep HTTP_STATUS | cut -d: -f2)
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::Failed to mark ticket as error (HTTP $STATUS). Watchdog will recover after 60 min."
+          fi
