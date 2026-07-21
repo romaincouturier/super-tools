@@ -1397,7 +1397,7 @@ export async function fetchInProgressRestocks(supabase: SupabaseClient): Promise
       gameTitle: r.games?.title ?? "Jeu",
       startedAt: r.started_at ?? null,
       itemsTotal: items.length,
-      itemsDone: items.filter((i) => i.status === "received" || i.status === "done").length,
+      itemsDone: items.filter((i) => i.status === "received").length,
     };
   });
 }
