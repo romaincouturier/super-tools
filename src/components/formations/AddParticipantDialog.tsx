@@ -66,6 +66,7 @@ interface AddParticipantDialogProps {
   initialSponsorFirstName?: string;
   initialSponsorLastName?: string;
   initialSponsorEmail?: string;
+  initialSponsorPhone?: string;
   initialSoldPriceHt?: string;
   initialFormulaId?: string;
   initialPaymentMode?: "online" | "invoice";
