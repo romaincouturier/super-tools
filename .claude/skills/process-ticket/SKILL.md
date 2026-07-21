@@ -8,67 +8,50 @@ Argument reçu : $ARGUMENTS
 
 ## 0. Variables d'environnement
 
-Les credentials Supabase sont disponibles directement via les variables d'environnement :
-- `SUPABASE_URL` (ou `VITE_SUPABASE_URL` en fallback local)
-- `SUPABASE_SERVICE_ROLE_KEY`
+L'accès à la base ne se fait plus via `SUPABASE_SERVICE_ROLE_KEY` (inaccessible
+sur Lovable Cloud). On passe par deux edge functions dédiées, authentifiées via
+un shared secret :
 
-```bash
-SUPABASE_URL="${SUPABASE_URL:-$VITE_SUPABASE_URL}"
-SUPABASE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
-```
+- `TICKET_FETCH_URL` : `GET ?ticket_number=...` → renvoie le ticket + pièces jointes (signed URLs)
+- `TICKET_STATUS_URL` : `POST` → met à jour le ticket (status, coding_status, branch_url, coding_summary, resolution_notes, discussion_requested_at)
+- `TICKET_STATUS_WEBHOOK_SECRET` : passé en en-tête `x-webhook-secret`
 
-## 1. Récupérer le ticket
-
-Extrait le numéro de ticket de l'argument (format `ST-YYYY-NNNN`).
-Remplace les tirets par `%2D` uniquement dans la valeur du filtre de query string.
+## 1. Récupérer le ticket + pièces jointes
 
 ```bash
 TICKET_NUM="$ARGUMENTS"  # ex: ST-2026-0186
-TICKET_JSON=$(curl -sS \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
-  "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM&select=*")
-echo "$TICKET_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(JSON.stringify(d[0]??null,null,2))"
+PAYLOAD=$(curl -sS \
+  -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
+  "$TICKET_FETCH_URL?ticket_number=$TICKET_NUM")
+echo "$PAYLOAD" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(JSON.stringify(d.ticket ?? null, null, 2))"
 ```
 
-Si le résultat est `null` : afficher une erreur et arrêter.
+Si `ticket` est `null` : afficher une erreur et arrêter.
 
-## 1bis. Récupérer les pièces jointes (images)
+## 1bis. Télécharger les pièces jointes (images)
 
-Le ticket peut contenir des captures d'écran essentielles à l'analyse :
-`screenshot_url` sur le ticket, et les lignes de `support_ticket_attachments`.
+Le payload contient `attachments: [{ file_name, mime_type, signed_url }]`.
 Télécharger toutes les images puis les LIRE avec l'outil Read avant d'analyser.
 
 ```bash
-TICKET_ID=$(echo "$TICKET_JSON" | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); process.stdout.write(d[0]?.id ?? '')")
 mkdir -p /tmp/ticket-attachments
-
-# Pièces jointes de la table support_ticket_attachments (bucket privé support-attachments)
-curl -sS \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
-  "$SUPABASE_URL/rest/v1/support_ticket_attachments?ticket_id=eq.$TICKET_ID&select=file_name,file_path,mime_type" \
-  | node -e "
-    const rows = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
-    for (const r of rows) {
-      if (r.mime_type && r.mime_type.startsWith('image/')) console.log(r.file_path + '|' + r.file_name);
-    }" \
-  | while IFS='|' read -r FILE_PATH FILE_NAME; do
-      curl -sS -o "/tmp/ticket-attachments/$FILE_NAME" \
-        -H "apikey: $SUPABASE_KEY" \
-        -H "Authorization: Bearer $SUPABASE_KEY" \
-        "$SUPABASE_URL/storage/v1/object/support-attachments/$FILE_PATH"
+echo "$PAYLOAD" | node -e "
+  const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+  for (const a of (d.attachments ?? [])) {
+    if (a.mime_type && a.mime_type.startsWith('image/') && a.signed_url) {
+      console.log(a.signed_url + '|' + a.file_name);
+    }
+  }" \
+  | while IFS='|' read -r URL FILE_NAME; do
+      curl -sS -o "/tmp/ticket-attachments/$FILE_NAME" "$URL"
     done
-
 ls -la /tmp/ticket-attachments/
 ```
 
-Si `screenshot_url` est renseigné sur le ticket, le télécharger aussi (même
-en-têtes d'authentification si l'URL pointe vers le storage Supabase).
+Puis pour CHAQUE image : l'ouvrir avec l'outil Read. Les captures font partie
+intégrante de la spécification du ticket.
 
-Ensuite, pour CHAQUE image téléchargée : l'ouvrir avec l'outil Read. Les
-captures montrent souvent le bug exact ou la maquette attendue — elles font
-partie intégrante de la spécification du ticket.
+
 
 ## 2. Analyser le ticket
 
@@ -97,13 +80,11 @@ Formuler les questions de façon actionnable puis mettre à jour le ticket :
 
 ```bash
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-curl -sS -X PATCH \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
+curl -sS -X POST \
+  -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
   -H "Content-Type: application/json" \
-  -H "Prefer: return=minimal" \
-  "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
-  -d "{\"resolution_notes\": \"Questions Claude :\\n\\n1. ...\\n2. ...\", \"discussion_requested_at\": \"$NOW\", \"coding_status\": null, \"coding_error\": null, \"updated_at\": \"$NOW\"}"
+  "$TICKET_STATUS_URL" \
+  -d "{\"ticket_number\": \"$TICKET_NUM\", \"resolution_notes\": \"Questions Claude :\\n\\n1. ...\\n2. ...\", \"discussion_requested_at\": \"$NOW\", \"coding_status\": \"\", \"coding_error\": null}"
 ```
 
 Afficher les questions et arrêter.
@@ -192,21 +173,19 @@ NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 node -e "
 const fs = require('fs');
 fs.writeFileSync('/tmp/ticket-update.json', JSON.stringify({
+  ticket_number: process.argv[3],
   status: 'vibe_coding',
   branch_url: process.argv[1],
   coding_status: 'done',
   coding_error: null,
   coding_summary: fs.readFileSync('/tmp/coding-summary.md', 'utf8'),
-  updated_at: process.argv[2],
 }));
-" "$PR_URL" "$NOW"
+" "$PR_URL" "$NOW" "$TICKET_NUM"
 
-curl -sS -X PATCH \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
+curl -sS -X POST \
+  -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
   -H "Content-Type: application/json" \
-  -H "Prefer: return=minimal" \
-  "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
+  "$TICKET_STATUS_URL" \
   -d @/tmp/ticket-update.json
 ```
 

@@ -17,7 +17,10 @@ jobs:
   process:
     runs-on: ubuntu-latest
     env:
-      TICKET_STATUS_URL: ${{ secrets.VITE_SUPABASE_URL }}/functions/v1/update-ticket-coding-status
+      # URL publique du projet Supabase (non-secret, dérivée du project ref)
+      SUPABASE_URL: https://yewffntzgrdgztrwtava.supabase.co
+      TICKET_STATUS_URL: https://yewffntzgrdgztrwtava.supabase.co/functions/v1/update-ticket-coding-status
+      TICKET_FETCH_URL: https://yewffntzgrdgztrwtava.supabase.co/functions/v1/get-ticket-for-processing
       TICKET_STATUS_WEBHOOK_SECRET: ${{ secrets.TICKET_STATUS_WEBHOOK_SECRET }}
       TICKET_NUMBER: ${{ inputs.ticket_number }}
     steps:
@@ -35,9 +38,6 @@ jobs:
         run: npm ci
 
       - name: Mark ticket as running
-        # Ne pas faire échouer le job si l'update échoue : le watchdog SQL
-        # basculera le ticket en `error` après 60 min. Mais on log clairement
-        # le résultat pour diagnostic.
         run: |
           set +e
           RESPONSE=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" -X POST \
@@ -54,8 +54,10 @@ jobs:
       - name: Process ticket with Claude Code
         uses: anthropics/claude-code-action@v1
         env:
-          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          TICKET_FETCH_URL: ${{ env.TICKET_FETCH_URL }}
+          TICKET_STATUS_URL: ${{ env.TICKET_STATUS_URL }}
+          TICKET_STATUS_WEBHOOK_SECRET: ${{ secrets.TICKET_STATUS_WEBHOOK_SECRET }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -68,12 +70,13 @@ jobs:
             Suis exactement les instructions dans .claude/skills/process-ticket/SKILL.md.
             Le numéro de ticket est : ${{ inputs.ticket_number }}
 
-            Variables d'environnement disponibles dans ce contexte :
-            - SUPABASE_URL : URL du projet Supabase
-            - SUPABASE_SERVICE_ROLE_KEY : clé service role pour l'API REST Supabase
+            Variables d'environnement disponibles :
+            - TICKET_FETCH_URL : endpoint pour récupérer le ticket + pièces jointes
+            - TICKET_STATUS_URL : endpoint pour mettre à jour le ticket
+            - TICKET_STATUS_WEBHOOK_SECRET : shared secret (header x-webhook-secret)
             - GH_TOKEN : GitHub token pour créer des PRs via `gh pr create`
 
-            Pour créer la PR, utilise `gh pr create` via Bash (ne pas utiliser les outils MCP GitHub).
+            Pour créer la PR, utilise `gh pr create` via Bash.
             La branche de base est `main`.
 
       - name: Mark ticket as error on failure
