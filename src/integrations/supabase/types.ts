@@ -11995,6 +11995,7 @@ export type Database = {
         }[]
       }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
+      reap_stuck_ticket_coding: { Args: never; Returns: undefined }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
         Returns: number
