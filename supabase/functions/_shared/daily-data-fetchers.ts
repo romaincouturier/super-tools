@@ -1368,6 +1368,42 @@ export async function fetchRestockDeliveries(supabase: SupabaseClient): Promise<
     }));
 }
 
+/**
+ * All in-progress restocks (surfaced daily until closed).
+ */
+export interface InProgressRestockItem {
+  restockId: string;
+  gameId: string;
+  gameTitle: string;
+  startedAt: string | null;
+  itemsTotal: number;
+  itemsDone: number;
+}
+
+export async function fetchInProgressRestocks(supabase: SupabaseClient): Promise<InProgressRestockItem[]> {
+  const { data, error } = await supabase
+    .from("game_restocks")
+    .select("id, game_id, started_at, games(title), game_restock_items(id, status)")
+    .eq("status", "in_progress");
+  if (error) {
+    console.error("fetchInProgressRestocks error:", error.message);
+    return [];
+  }
+  return (data ?? []).map((r: any) => {
+    const items = (r.game_restock_items ?? []) as any[];
+    return {
+      restockId: r.id,
+      gameId: r.game_id,
+      gameTitle: r.games?.title ?? "Jeu",
+      startedAt: r.started_at ?? null,
+      itemsTotal: items.length,
+      itemsDone: items.filter((i) => i.status === "received" || i.status === "done").length,
+    };
+  });
+}
+
+
+
 
 
 /**
