@@ -155,10 +155,10 @@ export function ElearningDatesFields({
 
 // --- Training Days Calendar ---
 
-export function TrainingDaysCalendar({ form }: { form: FormationFormHook }) {
+export function TrainingDaysCalendar({ form, optional }: { form: FormationFormHook; optional?: boolean }) {
   return (
     <div className="space-y-2">
-      <Label>Jours de formation *</Label>
+      <Label>Jours de formation {optional ? "" : "*"}</Label>
       <Popover open={form.calendarOpen} onOpenChange={form.setCalendarOpen}>
         <PopoverTrigger asChild>
           <Button

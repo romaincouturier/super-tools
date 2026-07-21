@@ -506,7 +506,7 @@ const FormationCreate = () => {
                   {form.isPermanent ? null : form.isElearning ? (
                     <ElearningDatesFields form={form} />
                   ) : (
-                    <TrainingDaysCalendar form={form} />
+                    <TrainingDaysCalendar form={form} optional={!form.isInter} />
                   )}
 
                   {/* Client - hidden for inter */}

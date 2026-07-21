@@ -476,7 +476,7 @@ N'hésitez pas à me contacter en amont pour toute question.
                     form.isElearning ? (
                       <ElearningDatesFields form={form} />
                     ) : (
-                      <TrainingDaysCalendar form={form} />
+                      <TrainingDaysCalendar form={form} optional={!form.isInter} />
                     )
                   )}
 
@@ -499,13 +499,12 @@ N'hésitez pas à me contacter en amont pour toute question.
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {form.sessionFormat !== "distanciel_synchrone" && (
                           <div className="space-y-2">
-                            <Label htmlFor="location">Lieu *</Label>
+                            <Label htmlFor="location">Lieu</Label>
                             <Input
                               id="location"
                               value={location}
                               onChange={(e) => setLocation(e.target.value)}
-                              placeholder="Ex: Paris, Visio, Chez le client"
-                              required
+                              placeholder="Ex: Paris, Visio, Chez le client (optionnel pour intra)"
                             />
                           </div>
                         )}
