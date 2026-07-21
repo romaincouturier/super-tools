@@ -103,6 +103,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
+  const [sponsorPhone, setSponsorPhone] = useState("");
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
