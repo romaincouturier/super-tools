@@ -128,6 +128,7 @@ export function useFormationForm() {
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
+  const [sponsorPhone, setSponsorPhone] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(false);
 
   // Financeur
