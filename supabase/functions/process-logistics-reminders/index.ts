@@ -464,6 +464,18 @@ serve(async (req) => {
           })
       );
 
+      // 15c-bis. Réassorts — livraisons en attente
+      add("🚚", "Réassorts — livraisons attendues", COLORS.amber,
+        data.restockDeliveries.map(r => {
+          const eta = formatDateFr(r.estimatedDeliveryDate);
+          const today = new Date().toISOString().split("T")[0];
+          const overdue = r.estimatedDeliveryDate < today;
+          const marker = overdue ? " <strong style=\"color:#EF4444\">(en retard)</strong>" : "";
+          return `<li>${linkHtml(`${appUrl}/commandes-jeux`, `${r.gameTitle} — ${r.label}`)} — livraison prévue le ${eta}${marker}</li>`;
+        })
+      );
+
+
       // 15d. Communautés LMS — publications à traiter (travaux sans retour staff)
       add("💬", "Communautés LMS — publications à traiter", COLORS.teal,
         data.lmsCommunityPending.map(c =>
