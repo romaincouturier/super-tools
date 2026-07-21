@@ -172,6 +172,7 @@ export function useEditParticipant({
         updateData.sponsor_last_name = v.sponsorLastName.trim() || null;
         updateData.sponsor_email =
           v.sponsorEmail.trim().toLowerCase() || null;
+        updateData.sponsor_phone = v.sponsorPhone.trim() || null;
         updateData.financeur_same_as_sponsor = v.financeurSameAsSponsor;
         updateData.financeur_name = !v.financeurSameAsSponsor
           ? v.financeurName.trim() || null
