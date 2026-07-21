@@ -134,6 +134,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
     setSponsorFirstName("");
     setSponsorLastName("");
     setSponsorEmail("");
+    setSponsorPhone("");
     setFinanceurSameAsSponsor(true);
     setFinanceurName("");
     setFinanceurUrl("");
