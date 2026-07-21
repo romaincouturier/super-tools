@@ -4,7 +4,7 @@
  */
 import { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, Upload, Download, Trash2, Package, FileAudio, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, Upload, Download, Trash2, Package, FileAudio, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
