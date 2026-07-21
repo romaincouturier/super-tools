@@ -581,6 +581,27 @@ serve(async (req) => {
         add("🚨", "Emails en erreur", COLORS.red, items);
       }
 
+      // 19. Tickets support en codage automatique (admins uniquement)
+      if (recipient.isAdmin && codingTickets.length > 0) {
+        const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
+          pending:          { label: "En attente",    color: COLORS.gray || "#6b7280", icon: "⏳" },
+          running:          { label: "En cours",      color: "#3b82f6",                icon: "⚙️" },
+          ready_for_review: { label: "PR à relire",   color: "#8b5cf6",                icon: "👀" },
+          done:             { label: "Terminé",       color: "#10b981",                icon: "✅" },
+          error:            { label: "Erreur",        color: COLORS.red,               icon: "❌" },
+        };
+        const items = codingTickets.map((t: any) => {
+          const meta = statusLabels[t.coding_status] || { label: t.coding_status || t.status, color: "#6b7280", icon: "•" };
+          const branch = t.branch_url ? ` — ${linkHtml(t.branch_url, "voir la PR")}` : "";
+          const err = t.coding_error ? ` — <span style="color:${COLORS.red};">${String(t.coding_error).slice(0, 120)}</span>` : "";
+          const title = t.title ? ` — ${t.title.slice(0, 80)}` : "";
+          return `<li>${linkHtml(`${appUrl}/support`, `${t.ticket_number}${title}`)} — <span style="color:${meta.color};font-weight:600;">${meta.icon} ${meta.label}</span>${branch}${err}</li>`;
+        });
+        add("🔧", "Tickets en codage automatique", "#8b5cf6", items);
+      }
+
+
+
 
 
       // Skip if no alerts
