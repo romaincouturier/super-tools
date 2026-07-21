@@ -141,6 +141,7 @@ export function useFormationDetail() {
     const pSponsorFirstName = searchParams.get("addParticipantSponsorFirstName") || undefined;
     const pSponsorLastName = searchParams.get("addParticipantSponsorLastName") || undefined;
     const pSponsorEmail = searchParams.get("addParticipantSponsorEmail") || undefined;
+    const pSponsorPhone = searchParams.get("addParticipantSponsorPhone") || undefined;
     const pSoldPriceHt = searchParams.get("addParticipantSoldPriceHt") || undefined;
     const pFormulaId = searchParams.get("addParticipantFormulaId") || undefined;
     const hasParams = !!(pFirstName || pLastName || pEmail);
