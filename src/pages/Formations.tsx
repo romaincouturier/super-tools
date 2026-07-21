@@ -267,10 +267,11 @@ const Formations = () => {
   }, [searchQuery, filterSessionType, filterSessionFormat, participantsByTraining]);
 
   // Filter trainings
-  // "Permanent" = explicitly flagged permanent (autonome apprenant)
-  // "Undated" = intra without confirmed dates yet (goes in "À venir", red, on top)
-  const isPermanent = (t: Training) => !!t.is_permanent;
-  const isUndated = (t: Training) => !t.start_date && !t.is_permanent;
+  // "Permanent" = pas de start_date et pas intra (session autonome apprenant, inter/e-learning)
+  // "Undated" = intra sans dates confirmées (va dans "À venir", rouge, en tête)
+  const isIntra = (t: Training) => t.session_type === "intra";
+  const isPermanent = (t: Training) => !t.start_date && !isIntra(t);
+  const isUndated = (t: Training) => !t.start_date && isIntra(t);
 
   const isOngoing = (t: Training) => {
     if (!t.start_date) return false; // Permanent or undated → separate handling
