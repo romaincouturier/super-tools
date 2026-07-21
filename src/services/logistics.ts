@@ -254,6 +254,8 @@ export async function bootstrapChecklist(args: {
   isRemote?: boolean;
   format?: string | null;
   sessionType?: string | null;
+  startDate?: string | null;
+  defaultNotifyDaysBefore?: number;
 }): Promise<void> {
   // Avoid double-seeding (e.g. if create-mission flow runs twice)
   const existing = await fetchItems(args.entityType, args.entityId);
@@ -264,6 +266,17 @@ export async function bootstrapChecklist(args: {
   const items = templates[key] || [];
   if (!items.length) return;
 
+  // Default so every seeded item surfaces in the daily digest.
+  // Template-provided due_date/notify_days_before take precedence.
+  const defaultNotify = args.defaultNotifyDaysBefore ?? 14;
+  const fallbackDue = args.startDate
+    ? args.startDate.slice(0, 10)
+    : (() => {
+        const t = new Date();
+        t.setDate(t.getDate() + 1);
+        return t.toISOString().slice(0, 10);
+      })();
+
   await createItemsBatch(
     items.map((it: LogisticsTemplateItem, idx) => ({
       entity_type: args.entityType,
@@ -271,8 +284,8 @@ export async function bootstrapChecklist(args: {
       label: it.label,
       position: idx,
       legacy_field: it.legacy_field ?? null,
-      due_date: it.due_date ?? null,
-      notify_days_before: it.notify_days_before ?? null,
+      due_date: it.due_date ?? fallbackDue,
+      notify_days_before: it.notify_days_before ?? defaultNotify,
     })),
   );
 }
