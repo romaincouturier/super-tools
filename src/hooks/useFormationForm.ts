@@ -48,6 +48,7 @@ export interface FormationFormState {
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
+  sponsorPhone: string;
   sponsorFormalAddress: boolean;
 
   // Financeur
@@ -127,6 +128,7 @@ export function useFormationForm() {
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
+  const [sponsorPhone, setSponsorPhone] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(false);
 
   // Financeur
@@ -307,6 +309,7 @@ export function useFormationForm() {
         base.sponsor_first_name = isInter ? null : (sponsorFirstName || null);
         base.sponsor_last_name = isInter ? null : (sponsorLastName || null);
         base.sponsor_email = isInter ? null : (sponsorEmail || null);
+        base.sponsor_phone = isInter ? null : (sponsorPhone || null);
         base.financeur_name = (isPermanent || financeurSameAsSponsor) ? null : (financeurName || null);
         base.financeur_url = (isPermanent || financeurSameAsSponsor) ? null : (financeurUrl || null);
         base.trainer_id = null;
@@ -320,6 +323,7 @@ export function useFormationForm() {
         base.sponsor_first_name = sponsorFirstName || null;
         base.sponsor_last_name = sponsorLastName || null;
         base.sponsor_email = sponsorEmail || null;
+        base.sponsor_phone = sponsorPhone || null;
         base.financeur_name = financeurSameAsSponsor ? null : (financeurName || null);
         base.financeur_url = financeurSameAsSponsor ? null : (financeurUrl || null);
         base.trainer_id = trainerId || null;
@@ -337,7 +341,7 @@ export function useFormationForm() {
       sponsorFormalAddress, financeurSameAsSponsor,
       catalogId,
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
-      sponsorFirstName, sponsorLastName, sponsorEmail,
+      sponsorFirstName, sponsorLastName, sponsorEmail, sponsorPhone,
       financeurName, financeurUrl,
       locationType, locationCustom,
       trainerId, assignedTo, trainingNotes, specificInstructions,
@@ -372,6 +376,7 @@ export function useFormationForm() {
     sponsorFirstName, setSponsorFirstName,
     sponsorLastName, setSponsorLastName,
     sponsorEmail, setSponsorEmail,
+    sponsorPhone, setSponsorPhone,
     sponsorFormalAddress, setSponsorFormalAddress,
     financeurSameAsSponsor, setFinanceurSameAsSponsor,
     financeurName, setFinanceurName,

@@ -19,6 +19,7 @@ export interface AddParticipantParams {
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
+  sponsorPhone: string;
   financeurSameAsSponsor: boolean;
   financeurName: string;
   financeurUrl: string;
@@ -88,6 +89,7 @@ export function useAddParticipant({
             sponsorFirstName: params.sponsorFirstName,
             sponsorLastName: params.sponsorLastName,
             sponsorEmail: params.sponsorEmail,
+            sponsorPhone: params.sponsorPhone,
             financeurSameAsSponsor: params.financeurSameAsSponsor,
             financeurName: params.financeurName,
             financeurUrl: params.financeurUrl,

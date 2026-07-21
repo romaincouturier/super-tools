@@ -9944,6 +9944,7 @@ export type Database = {
           sponsor_email: string | null
           sponsor_first_name: string | null
           sponsor_last_name: string | null
+          sponsor_phone: string | null
           training_id: string
           type_stagiaire_bpf: string | null
         }
@@ -9981,6 +9982,7 @@ export type Database = {
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
+          sponsor_phone?: string | null
           training_id: string
           type_stagiaire_bpf?: string | null
         }
@@ -10018,6 +10020,7 @@ export type Database = {
           sponsor_email?: string | null
           sponsor_first_name?: string | null
           sponsor_last_name?: string | null
+          sponsor_phone?: string | null
           training_id?: string
           type_stagiaire_bpf?: string | null
         }
@@ -10673,6 +10676,7 @@ export type Database = {
           sponsor_first_name: string | null
           sponsor_formal_address: boolean
           sponsor_last_name: string | null
+          sponsor_phone: string | null
           start_date: string | null
           supertilt_link: string | null
           supports_file_name: string | null
@@ -10737,6 +10741,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
           sponsor_last_name?: string | null
+          sponsor_phone?: string | null
           start_date?: string | null
           supertilt_link?: string | null
           supports_file_name?: string | null
@@ -10801,6 +10806,7 @@ export type Database = {
           sponsor_first_name?: string | null
           sponsor_formal_address?: boolean
           sponsor_last_name?: string | null
+          sponsor_phone?: string | null
           start_date?: string | null
           supertilt_link?: string | null
           supports_file_name?: string | null

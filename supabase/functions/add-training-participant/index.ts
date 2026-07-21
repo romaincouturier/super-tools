@@ -108,6 +108,7 @@ export interface AddParticipantRequest {
   sponsorFirstName?: string | null;
   sponsorLastName?: string | null;
   sponsorEmail?: string | null;
+  sponsorPhone?: string | null;
   financeurSameAsSponsor?: boolean;
   financeurName?: string | null;
   financeurUrl?: string | null;
@@ -187,6 +188,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       sponsorFirstName,
       sponsorLastName,
       sponsorEmail,
+      sponsorPhone,
       financeurSameAsSponsor = false,
       financeurName,
       financeurUrl,
@@ -235,6 +237,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           sponsor_first_name: capitalizeName(sponsorFirstName || ""),
           sponsor_last_name: capitalizeName(sponsorLastName || ""),
           sponsor_email: sponsorEmail?.trim().toLowerCase() || null,
+          sponsor_phone: sponsorPhone?.trim() || null,
           financeur_same_as_sponsor: financeurSameAsSponsor,
           financeur_name: financeurSameAsSponsor ? null : (financeurName?.trim() || null),
           financeur_url: financeurSameAsSponsor ? null : (financeurUrl?.trim() || null),
@@ -354,6 +357,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           sponsor_first_name: capitalizeName(effectiveSponsorFirstName),
           sponsor_last_name: capitalizeName(effectiveSponsorLastName),
           sponsor_email: effectiveSponsorEmail?.trim().toLowerCase() || null,
+          sponsor_phone: paymentMode === "online" ? null : (sponsorPhone?.trim() || null),
           financeur_same_as_sponsor: paymentMode === "online" ? true : financeurSameAsSponsor,
           financeur_name: (paymentMode === "online" || financeurSameAsSponsor) ? null : (financeurName?.trim() || null),
           financeur_url: (paymentMode === "online" || financeurSameAsSponsor) ? null : (financeurUrl?.trim() || null),

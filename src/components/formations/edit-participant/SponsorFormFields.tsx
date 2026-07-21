@@ -40,6 +40,8 @@ interface SponsorFormFieldsProps {
   setSponsorLastName: (v: string) => void;
   sponsorEmail: string;
   setSponsorEmail: (v: string) => void;
+  sponsorPhone: string;
+  setSponsorPhone: (v: string) => void;
   financeurSameAsSponsor: boolean;
   setFinanceurSameAsSponsor: (v: boolean) => void;
   financeurName: string;
@@ -68,6 +70,8 @@ const SponsorFormFields = ({
   setSponsorLastName,
   sponsorEmail,
   setSponsorEmail,
+  sponsorPhone,
+  setSponsorPhone,
   financeurSameAsSponsor,
   setFinanceurSameAsSponsor,
   financeurName,
@@ -116,15 +120,27 @@ const SponsorFormFields = ({
           />
         </div>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="edit-sponsorEmail">Email du commanditaire</Label>
-        <Input
-          id="edit-sponsorEmail"
-          type="email"
-          value={sponsorEmail}
-          onChange={(e) => setSponsorEmail(e.target.value)}
-          placeholder="marie.martin@example.com"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="edit-sponsorEmail">Email du commanditaire</Label>
+          <Input
+            id="edit-sponsorEmail"
+            type="email"
+            value={sponsorEmail}
+            onChange={(e) => setSponsorEmail(e.target.value)}
+            placeholder="marie.martin@example.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="edit-sponsorPhone">Téléphone</Label>
+          <Input
+            id="edit-sponsorPhone"
+            type="tel"
+            value={sponsorPhone}
+            onChange={(e) => setSponsorPhone(e.target.value)}
+            placeholder="06 12 34 56 78"
+          />
+        </div>
       </div>
 
       {/* Funder section */}

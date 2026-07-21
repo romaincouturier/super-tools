@@ -57,6 +57,7 @@ interface TrainingExtended {
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
+  sponsor_phone?: string | null;
   sponsor_formal_address?: boolean | null;
   trainer_id?: string | null;
   assigned_to?: string | null;
@@ -174,6 +175,7 @@ N'hésitez pas à me contacter en amont pour toute question.
       form.setSponsorFirstName(t.sponsor_first_name || "");
       form.setSponsorLastName(t.sponsor_last_name || "");
       form.setSponsorEmail(t.sponsor_email || "");
+      form.setSponsorPhone(t.sponsor_phone || "");
       form.setSponsorFormalAddress(t.sponsor_formal_address ?? false);
       form.setTrainerId(t.trainer_id || null);
       form.setAssignedTo(t.assigned_to || null);

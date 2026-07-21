@@ -48,7 +48,7 @@ const minimalParams = {
   selectedFormula: undefined,
   sponsorFirstName: "",
   sponsorLastName: "",
-  sponsorEmail: "",
+  sponsorEmail: "", sponsorPhone: "",
   financeurSameAsSponsor: false,
   financeurName: "",
   financeurUrl: "",

@@ -112,6 +112,7 @@ export function useFormationDetail() {
     sponsorFirstName?: string;
     sponsorLastName?: string;
     sponsorEmail?: string;
+    sponsorPhone?: string;
     soldPriceHt?: string;
     formulaId?: string;
   } | null>(null);
@@ -140,6 +141,7 @@ export function useFormationDetail() {
     const pSponsorFirstName = searchParams.get("addParticipantSponsorFirstName") || undefined;
     const pSponsorLastName = searchParams.get("addParticipantSponsorLastName") || undefined;
     const pSponsorEmail = searchParams.get("addParticipantSponsorEmail") || undefined;
+    const pSponsorPhone = searchParams.get("addParticipantSponsorPhone") || undefined;
     const pSoldPriceHt = searchParams.get("addParticipantSoldPriceHt") || undefined;
     const pFormulaId = searchParams.get("addParticipantFormulaId") || undefined;
     const hasParams = !!(pFirstName || pLastName || pEmail);
@@ -156,6 +158,7 @@ export function useFormationDetail() {
         sponsorFirstName: pSponsorFirstName,
         sponsorLastName: pSponsorLastName,
         sponsorEmail: pSponsorEmail,
+        sponsorPhone: pSponsorPhone,
         soldPriceHt: pSoldPriceHt,
         formulaId: pFormulaId,
       });
@@ -171,6 +174,7 @@ export function useFormationDetail() {
       newParams.delete("addParticipantSponsorFirstName");
       newParams.delete("addParticipantSponsorLastName");
       newParams.delete("addParticipantSponsorEmail");
+      newParams.delete("addParticipantSponsorPhone");
       newParams.delete("addParticipantSoldPriceHt");
       newParams.delete("addParticipantFormulaId");
       newParams.delete("fromCrmCardId");

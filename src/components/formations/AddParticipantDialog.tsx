@@ -66,6 +66,7 @@ interface AddParticipantDialogProps {
   initialSponsorFirstName?: string;
   initialSponsorLastName?: string;
   initialSponsorEmail?: string;
+  initialSponsorPhone?: string;
   initialSoldPriceHt?: string;
   initialFormulaId?: string;
   initialPaymentMode?: "online" | "invoice";
@@ -81,7 +82,7 @@ interface AddParticipantDialogProps {
   description?: string;
 }
 
-const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
+const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, clientName, formatFormation, isInterEntreprise: isInterEntrepriseProp, availableFormulas = [], trainingFormulaId, onParticipantAdded, onScheduledEmailsRefresh, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, initialTypeStagiaireBpf, initialSourceFinancementBpf, externalOpen, onExternalOpenChange, trigger, title, description }: AddParticipantDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = externalOpen !== undefined ? externalOpen : internalOpen;
   const setOpen = (v: boolean) => {
@@ -102,6 +103,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
   const [sponsorFirstName, setSponsorFirstName] = useState("");
   const [sponsorLastName, setSponsorLastName] = useState("");
   const [sponsorEmail, setSponsorEmail] = useState("");
+  const [sponsorPhone, setSponsorPhone] = useState("");
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
   const [financeurUrl, setFinanceurUrl] = useState("");
@@ -132,6 +134,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
     setSponsorFirstName("");
     setSponsorLastName("");
     setSponsorEmail("");
+    setSponsorPhone("");
     setFinanceurSameAsSponsor(true);
     setFinanceurName("");
     setFinanceurUrl("");
@@ -189,8 +192,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
           if (initialSponsorEmail) setSponsorEmail(initialSponsorEmail);
         }
       }
+      if (initialSponsorPhone) setSponsorPhone(initialSponsorPhone);
     }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, initialTypeStagiaireBpf, initialSourceFinancementBpf, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, clientName, isInterEntreprise]);
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialTypeStagiaireBpf, initialSourceFinancementBpf, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, clientName, isInterEntreprise]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
@@ -241,6 +245,7 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
       sponsorFirstName,
       sponsorLastName,
       sponsorEmail,
+      sponsorPhone,
       financeurSameAsSponsor,
       financeurName,
       financeurUrl,
@@ -457,15 +462,27 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
                         />
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
-                      <Input
-                        id="sponsorEmail"
-                        type="email"
-                        value={sponsorEmail}
-                        onChange={(e) => setSponsorEmail(e.target.value)}
-                        placeholder="marie.martin@example.com"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sponsorEmail">Email du commanditaire</Label>
+                        <Input
+                          id="sponsorEmail"
+                          type="email"
+                          value={sponsorEmail}
+                          onChange={(e) => setSponsorEmail(e.target.value)}
+                          placeholder="marie.martin@example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sponsorPhone">Téléphone</Label>
+                        <Input
+                          id="sponsorPhone"
+                          type="tel"
+                          value={sponsorPhone}
+                          onChange={(e) => setSponsorPhone(e.target.value)}
+                          placeholder="06 12 34 56 78"
+                        />
+                      </div>
                     </div>
                   </>
                 )}

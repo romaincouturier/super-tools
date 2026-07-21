@@ -69,6 +69,7 @@ const DuplicateParticipantDialog = ({
       initialSponsorFirstName={participant.sponsor_first_name ?? undefined}
       initialSponsorLastName={participant.sponsor_last_name ?? undefined}
       initialSponsorEmail={participant.sponsor_email ?? undefined}
+      initialSponsorPhone={(participant as any).sponsor_phone ?? undefined}
     />
   );
 };

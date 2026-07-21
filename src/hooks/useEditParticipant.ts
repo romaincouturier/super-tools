@@ -28,6 +28,7 @@ export interface Participant {
   sponsor_first_name?: string | null;
   sponsor_last_name?: string | null;
   sponsor_email?: string | null;
+  sponsor_phone?: string | null;
   financeur_same_as_sponsor?: boolean;
   financeur_name?: string | null;
   financeur_url?: string | null;
@@ -66,6 +67,7 @@ interface FormValues {
   sponsorFirstName: string;
   sponsorLastName: string;
   sponsorEmail: string;
+  sponsorPhone: string;
   financeurSameAsSponsor: boolean;
   financeurName: string;
   financeurUrl: string;
@@ -170,6 +172,7 @@ export function useEditParticipant({
         updateData.sponsor_last_name = v.sponsorLastName.trim() || null;
         updateData.sponsor_email =
           v.sponsorEmail.trim().toLowerCase() || null;
+        updateData.sponsor_phone = v.sponsorPhone.trim() || null;
         updateData.financeur_same_as_sponsor = v.financeurSameAsSponsor;
         updateData.financeur_name = !v.financeurSameAsSponsor
           ? v.financeurName.trim() || null
@@ -213,6 +216,7 @@ export function useEditParticipant({
     sponsorFirstName: sponsorInfo.sponsorFirstName,
     sponsorLastName: sponsorInfo.sponsorLastName,
     sponsorEmail: sponsorInfo.sponsorEmail,
+    sponsorPhone: sponsorInfo.sponsorPhone,
     financeurSameAsSponsor: financeurInfo.financeurSameAsSponsor,
     financeurName: financeurInfo.financeurName,
     financeurUrl: financeurInfo.financeurUrl,
@@ -223,7 +227,7 @@ export function useEditParticipant({
     coachingSessionsTotal,
     typeStagiaireBpf,
     sourceFinancementBpf,
-  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
+  }), [participantForm.firstName, participantForm.lastName, participantForm.email, participantForm.company, participantForm.companyAddress, participantForm.companyZip, participantForm.companyCity, sponsorInfo.sponsorFirstName, sponsorInfo.sponsorLastName, sponsorInfo.sponsorEmail, sponsorInfo.sponsorPhone, financeurInfo.financeurSameAsSponsor, financeurInfo.financeurName, financeurInfo.financeurUrl, paymentInfo.paymentMode, paymentInfo.soldPriceHt, notes, formula, coachingSessionsTotal, typeStagiaireBpf, sourceFinancementBpf]);
 
   // --- Auto-save callback ---
   const handleAutoSave = useCallback(
@@ -325,6 +329,8 @@ export function useEditParticipant({
     setSponsorLastName: sponsorInfo.setSponsorLastName,
     sponsorEmail: sponsorInfo.sponsorEmail,
     setSponsorEmail: sponsorInfo.setSponsorEmail,
+    sponsorPhone: sponsorInfo.sponsorPhone,
+    setSponsorPhone: sponsorInfo.setSponsorPhone,
 
     // Financeur fields
     financeurSameAsSponsor: financeurInfo.financeurSameAsSponsor,

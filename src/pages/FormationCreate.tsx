@@ -72,6 +72,7 @@ const FormationCreate = () => {
     const paramSponsorFirstName = searchParams.get("sponsorFirstName");
     const paramSponsorLastName = searchParams.get("sponsorLastName");
     const paramSponsorEmail = searchParams.get("sponsorEmail");
+    const paramSponsorPhone = searchParams.get("sponsorPhone");
     const paramTrainingName = searchParams.get("trainingName");
     const paramClientAddress = searchParams.get("clientAddress");
     const paramEstimatedValue = searchParams.get("estimatedValue");
@@ -80,6 +81,7 @@ const FormationCreate = () => {
     if (paramSponsorFirstName) form.setSponsorFirstName(paramSponsorFirstName);
     if (paramSponsorLastName) form.setSponsorLastName(paramSponsorLastName);
     if (paramSponsorEmail) form.setSponsorEmail(paramSponsorEmail);
+    if (paramSponsorPhone) form.setSponsorPhone(paramSponsorPhone);
     if (paramTrainingName) form.setTrainingName(paramTrainingName);
     if (paramClientAddress) form.setClientAddress(paramClientAddress);
     if (paramEstimatedValue && parseFloat(paramEstimatedValue) > 0) {
