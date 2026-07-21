@@ -587,6 +587,11 @@ const PageEditor = ({
         codeBlock: { HTMLAttributes: { class: "bg-muted/50 rounded-md p-4 font-mono text-sm" } },
         blockquote: { HTMLAttributes: { class: "border-l-4 border-primary/30 pl-4 italic text-muted-foreground" } },
         horizontalRule: { HTMLAttributes: { class: "my-6 border-muted-foreground/30 border-t-2" } },
+        // StarterKit v3 bundles Link and Underline; disable them here so our
+        // explicit LinkExtension / Underline below don't duplicate and slow
+        // down the ProseMirror schema.
+        link: false,
+        underline: false,
       }),
       LinkExtension.configure({
         // Let the browser handle the click via the rendered <a target="_blank">
