@@ -1568,7 +1568,9 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
+    inProgressRestocks,
   };
+
 }
 
 // ─── Visibility helpers ──────────────────────────────────────────────
