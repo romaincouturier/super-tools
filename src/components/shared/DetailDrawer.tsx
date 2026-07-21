@@ -43,22 +43,24 @@ const DetailDrawer = ({
       onEscapeKeyDown={() => onOpenChange(false)}
     >
       <SheetHeader className={headerClassName}>
-        <SheetTitle className="flex items-center justify-between gap-2">
-          <span className="truncate flex-1">{title}</span>
-          <div className="flex items-center gap-1">
+        <SheetTitle className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            title="Fermer"
+            aria-label="Fermer"
+            className="shrink-0 h-9 w-9 p-0"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <span className="truncate flex-1 min-w-0">{title}</span>
+          <div className="flex items-center gap-1 shrink-0 overflow-x-auto max-w-[50%] sm:max-w-none">
             {actions}
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              title="Fermer"
-              className="shrink-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </SheetTitle>
       </SheetHeader>
+
       {children}
     </SheetContent>
   </Sheet>
