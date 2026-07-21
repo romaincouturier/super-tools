@@ -919,6 +919,14 @@ const CardDetailDrawer = ({
         setShowCreateTrainingDialog={setShowCreateTrainingDialog}
         pendingTrainingParams={pendingTrainingParams}
         handleConfirmCreateTraining={handleConfirmCreateTraining}
+        initialSiren={siren}
+        onSirenResolved={(o) => {
+          if (o.siren) setSiren(o.siren);
+          if (o.company) setCompany(o.company);
+          if (o.address) setAddress(o.address);
+          if (o.postal_code) setPostalCode(o.postal_code);
+          if (o.city) setCity(o.city);
+        }}
         showWinChoiceDialog={showWinChoiceDialog}
         setShowWinChoiceDialog={setShowWinChoiceDialog}
         handleConfirmCreateMission={handleConfirmCreateMission}
