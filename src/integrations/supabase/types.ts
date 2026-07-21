@@ -10687,6 +10687,7 @@ export type Database = {
           trainer_id: string | null
           trainer_name: string
           training_name: string
+          type_stagiaire_bpf: string | null
           updated_at: string
           venue_booking_sent_at: string | null
           venue_id: string | null
@@ -10752,6 +10753,7 @@ export type Database = {
           trainer_id?: string | null
           trainer_name?: string
           training_name: string
+          type_stagiaire_bpf?: string | null
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
@@ -10817,6 +10819,7 @@ export type Database = {
           trainer_id?: string | null
           trainer_name?: string
           training_name?: string
+          type_stagiaire_bpf?: string | null
           updated_at?: string
           venue_booking_sent_at?: string | null
           venue_id?: string | null
