@@ -112,6 +112,7 @@ export function useFormationDetail() {
     sponsorFirstName?: string;
     sponsorLastName?: string;
     sponsorEmail?: string;
+    sponsorPhone?: string;
     soldPriceHt?: string;
     formulaId?: string;
   } | null>(null);
