@@ -216,6 +216,7 @@ export function useEditParticipant({
     sponsorFirstName: sponsorInfo.sponsorFirstName,
     sponsorLastName: sponsorInfo.sponsorLastName,
     sponsorEmail: sponsorInfo.sponsorEmail,
+    sponsorPhone: sponsorInfo.sponsorPhone,
     financeurSameAsSponsor: financeurInfo.financeurSameAsSponsor,
     financeurName: financeurInfo.financeurName,
     financeurUrl: financeurInfo.financeurUrl,
