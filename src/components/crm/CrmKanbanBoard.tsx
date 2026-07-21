@@ -785,6 +785,10 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
         opportunityTitle={pendingTrainingCard?.title || ""}
         isFormation={pendingTrainingCard?.service_type === "formation" || !pendingTrainingCard?.service_type}
         crmCardId={pendingTrainingCard?.id ?? null}
+        initialSiren={pendingTrainingCard?.siren ?? null}
+        onSirenResolved={(overrides) =>
+          setPendingTrainingCard((prev) => (prev ? { ...prev, ...overrides } : prev))
+        }
       />
 
       {/* Loss Reason Dialog for drag-to-lost */}
