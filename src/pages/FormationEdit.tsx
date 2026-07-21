@@ -476,7 +476,7 @@ N'hésitez pas à me contacter en amont pour toute question.
                     form.isElearning ? (
                       <ElearningDatesFields form={form} />
                     ) : (
-                      <TrainingDaysCalendar form={form} />
+                      <TrainingDaysCalendar form={form} optional={!form.isInter} />
                     )
                   )}
 
