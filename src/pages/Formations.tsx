@@ -60,6 +60,7 @@ interface Training {
   format_formation: string | null;
   source_financement_bpf: string | null;
   is_cancelled: boolean | null;
+  is_permanent?: boolean | null;
   sold_price_ht?: number | null;
   participant_count?: number;
   /** Number of participants with payment_mode=invoice and no invoice_file_url */
