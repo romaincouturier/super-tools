@@ -80,13 +80,11 @@ Formuler les questions de façon actionnable puis mettre à jour le ticket :
 
 ```bash
 NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-curl -sS -X PATCH \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
+curl -sS -X POST \
+  -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
   -H "Content-Type: application/json" \
-  -H "Prefer: return=minimal" \
-  "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
-  -d "{\"resolution_notes\": \"Questions Claude :\\n\\n1. ...\\n2. ...\", \"discussion_requested_at\": \"$NOW\", \"coding_status\": null, \"coding_error\": null, \"updated_at\": \"$NOW\"}"
+  "$TICKET_STATUS_URL" \
+  -d "{\"ticket_number\": \"$TICKET_NUM\", \"resolution_notes\": \"Questions Claude :\\n\\n1. ...\\n2. ...\", \"discussion_requested_at\": \"$NOW\", \"coding_status\": \"\", \"coding_error\": null}"
 ```
 
 Afficher les questions et arrêter.
@@ -175,21 +173,19 @@ NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 node -e "
 const fs = require('fs');
 fs.writeFileSync('/tmp/ticket-update.json', JSON.stringify({
+  ticket_number: process.argv[3],
   status: 'vibe_coding',
   branch_url: process.argv[1],
   coding_status: 'done',
   coding_error: null,
   coding_summary: fs.readFileSync('/tmp/coding-summary.md', 'utf8'),
-  updated_at: process.argv[2],
 }));
-" "$PR_URL" "$NOW"
+" "$PR_URL" "$NOW" "$TICKET_NUM"
 
-curl -sS -X PATCH \
-  -H "apikey: $SUPABASE_KEY" \
-  -H "Authorization: Bearer $SUPABASE_KEY" \
+curl -sS -X POST \
+  -H "x-webhook-secret: $TICKET_STATUS_WEBHOOK_SECRET" \
   -H "Content-Type: application/json" \
-  -H "Prefer: return=minimal" \
-  "$SUPABASE_URL/rest/v1/support_tickets?ticket_number=eq.$TICKET_NUM" \
+  "$TICKET_STATUS_URL" \
   -d @/tmp/ticket-update.json
 ```
 
