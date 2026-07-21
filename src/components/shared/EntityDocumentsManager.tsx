@@ -182,9 +182,14 @@ const EntityDocumentsManager = ({
       const minutes = Math.ceil(remaining / 60);
       return minutes > 0 ? `Transcription en cours · environ ${minutes} min restantes` : "Finalisation…";
     }
-    if (doc.processing_status === "completed") return "Transcription terminée · page créée";
     if (doc.processing_status === "failed") return doc.processing_error || "Transcription échouée";
     return null;
+  };
+
+  const openTranscriptPage = (pageId: string) => {
+    if (entityType !== "mission") return;
+    sessionStorage.setItem("pendingSelectedMissionPageId", pageId);
+    window.open(`/missions/${entityId}`, "_blank", "noopener,noreferrer");
   };
 
   const content = (
