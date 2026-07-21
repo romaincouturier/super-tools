@@ -1494,6 +1494,8 @@ export interface DailyData {
   supertiltActions: SupertiltActionItem[];
   lmsCommunityPending: LmsCommunityPendingItem[];
   restockDeliveries: RestockDeliveryItem[];
+  inProgressRestocks: InProgressRestockItem[];
+
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
