@@ -38,6 +38,7 @@ export type RestockItem = {
   final_cost_ht: number | null;
   final_cost_ttc: number | null;
   completed_at: string | null;
+  estimated_delivery_date: string | null;
   position: number;
   created_at: string;
   updated_at: string;

@@ -1335,6 +1335,43 @@ export async function fetchSupertiltAlerts(supabase: SupabaseClient): Promise<Su
 }
 
 /**
+ * Restock items awaiting delivery with an estimated delivery date.
+ * Surfaced daily until the item is marked as received.
+ */
+export interface RestockDeliveryItem {
+  itemId: string;
+  restockId: string;
+  gameId: string;
+  gameTitle: string;
+  label: string;
+  estimatedDeliveryDate: string; // YYYY-MM-DD
+}
+
+export async function fetchRestockDeliveries(supabase: SupabaseClient): Promise<RestockDeliveryItem[]> {
+  const { data, error } = await supabase
+    .from("game_restock_items")
+    .select("id, restock_id, label, estimated_delivery_date, game_restocks!inner(id, game_id, status, games(title))")
+    .eq("status", "awaiting_delivery")
+    .not("estimated_delivery_date", "is", null);
+  if (error) {
+    console.error("fetchRestockDeliveries error:", error.message);
+    return [];
+  }
+  return (data ?? [])
+    .filter((r: any) => r.game_restocks?.status === "in_progress")
+    .map((r: any) => ({
+      itemId: r.id,
+      restockId: r.restock_id,
+      gameId: r.game_restocks?.game_id,
+      gameTitle: r.game_restocks?.games?.title ?? "Jeu",
+      label: r.label,
+      estimatedDeliveryDate: r.estimated_delivery_date,
+    }));
+}
+
+
+
+/**
  * Fetch LMS community publications awaiting staff handling.
  * A "publication à traiter" = a practice post tied to a work deposit that is
  * neither marked staff-treated nor has any staff reply. Grouped per course.
@@ -1421,6 +1458,7 @@ export interface DailyData {
   supertiltAlerts: SupertiltAlertItem[];
   supertiltActions: SupertiltActionItem[];
   lmsCommunityPending: LmsCommunityPendingItem[];
+  restockDeliveries: RestockDeliveryItem[];
 }
 
 export async function fetchAllDailyData(supabase: SupabaseClient, today: string): Promise<DailyData> {
@@ -1452,6 +1490,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     supertiltAlerts,
     supertiltActions,
     lmsCommunityPending,
+    restockDeliveries,
   ] = await Promise.all([
     fetchRecipients(supabase),
     fetchMissionActions(supabase, today),
@@ -1477,6 +1516,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchSupertiltAlerts(supabase),
     fetchSupertiltActions(supabase, today),
     fetchLmsCommunityPending(supabase),
+    fetchRestockDeliveries(supabase),
   ]);
 
   return {
@@ -1486,6 +1526,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
     reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
+    restockDeliveries,
   };
 }
 

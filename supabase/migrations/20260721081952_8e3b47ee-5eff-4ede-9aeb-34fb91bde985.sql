@@ -1,0 +1,1 @@
+ALTER TABLE public.game_restock_items ADD COLUMN IF NOT EXISTS estimated_delivery_date DATE;

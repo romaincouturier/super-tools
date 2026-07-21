@@ -450,6 +450,7 @@ function RunItemRow({
   const [costHT, setCostHT] = useState<string>(item.final_cost_ht?.toString() ?? "");
   const [costTTC, setCostTTC] = useState<string>(item.final_cost_ttc?.toString() ?? "");
   const [instructions, setInstructions] = useState<string>(item.instructions ?? "");
+  const [etaDate, setEtaDate] = useState<string>(item.estimated_delivery_date ?? "");
   const { toast } = useToast();
 
   const onStatus = async (status: RestockItemStatus) => {
@@ -460,10 +461,22 @@ function RunItemRow({
         return;
       }
       await onPatch({ status, completed_at: new Date().toISOString() } as any);
+    } else if (status === "awaiting_delivery") {
+      await onPatch({ status, completed_at: null } as any);
+      setExpanded(true);
+      if (!item.estimated_delivery_date) {
+        toast({ title: "Indiquez la date estimée de livraison" });
+      }
     } else {
       await onPatch({ status, completed_at: null } as any);
     }
   };
+
+  const saveEta = async () => {
+    await onPatch({ estimated_delivery_date: etaDate || null } as any);
+    toast({ title: "Date estimée enregistrée" });
+  };
+
 
   const saveCosts = async () => {
     const ht = costHT ? parseFloat(costHT) : null;
@@ -528,6 +541,20 @@ function RunItemRow({
               </div>
             )}
           </div>
+          {item.status === "awaiting_delivery" && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Date estimée de livraison</div>
+              <div className="flex items-center gap-2">
+                <Input type="date" value={etaDate} onChange={(e) => setEtaDate(e.target.value)} disabled={readonly} className="w-[200px]" />
+                {!readonly && (
+                  <Button size="sm" variant="outline" onClick={saveEta} disabled={etaDate === (item.estimated_delivery_date ?? "")}>
+                    Enregistrer la date
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Tant que l'action n'est pas reçue, elle apparaîtra dans le récap quotidien.</p>
+            </div>
+          )}
           {files.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase mb-1">Ressources</div>

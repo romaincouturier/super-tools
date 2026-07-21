@@ -3395,6 +3395,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          estimated_delivery_date: string | null
           final_cost_ht: number | null
           final_cost_ttc: number | null
           id: string
@@ -3411,6 +3412,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          estimated_delivery_date?: string | null
           final_cost_ht?: number | null
           final_cost_ttc?: number | null
           id?: string
@@ -3427,6 +3429,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          estimated_delivery_date?: string | null
           final_cost_ht?: number | null
           final_cost_ttc?: number | null
           id?: string
