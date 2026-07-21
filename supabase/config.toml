@@ -656,3 +656,6 @@ verify_jwt = true
 
 [functions.test-sheet-append]
 verify_jwt = false
+
+[functions.update-ticket-coding-status]
+verify_jwt = false
