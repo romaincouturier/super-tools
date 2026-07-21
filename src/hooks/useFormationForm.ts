@@ -341,7 +341,7 @@ export function useFormationForm() {
       sponsorFormalAddress, financeurSameAsSponsor,
       catalogId,
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
-      sponsorFirstName, sponsorLastName, sponsorEmail,
+      sponsorFirstName, sponsorLastName, sponsorEmail, sponsorPhone,
       financeurName, financeurUrl,
       locationType, locationCustom,
       trainerId, assignedTo, trainingNotes, specificInstructions,
