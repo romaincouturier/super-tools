@@ -249,11 +249,25 @@ const EntityDocumentsManager = ({
                     {doc.created_at && doc.file_size != null && <>{" "}&middot;{" "}</>}
                     {formatFileSize(doc.file_size)}
                   </p>
-                  {getProcessingLabel(doc) && (
+                  {doc.processing_status === "completed" ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-yellow-500" />
+                      {doc.transcript_page_id && entityType === "mission" && (
+                        <button
+                          type="button"
+                          onClick={() => openTranscriptPage(doc.transcript_page_id!)}
+                          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          title="Ouvrir la page créée"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Ouvrir la page
+                        </button>
+                      )}
+                    </div>
+                  ) : getProcessingLabel(doc) ? (
                     <div className="mt-2 space-y-1">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         {doc.processing_status === "failed" ? <AlertCircle className="h-3.5 w-3.5 text-destructive" /> : null}
-                        {doc.processing_status === "completed" ? <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> : null}
                         {doc.processing_status === "pending" || doc.processing_status === "processing" ? <Spinner size="sm" /> : null}
                         <span>{getProcessingLabel(doc)}</span>
                       </div>
@@ -261,7 +275,7 @@ const EntityDocumentsManager = ({
                         <Progress value={doc.processing_progress} className="h-1.5" />
                       )}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
