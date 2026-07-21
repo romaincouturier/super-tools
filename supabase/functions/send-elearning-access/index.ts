@@ -101,10 +101,7 @@ serve(async (req) => {
           }
         }
 
-        // Fallback to training-level or catalog-level product ID
-        if (!productId && training.woocommerce_product_id) {
-          productId = training.woocommerce_product_id;
-        }
+        // Fallback to catalog-level product ID (no product_id on trainings)
 
         if (!productId && training.catalog_id) {
           const { data: config } = await supabase
