@@ -209,8 +209,28 @@ serve(async (req) => {
       .maybeSingle();
     const commsManagerId: string | null = settingRow?.setting_value || null;
 
+    // ── Failed emails (staff/admin section) ──
+    const [failedEmailsRes, scheduledFailedRes] = await Promise.all([
+      supabase
+        .from("failed_emails")
+        .select("id, recipient_email, subject, error_message, email_type, created_at")
+        .eq("status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("scheduled_emails")
+        .select("id, email_type, scheduled_for, error_message, created_at")
+        .eq("status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    const failedEmails = failedEmailsRes.data ?? [];
+    const scheduledFailed = scheduledFailedRes.data ?? [];
+    const totalFailedEmails = failedEmails.length + scheduledFailed.length;
+
     // ── Send per-user digest ──
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
+
     let emailsSent = 0;
     let totalAlertsSent = 0;
 
