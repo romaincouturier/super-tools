@@ -1168,6 +1168,18 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   }, [pages]);
 
   useEffect(() => {
+    if (!pages) return;
+    const pendingPageId = sessionStorage.getItem("pendingSelectedMissionPageId");
+    if (!pendingPageId) return;
+    const page = pages.find((p) => p.id === pendingPageId);
+    if (page) {
+      setSelectedPage(page);
+      setSidebarCollapsed(false);
+    }
+    sessionStorage.removeItem("pendingSelectedMissionPageId");
+  }, [pages]);
+
+  useEffect(() => {
     if (initialActivityPageRequest && pages !== undefined) {
       handleCreatePage(null, initialActivityPageRequest.description, undefined, initialActivityPageRequest.activityId);
       onActivityPageCreated?.();
