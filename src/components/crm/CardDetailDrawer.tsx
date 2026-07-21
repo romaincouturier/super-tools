@@ -766,7 +766,13 @@ const CardDetailDrawer = ({
   };
 
   const handleConfirmCreateTraining = () => {
-    if (pendingTrainingParams) { setShowCreateTrainingDialog(false); setShowWinChoiceDialog(false); onOpenChange(false); navigate(`/formations/new?${pendingTrainingParams.toString()}`); setPendingTrainingParams(null); }
+    // Rebuild params at click time so the SIREN enrichment made in the dialog is reflected.
+    const params = buildTrainingParams();
+    setShowCreateTrainingDialog(false);
+    setShowWinChoiceDialog(false);
+    onOpenChange(false);
+    navigate(`/formations/new?${params.toString()}`);
+    setPendingTrainingParams(null);
   };
 
   const handleConfirmCreateMission = () => {
@@ -913,6 +919,14 @@ const CardDetailDrawer = ({
         setShowCreateTrainingDialog={setShowCreateTrainingDialog}
         pendingTrainingParams={pendingTrainingParams}
         handleConfirmCreateTraining={handleConfirmCreateTraining}
+        initialSiren={siren}
+        onSirenResolved={(o) => {
+          if (o.siren) setSiren(o.siren);
+          if (o.company) setCompany(o.company);
+          if (o.address) setAddress(o.address);
+          if (o.postal_code) setPostalCode(o.postal_code);
+          if (o.city) setCity(o.city);
+        }}
         showWinChoiceDialog={showWinChoiceDialog}
         setShowWinChoiceDialog={setShowWinChoiceDialog}
         handleConfirmCreateMission={handleConfirmCreateMission}

@@ -62,6 +62,8 @@ interface Props {
   setShowCreateTrainingDialog: (v: boolean) => void;
   pendingTrainingParams: URLSearchParams | null;
   handleConfirmCreateTraining: () => void;
+  initialSiren?: string | null;
+  onSirenResolved?: (overrides: { siren?: string; company?: string; address?: string; postal_code?: string; city?: string }) => void;
 
   // Win choice
   showWinChoiceDialog: boolean;
@@ -79,7 +81,7 @@ const CardDetailDialogs = (props: Props) => {
     showPricingDialog, setShowPricingDialog, pricingLines, setPricingLines,
     pricingTravelTotal, setPricingTravelTotal, setEstimatedValue,
     showCreateTrainingDialog, setShowCreateTrainingDialog, pendingTrainingParams: _pendingTrainingParams,
-    handleConfirmCreateTraining,
+    handleConfirmCreateTraining, initialSiren, onSirenResolved,
     showWinChoiceDialog, setShowWinChoiceDialog, handleConfirmCreateMission,
     onOpenChange,
   } = props;
@@ -316,6 +318,9 @@ const CardDetailDialogs = (props: Props) => {
         }}
         opportunityTitle={title}
         isFormation={serviceType === "formation" || !serviceType}
+        crmCardId={cardId ?? null}
+        initialSiren={initialSiren}
+        onSirenResolved={onSirenResolved}
       />
 
       <AlertDialog open={showWinChoiceDialog} onOpenChange={setShowWinChoiceDialog}>

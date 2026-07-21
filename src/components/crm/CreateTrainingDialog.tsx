@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Plus, UserPlus, Search, Calendar, Building, FileText } from "lucide-react";
+import { GraduationCap, Plus, UserPlus, Search, Calendar, Building, FileText, Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useSirenSearch } from "@/hooks/useSirenSearch";
+import { useToast } from "@/hooks/use-toast";
 
 interface Training {
   id: string;
@@ -40,6 +42,14 @@ export interface SelectedQuoteInfo {
   totalHt: number | null;
 }
 
+export interface SirenOverrides {
+  siren?: string;
+  company?: string;
+  address?: string;
+  postal_code?: string;
+  city?: string;
+}
+
 interface CreateTrainingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,6 +59,10 @@ interface CreateTrainingDialogProps {
   isFormation: boolean;
   /** CRM card id to fetch quotes and pick the winning one. */
   crmCardId?: string | null;
+  /** Existing SIREN on the CRM card — if present, the SIREN prompt is skipped. */
+  initialSiren?: string | null;
+  /** Notified after the SIREN lookup has enriched the card, so parents can refresh local state. */
+  onSirenResolved?: (overrides: SirenOverrides) => void;
 }
 
 export function CreateTrainingDialog({
@@ -59,18 +73,52 @@ export function CreateTrainingDialog({
   opportunityTitle,
   isFormation,
   crmCardId,
+  initialSiren,
+  onSirenResolved,
 }: CreateTrainingDialogProps) {
-  const [mode, setMode] = useState<"choice" | "select-quote" | "select-training">("choice");
+  const [mode, setMode] = useState<"siren" | "choice" | "select-quote" | "select-training">("siren");
   const [trainingSearch, setTrainingSearch] = useState("");
   const [selectedQuote, setSelectedQuote] = useState<SelectedQuoteInfo | null>(null);
+  const [savingSiren, setSavingSiren] = useState(false);
+  const { siren, setSiren, searchingSiren, handleSearchSiren } = useSirenSearch();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
-      setMode("choice");
+      // Skip the SIREN prompt when the card already has one on file.
+      setMode(initialSiren && /^\d{9}$/.test(initialSiren) ? "choice" : "siren");
       setTrainingSearch("");
       setSelectedQuote(null);
+      setSiren(initialSiren && /^\d{9}$/.test(initialSiren) ? initialSiren : "");
     }
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialSiren]);
+
+  const applySirenAndContinue = async () => {
+    const result = await handleSearchSiren();
+    if (!result) return;
+    const overrides: SirenOverrides = {
+      siren,
+      ...(result.nomClient ? { company: result.nomClient } : {}),
+      ...(result.adresseClient ? { address: result.adresseClient } : {}),
+      ...(result.codePostalClient ? { postal_code: result.codePostalClient } : {}),
+      ...(result.villeClient ? { city: result.villeClient } : {}),
+    };
+    if (crmCardId) {
+      setSavingSiren(true);
+      const { error } = await supabase.from("crm_cards").update(overrides).eq("id", crmCardId);
+      setSavingSiren(false);
+      if (error) {
+        toast({
+          title: "Enregistrement impossible",
+          description: "Les informations n'ont pas pu être sauvegardées sur l'opportunité.",
+          variant: "destructive",
+        });
+      }
+    }
+    onSirenResolved?.(overrides);
+    setMode("choice");
+  };
 
   const { data: quotes = [], isLoading: loadingQuotes } = useQuery({
     queryKey: ["crm-card-quotes", crmCardId],
@@ -134,6 +182,62 @@ export function CreateTrainingDialog({
 
   const formatAmount = (n: number | null) =>
     n == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(n);
+
+  // SIREN prompt screen — enrich the opportunity with company / address from INSEE
+  if (mode === "siren") {
+    const busy = searchingSiren || savingSiren;
+    return (
+      <AlertDialog open={open} onOpenChange={onOpenChange}>
+        <AlertDialogContent className="w-full sm:max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-full bg-primary/10 text-primary">
+                <Building className="h-5 w-5" />
+              </div>
+              <AlertDialogTitle>SIREN du client</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-left">
+              Saisissez le SIREN (9 chiffres) pour récupérer automatiquement la raison sociale
+              et l'adresse du siège social. Ces informations seront enregistrées sur l'opportunité
+              et préremplies dans la formation ou le participant à créer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="py-2">
+            <Input
+              inputMode="numeric"
+              placeholder="123456789"
+              value={siren}
+              maxLength={9}
+              onChange={(e) => setSiren(e.target.value.replace(/\D/g, "").slice(0, 9))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && /^\d{9}$/.test(siren) && !busy) {
+                  e.preventDefault();
+                  void applySirenAndContinue();
+                }
+              }}
+              autoFocus
+              disabled={busy}
+            />
+          </div>
+
+          <AlertDialogFooter>
+            <Button variant="ghost" onClick={() => setMode("choice")} disabled={busy}>
+              Passer
+            </Button>
+            <AlertDialogCancel disabled={busy}>Annuler</AlertDialogCancel>
+            <Button
+              onClick={() => void applySirenAndContinue()}
+              disabled={!/^\d{9}$/.test(siren) || busy}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2">Rechercher</span>
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
 
   // Choice screen
   if (mode === "choice") {
