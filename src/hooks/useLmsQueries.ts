@@ -22,9 +22,15 @@ export interface CourseHomeInstructor {
 }
 
 /** Editable content of the course-home "Infos pratiques" section. */
+export type CourseHeroMediaType = "video" | "image" | "text";
+
 export interface CourseHomeConfig {
   welcome_title_1?: string | null;
   welcome_title_2?: string | null;
+  /** Type de média du bloc de présentation (défaut: "video"). */
+  hero_media_type?: CourseHeroMediaType;
+  hero_image_url?: string | null;
+  hero_text?: string | null;
   tips?: string[];
   /** Affichage des encadrés du tableau de bord e-learning (défaut: affichés). */
   show_next_live?: boolean;

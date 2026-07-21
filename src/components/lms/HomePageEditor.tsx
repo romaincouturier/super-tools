@@ -1,13 +1,18 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Save } from "lucide-react";
-import { useUpdateCourse } from "@/hooks/useLms";
-import type { CourseHomeConfig } from "@/hooks/useLmsQueries";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Spinner } from "@/components/ui/spinner";
+import { Plus, Trash2, Save, Upload, X } from "lucide-react";
+import { useUpdateCourse, uploadLmsImage } from "@/hooks/useLms";
+import type { CourseHomeConfig, CourseHeroMediaType } from "@/hooks/useLmsQueries";
 import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
+import { formatFileSize } from "@/lib/file-utils";
 
 type Props = {
   course: {
@@ -20,16 +25,33 @@ type Props = {
 export default function HomePageEditor({ course }: Props) {
   const updateCourse = useUpdateCourse();
   const { toast } = useToast();
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const [videoUrl, setVideoUrl] = useState(course.welcome_video_url || "");
   const [home, setHome] = useState<CourseHomeConfig>({
     ...(course.home_config ?? {}),
     welcome_title_1: course.home_config?.welcome_title_1 ?? "Bienvenue dans",
     welcome_title_2: course.home_config?.welcome_title_2 ?? "votre formation",
+    hero_media_type: course.home_config?.hero_media_type ?? "video",
     tips: course.home_config?.tips ?? [],
   });
 
   const tips = home.tips ?? [];
+  const heroType: CourseHeroMediaType = home.hero_media_type ?? "video";
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLmsImage(file, course.id);
+      setHome((h) => ({ ...h, hero_image_url: url }));
+      toast({ title: `Image importée (${formatFileSize(file.size)})` });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur d'upload");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     await updateCourse.mutateAsync({
@@ -60,13 +82,90 @@ export default function HomePageEditor({ course }: Props) {
           />
         </div>
 
-        <div>
-          <Label>Lien de la vidéo d'accueil</Label>
-          <Input
-            value={videoUrl}
-            onChange={(e) => setVideoUrl(e.target.value)}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
+        <div className="space-y-3 border-t pt-4">
+          <Label>Bloc de présentation</Label>
+          <RadioGroup
+            value={heroType}
+            onValueChange={(v) => setHome({ ...home, hero_media_type: v as CourseHeroMediaType })}
+            className="flex gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="video" id="hero-video" />
+              <Label htmlFor="hero-video" className="font-normal cursor-pointer">Vidéo</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="image" id="hero-image" />
+              <Label htmlFor="hero-image" className="font-normal cursor-pointer">Image</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="text" id="hero-text" />
+              <Label htmlFor="hero-text" className="font-normal cursor-pointer">Texte</Label>
+            </div>
+          </RadioGroup>
+
+          {heroType === "video" && (
+            <div>
+              <Label>Lien de la vidéo d'accueil</Label>
+              <Input
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+              />
+            </div>
+          )}
+
+          {heroType === "image" && (
+            <div className="space-y-2">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleImageUpload(f);
+                  e.target.value = "";
+                }}
+              />
+              {home.hero_image_url ? (
+                <div className="relative max-w-md rounded-lg overflow-hidden border">
+                  <img src={home.hero_image_url} alt="" className="w-full h-auto object-contain max-h-[300px]" />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7"
+                    onClick={() => setHome({ ...home, hero_image_url: null })}
+                    aria-label="Supprimer l'image"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? <Spinner className="mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                {uploading ? "Upload…" : home.hero_image_url ? "Remplacer l'image" : "Importer une image"}
+              </Button>
+              <p className="text-xs text-muted-foreground">JPG, PNG, GIF ou WebP</p>
+            </div>
+          )}
+
+          {heroType === "text" && (
+            <div>
+              <Label>Texte de présentation</Label>
+              <Textarea
+                value={home.hero_text ?? ""}
+                onChange={(e) => setHome({ ...home, hero_text: e.target.value })}
+                placeholder="Présentez votre formation en quelques mots…"
+                rows={5}
+              />
+            </div>
+          )}
         </div>
 
         <div>
