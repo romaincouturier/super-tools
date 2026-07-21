@@ -209,8 +209,28 @@ serve(async (req) => {
       .maybeSingle();
     const commsManagerId: string | null = settingRow?.setting_value || null;
 
+    // ── Failed emails (staff/admin section) ──
+    const [failedEmailsRes, scheduledFailedRes] = await Promise.all([
+      supabase
+        .from("failed_emails")
+        .select("id, recipient_email, subject, error_message, email_type, created_at")
+        .eq("status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("scheduled_emails")
+        .select("id, email_type, scheduled_for, error_message, created_at")
+        .eq("status", "failed")
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]);
+    const failedEmails = failedEmailsRes.data ?? [];
+    const scheduledFailed = scheduledFailedRes.data ?? [];
+    const totalFailedEmails = failedEmails.length + scheduledFailed.length;
+
     // ── Send per-user digest ──
     const [senderFrom, bccList] = await Promise.all([getSenderFrom(), getBccList()]);
+
     let emailsSent = 0;
     let totalAlertsSent = 0;
 
@@ -533,6 +553,26 @@ serve(async (req) => {
           })
         );
       }
+
+      // 18. Emails en erreur (admins uniquement)
+      if (recipient.isAdmin && totalFailedEmails > 0) {
+        const items: string[] = [];
+        for (const f of failedEmails) {
+          const when = formatDateFr(f.created_at.slice(0, 10));
+          const type = f.email_type ? ` [${f.email_type}]` : "";
+          const err = f.error_message ? ` — <span style="color:${COLORS.red};">${f.error_message.slice(0, 120)}</span>` : "";
+          items.push(`<li>${linkHtml(`${appUrl}/emails-erreur`, `${f.recipient_email} — ${f.subject || "(sans objet)"}`)}${type} — ${when}${err}</li>`);
+        }
+        for (const s of scheduledFailed) {
+          const when = formatDateFr((s.scheduled_for || s.created_at).slice(0, 10));
+          const type = s.email_type ? ` [${s.email_type}]` : "";
+          const err = s.error_message ? ` — <span style="color:${COLORS.red};">${s.error_message.slice(0, 120)}</span>` : "";
+          items.push(`<li>${linkHtml(`${appUrl}/emails-erreur`, `Email programmé${type}`)} — ${when}${err}</li>`);
+        }
+        add("🚨", "Emails en erreur", COLORS.red, items);
+      }
+
+
 
       // Skip if no alerts
       if (sections.length === 0) continue;
