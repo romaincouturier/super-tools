@@ -70,6 +70,8 @@ const SponsorFormFields = ({
   setSponsorLastName,
   sponsorEmail,
   setSponsorEmail,
+  sponsorPhone,
+  setSponsorPhone,
   financeurSameAsSponsor,
   setFinanceurSameAsSponsor,
   financeurName,
