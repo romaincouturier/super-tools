@@ -192,8 +192,9 @@ const AddParticipantDialog = ({ trainingId, trainingStartDate, trainingEndDate, 
           if (initialSponsorEmail) setSponsorEmail(initialSponsorEmail);
         }
       }
+      if (initialSponsorPhone) setSponsorPhone(initialSponsorPhone);
     }
-  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSoldPriceHt, initialTypeStagiaireBpf, initialSourceFinancementBpf, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, clientName, isInterEntreprise]);
+  }, [open, initialFirstName, initialLastName, initialEmail, initialCompany, initialCompanyAddress, initialCompanyZip, initialCompanyCity, initialSponsorFirstName, initialSponsorLastName, initialSponsorEmail, initialSponsorPhone, initialSoldPriceHt, initialTypeStagiaireBpf, initialSourceFinancementBpf, initialFormulaId, initialPaymentMode, initialFinanceurSameAsSponsor, initialFinanceurName, initialFinanceurUrl, clientName, isInterEntreprise]);
 
   // Fetch existing funders when dialog opens
   useEffect(() => {
