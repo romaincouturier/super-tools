@@ -41,6 +41,11 @@ Deno.serve(async (req) => {
       ticket_number?: string;
       coding_status?: string;
       coding_error?: string | null;
+      status?: string;
+      branch_url?: string | null;
+      coding_summary?: string | null;
+      resolution_notes?: string | null;
+      discussion_requested_at?: string | null;
     } = {};
     try {
       body = await req.json();
@@ -52,33 +57,42 @@ Deno.serve(async (req) => {
     }
 
     const ticketNumber = body.ticket_number?.trim();
-    const codingStatus = body.coding_status?.trim();
-
-    if (!ticketNumber || !codingStatus) {
+    if (!ticketNumber) {
       return new Response(
-        JSON.stringify({ error: "ticket_number and coding_status are required" }),
+        JSON.stringify({ error: "ticket_number is required" }),
         { status: 400, headers: jsonHeaders },
       );
     }
 
-    if (!ALLOWED_STATUSES.has(codingStatus)) {
-      return new Response(
-        JSON.stringify({
-          error: `Invalid coding_status. Allowed: ${Array.from(ALLOWED_STATUSES).join(", ")}`,
-        }),
-        { status: 400, headers: jsonHeaders },
-      );
+    const update: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (body.coding_status !== undefined) {
+      const codingStatus = body.coding_status?.trim() ?? "";
+      if (codingStatus && !ALLOWED_STATUSES.has(codingStatus)) {
+        return new Response(
+          JSON.stringify({
+            error: `Invalid coding_status. Allowed: ${Array.from(ALLOWED_STATUSES).join(", ")}`,
+          }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+      update.coding_status = codingStatus || null;
+      update.coding_error = body.coding_error ?? null;
+    }
+    if (body.status !== undefined) update.status = body.status;
+    if (body.branch_url !== undefined) update.branch_url = body.branch_url;
+    if (body.coding_summary !== undefined) update.coding_summary = body.coding_summary;
+    if (body.resolution_notes !== undefined) update.resolution_notes = body.resolution_notes;
+    if (body.discussion_requested_at !== undefined) {
+      update.discussion_requested_at = body.discussion_requested_at;
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-
-    const update: Record<string, unknown> = {
-      coding_status: codingStatus,
-      coding_error: body.coding_error ?? null,
-    };
 
     const { data, error } = await supabase
       .from("support_tickets")
