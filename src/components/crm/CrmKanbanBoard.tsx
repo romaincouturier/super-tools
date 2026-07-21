@@ -524,6 +524,7 @@ const CrmKanbanBoard = ({ initialCardId }: CrmKanbanBoardProps = {}) => {
       if (card.first_name) params.set("addParticipantSponsorFirstName", card.first_name);
       if (card.last_name) params.set("addParticipantSponsorLastName", card.last_name);
       if (card.email) params.set("addParticipantSponsorEmail", card.email);
+      if (card.phone) params.set("addParticipantSponsorPhone", card.phone);
     }
 
     params.set("fromCrmCardId", card.id);
