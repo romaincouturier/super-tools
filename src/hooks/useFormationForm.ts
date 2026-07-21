@@ -376,6 +376,7 @@ export function useFormationForm() {
     sponsorFirstName, setSponsorFirstName,
     sponsorLastName, setSponsorLastName,
     sponsorEmail, setSponsorEmail,
+    sponsorPhone, setSponsorPhone,
     sponsorFormalAddress, setSponsorFormalAddress,
     financeurSameAsSponsor, setFinanceurSameAsSponsor,
     financeurName, setFinanceurName,
