@@ -5,6 +5,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
+import { postTicketCodedToSlack } from "../_shared/support-slack.ts";
 
 const ALLOWED_STATUSES = new Set(["queued", "running", "done", "error"]);
 
@@ -68,8 +69,9 @@ Deno.serve(async (req) => {
       updated_at: new Date().toISOString(),
     };
 
+    let codingStatus = "";
     if (body.coding_status !== undefined) {
-      const codingStatus = body.coding_status?.trim() ?? "";
+      codingStatus = body.coding_status?.trim() ?? "";
       if (codingStatus && !ALLOWED_STATUSES.has(codingStatus)) {
         return new Response(
           JSON.stringify({
@@ -94,11 +96,22 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Pour ne notifier Slack qu'une seule fois, à la transition vers "done".
+    let previousCodingStatus: string | null = null;
+    if (codingStatus === "done") {
+      const { data: prev } = await supabase
+        .from("support_tickets")
+        .select("coding_status")
+        .eq("ticket_number", ticketNumber)
+        .maybeSingle();
+      previousCodingStatus = prev?.coding_status ?? null;
+    }
+
     const { data, error } = await supabase
       .from("support_tickets")
       .update(update)
       .eq("ticket_number", ticketNumber)
-      .select("id, ticket_number, coding_status")
+      .select("id, ticket_number, title, coding_status, branch_url")
       .maybeSingle();
 
     if (error) {
@@ -114,6 +127,15 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: `Ticket ${ticketNumber} not found` }),
         { status: 404, headers: jsonHeaders },
       );
+    }
+
+    // Notification Slack : uniquement à la transition vers "VIP codé" (coding done).
+    if (codingStatus === "done" && previousCodingStatus !== "done") {
+      await postTicketCodedToSlack(supabase, {
+        ticket_number: data.ticket_number,
+        title: data.title,
+        branch_url: data.branch_url,
+      });
     }
 
     console.log(`Ticket ${ticketNumber} → ${codingStatus}`);

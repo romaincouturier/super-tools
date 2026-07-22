@@ -1338,6 +1338,7 @@ export const SETTINGS_REGISTRY: Record<string, { default: string; description: s
   company_stamp_url: { default: "", description: "URL du tampon de la société (image), apposé sur les feuilles d'émargement" },
   slack_crm_channel: { default: "general", description: "Nom du canal Slack pour les notifications CRM (ex: crm, general)" },
   slack_editorial_channel: { default: "article", description: "Nom du canal Slack pour le digest hebdomadaire du moteur éditorial" },
+  slack_support_channel: { default: "supertools", description: "Nom du canal Slack notifié quand un ticket support finit d'être VIP codé" },
   crm_inbound_email: { default: "", description: "Adresse email dédiée CRM — les emails reçus à cette adresse créent automatiquement une opportunité" },
   openai_api_key: { default: "", description: "Clé API OpenAI utilisée pour l'OCR, les embeddings RAG et les analyses automatiques" },
   insee_api_key: { default: "", description: "Clé API INSEE SIRENE pour la recherche d'entreprises par SIREN" },
