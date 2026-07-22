@@ -17,7 +17,6 @@ export default function RevealBlockEditor({ content, onChange, slim }: Props) {
         <span className="font-medium" style={{ color: "var(--st-ink)" }}>
           {content.button_label || "Révéler la suite"}
         </span>
-        {content.hide_button_after_click && " · masqué après clic"}
         {content.collapsible && " · refermable"}
       </p>
     );
@@ -26,7 +25,7 @@ export default function RevealBlockEditor({ content, onChange, slim }: Props) {
   return (
     <div className="space-y-3">
       <div>
-        <Label>Texte du bouton</Label>
+        <Label>Texte du bouton (contenu générique)</Label>
         <Input
           value={content.button_label}
           onChange={(e) => onChange({ ...content, button_label: e.target.value })}
@@ -35,38 +34,18 @@ export default function RevealBlockEditor({ content, onChange, slim }: Props) {
       </div>
       <div className="flex items-center gap-2">
         <Switch
-          id="reveal-hide-button"
-          checked={content.hide_button_after_click === true}
-          onCheckedChange={(v) =>
-            onChange({
-              ...content,
-              hide_button_after_click: v,
-              collapsible: v ? false : content.collapsible,
-            })
-          }
-        />
-        <Label htmlFor="reveal-hide-button" className="text-sm">
-          Masquer le bouton après le clic
-        </Label>
-      </div>
-      <div className="flex items-center gap-2">
-        <Switch
           id="reveal-collapsible"
           checked={content.collapsible === true}
-          onCheckedChange={(v) =>
-            onChange({
-              ...content,
-              collapsible: v,
-              hide_button_after_click: v ? false : content.hide_button_after_click,
-            })
-          }
+          onCheckedChange={(v) => onChange({ ...content, collapsible: v })}
         />
         <Label htmlFor="reveal-collapsible" className="text-sm">
           Permettre de refermer le contenu
         </Label>
       </div>
       <p className="text-xs text-muted-foreground">
-        Les blocs ajoutés dans ce conteneur restent masqués côté apprenant jusqu'au clic sur le bouton.
+        Les blocs ajoutés dans ce conteneur restent masqués côté apprenant et se révèlent un par un
+        à chaque clic. Le libellé du bouton s'adapte au bloc suivant (« Voir les points clés », «
+        Passer à l'exercice »…) et le bouton disparaît une fois tout le contenu affiché.
       </p>
     </div>
   );
