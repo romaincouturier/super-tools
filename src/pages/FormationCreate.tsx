@@ -203,6 +203,7 @@ const FormationCreate = () => {
     if (!form.isPermanent && !form.isElearning && !isDistancielSynchrone && !form.isInter && !isIntraClassique && !form.getFinalLocation()) missingFields.push("lieu de la formation");
     if (!form.isInter && !form.clientName) missingFields.push("client");
     if (!form.isPermanent && (!form.maxParticipants || parseInt(form.maxParticipants, 10) < 1)) missingFields.push("nombre maximum de participants (minimum 1)");
+    if (form.isElearning && !form.lmsCourseId) missingFields.push("cours e-learning (dans les supports)");
 
     if (missingFields.length > 0 || !user) {
       toast({
