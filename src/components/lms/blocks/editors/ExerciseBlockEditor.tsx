@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, X, Video, Image as ImageIcon, FileText, Code } from "lucide-react";
+import { Plus, X, Video, Image as ImageIcon, FileText, Code, Braces, Eye, EyeOff } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import RichTextEditor from "@/components/content/RichTextEditor";
+import HtmlEmbedBlockViewer from "../viewers/HtmlEmbedBlockViewer";
 import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 import { cryptoRandomId } from "@/types/lms-blocks";
 import type { ExerciseBlockContent } from "@/types/lms-blocks";
@@ -261,6 +262,56 @@ function PromptEditor({
   );
 }
 
+function InteractiveHtmlEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+}) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  return (
+    <div className="space-y-2">
+      <div className="rounded-lg border overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+          <span className="text-xs font-semibold font-mono text-muted-foreground">HTML / CSS / JS</span>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            {previewOpen ? <EyeOff size={13} /> : <Eye size={13} />}
+            {previewOpen ? "Masquer l'aperçu" : "Aperçu"}
+          </button>
+        </div>
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={8}
+          spellCheck={false}
+          className="font-mono text-xs border-none rounded-none focus-visible:ring-0"
+          placeholder="Collez votre HTML/CSS/JS… (ex: <style>…</style> <div>…</div> <script>…</script>)"
+        />
+      </div>
+      {previewOpen && (
+        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+          <p className="text-xs text-muted-foreground mb-1.5">Aperçu apprenant</p>
+          {value.trim() ? (
+            <HtmlEmbedBlockViewer content={{ html: value }} previewMode />
+          ) : (
+            <p className="text-xs text-muted-foreground italic m-0">Collez du code pour voir l'aperçu.</p>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-muted-foreground m-0">
+        Le module s'exécute isolé dans un cadre sécurisé (sandbox) : son CSS et son JS n'affectent pas le reste de la
+        page. Les scripts inline (JS) sont autorisés ; les accès au stockage/cookies du site restent bloqués.
+      </p>
+    </div>
+  );
+}
+
 const MAX_IMAGES = 5;
 
 export default function ExerciseBlockEditor({ lessonId, content, onChange, slim }: Props) {
@@ -344,6 +395,21 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
           placeholder="Énoncé de l'exercice…"
         />
+        {content.interactive_html != null && (
+          <InteractiveHtmlEditor
+            value={content.interactive_html}
+            onChange={(interactive_html) => onChange({ ...content, interactive_html })}
+          />
+        )}
+        {content.interactive_html == null && (
+          <button
+            className="text-xs flex items-center gap-1"
+            style={{ color: "var(--st-ink-50)" }}
+            onClick={() => onChange({ ...content, interactive_html: "" })}
+          >
+            <Braces size={13} /> Ajouter un bloc HTML interactif
+          </button>
+        )}
         {hasChecklist && (
           <div className="space-y-1 pl-2">
             {checklistItems.map((item) => (
@@ -460,6 +526,43 @@ export default function ExerciseBlockEditor({ lessonId, content, onChange, slim 
           onChange={(prompt_html) => onChange({ ...content, prompt_html })}
           placeholder="Décrivez ce que l'apprenant doit faire…"
         />
+      </div>
+
+      {/* Bloc HTML interactif (optionnel) — module HTML/CSS/JS isolé, ST-2026-0249 */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Braces className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm">Bloc HTML interactif (optionnel)</Label>
+          </div>
+          {content.interactive_html == null ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => onChange({ ...content, interactive_html: "" })}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />Ajouter
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => onChange({ ...content, interactive_html: null })}
+              aria-label="Supprimer le bloc HTML interactif"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+        {content.interactive_html != null && (
+          <InteractiveHtmlEditor
+            value={content.interactive_html}
+            onChange={(interactive_html) => onChange({ ...content, interactive_html })}
+          />
+        )}
       </div>
 
       <div className="rounded-lg border p-3 space-y-2">
