@@ -9108,6 +9108,7 @@ export type Database = {
           branch_url: string | null
           coding_error: string | null
           coding_status: string | null
+          coding_summary: string | null
           created_at: string
           description: string
           discussion_requested_at: string | null
@@ -9134,6 +9135,7 @@ export type Database = {
           branch_url?: string | null
           coding_error?: string | null
           coding_status?: string | null
+          coding_summary?: string | null
           created_at?: string
           description: string
           discussion_requested_at?: string | null
@@ -9160,6 +9162,7 @@ export type Database = {
           branch_url?: string | null
           coding_error?: string | null
           coding_status?: string | null
+          coding_summary?: string | null
           created_at?: string
           description?: string
           discussion_requested_at?: string | null
