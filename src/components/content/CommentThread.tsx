@@ -398,27 +398,55 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     setEditingId(comment.id);
     setEditContent(comment.content);
     setEditCorrection(comment.proposed_correction || "");
+    setEditAssignedTo(comment.assigned_to || "none");
+    setEditInitialAssignedTo(comment.assigned_to || null);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditContent("");
     setEditCorrection("");
+    setEditAssignedTo("none");
+    setEditInitialAssignedTo(null);
   };
 
   const handleEditSave = async () => {
     if (!editingId || !editContent.trim()) return;
     setSubmittingEdit(true);
     try {
+      const newAssignedTo = editAssignedTo && editAssignedTo !== "none" ? editAssignedTo : null;
+      const assignmentChanged = newAssignedTo !== editInitialAssignedTo;
       const updateData: Record<string, unknown> = {
         content: editContent.trim(),
         proposed_correction: editCorrection.trim() || null,
+        assigned_to: newAssignedTo,
       };
       const { error } = await supabase
         .from("review_comments")
         .update(updateData as any)
         .eq("id", editingId);
       if (error) throw error;
+
+      // Only notify if assignee changed and it's a new person (not self)
+      if (assignmentChanged && newAssignedTo && newAssignedTo !== currentUserId) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("user_id", currentUserId!)
+          .maybeSingle();
+        const authorName = authorProfile?.first_name
+          ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim()
+          : "Quelqu'un";
+        const preview = editContent.trim().split(/\s+/).slice(0, 10).join(" ");
+        await supabase.from("content_notifications").insert({
+          user_id: newAssignedTo,
+          type: "comment_added",
+          reference_id: cardId,
+          card_id: cardId,
+          message: `${authorName} : ${preview}`,
+        });
+      }
+
       cancelEditing();
       fetchComments();
       toast.success("Commentaire modifié");
