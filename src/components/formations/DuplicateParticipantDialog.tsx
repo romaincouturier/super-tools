@@ -42,16 +42,17 @@ const DuplicateParticipantDialog = ({
       isInterEntreprise={isInterEntreprise}
       availableFormulas={availableFormulas}
       onParticipantAdded={onDuplicated}
-      title="Dupliquer le participant"
+      title="Ajouter un participant de la même entreprise"
       description="Le prénom, le nom et l'email sont à compléter. Toutes les autres informations sont copiées."
       trigger={
         trigger ?? (
           <Button variant="outline" size="sm">
             <Copy className="h-3.5 w-3.5 mr-1.5" />
-            Dupliquer
+            Ajouter un participant de la même entreprise
           </Button>
         )
       }
+
       initialCompany={participant.company ?? undefined}
       initialCompanyAddress={participant.company_address ?? undefined}
       initialCompanyZip={participant.company_zip ?? undefined}

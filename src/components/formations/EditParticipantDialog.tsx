@@ -21,6 +21,8 @@ import { ParticipantFormFields, SponsorFormFields, ParticipantFiles } from "./ed
 import { formatDateRange } from "@/lib/dateFormatters";
 import RepositionParticipantDialog from "./RepositionParticipantDialog";
 import DuplicateParticipantDialog from "./DuplicateParticipantDialog";
+import DuplicateToTrainingDialog from "./DuplicateToTrainingDialog";
+
 
 export type { Participant };
 
@@ -231,6 +233,12 @@ const EditParticipantDialog = ({
               availableFormulas={availableFormulas}
               onDuplicated={() => { hook.handleClose(); onParticipantUpdated(); }}
             />
+            <DuplicateToTrainingDialog
+              participant={participant}
+              trainingId={trainingId}
+              onDuplicated={() => { hook.handleClose(); onParticipantUpdated(); }}
+            />
+
           </div>
           <Button type="button" variant="outline" onClick={hook.handleClose}>
             Fermer
