@@ -126,9 +126,11 @@ const DuplicateToTrainingDialog = ({ participant, trainingId, onDuplicated, trig
         ) : (
           <div className="space-y-2 py-2">
             {filtered.map((t) => {
-              const full =
-                t.max_participants != null && t.participant_count >= t.max_participants;
               const isPermanent = !t.start_date;
+              const full =
+                !isPermanent &&
+                t.max_participants != null &&
+                t.participant_count >= t.max_participants;
               return (
                 <div
                   key={t.id}
