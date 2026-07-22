@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useFormationForm } from "@/hooks/useFormationForm";
+import { useCourses } from "@/hooks/useLms";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ScheduleEditor from "@/components/formations/ScheduleEditor";
 import TrainingNameCombobox, { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 import ScheduledActionsEditor from "@/components/formations/ScheduledActionsEditor";
