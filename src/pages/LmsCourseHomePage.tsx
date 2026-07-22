@@ -1167,6 +1167,8 @@ export default function LmsCourseHomePage() {
           activeLessonId={null}
           communityPreviewCount={course.community_preview_count ?? 2}
           meetings={meetings}
+          showNextLive={course.home_config?.show_next_live !== false}
+          showCommunity={course.home_config?.show_community !== false}
           activeView={activeView}
           onModuleClick={(id) => { handleModuleClick(id); closeSidebar(); }}
           onViewChange={(v) => { setActiveView(v); closeSidebar(); }}

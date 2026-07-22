@@ -412,6 +412,8 @@ export default function LmsCoursePlayer() {
           lessonsDoneByModule={lessonsDoneByModule}
           communityPreviewCount={course.community_preview_count ?? 2}
           meetings={liveData?.meetings ?? []}
+          showNextLive={course.home_config?.show_next_live !== false}
+          showCommunity={course.home_config?.show_community !== false}
           activeView="home"
           onModuleClick={(id) => { handleSidebarModuleClick(id); closeSidebar(); }}
           onViewChange={(v) => { handleSidebarViewChange(v); closeSidebar(); }}
