@@ -98,6 +98,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editCorrection, setEditCorrection] = useState("");
+  const [editAssignedTo, setEditAssignedTo] = useState<string>("none");
+  const [editInitialAssignedTo, setEditInitialAssignedTo] = useState<string | null>(null);
   const [submittingEdit, setSubmittingEdit] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -396,27 +398,55 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
     setEditingId(comment.id);
     setEditContent(comment.content);
     setEditCorrection(comment.proposed_correction || "");
+    setEditAssignedTo(comment.assigned_to || "none");
+    setEditInitialAssignedTo(comment.assigned_to || null);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditContent("");
     setEditCorrection("");
+    setEditAssignedTo("none");
+    setEditInitialAssignedTo(null);
   };
 
   const handleEditSave = async () => {
     if (!editingId || !editContent.trim()) return;
     setSubmittingEdit(true);
     try {
+      const newAssignedTo = editAssignedTo && editAssignedTo !== "none" ? editAssignedTo : null;
+      const assignmentChanged = newAssignedTo !== editInitialAssignedTo;
       const updateData: Record<string, unknown> = {
         content: editContent.trim(),
         proposed_correction: editCorrection.trim() || null,
+        assigned_to: newAssignedTo,
       };
       const { error } = await supabase
         .from("review_comments")
         .update(updateData as any)
         .eq("id", editingId);
       if (error) throw error;
+
+      // Only notify if assignee changed and it's a new person (not self)
+      if (assignmentChanged && newAssignedTo && newAssignedTo !== currentUserId) {
+        const { data: authorProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("user_id", currentUserId!)
+          .maybeSingle();
+        const authorName = authorProfile?.first_name
+          ? `${authorProfile.first_name} ${authorProfile.last_name || ""}`.trim()
+          : "Quelqu'un";
+        const preview = editContent.trim().split(/\s+/).slice(0, 10).join(" ");
+        await supabase.from("content_notifications").insert({
+          user_id: newAssignedTo,
+          type: "comment_added",
+          reference_id: cardId,
+          card_id: cardId,
+          message: `${authorName} : ${preview}`,
+        });
+      }
+
       cancelEditing();
       fetchComments();
       toast.success("Commentaire modifié");
@@ -588,6 +618,22 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                       className="resize-none text-sm"
                     />
                   )}
+                  <Select value={editAssignedTo} onValueChange={setEditAssignedTo}>
+                    <SelectTrigger className="h-7 w-auto min-w-[140px] text-[11px] border-dashed">
+                      <div className="flex items-center gap-1">
+                        <UserPlus className="h-3 w-3" />
+                        <SelectValue placeholder="Assigner à…" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-xs">Personne</SelectItem>
+                      {profiles.filter((p) => p.user_id !== currentUserId).map((p) => (
+                        <SelectItem key={p.user_id} value={p.user_id} className="text-xs">
+                          {p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div className="flex items-center gap-2">
                     <Button size="sm" className="h-6 text-[11px]" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
                       {submittingEdit ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
