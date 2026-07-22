@@ -70,6 +70,54 @@ export async function fetchRepositioningTargets(
   }));
 }
 
+/**
+ * Fetch all future or permanent training sessions (across catalogs)
+ * that a participant could be duplicated into, excluding the current one
+ * and cancelled sessions.
+ */
+export async function fetchDuplicationTargets(
+  currentTrainingId: string,
+): Promise<RepositioningTarget[]> {
+  const today = new Date().toISOString().split("T")[0];
+  const { data: sessions, error } = await supabase
+    .from("trainings")
+    .select(
+      "id, training_name, start_date, end_date, location, format_formation, session_format, max_participants, is_permanent",
+    )
+    .neq("id", currentTrainingId)
+    .or("is_cancelled.is.null,is_cancelled.eq.false")
+    .or(`is_permanent.eq.true,start_date.gte.${today},start_date.is.null`)
+    .order("is_permanent", { ascending: false })
+    .order("start_date", { ascending: true });
+  if (error || !sessions) return [];
+
+  const ids = sessions.map((s) => s.id);
+  let countsMap = new Map<string, number>();
+  if (ids.length > 0) {
+    const { data: parts } = await supabase
+      .from("training_participants")
+      .select("training_id")
+      .in("training_id", ids)
+      .is("repositioned_to_training_id", null);
+    (parts || []).forEach((p) => {
+      countsMap.set(p.training_id, (countsMap.get(p.training_id) || 0) + 1);
+    });
+  }
+
+  return sessions.map((s) => ({
+    id: s.id,
+    training_name: s.training_name,
+    start_date: s.start_date,
+    end_date: s.end_date,
+    location: s.location,
+    format_formation: s.format_formation,
+    session_format: s.session_format,
+    max_participants: s.max_participants,
+    participant_count: countsMap.get(s.id) || 0,
+  }));
+}
+
+
 interface RepositionResult {
   newParticipantId: string;
   welcomeSent: boolean;
