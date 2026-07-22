@@ -311,7 +311,7 @@ export async function requestTicketDiscussion(ticket: SupportTicket): Promise<vo
 
 export async function updateSupportTicket(
   id: string,
-  updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>
+  updates: Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis" | "description">>
 ): Promise<SupportTicket> {
   const payload = withResolvedAt({ ...updates }, updates.status);
   const result = await db().from("support_tickets").update(payload).eq("id", id).select().single();
@@ -402,7 +402,7 @@ type CreateTicketInput = Pick<SupportTicket, "type" | "title" | "description" | 
   files?: File[];
   ai_analysis?: TicketAiAnalysis | null;
 };
-type UpdateTicketInput = Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis">>;
+type UpdateTicketInput = Partial<Pick<SupportTicket, "title" | "type" | "status" | "priority" | "assigned_to" | "resolution_notes" | "position" | "page_url" | "ai_analysis" | "description">>;
 
 ({
   fetch: fetchSupportTickets,

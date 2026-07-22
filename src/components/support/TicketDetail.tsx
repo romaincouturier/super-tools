@@ -42,6 +42,7 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
   const navigate = useNavigate();
   const typeConf = TICKET_TYPE_CONFIG[ticket.type];
   const [resolutionNotes, setResolutionNotes] = useState(ticket.resolution_notes || "");
+  const [description, setDescription] = useState(ticket.description || "");
   const [title, setTitle] = useState(ticket.title);
   const [type, setType] = useState<TicketType>(ticket.type);
   const [pageUrl, setPageUrl] = useState(ticket.page_url || "");
@@ -268,13 +269,28 @@ export default function TicketDetail({ ticket, onUpdate }: Props) {
           </div>
         )}
 
-        {/* Description originale — lecture seule */}
+        {/* Demande de l'utilisateur — éditable pour corriger ou compléter */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Description originale</CardTitle>
+            <CardTitle className="text-sm">Demande de l'utilisateur</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{ticket.description}</p>
+          <CardContent className="space-y-2">
+            <VoiceTextarea
+              value={description}
+              onValueChange={setDescription}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Demande de l'utilisateur. Vous pouvez la corriger ou la compléter."
+              rows={5}
+              className="text-sm"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onUpdate(ticket.id, { description })}
+              disabled={description === (ticket.description || "") || !description.trim()}
+            >
+              Enregistrer la demande
+            </Button>
           </CardContent>
         </Card>
 
