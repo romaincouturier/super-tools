@@ -618,6 +618,22 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
                       className="resize-none text-sm"
                     />
                   )}
+                  <Select value={editAssignedTo} onValueChange={setEditAssignedTo}>
+                    <SelectTrigger className="h-7 w-auto min-w-[140px] text-[11px] border-dashed">
+                      <div className="flex items-center gap-1">
+                        <UserPlus className="h-3 w-3" />
+                        <SelectValue placeholder="Assigner à…" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-xs">Personne</SelectItem>
+                      {profiles.filter((p) => p.user_id !== currentUserId).map((p) => (
+                        <SelectItem key={p.user_id} value={p.user_id} className="text-xs">
+                          {p.first_name && p.last_name ? `${p.first_name} ${p.last_name}` : p.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div className="flex items-center gap-2">
                     <Button size="sm" className="h-6 text-[11px]" onClick={handleEditSave} disabled={submittingEdit || !editContent.trim()}>
                       {submittingEdit ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
