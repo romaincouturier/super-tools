@@ -195,6 +195,9 @@ export interface ButtonBlockContent {
 export interface ExerciseBlockContent {
   title?: string | null;
   prompt_html: string;
+  // Bloc HTML/CSS/JS interactif inséré dans la consigne, affiché côté apprenant
+  // dans une iframe sandbox (voir HtmlEmbedBlockViewer). ST-2026-0249.
+  interactive_html?: string | null;
   answer_html?: string | null;
   answer_video_url?: string | null;
   answer_image_urls?: string[] | null;

@@ -8,6 +8,7 @@ import type { ExerciseBlockContent } from "@/types/lms-blocks";
 import ActionBlockShell from "./ActionBlockShell";
 import { ImageWithLightbox } from "./ImageLightbox";
 import LessonVideoPlayer from "./LessonVideoPlayer";
+import HtmlEmbedBlockViewer from "./HtmlEmbedBlockViewer";
 
 interface Props {
   content: ExerciseBlockContent;
@@ -23,7 +24,7 @@ export default function ExerciseBlockViewer({ content }: Props) {
       ? [content.image_url]
       : [];
 
-  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url && !imageUrls.length && !content.pdf_url) return null;
+  if (!content.prompt_html && !content.answer_html && !content.checklist_items?.length && !content.video_url && !imageUrls.length && !content.pdf_url && !content.interactive_html?.trim()) return null;
 
   const checklistItems = (content.checklist_items || []).filter((i) => i.label.trim());
 
@@ -85,6 +86,12 @@ export default function ExerciseBlockViewer({ content }: Props) {
           className="prose prose-base sm:prose-lg max-w-none break-words [&_iframe]:max-w-full"
           dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(content.prompt_html) }}
         />
+      )}
+
+      {content.interactive_html?.trim() && (
+        <div className="mt-3">
+          <HtmlEmbedBlockViewer content={{ html: content.interactive_html }} />
+        </div>
       )}
 
       {checklistItems.length > 0 && (
