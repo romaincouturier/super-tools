@@ -4,7 +4,7 @@
 // Lovable Cloud).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,10 +15,7 @@ Deno.serve(async (req) => {
   try {
     const sharedSecret = Deno.env.get("TICKET_STATUS_WEBHOOK_SECRET");
     if (!sharedSecret) {
-      return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-        status: 500,
-        headers: jsonHeaders,
-      });
+      return createErrorResponse("Server misconfigured", 500, { fn: "get-ticket-for-processing" });
     }
 
     const provided =
@@ -26,10 +23,7 @@ Deno.serve(async (req) => {
       req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
       "";
     if (provided !== sharedSecret) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: jsonHeaders,
-      });
+      return createErrorResponse("Unauthorized", 401);
     }
 
     const url = new URL(req.url);
@@ -38,10 +32,7 @@ Deno.serve(async (req) => {
       (req.method === "POST" ? (await req.json().catch(() => ({}))).ticket_number : null);
 
     if (!ticketNumber) {
-      return new Response(JSON.stringify({ error: "ticket_number required" }), {
-        status: 400,
-        headers: jsonHeaders,
-      });
+      return createErrorResponse("ticket_number required", 400);
     }
 
     const supabase = createClient(
@@ -56,16 +47,12 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (ticketError) {
-      return new Response(
-        JSON.stringify({ error: "DB error", details: ticketError.message }),
-        { status: 500, headers: jsonHeaders },
-      );
+      return createErrorResponse(`DB error: ${ticketError.message}`, 500, {
+        fn: "get-ticket-for-processing",
+      });
     }
     if (!ticket) {
-      return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404,
-        headers: jsonHeaders,
-      });
+      return createErrorResponse("Not found", 404);
     }
 
     const { data: rawAttachments } = await supabase
@@ -96,9 +83,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("get-ticket-for-processing error:", err);
-    return new Response(
-      JSON.stringify({ error: "Unexpected error", details: String(err) }),
-      { status: 500, headers: jsonHeaders },
-    );
+    return createErrorResponse(`Unexpected error: ${String(err)}`, 500, {
+      fn: "get-ticket-for-processing",
+      cause: err,
+    });
   }
 });

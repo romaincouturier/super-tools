@@ -407,7 +407,7 @@ const CardDetailDrawer = ({
       const result = await crmAiAssist("suggest_next_action", { ...buildCardDataForAi(), confidence_score: confidenceScore, current_next_action: nextActionText, days_in_pipeline: card.created_at ? Math.floor((Date.now() - new Date(card.created_at).getTime()) / (1000 * 60 * 60 * 24)) : null, activities: details?.activity?.slice(0, 10) || [] });
       setScheduledText(result);
       setShowSchedulePopover(true);
-    } catch { toastError(toast, "Impossible de générer une suggestion."); }
+    } catch (err) { toastError(toast, "Impossible de générer une suggestion.", { cause: err }); }
     finally { setNextActionSuggesting(false); }
   };
 

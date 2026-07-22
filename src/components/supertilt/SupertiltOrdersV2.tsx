@@ -6,9 +6,10 @@ import DOMPurify from "dompurify";
 import { useState, useEffect } from "react";
 import {
   Euro, TrendingUp, Users, Package, Plus, Pencil, Trash2,
-  Loader2, Download, Send, ExternalLink, CheckCircle, X,
+  Download, Send, ExternalLink, CheckCircle, X,
   AlertTriangle, Copy, Eye, EyeOff,
 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,7 +74,7 @@ export function BilanTab() {
 
   const apply = () => { setAppliedFrom(from || undefined); setAppliedTo(to || undefined); };
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   const rows = summary ?? [];
   const totals = rows.reduce(
@@ -214,7 +215,7 @@ function PaymentDialog({
       await upsert(form as PartnerPayment & { game_id: string; amount: number; payment_date: string });
       toast({ title: "Encaissement sauvegardé" });
       onClose();
-    } catch { toastError(toast, "Erreur lors de la sauvegarde"); }
+    } catch (err) { toastError(toast, "Erreur lors de la sauvegarde", { cause: err }); }
   };
 
   return (
@@ -268,7 +269,7 @@ function PaymentDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !form.game_id || !form.amount || !form.payment_date}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -330,7 +331,7 @@ function NewTokenDialog({ games, onClose }: { games: GameFull[]; onClose: () => 
       await create({ game_id: gameId, label: label || undefined, expires_at: expires || null });
       toast({ title: "Lien partenaire créé" });
       onClose();
-    } catch { toastError(toast, "Erreur lors de la création"); }
+    } catch (err) { toastError(toast, "Erreur lors de la création", { cause: err }); }
   };
 
   return (
@@ -359,7 +360,7 @@ function NewTokenDialog({ games, onClose }: { games: GameFull[]; onClose: () => 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !gameId}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Créer"}
+            {isPending ? <Spinner /> : "Créer"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -414,7 +415,7 @@ export function PartenairesTab() {
           </div>
         </CardHeader>
         <CardContent>
-          {loadingTokens ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+          {loadingTokens ? <Spinner className="h-5 w-5" /> : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -456,7 +457,7 @@ export function PartenairesTab() {
           </div>
         </CardHeader>
         <CardContent>
-          {loadingPayments ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+          {loadingPayments ? <Spinner className="h-5 w-5" /> : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -546,7 +547,7 @@ function ExpenseDialog({ expense, games, onClose }: { expense: Partial<GameExpen
       await upsert(form as GameExpense & { game_id: string; expense_date: string; expense_type: string });
       toast({ title: "Dépense sauvegardée" });
       onClose();
-    } catch { toastError(toast, "Erreur lors de la sauvegarde"); }
+    } catch (err) { toastError(toast, "Erreur lors de la sauvegarde", { cause: err }); }
   };
 
   return (
@@ -638,7 +639,7 @@ function ExpenseDialog({ expense, games, onClose }: { expense: Partial<GameExpen
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !form.game_id || !form.expense_date}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -659,7 +660,7 @@ export function DepensesTab() {
   const totalTtc = filtered.reduce((s, e) => s + (e.amount_ttc ?? 0), 0);
   const totalHt = filtered.reduce((s, e) => s + (e.amount_ht ?? 0), 0);
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   return (
     <div className="space-y-4">
@@ -768,7 +769,7 @@ function StockEditDialog({ game, onClose }: { game: GameFull; onClose: () => voi
       await upsert(form as GameFull & { title: string });
       toast({ title: "Stock mis à jour" });
       onClose();
-    } catch { toastError(toast, "Erreur"); }
+    } catch (err) { toastError(toast, "Erreur", { cause: err }); }
   };
 
   return (
@@ -806,7 +807,7 @@ function StockEditDialog({ game, onClose }: { game: GameFull; onClose: () => voi
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -845,7 +846,7 @@ function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: ()
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="w-full max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Aperçu email réapprovisionnement</DialogTitle></DialogHeader>
-        {loading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}
+        {loading && <div className="flex justify-center py-8"><Spinner size="md" /></div>}
         {!loading && preview && (
           <div className="space-y-3">
             <div className="p-3 bg-muted rounded">
@@ -862,7 +863,7 @@ function RestockPreviewDialog({ gameId, onClose }: { gameId: string; onClose: ()
           <Button variant="outline" onClick={onClose}>Fermer</Button>
           {preview && (
             <Button onClick={doSend} disabled={sending}>
-              {sending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+              {sending ? <Spinner className="mr-1" /> : <Send className="h-4 w-4 mr-1" />}
               Envoyer
             </Button>
           )}
@@ -914,7 +915,7 @@ export function StockTab() {
   const gamesWithStock = (games ?? []).filter((g) => g.current_stock != null || g.min_stock != null);
   const gamesWithoutStock = (games ?? []).filter((g) => g.current_stock == null && g.min_stock == null);
 
-  if (loadingGames) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (loadingGames) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   return (
     <div className="space-y-6">
@@ -990,8 +991,8 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor>; onClos
       await upsert(form as GameAuthor & { name: string });
       toast({ title: "Auteur sauvegardé" });
       onClose();
-    } catch {
-      toastError(toast, "Une erreur est survenue");
+    } catch (err) {
+      toastError(toast, "Une erreur est survenue", { cause: err });
     }
   };
 
@@ -1027,7 +1028,7 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor>; onClos
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !form.name}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1047,7 +1048,7 @@ export function AuteursTab() {
     catch { toastError(toast, "Une erreur est survenue"); }
   };
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   return (
     <div className="space-y-4">

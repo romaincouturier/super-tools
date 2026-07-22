@@ -507,6 +507,9 @@ verify_jwt = false
 [functions.upload-crm-attachment]
 verify_jwt = false
 
+[functions.upload-game-restock-file]
+verify_jwt = false
+
 [functions.upload-support-attachment]
 verify_jwt = false
 
