@@ -16,7 +16,7 @@ import {
   useCourseEnrollmentCounts,
   type LmsCourse, type LmsCourseFolder,
 } from "@/hooks/useLms";
-import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown, Pencil, Settings2, Archive, ArchiveRestore, X } from "lucide-react";
+import { Plus, BookOpen, Clock, Trash2, GraduationCap, Search, BarChart3, Users, HelpCircle, MessageSquare, ClipboardList, Link2, MoreVertical, Copy, Folder, FolderOpen, FolderPlus, ChevronRight, ChevronDown, Pencil, Settings2, Archive, ArchiveRestore, X, Info } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
@@ -151,10 +151,12 @@ export default function LmsCourses() {
 
   const hasActiveFilters =
     search.trim() !== "" ||
-    filters.view !== "tous" ||
+    filters.view !== "catalogue_actif" ||
     filters.expertise !== "all" ||
     filters.access !== "all" ||
     filters.status !== "all";
+
+  const activeView = QUICK_VIEWS.find((v) => v.key === filters.view);
 
   const resetFilters = () => {
     setSearch("");
@@ -512,6 +514,14 @@ export default function LmsCourses() {
               );
             })}
           </div>
+          {activeView && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+              <Info className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                <span className="font-medium">Affichage : {activeView.label}</span> — {activeView.hint}
+              </span>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Select value={filters.expertise} onValueChange={(v) => setFilters({ ...filters, expertise: v })}>
               <SelectTrigger className="w-full sm:w-56">

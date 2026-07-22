@@ -15,10 +15,11 @@ const course = (over: Partial<{ status: string; access_type: string | null; expe
 });
 
 describe("courseMatchesMetaFilters", () => {
-  it("matches everything with default filters, except archived", () => {
+  it("default view is catalogue actif: standard courses, no intra, no archived", () => {
     expect(courseMatchesMetaFilters(course(), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "draft" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
     expect(courseMatchesMetaFilters(course({ status: "to_review" }), DEFAULT_COURSE_META_FILTERS)).toBe(true);
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
     expect(courseMatchesMetaFilters(course({ status: "archived" }), DEFAULT_COURSE_META_FILTERS)).toBe(false);
   });
 
@@ -26,7 +27,12 @@ describe("courseMatchesMetaFilters", () => {
     const archived = course({ status: "archived" });
     expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, view: "archives" })).toBe(true);
     expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, status: "archived" })).toBe(true);
-    expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, view: "publies" })).toBe(false);
+    expect(courseMatchesMetaFilters(archived, { ...DEFAULT_COURSE_META_FILTERS, view: "catalogue_actif" })).toBe(false);
+  });
+
+  it("view 'tous' shows every course including intra and archived", () => {
+    expect(courseMatchesMetaFilters(course({ access_type: "intra" }), { ...DEFAULT_COURSE_META_FILTERS, view: "tous" })).toBe(true);
+    expect(courseMatchesMetaFilters(course({ status: "archived" }), { ...DEFAULT_COURSE_META_FILTERS, view: "tous" })).toBe(true);
   });
 
   it("filters by quick view on status", () => {

@@ -34,24 +34,24 @@ export function statusLabel(value: string | null | undefined): string {
 }
 
 export type CourseQuickView =
-  | "tous"
-  | "publies"
-  | "brouillons"
+  | "catalogue_actif"
   | "a_verifier"
+  | "brouillons"
   | "gratuits"
   | "payants"
   | "intra"
-  | "archives";
+  | "archives"
+  | "tous";
 
-export const QUICK_VIEWS: { key: CourseQuickView; label: string }[] = [
-  { key: "tous", label: "Tous" },
-  { key: "publies", label: "Publiés" },
-  { key: "brouillons", label: "Brouillons" },
-  { key: "a_verifier", label: "À vérifier" },
-  { key: "gratuits", label: "Gratuits" },
-  { key: "payants", label: "Payants" },
-  { key: "intra", label: "Intra/clients" },
-  { key: "archives", label: "Archivés" },
+export const QUICK_VIEWS: { key: CourseQuickView; label: string; hint: string }[] = [
+  { key: "catalogue_actif", label: "Catalogue actif", hint: "Cours standards du catalogue (hors intra / clients et archives)." },
+  { key: "a_verifier", label: "À vérifier", hint: "Cours au statut éditorial « À vérifier »." },
+  { key: "brouillons", label: "Brouillons", hint: "Cours en cours de rédaction, non publiés." },
+  { key: "gratuits", label: "Gratuits", hint: "Cours en accès gratuit (hors archives)." },
+  { key: "payants", label: "Payants", hint: "Cours en accès payant (hors archives)." },
+  { key: "intra", label: "Intra / clients", hint: "Cours réservés à un client (intra), hors catalogue public." },
+  { key: "archives", label: "Archives", hint: "Cours archivés, sortis du catalogue courant." },
+  { key: "tous", label: "Tous les cours", hint: "Tous les cours, archives comprises." },
 ];
 
 export interface CourseMetaFilters {
@@ -62,7 +62,7 @@ export interface CourseMetaFilters {
 }
 
 export const DEFAULT_COURSE_META_FILTERS: CourseMetaFilters = {
-  view: "tous",
+  view: "catalogue_actif",
   expertise: "all",
   access: "all",
   status: "all",
@@ -76,8 +76,8 @@ interface CourseMetaLike {
 
 function matchesView(course: CourseMetaLike, view: CourseQuickView): boolean {
   switch (view) {
-    case "publies":
-      return course.status === "published";
+    case "catalogue_actif":
+      return course.access_type !== "intra";
     case "brouillons":
       return course.status === "draft";
     case "a_verifier":
@@ -97,10 +97,11 @@ function matchesView(course: CourseMetaLike, view: CourseQuickView): boolean {
 
 /**
  * Un cours archivé est masqué par défaut : il ne ressort que via la vue
- * "Archivés" ou le filtre statut = archived.
+ * "Archives" ou le filtre statut = archived. La vue "Catalogue actif" exclut
+ * en plus les cours intra / clients (voir matchesView).
  */
 export function courseMatchesMetaFilters(course: CourseMetaLike, f: CourseMetaFilters): boolean {
-  const archivedVisible = f.view === "archives" || f.status === "archived";
+  const archivedVisible = f.view === "archives" || f.view === "tous" || f.status === "archived";
   if (course.status === "archived" && !archivedVisible) return false;
   if (!matchesView(course, f.view)) return false;
   if (f.expertise !== "all" && course.expertise !== f.expertise) return false;
