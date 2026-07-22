@@ -62,7 +62,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
-            --model claude-opus-4-8
+            --model claude-sonnet-5
             --allowedTools Bash,Read,Write,Edit,Glob,Grep,Agent
           prompt: |
             Traite le ticket support ${{ inputs.ticket_number }} du kanban supertools.
