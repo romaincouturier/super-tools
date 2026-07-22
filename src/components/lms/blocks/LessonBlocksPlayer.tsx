@@ -240,12 +240,25 @@ function NodeRenderer({ node, renderQuiz, renderAssignment, renderWorkDeposit, l
           {visibleChildren}
         </ContainerBlockViewer>
       );
-    case "reveal":
-      return (
-        <RevealBlockViewer content={block.content as RevealBlockContent}>
-          {visibleChildren}
-        </RevealBlockViewer>
-      );
+    case "reveal": {
+      const revealItems = children
+        .filter((c) => !c.block.hidden)
+        .map((c) => ({
+          id: c.block.id,
+          type: c.block.type,
+          element: (
+            <NodeRenderer
+              node={c}
+              renderQuiz={renderQuiz}
+              renderAssignment={renderAssignment}
+              renderWorkDeposit={renderWorkDeposit}
+              learnerEmail={learnerEmail}
+              shortcodeCourseId={shortcodeCourseId}
+            />
+          ),
+        }));
+      return <RevealBlockViewer content={block.content as RevealBlockContent} items={revealItems} />;
+    }
     case "divider":
       return <DividerBlockViewer content={block.content as DividerBlockContent} />;
     case "spacer":

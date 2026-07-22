@@ -460,12 +460,14 @@ export interface ContainerBlockContent {
 }
 
 /**
- * Progressive-content container (ST-2026-0238). Children stay hidden in the
- * player until the learner clicks the reveal button.
+ * Progressive-content container (ST-2026-0238, ST-2026-0247). Children stay
+ * hidden in the player and are revealed one block at a time, the button label
+ * adapting to the next block. The button disappears once everything is shown.
  */
 export interface RevealBlockContent {
+  /** Fallback label used when the next block has no contextual call to action. */
   button_label: string;
-  /** When true, the button disappears once the content is revealed. */
+  /** @deprecated ST-2026-0247 — the button now always hides once all is revealed. */
   hide_button_after_click?: boolean;
   /** When true, the button becomes a toggle so the content can be closed again. */
   collapsible?: boolean;
