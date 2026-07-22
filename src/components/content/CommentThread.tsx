@@ -98,6 +98,8 @@ const CommentThread = ({ cardId, cardTitle, reviewIds: _reviewIds, onCommentAdde
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editCorrection, setEditCorrection] = useState("");
+  const [editAssignedTo, setEditAssignedTo] = useState<string>("none");
+  const [editInitialAssignedTo, setEditInitialAssignedTo] = useState<string | null>(null);
   const [submittingEdit, setSubmittingEdit] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
