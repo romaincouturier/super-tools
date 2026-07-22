@@ -169,6 +169,7 @@ export interface CalloutBlockContent {
 export interface KeyPointsBlockContent {
   title?: string | null;
   items: string[];
+  image_url?: string | null;
 }
 
 export interface ChecklistItem {

@@ -343,6 +343,7 @@ function BlockEditorBody({
     case "key_points":
       return (
         <KeyPointsBlockEditor
+          lessonId={lessonId}
           content={content as KeyPointsBlockContent}
           onChange={(c) => onChange(c)}
           slim={slim}
