@@ -364,6 +364,7 @@ export function useFormationForm() {
     elearningStartDate, setElearningStartDate,
     elearningEndDate, setElearningEndDate,
     elearningAccessEmailContent, setElearningAccessEmailContent,
+    lmsCourseId, setLmsCourseId,
     locationType, setLocationType,
     locationCustom, setLocationCustom,
     clientName, setClientName,
