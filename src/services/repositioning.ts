@@ -82,13 +82,13 @@ export async function fetchDuplicationTargets(
   const { data: sessions, error } = await supabase
     .from("trainings")
     .select(
-      "id, training_name, start_date, end_date, location, format_formation, session_format, max_participants, is_permanent",
+      "id, training_name, start_date, end_date, location, format_formation, session_format, max_participants",
     )
     .neq("id", currentTrainingId)
     .or("is_cancelled.is.null,is_cancelled.eq.false")
-    .or(`is_permanent.eq.true,start_date.gte.${today},start_date.is.null`)
-    .order("is_permanent", { ascending: false })
-    .order("start_date", { ascending: true });
+    .or(`start_date.gte.${today},start_date.is.null`)
+    .order("start_date", { ascending: true, nullsFirst: true });
+
   if (error || !sessions) return [];
 
   const ids = sessions.map((s) => s.id);
