@@ -288,6 +288,11 @@ export function useFormationForm() {
         catalog_id: catalogId || null,
       };
 
+      if (isElearning && lmsCourseId) {
+        base.supports_type = "lms";
+        base.supports_lms_course_id = lmsCourseId;
+      }
+
       if (opts.isCreate) {
         // Create-specific: use locationType-based resolution, inter defaults
         base.location = isPermanent
