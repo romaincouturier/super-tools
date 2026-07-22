@@ -663,7 +663,7 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm truncate">{item.product_name ?? `Produit #${item.wc_product_id}`}</p>
-          <p className="text-xs text-muted-foreground">Commande #{order?.order_number ?? item.wc_order_id}</p>
+          <p className="text-xs text-muted-foreground truncate">{customerName}</p>
         </div>
         {item.game_type && (
           <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${GAME_TYPE_COLORS[item.game_type]}`}>
@@ -673,7 +673,6 @@ function KanbanCard({ item, games }: { item: OrderItem; games: GameFull[] }) {
       </div>
 
       <div className="text-xs text-muted-foreground space-y-0.5">
-        <p>{customerName}</p>
         {order?.date_created && <p>{DATE(order.date_created)}</p>}
         <p>Qté : {item.quantity}{item.line_total ? ` — ${EUR(item.line_total)}` : ""}</p>
         {item.games?.title && <p>Jeu : {item.games.title}</p>}
