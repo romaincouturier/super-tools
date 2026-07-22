@@ -46,6 +46,8 @@ const FormationCreate = () => {
   const [venueId, setVenueId] = useState<string | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<TrainingVenue | null>(null);
   const [catalogDialogOpen, setCatalogDialogOpen] = useState(false);
+  const { data: lmsCourses = [] } = useCourses();
+  const publishedCourses = lmsCourses.filter((c) => c.status === "published");
 
   // Applique une entrée catalogue fraîchement créée au formulaire.
   const applyCreatedCatalog = async (created: FormationConfig) => {
