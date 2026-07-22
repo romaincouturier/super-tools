@@ -233,6 +233,12 @@ const EditParticipantDialog = ({
               availableFormulas={availableFormulas}
               onDuplicated={() => { hook.handleClose(); onParticipantUpdated(); }}
             />
+            <DuplicateToTrainingDialog
+              participant={participant}
+              trainingId={trainingId}
+              onDuplicated={() => { hook.handleClose(); onParticipantUpdated(); }}
+            />
+
           </div>
           <Button type="button" variant="outline" onClick={hook.handleClose}>
             Fermer
