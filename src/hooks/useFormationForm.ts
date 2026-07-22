@@ -345,7 +345,7 @@ export function useFormationForm() {
       sessionType, sessionFormat, prerequisites, objectives,
       programFileUrl, supertiltLink, privateGroupUrl,
       sponsorFormalAddress, financeurSameAsSponsor,
-      catalogId,
+      catalogId, lmsCourseId,
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail, sponsorPhone,
       financeurName, financeurUrl,
