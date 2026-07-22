@@ -98,6 +98,7 @@ export function useFormationForm() {
   const [elearningStartDate, setElearningStartDate] = useState<Date | null>(null);
   const [elearningEndDate, setElearningEndDate] = useState<Date | null>(null);
   const [elearningAccessEmailContent, setElearningAccessEmailContent] = useState("");
+  const [lmsCourseId, setLmsCourseId] = useState<string | null>(null);
 
   // Location
   const [locationType, setLocationType] = useState("");
