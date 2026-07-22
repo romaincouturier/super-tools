@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Play, Loader2, Paperclip, Download, ExternalLink, Package, History, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Play, Paperclip, Download, ExternalLink, Package, History, X } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,7 +93,7 @@ export function GameRestockTab({ gameId }: { gameId: string }) {
           </Button>
         </div>
         {isLoading ? (
-          <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+          <div className="flex justify-center py-6"><Spinner className="h-5 w-5" /></div>
         ) : !actions?.length ? (
           <div className="text-sm text-muted-foreground border rounded-md p-6 text-center">
             Aucune action. Ajoutez-en pour pouvoir lancer un réassort.
@@ -180,7 +181,7 @@ export function GameRestockTab({ gameId }: { gameId: string }) {
           onClick={onLaunch}
           disabled={launch.isPending || (!activeRun && !(actions?.length))}
         >
-          {launch.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+          {launch.isPending ? <Spinner className="mr-2" /> : <Play className="h-4 w-4 mr-2" />}
           {activeRun ? "Continuer le réassort en cours" : "Lancer le réassort"}
         </Button>
         {!actions?.length && !activeRun && (
@@ -261,7 +262,7 @@ function RestockActionDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="w-full max-w-lg">
         <DialogHeader>
           <DialogTitle>{form.id ? "Modifier l'action" : "Nouvelle action de réassort"}</DialogTitle>
         </DialogHeader>
@@ -306,7 +307,7 @@ function RestockActionDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={upsert.isPending || !form.label?.trim()}>
-            {upsert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enregistrer"}
+            {upsert.isPending ? <Spinner /> : "Enregistrer"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -326,7 +327,7 @@ function FileRow({ file, onDelete }: { file: RestockActionFile; onDelete: () => 
     <div className="flex items-center justify-between gap-2 text-sm border rounded px-2 py-1">
       <span className="truncate flex-1">{file.file_name}</span>
       <Button variant="ghost" size="icon" onClick={download} disabled={loading}>
-        {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+        {loading ? <Spinner className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
       </Button>
       <Button variant="ghost" size="icon" onClick={onDelete}><X className="h-3.5 w-3.5 text-destructive" /></Button>
     </div>
@@ -378,7 +379,7 @@ function RestockRunDialog({
       await updateRun.mutateAsync({ id: runId, gameId, patch: { status: "completed", completed_at: new Date().toISOString() } as any });
       toast({ title: "Réassort terminé" });
       onClose();
-    } catch { toastError(toast, "Erreur"); }
+    } catch (err) { toastError(toast, "Erreur", { cause: err }); }
   };
 
   const cancel = async () => {
@@ -386,14 +387,14 @@ function RestockRunDialog({
     try {
       await updateRun.mutateAsync({ id: runId, gameId, patch: { status: "cancelled", completed_at: new Date().toISOString() } as any });
       onClose();
-    } catch { toastError(toast, "Erreur"); }
+    } catch (err) { toastError(toast, "Erreur", { cause: err }); }
   };
 
   if (!run) return null;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -423,7 +424,7 @@ function RestockRunDialog({
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onClose}>Fermer</Button>
                 <Button onClick={complete} disabled={updateRun.isPending}>
-                  {updateRun.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Terminer le réassort"}
+                  {updateRun.isPending ? <Spinner /> : "Terminer le réassort"}
                 </Button>
               </div>
             </>

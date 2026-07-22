@@ -5,7 +5,7 @@
 // Redeploy: fix stale bundle (codingStatus ReferenceError) + coding_summary column.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, createErrorResponse } from "../_shared/cors.ts";
 import { postTicketCodedToSlack } from "../_shared/support-slack.ts";
 
 const ALLOWED_STATUSES = new Set(["queued", "running", "done", "error"]);
@@ -21,10 +21,9 @@ Deno.serve(async (req) => {
     const sharedSecret = Deno.env.get("TICKET_STATUS_WEBHOOK_SECRET");
     if (!sharedSecret) {
       console.error("TICKET_STATUS_WEBHOOK_SECRET is not configured");
-      return new Response(
-        JSON.stringify({ error: "Server misconfigured: missing shared secret" }),
-        { status: 500, headers: jsonHeaders },
-      );
+      return createErrorResponse("Server misconfigured: missing shared secret", 500, {
+        fn: "update-ticket-coding-status",
+      });
     }
 
     const provided =
@@ -33,10 +32,7 @@ Deno.serve(async (req) => {
       "";
 
     if (provided !== sharedSecret) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: jsonHeaders },
-      );
+      return createErrorResponse("Unauthorized", 401);
     }
 
     let body: {
@@ -52,18 +48,12 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON body" }),
-        { status: 400, headers: jsonHeaders },
-      );
+      return createErrorResponse("Invalid JSON body", 400);
     }
 
     const ticketNumber = body.ticket_number?.trim();
     if (!ticketNumber) {
-      return new Response(
-        JSON.stringify({ error: "ticket_number is required" }),
-        { status: 400, headers: jsonHeaders },
-      );
+      return createErrorResponse("ticket_number is required", 400);
     }
 
     const update: Record<string, unknown> = {
@@ -74,11 +64,9 @@ Deno.serve(async (req) => {
     if (body.coding_status !== undefined) {
       codingStatus = body.coding_status?.trim() ?? "";
       if (codingStatus && !ALLOWED_STATUSES.has(codingStatus)) {
-        return new Response(
-          JSON.stringify({
-            error: `Invalid coding_status. Allowed: ${Array.from(ALLOWED_STATUSES).join(", ")}`,
-          }),
-          { status: 400, headers: jsonHeaders },
+        return createErrorResponse(
+          `Invalid coding_status. Allowed: ${Array.from(ALLOWED_STATUSES).join(", ")}`,
+          400,
         );
       }
       update.coding_status = codingStatus || null;
@@ -117,17 +105,13 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("Failed to update ticket:", error);
-      return new Response(
-        JSON.stringify({ error: "Database update failed", details: error.message }),
-        { status: 500, headers: jsonHeaders },
-      );
+      return createErrorResponse(`Database update failed: ${error.message}`, 500, {
+        fn: "update-ticket-coding-status",
+      });
     }
 
     if (!data) {
-      return new Response(
-        JSON.stringify({ error: `Ticket ${ticketNumber} not found` }),
-        { status: 404, headers: jsonHeaders },
-      );
+      return createErrorResponse(`Ticket ${ticketNumber} not found`, 404);
     }
 
     // Notification Slack : uniquement à la transition vers "VIP codé" (coding done).
@@ -146,9 +130,9 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("Unexpected error:", err);
-    return new Response(
-      JSON.stringify({ error: "Unexpected error", details: String(err) }),
-      { status: 500, headers: jsonHeaders },
-    );
+    return createErrorResponse(`Unexpected error: ${String(err)}`, 500, {
+      fn: "update-ticket-coding-status",
+      cause: err,
+    });
   }
 });

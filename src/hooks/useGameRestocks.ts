@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadRestockFile } from "@/services/gameRestocks";
 
 export type RestockActionFile = {
   id: string;
@@ -106,19 +107,7 @@ export const useUploadRestockFile = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ actionId, gameId, file }: { actionId: string; gameId: string; file: File }) => {
-      const path = `${gameId}/${actionId}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
-      const { error: upErr } = await supabase.storage
-        .from("game-restock-files")
-        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
-      if (upErr) throw upErr;
-      const { error } = await (supabase as any).from("game_restock_action_files").insert({
-        action_id: actionId,
-        file_name: file.name,
-        file_url: path,
-        file_size: file.size,
-        mime_type: file.type || null,
-      });
-      if (error) throw error;
+      await uploadRestockFile(actionId, gameId, file);
       return gameId;
     },
     onSuccess: (gameId) => qc.invalidateQueries({ queryKey: ["game-restock-actions", gameId] }),

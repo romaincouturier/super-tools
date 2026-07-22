@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, Loader2, FileText, ExternalLink } from "lucide-react";
+import { ShoppingCart, TrendingUp, Euro, Package, Users, Plus, Pencil, Trash2, FileText, ExternalLink } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { todayAsISO } from "@/lib/dateFormatters";
 import GameDevisTab from "@/components/dropshipping/GameDevisTab";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
@@ -33,7 +35,7 @@ function Dashboard() {
   const { data: kpis, isLoading } = useGameSalesKpis();
   const [detail, setDetail] = useState<{ gameId: string | null; title: string } | null>(null);
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   return (
     <div className="space-y-6">
@@ -138,7 +140,7 @@ function GameSalesDetailDialog({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ventes_${title.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `ventes_${title.replace(/[^a-z0-9]+/gi, "_").toLowerCase()}_${todayAsISO()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -147,7 +149,7 @@ function GameSalesDetailDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+      <DialogContent className="w-full max-w-4xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-2 pr-6">
             <span className="truncate">{title}</span>
@@ -157,7 +159,7 @@ function GameSalesDetailDialog({
           </DialogTitle>
         </DialogHeader>
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          <div className="flex justify-center py-12"><Spinner size="md" /></div>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-3 text-sm">
@@ -237,8 +239,8 @@ function SalesTable() {
       await markPaid(selected);
       setSelected([]);
       toast({ title: `${selected.length} vente(s) marquée(s) comme payée(s)` });
-    } catch {
-      toastError(toast, "Une erreur est survenue");
+    } catch (err) {
+      toastError(toast, "Une erreur est survenue", { cause: err });
     }
   };
 
@@ -256,14 +258,14 @@ function SalesTable() {
       await deleteSale(sale.id);
       setSelected((s) => s.filter((x) => x !== sale.id));
       toast({ title: "Commande supprimée" });
-    } catch {
-      toastError(toast, "Une erreur est survenue");
+    } catch (err) {
+      toastError(toast, "Une erreur est survenue", { cause: err });
     } finally {
       setDeletingId(null);
     }
   };
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
   if (!sales?.length) return <div className="text-center py-12 text-muted-foreground">Aucune vente importée</div>;
 
   const pendingSelected = selected.filter((id) => sales.find((s) => s.id === id)?.status === "pending");
@@ -273,7 +275,7 @@ function SalesTable() {
       {pendingSelected.length > 0 && (
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={handleMarkPaid} disabled={isPending}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+            {isPending ? <Spinner className="mr-1" /> : null}
             Marquer {pendingSelected.length} comme payée(s)
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setSelected([])}>Désélectionner</Button>
@@ -320,7 +322,7 @@ function SalesTable() {
                     disabled={deletingId === s.id}
                     onClick={() => handleDelete(s)}
                   >
-                    {deletingId === s.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    {deletingId === s.id ? <Spinner className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -348,8 +350,8 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor> | null;
       await upsert(form as GameAuthor & { name: string });
       toast({ title: "Auteur sauvegardé" });
       onClose();
-    } catch {
-      toastError(toast, "Une erreur est survenue");
+    } catch (err) {
+      toastError(toast, "Une erreur est survenue", { cause: err });
     }
   };
 
@@ -384,7 +386,7 @@ function AuthorDialog({ author, onClose }: { author: Partial<GameAuthor> | null;
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !form.name}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -403,7 +405,7 @@ function AuthorsTable() {
     catch { toastError(toast, "Une erreur est survenue"); }
   };
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   return (
     <>
@@ -460,8 +462,8 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
       await upsert(form as Game & { title: string });
       toast({ title: "Jeu sauvegardé" });
       onClose();
-    } catch {
-      toastError(toast, "Une erreur est survenue");
+    } catch (err) {
+      toastError(toast, "Une erreur est survenue", { cause: err });
     }
   };
 
@@ -512,7 +514,7 @@ function GameDialog({ game, authors, onClose }: { game: Partial<Game> | null; au
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Annuler</Button>
           <Button onClick={save} disabled={isPending || !form.title}>
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sauvegarder"}
+            {isPending ? <Spinner /> : "Sauvegarder"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -527,7 +529,7 @@ function GamesTable() {
   const [editing, setEditing] = useState<Partial<Game> | null | undefined>(undefined);
   const { toast } = useToast();
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (isLoading) return <div className="flex justify-center py-12"><Spinner size="md" /></div>;
 
   return (
     <>
@@ -572,7 +574,7 @@ function GamesTable() {
                       </Button>
                     )}
                     <Button variant="ghost" size="icon" onClick={() => setEditing(g)}><Pencil className="h-3.5 w-3.5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={async () => { try { await del(g.id); } catch { toastError(toast, "Une erreur est survenue"); } }}>
+                    <Button variant="ghost" size="icon" onClick={async () => { try { await del(g.id); } catch (err) { toastError(toast, "Une erreur est survenue", { cause: err }); } }}>
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </div>

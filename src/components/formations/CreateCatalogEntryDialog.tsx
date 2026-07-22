@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { GraduationCap, Plus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { createFormationConfig } from "@/services/formationConfigs";
 import { useToast } from "@/hooks/use-toast";
 import type { FormationConfig } from "@/components/formations/TrainingNameCombobox";
 
@@ -63,24 +63,17 @@ export default function CreateCatalogEntryDialog({
     }
     setSaving(true);
     try {
-      const { data, error } = await supabase
-        .from("formation_configs")
-        .insert({
-          formation_name: name.trim(),
-          duree_heures: Number(duree) || 0,
-          prix: Number(prix) || 0,
-          programme_url: programmeUrl.trim() || null,
-          is_default: false,
-          is_active: true,
-        } as never)
-        .select()
-        .single();
-      if (error) throw error;
+      const data = await createFormationConfig({
+        formation_name: name.trim(),
+        duree_heures: Number(duree) || 0,
+        prix: Number(prix) || 0,
+        programme_url: programmeUrl.trim() || null,
+      });
       toast({
         title: "Entrée créée",
         description: `"${name.trim()}" a été ajoutée au catalogue.`,
       });
-      onCreated(data as unknown as FormationConfig);
+      onCreated(data);
       onOpenChange(false);
     } catch (err) {
       console.error("CreateCatalogEntryDialog error:", err);
