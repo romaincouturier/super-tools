@@ -110,7 +110,7 @@ const FormationDetailInfo = ({
         <Badge variant="outline" className="flex items-center gap-1.5">
           <Building className="h-3.5 w-3.5" />{training.client_name}
         </Badge>
-        {training.client_address && (
+        {training.client_address && !isPresentiel && (
           <Badge variant="outline" className="flex items-center gap-1.5 group">
             <MapPin className="h-3.5 w-3.5" />{training.client_address}
             <button type="button" className="ml-1 p-0.5 rounded hover:bg-muted transition-colors" onClick={() => copyClientAddress(training.client_address!, { title: "Adresse copiée", description: "L'adresse du client a été copiée." })}>
