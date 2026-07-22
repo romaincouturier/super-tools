@@ -514,6 +514,37 @@ const FormationCreate = () => {
                     <TrainingDaysCalendar form={form} optional={!form.isInter} />
                   )}
 
+                  {/* LMS course - required for e-learning */}
+                  {form.isElearning && (
+                    <div className="space-y-2">
+                      <Label>Cours e-learning *</Label>
+                      <Select
+                        value={form.lmsCourseId ?? ""}
+                        onValueChange={(v) => form.setLmsCourseId(v || null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionnez le cours à rattacher" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {publishedCourses.length === 0 ? (
+                            <SelectItem value="__none__" disabled>
+                              Aucun cours publié disponible
+                            </SelectItem>
+                          ) : (
+                            publishedCourses.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.title}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Obligatoire : c'est ce cours qui apparaîtra dans le portail apprenant.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Client - hidden for inter */}
                   {!form.isInter && (
                     <>
