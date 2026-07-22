@@ -17,13 +17,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ModuleStatus = "completed" | "in_progress" | "not_started";
 
-export function ModuleStatusIcon({ status, num }: { status: ModuleStatus; num: number }) {
+export function ModuleStatusIcon({ status, num, active = false }: { status: ModuleStatus; num: number; active?: boolean }) {
   if (status === "completed") {
     return <CheckCircle2 size={36} style={{ color: "#69C3C4", flexShrink: 0 }} />;
   }
-  const borderColor = status === "in_progress" ? "#101820" : "#CCCCCC";
+  const borderColor = active ? "#FFD100" : status === "in_progress" ? "#101820" : "#CCCCCC";
   const bg = "transparent";
-  const textColor = status === "in_progress" ? "#101820" : "#AAAAAA";
+  const textColor = active ? "#101820" : status === "in_progress" ? "#101820" : "#AAAAAA";
   return (
     <div
       className="w-9 h-9 rounded-full border-2 flex items-center justify-center shrink-0"
@@ -74,7 +74,7 @@ export function CommunityCtaButton({ email, courseId, lessonId, isPreview = fals
   return (
     <button
       onClick={goToCommunity}
-      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px"
+      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:-translate-y-px hover:shadow-md"
       style={{ background: "var(--st-yellow)", color: "#101820", fontFamily: "inherit" }}
     >
       <Users size={13} />
@@ -340,7 +340,8 @@ export default function CourseHomeSidebar({
                   )}
                   style={{
                     fontFamily: "inherit",
-                    background: isActiveModule ? "#FFD100" : "transparent",
+                    background: isActiveModule ? "rgba(255,209,0,0.07)" : "transparent",
+                    boxShadow: isActiveModule ? "inset 3px 0 0 #FFD100" : undefined,
                   }}
                 >
                   <button
@@ -348,19 +349,19 @@ export default function CourseHomeSidebar({
                     className="flex items-center gap-3 flex-1 min-w-0 text-left"
                     style={{ fontFamily: "inherit" }}
                   >
-                    <ModuleStatusIcon status={status} num={idx + 1} />
+                    <ModuleStatusIcon status={status} num={idx + 1} active={isActiveModule} />
                     <div className="flex-1 min-w-0">
                       <p
-                        className="text-sm leading-snug truncate"
+                        className="text-sm leading-snug line-clamp-2"
                         style={{ color: "#101820", fontWeight: isActiveModule ? 600 : 500 }}
                       >
                         {m.title}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: isActiveModule ? "rgba(16,24,32,0.15)" : "#EDEDED" }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : isActiveModule ? "#101820" : "#FFD100" }} />
+                        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#EDEDED" }}>
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: isCompleted ? "#69C3C4" : "#FFD100" }} />
                         </div>
-                        <p className="text-[10px] shrink-0" style={{ color: isActiveModule ? "#101820" : "var(--st-ink-muted)" }}>{done}/{total}</p>
+                        <p className="text-[10px] shrink-0" style={{ color: "var(--st-ink-muted)" }}>{done}/{total}</p>
                       </div>
                     </div>
                   </button>
@@ -394,14 +395,15 @@ export default function CourseHomeSidebar({
                             )}
                             style={{
                               fontFamily: "inherit",
-                              background: isActiveLesson ? "#FFD100" : "transparent",
+                              background: isActiveLesson ? "rgba(255,209,0,0.16)" : "transparent",
+                              boxShadow: isActiveLesson ? "inset 3px 0 0 #FFD100" : undefined,
                               color: isActiveLesson ? "#101820" : "var(--st-ink-muted)",
                               fontWeight: isActiveLesson ? 600 : 400,
                             }}
                           >
                             {isDone
                               ? <CheckCircle2 size={12} style={{ color: "#69C3C4", flexShrink: 0 }} />
-                              : <Play size={11} style={{ flexShrink: 0, opacity: isActiveLesson ? 1 : 0.5 }} />}
+                              : <Play size={11} style={{ flexShrink: 0, color: isActiveLesson ? "#FFD100" : undefined, opacity: isActiveLesson ? 1 : 0.5 }} />}
                             <span className="truncate leading-snug">{lesson.title}</span>
                           </button>
                         </li>
