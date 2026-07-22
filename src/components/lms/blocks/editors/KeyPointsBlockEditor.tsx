@@ -1,20 +1,42 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, X, Lightbulb } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Plus, X, Lightbulb, Image as ImageIcon, Upload } from "lucide-react";
+import { uploadLmsImage } from "@/hooks/useLms";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
+import { formatFileSize } from "@/lib/file-utils";
 import { InlineEdit } from "./InlineEdit";
 import type { KeyPointsBlockContent } from "@/types/lms-blocks";
 
 interface Props {
+  lessonId: string;
   content: KeyPointsBlockContent;
   onChange: (content: KeyPointsBlockContent) => void;
   slim?: boolean;
 }
 
-export default function KeyPointsBlockEditor({ content, onChange, slim }: Props) {
+export default function KeyPointsBlockEditor({ lessonId, content, onChange, slim }: Props) {
   const items = content.items || [""];
   const listRef = useRef<(HTMLElement | null)[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadLmsImage(file, lessonId);
+      onChange({ ...content, image_url: url });
+      toast({ title: `Image importée (${formatFileSize(file.size)})` });
+    } catch (err) {
+      toastError(toast, err instanceof Error ? err : "Erreur d'upload");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const setItem = (i: number, value: string) => {
     const next = [...items];
@@ -131,6 +153,65 @@ export default function KeyPointsBlockEditor({ content, onChange, slim }: Props)
           <Plus size={14} />
           Ajouter un point
         </button>
+
+        {/* Image */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleUpload(f);
+            e.target.value = "";
+          }}
+        />
+        {content.image_url ? (
+          <div style={{ position: "relative", marginTop: "1rem", borderRadius: "var(--st-br, 20px)", overflow: "hidden" }}>
+            <img src={content.image_url} alt="" style={{ width: "100%", height: "auto", display: "block" }} />
+            <button
+              onClick={() => onChange({ ...content, image_url: null })}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "rgba(16,24,32,0.6)",
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                display: "grid",
+                placeItems: "center",
+              }}
+              aria-label="Supprimer l'image"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            style={{
+              marginTop: "0.875rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              color: "var(--st-ink-60)",
+              cursor: uploading ? "default" : "pointer",
+              border: "none",
+              background: "transparent",
+              padding: "0.25rem 0",
+            }}
+          >
+            {uploading ? <Spinner className="h-3.5 w-3.5" /> : <ImageIcon size={14} />}
+            {uploading ? "Upload en cours…" : "Ajouter une image"}
+          </button>
+        )}
       </div>
     );
   }
@@ -170,6 +251,35 @@ export default function KeyPointsBlockEditor({ content, onChange, slim }: Props)
         <Button variant="outline" size="sm" onClick={() => addItem()}>
           <Plus className="h-4 w-4 mr-2" /> Ajouter un point
         </Button>
+      </div>
+      <div>
+        <Label>Image (optionnel)</Label>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleUpload(f);
+            e.target.value = "";
+          }}
+        />
+        {content.image_url ? (
+          <div className="space-y-2">
+            <div className="rounded-lg overflow-hidden bg-muted border max-w-md">
+              <img src={content.image_url} alt="" className="w-full h-auto object-contain max-h-[400px]" />
+            </div>
+            <Button variant="outline" size="sm" onClick={() => onChange({ ...content, image_url: null })}>
+              <X className="h-4 w-4 mr-2" /> Retirer l'image
+            </Button>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? <Spinner className="mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+            {uploading ? "Upload…" : "Importer une image"}
+          </Button>
+        )}
       </div>
     </div>
   );
