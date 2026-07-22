@@ -157,14 +157,17 @@ export async function repositionParticipant(
 
   if (!inserted) throw new Error("Échec de création du participant cible");
 
-  // Mark source as repositioned (keep traceability)
-  await supabase
-    .from("training_participants")
-    .update({
-      repositioned_to_training_id: target.id,
-      repositioned_at: new Date().toISOString(),
-    } as never)
-    .eq("id", source.id);
+  // Mark source as repositioned (keep traceability) — skipped in pure duplication mode
+  if (markSourceRepositioned) {
+    await supabase
+      .from("training_participants")
+      .update({
+        repositioned_to_training_id: target.id,
+        repositioned_at: new Date().toISOString(),
+      } as never)
+      .eq("id", source.id);
+  }
+
 
   // ---- Mirror useAddParticipant onboarding flow (skip if reusing existing inscription) ----
   const shouldSendWelcome =
