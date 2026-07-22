@@ -2,6 +2,7 @@
 // depuis le workflow GitHub Actions. Authentification via shared secret dédié
 // (TICKET_STATUS_WEBHOOK_SECRET) — indépendant de la service_role key pour éviter
 // les pannes silencieuses lors des rotations.
+// Redeploy: fix stale bundle (codingStatus ReferenceError) + coding_summary column.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeaders } from "../_shared/cors.ts";
