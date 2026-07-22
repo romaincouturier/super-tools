@@ -90,7 +90,10 @@ interface RepositionResult {
 export async function repositionParticipant(
   source: Participant,
   target: RepositioningTarget,
+  options: { markSourceRepositioned?: boolean } = {},
 ): Promise<RepositionResult> {
+  const markSourceRepositioned = options.markSourceRepositioned !== false;
+
   const isInter =
     target.format_formation === "inter-entreprises" ||
     target.format_formation === "e_learning";
