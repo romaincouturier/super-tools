@@ -33,6 +33,7 @@ export interface Mission {
   updated_at: string;
   created_by: string | null;
   assigned_to: string | null;
+  share_activities_with_client?: boolean;
 }
 
 export interface CreateMissionInput {
