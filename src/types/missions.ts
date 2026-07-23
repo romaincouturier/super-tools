@@ -80,6 +80,7 @@ export interface UpdateMissionInput {
   waiting_next_action_date?: string | null;
   waiting_next_action_text?: string | null;
   assigned_to?: string | null;
+  share_activities_with_client?: boolean;
 }
 
 export interface MissionContact {
