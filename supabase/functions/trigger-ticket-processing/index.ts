@@ -60,6 +60,20 @@ serve(async (req) => {
     }
     ticketNumber = ticket_number;
 
+    // Interrupteur global : le codage auto peut être débrayé depuis le kanban.
+    const { data: autoCoding } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "auto_coding_enabled")
+      .maybeSingle();
+    if (autoCoding?.setting_value === "false") {
+      await supabase
+        .from("support_tickets")
+        .update({ coding_status: null, coding_error: null })
+        .eq("ticket_number", ticket_number);
+      return createJsonResponse({ ok: false, skipped: "auto_coding_disabled", ticket_number });
+    }
+
     if (!GITHUB_TOKEN) {
       await markCodingError(supabase, ticket_number, "GH_DISPATCH_TOKEN non configuré côté Supabase");
       return createErrorResponse("GH_DISPATCH_TOKEN non configuré", 500, {

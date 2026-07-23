@@ -200,6 +200,21 @@ export async function createSupportTicket(
   return data;
 }
 
+/** Interrupteur global du codage auto (app_settings.auto_coding_enabled). Absent = activé. */
+export async function isAutoCodingEnabled(): Promise<boolean> {
+  try {
+    const { data } = await db()
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "auto_coding_enabled")
+      .maybeSingle();
+    return (data as { setting_value: string } | null)?.setting_value !== "false";
+  } catch (err) {
+    console.error("[isAutoCodingEnabled] failed, defaulting to enabled:", err);
+    return true;
+  }
+}
+
 /** Best-effort: dispatch the GitHub Actions workflow that runs Claude Code on this ticket. */
 async function triggerTicketProcessing(ticketNumber: string): Promise<void> {
   try {
@@ -344,7 +359,8 @@ export async function moveSupportTicket(
   const sourceStatus = currentTicket.status;
 
   // 2. Update the moved ticket itself (status + temporary position).
-  const startsCoding = newStatus === "vibe_coding" && sourceStatus !== "vibe_coding";
+  const startsCoding =
+    newStatus === "vibe_coding" && sourceStatus !== "vibe_coding" && (await isAutoCodingEnabled());
   const payload = withResolvedAt(
     {
       status: newStatus,

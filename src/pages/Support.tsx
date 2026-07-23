@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, X } from "lucide-react";
+import { LifeBuoy, Bug, Lightbulb, Plus, AlertCircle, ClipboardCopy, ImagePlus, Sparkles, X, Bot } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { useEditableAppSetting } from "@/hooks/useAppSetting";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +51,27 @@ const Support = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [detailTicket, setDetailTicket] = useState<SupportTicket | null>(null);
   const [showStats, setShowStats] = useState(false);
+
+  // Interrupteur global du codage auto (drag en Vibe Coding -> workflow Claude).
+  const {
+    data: autoCodingSetting,
+    isLoading: autoCodingLoading,
+    save: saveAutoCoding,
+  } = useEditableAppSetting("auto_coding_enabled");
+  const autoCodingEnabled = autoCodingSetting !== "false";
+  const handleAutoCodingToggle = async (checked: boolean) => {
+    try {
+      await saveAutoCoding(checked ? "true" : "false");
+      toast({
+        title: checked ? "Codage auto activé" : "Codage auto désactivé",
+        description: checked
+          ? "Les tickets glissés en Vibe Coding déclencheront le dev Claude."
+          : "Plus aucun déclenchement automatique jusqu'à réactivation.",
+      });
+    } catch (err) {
+      toastError(toast, "Impossible de modifier le réglage", { cause: err });
+    }
+  };
 
   // New ticket form state — simplified: description + optional image only
   const [newDescription, setNewDescription] = useState("");
@@ -263,6 +286,23 @@ const Support = () => {
                 <span className="flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" />{stats.open} ouvert{stats.open > 1 ? "s" : ""}</span>
                 <span className="flex items-center gap-1"><Bug className="h-3.5 w-3.5 text-red-500" />{stats.bugs}</span>
                 <span className="flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5 text-violet-500" />{stats.evolutions}</span>
+              </div>
+
+              {/* Interrupteur codage auto Claude */}
+              <div
+                className="flex items-center gap-1.5 mr-1"
+                title="Déclenche automatiquement le dev Claude quand un ticket passe en Vibe Coding"
+              >
+                <Bot className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="auto-coding-switch" className="text-xs text-muted-foreground cursor-pointer">
+                  Codage auto
+                </Label>
+                <Switch
+                  id="auto-coding-switch"
+                  checked={autoCodingEnabled}
+                  disabled={autoCodingLoading}
+                  onCheckedChange={handleAutoCodingToggle}
+                />
               </div>
 
               {/* Export new tickets */}
