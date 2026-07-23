@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileAudio, Search } from "lucide-react";
+import { FileAudio, Search, Check } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -17,7 +17,9 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (payload: { title: string; content: string; icon: string }) => void | Promise<void>;
+  usedTitles?: Set<string>;
 }
+
 
 function escapeHtml(s: string) {
   return s
