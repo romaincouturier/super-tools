@@ -148,30 +148,38 @@ Deno.serve(async (req) => {
     let subject: string;
     let bodyContent: string;
 
-    if (template) {
-      // Use the same template as WooCommerce — access_link = magic link URL
+    const hasMultiple = !!trainingsListHtml;
+    const displayName = trainingName ?? (hasMultiple ? "vos formations" : "votre formation");
+
+    if (template && !hasMultiple) {
+      // Single training — use DB template
       subject = replaceVariables(template.subject, {
-        training_name: trainingName ?? "votre formation",
+        training_name: displayName,
         first_name: firstName,
       });
       bodyContent = replaceVariables(template.html_content, {
         first_name: firstName,
-        training_name: trainingName ?? "votre formation",
+        training_name: displayName,
         start_date: startDateFr,
         end_date: endDateFr,
         access_link: accessLink,
       });
     } else {
-      // Fallback if template not found in DB
-      subject = trainingName
+      // Fallback (template missing) OR multi-training self-service
+      subject = hasMultiple
+        ? "Votre accès à vos formations en ligne"
+        : trainingName
         ? `Votre accès à la formation ${trainingName}`
         : "Votre accès à votre formation en ligne";
       const dateLabel = startDateFr && endDateFr && startDateFr !== endDateFr
         ? ` du <strong>${startDateFr}</strong> au <strong>${endDateFr}</strong>`
         : startDateFr ? ` le <strong>${startDateFr}</strong>` : "";
-      const formationLabel = trainingName ? `"<strong>${trainingName}</strong>"` : "votre formation";
-      bodyContent = `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVotre entreprise vient de vous inscrire à la formation e-learning ${formationLabel}${dateLabel}.\n\nVous pouvez accéder à votre espace apprenant en cliquant sur le bouton ci-dessous :\n\n<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">🎓 Accéder à ma formation</a></p>${dateLabel ? `\n\nLa formation est accessible${dateLabel}.` : ""}`;
+      const intro = hasMultiple
+        ? `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVous êtes inscrit(e) aux formations suivantes :\n\n${trainingsListHtml}`
+        : `Bonjour${firstName ? ` ${firstName}` : ""},\n\nVotre entreprise vient de vous inscrire à la formation e-learning ${trainingName ? `"<strong>${trainingName}</strong>"` : "votre formation"}${dateLabel}.`;
+      bodyContent = `${intro}\n\nVous pouvez accéder à votre espace apprenant en cliquant sur le bouton ci-dessous :\n\n<p style="margin: 20px 0;"><a href="${accessLink}" style="display: inline-block; padding: 12px 24px; background-color: #ffd100; color: #101820; text-decoration: none; border-radius: 8px; font-weight: bold;">🎓 Accéder à mes formations</a></p>`;
     }
+
 
     const signature = await getSigniticSignature();
     const html = wrapEmailHtml(formatContentToHtml(bodyContent), signature);
