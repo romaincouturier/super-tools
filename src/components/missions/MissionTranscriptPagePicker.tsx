@@ -49,7 +49,7 @@ function transcriptToHtml(t: Transcript): string {
   return parts.join("\n");
 }
 
-const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick }: Props) => {
+const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }: Props) => {
   const [search, setSearch] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { data: transcripts = [], isLoading } = useTranscripts({
