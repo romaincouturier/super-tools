@@ -66,6 +66,7 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
   const deleteActivity = useDeleteMissionActivity();
   const createCredit = useCreateMissionCredit();
   const deleteCredit = useDeleteMissionCredit();
+  const updateMission = useUpdateMission();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
