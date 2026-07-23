@@ -125,6 +125,19 @@ const ConventionSection = ({
       if (data?.error) throw new Error(data.error as string);
       setConventionSentAt(new Date().toISOString());
       if (data?.signatureUrl) setConventionSignatureUrl(data.signatureUrl as string);
+      // Auto-complete the "Envoyer la convention" checklist item so it stops
+      // appearing in the daily overdue-tasks alert.
+      try {
+        await supabase
+          .from("logistics_checklist_items")
+          .update({ is_done: true, done_at: new Date().toISOString() })
+          .eq("entity_type", "training")
+          .eq("entity_id", trainingId)
+          .eq("is_done", false)
+          .ilike("label", "%convention%");
+      } catch (e) {
+        console.warn("Could not auto-complete convention checklist item:", e);
+      }
       toast({
         title: "Convention envoyée",
         description: enableOnlineSignature
