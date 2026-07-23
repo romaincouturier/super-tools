@@ -32,6 +32,7 @@ interface MissionData {
   total_days: number | null;
   emoji: string | null;
   location: string | null;
+  share_activities_with_client?: boolean;
 }
 
 interface Activity {
@@ -652,7 +653,8 @@ const MissionSummary = () => {
         )}
 
         {/* Financial Summary — authenticated only */}
-        {isAuthenticated && (
+        {/* Financial Summary — always visible */}
+        {true && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -733,8 +735,8 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Invoices Table — authenticated only */}
-        {isAuthenticated && (
+        {/* Invoices Table — visible to auth users, or public when mission is shared */}
+        {(isAuthenticated || mission.share_activities_with_client) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
