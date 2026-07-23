@@ -250,6 +250,11 @@ check "036" "Pas de vault.decrypted_secrets / x-cron-secret dans les nouvelles m
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
   "bash scripts/check-backup-tables.sh"
 
+# [040] Évaluations — filtre formation côté client : dropdown dérivée des évaluations
+# chargées (trainingOptions), pas de refetch serveur par training_id à la sélection.
+check "040" "Évaluations : filtre formation côté client (pas de refetch .eq(training_id))" \
+  "grep -n 'eq(\"training_id\"' src/pages/Evaluations.tsx; grep -q 'trainingOptions' src/pages/Evaluations.tsx || echo 'VIOLATION: trainingOptions absent de src/pages/Evaluations.tsx'"
+
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
 MANUAL_RULES="002|013|022|024|029|032|033"
