@@ -256,6 +256,30 @@ const MissionActivityTracker = ({ mission, onCreatePageForActivity }: MissionAct
 
   return (
     <div className="space-y-4">
+      {/* Share toggle */}
+      <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
+        <div>
+          <Label htmlFor="share-activities-toggle" className="text-sm font-medium">
+            Partager les actions avec le client
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Affiche la liste des factures émises sur la page publique de la mission.
+          </p>
+        </div>
+        <Switch
+          id="share-activities-toggle"
+          checked={!!mission.share_activities_with_client}
+          onCheckedChange={(checked) => {
+            updateMission.mutate(
+              { id: mission.id, updates: { share_activities_with_client: checked } },
+              {
+                onError: (e) => toastError(toast, e instanceof Error ? e : "Erreur inconnue"),
+              },
+            );
+          }}
+        />
+      </div>
+
       {/* Summary Cards */}
       <div className={`grid grid-cols-2 gap-3 ${hasCredits ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
         <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
