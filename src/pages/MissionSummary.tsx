@@ -32,6 +32,7 @@ interface MissionData {
   total_days: number | null;
   emoji: string | null;
   location: string | null;
+  share_activities_with_client?: boolean;
 }
 
 interface Activity {
