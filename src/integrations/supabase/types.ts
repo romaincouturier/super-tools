@@ -6515,6 +6515,7 @@ export type Database = {
           location: string | null
           org_id: string | null
           position: number
+          share_activities_with_client: boolean
           start_date: string | null
           status: string
           tags: string[] | null
@@ -6550,6 +6551,7 @@ export type Database = {
           location?: string | null
           org_id?: string | null
           position?: number
+          share_activities_with_client?: boolean
           start_date?: string | null
           status?: string
           tags?: string[] | null
@@ -6585,6 +6587,7 @@ export type Database = {
           location?: string | null
           org_id?: string | null
           position?: number
+          share_activities_with_client?: boolean
           start_date?: string | null
           status?: string
           tags?: string[] | null
