@@ -261,16 +261,30 @@ const WatchItemCard = ({ item }: WatchItemCardProps) => {
 
       {/* Body */}
       {item.body && (
-        <div
-          className="text-sm text-muted-foreground cursor-pointer prose prose-sm max-w-none prose-img:my-2 prose-img:rounded whitespace-pre-wrap"
-          onClick={() => setExpanded(!expanded)}
-        >
-          <div dangerouslySetInnerHTML={{ __html: bodyPreviewHtml }} />
-          {plainBodyLen > 200 && (
-            <span className="text-primary text-xs ml-1">
-              {expanded ? "Voir moins" : "Voir plus"}
-            </span>
-          )}
+        <div className="relative group/body">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-0 right-0 h-7 w-7 opacity-0 group-hover/body:opacity-100 transition-opacity z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopyBody();
+            }}
+            title="Copier le texte"
+          >
+            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+          <div
+            className="text-sm text-muted-foreground cursor-pointer prose prose-sm max-w-none prose-img:my-2 prose-img:rounded whitespace-pre-wrap pr-8"
+            onClick={() => setExpanded(!expanded)}
+          >
+            <div dangerouslySetInnerHTML={{ __html: bodyPreviewHtml }} />
+            {plainBodyLen > 200 && (
+              <span className="text-primary text-xs ml-1">
+                {expanded ? "Voir moins" : "Voir plus"}
+              </span>
+            )}
+          </div>
         </div>
       )}
 
