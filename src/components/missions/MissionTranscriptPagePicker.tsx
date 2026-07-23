@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileAudio, Search } from "lucide-react";
+import { FileAudio, Search, Check } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -17,7 +17,9 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (payload: { title: string; content: string; icon: string }) => void | Promise<void>;
+  usedTitles?: Set<string>;
 }
+
 
 function escapeHtml(s: string) {
   return s
@@ -47,7 +49,7 @@ function transcriptToHtml(t: Transcript): string {
   return parts.join("\n");
 }
 
-const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick }: Props) => {
+const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick, usedTitles }: Props) => {
   const [search, setSearch] = useState("");
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { data: transcripts = [], isLoading } = useTranscripts({
@@ -99,6 +101,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick }: Props) => {
           <div className="space-y-1">
             {transcripts.map((t) => {
               const title = t.ai_title || t.title || "Sans titre";
+              const alreadyAdded = usedTitles?.has(title) ?? false;
               return (
                 <button
                   key={t.id}
@@ -108,7 +111,15 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick }: Props) => {
                 >
                   <FileAudio className="h-4 w-4 shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{title}</p>
+                    <p className="text-sm font-medium truncate flex items-center gap-1.5">
+                      {alreadyAdded && (
+                        <Check className="h-3.5 w-3.5 text-green-600 shrink-0" aria-label="Déjà ajouté" />
+                      )}
+                      <span className="truncate">{title}</span>
+                      {alreadyAdded && (
+                        <span className="text-xs text-green-600 font-normal shrink-0">· déjà ajouté</span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(t.created_at), "d MMM yyyy", { locale: fr })}
                       {t.duration_seconds
@@ -120,6 +131,7 @@ const MissionTranscriptPagePicker = ({ open, onOpenChange, onPick }: Props) => {
                 </button>
               );
             })}
+
           </div>
         </ScrollArea>
       </DialogContent>

@@ -1598,7 +1598,9 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
         open={showTranscriptPicker}
         onOpenChange={setShowTranscriptPicker}
         onPick={handleCreatePageFromTranscript}
+        usedTitles={new Set((pages || []).map((p) => p.title))}
       />
+
     </div>
     </>
   );
