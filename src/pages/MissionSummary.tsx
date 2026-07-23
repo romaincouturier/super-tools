@@ -653,7 +653,8 @@ const MissionSummary = () => {
         )}
 
         {/* Financial Summary — authenticated only */}
-        {isAuthenticated && (
+        {/* Financial Summary — always visible */}
+        {true && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
