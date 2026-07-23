@@ -41,8 +41,10 @@ import {
   useCreateMissionCredit,
   useDeleteMissionCredit,
   MissionActivity,
+  useUpdateMission,
 } from "@/hooks/useMissions";
 import { Mission } from "@/types/missions";
+import { Switch } from "@/components/ui/switch";
 import GenerateInvoiceDialog from "./GenerateInvoiceDialog";
 import ImportGoogleEventsDialog from "./ImportGoogleEventsDialog";
 import { Wallet, X as XIcon } from "lucide-react";
