@@ -200,6 +200,12 @@ export async function repositionParticipant(
       financeurUrl: source.financeur_url || "",
       paymentMode: (source.payment_mode === "online" ? "online" : "invoice"),
       soldPriceHt: source.sold_price_ht != null ? String(source.sold_price_ht) : "",
+      companyAddress: source.company_address ?? null,
+      companyZip: source.company_zip ?? null,
+      companyCity: source.company_city ?? null,
+      sponsorPhone: (source as any).sponsor_phone ?? null,
+      typeStagiaireBpf: source.type_stagiaire_bpf ?? null,
+      sourceFinancementBpf: source.source_financement_bpf ?? null,
     });
   }
 
