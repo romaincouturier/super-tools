@@ -105,6 +105,8 @@ async function getDbSchema(supabase: ReturnType<typeof getSupabaseClient>): Prom
 // ── System prompt ────────────────────────────────────────────
 
 function buildSystemPrompt(dbSchema: string): string {
+  // Date sans l'heure : le prompt sert de préfixe de cache (cache_control),
+  // une heure qui change à chaque minute invaliderait le cache en permanence.
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -112,11 +114,10 @@ function buildSystemPrompt(dbSchema: string): string {
     month: "long",
     day: "numeric",
   });
-  const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
   return `Tu es l'assistant IA de SuperTools, une application de gestion pour un organisme de formation professionnelle.
 
-Date et heure actuelles : ${dateStr}, ${timeStr}.
+Date actuelle : ${dateStr}.
 
 Tu aides l'utilisateur à :
 - Analyser ses données (CRM, formations, devis, missions, emails, etc.)
@@ -143,18 +144,7 @@ Règles :
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
 
-Modules disponibles dans SuperTools :
-- **CRM** : opportunités (crm_cards), commentaires (crm_comments), emails (crm_card_emails)
-- **Formations** : sessions, participants, devis, missions
-- **Transcripts** : enregistrements audio/vidéo transcrits automatiquement (source: google_drive ou fireflies). Table: transcripts (id, source, title, summary, raw_text, tags, status, duration_seconds, created_at). Statuts: pending → processing → ready | error
-- **Témoignages** : vidéos clients déposées sur Google Drive, transcrites et analysées. Table: testimonials (id, client_name, company, service_type, raw_transcript, status, published_at). Workflow: pending_review → published | rejected
-- **Dropshipping** : gestion des ventes de jeux et royautés auteurs. Tables:
-  • game_authors (id, name, email, company, royalty_rate) — taux de royauté entre 0 et 1
-  • games (id, author_id, title, woocommerce_product_id, status)
-  • game_sales (id, game_id, woocommerce_order_id, customer_name, quantity, unit_price, total_amount, royalty_amount, sale_date, status) — statuts: pending | paid
-- **Support** : tickets et pièces jointes
-
-Schéma de la base de données :
+Schéma de la base de données (source de vérité — chaque ligne est une table requêtable, avec sa description) :
 ${dbSchema}`;
 }
 
@@ -195,7 +185,7 @@ const TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment",
+            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial",
         },
         max_results: {
           type: "number",
@@ -513,6 +503,36 @@ async function executeTool(
   }
 }
 
+// ── History compaction ──────────────────────────────────────
+// Les tool_results (jusqu'à 100 lignes JSON) sont conservés en base mais
+// tronqués à l'envoi API au-delà des derniers messages : sans cela chaque
+// tour renvoie l'intégralité des résultats SQL de toute la conversation.
+
+const KEEP_RECENT_MESSAGES = 6;
+const TOOL_RESULT_MAX_CHARS = 1200;
+
+function compactForApi(messages: Message[]): Message[] {
+  const cutoff = messages.length - KEEP_RECENT_MESSAGES;
+  return messages.map((m, i) => {
+    if (i >= cutoff || !Array.isArray(m.content)) return m;
+    const content = (m.content as Array<Record<string, unknown>>).map((block) => {
+      if (
+        block.type === "tool_result" &&
+        typeof block.content === "string" &&
+        (block.content as string).length > TOOL_RESULT_MAX_CHARS
+      ) {
+        return {
+          ...block,
+          content: (block.content as string).slice(0, TOOL_RESULT_MAX_CHARS) +
+            "\n… [résultat tronqué — relancer le tool si besoin du détail]",
+        };
+      }
+      return block;
+    });
+    return { ...m, content };
+  });
+}
+
 // ── SSE helpers ─────────────────────────────────────────────
 
 function sseEvent(event: string, data: Record<string, unknown>): string {
@@ -558,11 +578,19 @@ async function runAgentStreaming(
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 4096,
+        max_tokens: 16384,
         stream: true,
-        system: buildSystemPrompt(dbSchema),
+        // cache_control sur le system : les tools + le system (schéma complet)
+        // forment un préfixe stable caché entre les rounds et les messages.
+        system: [
+          {
+            type: "text",
+            text: buildSystemPrompt(dbSchema),
+            cache_control: { type: "ephemeral" },
+          },
+        ],
         tools: TOOLS,
-        messages: conversationMessages,
+        messages: compactForApi(conversationMessages),
       }),
     });
 

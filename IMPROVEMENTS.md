@@ -98,6 +98,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Architecture
 
+### [041] Agent SuperTools — les 3 référentiels de l'agent doivent rester synchronisés (registry SQL, extracteurs d'indexation, source_types de recherche)
+- **Constat** : Audit de l'agent (juillet 2026) : le system prompt de `agent-chat` décrivait en dur les modules Transcripts, Témoignages et Dropshipping avec le détail des colonnes, alors que `agent_schema_registry` (allowlist SQL) ne contenait aucune de ces tables : l'agent tentait des requêtes systématiquement rejetées. En parallèle, `index-documents` indexait 23 source types (dont `transcript` et `testimonial`) mais la description du tool `search_content` n'en listait que 21 : l'agent ne filtrait jamais sur les transcripts. Trois référentiels décrivant la même chose, maintenus à la main, désynchronisés trois fois.
+- **Règle** : Tout module ou table exposé à l'agent doit être enregistré de façon cohérente dans les 3 couches : (1) `agent_schema_registry` (migration) pour le SQL ; (2) un extracteur dans `index-documents` + trigger d'indexation pour le RAG ; (3) la liste `source_types` du tool `search_content` dans `agent-chat`, qui doit refléter exactement les extracteurs. Ne jamais décrire des tables en dur dans le system prompt : la section modules doit dériver du registry (une seule source de vérité).
+- **Vérification** : check [041] de `check-rules.sh` — chaque extracteur de `index-documents/index.ts` doit apparaître dans la description `source_types` de `agent-chat/index.ts`.
+- **Fichiers de référence** : `supabase/functions/agent-chat/index.ts`, `supabase/functions/index-documents/index.ts`, `supabase/migrations/20260402130000_agent_audit_log_and_schema_registry.sql`
+- **Origine** : constat user — "notre agent est con comme la lune" ; audit : il était aveugle sur les modules dont on lui parlait
+- **Date** : 2026-07-27
+
 ### [028] Blocs LMS — tout bloc avec editor + viewer doit être activé dans BuilderInsertMenu
 - **Constat** : `GalleryBlockEditor`, `GalleryBlockViewer`, `HtmlEmbedBlockEditor`, `HtmlEmbedBlockViewer` existaient tous les quatre, les types TypeScript et les entrées dans `registry.tsx` étaient corrects, mais les deux blocs n'étaient pas dans `ACTIVE_CONTENT_TYPES` de `BuilderInsertMenu.tsx` → affichés grisés avec badge "soon" et inutilisables malgré une implémentation complète.
 - **Règle** : Quand un type de bloc LMS a un editor (`.../editors/XxxBlockEditor.tsx`) ET un viewer (`.../viewers/XxxBlockViewer.tsx`), il doit obligatoirement apparaître dans `ACTIVE_CONTENT_TYPES` de `BuilderInsertMenu.tsx` ET avoir une entrée dans `BLOCK_META` (description + raccourci clavier). Un bloc sans ces deux ajouts reste grisé même si tout le reste est implémenté.
