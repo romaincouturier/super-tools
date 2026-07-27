@@ -10,9 +10,14 @@ import { searchContent } from "../_shared/agent-search.ts";
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
  *
- * Expose 2 tools à Claude (claude.ai / Claude Desktop via connecteur custom) :
- *   - query_database  : SQL SELECT via agent_sql_query (allowlist + audit)
- *   - search_content  : recherche hybride dans les contenus indexés
+ * Expose des tools en lecture seule à Claude (claude.ai / Claude Desktop
+ * via connecteur custom) :
+ *   - query_database      : SQL SELECT via agent_sql_query (allowlist + audit)
+ *   - search_content      : recherche hybride dans les contenus indexés
+ *   - list_schema         : tables requêtables
+ *   - get_mission_dossier : mission + pages + activités + documents + galerie
+ *   - get_client_dossier  : tout ce qui touche un client, par nom
+ *   - read_media_image    : une photo de galerie en bloc image (base64)
  *
  * Sécurité :
  *   - OAuth 2.1 (PKCE S256, dynamic client registration) requis par claude.ai
@@ -204,6 +209,18 @@ const MCP_TOOLS = [
       required: ["client"],
     },
   },
+  {
+    name: "read_media_image",
+    description:
+      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. Images are downscaled server-side when possible.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        media_id: { type: "string", description: "UUID of the media row" },
+      },
+      required: ["media_id"],
+    },
+  },
 ];
 
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
@@ -245,7 +262,7 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
   }
 
   const mission = missions[0] as Record<string, unknown>;
-  const [pages, activities, documents] = await Promise.all([
+  const [pages, activities, documents, gallery] = await Promise.all([
     supabase
       .from("mission_pages")
       .select("id, title, icon, content, page_type, parent_page_id, position, is_deliverable, created_at")
@@ -264,6 +281,13 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
       .eq("mission_id", mission.id)
       .order("created_at", { ascending: true })
       .limit(100),
+    supabase
+      .from("media")
+      .select("id, file_name, mime_type, file_size, position, tags, transcript, is_deliverable, created_at")
+      .eq("source_type", "mission")
+      .eq("source_id", mission.id)
+      .order("position", { ascending: true })
+      .limit(100),
   ]);
 
   return JSON.stringify({
@@ -277,7 +301,69 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
     })),
     activities: activities.data || [],
     documents: documents.data || [],
+    gallery: gallery.data || [],
+    hint: "Les photos de la galerie se lisent avec read_media_image (passer l'id).",
   });
+}
+
+const IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function readMediaImage(
+  supabase: Supabase,
+  mediaId: string,
+): Promise<{ data: string; mimeType: string }> {
+  await auditDossierCall(supabase, `read_media_image: ${mediaId.slice(0, 60)}`);
+
+  const { data: row, error } = await supabase
+    .from("media")
+    .select("file_name, file_url, mime_type")
+    .eq("id", mediaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Media introuvable");
+
+  const mime = (row.mime_type as string) || "";
+  if (!mime.startsWith("image/")) {
+    throw new Error(`Ce media n'est pas une image (${mime || "type inconnu"})`);
+  }
+
+  const fileUrl = row.file_url as string;
+
+  // Version réduite via le transformateur d'images du storage quand
+  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo)
+  let res: Response | null = null;
+  if (fileUrl.includes("/storage/v1/object/public/")) {
+    const renderUrl =
+      fileUrl.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") +
+      "?width=1600&quality=75";
+    const r = await fetch(renderUrl);
+    if (r.ok && (r.headers.get("content-type") || "").startsWith("image/")) {
+      res = r;
+    }
+  }
+  if (!res) {
+    const r = await fetch(fileUrl);
+    if (!r.ok) throw new Error(`Téléchargement impossible (${r.status})`);
+    res = r;
+  }
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > IMAGE_MAX_BYTES) {
+    throw new Error(
+      `Image trop lourde (${Math.round(bytes.length / 1024)} Ko, max ${IMAGE_MAX_BYTES / 1024} Ko)`,
+    );
+  }
+  const mimeType = res.headers.get("content-type")?.split(";")[0] || mime;
+  return { data: bytesToBase64(bytes), mimeType };
 }
 
 async function getClientDossier(supabase: Supabase, client: string): Promise<string> {
@@ -338,11 +424,17 @@ async function getClientDossier(supabase: Supabase, client: string): Promise<str
   });
 }
 
+type ToolResult = { content: Array<Record<string, unknown>>; isError?: boolean };
+
+function textResult(text: string, isError = false): ToolResult {
+  return { content: [{ type: "text", text }], ...(isError ? { isError: true } : {}) };
+}
+
 async function callTool(
   supabase: Supabase,
   name: string,
   args: Record<string, unknown>,
-): Promise<{ text: string; isError?: boolean }> {
+): Promise<ToolResult> {
   switch (name) {
     case "query_database": {
       const userId = await getAllowedUserId(supabase);
@@ -351,8 +443,8 @@ async function callTool(
         p_user_id: userId,
         p_explanation: ((args.explanation as string) || "via connecteur MCP Claude").slice(0, 500),
       });
-      if (error) return { text: `SQL error: ${error.message}`, isError: true };
-      return { text: JSON.stringify(data ?? []) };
+      if (error) return textResult(`SQL error: ${error.message}`, true);
+      return textResult(JSON.stringify(data ?? []));
     }
     case "search_content": {
       try {
@@ -362,32 +454,40 @@ async function callTool(
           args.source_types as string[] | undefined,
           Math.min((args.max_results as number) || 10, 20),
         );
-        return { text: JSON.stringify(results) };
+        return textResult(JSON.stringify(results));
       } catch (e) {
-        return { text: `Search error: ${e instanceof Error ? e.message : "failed"}`, isError: true };
+        return textResult(`Search error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "list_schema": {
       const { data, error } = await supabase.rpc("get_agent_schema_prompt");
-      if (error) return { text: `Schema error: ${error.message}`, isError: true };
-      return { text: (data as string) || "(empty schema)" };
+      if (error) return textResult(`Schema error: ${error.message}`, true);
+      return textResult((data as string) || "(empty schema)");
     }
     case "get_mission_dossier": {
       try {
-        return { text: await getMissionDossier(supabase, (args.mission as string) || "") };
+        return textResult(await getMissionDossier(supabase, (args.mission as string) || ""));
       } catch (e) {
-        return { text: `Dossier error: ${e instanceof Error ? e.message : "failed"}`, isError: true };
+        return textResult(`Dossier error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "get_client_dossier": {
       try {
-        return { text: await getClientDossier(supabase, (args.client as string) || "") };
+        return textResult(await getClientDossier(supabase, (args.client as string) || ""));
       } catch (e) {
-        return { text: `Dossier error: ${e instanceof Error ? e.message : "failed"}`, isError: true };
+        return textResult(`Dossier error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_media_image": {
+      try {
+        const img = await readMediaImage(supabase, (args.media_id as string) || "");
+        return { content: [{ type: "image", data: img.data, mimeType: img.mimeType }] };
+      } catch (e) {
+        return textResult(`Image error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     default:
-      return { text: `Unknown tool: ${name}`, isError: true };
+      return textResult(`Unknown tool: ${name}`, true);
   }
 }
 
@@ -458,11 +558,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
     case "tools/call": {
       const toolName = params.name as string;
       const args = (params.arguments || {}) as Record<string, unknown>;
-      const { text, isError } = await callTool(supabase, toolName, args);
-      return rpcResult(id, {
-        content: [{ type: "text", text }],
-        ...(isError ? { isError: true } : {}),
-      });
+      return rpcResult(id, await callTool(supabase, toolName, args));
     }
     default:
       return rpcError(id, -32601, `Method not found: ${method}`);
