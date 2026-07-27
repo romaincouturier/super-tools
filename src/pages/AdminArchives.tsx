@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, Upload, Search, X, Loader2, FileText, FileImage, File, Trash2, Calendar, Tag, AlertCircle, RotateCcw } from "lucide-react";
+import { Archive, Upload, Search, X, Loader2, FileText, FileImage, File, Trash2, Calendar, Tag, AlertCircle, RotateCcw, Star } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
