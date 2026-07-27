@@ -411,6 +411,15 @@ export default function AdminArchives() {
                     <span className="text-xs text-muted-foreground hidden sm:block">
                       {new Date(doc.uploaded_at).toLocaleDateString("fr-FR")}
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${doc.is_favorite ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-yellow-500"}`}
+                      onClick={() => favoriteMutation.mutate({ id: doc.id, isFavorite: !doc.is_favorite })}
+                      title={doc.is_favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                    >
+                      <Star className="h-4 w-4" fill={doc.is_favorite ? "currentColor" : "none"} />
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
