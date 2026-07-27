@@ -55,7 +55,6 @@ export function useTranscripts({ search, source, status, trashed }: UseTranscrip
       let q = (supabase as any)
         .from("transcripts")
         .select("*")
-        .order("created_at", { ascending: false })
         .limit(1000);
 
       if (trashed) {
