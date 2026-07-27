@@ -809,7 +809,17 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const baseUrl = `https://${url.host}/functions/v1/mcp-server`;
+    // MCP_PUBLIC_URL (secret) : URL publique du serveur quand il est servi
+    // par un proxy racine (Cloudflare Worker). Les clients MCP comme
+    // claude.ai cherchent les endpoints OAuth à la RACINE du domaine en
+    // ignorant le chemin — impossible sur *.supabase.co dont la racine ne
+    // nous appartient pas. Le proxy expose /authorize, /token, /register et
+    // /.well-known/* à sa racine et relaie vers cette fonction. Sans proxy,
+    // repli sur l'URL de la fonction (https forcé : le proxy TLS de
+    // Supabase fait arriver req.url en http).
+    const baseUrl =
+      Deno.env.get("MCP_PUBLIC_URL")?.replace(/\/+$/, "") ??
+      `https://${url.host}/functions/v1/mcp-server`;
     // Sous-chemin après /mcp-server ("" pour la racine)
     const subPath = url.pathname.replace(/^.*?\/mcp-server/, "").replace(/\/$/, "");
     const supabase = getSupabaseClient();
