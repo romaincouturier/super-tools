@@ -248,7 +248,7 @@ function TranscriptCard({ t, onClick }: { t: Transcript; onClick: () => void }) 
           ))}
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{new Date(t.created_at).toLocaleDateString("fr-FR")}</span>
+          <span>{new Date((t.metadata as any)?.fireflies_date ?? (t.metadata as any)?.file_date ?? t.created_at).toLocaleDateString("fr-FR")}</span>
           {t.duration_seconds && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDuration(t.duration_seconds)}</span>}
         </div>
       </CardContent>

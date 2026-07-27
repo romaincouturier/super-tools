@@ -55,7 +55,6 @@ export function useTranscripts({ search, source, status, trashed }: UseTranscrip
       let q = (supabase as any)
         .from("transcripts")
         .select("*")
-        .order("created_at", { ascending: false })
         .limit(1000);
 
       if (trashed) {
@@ -70,7 +69,13 @@ export function useTranscripts({ search, source, status, trashed }: UseTranscrip
 
       const { data, error } = await q;
       if (error) throw error;
-      return data as Transcript[];
+      const rows = (data as Transcript[]) ?? [];
+      const meetingDate = (t: Transcript) => {
+        const m: any = t.metadata ?? {};
+        return new Date(m.fireflies_date ?? m.file_date ?? t.created_at).getTime();
+      };
+      rows.sort((a, b) => meetingDate(b) - meetingDate(a));
+      return rows;
     },
   });
 }
