@@ -11958,25 +11958,46 @@ export type Database = {
           source_type: string
         }[]
       }
-      match_documents_hybrid: {
-        Args: {
-          filter_source_types?: string[]
-          match_count?: number
-          query_embedding: string
-          query_text: string
-        }
-        Returns: {
-          chunk_index: number
-          content: string
-          id: string
-          metadata: Json
-          similarity: number
-          source_date: string
-          source_id: string
-          source_title: string
-          source_type: string
-        }[]
-      }
+      match_documents_hybrid:
+        | {
+            Args: {
+              filter_source_types?: string[]
+              match_count?: number
+              query_embedding: string
+              query_text: string
+            }
+            Returns: {
+              chunk_index: number
+              content: string
+              id: string
+              metadata: Json
+              similarity: number
+              source_date: string
+              source_id: string
+              source_title: string
+              source_type: string
+            }[]
+          }
+        | {
+            Args: {
+              filter_mission_id?: string
+              filter_source_types?: string[]
+              match_count?: number
+              query_embedding: string
+              query_text: string
+            }
+            Returns: {
+              chunk_index: number
+              content: string
+              id: string
+              metadata: Json
+              similarity: number
+              source_date: string
+              source_id: string
+              source_title: string
+              source_type: string
+            }[]
+          }
       match_editorial_recommendations: {
         Args: { match_count?: number; query_embedding: string }
         Returns: {
