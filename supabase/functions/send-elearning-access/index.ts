@@ -69,8 +69,14 @@ serve(async (req) => {
     let emailSubject = template.subject;
     let emailContent = template.html_content;
 
-    // Build access link: prefer woocommerce_cart_base_url + product_id, fallback to supertilt_link/location
-    let accessLink = training.supertilt_link || training.location || "";
+    // Build access link: prefer woocommerce_cart_base_url + product_id, then supertilt_link.
+    // Never fall back to `training.location` — it's descriptive text (e.g. "En ligne en accédant à son compte sur supertilt.fr"),
+    // which the browser Punycodes into a broken URL when used as an <a href>.
+    const isHttpUrl = (v: unknown): v is string =>
+      typeof v === "string" && /^https?:\/\//i.test(v.trim());
+    let accessLink = isHttpUrl(training.supertilt_link)
+      ? training.supertilt_link.trim()
+      : "https://www.supertilt.fr";
 
     // Try to build from woocommerce_cart_base_url + woocommerce_product_id
     try {
