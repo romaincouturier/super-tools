@@ -230,6 +230,15 @@ const TOOLS = [
     },
   },
   {
+    name: "get_business_health",
+    description:
+      "Génère un bilan de santé business des 30 derniers jours : formations, participants, taux de retour des questionnaires et évaluations, pipeline CRM, avec analyse IA. Coûteux : uniquement quand l'utilisateur demande explicitement un bilan ou une vue d'ensemble de l'activité.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
     name: "execute_action",
     description:
       "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission_status, update_ticket_status, update_quote_status.",
@@ -266,6 +275,7 @@ const TOOLS = [
 const TOOL_LABELS: Record<string, string> = {
   query_database: "Requête base de données",
   search_content: "Recherche dans les contenus",
+  get_business_health: "Bilan de santé business",
   execute_action: "Exécution d'une action",
 };
 
@@ -276,6 +286,7 @@ async function executeTool(
   toolInput: Record<string, unknown>,
   supabase: ReturnType<typeof getSupabaseClient>,
   userId?: string,
+  authHeader?: string | null,
 ): Promise<string> {
   switch (toolName) {
     case "query_database": {
@@ -340,12 +351,23 @@ async function executeTool(
           storeCachedEmbedding(supabase, query, queryEmbedding).catch(() => {});
         }
 
-        const { data, error } = await supabase.rpc("match_documents", {
+        // Recherche hybride (RRF vecteur + plein texte + fraîcheur), avec
+        // repli sur la recherche vectorielle si la migration n'est pas passée
+        let { data, error } = await supabase.rpc("match_documents_hybrid", {
+          query_text: query,
           query_embedding: JSON.stringify(queryEmbedding),
-          match_threshold: 0.65,
           match_count: maxResults,
           filter_source_types: sourceTypes || null,
         });
+
+        if (error) {
+          ({ data, error } = await supabase.rpc("match_documents", {
+            query_embedding: JSON.stringify(queryEmbedding),
+            match_threshold: 0.65,
+            match_count: maxResults,
+            filter_source_types: sourceTypes || null,
+          }));
+        }
 
         if (error) {
           return JSON.stringify({ error: error.message });
@@ -364,6 +386,29 @@ async function executeTool(
       } catch (e) {
         return JSON.stringify({
           error: e instanceof Error ? e.message : "Search failed",
+        });
+      }
+    }
+
+    case "get_business_health": {
+      try {
+        if (!authHeader) throw new Error("Auth manquante pour le bilan business");
+        const res = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/business-health-score`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader },
+            body: JSON.stringify({}),
+          },
+        );
+        const body = await res.text();
+        if (!res.ok) {
+          throw new Error(`business-health-score: ${res.status} ${body.slice(0, 300)}`);
+        }
+        return body;
+      } catch (e) {
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : "Business health call failed",
         });
       }
     }
@@ -585,6 +630,7 @@ async function runAgentStreaming(
   supabase: ReturnType<typeof getSupabaseClient>,
   writer: WritableStreamDefaultWriter<Uint8Array>,
   userId?: string,
+  authHeader?: string | null,
 ): Promise<{ fullResponse: string; updatedMessages: Message[]; totalInputTokens: number; totalOutputTokens: number }> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY not configured");
@@ -617,6 +663,10 @@ async function runAgentStreaming(
         model: CLAUDE_MODEL,
         max_tokens: 16384,
         stream: true,
+        // Extended thinking : raisonnement interne avant réponse et entre
+        // les tools. Les blocs thinking sont conservés dans l'historique
+        // (requis par l'API quand ils précèdent un tool_use).
+        thinking: { type: "enabled", budget_tokens: 4096 },
         // cache_control sur le system : les tools + le system (schéma complet)
         // forment un préfixe stable caché entre les rounds et les messages.
         system: [
@@ -649,6 +699,9 @@ async function runAgentStreaming(
     let currentToolName = "";
     let currentToolId = "";
     let currentToolInput = "";
+    let currentThinking = "";
+    let currentSignature = "";
+    let thinkingStatusSent = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -684,6 +737,16 @@ async function runAgentStreaming(
               // Send status to client
               const label = TOOL_LABELS[block.name] || block.name;
               await write(sseEvent("status", { text: label }));
+            } else if (block.type === "thinking") {
+              currentThinking = block.thinking || "";
+              currentSignature = "";
+              if (!thinkingStatusSent) {
+                thinkingStatusSent = true;
+                await write(sseEvent("status", { text: "Réflexion" }));
+              }
+            } else if (block.type === "redacted_thinking") {
+              // Bloc opaque à conserver tel quel dans l'historique
+              contentBlocks[event.index] = { type: "redacted_thinking", data: block.data };
             }
             break;
           }
@@ -695,6 +758,9 @@ async function runAgentStreaming(
               await write(sseEvent("delta", { text: event.delta.text }));
             } else if (currentBlockType === "tool_use" && event.delta?.partial_json) {
               currentToolInput += event.delta.partial_json;
+            } else if (currentBlockType === "thinking") {
+              if (event.delta?.thinking) currentThinking += event.delta.thinking;
+              if (event.delta?.signature) currentSignature = event.delta.signature;
             }
             break;
           }
@@ -704,6 +770,12 @@ async function runAgentStreaming(
               contentBlocks[currentBlockIndex] = {
                 type: "text",
                 text: currentText,
+              };
+            } else if (currentBlockType === "thinking") {
+              contentBlocks[currentBlockIndex] = {
+                type: "thinking",
+                thinking: currentThinking,
+                signature: currentSignature,
               };
             } else if (currentBlockType === "tool_use") {
               let parsedInput = {};
@@ -772,6 +844,7 @@ async function runAgentStreaming(
         toolBlock.input as Record<string, unknown>,
         supabase,
         userId,
+        authHeader,
       );
       toolResults.push({
         type: "tool_result",
@@ -907,6 +980,7 @@ serve(async (req) => {
           supabase,
           writer,
           userId,
+          req.headers.get("Authorization"),
         );
 
         // Save conversation with token usage
