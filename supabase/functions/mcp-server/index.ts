@@ -6,6 +6,7 @@ import {
   corsHeaders,
 } from "../_shared/mod.ts";
 import { searchContent } from "../_shared/agent-search.ts";
+import { extractDocument } from "../_shared/document-extract.ts";
 
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
@@ -18,6 +19,11 @@ import { searchContent } from "../_shared/agent-search.ts";
  *   - get_mission_dossier : mission + pages + activités + documents + galerie
  *   - get_client_dossier  : tout ce qui touche un client, par nom
  *   - read_media_image    : une photo de galerie en bloc image (base64)
+ *   - read_document       : contenu réel d'un document (PDF texte ou scanné,
+ *                           Word, Excel, texte, image)
+ *   - save_mission_note   : SEULE écriture — crée/met à jour une page de
+ *                           mission pour capitaliser un travail (transcription,
+ *                           synthèse) hors de la conversation
  *
  * Sécurité :
  *   - OAuth 2.1 (PKCE S256, dynamic client registration) requis par claude.ai
@@ -25,8 +31,9 @@ import { searchContent } from "../_shared/agent-search.ts";
  *     secret d'edge function — jamais dans le repo)
  *   - Chaque requête MCP est liée à ALLOWED_EMAIL : liste blanche d'un seul
  *     utilisateur, codée en dur, vérifiée à chaque appel
- *   - Aucune écriture possible : agent_sql_query est SELECT-only et le
- *     serveur n'expose aucun tool d'action
+ *   - Écriture limitée à save_mission_note : création/mise à jour d'une page
+ *     de mission uniquement. Aucune suppression, aucune autre table, aucun
+ *     autre tool d'action ; agent_sql_query reste SELECT-only
  *   - Rate limiting sur les tentatives de clé (5 échecs / 15 min)
  *   - Toutes les requêtes SQL sont journalisées (agent_query_audit_log)
  */
@@ -192,6 +199,11 @@ const MCP_TOOLS = [
             "Optional filter: crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial",
         },
         max_results: { type: "number", description: "Number of results (default 10, max 20)" },
+        mission_id: {
+          type: "string",
+          description:
+            "Optional: restrict the search to one mission (UUID). Without it, results can come from other clients' missions.",
+        },
       },
       required: ["query"],
     },
@@ -230,13 +242,49 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "read_document",
+    description:
+      "Read the actual content of a document attached to a mission, a CRM card or a support ticket (PDF, Word, Excel, text, image). Text-based PDFs are returned as text; scanned PDFs are returned as page images to read visually; spreadsheets are converted to CSV. Pass the document id from get_mission_dossier's documents list or from the mission_documents / crm_attachments tables.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        document_id: { type: "string", description: "UUID of the document row" },
+      },
+      required: ["document_id"],
+    },
+  },
+  {
+    name: "save_mission_note",
+    description:
+      "Save a working note (e.g. transcriptions of workshop photos, an intermediate synthesis) as a page of a mission in SuperTools, so the work survives the conversation and becomes searchable later. Creates the page or replaces a previous note with the same title. This is the ONLY write operation of this server: it cannot delete anything nor touch any other data.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string", description: "UUID of the mission" },
+        title: { type: "string", description: "Note title, e.g. 'Transcription des fiches action'" },
+        content: { type: "string", description: "Note content (plain text or simple HTML)" },
+        mode: {
+          type: "string",
+          enum: ["replace", "append"],
+          description: "replace (default) overwrites the note, append adds at the end — use append to save progressively",
+        },
+      },
+      required: ["mission_id", "title", "content"],
+    },
+  },
+  {
     name: "read_media_image",
     description:
-      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. Images are downscaled server-side when possible.",
+      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. The whole image is always returned, never cropped; it is downscaled server-side to keep it light.",
     inputSchema: {
       type: "object",
       properties: {
         media_id: { type: "string", description: "UUID of the media row" },
+        full_resolution: {
+          type: "boolean",
+          description:
+            "Return the original file without downscaling. Use it to re-read a photo whose details (small handwriting, edges) are hard to make out.",
+        },
       },
       required: ["media_id"],
     },
@@ -326,7 +374,7 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
   });
 }
 
-const IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -340,8 +388,12 @@ function bytesToBase64(bytes: Uint8Array): string {
 async function readMediaImage(
   supabase: Supabase,
   mediaId: string,
+  fullResolution = false,
 ): Promise<{ data: string; mimeType: string }> {
-  await auditDossierCall(supabase, `read_media_image: ${mediaId.slice(0, 60)}`);
+  await auditDossierCall(
+    supabase,
+    `read_media_image${fullResolution ? " (pleine résolution)" : ""}: ${mediaId.slice(0, 60)}`,
+  );
 
   const { data: row, error } = await supabase
     .from("media")
@@ -359,12 +411,15 @@ async function readMediaImage(
   const fileUrl = row.file_url as string;
 
   // Version réduite via le transformateur d'images du storage quand
-  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo)
+  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo).
+  // resize=contain est OBLIGATOIRE : sans lui le transformateur applique son
+  // mode par défaut `cover`, qui RECADRE l'image pour remplir le cadre au lieu
+  // de l'y faire tenir — les bords (et donc du contenu manuscrit) sont perdus.
   let res: Response | null = null;
-  if (fileUrl.includes("/storage/v1/object/public/")) {
+  if (!fullResolution && fileUrl.includes("/storage/v1/object/public/")) {
     const renderUrl =
       fileUrl.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") +
-      "?width=1600&quality=75";
+      "?width=1600&height=1600&resize=contain&quality=80";
     const r = await fetch(renderUrl);
     if (r.ok && (r.headers.get("content-type") || "").startsWith("image/")) {
       res = r;
@@ -384,6 +439,194 @@ async function readMediaImage(
   }
   const mimeType = res.headers.get("content-type")?.split(";")[0] || mime;
   return { data: bytesToBase64(bytes), mimeType };
+}
+
+const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
+
+/** Résout un document dans les 3 tables de pièces jointes et le télécharge. */
+async function fetchDocumentBytes(
+  supabase: Supabase,
+  documentId: string,
+): Promise<{ bytes: Uint8Array; fileName: string; mimeType: string; transcriptPageId?: string }> {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+
+  const { data: missionDoc } = await supabase
+    .from("mission_documents")
+    .select("file_name, file_url, mime_type, transcript_page_id")
+    .eq("id", documentId)
+    .maybeSingle();
+
+  let url: string | null = null;
+  let fileName = "";
+  let mimeType = "";
+  let transcriptPageId: string | undefined;
+
+  if (missionDoc) {
+    url = missionDoc.file_url as string;
+    fileName = missionDoc.file_name as string;
+    mimeType = (missionDoc.mime_type as string) || "";
+    transcriptPageId = (missionDoc.transcript_page_id as string) ?? undefined;
+  } else {
+    for (const [table, bucket] of [
+      ["crm_attachments", "crm-attachments"],
+      ["support_ticket_attachments", "support-attachments"],
+    ] as const) {
+      const { data } = await supabase
+        .from(table)
+        .select("file_name, file_path, mime_type")
+        .eq("id", documentId)
+        .maybeSingle();
+      if (data) {
+        url = `${supabaseUrl}/storage/v1/object/authenticated/${bucket}/${data.file_path}`;
+        fileName = data.file_name as string;
+        mimeType = (data.mime_type as string) || "";
+        break;
+      }
+    }
+  }
+
+  if (!url) throw new Error("Document introuvable");
+
+  const res = await fetch(url, {
+    headers: url.includes("/authenticated/") ? { Authorization: `Bearer ${serviceKey}` } : {},
+  });
+  if (!res.ok) throw new Error(`Téléchargement impossible (${res.status})`);
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > MAX_DOWNLOAD_BYTES) {
+    throw new Error(`Fichier trop lourd (${Math.round(bytes.length / 1024 / 1024)} Mo)`);
+  }
+  return { bytes, fileName, mimeType, transcriptPageId };
+}
+
+async function readDocument(supabase: Supabase, documentId: string): Promise<ToolResult> {
+  await auditDossierCall(supabase, `read_document: ${documentId.slice(0, 60)}`);
+  const { bytes, fileName, mimeType, transcriptPageId } = await fetchDocumentBytes(supabase, documentId);
+
+  // Audio/vidéo : le fichier lui-même n'est pas lisible, mais SuperTools en a
+  // peut-être déjà produit une transcription sous forme de page de mission.
+  if (mimeType.startsWith("audio/") || mimeType.startsWith("video/")) {
+    if (transcriptPageId) {
+      const { data: page } = await supabase
+        .from("mission_pages")
+        .select("title, content")
+        .eq("id", transcriptPageId)
+        .maybeSingle();
+      if (page) {
+        return textResult(
+          `Transcription de ${fileName} (page « ${page.title} ») :\n\n${page.content ?? ""}`,
+        );
+      }
+    }
+    return textResult(
+      `${fileName} est un fichier ${mimeType} sans transcription disponible dans SuperTools.`,
+      true,
+    );
+  }
+
+  const { parts, note } = await extractDocument(bytes, mimeType, fileName);
+  const content: Array<Record<string, unknown>> = [{ type: "text", text: note }];
+  for (const part of parts) {
+    if (part.kind === "text" && part.text) {
+      content.push({ type: "text", text: part.text });
+    } else if (part.kind === "image" && part.data) {
+      content.push({ type: "image", data: part.data, mimeType: part.mimeType });
+    }
+  }
+  return { content, ...(parts.length === 0 ? { isError: true } : {}) };
+}
+
+const NOTE_PREFIX = "Note agent — ";
+const NOTE_MAX_CHARS = 200_000;
+
+/**
+ * Unique écriture du serveur : crée ou met à jour UNE page de mission.
+ * Aucune suppression, aucune autre table. Titre préfixé pour que la page soit
+ * identifiable comme produite par l'agent.
+ */
+async function saveMissionNote(
+  supabase: Supabase,
+  missionId: string,
+  title: string,
+  content: string,
+  mode: string,
+): Promise<string> {
+  if (!UUID_RE.test(missionId.trim())) {
+    throw new Error("mission_id doit être un UUID (utiliser get_mission_dossier pour le trouver)");
+  }
+  if (content.length > NOTE_MAX_CHARS) {
+    throw new Error(`Contenu trop long (${content.length} caractères, max ${NOTE_MAX_CHARS})`);
+  }
+
+  const { data: mission } = await supabase
+    .from("missions")
+    .select("id, title")
+    .eq("id", missionId)
+    .maybeSingle();
+  if (!mission) throw new Error("Mission introuvable");
+
+  const fullTitle = title.startsWith(NOTE_PREFIX) ? title : `${NOTE_PREFIX}${title}`;
+  await auditDossierCall(
+    supabase,
+    `save_mission_note (${mode}) sur ${mission.title}: ${fullTitle.slice(0, 120)}`,
+  );
+
+  const { data: existing } = await supabase
+    .from("mission_pages")
+    .select("id, content")
+    .eq("mission_id", missionId)
+    .eq("title", fullTitle)
+    .maybeSingle();
+
+  if (existing) {
+    const next =
+      mode === "append" ? `${(existing.content as string) ?? ""}\n${content}` : content;
+    if (next.length > NOTE_MAX_CHARS) {
+      throw new Error(`Note trop longue après ajout (${next.length} caractères)`);
+    }
+    const { error } = await supabase
+      .from("mission_pages")
+      .update({ content: next, updated_at: new Date().toISOString() })
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+    return JSON.stringify({
+      saved: true,
+      page_id: existing.id,
+      title: fullTitle,
+      mode,
+      total_chars: next.length,
+    });
+  }
+
+  const { data: last } = await supabase
+    .from("mission_pages")
+    .select("position")
+    .eq("mission_id", missionId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: created, error } = await supabase
+    .from("mission_pages")
+    .insert({
+      mission_id: missionId,
+      title: fullTitle,
+      content,
+      icon: "🤖",
+      position: ((last?.position as number) ?? -1) + 1,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  return JSON.stringify({
+    saved: true,
+    page_id: created.id,
+    title: fullTitle,
+    mode: "create",
+    total_chars: content.length,
+  });
 }
 
 async function getClientDossier(supabase: Supabase, client: string): Promise<string> {
@@ -473,6 +716,7 @@ async function callTool(
           args.query as string,
           args.source_types as string[] | undefined,
           Math.min((args.max_results as number) || 10, 20),
+          (args.mission_id as string) || null,
         );
         return textResult(JSON.stringify(results));
       } catch (e) {
@@ -498,9 +742,35 @@ async function callTool(
         return textResult(`Dossier error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "read_document": {
+      try {
+        return await readDocument(supabase, (args.document_id as string) || "");
+      } catch (e) {
+        return textResult(`Document error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "save_mission_note": {
+      try {
+        return textResult(
+          await saveMissionNote(
+            supabase,
+            (args.mission_id as string) || "",
+            (args.title as string) || "Note",
+            (args.content as string) || "",
+            (args.mode as string) === "append" ? "append" : "replace",
+          ),
+        );
+      } catch (e) {
+        return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "read_media_image": {
       try {
-        const img = await readMediaImage(supabase, (args.media_id as string) || "");
+        const img = await readMediaImage(
+          supabase,
+          (args.media_id as string) || "",
+          args.full_resolution === true,
+        );
         return { content: [{ type: "image", data: img.data, mimeType: img.mimeType }] };
       } catch (e) {
         return textResult(`Image error: ${e instanceof Error ? e.message : "failed"}`, true);
