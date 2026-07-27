@@ -1,0 +1,2 @@
+ALTER TABLE public.admin_documents ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS admin_documents_favorite_idx ON public.admin_documents(is_favorite) WHERE is_favorite = true;
