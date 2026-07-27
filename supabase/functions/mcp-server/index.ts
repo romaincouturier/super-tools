@@ -796,9 +796,6 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    // Derrière le proxy TLS de Supabase, req.url arrive en http:// — forcer
-    // https, sinon claude.ai rejette les endpoints OAuth non sécurisés
-    // (c'était la cause des échecs d'inscription du connecteur).
     const baseUrl = `https://${url.host}/functions/v1/mcp-server`;
     // Sous-chemin après /mcp-server ("" pour la racine)
     const subPath = url.pathname.replace(/^.*?\/mcp-server/, "").replace(/\/$/, "");
