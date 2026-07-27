@@ -750,7 +750,9 @@ serve(async (req) => {
 
       let idQuery = supabase.from(spec.table).select("id").limit(5000);
       if (spec.eq) idQuery = idQuery.eq(spec.eq[0], spec.eq[1]);
+      if (spec.or) idQuery = idQuery.or(spec.or);
       const { data: srcRows, error: srcErr } = await idQuery;
+
       if (srcErr) return createErrorResponse(srcErr.message);
       const sourceIds = (srcRows || []).map((r: { id: string }) => String(r.id));
 
