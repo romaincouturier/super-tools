@@ -5,10 +5,18 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Lecture seule par construction** : 3 tools exposés — `query_database`
+- **Lecture seule par construction** : 5 tools exposés — `query_database`
   (via `agent_sql_query` : SELECT uniquement, tables allowlistées du registry,
   100 lignes max), `search_content` (recherche hybride dans les contenus
-  indexés), `list_schema`. Aucun tool d'écriture n'existe sur ce serveur.
+  indexés), `list_schema`, `get_mission_dossier` (mission + pages complètes +
+  activités + documents avec URLs) et `get_client_dossier` (missions,
+  formations, devis, cartes CRM + commentaires, transcripts d'un client).
+  Aucun tool d'écriture n'existe sur ce serveur. Les tools dossier sont
+  journalisés dans `agent_query_audit_log` comme les requêtes SQL.
+- **Fichiers** : les tools renvoient les métadonnées et URLs des fichiers
+  (ex : `mission_documents.file_url`), pas leur contenu binaire. Les photos
+  et documents stockés sur Google Drive se lisent via le connecteur Drive
+  natif de claude.ai, dans la même conversation.
 - **Mono-utilisateur** : chaque appel est lié à `romain@supertilt.fr`,
   liste blanche d'un seul compte codée en dur dans
   `supabase/functions/mcp-server/index.ts` (`ALLOWED_EMAIL`). Modifier

@@ -177,7 +177,166 @@ const MCP_TOOLS = [
       "Return the list of queryable tables with their columns and descriptions. Call this before writing SQL if unsure of the schema.",
     inputSchema: { type: "object", properties: {} },
   },
+  {
+    name: "get_mission_dossier",
+    description:
+      "Return the complete dossier of a mission: mission record, all its pages (full content), activities, and attached documents (name, type, URL). Use this to load the full working context of a mission in one call instead of multiple SQL queries.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission: {
+          type: "string",
+          description: "Mission title (partial match, case-insensitive) or mission UUID",
+        },
+      },
+      required: ["mission"],
+    },
+  },
+  {
+    name: "get_client_dossier",
+    description:
+      "Return everything related to a client across SuperTools: missions, trainings, quotes, CRM cards with recent comments, and meeting transcripts mentioning the client. Matching is done by name (partial, case-insensitive). Use this to load the full client context in one call.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client: { type: "string", description: "Client or organization name (partial match)" },
+      },
+      required: ["client"],
+    },
+  },
 ];
+
+// ── Dossiers agrégés (lecture seule, journalisés) ────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PAGE_CONTENT_MAX = 20000;
+
+async function auditDossierCall(supabase: Supabase, label: string): Promise<void> {
+  const userId = await getAllowedUserId(supabase);
+  await supabase.from("agent_query_audit_log").insert({
+    user_id: userId,
+    query_text: label,
+    explanation: "via connecteur MCP Claude (tool dossier)",
+  });
+}
+
+async function getMissionDossier(supabase: Supabase, missionQuery: string): Promise<string> {
+  await auditDossierCall(supabase, `get_mission_dossier: ${missionQuery.slice(0, 200)}`);
+
+  let missionReq = supabase
+    .from("missions")
+    .select("id, title, client_name, client_contact, status, initial_amount, consumed_amount, billed_amount, total_amount, created_at")
+    .limit(3);
+  missionReq = UUID_RE.test(missionQuery.trim())
+    ? missionReq.eq("id", missionQuery.trim())
+    : missionReq.ilike("title", `%${missionQuery}%`);
+
+  const { data: missions, error } = await missionReq;
+  if (error) throw new Error(error.message);
+  if (!missions?.length) {
+    return JSON.stringify({ found: false, hint: "Aucune mission ne correspond. Essayer query_database sur la table missions." });
+  }
+  if (missions.length > 1) {
+    return JSON.stringify({
+      found: false,
+      ambiguous: missions.map((m: Record<string, unknown>) => ({ id: m.id, title: m.title, client_name: m.client_name })),
+      hint: "Plusieurs missions correspondent : rappeler avec l'UUID.",
+    });
+  }
+
+  const mission = missions[0] as Record<string, unknown>;
+  const [pages, activities, documents] = await Promise.all([
+    supabase
+      .from("mission_pages")
+      .select("id, title, icon, content, page_type, parent_page_id, position, is_deliverable, created_at")
+      .eq("mission_id", mission.id)
+      .order("position", { ascending: true })
+      .limit(60),
+    supabase
+      .from("mission_activities")
+      .select("activity_date, description, duration, duration_type, is_billed, notes")
+      .eq("mission_id", mission.id)
+      .order("activity_date", { ascending: true })
+      .limit(100),
+    supabase
+      .from("mission_documents")
+      .select("file_name, file_url, mime_type, file_size, is_deliverable, processing_status, transcript_page_id, created_at")
+      .eq("mission_id", mission.id)
+      .order("created_at", { ascending: true })
+      .limit(100),
+  ]);
+
+  return JSON.stringify({
+    found: true,
+    mission,
+    pages: (pages.data || []).map((p: Record<string, unknown>) => ({
+      ...p,
+      content: typeof p.content === "string" && p.content.length > PAGE_CONTENT_MAX
+        ? p.content.slice(0, PAGE_CONTENT_MAX) + "… [tronqué]"
+        : p.content,
+    })),
+    activities: activities.data || [],
+    documents: documents.data || [],
+  });
+}
+
+async function getClientDossier(supabase: Supabase, client: string): Promise<string> {
+  await auditDossierCall(supabase, `get_client_dossier: ${client.slice(0, 200)}`);
+  const pattern = `%${client}%`;
+
+  const [missions, trainings, quotes, cards, transcripts] = await Promise.all([
+    supabase
+      .from("missions")
+      .select("id, title, client_name, client_contact, status, initial_amount, consumed_amount, created_at")
+      .ilike("client_name", pattern)
+      .limit(20),
+    supabase
+      .from("trainings")
+      .select("id, training_name, client_name, start_date, end_date, location, is_cancelled")
+      .ilike("client_name", pattern)
+      .order("start_date", { ascending: false })
+      .limit(20),
+    supabase
+      .from("quotes")
+      .select("id, quote_number, client_company, client_email, status, total_ht, issue_date, crm_card_id")
+      .ilike("client_company", pattern)
+      .order("issue_date", { ascending: false })
+      .limit(20),
+    supabase
+      .from("crm_cards")
+      .select("id, title, sales_status, estimated_value, contact_email, waiting_next_action_text, created_at")
+      .ilike("title", pattern)
+      .limit(20),
+    supabase
+      .from("transcripts")
+      .select("id, title, summary, source, created_at")
+      .eq("status", "ready")
+      .ilike("title", pattern)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+
+  const cardIds = (cards.data || []).map((c: Record<string, unknown>) => c.id);
+  const comments = cardIds.length
+    ? await supabase
+        .from("crm_comments")
+        .select("card_id, content, author_email, created_at")
+        .in("card_id", cardIds)
+        .order("created_at", { ascending: false })
+        .limit(30)
+    : { data: [] };
+
+  return JSON.stringify({
+    client_query: client,
+    missions: missions.data || [],
+    trainings: trainings.data || [],
+    quotes: quotes.data || [],
+    crm_cards: cards.data || [],
+    crm_comments: comments.data || [],
+    transcripts: transcripts.data || [],
+    hint: "Pour le contenu détaillé d'une mission, utiliser get_mission_dossier. Pour chercher dans le texte des transcripts et notes, utiliser search_content.",
+  });
+}
 
 async function callTool(
   supabase: Supabase,
@@ -212,6 +371,20 @@ async function callTool(
       const { data, error } = await supabase.rpc("get_agent_schema_prompt");
       if (error) return { text: `Schema error: ${error.message}`, isError: true };
       return { text: (data as string) || "(empty schema)" };
+    }
+    case "get_mission_dossier": {
+      try {
+        return { text: await getMissionDossier(supabase, (args.mission as string) || "") };
+      } catch (e) {
+        return { text: `Dossier error: ${e instanceof Error ? e.message : "failed"}`, isError: true };
+      }
+    }
+    case "get_client_dossier": {
+      try {
+        return { text: await getClientDossier(supabase, (args.client as string) || "") };
+      } catch (e) {
+        return { text: `Dossier error: ${e instanceof Error ? e.message : "failed"}`, isError: true };
+      }
     }
     default:
       return { text: `Unknown tool: ${name}`, isError: true };
