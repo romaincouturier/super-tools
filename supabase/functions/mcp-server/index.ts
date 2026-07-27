@@ -796,7 +796,7 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const baseUrl = `${url.origin}/functions/v1/mcp-server`;
+    const baseUrl = `https://${url.host}/functions/v1/mcp-server`;
     // Sous-chemin après /mcp-server ("" pour la racine)
     const subPath = url.pathname.replace(/^.*?\/mcp-server/, "").replace(/\/$/, "");
     const supabase = getSupabaseClient();
