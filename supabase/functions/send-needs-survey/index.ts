@@ -20,7 +20,9 @@ const DEFAULT_SUBJECT_VOUS = "Préparez votre formation \"{{training_name}}\"";
 const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Tu es inscrit(e) à la formation "{{training_name}}"{{#training_date}} qui aura lieu le {{training_date}}{{/training_date}}.
-
+{{#no_date}}
+Les dates de ta formation ne sont pas encore fixées. Serais-tu disponible cette semaine pour un échange de quelques minutes afin de définir ensemble les dates qui te conviennent ? N'hésite pas à me proposer plusieurs créneaux.
+{{/no_date}}
 Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
 {{questionnaire_link}}
 
@@ -33,7 +35,9 @@ Je te remercie de le compléter{{#deadline_date}} avant le {{deadline_date}}{{/d
 const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Vous êtes inscrit(e) à la formation "{{training_name}}"{{#training_date}} qui aura lieu le {{training_date}}{{/training_date}}.
-
+{{#no_date}}
+Les dates de votre formation ne sont pas encore fixées. Seriez-vous disponible cette semaine pour un échange de quelques minutes afin de définir ensemble les dates qui vous conviennent ? N'hésitez pas à me proposer plusieurs créneaux.
+{{/no_date}}
 Afin de personnaliser au mieux cette formation, je vous invite à remplir ce court questionnaire de recueil des besoins :
 {{questionnaire_link}}
 
@@ -190,13 +194,14 @@ serve(async (req) => {
     // Build questionnaire URL
     const questionnaireUrl = `${appUrl}/questionnaire/${token}`;
 
-    // Only compute dates if start_date exists (e-learning/permanent trainings have none)
+    // Only compute dates if start_date exists and is valid (e-learning/permanent/undated intra trainings have none)
     let formattedDate: string | null = null;
     let formattedDeadline: string | null = null;
-    if (training.start_date) {
+    const startDate = training.start_date ? new Date(training.start_date) : null;
+    const hasValidDate = !!startDate && !isNaN(startDate.getTime()) && startDate.getFullYear() > 2000;
+    if (hasValidDate) {
       formattedDate = formatDateWithDayFr(training.start_date);
-      const trainingDate = new Date(training.start_date);
-      const deadlineDate = new Date(trainingDate);
+      const deadlineDate = new Date(startDate!);
       deadlineDate.setDate(deadlineDate.getDate() - 2);
       formattedDeadline = formatDateWithDayFr(deadlineDate.toISOString().split("T")[0]);
     }
@@ -206,6 +211,7 @@ serve(async (req) => {
       first_name: participant.first_name || null,
       training_name: training.training_name,
       training_date: formattedDate,
+      no_date: hasValidDate ? null : "1",
       questionnaire_link: questionnaireUrl,
       deadline_date: formattedDeadline,
     };
