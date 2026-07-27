@@ -5761,6 +5761,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_oauth_records: {
+        Row: {
+          created_at: string
+          data: Json
+          expires_at: string | null
+          id: string
+          kind: string
+          token_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          expires_at?: string | null
+          id?: string
+          kind: string
+          token_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          token_hash?: string | null
+        }
+        Relationships: []
+      }
       media: {
         Row: {
           created_at: string | null
