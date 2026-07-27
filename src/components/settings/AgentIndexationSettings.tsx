@@ -155,8 +155,9 @@ export default function AgentIndexationSettings() {
 
   const runBackfill = async (sourceType: string) => {
     setStatuses((prev) => ({ ...prev, [sourceType]: "running" }));
-    setResults((prev) => ({ ...prev, [sourceType]: "" }));
+    setResults((prev) => ({ ...prev, [sourceType]: "Analyse des documents manquants…" }));
 
+    let progressPoller: ReturnType<typeof setInterval> | null = null;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Non authentifié");
@@ -198,6 +199,21 @@ export default function AgentIndexationSettings() {
         [sourceType]: `0/${toProcess} docs traités…`,
       }));
 
+      // Progression en temps réel : chaque lot de traitement dure jusqu'à
+      // ~50s, on rafraîchit le compteur pendant l'appel, pas seulement entre.
+      progressPoller = setInterval(async () => {
+        const { count } = await supabase
+          .from("indexation_queue")
+          .select("*", { count: "exact", head: true })
+          .eq("source_type", sourceType)
+          .is("processed_at", null);
+        const done = Math.max(toProcess - (count ?? 0), 0);
+        setResults((prev) => ({
+          ...prev,
+          [sourceType]: `${done}/${toProcess} docs traités…`,
+        }));
+      }, 4000);
+
       for (let i = 0; i < MAX_BATCHES; i++) {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
@@ -226,6 +242,8 @@ export default function AgentIndexationSettings() {
         }));
 
         if ((remaining ?? 0) === 0 || drain.drained) {
+          if (progressPoller) clearInterval(progressPoller);
+          progressPoller = null;
           setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
           setResults((prev) => ({
             ...prev,
@@ -244,6 +262,8 @@ export default function AgentIndexationSettings() {
         ...prev,
         [sourceType]: err instanceof Error ? err.message : "Erreur",
       }));
+    } finally {
+      if (progressPoller) clearInterval(progressPoller);
     }
   };
 
