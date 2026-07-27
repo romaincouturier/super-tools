@@ -43,12 +43,29 @@ Cloudflare Worker (gratuit, URL `*.workers.dev`, aucun DNS à configurer) :
 
 ```js
 export default {
-  fetch(request) {
+  async fetch(request) {
     const url = new URL(request.url);
     const target =
       "https://yewffntzgrdgztrwtava.supabase.co/functions/v1/mcp-server" +
       url.pathname + url.search;
-    return fetch(new Request(target, request));
+    const upstream = await fetch(target, {
+      method: request.method,
+      headers: request.headers,
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
+      // Les redirections OAuth (302 vers claude.ai) doivent revenir au
+      // navigateur, pas être suivies par le worker
+      redirect: "manual",
+    });
+    const headers = new Headers(upstream.headers);
+    if (url.pathname === "/authorize") {
+      // Le déploiement peut perdre le Content-Type et poser une CSP qui
+      // bloque les styles inline : on rétablit les deux pour la page de clé
+      headers.delete("content-security-policy");
+      if (upstream.status === 200) {
+        headers.set("Content-Type", "text/html; charset=utf-8");
+      }
+    }
+    return new Response(upstream.body, { status: upstream.status, headers });
   },
 };
 ```
