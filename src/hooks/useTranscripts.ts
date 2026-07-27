@@ -56,7 +56,7 @@ export function useTranscripts({ search, source, status, trashed }: UseTranscrip
         .from("transcripts")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(1000);
 
       if (trashed) {
         q = q.eq("status", "trashed");
