@@ -13,6 +13,16 @@ export interface AdminDocument {
   analysis_status: "pending" | "done" | "failed";
   uploaded_at: string;
   analyzed_at: string | null;
+  is_favorite: boolean;
+}
+
+export async function toggleAdminDocumentFavorite(id: string, isFavorite: boolean): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("admin_documents")
+    .update({ is_favorite: isFavorite })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export const ARCHIVE_CATEGORIES = [
