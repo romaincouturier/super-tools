@@ -20,7 +20,9 @@ const DEFAULT_SUBJECT_VOUS = "Préparez votre formation \"{{training_name}}\"";
 const DEFAULT_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Tu es inscrit(e) à la formation "{{training_name}}"{{#training_date}} qui aura lieu le {{training_date}}{{/training_date}}.
-
+{{#no_date}}
+Les dates de ta formation ne sont pas encore fixées. Serais-tu disponible cette semaine pour un échange de quelques minutes afin de définir ensemble les dates qui te conviennent ? N'hésite pas à me proposer plusieurs créneaux.
+{{/no_date}}
 Afin de personnaliser au mieux cette formation, je t'invite à remplir ce court questionnaire de recueil des besoins :
 {{questionnaire_link}}
 
@@ -33,7 +35,9 @@ Je te remercie de le compléter{{#deadline_date}} avant le {{deadline_date}}{{/d
 const DEFAULT_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
 
 Vous êtes inscrit(e) à la formation "{{training_name}}"{{#training_date}} qui aura lieu le {{training_date}}{{/training_date}}.
-
+{{#no_date}}
+Les dates de votre formation ne sont pas encore fixées. Seriez-vous disponible cette semaine pour un échange de quelques minutes afin de définir ensemble les dates qui vous conviennent ? N'hésitez pas à me proposer plusieurs créneaux.
+{{/no_date}}
 Afin de personnaliser au mieux cette formation, je vous invite à remplir ce court questionnaire de recueil des besoins :
 {{questionnaire_link}}
 
