@@ -446,11 +446,14 @@ export default function Transcripts() {
     return t.editorial_qualification === qualification;
   });
 
+  const { data: trashedData } = useTranscripts({ trashed: true });
   const counts = {
     total: data?.length ?? 0,
     ready: data?.filter((t) => t.status === "ready").length ?? 0,
     processing: data?.filter((t) => t.status === "processing").length ?? 0,
+    trashed: trashedData?.length ?? 0,
   };
+  const isTrashedView = status === "trashed";
 
   return (
     <ModuleLayout>
@@ -474,19 +477,36 @@ export default function Transcripts() {
         <TabsContent value="transcripts">
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-6">
         {[
-          { label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" /> },
-          { label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> },
+          { key: "total", label: "Total", value: counts.total, icon: <Mic className="h-4 w-4" />, onClick: () => setStatus("") },
+          { key: "ready", label: "Prêts", value: counts.ready, icon: <CheckCircle2 className="h-4 w-4 text-green-600" />, onClick: () => setStatus("ready") },
           {
+            key: "processing",
             label: "En cours",
             value: counts.processing,
             icon: counts.processing > 0
               ? <Spinner className="text-blue-600" />
               : <Clock className="h-4 w-4 text-blue-600" />,
+            onClick: () => setStatus("processing"),
           },
-        ].map(({ label, value, icon }) => (
-          <Card key={label}>
+          {
+            key: "trashed",
+            label: "Corbeille",
+            value: counts.trashed,
+            icon: <Trash2 className="h-4 w-4 text-muted-foreground" />,
+            onClick: () => setStatus("trashed"),
+          },
+        ].map(({ key, label, value, icon, onClick }) => (
+          <Card
+            key={label}
+            onClick={onClick}
+            className={`cursor-pointer transition-colors hover:bg-accent ${
+              (key === "trashed" && isTrashedView) || (key === "ready" && status === "ready") || (key === "processing" && status === "processing") || (key === "total" && status === "")
+                ? "ring-2 ring-primary"
+                : ""
+            }`}
+          >
             <CardContent className="p-4 flex items-center gap-3">
               {icon}
               <div>
