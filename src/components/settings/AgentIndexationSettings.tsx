@@ -91,7 +91,7 @@ export default function AgentIndexationSettings() {
       toast.success(`Réconciliation : ${data.total_enqueued ?? 0} contenus ré-enfilés`);
       await refreshHealth();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de réconciliation", { cause: err });
+      toast.error(err instanceof Error ? err.message : "Erreur de réconciliation");
     } finally {
       setReconciling(false);
     }
