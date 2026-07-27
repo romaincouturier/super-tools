@@ -82,7 +82,7 @@ async function buildQuery(
 
 // Tables sources pour le mode backfill (IDs seulement, avec filtre éventuel).
 // Doit rester aligné avec les extracteurs ci-dessous.
-const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string]; or?: string }> = {
+const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string]; notEmpty?: string[] }> = {
   crm_card: { table: "crm_cards" },
   crm_comment: { table: "crm_comments" },
   crm_email: { table: "crm_card_emails" },
@@ -98,12 +98,18 @@ const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string]; o
   mission_page: { table: "mission_pages" },
   mission_activity: { table: "mission_activities" },
   evaluation_analysis: { table: "evaluation_analyses" },
-  // Exclut les questionnaires dont tous les champs texte sont NULL : sans
-  // contenu, l'extracteur produit une chaîne vide, aucun embedding n'est
-  // inséré, et le backfill les re-enfilait indéfiniment.
+  // Exclut les questionnaires dont tous les champs texte sont vides : sans
+  // contenu, l'extracteur ne produit aucun embedding, et le backfill les
+  // ré-enfile indéfiniment.
   questionnaire_besoins: {
     table: "questionnaire_besoins",
-    or: "experience_details.not.is.null,competences_actuelles.not.is.null,competences_visees.not.is.null,besoins_accessibilite.not.is.null,commentaires_libres.not.is.null",
+    notEmpty: [
+      "experience_details",
+      "competences_actuelles",
+      "competences_visees",
+      "besoins_accessibilite",
+      "commentaires_libres",
+    ],
   },
   okr_objective: { table: "okr_objectives" },
   okr_key_result: { table: "okr_key_results" },
@@ -455,15 +461,16 @@ const extractors: Record<string, Extractor> = {
     const { data } = await buildQuery(
       supabase,
       "okr_initiatives",
-      "id, key_result_id, title, status, due_date, created_at",
+      "id, key_result_id, title, description, status, progress_percentage, created_at",
       sourceId,
     );
     return (data || []).map((r) => ({
       source_id: r.id,
       content: [
         r.title,
+        r.description,
         `Statut: ${r.status}`,
-        r.due_date ? `Échéance: ${r.due_date}` : "",
+        `Progression: ${r.progress_percentage ?? 0}%`,
       ].filter(Boolean).join("\n"),
       source_title: r.title,
       source_date: r.created_at,
@@ -748,13 +755,18 @@ serve(async (req) => {
         return createErrorResponse(`Backfill non supporté pour ${source_type}`, 400);
       }
 
-      let idQuery = supabase.from(spec.table).select("id").limit(5000);
+      const sourceColumns = spec.notEmpty?.length ? `id, ${spec.notEmpty.join(", ")}` : "id";
+      let idQuery = supabase.from(spec.table).select(sourceColumns).limit(5000);
       if (spec.eq) idQuery = idQuery.eq(spec.eq[0], spec.eq[1]);
-      if (spec.or) idQuery = idQuery.or(spec.or);
       const { data: srcRows, error: srcErr } = await idQuery;
 
       if (srcErr) return createErrorResponse(srcErr.message);
-      const sourceIds = (srcRows || []).map((r: { id: string }) => String(r.id));
+      const sourceIds = (srcRows || [])
+        .filter((row: Record<string, unknown>) => {
+          if (!spec.notEmpty?.length) return true;
+          return spec.notEmpty.some((column) => String(row[column] ?? "").trim().length > 0);
+        })
+        .map((r: { id: string }) => String(r.id));
 
       // IDs déjà indexés, par paquets (URLs bornées)
       const indexed = new Set<string>();
