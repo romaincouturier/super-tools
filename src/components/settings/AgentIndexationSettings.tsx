@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,18 +153,121 @@ export default function AgentIndexationSettings() {
     }
   };
 
+  // ── Traitement partagé de la queue ──────────────────────────
+  // Une seule boucle de drain à la fois, partagée entre les sources.
+  const drainingRef = useRef(false);
+
+  const countPending = async (sourceType: string): Promise<number> => {
+    const { count } = await supabase
+      .from("indexation_queue")
+      .select("*", { count: "exact", head: true })
+      .eq("source_type", sourceType)
+      .is("processed_at", null);
+    return count ?? 0;
+  };
+
+  const drainQueue = async (accessToken: string) => {
+    if (drainingRef.current) return;
+    drainingRef.current = true;
+    try {
+      for (let i = 0; i < MAX_BATCHES; i++) {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({}),
+          },
+        );
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        if (data.drained) return;
+      }
+    } finally {
+      drainingRef.current = false;
+    }
+  };
+
+  /**
+   * Suit une source jusqu'à épuisement de ses items en queue : progression
+   * mise à jour toutes les 4s, drain relancé tant qu'il reste des items.
+   * L'état vient de la queue en base, pas de la mémoire du composant :
+   * un rechargement de page reprend exactement où on en était.
+   */
+  const waitForSource = async (sourceType: string, total: number, accessToken: string) => {
+    const MAX_WAIT_MS = 30 * 60 * 1000;
+    const startedAt = Date.now();
+    for (;;) {
+      const remaining = await countPending(sourceType);
+      if (remaining === 0) {
+        setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
+        setResults((prev) => ({ ...prev, [sourceType]: `${total}/${total} docs traités` }));
+        await refreshHealth();
+        return;
+      }
+      const done = Math.max(total - remaining, 0);
+      setResults((prev) => ({ ...prev, [sourceType]: `${done}/${total} docs traités…` }));
+      if (Date.now() - startedAt > MAX_WAIT_MS) {
+        throw new Error(`${remaining} docs restants — relancer pour continuer`);
+      }
+      drainQueue(accessToken).catch((err) => reportHandledError(err));
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+  };
+
+  // Reprise après rechargement/navigation : si des items sont encore en
+  // attente dans la queue, réafficher les sources concernées en "running"
+  // avec leur progression et relancer le traitement.
+  useEffect(() => {
+    let cancelled = false;
+    const resume = async () => {
+      const { data } = await supabase
+        .from("indexation_queue")
+        .select("source_type")
+        .is("processed_at", null)
+        .limit(10000);
+      if (cancelled || !data?.length) return;
+      const counts: Record<string, number> = {};
+      for (const row of data) {
+        counts[row.source_type] = (counts[row.source_type] || 0) + 1;
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled || !session?.access_token) return;
+      for (const [sourceType, count] of Object.entries(counts)) {
+        if (!SOURCE_TYPES.some((s) => s.key === sourceType)) continue;
+        setStatuses((prev) => ({ ...prev, [sourceType]: "running" }));
+        setResults((prev) => ({ ...prev, [sourceType]: `Reprise — ${count} docs restants…` }));
+        waitForSource(sourceType, count, session.access_token).catch((err) => {
+          reportHandledError(err);
+          setStatuses((prev) => ({ ...prev, [sourceType]: "error" }));
+          setResults((prev) => ({
+            ...prev,
+            [sourceType]: err instanceof Error ? err.message : "Erreur",
+          }));
+        });
+      }
+    };
+    resume();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const runBackfill = async (sourceType: string) => {
     setStatuses((prev) => ({ ...prev, [sourceType]: "running" }));
     setResults((prev) => ({ ...prev, [sourceType]: "Analyse des documents manquants…" }));
 
-    let progressPoller: ReturnType<typeof setInterval> | null = null;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Non authentifié");
 
-      // 1. Enfilage : index-documents en mode backfill ne fait que repérer
-      // les documents manquants et les mettre dans indexation_queue
-      // (réponse en quelques secondes, aucun embedding dans cet appel).
+      // 1. Enfilage : index-documents en mode backfill repère les documents
+      // manquants et les met dans indexation_queue (quelques secondes,
+      // aucun embedding dans cet appel).
       const enqueueRes = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/index-documents`,
         {
@@ -192,68 +295,8 @@ export default function AgentIndexationSettings() {
         return;
       }
 
-      // 2. Traitement : on draine la queue par petits lots et on affiche
-      // l'avancement réel de CETTE source (compte des items restants).
-      setResults((prev) => ({
-        ...prev,
-        [sourceType]: `0/${toProcess} docs traités…`,
-      }));
-
-      // Progression en temps réel : chaque lot de traitement dure jusqu'à
-      // ~50s, on rafraîchit le compteur pendant l'appel, pas seulement entre.
-      progressPoller = setInterval(async () => {
-        const { count } = await supabase
-          .from("indexation_queue")
-          .select("*", { count: "exact", head: true })
-          .eq("source_type", sourceType)
-          .is("processed_at", null);
-        const done = Math.max(toProcess - (count ?? 0), 0);
-        setResults((prev) => ({
-          ...prev,
-          [sourceType]: `${done}/${toProcess} docs traités…`,
-        }));
-      }, 4000);
-
-      for (let i = 0; i < MAX_BATCHES; i++) {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({}),
-          },
-        );
-        if (!res.ok) throw new Error(await res.text());
-        const drain = await res.json();
-
-        const { count: remaining } = await supabase
-          .from("indexation_queue")
-          .select("*", { count: "exact", head: true })
-          .eq("source_type", sourceType)
-          .is("processed_at", null);
-
-        const done = Math.max(toProcess - (remaining ?? 0), 0);
-        setResults((prev) => ({
-          ...prev,
-          [sourceType]: `${done}/${toProcess} docs traités…`,
-        }));
-
-        if ((remaining ?? 0) === 0 || drain.drained) {
-          if (progressPoller) clearInterval(progressPoller);
-          progressPoller = null;
-          setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
-          setResults((prev) => ({
-            ...prev,
-            [sourceType]: `${done}/${toProcess} docs traités${(remaining ?? 0) > 0 ? ` — ${remaining} restants (relancer)` : ""}`,
-          }));
-          await refreshHealth();
-          return;
-        }
-      }
-      throw new Error("Traitement interrompu après trop de lots — relancer pour continuer");
+      // 2. Traitement via la queue, progression pilotée par l'état en base
+      await waitForSource(sourceType, toProcess, session.access_token);
     } catch (err) {
       // Erreur affichée dans l'UI (badge) sans toast : reporter explicitement (règle 037)
       reportHandledError(err);
@@ -262,11 +305,8 @@ export default function AgentIndexationSettings() {
         ...prev,
         [sourceType]: err instanceof Error ? err.message : "Erreur",
       }));
-    } finally {
-      if (progressPoller) clearInterval(progressPoller);
     }
   };
-
 
   const runAllBackfill = async () => {
     setRunningAll(true);
