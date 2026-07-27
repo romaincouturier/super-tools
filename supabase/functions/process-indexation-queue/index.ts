@@ -24,9 +24,10 @@ import {
  * than 7 days are purged.
  */
 
-const BATCH_SIZE = 50;
-// Edge functions cap at ~60s; leave a safety margin so we always answer.
-const MAX_WALL_MS = 50_000;
+const BATCH_SIZE = 20;
+// Edge functions have CPU/memory limits; keep the run short to avoid
+// WORKER_RESOURCE_LIMIT on backlogged queues. The cron re-invokes us.
+const MAX_WALL_MS = 20_000;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
