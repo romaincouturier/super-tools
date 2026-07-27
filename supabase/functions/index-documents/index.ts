@@ -731,7 +731,29 @@ serve(async (req) => {
 
         const chunks = chunkText(doc.content);
 
+        // Backfill : sauter les documents déjà entièrement indexés, pour
+        // que les relances reprennent où la précédente s'est arrêtée au
+        // lieu de tout re-embedder depuis le début.
+        if (backfill) {
+          const { count } = await supabase
+            .from("document_embeddings")
+            .select("*", { count: "exact", head: true })
+            .eq("source_type", source_type)
+            .eq("source_id", doc.source_id);
+          if ((count ?? 0) >= chunks.length) {
+            processedDocs++;
+            continue;
+          }
+        }
+
         for (let i = 0; i < chunks.length; i++) {
+          // Un seul document long (transcript d'une heure = dizaines de
+          // chunks) peut dépasser le timeout : vérifier le budget temps
+          // aussi dans la boucle interne.
+          if (Date.now() - startedAt > MAX_WALL_MS) {
+            truncated = true;
+            break;
+          }
           const embedding = await generateEmbedding(chunks[i]);
           if (!embedding) {
             errors++;
@@ -761,6 +783,7 @@ serve(async (req) => {
           }
         }
 
+        if (truncated) break;
         processedDocs++;
 
         // Small delay to respect OpenAI rate limits during backfill
