@@ -50,6 +50,7 @@ export type Database = {
           file_size: number | null
           file_url: string
           id: string
+          is_favorite: boolean
           mime_type: string | null
           summary: string | null
           tags: string[] | null
@@ -64,6 +65,7 @@ export type Database = {
           file_size?: number | null
           file_url: string
           id?: string
+          is_favorite?: boolean
           mime_type?: string | null
           summary?: string | null
           tags?: string[] | null
@@ -78,6 +80,7 @@ export type Database = {
           file_size?: number | null
           file_url?: string
           id?: string
+          is_favorite?: boolean
           mime_type?: string | null
           summary?: string | null
           tags?: string[] | null

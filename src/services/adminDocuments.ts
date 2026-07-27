@@ -13,6 +13,16 @@ export interface AdminDocument {
   analysis_status: "pending" | "done" | "failed";
   uploaded_at: string;
   analyzed_at: string | null;
+  is_favorite: boolean;
+}
+
+export async function toggleAdminDocumentFavorite(id: string, isFavorite: boolean): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("admin_documents")
+    .update({ is_favorite: isFavorite })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 export const ARCHIVE_CATEGORIES = [
@@ -43,7 +53,8 @@ export async function fetchAdminDocuments(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query = (supabase as any)
     .from("admin_documents")
-    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at")
+    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at, is_favorite")
+    .order("is_favorite", { ascending: false })
     .order("uploaded_at", { ascending: false });
 
   if (filters.year) query = query.eq("year", filters.year);

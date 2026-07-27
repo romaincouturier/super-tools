@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Archive, Upload, Search, X, Loader2, FileText, FileImage, File, Trash2, Calendar, Tag, AlertCircle, RotateCcw } from "lucide-react";
+import { Archive, Upload, Search, X, Loader2, FileText, FileImage, File, Trash2, Calendar, Tag, AlertCircle, RotateCcw, Star } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
   fetchAdminDocumentYears,
   uploadAdminDocument,
   deleteAdminDocument,
+  toggleAdminDocumentFavorite,
   ARCHIVE_CATEGORIES,
   type AdminDocument,
 } from "@/services/adminDocuments";
@@ -96,6 +97,27 @@ export default function AdminArchives() {
       toast({ title: "Document supprimé" });
     },
     onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur lors de la suppression"),
+  });
+
+  const favoriteMutation = useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) =>
+      toggleAdminDocumentFavorite(id, isFavorite),
+    onMutate: async ({ id, isFavorite }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-documents"] });
+      const prev = queryClient.getQueriesData<AdminDocument[]>({ queryKey: ["admin-documents"] });
+      prev.forEach(([key, data]) => {
+        if (!data) return;
+        queryClient.setQueryData<AdminDocument[]>(key, (old) =>
+          (old ?? []).map((d) => (d.id === id ? { ...d, is_favorite: isFavorite } : d)),
+        );
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      ctx?.prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      toastError(toast, err instanceof Error ? err : "Erreur");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["admin-documents"] }),
   });
 
   const handleFiles = useCallback(
@@ -389,6 +411,15 @@ export default function AdminArchives() {
                     <span className="text-xs text-muted-foreground hidden sm:block">
                       {new Date(doc.uploaded_at).toLocaleDateString("fr-FR")}
                     </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${doc.is_favorite ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-yellow-500"}`}
+                      onClick={() => favoriteMutation.mutate({ id: doc.id, isFavorite: !doc.is_favorite })}
+                      title={doc.is_favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+                    >
+                      <Star className="h-4 w-4" fill={doc.is_favorite ? "currentColor" : "none"} />
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
