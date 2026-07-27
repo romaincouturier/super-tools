@@ -82,7 +82,7 @@ async function buildQuery(
 
 // Tables sources pour le mode backfill (IDs seulement, avec filtre éventuel).
 // Doit rester aligné avec les extracteurs ci-dessous.
-const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string] }> = {
+const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string]; or?: string }> = {
   crm_card: { table: "crm_cards" },
   crm_comment: { table: "crm_comments" },
   crm_email: { table: "crm_card_emails" },
@@ -98,7 +98,13 @@ const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string] }>
   mission_page: { table: "mission_pages" },
   mission_activity: { table: "mission_activities" },
   evaluation_analysis: { table: "evaluation_analyses" },
-  questionnaire_besoins: { table: "questionnaire_besoins" },
+  // Exclut les questionnaires dont tous les champs texte sont NULL : sans
+  // contenu, l'extracteur produit une chaîne vide, aucun embedding n'est
+  // inséré, et le backfill les re-enfilait indéfiniment.
+  questionnaire_besoins: {
+    table: "questionnaire_besoins",
+    or: "experience_details.not.is.null,competences_actuelles.not.is.null,competences_visees.not.is.null,besoins_accessibilite.not.is.null,commentaires_libres.not.is.null",
+  },
   okr_objective: { table: "okr_objectives" },
   okr_key_result: { table: "okr_key_results" },
   okr_initiative: { table: "okr_initiatives" },
@@ -107,6 +113,7 @@ const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string] }>
   transcript: { table: "transcripts", eq: ["status", "ready"] },
   testimonial: { table: "testimonials", eq: ["status", "published"] },
 };
+
 
 const extractors: Record<string, Extractor> = {
   async crm_card(supabase, sourceId) {
