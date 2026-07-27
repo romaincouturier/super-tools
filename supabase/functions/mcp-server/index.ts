@@ -37,13 +37,19 @@ const REFRESH_TOKEN_TTL_S = 60 * 24 * 3600; // 60 jours
 const CODE_TTL_S = 600; // 10 minutes
 const MAX_AUTH_FAILS = 5;
 const AUTH_FAIL_WINDOW_MIN = 15;
-// Callbacks officiels Claude acceptés sans enregistrement préalable (repli
-// quand la dynamic client registration échoue côté claude.ai)
-const ALLOWED_IMPLICIT_REDIRECTS = [
-  "https://claude.ai/api/mcp/auth_callback",
-  "https://claude.ai/api/organizations/oauth/callback",
-  "https://claude.com/api/mcp/auth_callback",
-];
+// Domaines de callback officiels Claude acceptés sans enregistrement
+// préalable (repli quand la dynamic client registration échoue côté
+// claude.ai). Tout chemin est accepté sur ces hôtes exacts, en https.
+const ALLOWED_IMPLICIT_REDIRECT_HOSTS = ["claude.ai", "claude.com"];
+
+function isAllowedImplicitRedirect(redirectUri: string): boolean {
+  try {
+    const u = new URL(redirectUri);
+    return u.protocol === "https:" && ALLOWED_IMPLICIT_REDIRECT_HOSTS.includes(u.hostname);
+  } catch {
+    return false;
+  }
+}
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -51,7 +57,14 @@ const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
 function json(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json", ...extraHeaders },
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "application/json",
+      // Les métadonnées OAuth et réponses de tokens ne doivent jamais être
+      // mises en cache (une version http:// cachée a déjà fait perdre 3 essais)
+      "Cache-Control": "no-store",
+      ...extraHeaders,
+    },
   });
 }
 
@@ -693,9 +706,9 @@ async function handleAuthorizePost(req: Request, supabase: Supabase): Promise<Re
   // La sécurité repose de toute façon sur PKCE + la clé personnelle.
   const client = await findByHash(supabase, "client", await sha256Hex(clientId));
   const registeredOk = !!client && (client.data.redirect_uris as string[]).includes(redirectUri);
-  const implicitOk = ALLOWED_IMPLICIT_REDIRECTS.includes(redirectUri);
+  const implicitOk = isAllowedImplicitRedirect(redirectUri);
   if (!registeredOk && !implicitOk) {
-    return json({ error: "invalid_client" }, 400);
+    return json({ error: "invalid_client", error_description: `redirect_uri non autorisée: ${redirectUri.slice(0, 120)}` }, 400);
   }
   if (!codeChallenge || method !== "S256") {
     return json({ error: "invalid_request", error_description: "PKCE S256 required" }, 400);
