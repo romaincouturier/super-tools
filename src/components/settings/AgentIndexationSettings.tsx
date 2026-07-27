@@ -160,28 +160,46 @@ export default function AgentIndexationSettings() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Non authentifié");
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/index-documents`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+      let totalDocs = 0;
+      let totalChunks = 0;
+      let totalErrors = 0;
+      // Loop while the edge function reports truncated (150s wall budget).
+      // Cap iterations to avoid an infinite loop on a pathological source.
+      for (let i = 0; i < 30; i++) {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/index-documents`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ source_type: sourceType, backfill: true }),
           },
-          body: JSON.stringify({ source_type: sourceType, backfill: true }),
-        },
-      );
+        );
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || `Erreur ${res.status}`);
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(errText || `Erreur ${res.status}`);
+        }
+
+        const data = await res.json();
+        totalDocs += data.documents_found ?? 0;
+        totalChunks += data.chunks_indexed ?? 0;
+        totalErrors += data.errors ?? 0;
+
+        setResults((prev) => ({
+          ...prev,
+          [sourceType]: `${totalChunks} chunks indexés (${totalDocs} docs)${data.truncated ? " — suite en cours…" : ""}`,
+        }));
+
+        if (!data.truncated) break;
       }
 
-      const data = await res.json();
       setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
       setResults((prev) => ({
         ...prev,
-        [sourceType]: `${data.chunks_indexed} chunks indexés (${data.documents_found} docs)`,
+        [sourceType]: `${totalChunks} chunks indexés (${totalDocs} docs)${totalErrors ? ` — ${totalErrors} erreur(s)` : ""}`,
       }));
     } catch (err) {
       setStatuses((prev) => ({ ...prev, [sourceType]: "error" }));
@@ -191,6 +209,7 @@ export default function AgentIndexationSettings() {
       }));
     }
   };
+
 
   const runAllBackfill = async () => {
     setRunningAll(true);
