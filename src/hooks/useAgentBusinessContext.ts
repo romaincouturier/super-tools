@@ -36,7 +36,7 @@ export function useAgentBusinessContext() {
       );
     setSaving(false);
     if (error) {
-      toast.error("Impossible d'enregistrer le contexte métier", { cause: error });
+      toast.error("Impossible d'enregistrer le contexte métier", { description: error.message });
       return false;
     }
     toast.success("Contexte métier enregistré");
