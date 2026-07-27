@@ -145,7 +145,7 @@ export default function AgentIndexationSettings() {
       const errorSuffix = totalErrors > 0 ? ` (${totalErrors} erreur${totalErrors > 1 ? "s" : ""})` : "";
       toast.success(`Queue traitée : ${totalProcessed} éléments indexés${errorSuffix}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de traitement", { cause: err });
+      toast.error(err instanceof Error ? err.message : "Erreur de traitement");
     } finally {
       await refreshStuckCount();
       setProcessingQueue(false);
