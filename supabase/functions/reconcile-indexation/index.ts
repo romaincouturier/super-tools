@@ -25,26 +25,35 @@ const GATEWAY_URL = "https://connector-gateway.lovable.dev/slack/api";
 const RECONCILE_LIMIT = 200;
 
 // source_type → table source (must match index-documents/index.ts)
-const SOURCE_TABLES: Record<string, string> = {
-  crm_card: "crm_cards",
-  crm_comment: "crm_comments",
-  crm_email: "crm_card_emails",
-  inbound_email: "inbound_emails",
-  training: "trainings",
-  mission: "missions",
-  mission_page: "mission_pages",
-  mission_activity: "mission_activities",
-  quote: "quotes",
-  support_ticket: "support_tickets",
-  coaching_summary: "coaching_summaries",
-  evaluation_analysis: "evaluation_analyses",
-  questionnaire_besoins: "questionnaire_besoins",
-  okr_objective: "okr_objectives",
-  okr_key_result: "okr_key_results",
-  okr_initiative: "okr_initiatives",
-  content_card: "content_cards",
-  lms_lesson: "lms_lessons",
-  crm_attachment: "crm_attachments",
+const SOURCE_TABLES: Record<string, { table: string; notEmpty?: string[] }> = {
+  crm_card: { table: "crm_cards" },
+  crm_comment: { table: "crm_comments" },
+  crm_email: { table: "crm_card_emails" },
+  inbound_email: { table: "inbound_emails" },
+  training: { table: "trainings" },
+  mission: { table: "missions" },
+  mission_page: { table: "mission_pages" },
+  mission_activity: { table: "mission_activities" },
+  quote: { table: "quotes" },
+  support_ticket: { table: "support_tickets" },
+  coaching_summary: { table: "coaching_summaries" },
+  evaluation_analysis: { table: "evaluation_analyses" },
+  questionnaire_besoins: {
+    table: "questionnaire_besoins",
+    notEmpty: [
+      "experience_details",
+      "competences_actuelles",
+      "competences_visees",
+      "besoins_accessibilite",
+      "commentaires_libres",
+    ],
+  },
+  okr_objective: { table: "okr_objectives" },
+  okr_key_result: { table: "okr_key_results" },
+  okr_initiative: { table: "okr_initiatives" },
+  content_card: { table: "content_cards" },
+  lms_lesson: { table: "lms_lessons" },
+  crm_attachment: { table: "crm_attachments" },
   // activity_log : filtrage spécial (action_type='micro_devis_sent') — skipped
   // support_attachment : nested storage — skipped
 };
@@ -84,12 +93,13 @@ serve(async (req) => {
     const summary: { source_type: string; in_source: number; indexed: number; missing: number; enqueued: number; error?: string }[] = [];
     let totalEnqueued = 0;
 
-    for (const [sourceType, table] of Object.entries(SOURCE_TABLES)) {
+    for (const [sourceType, spec] of Object.entries(SOURCE_TABLES)) {
       try {
+        const sourceColumns = spec.notEmpty?.length ? `id, created_at, ${spec.notEmpty.join(", ")}` : "id, created_at";
         // Récupère les IDs en base source (limité aux N plus récents)
         const { data: sourceRows, error: srcErr } = await supabase
-          .from(table)
-          .select("id, created_at")
+          .from(spec.table)
+          .select(sourceColumns)
           .order("created_at", { ascending: false })
           .limit(2000);
 
@@ -98,7 +108,12 @@ serve(async (req) => {
           continue;
         }
 
-        const sourceIds = new Set((sourceRows || []).map((r: any) => String(r.id)));
+        const sourceIds = new Set((sourceRows || [])
+          .filter((row: Record<string, unknown>) => {
+            if (!spec.notEmpty?.length) return true;
+            return spec.notEmpty.some((column) => String(row[column] ?? "").trim().length > 0);
+          })
+          .map((r: any) => String(r.id)));
         if (sourceIds.size === 0) {
           summary.push({ source_type: sourceType, in_source: 0, indexed: 0, missing: 0, enqueued: 0 });
           continue;
