@@ -275,11 +275,16 @@ const MCP_TOOLS = [
   {
     name: "read_media_image",
     description:
-      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. Images are downscaled server-side when possible.",
+      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. The whole image is always returned, never cropped; it is downscaled server-side to keep it light.",
     inputSchema: {
       type: "object",
       properties: {
         media_id: { type: "string", description: "UUID of the media row" },
+        full_resolution: {
+          type: "boolean",
+          description:
+            "Return the original file without downscaling. Use it to re-read a photo whose details (small handwriting, edges) are hard to make out.",
+        },
       },
       required: ["media_id"],
     },
@@ -369,7 +374,7 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
   });
 }
 
-const IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -383,8 +388,12 @@ function bytesToBase64(bytes: Uint8Array): string {
 async function readMediaImage(
   supabase: Supabase,
   mediaId: string,
+  fullResolution = false,
 ): Promise<{ data: string; mimeType: string }> {
-  await auditDossierCall(supabase, `read_media_image: ${mediaId.slice(0, 60)}`);
+  await auditDossierCall(
+    supabase,
+    `read_media_image${fullResolution ? " (pleine résolution)" : ""}: ${mediaId.slice(0, 60)}`,
+  );
 
   const { data: row, error } = await supabase
     .from("media")
@@ -402,12 +411,15 @@ async function readMediaImage(
   const fileUrl = row.file_url as string;
 
   // Version réduite via le transformateur d'images du storage quand
-  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo)
+  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo).
+  // resize=contain est OBLIGATOIRE : sans lui le transformateur applique son
+  // mode par défaut `cover`, qui RECADRE l'image pour remplir le cadre au lieu
+  // de l'y faire tenir — les bords (et donc du contenu manuscrit) sont perdus.
   let res: Response | null = null;
-  if (fileUrl.includes("/storage/v1/object/public/")) {
+  if (!fullResolution && fileUrl.includes("/storage/v1/object/public/")) {
     const renderUrl =
       fileUrl.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") +
-      "?width=1600&quality=75";
+      "?width=1600&height=1600&resize=contain&quality=80";
     const r = await fetch(renderUrl);
     if (r.ok && (r.headers.get("content-type") || "").startsWith("image/")) {
       res = r;
@@ -754,7 +766,11 @@ async function callTool(
     }
     case "read_media_image": {
       try {
-        const img = await readMediaImage(supabase, (args.media_id as string) || "");
+        const img = await readMediaImage(
+          supabase,
+          (args.media_id as string) || "",
+          args.full_resolution === true,
+        );
         return { content: [{ type: "image", data: img.data, mimeType: img.mimeType }] };
       } catch (e) {
         return textResult(`Image error: ${e instanceof Error ? e.message : "failed"}`, true);
