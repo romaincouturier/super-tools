@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Play, CheckCircle2, AlertCircle, Database, TriangleAlert, Activity, RefreshCw } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
+import { reportHandledError } from "@/lib/sentry";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -90,7 +91,7 @@ export default function AgentIndexationSettings() {
       toast.success(`Réconciliation : ${data.total_enqueued ?? 0} contenus ré-enfilés`);
       await refreshHealth();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de réconciliation");
+      toast.error(err instanceof Error ? err.message : "Erreur de réconciliation", { cause: err });
     } finally {
       setReconciling(false);
     }
@@ -144,7 +145,7 @@ export default function AgentIndexationSettings() {
       const errorSuffix = totalErrors > 0 ? ` (${totalErrors} erreur${totalErrors > 1 ? "s" : ""})` : "";
       toast.success(`Queue traitée : ${totalProcessed} éléments indexés${errorSuffix}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de traitement");
+      toast.error(err instanceof Error ? err.message : "Erreur de traitement", { cause: err });
     } finally {
       await refreshStuckCount();
       setProcessingQueue(false);
@@ -202,6 +203,8 @@ export default function AgentIndexationSettings() {
         [sourceType]: `${totalChunks} chunks indexés (${totalDocs} docs)${totalErrors ? ` — ${totalErrors} erreur(s)` : ""}`,
       }));
     } catch (err) {
+      // Erreur affichée dans l'UI (badge) sans toast : reporter explicitement (règle 037)
+      reportHandledError(err);
       setStatuses((prev) => ({ ...prev, [sourceType]: "error" }));
       setResults((prev) => ({
         ...prev,
