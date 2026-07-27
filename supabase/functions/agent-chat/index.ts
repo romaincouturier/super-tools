@@ -102,9 +102,33 @@ async function getDbSchema(supabase: ReturnType<typeof getSupabaseClient>): Prom
   return "(schema unavailable — ask the user to check the agent_schema_registry table)";
 }
 
+// ── Business context — loaded from app_settings (editable in Réglages) ──
+
+let _cachedContext: { text: string; fetchedAt: number } | null = null;
+
+async function getBusinessContext(supabase: ReturnType<typeof getSupabaseClient>): Promise<string> {
+  const now = Date.now();
+  if (_cachedContext && now - _cachedContext.fetchedAt < SCHEMA_CACHE_TTL_MS) {
+    return _cachedContext.text;
+  }
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "agent_business_context")
+      .maybeSingle();
+    const text = (data as { setting_value?: string } | null)?.setting_value ?? "";
+    _cachedContext = { text, fetchedAt: now };
+    return text;
+  } catch (e) {
+    console.error("Failed to load business context:", e);
+    return _cachedContext?.text ?? "";
+  }
+}
+
 // ── System prompt ────────────────────────────────────────────
 
-function buildSystemPrompt(dbSchema: string): string {
+function buildSystemPrompt(dbSchema: string, businessContext: string): string {
   // Date sans l'heure : le prompt sert de préfixe de cache (cache_control),
   // une heure qui change à chaque minute invaliderait le cache en permanence.
   const now = new Date();
@@ -143,6 +167,16 @@ Règles :
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
+${businessContext ? `
+Contexte métier (fourni par l'équipe — fait foi pour les définitions, le vocabulaire et les priorités) :
+${businessContext}
+` : ""}
+Jointures et conventions utiles :
+- Participants d'une formation : training_participants.training_id → trainings.id
+- Évaluations d'une formation : training_evaluations.training_id → trainings.id ; une évaluation complète a etat = 'soumis' ; la note est appreciation_generale (1 à 5)
+- Devis et CRM : quotes.crm_card_id → crm_cards.id ; montants total_ht / total_ttc ; un devis signé a status = 'signed'
+- Royautés dropshipping : game_sales.game_id → games.id puis games.author_id → game_authors.id
+- Le client d'une formation ou d'une mission est un champ texte (trainings.client_name, missions.client_name), pas une FK
 
 Schéma de la base de données (source de vérité — chaque ligne est une table requêtable, avec sa description) :
 ${dbSchema}`;
@@ -559,8 +593,11 @@ async function runAgentStreaming(
   const encoder = new TextEncoder();
   const write = (text: string) => writer.write(encoder.encode(text));
 
-  // Load schema dynamically from registry (cached 5 min)
-  const dbSchema = await getDbSchema(supabase);
+  // Load schema (registry) and business context (app_settings), cached 5 min
+  const [dbSchema, businessContext] = await Promise.all([
+    getDbSchema(supabase),
+    getBusinessContext(supabase),
+  ]);
 
   const conversationMessages = [...messages];
   let fullResponse = "";
@@ -585,7 +622,7 @@ async function runAgentStreaming(
         system: [
           {
             type: "text",
-            text: buildSystemPrompt(dbSchema),
+            text: buildSystemPrompt(dbSchema, businessContext),
             cache_control: { type: "ephemeral" },
           },
         ],
