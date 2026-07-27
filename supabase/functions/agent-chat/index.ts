@@ -553,7 +553,8 @@ async function runAgentStreaming(
         // Extended thinking : raisonnement interne avant réponse et entre
         // les tools. Les blocs thinking sont conservés dans l'historique
         // (requis par l'API quand ils précèdent un tool_use).
-        thinking: { type: "enabled", budget_tokens: 4096 },
+        thinking: { type: "adaptive" },
+        output_config: { effort: "medium" },
         // cache_control sur le system : les tools + le system (schéma complet)
         // forment un préfixe stable caché entre les rounds et les messages.
         system: [
