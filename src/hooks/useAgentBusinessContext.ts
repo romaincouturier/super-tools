@@ -17,7 +17,7 @@ export function useAgentBusinessContext() {
         .eq("setting_key", SETTING_KEY)
         .maybeSingle();
       if (error) {
-        toast.error("Impossible de charger le contexte métier", { cause: error });
+        toast.error("Impossible de charger le contexte métier", { description: error.message });
       } else {
         setValue(data?.setting_value || "");
       }
