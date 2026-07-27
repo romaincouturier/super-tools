@@ -99,6 +99,27 @@ export default function AdminArchives() {
     onError: (err) => toastError(toast, err instanceof Error ? err : "Erreur lors de la suppression"),
   });
 
+  const favoriteMutation = useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) =>
+      toggleAdminDocumentFavorite(id, isFavorite),
+    onMutate: async ({ id, isFavorite }) => {
+      await queryClient.cancelQueries({ queryKey: ["admin-documents"] });
+      const prev = queryClient.getQueriesData<AdminDocument[]>({ queryKey: ["admin-documents"] });
+      prev.forEach(([key, data]) => {
+        if (!data) return;
+        queryClient.setQueryData<AdminDocument[]>(key, (old) =>
+          (old ?? []).map((d) => (d.id === id ? { ...d, is_favorite: isFavorite } : d)),
+        );
+      });
+      return { prev };
+    },
+    onError: (err, _vars, ctx) => {
+      ctx?.prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      toastError(toast, err instanceof Error ? err : "Erreur");
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["admin-documents"] }),
+  });
+
   const handleFiles = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
