@@ -21,6 +21,8 @@ import { extractDocument } from "../_shared/document-extract.ts";
  *   - read_media_image    : une photo de galerie en bloc image (base64)
  *   - read_document       : contenu réel d'un document (PDF texte ou scanné,
  *                           Word, Excel, texte, image)
+ *   - read_mission_documents : contenu réel de TOUS les documents d'une mission
+ *                           en un appel
  *   - save_mission_note   : SEULE écriture — crée/met à jour une page de
  *                           mission pour capitaliser un travail (transcription,
  *                           synthèse) hors de la conversation
@@ -217,7 +219,7 @@ const MCP_TOOLS = [
   {
     name: "get_mission_dossier",
     description:
-      "Return the complete dossier of a mission: mission record, all its pages (full content), activities, and attached documents (name, type, URL). Use this to load the full working context of a mission in one call instead of multiple SQL queries.",
+      "Return the complete dossier of a mission: mission record, all its pages (full content), activities, attached documents (id, name, type) and gallery images (id, name, tags). Use this to load the full working context of a mission in one call instead of multiple SQL queries. It is the entry point: the returned ids let you then read the actual content of each document (read_document / read_mission_documents) and each photo (read_media_image).",
     inputSchema: {
       type: "object",
       properties: {
@@ -251,6 +253,30 @@ const MCP_TOOLS = [
         document_id: { type: "string", description: "UUID of the document row" },
       },
       required: ["document_id"],
+    },
+  },
+  {
+    name: "read_mission_documents",
+    description:
+      "Read the actual content of ALL documents attached to a mission in one call (PDF, Word, Excel, text, images, and transcripts of audio/video files). Use this instead of calling read_document repeatedly when you need the whole documentary base of a mission. Combined with get_mission_dossier (pages + activities + gallery) and read_media_image, it gives complete access to a mission.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission: { type: "string", description: "Mission UUID, or part of its title" },
+        only_deliverables: {
+          type: "boolean",
+          description: "Restrict to documents flagged as deliverables (default false: read everything)",
+        },
+        max_documents: {
+          type: "number",
+          description: "Maximum number of documents to read in this call (default 10, max 20). Documents left out are listed with their id so you can call again.",
+        },
+        include_images: {
+          type: "boolean",
+          description: "Include image files and scanned-PDF pages as images (default true). Set to false for a text-only, lighter answer.",
+        },
+      },
+      required: ["mission"],
     },
   },
   {
@@ -294,7 +320,8 @@ const MCP_TOOLS = [
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PAGE_CONTENT_MAX = 20000;
+const PAGE_CONTENT_MAX = 60000;
+const PAGES_TOTAL_MAX = 250000;
 
 async function auditDossierCall(supabase: Supabase, label: string): Promise<void> {
   const userId = await getAllowedUserId(supabase);
@@ -305,31 +332,58 @@ async function auditDossierCall(supabase: Supabase, label: string): Promise<void
   });
 }
 
+/**
+ * Résout une mission par UUID ou par fragment de titre.
+ * Renvoie la ligne, ou `problem` : un JSON explicatif (introuvable / ambigu)
+ * à renvoyer tel quel au modèle pour qu'il rappelle avec un UUID.
+ */
+async function resolveMission(
+  supabase: Supabase,
+  missionQuery: string,
+  columns: string,
+): Promise<{ mission: Record<string, unknown> } | { problem: string }> {
+  let req = supabase.from("missions").select(columns).limit(3);
+  req = UUID_RE.test(missionQuery.trim())
+    ? req.eq("id", missionQuery.trim())
+    : req.ilike("title", `%${missionQuery}%`);
+
+  const { data, error } = await req;
+  if (error) throw new Error(error.message);
+  if (!data?.length) {
+    return {
+      problem: JSON.stringify({
+        found: false,
+        hint: "Aucune mission ne correspond. Essayer query_database sur la table missions.",
+      }),
+    };
+  }
+  if (data.length > 1) {
+    return {
+      problem: JSON.stringify({
+        found: false,
+        ambiguous: data.map((m: Record<string, unknown>) => ({
+          id: m.id,
+          title: m.title,
+          client_name: m.client_name,
+        })),
+        hint: "Plusieurs missions correspondent : rappeler avec l'UUID.",
+      }),
+    };
+  }
+  return { mission: data[0] as Record<string, unknown> };
+}
+
 async function getMissionDossier(supabase: Supabase, missionQuery: string): Promise<string> {
   await auditDossierCall(supabase, `get_mission_dossier: ${missionQuery.slice(0, 200)}`);
 
-  let missionReq = supabase
-    .from("missions")
-    .select("id, title, client_name, client_contact, status, initial_amount, consumed_amount, billed_amount, total_amount, created_at")
-    .limit(3);
-  missionReq = UUID_RE.test(missionQuery.trim())
-    ? missionReq.eq("id", missionQuery.trim())
-    : missionReq.ilike("title", `%${missionQuery}%`);
+  const resolved = await resolveMission(
+    supabase,
+    missionQuery,
+    "id, title, client_name, client_contact, status, initial_amount, consumed_amount, billed_amount, total_amount, created_at",
+  );
+  if ("problem" in resolved) return resolved.problem;
+  const mission = resolved.mission;
 
-  const { data: missions, error } = await missionReq;
-  if (error) throw new Error(error.message);
-  if (!missions?.length) {
-    return JSON.stringify({ found: false, hint: "Aucune mission ne correspond. Essayer query_database sur la table missions." });
-  }
-  if (missions.length > 1) {
-    return JSON.stringify({
-      found: false,
-      ambiguous: missions.map((m: Record<string, unknown>) => ({ id: m.id, title: m.title, client_name: m.client_name })),
-      hint: "Plusieurs missions correspondent : rappeler avec l'UUID.",
-    });
-  }
-
-  const mission = missions[0] as Record<string, unknown>;
   const [pages, activities, documents, gallery] = await Promise.all([
     supabase
       .from("mission_pages")
@@ -345,7 +399,9 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
       .limit(100),
     supabase
       .from("mission_documents")
-      .select("file_name, file_url, mime_type, file_size, is_deliverable, processing_status, transcript_page_id, created_at")
+      // `id` est indispensable : c'est lui qu'on passe à read_document.
+      // Son absence rendait les documents de mission illisibles.
+      .select("id, file_name, file_url, mime_type, file_size, is_deliverable, processing_status, transcript_page_id, created_at")
       .eq("mission_id", mission.id)
       .order("created_at", { ascending: true })
       .limit(100),
@@ -358,19 +414,44 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
       .limit(100),
   ]);
 
+  // Budget partagé entre les pages : une seule page très longue ne doit ni
+  // saturer la réponse, ni faire disparaître les suivantes. Toute coupe est
+  // signalée par page, avec la longueur réelle et comment lire la suite.
+  let pagesBudget = PAGES_TOTAL_MAX;
+  const truncatedPages: string[] = [];
+  const mappedPages = (pages.data || []).map((p: Record<string, unknown>) => {
+    const raw = typeof p.content === "string" ? p.content : "";
+    const allowed = Math.min(PAGE_CONTENT_MAX, Math.max(pagesBudget, 0));
+    if (raw.length <= allowed) {
+      pagesBudget -= raw.length;
+      return { ...p, content_length: raw.length, content_truncated: false };
+    }
+    pagesBudget -= allowed;
+    truncatedPages.push(p.id as string);
+    return {
+      ...p,
+      content: raw.slice(0, allowed) + "… [tronqué]",
+      content_length: raw.length,
+      content_truncated: true,
+    };
+  });
+
   return JSON.stringify({
     found: true,
     mission,
-    pages: (pages.data || []).map((p: Record<string, unknown>) => ({
-      ...p,
-      content: typeof p.content === "string" && p.content.length > PAGE_CONTENT_MAX
-        ? p.content.slice(0, PAGE_CONTENT_MAX) + "… [tronqué]"
-        : p.content,
-    })),
+    pages: mappedPages,
     activities: activities.data || [],
     documents: documents.data || [],
     gallery: gallery.data || [],
-    hint: "Les photos de la galerie se lisent avec read_media_image (passer l'id).",
+    truncated_page_ids: truncatedPages,
+    hint:
+      "Tout le contenu de la mission est accessible. Pages : celles marquées " +
+      "content_truncated=true se relisent en entier avec query_database " +
+      "(SELECT content FROM mission_pages WHERE id = '…'). Documents : chacun se lit avec " +
+      "read_document(document_id) — PDF, Word, Excel, scans — ou tous d'un coup avec " +
+      "read_mission_documents(mission). Galerie : chaque photo se lit avec " +
+      "read_media_image(media_id). Ne jamais répondre qu'un contenu de mission est " +
+      "inaccessible sans avoir appelé ces tools.",
   });
 }
 
@@ -443,12 +524,27 @@ async function readMediaImage(
 
 const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
 
+/** Télécharge un fichier du storage, en s'authentifiant sur les buckets privés. */
+async function downloadFile(url: string): Promise<Uint8Array> {
+  const res = await fetch(url, {
+    headers: url.includes("/authenticated/")
+      ? { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` }
+      : {},
+  });
+  if (!res.ok) throw new Error(`Téléchargement impossible (${res.status})`);
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > MAX_DOWNLOAD_BYTES) {
+    throw new Error(`Fichier trop lourd (${Math.round(bytes.length / 1024 / 1024)} Mo)`);
+  }
+  return bytes;
+}
+
 /** Résout un document dans les 3 tables de pièces jointes et le télécharge. */
 async function fetchDocumentBytes(
   supabase: Supabase,
   documentId: string,
 ): Promise<{ bytes: Uint8Array; fileName: string; mimeType: string; transcriptPageId?: string }> {
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 
   const { data: missionDoc } = await supabase
@@ -488,41 +584,45 @@ async function fetchDocumentBytes(
 
   if (!url) throw new Error("Document introuvable");
 
-  const res = await fetch(url, {
-    headers: url.includes("/authenticated/") ? { Authorization: `Bearer ${serviceKey}` } : {},
-  });
-  if (!res.ok) throw new Error(`Téléchargement impossible (${res.status})`);
+  return { bytes: await downloadFile(url), fileName, mimeType, transcriptPageId };
+}
 
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (bytes.length > MAX_DOWNLOAD_BYTES) {
-    throw new Error(`Fichier trop lourd (${Math.round(bytes.length / 1024 / 1024)} Mo)`);
+/**
+ * Audio/vidéo : le fichier lui-même n'est pas lisible, mais SuperTools en a
+ * peut-être déjà produit une transcription sous forme de page de mission.
+ */
+async function readAvTranscript(
+  supabase: Supabase,
+  fileName: string,
+  mimeType: string,
+  transcriptPageId?: string,
+): Promise<{ text: string; found: boolean }> {
+  if (transcriptPageId) {
+    const { data: page } = await supabase
+      .from("mission_pages")
+      .select("title, content")
+      .eq("id", transcriptPageId)
+      .maybeSingle();
+    if (page) {
+      return {
+        text: `Transcription de ${fileName} (page « ${page.title} ») :\n\n${page.content ?? ""}`,
+        found: true,
+      };
+    }
   }
-  return { bytes, fileName, mimeType, transcriptPageId };
+  return {
+    text: `${fileName} est un fichier ${mimeType} sans transcription disponible dans SuperTools.`,
+    found: false,
+  };
 }
 
 async function readDocument(supabase: Supabase, documentId: string): Promise<ToolResult> {
   await auditDossierCall(supabase, `read_document: ${documentId.slice(0, 60)}`);
   const { bytes, fileName, mimeType, transcriptPageId } = await fetchDocumentBytes(supabase, documentId);
 
-  // Audio/vidéo : le fichier lui-même n'est pas lisible, mais SuperTools en a
-  // peut-être déjà produit une transcription sous forme de page de mission.
   if (mimeType.startsWith("audio/") || mimeType.startsWith("video/")) {
-    if (transcriptPageId) {
-      const { data: page } = await supabase
-        .from("mission_pages")
-        .select("title, content")
-        .eq("id", transcriptPageId)
-        .maybeSingle();
-      if (page) {
-        return textResult(
-          `Transcription de ${fileName} (page « ${page.title} ») :\n\n${page.content ?? ""}`,
-        );
-      }
-    }
-    return textResult(
-      `${fileName} est un fichier ${mimeType} sans transcription disponible dans SuperTools.`,
-      true,
-    );
+    const av = await readAvTranscript(supabase, fileName, mimeType, transcriptPageId);
+    return textResult(av.text, !av.found);
   }
 
   const { parts, note } = await extractDocument(bytes, mimeType, fileName);
@@ -535,6 +635,188 @@ async function readDocument(supabase: Supabase, documentId: string): Promise<Too
     }
   }
   return { content, ...(parts.length === 0 ? { isError: true } : {}) };
+}
+
+// ── Lecture en masse des documents d'une mission ─────────────
+//
+// Plafonds : une réponse MCP passe par le contexte du modèle, donc on borne
+// explicitement. Rien n'est coupé en silence — tout ce qui n'est pas lu est
+// listé avec son id pour être rappelé document par document.
+const BULK_MAX_DOCUMENTS = 20;
+const BULK_DEFAULT_DOCUMENTS = 10;
+const BULK_MAX_IMAGES = 20;
+const BULK_MAX_TEXT_CHARS = 400_000;
+
+interface BulkDocStatus {
+  id: string;
+  file_name: string;
+  mime_type: string;
+  status: string;
+  detail?: string;
+}
+
+async function readMissionDocuments(
+  supabase: Supabase,
+  missionQuery: string,
+  onlyDeliverables: boolean,
+  maxDocuments: number,
+  includeImages: boolean,
+): Promise<ToolResult> {
+  await auditDossierCall(supabase, `read_mission_documents: ${missionQuery.slice(0, 200)}`);
+
+  const resolved = await resolveMission(supabase, missionQuery, "id, title, client_name");
+  if ("problem" in resolved) return textResult(resolved.problem, true);
+  const mission = resolved.mission;
+
+  let docReq = supabase
+    .from("mission_documents")
+    .select("id, file_name, file_url, mime_type, file_size, is_deliverable, transcript_page_id, created_at")
+    .eq("mission_id", mission.id)
+    .order("created_at", { ascending: true })
+    .limit(200);
+  if (onlyDeliverables) docReq = docReq.eq("is_deliverable", true);
+
+  const { data: allDocs, error } = await docReq;
+  if (error) throw new Error(error.message);
+  if (!allDocs?.length) {
+    return textResult(
+      JSON.stringify({
+        mission: { id: mission.id, title: mission.title },
+        documents_read: 0,
+        hint: onlyDeliverables
+          ? "Aucun document marqué livrable sur cette mission. Rappeler avec only_deliverables=false."
+          : "Cette mission n'a aucun document attaché. Les pages et la galerie restent accessibles via get_mission_dossier.",
+      }),
+    );
+  }
+
+  const limit = Math.min(Math.max(maxDocuments, 1), BULK_MAX_DOCUMENTS);
+  const toRead = allDocs.slice(0, limit) as Array<Record<string, unknown>>;
+  const skipped = allDocs.slice(limit) as Array<Record<string, unknown>>;
+
+  const content: Array<Record<string, unknown>> = [];
+  const statuses: BulkDocStatus[] = [];
+  let imageBudget = includeImages ? BULK_MAX_IMAGES : 0;
+  let textBudget = BULK_MAX_TEXT_CHARS;
+
+  for (const [idx, doc] of toRead.entries()) {
+    const fileName = (doc.file_name as string) || "(sans nom)";
+    const mime = ((doc.mime_type as string) || "").toLowerCase();
+    const header = `=== Document ${idx + 1}/${toRead.length} — ${fileName} (${mime || "type inconnu"}, id ${doc.id}) ===`;
+
+    try {
+      if (mime.startsWith("audio/") || mime.startsWith("video/")) {
+        const av = await readAvTranscript(
+          supabase,
+          fileName,
+          mime,
+          (doc.transcript_page_id as string) ?? undefined,
+        );
+        const room = Math.max(textBudget, 0);
+        const cut = av.text.length > room;
+        const text = cut
+          ? av.text.slice(0, room) +
+            `… [tronqué : plafond de la réponse atteint — relire avec read_document("${doc.id}")]`
+          : av.text;
+        textBudget -= Math.min(av.text.length, room);
+        content.push({ type: "text", text: `${header}\n${text}` });
+        statuses.push({
+          id: doc.id as string,
+          file_name: fileName,
+          mime_type: mime,
+          status: av.found ? (cut ? "transcription_tronquée" : "transcription") : "sans_transcription",
+        });
+        continue;
+      }
+
+      const bytes = await downloadFile(doc.file_url as string);
+      const { parts, note } = await extractDocument(bytes, mime, fileName);
+
+      const blocks: Array<Record<string, unknown>> = [];
+      let textChars = 0;
+      let imagesUsed = 0;
+      let imagesDropped = 0;
+      let textTruncated = false;
+
+      for (const part of parts) {
+        if (part.kind === "text" && part.text) {
+          const fits = part.text.length <= textBudget;
+          if (!fits) textTruncated = true;
+          // Budget texte épuisé : on continue quand même la boucle, les parts
+          // image restantes peuvent encore tenir dans leur propre plafond.
+          if (textBudget <= 0) continue;
+          const text = fits
+            ? part.text
+            : part.text.slice(0, textBudget) + "… [tronqué : plafond de la réponse atteint]";
+          textBudget -= Math.min(part.text.length, textBudget);
+          textChars += text.length;
+          blocks.push({ type: "text", text });
+        } else if (part.kind === "image" && part.data) {
+          if (imageBudget <= 0) {
+            imagesDropped++;
+            continue;
+          }
+          imageBudget--;
+          imagesUsed++;
+          blocks.push({ type: "image", data: part.data, mimeType: part.mimeType });
+        }
+      }
+
+      const warnings: string[] = [];
+      if (imagesDropped) {
+        warnings.push(
+          `${imagesDropped} page(s) image non renvoyée(s) ` +
+            `(${includeImages ? "plafond d'images atteint" : "include_images=false"}) — ` +
+            `relire ce document seul avec read_document("${doc.id}").`,
+        );
+      }
+      if (textTruncated) {
+        warnings.push(`Texte tronqué — relire ce document seul avec read_document("${doc.id}").`);
+      }
+
+      content.push({
+        type: "text",
+        text: `${header}\n${note}${warnings.length ? "\n" + warnings.join("\n") : ""}`,
+      });
+      content.push(...blocks);
+
+      statuses.push({
+        id: doc.id as string,
+        file_name: fileName,
+        mime_type: mime,
+        status: blocks.length ? "lu" : "illisible",
+        detail: blocks.length
+          ? `${textChars} caractères, ${imagesUsed} image(s)${warnings.length ? " — " + warnings.join(" ") : ""}`
+          : note,
+      });
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "échec";
+      content.push({ type: "text", text: `${header}\nLecture impossible : ${detail}` });
+      statuses.push({
+        id: doc.id as string,
+        file_name: fileName,
+        mime_type: mime,
+        status: "erreur",
+        detail,
+      });
+    }
+  }
+
+  content.unshift({
+    type: "text",
+    text: JSON.stringify({
+      mission: { id: mission.id, title: mission.title, client_name: mission.client_name },
+      total_documents: allDocs.length,
+      documents_read: toRead.length,
+      documents: statuses,
+      not_read: skipped.map((d) => ({ id: d.id, file_name: d.file_name, mime_type: d.mime_type })),
+      hint: skipped.length
+        ? `${skipped.length} document(s) non lu(s) dans cet appel : rappeler read_mission_documents avec max_documents plus élevé (max ${BULK_MAX_DOCUMENTS}) ou read_document sur les id listés dans not_read.`
+        : "Tous les documents de la mission ont été lus. Les pages et la galerie s'obtiennent avec get_mission_dossier, les photos avec read_media_image.",
+    }),
+  });
+
+  return { content };
 }
 
 const NOTE_PREFIX = "Note agent — ";
@@ -747,6 +1029,19 @@ async function callTool(
         return await readDocument(supabase, (args.document_id as string) || "");
       } catch (e) {
         return textResult(`Document error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_mission_documents": {
+      try {
+        return await readMissionDocuments(
+          supabase,
+          (args.mission as string) || "",
+          args.only_deliverables === true,
+          (args.max_documents as number) || BULK_DEFAULT_DOCUMENTS,
+          args.include_images !== false,
+        );
+      } catch (e) {
+        return textResult(`Documents error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "save_mission_note": {

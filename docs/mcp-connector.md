@@ -5,14 +5,14 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Tools exposés (8)** : `query_database` (via `agent_sql_query` : SELECT
+- **Tools exposés (9)** : `query_database` (via `agent_sql_query` : SELECT
   uniquement, tables allowlistées du registry, 100 lignes max),
   `search_content` (recherche hybride, filtrable par mission via
   `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
-  `read_document` et `save_mission_note`. Tous sont journalisés dans
-  `agent_query_audit_log`.
+  `read_document`, `read_mission_documents` et `save_mission_note`. Tous sont
+  journalisés dans `agent_query_audit_log`.
 - **Lecture seule, à une exception près** : `save_mission_note` est la SEULE
   écriture du serveur. Elle crée ou met à jour **une page de mission**, titre
   préfixé « Note agent — », 200 000 caractères max. Elle ne peut rien
@@ -27,6 +27,16 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   les fichiers audio renvoient leur transcription SuperTools si elle existe.
   Les fichiers Google Drive se lisent via le connecteur Drive natif de
   claude.ai, dans la même conversation.
+- **Accès complet à une mission** : `get_mission_dossier` est l'entrée (il
+  renvoie les **id** des documents et des photos, indispensables pour la
+  suite), puis `read_mission_documents(mission)` lit le contenu réel de tous
+  les documents en un appel (10 par défaut, 20 max, 20 images et 400 000
+  caractères de plafond) et `read_media_image(media_id)` chaque photo. Aucune
+  coupe silencieuse : tout ce qui n'est pas renvoyé est listé (`not_read`,
+  `content_truncated`, `truncated_page_ids`) avec l'id à rappeler. Les pages
+  sont plafonnées à 60 000 caractères chacune et 250 000 au total ; au-delà,
+  relire la page entière avec
+  `query_database` (`SELECT content FROM mission_pages WHERE id = '…'`).
 - **Mono-utilisateur** : chaque appel est lié à `romain@supertilt.fr`,
   liste blanche d'un seul compte codée en dur dans
   `supabase/functions/mcp-server/index.ts` (`ALLOWED_EMAIL`). Modifier
