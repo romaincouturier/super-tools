@@ -646,19 +646,26 @@ function authorizePage(params: URLSearchParams, errorMsg?: string): Response {
     })
     .join("\n");
 
+  // Charte graphique SuperTilt : jaune #FFD100, encre #101820, gris #F2F4F4
   return html(`<!DOCTYPE html>
 <html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connecter Claude à SuperTools</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; background: #f6f6f4; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-  .card { background: #fff; border-radius: 12px; padding: 32px; max-width: 380px; width: 100%; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
-  h1 { font-size: 18px; margin: 0 0 8px; }
-  p { color: #555; font-size: 14px; margin: 0 0 20px; }
-  input[type=password] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; margin-bottom: 16px; }
-  button { width: 100%; padding: 10px; border: 0; border-radius: 8px; background: #111; color: #fff; font-size: 15px; cursor: pointer; }
+  body { font-family: 'Lexend', -apple-system, system-ui, sans-serif; background: #f2f4f4; color: #101820; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .card { background: #fff; border-radius: 16px; padding: 36px 32px; max-width: 400px; width: 100%; box-shadow: 0 4px 24px rgba(16,24,32,.10); }
+  .logo { display: inline-flex; align-items: baseline; gap: 2px; margin-bottom: 20px; font-weight: 800; font-size: 20px; letter-spacing: .02em; }
+  .logo .tilt { background: #ffd100; color: #101820; padding: 1px 7px 2px; border-radius: 6px; }
+  h1 { font-size: 19px; margin: 0 0 8px; color: #101820; font-weight: 700; }
+  p { color: rgba(16,24,32,.65); font-size: 14px; line-height: 1.5; margin: 0 0 22px; }
+  input[type=password] { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1.5px solid rgba(16,24,32,.18); border-radius: 10px; font-size: 15px; font-family: inherit; margin-bottom: 16px; outline: none; }
+  input[type=password]:focus { border-color: #101820; }
+  button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #ffd100; color: #101820; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: filter 120ms; }
+  button:hover { filter: brightness(.95); }
   .err { color: #b00020; font-size: 13px; margin-bottom: 12px; }
+  .foot { margin-top: 18px; font-size: 12px; color: rgba(16,24,32,.45); }
 </style></head>
 <body><div class="card">
+  <div class="logo"><span>Super</span><span class="tilt">Tilt</span></div>
   <h1>Connecter Claude à SuperTools</h1>
   <p>Accès en lecture seule aux données SuperTools. Réservé à ${ALLOWED_EMAIL}.</p>
   ${errorMsg ? `<div class="err">${errorMsg}</div>` : ""}
@@ -667,6 +674,7 @@ function authorizePage(params: URLSearchParams, errorMsg?: string): Response {
     <input type="password" name="personal_secret" placeholder="Clé personnelle" autofocus required>
     <button type="submit">Autoriser</button>
   </form>
+  <div class="foot">Toutes les requêtes de Claude sont journalisées. Révocable à tout moment.</div>
 </div></body></html>`);
 }
 
