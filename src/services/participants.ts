@@ -36,6 +36,12 @@ export interface CreateParticipantInput {
   financeurUrl: string;
   paymentMode: "online" | "invoice";
   soldPriceHt: string;
+  companyAddress?: string | null;
+  companyZip?: string | null;
+  companyCity?: string | null;
+  sponsorPhone?: string | null;
+  typeStagiaireBpf?: string | null;
+  sourceFinancementBpf?: string | null;
 }
 
 /**
