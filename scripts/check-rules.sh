@@ -260,6 +260,14 @@ check "040" "Évaluations : filtre formation côté client (pas de refetch .eq(t
 check "041" "Agent : extracteurs index-documents tous listés dans source_types de agent-chat" \
   "st_line=\$(grep -A2 'Optional filter by source type' supabase/functions/agent-chat/index.ts); for ex in \$(grep -oE '^  async [a-z_]+\(' supabase/functions/index-documents/index.ts | sed 's/  async //;s/(//'); do echo \"\$st_line\" | grep -qE \"(: |, )\$ex(,|\\\"|\$)\" || echo \"VIOLATION: extracteur '\$ex' absent de source_types dans agent-chat\"; done"
 
+# [041b] Agent — le prompt de schéma doit rester généré depuis le catalogue
+# PostgreSQL. Une liste de colonnes figée dérive (422 colonnes manquantes
+# constatées en juillet 2026).
+check "041b" "Agent : get_agent_schema_prompt généré depuis pg_catalog (pas de liste figée)" \
+  "last=\$(grep -l 'FUNCTION public.get_agent_schema_prompt' supabase/migrations/*.sql | sort | tail -1); \
+   [ -n \"\$last\" ] || { echo 'VIOLATION: get_agent_schema_prompt introuvable'; exit 0; }; \
+   grep -q 'pg_attribute' \"\$last\" || echo \"VIOLATION: \$last redéfinit get_agent_schema_prompt sans lire pg_attribute\""
+
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
 MANUAL_RULES="002|013|022|024|029|032|033"

@@ -112,6 +112,10 @@ Règles :
   • add_crm_comment : params { card_id, content } — ajoute une note/commentaire sur une opportunité
   • add_support_note : params { ticket_id, content } — ajoute une note au ticket support
   • add_content_card : params { title, content, tags (array, optionnel), column_id (optionnel, défaut: "Idées") } — crée une carte dans le module contenu
+- Pour programmer une action datée : les missions ET les fiches CRM portent toutes deux waiting_next_action_date et waiting_next_action_text
+  • sur une mission : update_mission avec params { mission_id, waiting_next_action_date, waiting_next_action_text }
+  • sur une fiche CRM : update_crm_card avec params { card_id, waiting_next_action_date, waiting_next_action_text }
+  • daily_actions est le système d'actions datées transverse (action_date, title, entity_type, entity_id) : le consulter pour lister ce qui est prévu
 - Tu peux combiner les tools dans une même réponse
 - Formate les montants en euros (€) et les dates en français
 - Si une requête SQL échoue, analyse l'erreur et corrige la requête
@@ -194,7 +198,7 @@ const TOOLS = [
   {
     name: "execute_action",
     description:
-      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission_status, update_ticket_status, update_quote_status.",
+      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission, update_mission_status, update_ticket_status, update_quote_status.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -208,6 +212,7 @@ const TOOLS = [
             "add_support_note",
             "add_content_card",
             "update_mission_status",
+            "update_mission",
             "update_ticket_status",
             "update_quote_status",
           ],
@@ -406,6 +411,41 @@ async function executeTool(
               });
             if (error) return JSON.stringify({ error: error.message });
             return JSON.stringify({ success: true, message: "Carte de contenu créée" });
+          }
+
+          case "update_mission": {
+            // Champs modifiables explicitement listés : une mission porte
+            // aussi des montants et des dates de facturation qui ne doivent
+            // pas pouvoir être écrasés par l'agent.
+            const MISSION_FIELDS = [
+              "waiting_next_action_date",
+              "waiting_next_action_text",
+              "title",
+              "description",
+              "client_contact",
+              "status",
+              "start_date",
+              "end_date",
+              "tags",
+            ];
+            const updates: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(params)) {
+              if (MISSION_FIELDS.includes(key)) updates[key] = value;
+            }
+            if (Object.keys(updates).length === 0) {
+              return JSON.stringify({
+                error: `Aucun champ modifiable fourni. Champs autorisés : ${MISSION_FIELDS.join(", ")}`,
+              });
+            }
+            const { error } = await supabase
+              .from("missions")
+              .update({ ...updates, updated_at: new Date().toISOString() })
+              .eq("id", params.mission_id);
+            if (error) return JSON.stringify({ error: error.message });
+            return JSON.stringify({
+              success: true,
+              message: `Mission mise à jour (${Object.keys(updates).join(", ")})`,
+            });
           }
 
           case "update_mission_status": {
