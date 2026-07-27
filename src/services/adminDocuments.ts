@@ -53,7 +53,8 @@ export async function fetchAdminDocuments(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let query = (supabase as any)
     .from("admin_documents")
-    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at")
+    .select("id, file_url, file_name, file_size, mime_type, year, category, tags, summary, analysis_status, uploaded_at, analyzed_at, is_favorite")
+    .order("is_favorite", { ascending: false })
     .order("uploaded_at", { ascending: false });
 
   if (filters.year) query = query.eq("year", filters.year);
