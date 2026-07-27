@@ -5,20 +5,28 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Lecture seule par construction** : 6 tools exposés — `query_database`
-  (via `agent_sql_query` : SELECT uniquement, tables allowlistées du registry,
-  100 lignes max), `search_content` (recherche hybride dans les contenus
-  indexés), `list_schema`, `get_mission_dossier` (mission + pages complètes +
-  activités + documents + galerie), `get_client_dossier` (missions,
-  formations, devis, cartes CRM + commentaires, transcripts d'un client) et
-  `read_media_image` (une photo de galerie renvoyée en image que Claude peut
-  regarder, redimensionnée côté serveur, 3 Mo max). Aucun tool d'écriture
-  n'existe sur ce serveur. Les tools dossier et image sont journalisés dans
-  `agent_query_audit_log` comme les requêtes SQL.
-- **Fichiers** : `get_mission_dossier` renvoie les métadonnées et URLs des
-  documents ; les photos des galeries SuperTools se lisent avec
-  `read_media_image` ; les fichiers Google Drive se lisent via le connecteur
-  Drive natif de claude.ai, dans la même conversation.
+- **Tools exposés (8)** : `query_database` (via `agent_sql_query` : SELECT
+  uniquement, tables allowlistées du registry, 100 lignes max),
+  `search_content` (recherche hybride, filtrable par mission via
+  `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
+  activités + documents + galerie), `get_client_dossier`, `read_media_image`
+  (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
+  `read_document` et `save_mission_note`. Tous sont journalisés dans
+  `agent_query_audit_log`.
+- **Lecture seule, à une exception près** : `save_mission_note` est la SEULE
+  écriture du serveur. Elle crée ou met à jour **une page de mission**, titre
+  préfixé « Note agent — », 200 000 caractères max. Elle ne peut rien
+  supprimer, ni toucher une autre table. Elle existe pour capitaliser un
+  travail long (transcription de photos d'atelier, synthèse intermédiaire)
+  hors de la conversation : le résultat survit à une saturation de contexte et
+  devient indexé, donc cherchable ensuite comme le reste.
+- **Lecture des documents** : `read_document` renvoie le contenu réel d'une
+  pièce jointe (mission, CRM, support). Les PDF avec texte sont renvoyés en
+  texte ; les **PDF scannés** sont renvoyés en images de pages, à lire
+  visuellement ; les `.xlsx` sont convertis en CSV et les `.docx` en texte ;
+  les fichiers audio renvoient leur transcription SuperTools si elle existe.
+  Les fichiers Google Drive se lisent via le connecteur Drive natif de
+  claude.ai, dans la même conversation.
 - **Mono-utilisateur** : chaque appel est lié à `romain@supertilt.fr`,
   liste blanche d'un seul compte codée en dur dans
   `supabase/functions/mcp-server/index.ts` (`ALLOWED_EMAIL`). Modifier

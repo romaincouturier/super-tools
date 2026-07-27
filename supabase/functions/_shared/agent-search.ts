@@ -67,6 +67,7 @@ export async function searchContent(
   query: string,
   sourceTypes?: string[],
   maxResults = 10,
+  missionId?: string | null,
 ): Promise<SearchResult[]> {
   const openaiKey = await getOpenAIApiKey();
   if (!openaiKey) {
@@ -108,9 +109,19 @@ export async function searchContent(
     query_embedding: JSON.stringify(queryEmbedding),
     match_count: maxResults,
     filter_source_types: sourceTypes || null,
+    filter_mission_id: missionId || null,
   });
 
   if (error) {
+    // Repli sur la recherche vectorielle simple si la fonction hybride n'est
+    // pas déployée. Elle ne sait pas filtrer par mission : plutôt que de
+    // renvoyer silencieusement des résultats hors périmètre, on échoue.
+    if (missionId) {
+      throw new Error(
+        `Recherche par mission indisponible (match_documents_hybrid : ${error.message}). ` +
+          `Relancer sans filtre mission ou appliquer la migration.`,
+      );
+    }
     ({ data, error } = await supabase.rpc("match_documents", {
       query_embedding: JSON.stringify(queryEmbedding),
       match_threshold: 0.65,
