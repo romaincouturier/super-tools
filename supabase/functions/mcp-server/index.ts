@@ -10,9 +10,14 @@ import { searchContent } from "../_shared/agent-search.ts";
 /**
  * Serveur MCP SuperTools — lecture seule, mono-utilisateur.
  *
- * Expose 2 tools à Claude (claude.ai / Claude Desktop via connecteur custom) :
- *   - query_database  : SQL SELECT via agent_sql_query (allowlist + audit)
- *   - search_content  : recherche hybride dans les contenus indexés
+ * Expose des tools en lecture seule à Claude (claude.ai / Claude Desktop
+ * via connecteur custom) :
+ *   - query_database      : SQL SELECT via agent_sql_query (allowlist + audit)
+ *   - search_content      : recherche hybride dans les contenus indexés
+ *   - list_schema         : tables requêtables
+ *   - get_mission_dossier : mission + pages + activités + documents + galerie
+ *   - get_client_dossier  : tout ce qui touche un client, par nom
+ *   - read_media_image    : une photo de galerie en bloc image (base64)
  *
  * Sécurité :
  *   - OAuth 2.1 (PKCE S256, dynamic client registration) requis par claude.ai
@@ -32,6 +37,13 @@ const REFRESH_TOKEN_TTL_S = 60 * 24 * 3600; // 60 jours
 const CODE_TTL_S = 600; // 10 minutes
 const MAX_AUTH_FAILS = 5;
 const AUTH_FAIL_WINDOW_MIN = 15;
+// Callbacks officiels Claude acceptés sans enregistrement préalable (repli
+// quand la dynamic client registration échoue côté claude.ai)
+const ALLOWED_IMPLICIT_REDIRECTS = [
+  "https://claude.ai/api/mcp/auth_callback",
+  "https://claude.ai/api/organizations/oauth/callback",
+  "https://claude.com/api/mcp/auth_callback",
+];
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -177,13 +189,259 @@ const MCP_TOOLS = [
       "Return the list of queryable tables with their columns and descriptions. Call this before writing SQL if unsure of the schema.",
     inputSchema: { type: "object", properties: {} },
   },
+  {
+    name: "get_mission_dossier",
+    description:
+      "Return the complete dossier of a mission: mission record, all its pages (full content), activities, and attached documents (name, type, URL). Use this to load the full working context of a mission in one call instead of multiple SQL queries.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission: {
+          type: "string",
+          description: "Mission title (partial match, case-insensitive) or mission UUID",
+        },
+      },
+      required: ["mission"],
+    },
+  },
+  {
+    name: "get_client_dossier",
+    description:
+      "Return everything related to a client across SuperTools: missions, trainings, quotes, CRM cards with recent comments, and meeting transcripts mentioning the client. Matching is done by name (partial, case-insensitive). Use this to load the full client context in one call.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        client: { type: "string", description: "Client or organization name (partial match)" },
+      },
+      required: ["client"],
+    },
+  },
+  {
+    name: "read_media_image",
+    description:
+      "Return an image from a SuperTools gallery (mission workshop photos, CRM card images...) so you can actually see it. Pass the media id from get_mission_dossier's gallery or from the media table. Images are downscaled server-side when possible.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        media_id: { type: "string", description: "UUID of the media row" },
+      },
+      required: ["media_id"],
+    },
+  },
 ];
+
+// ── Dossiers agrégés (lecture seule, journalisés) ────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PAGE_CONTENT_MAX = 20000;
+
+async function auditDossierCall(supabase: Supabase, label: string): Promise<void> {
+  const userId = await getAllowedUserId(supabase);
+  await supabase.from("agent_query_audit_log").insert({
+    user_id: userId,
+    query_text: label,
+    explanation: "via connecteur MCP Claude (tool dossier)",
+  });
+}
+
+async function getMissionDossier(supabase: Supabase, missionQuery: string): Promise<string> {
+  await auditDossierCall(supabase, `get_mission_dossier: ${missionQuery.slice(0, 200)}`);
+
+  let missionReq = supabase
+    .from("missions")
+    .select("id, title, client_name, client_contact, status, initial_amount, consumed_amount, billed_amount, total_amount, created_at")
+    .limit(3);
+  missionReq = UUID_RE.test(missionQuery.trim())
+    ? missionReq.eq("id", missionQuery.trim())
+    : missionReq.ilike("title", `%${missionQuery}%`);
+
+  const { data: missions, error } = await missionReq;
+  if (error) throw new Error(error.message);
+  if (!missions?.length) {
+    return JSON.stringify({ found: false, hint: "Aucune mission ne correspond. Essayer query_database sur la table missions." });
+  }
+  if (missions.length > 1) {
+    return JSON.stringify({
+      found: false,
+      ambiguous: missions.map((m: Record<string, unknown>) => ({ id: m.id, title: m.title, client_name: m.client_name })),
+      hint: "Plusieurs missions correspondent : rappeler avec l'UUID.",
+    });
+  }
+
+  const mission = missions[0] as Record<string, unknown>;
+  const [pages, activities, documents, gallery] = await Promise.all([
+    supabase
+      .from("mission_pages")
+      .select("id, title, icon, content, page_type, parent_page_id, position, is_deliverable, created_at")
+      .eq("mission_id", mission.id)
+      .order("position", { ascending: true })
+      .limit(60),
+    supabase
+      .from("mission_activities")
+      .select("activity_date, description, duration, duration_type, is_billed, notes")
+      .eq("mission_id", mission.id)
+      .order("activity_date", { ascending: true })
+      .limit(100),
+    supabase
+      .from("mission_documents")
+      .select("file_name, file_url, mime_type, file_size, is_deliverable, processing_status, transcript_page_id, created_at")
+      .eq("mission_id", mission.id)
+      .order("created_at", { ascending: true })
+      .limit(100),
+    supabase
+      .from("media")
+      .select("id, file_name, mime_type, file_size, position, tags, transcript, is_deliverable, created_at")
+      .eq("source_type", "mission")
+      .eq("source_id", mission.id)
+      .order("position", { ascending: true })
+      .limit(100),
+  ]);
+
+  return JSON.stringify({
+    found: true,
+    mission,
+    pages: (pages.data || []).map((p: Record<string, unknown>) => ({
+      ...p,
+      content: typeof p.content === "string" && p.content.length > PAGE_CONTENT_MAX
+        ? p.content.slice(0, PAGE_CONTENT_MAX) + "… [tronqué]"
+        : p.content,
+    })),
+    activities: activities.data || [],
+    documents: documents.data || [],
+    gallery: gallery.data || [],
+    hint: "Les photos de la galerie se lisent avec read_media_image (passer l'id).",
+  });
+}
+
+const IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+async function readMediaImage(
+  supabase: Supabase,
+  mediaId: string,
+): Promise<{ data: string; mimeType: string }> {
+  await auditDossierCall(supabase, `read_media_image: ${mediaId.slice(0, 60)}`);
+
+  const { data: row, error } = await supabase
+    .from("media")
+    .select("file_name, file_url, mime_type")
+    .eq("id", mediaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Media introuvable");
+
+  const mime = (row.mime_type as string) || "";
+  if (!mime.startsWith("image/")) {
+    throw new Error(`Ce media n'est pas une image (${mime || "type inconnu"})`);
+  }
+
+  const fileUrl = row.file_url as string;
+
+  // Version réduite via le transformateur d'images du storage quand
+  // disponible (les photos d'atelier sortent de téléphone : plusieurs Mo)
+  let res: Response | null = null;
+  if (fileUrl.includes("/storage/v1/object/public/")) {
+    const renderUrl =
+      fileUrl.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/") +
+      "?width=1600&quality=75";
+    const r = await fetch(renderUrl);
+    if (r.ok && (r.headers.get("content-type") || "").startsWith("image/")) {
+      res = r;
+    }
+  }
+  if (!res) {
+    const r = await fetch(fileUrl);
+    if (!r.ok) throw new Error(`Téléchargement impossible (${r.status})`);
+    res = r;
+  }
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length > IMAGE_MAX_BYTES) {
+    throw new Error(
+      `Image trop lourde (${Math.round(bytes.length / 1024)} Ko, max ${IMAGE_MAX_BYTES / 1024} Ko)`,
+    );
+  }
+  const mimeType = res.headers.get("content-type")?.split(";")[0] || mime;
+  return { data: bytesToBase64(bytes), mimeType };
+}
+
+async function getClientDossier(supabase: Supabase, client: string): Promise<string> {
+  await auditDossierCall(supabase, `get_client_dossier: ${client.slice(0, 200)}`);
+  const pattern = `%${client}%`;
+
+  const [missions, trainings, quotes, cards, transcripts] = await Promise.all([
+    supabase
+      .from("missions")
+      .select("id, title, client_name, client_contact, status, initial_amount, consumed_amount, created_at")
+      .ilike("client_name", pattern)
+      .limit(20),
+    supabase
+      .from("trainings")
+      .select("id, training_name, client_name, start_date, end_date, location, is_cancelled")
+      .ilike("client_name", pattern)
+      .order("start_date", { ascending: false })
+      .limit(20),
+    supabase
+      .from("quotes")
+      .select("id, quote_number, client_company, client_email, status, total_ht, issue_date, crm_card_id")
+      .ilike("client_company", pattern)
+      .order("issue_date", { ascending: false })
+      .limit(20),
+    supabase
+      .from("crm_cards")
+      .select("id, title, sales_status, estimated_value, contact_email, waiting_next_action_text, created_at")
+      .ilike("title", pattern)
+      .limit(20),
+    supabase
+      .from("transcripts")
+      .select("id, title, summary, source, created_at")
+      .eq("status", "ready")
+      .ilike("title", pattern)
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
+
+  const cardIds = (cards.data || []).map((c: Record<string, unknown>) => c.id);
+  const comments = cardIds.length
+    ? await supabase
+        .from("crm_comments")
+        .select("card_id, content, author_email, created_at")
+        .in("card_id", cardIds)
+        .order("created_at", { ascending: false })
+        .limit(30)
+    : { data: [] };
+
+  return JSON.stringify({
+    client_query: client,
+    missions: missions.data || [],
+    trainings: trainings.data || [],
+    quotes: quotes.data || [],
+    crm_cards: cards.data || [],
+    crm_comments: comments.data || [],
+    transcripts: transcripts.data || [],
+    hint: "Pour le contenu détaillé d'une mission, utiliser get_mission_dossier. Pour chercher dans le texte des transcripts et notes, utiliser search_content.",
+  });
+}
+
+type ToolResult = { content: Array<Record<string, unknown>>; isError?: boolean };
+
+function textResult(text: string, isError = false): ToolResult {
+  return { content: [{ type: "text", text }], ...(isError ? { isError: true } : {}) };
+}
 
 async function callTool(
   supabase: Supabase,
   name: string,
   args: Record<string, unknown>,
-): Promise<{ text: string; isError?: boolean }> {
+): Promise<ToolResult> {
   switch (name) {
     case "query_database": {
       const userId = await getAllowedUserId(supabase);
@@ -192,8 +450,8 @@ async function callTool(
         p_user_id: userId,
         p_explanation: ((args.explanation as string) || "via connecteur MCP Claude").slice(0, 500),
       });
-      if (error) return { text: `SQL error: ${error.message}`, isError: true };
-      return { text: JSON.stringify(data ?? []) };
+      if (error) return textResult(`SQL error: ${error.message}`, true);
+      return textResult(JSON.stringify(data ?? []));
     }
     case "search_content": {
       try {
@@ -203,18 +461,40 @@ async function callTool(
           args.source_types as string[] | undefined,
           Math.min((args.max_results as number) || 10, 20),
         );
-        return { text: JSON.stringify(results) };
+        return textResult(JSON.stringify(results));
       } catch (e) {
-        return { text: `Search error: ${e instanceof Error ? e.message : "failed"}`, isError: true };
+        return textResult(`Search error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "list_schema": {
       const { data, error } = await supabase.rpc("get_agent_schema_prompt");
-      if (error) return { text: `Schema error: ${error.message}`, isError: true };
-      return { text: (data as string) || "(empty schema)" };
+      if (error) return textResult(`Schema error: ${error.message}`, true);
+      return textResult((data as string) || "(empty schema)");
+    }
+    case "get_mission_dossier": {
+      try {
+        return textResult(await getMissionDossier(supabase, (args.mission as string) || ""));
+      } catch (e) {
+        return textResult(`Dossier error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "get_client_dossier": {
+      try {
+        return textResult(await getClientDossier(supabase, (args.client as string) || ""));
+      } catch (e) {
+        return textResult(`Dossier error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_media_image": {
+      try {
+        const img = await readMediaImage(supabase, (args.media_id as string) || "");
+        return { content: [{ type: "image", data: img.data, mimeType: img.mimeType }] };
+      } catch (e) {
+        return textResult(`Image error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
     }
     default:
-      return { text: `Unknown tool: ${name}`, isError: true };
+      return textResult(`Unknown tool: ${name}`, true);
   }
 }
 
@@ -285,11 +565,7 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
     case "tools/call": {
       const toolName = params.name as string;
       const args = (params.arguments || {}) as Record<string, unknown>;
-      const { text, isError } = await callTool(supabase, toolName, args);
-      return rpcResult(id, {
-        content: [{ type: "text", text }],
-        ...(isError ? { isError: true } : {}),
-      });
+      return rpcResult(id, await callTool(supabase, toolName, args));
     }
     default:
       return rpcError(id, -32601, `Method not found: ${method}`);
@@ -410,9 +686,15 @@ async function handleAuthorizePost(req: Request, supabase: Supabase): Promise<Re
     state,
   });
 
-  // Client + redirect_uri enregistrés, PKCE S256 obligatoire
+  // Client enregistré (DCR) OU client implicite : quand la découverte OAuth
+  // de claude.ai échoue (well-known à la racine du domaine Supabase), le
+  // Client ID est saisi à la main dans le connecteur — on l'accepte à la
+  // seule condition que le callback soit une URL officielle de Claude.
+  // La sécurité repose de toute façon sur PKCE + la clé personnelle.
   const client = await findByHash(supabase, "client", await sha256Hex(clientId));
-  if (!client || !(client.data.redirect_uris as string[]).includes(redirectUri)) {
+  const registeredOk = !!client && (client.data.redirect_uris as string[]).includes(redirectUri);
+  const implicitOk = ALLOWED_IMPLICIT_REDIRECTS.includes(redirectUri);
+  if (!registeredOk && !implicitOk) {
     return json({ error: "invalid_client" }, 400);
   }
   if (!codeChallenge || method !== "S256") {

@@ -80,6 +80,34 @@ async function buildQuery(
 
 // ── Extractors per source type ───────────────────────────────
 
+// Tables sources pour le mode backfill (IDs seulement, avec filtre éventuel).
+// Doit rester aligné avec les extracteurs ci-dessous.
+const BACKFILL_SOURCES: Record<string, { table: string; eq?: [string, string] }> = {
+  crm_card: { table: "crm_cards" },
+  crm_comment: { table: "crm_comments" },
+  crm_email: { table: "crm_card_emails" },
+  inbound_email: { table: "inbound_emails" },
+  training: { table: "trainings" },
+  mission: { table: "missions" },
+  quote: { table: "quotes" },
+  support_ticket: { table: "support_tickets" },
+  coaching_summary: { table: "coaching_summaries" },
+  content_card: { table: "content_cards" },
+  lms_lesson: { table: "lms_lessons" },
+  activity_log: { table: "activity_logs", eq: ["action_type", "micro_devis_sent"] },
+  mission_page: { table: "mission_pages" },
+  mission_activity: { table: "mission_activities" },
+  evaluation_analysis: { table: "evaluation_analyses" },
+  questionnaire_besoins: { table: "questionnaire_besoins" },
+  okr_objective: { table: "okr_objectives" },
+  okr_key_result: { table: "okr_key_results" },
+  okr_initiative: { table: "okr_initiatives" },
+  crm_attachment: { table: "crm_attachments" },
+  support_attachment: { table: "support_ticket_attachments" },
+  transcript: { table: "transcripts", eq: ["status", "ready"] },
+  testimonial: { table: "testimonials", eq: ["status", "published"] },
+};
+
 const extractors: Record<string, Extractor> = {
   async crm_card(supabase, sourceId) {
     const { data } = await buildQuery(
@@ -699,16 +727,77 @@ serve(async (req) => {
       return createErrorResponse("source_id is required (or set backfill: true)", 400);
     }
 
+    const supabase = getSupabaseClient();
+
+    // ── Mode backfill : plus aucune extraction ni embedding ici. On repère
+    // les documents manquants (requêtes légères sur les IDs seulement) et on
+    // les met dans indexation_queue ; process-indexation-queue les traite
+    // ensuite un par un, chacun dans son propre appel. L'ancienne approche
+    // (tout extraire et embedder dans une seule requête HTTP) dépassait le
+    // timeout edge de 150s sur les sources volumineuses.
+    if (backfill) {
+      const spec = BACKFILL_SOURCES[source_type];
+      if (!spec) {
+        return createErrorResponse(`Backfill non supporté pour ${source_type}`, 400);
+      }
+
+      let idQuery = supabase.from(spec.table).select("id").limit(5000);
+      if (spec.eq) idQuery = idQuery.eq(spec.eq[0], spec.eq[1]);
+      const { data: srcRows, error: srcErr } = await idQuery;
+      if (srcErr) return createErrorResponse(srcErr.message);
+      const sourceIds = (srcRows || []).map((r: { id: string }) => String(r.id));
+
+      // IDs déjà indexés, par paquets (URLs bornées)
+      const indexed = new Set<string>();
+      for (let i = 0; i < sourceIds.length; i += 200) {
+        const { data } = await supabase
+          .from("document_embeddings")
+          .select("source_id")
+          .eq("source_type", source_type)
+          .in("source_id", sourceIds.slice(i, i + 200));
+        for (const r of data || []) indexed.add(String((r as { source_id: string }).source_id));
+      }
+
+      // IDs déjà en attente dans la queue
+      const { data: pendingRows } = await supabase
+        .from("indexation_queue")
+        .select("source_id")
+        .eq("source_type", source_type)
+        .is("processed_at", null)
+        .limit(5000);
+      const pending = new Set((pendingRows || []).map((r: { source_id: string }) => String(r.source_id)));
+
+      const missing = sourceIds.filter((id) => !indexed.has(id) && !pending.has(id));
+      for (let i = 0; i < missing.length; i += 500) {
+        const rows = missing.slice(i, i + 500).map((id) => ({
+          source_type,
+          source_id: id,
+          operation: "upsert",
+        }));
+        const { error: insErr } = await supabase.from("indexation_queue").insert(rows);
+        if (insErr) return createErrorResponse(insErr.message);
+      }
+
+      return createJsonResponse({
+        success: true,
+        mode: "enqueue",
+        source_type,
+        total_source: sourceIds.length,
+        already_indexed: indexed.size,
+        already_pending: pending.size,
+        enqueued: missing.length,
+      });
+    }
+
     const openaiKey = await resolveOpenAIKey();
     if (!openaiKey) {
       return createErrorResponse("OPENAI_API_KEY not configured", 500);
     }
 
-    const supabase = getSupabaseClient();
     const extractor = extractors[source_type];
 
-    // Extract documents
-    const docs = await extractor(supabase, backfill ? undefined : source_id);
+    // Extract documents (mode document unique)
+    const docs = await extractor(supabase, source_id);
 
     let indexed = 0;
     let errors = 0;
@@ -730,21 +819,6 @@ serve(async (req) => {
         }
 
         const chunks = chunkText(doc.content);
-
-        // Backfill : sauter les documents déjà entièrement indexés, pour
-        // que les relances reprennent où la précédente s'est arrêtée au
-        // lieu de tout re-embedder depuis le début.
-        if (backfill) {
-          const { count } = await supabase
-            .from("document_embeddings")
-            .select("*", { count: "exact", head: true })
-            .eq("source_type", source_type)
-            .eq("source_id", doc.source_id);
-          if ((count ?? 0) >= chunks.length) {
-            processedDocs++;
-            continue;
-          }
-        }
 
         for (let i = 0; i < chunks.length; i++) {
           // Un seul document long (transcript d'une heure = dizaines de
@@ -785,11 +859,6 @@ serve(async (req) => {
 
         if (truncated) break;
         processedDocs++;
-
-        // Small delay to respect OpenAI rate limits during backfill
-        if (backfill && docs.length > 10) {
-          await new Promise((r) => setTimeout(r, 200));
-        }
       } catch (e) {
         console.error(`Error indexing ${doc.source_id}:`, e);
         errors++;
