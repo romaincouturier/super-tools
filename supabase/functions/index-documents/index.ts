@@ -712,10 +712,22 @@ serve(async (req) => {
 
     let indexed = 0;
     let errors = 0;
+    let processedDocs = 0;
+    let truncated = false;
+    // Leave margin before the 150s edge timeout so we can respond cleanly.
+    const startedAt = Date.now();
+    const MAX_WALL_MS = 130_000;
 
     for (const doc of docs) {
+      if (Date.now() - startedAt > MAX_WALL_MS) {
+        truncated = true;
+        break;
+      }
       try {
-        if (!doc.content.trim()) continue;
+        if (!doc.content.trim()) {
+          processedDocs++;
+          continue;
+        }
 
         const chunks = chunkText(doc.content);
 
@@ -749,6 +761,8 @@ serve(async (req) => {
           }
         }
 
+        processedDocs++;
+
         // Small delay to respect OpenAI rate limits during backfill
         if (backfill && docs.length > 10) {
           await new Promise((r) => setTimeout(r, 200));
@@ -763,8 +777,10 @@ serve(async (req) => {
       success: true,
       source_type,
       documents_found: docs.length,
+      documents_processed: processedDocs,
       chunks_indexed: indexed,
       errors,
+      truncated,
     });
   } catch (error: unknown) {
     console.error("Index-documents error:", error);
