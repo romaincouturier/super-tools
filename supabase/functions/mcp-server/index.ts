@@ -37,6 +37,13 @@ const REFRESH_TOKEN_TTL_S = 60 * 24 * 3600; // 60 jours
 const CODE_TTL_S = 600; // 10 minutes
 const MAX_AUTH_FAILS = 5;
 const AUTH_FAIL_WINDOW_MIN = 15;
+// Callbacks officiels Claude acceptés sans enregistrement préalable (repli
+// quand la dynamic client registration échoue côté claude.ai)
+const ALLOWED_IMPLICIT_REDIRECTS = [
+  "https://claude.ai/api/mcp/auth_callback",
+  "https://claude.ai/api/organizations/oauth/callback",
+  "https://claude.com/api/mcp/auth_callback",
+];
 const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -679,9 +686,15 @@ async function handleAuthorizePost(req: Request, supabase: Supabase): Promise<Re
     state,
   });
 
-  // Client + redirect_uri enregistrés, PKCE S256 obligatoire
+  // Client enregistré (DCR) OU client implicite : quand la découverte OAuth
+  // de claude.ai échoue (well-known à la racine du domaine Supabase), le
+  // Client ID est saisi à la main dans le connecteur — on l'accepte à la
+  // seule condition que le callback soit une URL officielle de Claude.
+  // La sécurité repose de toute façon sur PKCE + la clé personnelle.
   const client = await findByHash(supabase, "client", await sha256Hex(clientId));
-  if (!client || !(client.data.redirect_uris as string[]).includes(redirectUri)) {
+  const registeredOk = !!client && (client.data.redirect_uris as string[]).includes(redirectUri);
+  const implicitOk = ALLOWED_IMPLICIT_REDIRECTS.includes(redirectUri);
+  if (!registeredOk && !implicitOk) {
     return json({ error: "invalid_client" }, 400);
   }
   if (!codeChallenge || method !== "S256") {

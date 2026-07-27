@@ -161,47 +161,81 @@ export default function AgentIndexationSettings() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Non authentifié");
 
-      let totalDocs = 0;
-      let totalChunks = 0;
-      let totalErrors = 0;
-      // Loop while the edge function reports truncated (150s wall budget).
-      // Cap iterations to avoid an infinite loop on a pathological source.
-      for (let i = 0; i < 30; i++) {
+      // 1. Enfilage : index-documents en mode backfill ne fait que repérer
+      // les documents manquants et les mettre dans indexation_queue
+      // (réponse en quelques secondes, aucun embedding dans cet appel).
+      const enqueueRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/index-documents`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ source_type: sourceType, backfill: true }),
+        },
+      );
+      if (!enqueueRes.ok) {
+        const errText = await enqueueRes.text();
+        throw new Error(errText || `Erreur ${enqueueRes.status}`);
+      }
+      const enq = await enqueueRes.json();
+      const toProcess = (enq.enqueued ?? 0) + (enq.already_pending ?? 0);
+
+      if (toProcess === 0) {
+        setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
+        setResults((prev) => ({
+          ...prev,
+          [sourceType]: `Déjà à jour (${enq.already_indexed ?? 0}/${enq.total_source ?? 0} docs indexés)`,
+        }));
+        return;
+      }
+
+      // 2. Traitement : on draine la queue par petits lots et on affiche
+      // l'avancement réel de CETTE source (compte des items restants).
+      setResults((prev) => ({
+        ...prev,
+        [sourceType]: `0/${toProcess} docs traités…`,
+      }));
+
+      for (let i = 0; i < MAX_BATCHES; i++) {
         const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/index-documents`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-indexation-queue`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ source_type: sourceType, backfill: true }),
+            body: JSON.stringify({}),
           },
         );
+        if (!res.ok) throw new Error(await res.text());
+        const drain = await res.json();
 
-        if (!res.ok) {
-          const errText = await res.text();
-          throw new Error(errText || `Erreur ${res.status}`);
-        }
+        const { count: remaining } = await supabase
+          .from("indexation_queue")
+          .select("*", { count: "exact", head: true })
+          .eq("source_type", sourceType)
+          .is("processed_at", null);
 
-        const data = await res.json();
-        totalDocs += data.documents_found ?? 0;
-        totalChunks += data.chunks_indexed ?? 0;
-        totalErrors += data.errors ?? 0;
-
+        const done = Math.max(toProcess - (remaining ?? 0), 0);
         setResults((prev) => ({
           ...prev,
-          [sourceType]: `${totalChunks} chunks indexés (${totalDocs} docs)${data.truncated ? " — suite en cours…" : ""}`,
+          [sourceType]: `${done}/${toProcess} docs traités…`,
         }));
 
-        if (!data.truncated) break;
+        if ((remaining ?? 0) === 0 || drain.drained) {
+          setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
+          setResults((prev) => ({
+            ...prev,
+            [sourceType]: `${done}/${toProcess} docs traités${(remaining ?? 0) > 0 ? ` — ${remaining} restants (relancer)` : ""}`,
+          }));
+          await refreshHealth();
+          return;
+        }
       }
-
-      setStatuses((prev) => ({ ...prev, [sourceType]: "done" }));
-      setResults((prev) => ({
-        ...prev,
-        [sourceType]: `${totalChunks} chunks indexés (${totalDocs} docs)${totalErrors ? ` — ${totalErrors} erreur(s)` : ""}`,
-      }));
+      throw new Error("Traitement interrompu après trop de lots — relancer pour continuer");
     } catch (err) {
       // Erreur affichée dans l'UI (badge) sans toast : reporter explicitement (règle 037)
       reportHandledError(err);
