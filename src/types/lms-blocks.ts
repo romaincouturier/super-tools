@@ -442,6 +442,12 @@ export interface SectionBlockContent {
 
 export type RowColumnCount = 1 | 2 | 3;
 
+export type RowVerticalAlign = "top" | "center" | "bottom";
+/** contain = image entière visible ; cover = remplit le cadre (recadrage) ; natural = taille d'origine dans la limite de la colonne. */
+export type RowImageFit = "contain" | "cover" | "natural";
+export type RowImageSizing = "equal_width" | "equal_height" | "max_height" | "free";
+export type RowImageFrame = "none" | "card" | "border" | "rounded" | "shadow";
+
 export interface RowBlockContent {
   /** Number of equal-width columns laid out horizontally on desktop. */
   column_count: RowColumnCount;
@@ -452,6 +458,15 @@ export interface RowBlockContent {
    * auto-placement, so existing lessons keep their layout.
    */
   column_assignments?: Record<string, number>;
+  /**
+   * Harmonisation des images côte à côte (ST-2026-0250). Champs absents =
+   * réglages recommandés : alignement haut, contain, hauteur maximale
+   * commune, coins arrondis légers.
+   */
+  vertical_align?: RowVerticalAlign;
+  image_fit?: RowImageFit;
+  image_sizing?: RowImageSizing;
+  image_frame?: RowImageFrame;
 }
 
 export type ContainerMaxWidth = "sm" | "md" | "lg" | "xl" | "full";

@@ -32,6 +32,35 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 - **Audit** : toutes les requêtes SQL passent par `agent_query_audit_log`
   avec l'identité et l'explication de la requête.
 
+## Proxy racine obligatoire pour claude.ai
+
+Les clients MCP de claude.ai cherchent les endpoints OAuth (`/authorize`,
+`/token`, `/register`, `/.well-known/*`) à la **racine du domaine**, en
+ignorant le chemin. Sur `*.supabase.co` la racine ne nous appartient pas :
+il faut donc servir le connecteur via un proxy dont on contrôle la racine.
+
+Cloudflare Worker (gratuit, URL `*.workers.dev`, aucun DNS à configurer) :
+
+```js
+export default {
+  fetch(request) {
+    const url = new URL(request.url);
+    const target =
+      "https://yewffntzgrdgztrwtava.supabase.co/functions/v1/mcp-server" +
+      url.pathname + url.search;
+    return fetch(new Request(target, request));
+  },
+};
+```
+
+1. dash.cloudflare.com > Workers > Create Worker > coller le script > Deploy.
+2. Noter l'URL du worker (ex : `https://supertools-mcp.xxx.workers.dev`).
+3. `supabase secrets set MCP_PUBLIC_URL=https://supertools-mcp.xxx.workers.dev`
+   puis redéployer `mcp-server` (le serveur annonce alors ses endpoints
+   OAuth sur cette URL racine).
+4. Dans claude.ai, l'URL du connecteur devient **l'URL du worker** (pas
+   celle de la fonction Supabase).
+
 ## Installation (une fois)
 
 1. Poser le secret (choisir une clé longue, gestionnaire de mots de passe) :

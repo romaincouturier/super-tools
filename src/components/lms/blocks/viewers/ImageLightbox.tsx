@@ -258,9 +258,11 @@ interface ImageWithLightboxProps {
   alt?: string;
   className?: string;
   imgStyle?: React.CSSProperties;
+  /** Remplace les classes par défaut de l'img (ex : object-cover plein cadre). */
+  imgClassName?: string;
 }
 
-export function ImageWithLightbox({ src, alt, className, imgStyle }: ImageWithLightboxProps) {
+export function ImageWithLightbox({ src, alt, className, imgStyle, imgClassName }: ImageWithLightboxProps) {
   const [open, setOpen] = useState(false);
 
   const handleDownload = async (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -292,7 +294,7 @@ export function ImageWithLightbox({ src, alt, className, imgStyle }: ImageWithLi
           src={src}
           alt={alt ?? ""}
           style={imgStyle}
-          className="block max-w-full h-auto object-contain"
+          className={imgClassName ?? "block max-w-full h-auto object-contain"}
         />
         {/* Hover overlay — centered call to action */}
         <span
