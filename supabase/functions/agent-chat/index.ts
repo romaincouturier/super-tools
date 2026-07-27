@@ -102,9 +102,35 @@ async function getDbSchema(supabase: ReturnType<typeof getSupabaseClient>): Prom
   return "(schema unavailable — ask the user to check the agent_schema_registry table)";
 }
 
+// ── Business context — loaded from app_settings (editable in Réglages) ──
+
+let _cachedContext: { text: string; fetchedAt: number } | null = null;
+
+async function getBusinessContext(supabase: ReturnType<typeof getSupabaseClient>): Promise<string> {
+  const now = Date.now();
+  if (_cachedContext && now - _cachedContext.fetchedAt < SCHEMA_CACHE_TTL_MS) {
+    return _cachedContext.text;
+  }
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("setting_value")
+      .eq("setting_key", "agent_business_context")
+      .maybeSingle();
+    const text = (data as { setting_value?: string } | null)?.setting_value ?? "";
+    _cachedContext = { text, fetchedAt: now };
+    return text;
+  } catch (e) {
+    console.error("Failed to load business context:", e);
+    return _cachedContext?.text ?? "";
+  }
+}
+
 // ── System prompt ────────────────────────────────────────────
 
-function buildSystemPrompt(dbSchema: string): string {
+function buildSystemPrompt(dbSchema: string, businessContext: string): string {
+  // Date sans l'heure : le prompt sert de préfixe de cache (cache_control),
+  // une heure qui change à chaque minute invaliderait le cache en permanence.
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -112,11 +138,10 @@ function buildSystemPrompt(dbSchema: string): string {
     month: "long",
     day: "numeric",
   });
-  const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
   return `Tu es l'assistant IA de SuperTools, une application de gestion pour un organisme de formation professionnelle.
 
-Date et heure actuelles : ${dateStr}, ${timeStr}.
+Date actuelle : ${dateStr}.
 
 Tu aides l'utilisateur à :
 - Analyser ses données (CRM, formations, devis, missions, emails, etc.)
@@ -142,19 +167,18 @@ Règles :
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
+${businessContext ? `
+Contexte métier (fourni par l'équipe — fait foi pour les définitions, le vocabulaire et les priorités) :
+${businessContext}
+` : ""}
+Jointures et conventions utiles :
+- Participants d'une formation : training_participants.training_id → trainings.id
+- Évaluations d'une formation : training_evaluations.training_id → trainings.id ; une évaluation complète a etat = 'soumis' ; la note est appreciation_generale (1 à 5)
+- Devis et CRM : quotes.crm_card_id → crm_cards.id ; montants total_ht / total_ttc ; un devis signé a status = 'signed'
+- Royautés dropshipping : game_sales.game_id → games.id puis games.author_id → game_authors.id
+- Le client d'une formation ou d'une mission est un champ texte (trainings.client_name, missions.client_name), pas une FK
 
-Modules disponibles dans SuperTools :
-- **CRM** : opportunités (crm_cards), commentaires (crm_comments), emails (crm_card_emails)
-- **Formations** : sessions, participants, devis, missions
-- **Transcripts** : enregistrements audio/vidéo transcrits automatiquement (source: google_drive ou fireflies). Table: transcripts (id, source, title, summary, raw_text, tags, status, duration_seconds, created_at). Statuts: pending → processing → ready | error
-- **Témoignages** : vidéos clients déposées sur Google Drive, transcrites et analysées. Table: testimonials (id, client_name, company, service_type, raw_transcript, status, published_at). Workflow: pending_review → published | rejected
-- **Dropshipping** : gestion des ventes de jeux et royautés auteurs. Tables:
-  • game_authors (id, name, email, company, royalty_rate) — taux de royauté entre 0 et 1
-  • games (id, author_id, title, woocommerce_product_id, status)
-  • game_sales (id, game_id, woocommerce_order_id, customer_name, quantity, unit_price, total_amount, royalty_amount, sale_date, status) — statuts: pending | paid
-- **Support** : tickets et pièces jointes
-
-Schéma de la base de données :
+Schéma de la base de données (source de vérité — chaque ligne est une table requêtable, avec sa description) :
 ${dbSchema}`;
 }
 
@@ -195,7 +219,7 @@ const TOOLS = [
           type: "array",
           items: { type: "string" },
           description:
-            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment",
+            "Optional filter by source type(s): crm_card, crm_comment, crm_email, inbound_email, training, mission, mission_page, mission_activity, quote, support_ticket, coaching_summary, content_card, lms_lesson, activity_log, evaluation_analysis, questionnaire_besoins, okr_objective, okr_key_result, okr_initiative, crm_attachment, support_attachment, transcript, testimonial",
         },
         max_results: {
           type: "number",
@@ -203,6 +227,15 @@ const TOOLS = [
         },
       },
       required: ["query"],
+    },
+  },
+  {
+    name: "get_business_health",
+    description:
+      "Génère un bilan de santé business des 30 derniers jours : formations, participants, taux de retour des questionnaires et évaluations, pipeline CRM, avec analyse IA. Coûteux : uniquement quand l'utilisateur demande explicitement un bilan ou une vue d'ensemble de l'activité.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
     },
   },
   {
@@ -242,6 +275,7 @@ const TOOLS = [
 const TOOL_LABELS: Record<string, string> = {
   query_database: "Requête base de données",
   search_content: "Recherche dans les contenus",
+  get_business_health: "Bilan de santé business",
   execute_action: "Exécution d'une action",
 };
 
@@ -252,6 +286,7 @@ async function executeTool(
   toolInput: Record<string, unknown>,
   supabase: ReturnType<typeof getSupabaseClient>,
   userId?: string,
+  authHeader?: string | null,
 ): Promise<string> {
   switch (toolName) {
     case "query_database": {
@@ -316,12 +351,23 @@ async function executeTool(
           storeCachedEmbedding(supabase, query, queryEmbedding).catch(() => {});
         }
 
-        const { data, error } = await supabase.rpc("match_documents", {
+        // Recherche hybride (RRF vecteur + plein texte + fraîcheur), avec
+        // repli sur la recherche vectorielle si la migration n'est pas passée
+        let { data, error } = await supabase.rpc("match_documents_hybrid", {
+          query_text: query,
           query_embedding: JSON.stringify(queryEmbedding),
-          match_threshold: 0.65,
           match_count: maxResults,
           filter_source_types: sourceTypes || null,
         });
+
+        if (error) {
+          ({ data, error } = await supabase.rpc("match_documents", {
+            query_embedding: JSON.stringify(queryEmbedding),
+            match_threshold: 0.65,
+            match_count: maxResults,
+            filter_source_types: sourceTypes || null,
+          }));
+        }
 
         if (error) {
           return JSON.stringify({ error: error.message });
@@ -340,6 +386,29 @@ async function executeTool(
       } catch (e) {
         return JSON.stringify({
           error: e instanceof Error ? e.message : "Search failed",
+        });
+      }
+    }
+
+    case "get_business_health": {
+      try {
+        if (!authHeader) throw new Error("Auth manquante pour le bilan business");
+        const res = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/business-health-score`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: authHeader },
+            body: JSON.stringify({}),
+          },
+        );
+        const body = await res.text();
+        if (!res.ok) {
+          throw new Error(`business-health-score: ${res.status} ${body.slice(0, 300)}`);
+        }
+        return body;
+      } catch (e) {
+        return JSON.stringify({
+          error: e instanceof Error ? e.message : "Business health call failed",
         });
       }
     }
@@ -513,6 +582,36 @@ async function executeTool(
   }
 }
 
+// ── History compaction ──────────────────────────────────────
+// Les tool_results (jusqu'à 100 lignes JSON) sont conservés en base mais
+// tronqués à l'envoi API au-delà des derniers messages : sans cela chaque
+// tour renvoie l'intégralité des résultats SQL de toute la conversation.
+
+const KEEP_RECENT_MESSAGES = 6;
+const TOOL_RESULT_MAX_CHARS = 1200;
+
+function compactForApi(messages: Message[]): Message[] {
+  const cutoff = messages.length - KEEP_RECENT_MESSAGES;
+  return messages.map((m, i) => {
+    if (i >= cutoff || !Array.isArray(m.content)) return m;
+    const content = (m.content as Array<Record<string, unknown>>).map((block) => {
+      if (
+        block.type === "tool_result" &&
+        typeof block.content === "string" &&
+        (block.content as string).length > TOOL_RESULT_MAX_CHARS
+      ) {
+        return {
+          ...block,
+          content: (block.content as string).slice(0, TOOL_RESULT_MAX_CHARS) +
+            "\n… [résultat tronqué — relancer le tool si besoin du détail]",
+        };
+      }
+      return block;
+    });
+    return { ...m, content };
+  });
+}
+
 // ── SSE helpers ─────────────────────────────────────────────
 
 function sseEvent(event: string, data: Record<string, unknown>): string {
@@ -531,6 +630,7 @@ async function runAgentStreaming(
   supabase: ReturnType<typeof getSupabaseClient>,
   writer: WritableStreamDefaultWriter<Uint8Array>,
   userId?: string,
+  authHeader?: string | null,
 ): Promise<{ fullResponse: string; updatedMessages: Message[]; totalInputTokens: number; totalOutputTokens: number }> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY not configured");
@@ -539,8 +639,11 @@ async function runAgentStreaming(
   const encoder = new TextEncoder();
   const write = (text: string) => writer.write(encoder.encode(text));
 
-  // Load schema dynamically from registry (cached 5 min)
-  const dbSchema = await getDbSchema(supabase);
+  // Load schema (registry) and business context (app_settings), cached 5 min
+  const [dbSchema, businessContext] = await Promise.all([
+    getDbSchema(supabase),
+    getBusinessContext(supabase),
+  ]);
 
   const conversationMessages = [...messages];
   let fullResponse = "";
@@ -558,11 +661,23 @@ async function runAgentStreaming(
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 4096,
+        max_tokens: 16384,
         stream: true,
-        system: buildSystemPrompt(dbSchema),
+        // Extended thinking : raisonnement interne avant réponse et entre
+        // les tools. Les blocs thinking sont conservés dans l'historique
+        // (requis par l'API quand ils précèdent un tool_use).
+        thinking: { type: "enabled", budget_tokens: 4096 },
+        // cache_control sur le system : les tools + le system (schéma complet)
+        // forment un préfixe stable caché entre les rounds et les messages.
+        system: [
+          {
+            type: "text",
+            text: buildSystemPrompt(dbSchema, businessContext),
+            cache_control: { type: "ephemeral" },
+          },
+        ],
         tools: TOOLS,
-        messages: conversationMessages,
+        messages: compactForApi(conversationMessages),
       }),
     });
 
@@ -584,6 +699,9 @@ async function runAgentStreaming(
     let currentToolName = "";
     let currentToolId = "";
     let currentToolInput = "";
+    let currentThinking = "";
+    let currentSignature = "";
+    let thinkingStatusSent = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -619,6 +737,16 @@ async function runAgentStreaming(
               // Send status to client
               const label = TOOL_LABELS[block.name] || block.name;
               await write(sseEvent("status", { text: label }));
+            } else if (block.type === "thinking") {
+              currentThinking = block.thinking || "";
+              currentSignature = "";
+              if (!thinkingStatusSent) {
+                thinkingStatusSent = true;
+                await write(sseEvent("status", { text: "Réflexion" }));
+              }
+            } else if (block.type === "redacted_thinking") {
+              // Bloc opaque à conserver tel quel dans l'historique
+              contentBlocks[event.index] = { type: "redacted_thinking", data: block.data };
             }
             break;
           }
@@ -630,6 +758,9 @@ async function runAgentStreaming(
               await write(sseEvent("delta", { text: event.delta.text }));
             } else if (currentBlockType === "tool_use" && event.delta?.partial_json) {
               currentToolInput += event.delta.partial_json;
+            } else if (currentBlockType === "thinking") {
+              if (event.delta?.thinking) currentThinking += event.delta.thinking;
+              if (event.delta?.signature) currentSignature = event.delta.signature;
             }
             break;
           }
@@ -639,6 +770,12 @@ async function runAgentStreaming(
               contentBlocks[currentBlockIndex] = {
                 type: "text",
                 text: currentText,
+              };
+            } else if (currentBlockType === "thinking") {
+              contentBlocks[currentBlockIndex] = {
+                type: "thinking",
+                thinking: currentThinking,
+                signature: currentSignature,
               };
             } else if (currentBlockType === "tool_use") {
               let parsedInput = {};
@@ -707,6 +844,7 @@ async function runAgentStreaming(
         toolBlock.input as Record<string, unknown>,
         supabase,
         userId,
+        authHeader,
       );
       toolResults.push({
         type: "tool_result",
@@ -842,6 +980,7 @@ serve(async (req) => {
           supabase,
           writer,
           userId,
+          req.headers.get("Authorization"),
         );
 
         // Save conversation with token usage

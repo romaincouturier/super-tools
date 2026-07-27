@@ -28,11 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import EvaluationDetailDialog from "@/components/formations/EvaluationDetailDialog";
 import { computeAvgRating, computeRecommendationRate } from "@/lib/evaluationUtils";
-
-interface Training {
-  id: string;
-  training_name: string;
-}
+import { formatDateFr } from "@/lib/dateFormatters";
+import { toastError } from "@/lib/toastError";
 
 interface Evaluation {
   id: string;
@@ -61,6 +58,7 @@ interface Evaluation {
   date_soumission: string | null;
   trainings: {
     training_name: string;
+    start_date: string | null;
   };
 }
 
@@ -85,7 +83,6 @@ interface Analysis {
 const Evaluations = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [trainings, setTrainings] = useState<Training[]>([]);
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [selectedTraining, setSelectedTraining] = useState<string>("all");
   const [canDeleteEvaluations, setCanDeleteEvaluations] = useState(false);
@@ -102,7 +99,7 @@ const Evaluations = () => {
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      fetchEvaluations();
       checkDeletePermission(user.email || "");
     }
   }, [user]);
@@ -137,23 +134,8 @@ const Evaluations = () => {
     }
   };
 
-  const fetchData = async () => {
-    // Fetch trainings
-    const { data: trainingsData } = await supabase
-      .from("trainings")
-      .select("id, training_name")
-      .order("start_date", { ascending: false });
-
-    if (trainingsData) {
-      setTrainings(trainingsData);
-    }
-
-    // Fetch evaluations
-    fetchEvaluations();
-  };
-
-  const fetchEvaluations = async (trainingId?: string) => {
-    let query = supabase
+  const fetchEvaluations = async () => {
+    const { data, error } = await supabase
       .from("training_evaluations")
       .select(`
         id,
@@ -180,24 +162,40 @@ const Evaluations = () => {
         remarques_libres,
         etat,
         date_soumission,
-        trainings!inner(training_name)
+        trainings!inner(training_name, start_date)
       `)
       .eq("etat", "soumis")
       .order("date_soumission", { ascending: false });
 
-    if (trainingId && trainingId !== "all") {
-      query = query.eq("training_id", trainingId);
+    if (error) {
+      toastError(toast, "Impossible de charger les évaluations", { cause: error });
+      return;
     }
-
-    const { data } = await query;
-    if (data) {
-      setEvaluations(data as unknown as Evaluation[]);
-    }
+    setEvaluations((data || []) as unknown as Evaluation[]);
   };
+
+  const trainingOptions = Array.from(
+    evaluations
+      .reduce((map, e) => {
+        if (!map.has(e.training_id)) {
+          map.set(e.training_id, {
+            id: e.training_id,
+            name: e.trainings.training_name,
+            startDate: e.trainings.start_date,
+          });
+        }
+        return map;
+      }, new Map<string, { id: string; name: string; startDate: string | null }>())
+      .values(),
+  ).sort((a, b) => a.name.localeCompare(b.name, "fr"));
+
+  const filteredEvaluations =
+    selectedTraining === "all"
+      ? evaluations
+      : evaluations.filter((e) => e.training_id === selectedTraining);
 
   const handleTrainingChange = (value: string) => {
     setSelectedTraining(value);
-    fetchEvaluations(value);
     setAnalysis(null);
   };
 
@@ -281,7 +279,7 @@ const Evaluations = () => {
       });
 
       // Refresh list
-      fetchEvaluations(selectedTraining);
+      fetchEvaluations();
     } catch (error: unknown) {
       console.error("Error deleting evaluation:", error);
       toast({
@@ -355,9 +353,10 @@ const Evaluations = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les formations</SelectItem>
-                {trainings.map((training) => (
+                {trainingOptions.map((training) => (
                   <SelectItem key={training.id} value={training.id}>
-                    {training.training_name}
+                    {training.name}
+                    {training.startDate ? ` (${formatDateFr(training.startDate)})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -366,7 +365,7 @@ const Evaluations = () => {
 
           <Button
             onClick={handleAnalyze}
-            disabled={analyzing || evaluations.length === 0}
+            disabled={analyzing || filteredEvaluations.length === 0}
           >
             {analyzing ? (
               <Spinner className="mr-2" />
@@ -382,15 +381,15 @@ const Evaluations = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Évaluations complètes</CardDescription>
-              <CardTitle className="text-3xl">{evaluations.length}</CardTitle>
+              <CardTitle className="text-3xl">{filteredEvaluations.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Note moyenne</CardDescription>
               <CardTitle className="text-3xl flex items-center gap-2">
-                {evaluations.length > 0
-                  ? computeAvgRating(evaluations).toFixed(1)
+                {filteredEvaluations.length > 0
+                  ? computeAvgRating(filteredEvaluations).toFixed(1)
                   : "-"}
                 <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
               </CardTitle>
@@ -400,8 +399,8 @@ const Evaluations = () => {
             <CardHeader className="pb-2">
               <CardDescription>Taux de recommandation</CardDescription>
               <CardTitle className="text-3xl">
-                {evaluations.length > 0
-                  ? computeRecommendationRate(evaluations)
+                {filteredEvaluations.length > 0
+                  ? computeRecommendationRate(filteredEvaluations)
                   : 0}
                 %
               </CardTitle>
@@ -415,13 +414,13 @@ const Evaluations = () => {
             <CardTitle>Liste des évaluations</CardTitle>
           </CardHeader>
           <CardContent>
-            {evaluations.length === 0 ? (
+            {filteredEvaluations.length === 0 ? (
               <p className="text-muted-foreground text-center py-8">
                 Aucune évaluation complète trouvée
               </p>
             ) : (
               <div className="space-y-4">
-                {evaluations.map((evaluation) => (
+                {filteredEvaluations.map((evaluation) => (
                   <div
                     key={evaluation.id}
                     className="border rounded-lg p-4 hover:bg-accent/50 transition-colors cursor-pointer"

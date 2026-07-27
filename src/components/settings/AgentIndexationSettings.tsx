@@ -31,6 +31,8 @@ const SOURCE_TYPES = [
   { key: "activity_log", label: "Micro-devis", description: "Historique des devis envoyés" },
   { key: "crm_attachment", label: "Pièces jointes CRM", description: "PDF, documents, images des cartes CRM" },
   { key: "support_attachment", label: "Pièces jointes Support", description: "Fichiers joints aux tickets support" },
+  { key: "transcript", label: "Transcripts", description: "Réunions Fireflies et Google Drive" },
+  { key: "testimonial", label: "Témoignages", description: "Vidéos clients transcrites" },
 ];
 
 type BackfillStatus = "idle" | "running" | "done" | "error";

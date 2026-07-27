@@ -29,6 +29,7 @@ import ArenaKeySettings from "@/components/settings/ArenaKeySettings";
 import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 import VoiceSettings from "@/components/settings/VoiceSettings";
 import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
+import AgentContextSettings from "@/components/settings/AgentContextSettings";
 import TranscriptPromptsSettings from "@/components/settings/TranscriptPromptsSettings";
 import StaffProfileSettings from "@/components/settings/StaffProfileSettings";
 import ChecklistTemplateManager from "@/components/settings/ChecklistTemplateManager";
@@ -175,7 +176,12 @@ const Parametres = () => {
           <TabsContent value="voice">
             <VoiceSettings />
           </TabsContent>
-          {isAdmin && <TabsContent value="agent"><AgentIndexationSettings /></TabsContent>}
+          {isAdmin && (
+            <TabsContent value="agent" className="space-y-6">
+              <AgentContextSettings />
+              <AgentIndexationSettings />
+            </TabsContent>
+          )}
           {isAdmin && <TabsContent value="transcripts"><TranscriptPromptsSettings /></TabsContent>}
           {isAdmin && <TabsContent value="dropshipping"><SupertiltSettingsTab /></TabsContent>}
           <TabsContent value="checklists"><ChecklistTemplateManager /></TabsContent>

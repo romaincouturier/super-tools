@@ -98,6 +98,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 
 ## Architecture
 
+### [041] Agent SuperTools — les 3 référentiels de l'agent doivent rester synchronisés (registry SQL, extracteurs d'indexation, source_types de recherche)
+- **Constat** : Audit de l'agent (juillet 2026) : le system prompt de `agent-chat` décrivait en dur les modules Transcripts, Témoignages et Dropshipping avec le détail des colonnes, alors que `agent_schema_registry` (allowlist SQL) ne contenait aucune de ces tables : l'agent tentait des requêtes systématiquement rejetées. En parallèle, `index-documents` indexait 23 source types (dont `transcript` et `testimonial`) mais la description du tool `search_content` n'en listait que 21 : l'agent ne filtrait jamais sur les transcripts. Trois référentiels décrivant la même chose, maintenus à la main, désynchronisés trois fois.
+- **Règle** : Tout module ou table exposé à l'agent doit être enregistré de façon cohérente dans les 3 couches : (1) `agent_schema_registry` (migration) pour le SQL ; (2) un extracteur dans `index-documents` + trigger d'indexation pour le RAG ; (3) la liste `source_types` du tool `search_content` dans `agent-chat`, qui doit refléter exactement les extracteurs. Ne jamais décrire des tables en dur dans le system prompt : la section modules doit dériver du registry (une seule source de vérité).
+- **Vérification** : check [041] de `check-rules.sh` — chaque extracteur de `index-documents/index.ts` doit apparaître dans la description `source_types` de `agent-chat/index.ts`.
+- **Fichiers de référence** : `supabase/functions/agent-chat/index.ts`, `supabase/functions/index-documents/index.ts`, `supabase/migrations/20260402130000_agent_audit_log_and_schema_registry.sql`
+- **Origine** : constat user — "notre agent est con comme la lune" ; audit : il était aveugle sur les modules dont on lui parlait
+- **Date** : 2026-07-27
+
 ### [028] Blocs LMS — tout bloc avec editor + viewer doit être activé dans BuilderInsertMenu
 - **Constat** : `GalleryBlockEditor`, `GalleryBlockViewer`, `HtmlEmbedBlockEditor`, `HtmlEmbedBlockViewer` existaient tous les quatre, les types TypeScript et les entrées dans `registry.tsx` étaient corrects, mais les deux blocs n'étaient pas dans `ACTIVE_CONTENT_TYPES` de `BuilderInsertMenu.tsx` → affichés grisés avec badge "soon" et inutilisables malgré une implémentation complète.
 - **Règle** : Quand un type de bloc LMS a un editor (`.../editors/XxxBlockEditor.tsx`) ET un viewer (`.../viewers/XxxBlockViewer.tsx`), il doit obligatoirement apparaître dans `ACTIVE_CONTENT_TYPES` de `BuilderInsertMenu.tsx` ET avoir une entrée dans `BLOCK_META` (description + raccourci clavier). Un bloc sans ces deux ajouts reste grisé même si tout le reste est implémenté.
@@ -139,6 +147,14 @@ Ce ne sont pas des tickets : ce sont des **invariants** à vérifier en permanen
 - **Date** : 2026-03-20
 
 ## Pattern
+
+### [040] Filtres de liste — filtrer côté client sur les données affichées, jamais refetch par un id issu d'une liste d'entités complète
+- **Constat** : Sur la page Évaluations, la dropdown "Filtrer par formation" listait toutes les lignes de la table `trainings` (nom seul, sans discriminant) et chaque sélection relançait une requête serveur `.eq("training_id", id)`. Les formations dupliquées (sessions) partagent le même `training_name` : les entrées étaient indiscernables et sélectionner une ligne dont l'id ne portait aucune évaluation affichait systématiquement 0, alors que la vue "Toutes les formations" montrait bien les évaluations. L'erreur éventuelle de requête était en plus avalée (`const { data } = await query` sans lecture de `error`).
+- **Règle** : Quand une page affiche déjà le dataset complet, un filtre (dropdown, tabs…) doit : (1) dériver ses options des données chargées (ids réellement présents dans les lignes affichées), pas d'une table d'entités entière ; (2) filtrer côté client sur ces mêmes données — la sélection filtre alors exactement ce que l'utilisateur voit, aucun désaccord possible entre options et résultats ; (3) afficher un discriminant (date de session, client) quand les noms d'entités sont duplicables. Refetch serveur uniquement si le dataset complet n'est pas chargeable. Et toujours lire `error` des requêtes supabase (règle 037 : `toastError` avec `cause`).
+- **Vérification** : check [040] de `check-rules.sh` — `src/pages/Evaluations.tsx` ne doit plus contenir de refetch `.eq("training_id"` et doit dériver `trainingOptions` des évaluations chargées.
+- **Fichiers de référence** : `src/pages/Evaluations.tsx` (`trainingOptions`, `filteredEvaluations`)
+- **Origine** : bug user — "quand je choisis une formation dans la dropdown, ça affiche toujours 0" alors que toutes les évaluations et la note moyenne s'affichent en vue globale
+- **Date** : 2026-07-23
 
 ### [036] Crons pg_cron — jamais vault.decrypted_secrets, secret dédié inline posé directement en base
 - **Constat** : Les crons `editorial-backfill` et `editorial-engine-weekly` (et vraisemblablement tous les crons du repo utilisant le même pattern : `cleanup-pending-email-drafts`, `generate-daily-actions`, `process-live-upcoming-notifications`…) échouaient silencieusement depuis leur création : `vault.decrypted_secrets` est vide sur ce projet (`SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` n'y existent pas), donc `url := NULL` → violation NOT NULL dans `net.http_request_queue`, zéro exécution réussie et zéro alerte. Sur Lovable Cloud, la service_role n'est pas récupérable côté utilisateur, donc impossible de peupler le vault.
