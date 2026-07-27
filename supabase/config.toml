@@ -665,3 +665,6 @@ verify_jwt = false
 
 [functions.get-ticket-for-processing]
 verify_jwt = false
+
+[functions.mcp-server]
+verify_jwt = false

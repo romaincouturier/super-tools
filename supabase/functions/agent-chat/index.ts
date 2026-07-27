@@ -22,59 +22,12 @@ import {
  *   3. execute_action  — Perform write actions (with confirmation)
  */
 
-import { getOpenAIApiKey } from "../_shared/api-keys.ts";
 import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { searchContent } from "../_shared/agent-search.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-let _openaiApiKey: string | null = null;
-async function resolveOpenAIKey(): Promise<string | null> {
-  if (!_openaiApiKey) _openaiApiKey = await getOpenAIApiKey();
-  return _openaiApiKey;
-}
 const CLAUDE_MODEL = CLAUDE_ADVANCED;
 const MAX_TOOL_ROUNDS = 10;
-
-// ── Embedding cache helpers ─────────────────────────────────
-
-async function sha256(text: string): Promise<string> {
-  const encoded = new TextEncoder().encode(text.trim().toLowerCase());
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function getCachedEmbedding(
-  supabase: ReturnType<typeof getSupabaseClient>,
-  queryText: string,
-): Promise<number[] | null> {
-  const hash = await sha256(queryText);
-  const { data } = await supabase
-    .from("agent_embedding_cache")
-    .select("embedding")
-    .eq("query_hash", hash)
-    .single();
-  if (data?.embedding) {
-    return data.embedding as number[];
-  }
-  return null;
-}
-
-async function storeCachedEmbedding(
-  supabase: ReturnType<typeof getSupabaseClient>,
-  queryText: string,
-  embedding: number[],
-): Promise<void> {
-  const hash = await sha256(queryText);
-  await supabase.from("agent_embedding_cache").upsert(
-    {
-      query_hash: hash,
-      query_text: queryText.slice(0, 500),
-      embedding,
-    },
-    { onConflict: "query_hash" },
-  );
-}
 
 // ── Database schema — loaded dynamically from agent_schema_registry ──
 
@@ -314,74 +267,8 @@ async function executeTool(
       const sourceTypes = toolInput.source_types as string[] | undefined;
       const maxResults = Math.min((toolInput.max_results as number) || 10, 20);
 
-      const openaiKey = await resolveOpenAIKey();
-      if (!openaiKey) {
-        return JSON.stringify({ error: "OPENAI_API_KEY not configured for search" });
-      }
-
       try {
-        // Check embedding cache first
-        let queryEmbedding = await getCachedEmbedding(supabase, query);
-
-        if (!queryEmbedding) {
-          // Cache miss — call OpenAI
-          const embRes = await fetch("https://api.openai.com/v1/embeddings", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${openaiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "text-embedding-3-small",
-              input: query,
-            }),
-          });
-
-          if (!embRes.ok) {
-            return JSON.stringify({ error: `Embedding API error: ${embRes.status}` });
-          }
-
-          const embData = await embRes.json();
-          queryEmbedding = embData.data?.[0]?.embedding;
-          if (!queryEmbedding) {
-            return JSON.stringify({ error: "Failed to generate query embedding" });
-          }
-
-          // Store in cache (fire-and-forget)
-          storeCachedEmbedding(supabase, query, queryEmbedding).catch(() => {});
-        }
-
-        // Recherche hybride (RRF vecteur + plein texte + fraîcheur), avec
-        // repli sur la recherche vectorielle si la migration n'est pas passée
-        let { data, error } = await supabase.rpc("match_documents_hybrid", {
-          query_text: query,
-          query_embedding: JSON.stringify(queryEmbedding),
-          match_count: maxResults,
-          filter_source_types: sourceTypes || null,
-        });
-
-        if (error) {
-          ({ data, error } = await supabase.rpc("match_documents", {
-            query_embedding: JSON.stringify(queryEmbedding),
-            match_threshold: 0.65,
-            match_count: maxResults,
-            filter_source_types: sourceTypes || null,
-          }));
-        }
-
-        if (error) {
-          return JSON.stringify({ error: error.message });
-        }
-
-        const results = (data || []).map((r: Record<string, unknown>) => ({
-          source_type: r.source_type,
-          title: r.source_title,
-          date: r.source_date,
-          content: (r.content as string)?.slice(0, 1000),
-          similarity: Number((r.similarity as number).toFixed(3)),
-          metadata: r.metadata,
-        }));
-
+        const results = await searchContent(supabase, query, sourceTypes, maxResults);
         return JSON.stringify(results);
       } catch (e) {
         return JSON.stringify({

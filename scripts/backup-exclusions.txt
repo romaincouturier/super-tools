@@ -2,6 +2,7 @@
 # Une table listée ici n'est PAS exportée par backup-export / scheduled-backup.
 # N'exclure que des données éphémères ou regénérables. Une ligne par table.
 agent_embedding_cache
+mcp_oauth_records
 formulaire_rate_limits
 indexation_queue
 pictodico_rate_limit

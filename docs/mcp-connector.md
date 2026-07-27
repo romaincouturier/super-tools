@@ -1,0 +1,60 @@
+# Connecteur MCP SuperTools (lecture seule)
+
+Permet d'interroger les données SuperTools depuis claude.ai ou Claude Desktop,
+et de les croiser avec les connecteurs natifs (Google Drive, Notion).
+
+## Modèle de sécurité
+
+- **Lecture seule par construction** : 3 tools exposés — `query_database`
+  (via `agent_sql_query` : SELECT uniquement, tables allowlistées du registry,
+  100 lignes max), `search_content` (recherche hybride dans les contenus
+  indexés), `list_schema`. Aucun tool d'écriture n'existe sur ce serveur.
+- **Mono-utilisateur** : chaque appel est lié à `romain@supertilt.fr`,
+  liste blanche d'un seul compte codée en dur dans
+  `supabase/functions/mcp-server/index.ts` (`ALLOWED_EMAIL`). Modifier
+  cette constante exige un commit.
+- **OAuth 2.1 + PKCE** : requis par claude.ai. L'écran d'autorisation demande
+  une clé personnelle (`MCP_PERSONAL_SECRET`, secret d'edge function, jamais
+  dans le repo). 5 échecs en 15 minutes = blocage temporaire.
+- **Tokens** : accès 30 jours, refresh 60 jours avec rotation, stockés hashés
+  (SHA-256) dans `mcp_oauth_records` (table service-role only, exclue des
+  backups car regénérable).
+- **Audit** : toutes les requêtes SQL passent par `agent_query_audit_log`
+  avec l'identité et l'explication de la requête.
+
+## Installation (une fois)
+
+1. Poser le secret (choisir une clé longue, gestionnaire de mots de passe) :
+   `supabase secrets set MCP_PERSONAL_SECRET=<clé longue aléatoire>`
+2. Appliquer la migration `20260727150000_mcp_connector_auth.sql` et déployer
+   la fonction `mcp-server`.
+3. Dans claude.ai : Paramètres > Connecteurs > Ajouter un connecteur custom,
+   URL : `https://<project-ref>.supabase.co/functions/v1/mcp-server`
+4. Claude ouvre l'écran d'autorisation : entrer la clé personnelle.
+
+## Révocation
+
+- Un connecteur : le supprimer dans claude.ai, puis
+  `DELETE FROM mcp_oauth_records WHERE kind = 'token';` (SQL Editor).
+- Tout couper : `supabase secrets unset MCP_PERSONAL_SECRET` (les tokens en
+  cours restent valides jusqu'à expiration — vider aussi la table) ou
+  supprimer la fonction.
+
+## Point de vigilance connu
+
+Le contenu lu depuis SuperTools (au premier chef les emails si un jour les
+inbound emails sont activés) est traité par Claude comme du contexte : un
+contenu piégé pourrait tenter de faire écrire Claude vers Notion/Drive.
+Le serveur SuperTools lui-même est en lecture seule, rien ne peut y être
+modifié. Périmètre revu à chaque ajout de source dans l'indexation.
+
+## Suivi
+
+Requêtes des 7 derniers jours :
+
+```sql
+SELECT created_at, explanation, query_text
+FROM agent_query_audit_log
+WHERE explanation LIKE '%MCP%' AND created_at > now() - interval '7 days'
+ORDER BY created_at DESC;
+```
