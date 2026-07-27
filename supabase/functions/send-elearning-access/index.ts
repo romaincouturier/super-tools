@@ -69,65 +69,14 @@ serve(async (req) => {
     let emailSubject = template.subject;
     let emailContent = template.html_content;
 
-    // Build access link: prefer woocommerce_cart_base_url + product_id, then supertilt_link.
+    // Access link = onboarding link on the SuperTilt platform (training.supertilt_link).
     // Never fall back to `training.location` — it's descriptive text (e.g. "En ligne en accédant à son compte sur supertilt.fr"),
     // which the browser Punycodes into a broken URL when used as an <a href>.
     const isHttpUrl = (v: unknown): v is string =>
       typeof v === "string" && /^https?:\/\//i.test(v.trim());
-    let accessLink = isHttpUrl(training.supertilt_link)
+    const accessLink = isHttpUrl(training.supertilt_link)
       ? training.supertilt_link.trim()
       : "https://www.supertilt.fr";
-
-    // Try to build from woocommerce_cart_base_url + woocommerce_product_id
-    try {
-      // Get cart base URL from app_settings
-      const { data: cartBaseUrlSetting } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "woocommerce_cart_base_url")
-        .maybeSingle();
-
-      const cartBaseUrl = cartBaseUrlSetting?.setting_value;
-
-      if (cartBaseUrl) {
-        // Try formula-level product ID first, then training-level
-        let productId: number | null = null;
-
-        // Check if participant has a specific formula
-        if (participant.formula && training.catalog_id) {
-          const { data: formula } = await supabase
-            .from("formation_formulas")
-            .select("woocommerce_product_id")
-            .eq("formation_config_id", training.catalog_id)
-            .ilike("name", participant.formula)
-            .maybeSingle();
-
-          if (formula?.woocommerce_product_id) {
-            productId = formula.woocommerce_product_id;
-          }
-        }
-
-        // Fallback to catalog-level product ID (no product_id on trainings)
-
-        if (!productId && training.catalog_id) {
-          const { data: config } = await supabase
-            .from("formation_configs")
-            .select("woocommerce_product_id")
-            .eq("id", training.catalog_id)
-            .maybeSingle();
-
-          if (config?.woocommerce_product_id) {
-            productId = config.woocommerce_product_id;
-          }
-        }
-
-        if (productId) {
-          accessLink = `${cartBaseUrl}${productId}`;
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to build access link from WooCommerce settings, using fallback:", e);
-    }
 
     // Variable replacements
     const variables: Record<string, string> = {
