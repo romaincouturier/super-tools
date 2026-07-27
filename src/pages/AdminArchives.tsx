@@ -26,6 +26,7 @@ import {
   fetchAdminDocumentYears,
   uploadAdminDocument,
   deleteAdminDocument,
+  toggleAdminDocumentFavorite,
   ARCHIVE_CATEGORIES,
   type AdminDocument,
 } from "@/services/adminDocuments";
