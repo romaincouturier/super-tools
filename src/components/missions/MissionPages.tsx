@@ -1150,7 +1150,13 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
 
   const rootPages = (pages || [])
     .filter((p) => !p.parent_page_id)
-    .sort(sortFn);
+    .sort((a, b) => {
+      const da = (a as any).is_deliverable ? 1 : 0;
+      const db = (b as any).is_deliverable ? 1 : 0;
+      if (da !== db) return db - da;
+      return sortFn(a, b);
+    });
+
 
   useEffect(() => {
     if (pages && pages.length > 0 && !selectedPage) {
