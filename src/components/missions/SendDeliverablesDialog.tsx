@@ -241,6 +241,103 @@ const SendDeliverablesDialog = ({
               )}
             </div>
 
+            {/* Shared content recap */}
+            <div className="border rounded-lg p-3 bg-muted/30">
+              <Label className="text-sm font-medium flex items-center gap-1.5">
+                <Package className="h-4 w-4" />
+                Ce qui sera partagé
+              </Label>
+
+              <div className="mt-3 space-y-3">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Pages ({deliverablePages.length})
+                  </p>
+                  {deliverablePages.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">
+                      Aucune page marquée comme livrable.
+                    </p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {deliverablePages.map((p: any) => (
+                        <li
+                          key={p.id}
+                          className="flex items-center gap-2 text-sm bg-background rounded px-2 py-1.5"
+                        >
+                          <span className="flex-1 min-w-0 truncate">
+                            {p.icon ? `${p.icon} ` : ""}
+                            {p.title || "Sans titre"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updatePage.mutate({
+                                id: p.id,
+                                missionId,
+                                updates: { comments_enabled: !p.comments_enabled },
+                              })
+                            }
+                            disabled={updatePage.isPending}
+                            title={
+                              p.comments_enabled
+                                ? "Fermer les commentaires"
+                                : "Ouvrir les commentaires pour les destinataires"
+                            }
+                            className={`shrink-0 h-6 px-2 flex items-center gap-1 rounded text-xs font-medium transition-colors ${
+                              p.comments_enabled
+                                ? "bg-sky-100 text-sky-800 hover:bg-sky-200"
+                                : "bg-muted text-muted-foreground hover:bg-muted/70"
+                            }`}
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            {p.comments_enabled ? "Commentaires ouverts" : "Commentaires fermés"}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Documents ({deliverableDocs.length})
+                  </p>
+                  {deliverableDocs.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Aucun document livrable.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {deliverableDocs.map((d: any) => (
+                        <li key={d.id} className="flex items-center gap-2 text-sm">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate">{d.name || d.file_name}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                    Médias ({deliverableMedia.length})
+                  </p>
+                  {deliverableMedia.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Aucun média livrable.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {deliverableMedia.map((m: any) => (
+                        <li key={m.id} className="flex items-center gap-2 text-sm">
+                          <ImageIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="truncate">{m.title || m.file_name || "Média"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+
+
+
             {/* Subject */}
             <div>
               <Label className="text-sm font-medium">Objet</Label>
