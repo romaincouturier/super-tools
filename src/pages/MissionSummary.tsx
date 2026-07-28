@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
-import { rpc } from "@/lib/supabase-rpc";
+import { useParams, useSearchParams } from "react-router-dom";
+import { rpc, type MissionPagePublic } from "@/lib/supabase-rpc";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
@@ -14,7 +14,8 @@ import { Progress } from "@/components/ui/progress";
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl } from "@/lib/googleMaps";
 import { isRemoteLocation } from "@/lib/missionLocation";
 import { toast } from "@/lib/toast";
-import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
+import MissionPageComments from "@/components/missions/MissionPageComments";
+import { useMissionContactByToken } from "@/hooks/useMissionPageComments";
 
 
 // ---------- Types ----------
@@ -412,12 +413,17 @@ const DeliverablesBlock = ({ deliverables, lang, missionId, missionTitle }: Deli
 
 const MissionSummary = () => {
   const { missionId } = useParams<{ missionId: string }>();
+  // Le lien de livraison est personnalisé par destinataire : ?c=<token> du
+  // contact, qui identifie l'auteur des commentaires sans aucune saisie.
+  const [searchParams] = useSearchParams();
+  const contactToken = searchParams.get("c");
+  const { data: contact } = useMissionContactByToken(contactToken);
   const [mission, setMission] = useState<MissionData | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [documents, setDocuments] = useState<MissionDocument[]>([]);
   const [mediaItems, setMediaItems] = useState<MissionMedia[]>([]);
   const [actions, setActions] = useState<MissionAction[]>([]);
-  const [pages, setPages] = useState<Array<{ id: string; title: string; icon: string | null; content: string | null; created_at: string }>>([]);
+  const [pages, setPages] = useState<MissionPagePublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [lang, setLang] = useState<Lang>("fr");
@@ -636,17 +642,14 @@ const MissionSummary = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               {pages.map((p) => (
-                <article key={p.id} className="border rounded-lg p-5 bg-card">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    {p.icon && <span aria-hidden>{p.icon}</span>}
-                    <span>{p.title || "Sans titre"}</span>
-                  </h3>
-                  <div
-                    className="prose prose-sm max-w-none prose-headings:font-semibold prose-img:rounded-lg prose-img:my-3 prose-a:text-primary"
-                    dangerouslySetInnerHTML={{ __html: sanitizeLmsHtml(p.content || "") }}
-                  />
-
-                </article>
+                <MissionPageComments
+                  key={p.id}
+                  missionId={mission.id}
+                  page={p}
+                  contact={contact ?? null}
+                  contactToken={contactToken}
+                  isStaff={isAuthenticated}
+                />
               ))}
             </CardContent>
           </Card>

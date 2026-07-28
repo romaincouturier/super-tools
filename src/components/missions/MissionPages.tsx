@@ -58,7 +58,6 @@ import {
   FileText,
   Trash2,
   MoreHorizontal,
-  Loader2,
   Bold,
   Italic,
   Underline as UnderlineIcon,
@@ -95,6 +94,7 @@ import {
   Copy,
   FileAudio,
   Package,
+  MessageSquare,
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -500,6 +500,12 @@ const PageEditor = ({
     "generate-mission-summary",
     { errorMessage: "Impossible de générer le résumé" },
   );
+  const { invoke: invokeUploadMedia } = useEdgeFunction<{ url?: string }>("upload-mission-media", {
+    silentOnError: true,
+  });
+  const { invoke: invokeUploadFile } = useEdgeFunction<{ publicUrl?: string }>("upload-mission-file", {
+    silentOnError: true,
+  });
   const [editorValues, setEditorValues] = useState({ content: page.content || "", title: page.title || "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -535,48 +541,35 @@ const PageEditor = ({
 
   const uploadImage = useCallback(
     async (file: File): Promise<string | null> => {
-      try {
-        const form = new FormData();
-        form.append("missionId", missionId);
-        form.append("pageId", page.id);
-        form.append("file", file, file.name || "image.png");
-        const { data, error } = await supabase.functions.invoke(
-          "upload-mission-media",
-          { body: form },
-        );
-        if (error) throw error;
-        const url = (data as { url?: string } | null)?.url;
-        if (!url) throw new Error("URL manquante dans la réponse");
-        return url;
-      } catch (err) {
-        console.error("Upload error:", err);
-        toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");
+      const form = new FormData();
+      form.append("missionId", missionId);
+      form.append("pageId", page.id);
+      form.append("file", file, file.name || "image.png");
+      const data = await invokeUploadMedia(form);
+      if (!data?.url) {
+        toastError(toast, "Échec de l'upload du fichier");
         return null;
       }
+      return data.url;
     },
-    [page.id, missionId, toast]
+    [page.id, missionId, toast, invokeUploadMedia]
   );
 
   const uploadDocument = useCallback(
     async (file: File): Promise<string | null> => {
-      try {
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
-        const path = `pages/${page.id}/docs/${Date.now()}_${safeName}`;
-        const formData = new FormData();
-        formData.append("file", file, file.name);
-        formData.append("path", path);
-        const { data, error } = await supabase.functions.invoke("upload-mission-file", { body: formData });
-        if (error) throw error;
-        const publicUrl = (data as { publicUrl?: string } | null)?.publicUrl;
-        if (!publicUrl) throw new Error("URL introuvable après l'upload");
-        return publicUrl;
-      } catch (err) {
-        console.error("Upload error:", err);
-        toastError(toast, err instanceof Error ? err : "Échec de l'upload du fichier");
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").toLowerCase();
+      const path = `pages/${page.id}/docs/${Date.now()}_${safeName}`;
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+      formData.append("path", path);
+      const data = await invokeUploadFile(formData);
+      if (!data?.publicUrl) {
+        toastError(toast, "Échec de l'upload du fichier");
         return null;
       }
+      return data.publicUrl;
     },
-    [page.id, toast]
+    [page.id, toast, invokeUploadFile]
   );
 
   const editor = useEditor({
@@ -989,7 +982,7 @@ const PageEditor = ({
             aiSummaryLoading && "opacity-50 pointer-events-none"
           )}
         >
-          {aiSummaryLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {aiSummaryLoading ? <Spinner className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
           Résumé IA
         </button>
 
@@ -1013,9 +1006,35 @@ const PageEditor = ({
           {page.is_deliverable ? "Livrable" : "Marquer livrable"}
         </button>
 
+        {page.is_deliverable && (
+          <button
+            onClick={() => {
+              updatePage.mutate({
+                id: page.id,
+                missionId,
+                updates: { comments_enabled: !page.comments_enabled },
+              });
+            }}
+            title={
+              page.comments_enabled
+                ? "Fermer les commentaires (les fils existants restent visibles)"
+                : "Autoriser les destinataires du lien à commenter cette page"
+            }
+            className={cn(
+              "h-7 px-2 flex items-center gap-1 rounded transition-colors shrink-0 text-xs font-medium",
+              page.comments_enabled
+                ? "bg-sky-100 text-sky-800 hover:bg-sky-200"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            {page.comments_enabled ? "Commentaires ouverts" : "Ouvrir les commentaires"}
+          </button>
+        )}
+
         {updatePage.isPending && (
           <span className="text-xs text-muted-foreground flex items-center gap-1 ml-2">
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner className="h-3 w-3" />
           </span>
         )}
       </div>

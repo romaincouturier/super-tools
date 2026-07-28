@@ -130,6 +130,7 @@ const TABLES_TO_BACKUP = [
   "mission_documents",
   "mission_email_drafts",
   "mission_media",
+  "mission_page_comments",
   "mission_page_templates",
   "mission_pages",
   "mission_survey_answers",

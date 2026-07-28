@@ -138,6 +138,7 @@ const SendDeliverablesDialog = ({
   const handleSend = async () => {
     if (selectedContacts.length === 0) return;
     const recipients = selectedContacts.map((c) => ({
+      contact_id: c.id,
       email: c.email!,
       first_name: c.first_name || "",
       formal_address: !!(c as any).formal_address,

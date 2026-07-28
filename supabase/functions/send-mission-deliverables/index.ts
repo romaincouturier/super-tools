@@ -68,6 +68,21 @@ serve(async (req) => {
     const baseUrl = urls.app_url;
     const deliverablesLink = `${baseUrl}/mission-info/${mission_id}`;
 
+    // Lien personnalisé par destinataire : le token du contact identifie
+    // l'auteur des commentaires sur la page publique, sans saisie d'identité.
+    const { data: missionContacts } = await supabase
+      .from("mission_contacts")
+      .select("id, email, access_token")
+      .eq("mission_id", mission_id);
+    const tokenByContactId = new Map<string, string>();
+    const tokenByEmail = new Map<string, string>();
+    for (const c of missionContacts || []) {
+      if (c.access_token) {
+        tokenByContactId.set(c.id, c.access_token);
+        if (c.email) tokenByEmail.set(c.email.toLowerCase(), c.access_token);
+      }
+    }
+
     // Fetch custom templates for both modes
     const { data: customTemplates } = await supabase
       .from("email_templates")
@@ -86,8 +101,15 @@ serve(async (req) => {
     const results: { email: string; success: boolean; error?: string }[] = [];
 
     for (const recipient of recipients) {
-      const { email, first_name, formal_address } = recipient;
+      const { email, first_name, formal_address, contact_id } = recipient;
       if (!email) continue;
+
+      const contactToken =
+        (contact_id ? tokenByContactId.get(contact_id) : undefined) ??
+        tokenByEmail.get(email.toLowerCase());
+      const recipientLink = contactToken
+        ? `${deliverablesLink}?c=${contactToken}`
+        : deliverablesLink;
 
       // Tutoiement par défaut, vouvoiement uniquement si formal_address = true
       const useTu = !formal_address;
@@ -100,7 +122,7 @@ serve(async (req) => {
       const variables = {
         first_name: first_name || "",
         mission_title: missionTitle,
-        deliverables_link: deliverablesLink,
+        deliverables_link: recipientLink,
       };
 
       const processedSubject = processTemplate(subjectTemplate, variables, false);
