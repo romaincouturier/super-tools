@@ -59,10 +59,32 @@ export const LEVEL_LABELS: Record<AutonomyLevel, string> = {
   confirm: "Demande avant",
 };
 
+export interface AgentFinding {
+  gap?: string;
+  title?: string;
+  card_id?: string;
+  mission_id?: string;
+  transcript_id?: string;
+  status?: string;
+  client?: string;
+  value?: number;
+  next?: string;
+  [key: string]: unknown;
+}
+
+export interface AgentRunReport {
+  objectiveId: string;
+  dryRun: boolean;
+  summary: string;
+  actionsCount: number;
+  findings: AgentFinding[];
+}
+
 export function useAgentAutonomy() {
   const [objectives, setObjectives] = useState<AgentObjective[]>([]);
   const [actions, setActions] = useState<AgentActionEntry[]>([]);
   const [policy, setPolicy] = useState<AgentPolicyEntry[]>([]);
+  const [reports, setReports] = useState<Record<string, AgentRunReport>>({});
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
   const orchestrator = useEdgeFunction<Record<string, unknown>>("agent-objectives", {
