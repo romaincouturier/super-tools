@@ -30,7 +30,6 @@ import QuoteSettingsForm from "@/components/quotes/QuoteSettingsForm";
 import VoiceSettings from "@/components/settings/VoiceSettings";
 import AgentIndexationSettings from "@/components/settings/AgentIndexationSettings";
 import AgentContextSettings from "@/components/settings/AgentContextSettings";
-import AgentAutonomySettings from "@/components/settings/AgentAutonomySettings";
 import TranscriptPromptsSettings from "@/components/settings/TranscriptPromptsSettings";
 import StaffProfileSettings from "@/components/settings/StaffProfileSettings";
 import ChecklistTemplateManager from "@/components/settings/ChecklistTemplateManager";
@@ -180,7 +179,6 @@ const Parametres = () => {
           {isAdmin && (
             <TabsContent value="agent" className="space-y-6">
               <AgentContextSettings />
-              <AgentAutonomySettings />
               <AgentIndexationSettings />
             </TabsContent>
           )}

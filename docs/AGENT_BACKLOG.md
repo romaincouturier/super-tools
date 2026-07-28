@@ -24,24 +24,15 @@ dernier dans le lot.
 | AG-09 | 2 | Lignes de prompt ciblées | fait | AG-06 |
 | AG-10 | 3 | Rejouer les évals et comparer | 0,5 j | |
 | AG-11 | 4 | Compaction par résumé réel | fait | |
-| AG-12 | 4 | Mémoire entre conversations | fait | |
-| AG-13 | 4 | Planification (fait) / sous-agents (écarté) | fait | |
-| AG-30 | 5 | Objectifs persistants | fait | |
-| AG-31 | 5 | Déclencheurs autres que l'utilisateur | fait | cron à poser |
-| AG-32 | 5 | Journal d'actions, digest, réversibilité | fait | |
-| AG-33 | 5 | Catalogue d'outils métier | écarté | |
-| AG-34 | 5 | Politique d'autonomie | mécanisme fait | valeurs à arbitrer |
-| AG-35 | 5 | Métier facilitateur | fait | |
-| AG-36 | 5 | Métier contenus et marketing | fait | |
-| AG-37 | 5 | Métier commerce | fait | |
-| AG-38 | 5 | Métier transformation | fait | |
+| AG-12 | 4 | Mémoire entre conversations | retiré | |
+| AG-13 | 4 | Planification et sous-agents | retiré | |
 | AG-21 | — | Liste des tools figée par conversation claude.ai | contourné | |
 | AG-22 | — | Le dossier grossit de ses propres notes | à surveiller | |
 
 Hors agent : AG-20 (transcriptions de photos à refaire).
 
-**Il ne reste rien à coder.** Ce qui reste est du déploiement (AG-00, AG-01),
-de la mesure (AG-03, AG-10) et une décision d'exploitation (valeurs d'AG-34).
+**Il ne reste rien à coder.** Ce qui reste est du déploiement (AG-00, AG-01) et
+de la mesure (AG-03, AG-10).
 
 ---
 
@@ -200,184 +191,33 @@ explicite, avant mesure : la limite méthodologique est assumée et rappelée ic
   conversation est remplacé une seule fois par un résumé produit avec le modèle
   rapide, puis persisté. Le point de coupe ne tombe jamais au milieu d'une
   paire `tool_use` / `tool_result`, que l'API rejetterait.
-- **AG-12** Mémoire entre conversations. Table `agent_memory`, 40 entrées
-  injectées au maximum, clé unique pour remplacer au lieu d'empiler, expiration
-  à 90 jours pour le type `contexte`. L'agent y écrit avec l'action `remember`.
-- **AG-13** Scindé, et c'est le point honnête de ce lot.
-  - *Planification* : **livrée**, mais pas sous la forme envisagée. Plutôt que
-    de laisser le modèle décomposer une tâche en vol, l'action
-    `create_objective` transforme une demande durable en objectif persistant
-    repris jusqu'à satisfaction. La décomposition devient structurelle donc
-    prévisible, au lieu d'être rejouée à chaque conversation.
-  - *Sous-agents* : **écartés pour l'instant**. Ils ne se conçoivent qu'en
-    sachant quelles tâches échouent, ce que seule AG-10 dira. Les construire
-    maintenant reviendrait à deviner.
-
+- **AG-12** Mémoire entre conversations : **retirée** avec le lot 5. Plus rien
+  n'y écrivait une fois l'action `remember` supprimée, et une mémoire vide
+  reste du prompt facturé à chaque appel.
+- **AG-13** Planification et sous-agents : **retirés** avec le lot 5.
 ---
 
-## Lot 5 : de l'assistant au système autonome
+## Lot 5 : retiré
 
-Cible : *un système capable d'atteindre un objectif avec une supervision
-limitée, en s'appuyant sur des agents IA et des outils.*
+Ce lot avait construit une couche « autonomie » : objectifs persistants,
+politique d'autonomie, journal d'actions réversible, quatre routines métier,
+mémoire longue, et deux écrans dans les Réglages.
 
-**Constat de départ, qui change le raisonnement** : la flotte d'outils existe
-déjà. 224 edge functions, dont 36 d'analyse ou de génération IA
-(`editorial-engine`, `crm-extract-opportunity`, `generate-mission-summary`,
-`analyze-transcript-editorial`, `network-generate-actions`, `okr-ai-assistant`,
-`summarize-coaching`, `watch-cluster-analysis`, `commercial-challenge`...) et 21
-processeurs cron. Ce sont déjà des agents IA à tâche unique. Ils tournent
-chacun dans leur coin et **l'agent SuperTools ignore leur existence**.
+**Retiré en totalité**, migration `20260729090000_drop_agent_autonomy.sql`.
 
-Il ne s'agit donc pas de construire des agents, mais de leur donner un chef
-d'orchestre.
+La raison mérite d'être notée, parce que c'est la vraie leçon de ce chantier :
+il a été construit pour une **définition** (« un système capable d'atteindre un
+objectif avec une supervision limitée ») et non pour un besoin constaté. À
+l'usage, cela donnait deux écrans exposant des noms de fonctions, et des
+routines qui écrivaient « synthèse à produire » ou « opportunité en sommeil »
+là où l'application a déjà ses rappels. Beaucoup de machinerie, aucune valeur.
 
-**Prérequis absolu : lots 0 à 3.** Un orchestrateur au-dessus d'un agent
-aveugle amplifie l'aveuglement. Un agent qui ne sait pas qu'une requête a été
-coupée à 100 lignes (AG-06) ne doit surtout pas décider seul.
+Ce qu'il fallait faire avant d'écrire la première ligne : demander quel besoin
+concret la définition était censée servir.
 
-### Briques transverses
-
-#### AG-30 Objectifs persistants
-
-L'unité de travail est aujourd'hui la conversation : elle naît, elle meurt,
-rien ne survit. Un système qui poursuit un objectif a besoin d'un objet qui
-dure.
-
-Table `agent_objectives` : périmètre métier, énoncé, critère de fin
-vérifiable, échéance, état, et journal des tentatives déjà faites (pour ne pas
-refaire, et pour ne pas boucler).
-
-**Fin** : un objectif créé lundi, non atteint, est repris jeudi par l'agent
-sans que personne ne le lui rappelle, et il sait ce qu'il a déjà tenté.
-
-#### AG-31 Déclencheurs autres que l'utilisateur
-
-L'agent ne s'exécute que quand quelqu'un tape. La plomberie existe pourtant
-partout ailleurs (`process-*`, `check-*`, pg_cron toutes les 2 minutes pour
-l'indexation) : elle est réutilisable telle quelle.
-
-Deux modes : périodique (cron) et événementiel (trigger, sur le modèle de
-`enqueue_indexation`).
-
-**Fin** : un dépôt de photos sur une mission déclenche l'agent sans action
-humaine.
-
-#### AG-32 Journal d'actions, digest et réversibilité
-
-Condition non négociable de l'autonomie. `agent_query_audit_log` couvre les
-lectures ; il n'existe pas d'équivalent pour les écritures.
-
-Trois éléments : journal de chaque action autonome (quoi, pourquoi, quel
-objectif), digest quotidien de ce qui a été fait, et possibilité de défaire.
-
-**Fin** : un digest quotidien liste les actions autonomes de la veille, chacune
-annulable en un clic.
-
-#### AG-33 Catalogue d'outils métier
-
-Même principe qu'`agent_schema_registry`, mais pour les fonctions : quelles
-edge functions l'agent peut appeler, avec quels paramètres, et lesquelles il
-peut appeler seul.
-
-À faire **en dernier**, quand deux ou trois métiers seront branchés et que le
-code en dur dans `execute_action` commencera à peser. Le construire avant,
-c'est de l'abstraction prématurée.
-
-**Fin** : ajouter un outil à l'agent ne demande plus de modifier
-`agent-chat/index.ts`.
-
-#### AG-34 Politique d'autonomie
-
-**C'est le verrou, et c'est une décision, pas un développement.**
-
-Le prompt actuel impose une confirmation explicite avant toute écriture
-(`agent-chat/index.ts:123`), ce qui est frontalement incompatible avec
-« supervision limitée ». Il faut classer chaque action en trois niveaux : agit
-seul, agit puis notifie, demande avant.
-
-Point de départ recommandé : **autonomie totale sur tout ce qui reste interne à
-SuperTools, confirmation obligatoire dès qu'un tiers reçoit quelque chose ou
-qu'un montant change.**
-
-**Fin** : une table de politique par type d'action, lue par `execute_action`,
-et non plus une règle unique dans le prompt.
-
-### Par métier
-
-#### AG-35 Facilitateur, premier chantier
-
-**Objectif** : chaque atelier produit sa synthèse sans intervention.
-
-Le meilleur premier cas : la douleur est réelle (les 40 photos Paillot
-exportées à la main), le matériel est déjà construit (`read_media_image`,
-`read_mission_documents`, `save_mission_note`), le risque est nul (ça produit
-une note, ça n'envoie rien), et le résultat est vérifiable en le comparant à ce
-que Claude a produit manuellement.
-
-**Déclencheur** : dépôt de photos ou de transcript sur une mission.
-**Chaîne** : lire les médias, transcrire, structurer, écrire la note, indexer.
-**Autonomie** : totale, aucune action externe.
-
-**Fin** : déposer des photos d'atelier et retrouver la synthèse en page de
-mission sans avoir rien demandé, de qualité comparable à la version manuelle.
-
-#### AG-36 Contenus et marketing
-
-**Objectif** : le pipeline éditorial n'est jamais vide et s'alimente de ce qui
-est vécu en mission.
-
-Les briques existent : `editorial-engine`, `analyze-transcript-editorial`,
-`search-content-ideas`, `enrich-idea`, `find-similar-ideas`,
-`watch-cluster-analysis`, plus GSC, WordPress et Brevo. Ce qui manque est le
-fil : un transcript de mission devrait produire une carte contenu, pas rester
-un transcript.
-
-**Autonomie** : élevée, produire des brouillons ne coûte rien et rien n'est
-publié.
-
-**Fin** : un seuil de cartes prêtes est maintenu en permanence, et chaque
-transcript exploitable a généré au moins une proposition.
-
-#### AG-37 Commerce
-
-**Objectif** : aucune opportunité ne dort.
-
-`waiting_next_action_date` existe sur `crm_cards` et sur `missions`,
-`daily_actions` est le système transverse. `crm-extract-opportunity`,
-`generate-quote-lines`, `generate-quote-synthesis`, `crm-ai-assist` sont là.
-
-**Autonomie** : rédige les relances, ne les envoie jamais. Les emails CRM sont
-ceux que l'utilisateur écrit lui-même ; un envoi en son nom est irréversible et
-engage sa signature. Brouillon systématique, envoi sur clic.
-
-**Fin** : toute opportunité sans action datée dépassant un seuil a un brouillon
-de relance prêt, et la détection tourne seule.
-
-#### AG-38 Transformation
-
-**Objectif** : chaque mission a un livrable à jour et un budget maîtrisé.
-
-`missions` porte `initial_amount`, `consumed_amount`, `billed_amount`.
-`generate-mission-summary`, `generate-mission-8p`,
-`process-mission-scheduled-actions`, `zip-mission-deliverables` existent.
-
-C'est le métier où AG-30 compte le plus : une mission se suit sur des
-semaines, ce qui est exactement le cas où un objectif persistant bat une
-conversation.
-
-**Autonomie** : alerter sur un dépassement et préparer un livrable, oui.
-Modifier un montant, non.
-
-**Fin** : un dépassement de budget ou un livrable en retard remonte avant que
-l'utilisateur ne le demande.
-
-### Séquence du lot 5
-
-1. AG-30, AG-31, AG-32 : une PR d'infrastructure.
-2. AG-35 de bout en bout, en autonomie totale, sur un cas réel mesuré.
-3. AG-34 : décider la politique métier par métier.
-4. AG-36, AG-37, AG-38.
-5. AG-33 quand le code en dur pèse.
+Le besoin réel reste identifié et non traité : **déposer des photos d'atelier
+sur une mission et obtenir la synthèse sans passer par un export manuel.**
+C'est le seul point de douleur exprimé pendant toute la session.
 
 ---
 
