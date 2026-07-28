@@ -84,6 +84,24 @@ const SendDeliverablesDialog = ({
 }: SendDeliverablesDialogProps) => {
   const { toast } = useToast();
   const { data: contacts, isLoading: contactsLoading } = useMissionContacts(missionId);
+  const { data: pages } = useMissionPages(open ? missionId : null);
+  const { data: documents } = useEntityDocuments("mission", open ? missionId : undefined);
+  const { data: mediaItems } = useEntityMedia("mission", open ? missionId : undefined);
+  const updatePage = useUpdateMissionPage();
+
+  const deliverablePages = useMemo(
+    () => (pages || []).filter((p: any) => p.is_deliverable),
+    [pages],
+  );
+  const deliverableDocs = useMemo(
+    () => (documents || []).filter((d: any) => d.is_deliverable),
+    [documents],
+  );
+  const deliverableMedia = useMemo(
+    () => (mediaItems || []).filter((m: any) => m.is_deliverable),
+    [mediaItems],
+  );
+
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState("");
