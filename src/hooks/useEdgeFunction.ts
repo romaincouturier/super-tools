@@ -16,8 +16,11 @@ export interface UseEdgeFunctionReturn<TResult> {
   loading: boolean;
   result: TResult | null;
   error: Error | null;
-  /** Invoke the edge function. Returns the result on success, or `null` on failure. */
-  invoke: (body?: Record<string, unknown>) => Promise<TResult | null>;
+  /**
+   * Invoke the edge function. Returns the result on success, or `null` on failure.
+   * `FormData` is accepted for the upload functions.
+   */
+  invoke: (body?: Record<string, unknown> | FormData) => Promise<TResult | null>;
   /** Reset `result`/`error` without re-invoking. */
   reset: () => void;
 }
@@ -49,7 +52,7 @@ export function useEdgeFunction<TResult = unknown>(
   const [error, setError] = useState<Error | null>(null);
 
   const invoke = useCallback(
-    async (body?: Record<string, unknown>): Promise<TResult | null> => {
+    async (body?: Record<string, unknown> | FormData): Promise<TResult | null> => {
       setLoading(true);
       setError(null);
       try {

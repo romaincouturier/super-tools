@@ -55,6 +55,8 @@ export interface MissionPage {
   is_expanded: boolean;
   page_type: string;
   is_deliverable: boolean;
+  /** Ouvre les commentaires sur la page publique de livraison. */
+  comments_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

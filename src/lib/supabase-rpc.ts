@@ -276,6 +276,38 @@ export interface MissionMediaPublic {
   is_deliverable: boolean;
 }
 
+export interface MissionPagePublic {
+  id: string;
+  title: string;
+  icon: string | null;
+  content: string | null;
+  comments_enabled: boolean;
+  created_at: string;
+}
+
+/** Contact identifié par le token du lien de livraison (?c=...). */
+export interface MissionContactByToken {
+  id: string;
+  mission_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+}
+
+export interface MissionPageCommentPublic {
+  id: string;
+  page_id: string;
+  parent_comment_id: string | null;
+  block_id: string | null;
+  quoted_text: string | null;
+  author_name: string;
+  author_contact_id: string | null;
+  is_staff: boolean;
+  body: string;
+  is_resolved: boolean;
+  created_at: string;
+}
+
 // ─── DB utilities ────────────────────────────────────────────────────
 
 export interface DbSize {
@@ -417,10 +449,13 @@ export const rpc = {
     call<MissionMediaPublic[]>("get_mission_media_public", { p_mission_id: missionId }),
 
   getMissionPagesPublicDeliverables: (missionId: string) =>
-    call<Array<{ id: string; title: string; icon: string | null; content: string | null; created_at: string }>>(
-      "get_mission_pages_public_deliverables",
-      { p_mission_id: missionId },
-    ),
+    call<MissionPagePublic[]>("get_mission_pages_public_deliverables", { p_mission_id: missionId }),
+
+  getMissionContactByToken: (token: string) =>
+    call<MissionContactByToken>("get_mission_contact_by_token", { p_token: token }),
+
+  getMissionPageCommentsPublic: (missionId: string) =>
+    call<MissionPageCommentPublic[]>("get_mission_page_comments_public", { p_mission_id: missionId }),
 
   // --- DB utilities ---
   getDbSize: () =>
