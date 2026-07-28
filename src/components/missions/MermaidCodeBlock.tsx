@@ -74,7 +74,7 @@ function MermaidCodeBlockView({ node }: NodeViewProps) {
     return (
       <NodeViewWrapper>
         <pre className="bg-muted/50 rounded-md p-4 font-mono text-sm">
-          <NodeViewContent as="code" />
+          <NodeViewContent as={"code" as "div"} />
         </pre>
       </NodeViewWrapper>
     );
@@ -102,7 +102,7 @@ function MermaidCodeBlockView({ node }: NodeViewProps) {
       <pre
         className={`bg-muted/50 rounded-md p-4 font-mono text-sm ${showSource ? "" : "hidden"}`}
       >
-        <NodeViewContent as="code" />
+        <NodeViewContent as={"code" as "div"} />
       </pre>
     </NodeViewWrapper>
   );
