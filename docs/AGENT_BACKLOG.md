@@ -16,12 +16,12 @@ dernier dans le lot.
 | AG-01 | 0 | Redéployer `agent-chat` | 5 min | AG-03 |
 | AG-02 | 0 | Nouvelle conversation claude.ai | 1 min | AG-00 |
 | AG-03 | 1 | Base de mesure sur le jeu d'évals | 0,5 j | AG-10 |
-| AG-04 | 2 | Porter les 5 tools MCP dans l'agent | 0,5 j | |
-| AG-05 | 2 | Compaction : ne pas détruire les documents lus | 2 h | AG-04 |
-| AG-06 | 2 | Troncature SQL à 100 lignes rendue explicite | 2 h | |
-| AG-07 | 2 | Plafond de tours 10 → 25 | 15 min | |
-| AG-08 | 2 | `execute_action` relit après écriture | 2 h | |
-| AG-09 | 2 | 15 lignes de prompt ciblées | 1 h | AG-06 |
+| AG-04 | 2 | Porter les tools MCP dans l'agent | fait | |
+| AG-05 | 2 | Compaction : ne pas détruire les documents lus | fait | AG-04 |
+| AG-06 | 2 | Troncature SQL à 100 lignes rendue explicite | fait | |
+| AG-07 | 2 | Plafond de tours 10 → 25 | fait | |
+| AG-08 | 2 | `execute_action` relit après écriture | fait | |
+| AG-09 | 2 | Lignes de prompt ciblées | fait | AG-06 |
 | AG-10 | 3 | Rejouer les évals et comparer | 0,5 j | |
 | AG-11 | 4 | Compaction par résumé réel | ? | AG-10 |
 | AG-12 | 4 | Mémoire entre conversations | ? | AG-10 |
@@ -83,8 +83,13 @@ fait tourner en rond le chantier d'indexation.
 
 ## Lot 2 : parité agent / MCP, une PR
 
-Le serveur MCP est aujourd'hui mieux outillé que l'agent intégré. Claude via le
-connecteur lit un `.docx` de mission ; l'agent dans l'application, non.
+**Livré.** Reste à déployer `agent-chat` et à appliquer la migration
+`20260728120000_agent_sql_query_explicit_truncation.sql`, puis à jouer AG-10.
+
+Le serveur MCP était mieux outillé que l'agent intégré : Claude via le
+connecteur lisait un `.docx` de mission, l'agent dans l'application non. La
+logique de lecture vit désormais dans `_shared/mission-tools.ts`, partagée par
+les deux, ce qui rend l'écart structurellement impossible à recreuser.
 
 ### AG-04 Porter les cinq tools MCP dans `agent-chat`
 
