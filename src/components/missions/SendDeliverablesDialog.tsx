@@ -11,10 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Send, Eye, Mail } from "lucide-react";
+import { Send, Eye, Mail, FileText, Image as ImageIcon, MessageSquare, Package } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/hooks/use-toast";
-import { useMissionContacts } from "@/hooks/useMissions";
+import { useMissionContacts, useMissionPages, useUpdateMissionPage } from "@/hooks/useMissions";
+import { useEntityDocuments } from "@/hooks/useEntityDocuments";
+import { useEntityMedia } from "@/hooks/useMedia";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { MissionContact } from "@/types/missions";
 
