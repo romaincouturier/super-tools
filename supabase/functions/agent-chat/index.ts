@@ -36,7 +36,6 @@ import {
 
 import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { searchContent } from "../_shared/agent-search.ts";
-import { loadMemory, rememberFact, resolveAutonomy } from "../_shared/agent-autonomy.ts";
 import {
   BULK_DEFAULT_DOCUMENTS,
   getClientDossier,
@@ -108,7 +107,7 @@ async function getBusinessContext(supabase: ReturnType<typeof getSupabaseClient>
 
 // ── System prompt ────────────────────────────────────────────
 
-function buildSystemPrompt(dbSchema: string, businessContext: string, memory: string): string {
+function buildSystemPrompt(dbSchema: string, businessContext: string): string {
   // Date sans l'heure : le prompt sert de préfixe de cache (cache_control),
   // une heure qui change à chaque minute invaliderait le cache en permanence.
   const now = new Date();
@@ -147,14 +146,8 @@ Règles :
 - Formate les montants en euros (€) et les dates en français
 - Si une requête SQL échoue, analyse l'erreur et corrige la requête
 - Ne retourne jamais de données brutes JSON — synthétise toujours pour l'utilisateur
-- Niveau d'autonomie des écritures : il est défini par action dans agent_autonomy_policy, pas par toi. Le serveur applique la règle.
-  • auto : agis directement, mentionne-le dans ta réponse
-  • notify : agis directement, puis signale clairement ce que tu as changé
-  • confirm : décris d'abord ce que tu vas faire, demande confirmation, et ne rappelle l'action qu'avec params.confirmed = true une fois l'accord obtenu
-  Si le serveur te renvoie blocked=true, c'est que la confirmation manque : demande-la, ne contourne pas.
+- IMPORTANT : avant toute action d'écriture, décris ce que tu vas faire et demande confirmation à l'utilisateur. N'exécute l'action que si l'utilisateur confirme explicitement (oui, ok, vas-y, confirme, etc.)
 - Après une écriture, le serveur te renvoie l'état réel de la ligne. Rapporte cet état, pas ton intention.
-- Pour un besoin qui s'inscrit dans la durée (« assure-toi que… », « surveille… », « fais en sorte que… »), ne te contente pas de répondre : crée un objectif avec execute_action, action = create_objective, params { domain, title, criterion, cadence_hours }. domain vaut facilitateur, contenus, commerce ou transformation. criterion doit être vérifiable. L'objectif survit à la conversation et est repris tant qu'il n'est pas atteint.
-- Pour retenir durablement un fait ou une préférence utile aux conversations futures : execute_action avec action = remember, params { key, value, kind } où kind vaut fait, preference ou contexte. Ne mémorise jamais de donnée sensible, et n'utilise ce mécanisme que pour ce qui resservira.
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
@@ -172,9 +165,6 @@ Fiabilité et traçabilité :
 ${businessContext ? `
 Contexte métier (fourni par l'équipe — fait foi pour les définitions, le vocabulaire et les priorités) :
 ${businessContext}
-` : ""}${memory ? `
-Mémoire (faits et préférences retenus des conversations précédentes — vérifie avant de t'en servir, une mémoire peut être périmée) :
-${memory}
 ` : ""}
 Jointures et conventions utiles :
 - Participants d'une formation : training_participants.training_id → trainings.id
@@ -326,7 +316,7 @@ const TOOLS = [
   {
     name: "execute_action",
     description:
-      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission, update_mission_status, update_ticket_status, update_quote_status, remember. Each action has an autonomy level defined in agent_autonomy_policy: auto (act alone), notify (act then say so), confirm (ask first). The server enforces it; a confirm-level action is refused unless the user confirmed. Use create_objective when the user asks for something to hold over time rather than to be answered now.",
+      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission, update_mission_status, update_ticket_status, update_quote_status.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -343,8 +333,6 @@ const TOOLS = [
             "update_mission",
             "update_ticket_status",
             "update_quote_status",
-            "remember",
-            "create_objective",
           ],
           description: "The action to execute",
         },
@@ -571,64 +559,8 @@ async function executeTool(
       const action = toolInput.action as string;
       const params = (toolInput.params || {}) as Record<string, unknown>;
 
-      // AG-34 : la politique d'autonomie remplace la règle unique du prompt.
-      // Une action de niveau `confirm` ne s'exécute que si l'utilisateur a
-      // confirmé dans le tour précédent, ce que le modèle signale par
-      // params.confirmed. Une action inconnue de la politique est refusée.
-      const level = await resolveAutonomy(supabase, action);
-      if (level === "confirm" && params.confirmed !== true) {
-        return JSON.stringify({
-          blocked: true,
-          autonomy_level: level,
-          message:
-            `L'action « ${action} » exige une confirmation explicite de l'utilisateur. ` +
-            `Décris ce que tu vas faire, demande confirmation, puis rappelle cette action ` +
-            `avec params.confirmed = true.`,
-        });
-      }
-
       try {
         switch (action) {
-          case "create_objective": {
-            const domains = ["facilitateur", "contenus", "commerce", "transformation"];
-            if (!domains.includes(params.domain as string)) {
-              return toolError(`domain doit valoir : ${domains.join(", ")}`);
-            }
-            if (!params.title || !params.criterion) {
-              return toolError("title et criterion sont requis. criterion doit être vérifiable : ce qui permet de dire que l'objectif est atteint.");
-            }
-            const { data: created, error: objError } = await supabase
-              .from("agent_objectives")
-              .insert({
-                domain: params.domain,
-                title: params.title,
-                criterion: params.criterion,
-                cadence_hours: (params.cadence_hours as number) || 24,
-                entity_type: params.entity_type ?? null,
-                entity_id: params.entity_id ?? null,
-                state: "active",
-                created_by: userId,
-              })
-              .select("id, domain, title, criterion, cadence_hours, state")
-              .maybeSingle();
-            if (objError) return toolError(objError.message);
-            return JSON.stringify({
-              success: true,
-              message: "Objectif créé. Il sera repris tant qu'il n'est pas atteint, sans que l'utilisateur ait à le redemander.",
-              objective: created,
-            });
-          }
-
-          case "remember": {
-            return await rememberFact(
-              supabase,
-              (params.key as string) || "",
-              (params.value as string) || "",
-              (params.kind as string) || "fait",
-              userId,
-            );
-          }
-
           case "move_crm_card": {
             const { error } = await supabase
               .from("crm_cards")
@@ -1049,10 +981,9 @@ async function runAgentStreaming(
   const write = (text: string) => writer.write(encoder.encode(text));
 
   // Load schema (registry) and business context (app_settings), cached 5 min
-  const [dbSchema, businessContext, memory] = await Promise.all([
+  const [dbSchema, businessContext] = await Promise.all([
     getDbSchema(supabase),
     getBusinessContext(supabase),
-    loadMemory(supabase),
   ]);
 
   // AG-11 : le début d'une longue conversation est condensé une fois pour
@@ -1085,7 +1016,7 @@ async function runAgentStreaming(
         system: [
           {
             type: "text",
-            text: buildSystemPrompt(dbSchema, businessContext, memory),
+            text: buildSystemPrompt(dbSchema, businessContext),
             cache_control: { type: "ephemeral" },
           },
         ],

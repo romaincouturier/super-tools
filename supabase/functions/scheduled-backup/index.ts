@@ -25,7 +25,6 @@ import { getBccList } from "../_shared/email-settings.ts";
 
 const TABLES_TO_BACKUP = [
   "activity_logs", "admin_documents",
-  "agent_action_log", "agent_autonomy_policy", "agent_memory", "agent_objectives",
   "agent_conversations", "agent_feedback", "agent_query_audit_log", "agent_schema_registry",
   "ai_brand_settings", "api_keys", "api_request_logs", "app_settings",
   "attendance_signatures", "balance_sheets", "billing_plans",
