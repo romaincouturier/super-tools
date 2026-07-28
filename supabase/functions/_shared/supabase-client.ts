@@ -54,10 +54,22 @@ export function createSupabaseClient(): SupabaseClient {
 /**
  * Verify JWT token and get user
  *
- * @param authHeader - Authorization header value
+ * @param input - Authorization header value, ou directement un Request/Headers
  * @returns User object or null
  */
-export async function verifyAuth(authHeader: string | null): Promise<{ id: string; email?: string } | null> {
+export async function verifyAuth(
+  input: string | null | Request | Headers
+): Promise<{ id: string; email?: string } | null> {
+  // Tolérant : certains appelants passent le Request ou les Headers.
+  let authHeader: string | null = null;
+  if (typeof input === "string") {
+    authHeader = input;
+  } else if (input instanceof Headers) {
+    authHeader = input.get("Authorization");
+  } else if (input && typeof (input as Request).headers?.get === "function") {
+    authHeader = (input as Request).headers.get("Authorization");
+  }
+
   console.log("verifyAuth called, authHeader present:", !!authHeader);
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -66,6 +78,7 @@ export async function verifyAuth(authHeader: string | null): Promise<{ id: strin
   }
 
   const token = authHeader.replace("Bearer ", "");
+
   if (!token) {
     console.warn("verifyAuth: empty token");
     return null;
