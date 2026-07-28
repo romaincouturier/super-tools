@@ -21,6 +21,7 @@ import { extractDocument } from "../_shared/document-extract.ts";
  *   - read_media_image    : une photo de galerie en bloc image (base64)
  *   - read_document       : contenu réel d'un document (PDF texte ou scanné,
  *                           Word, Excel, texte, image)
+ *   - read_mission_page   : une page de mission en entier, par parties bornées
  *   - read_mission_documents : contenu réel de TOUS les documents d'une mission
  *                           en un appel
  *   - save_mission_note   : SEULE écriture — crée/met à jour une page de
@@ -256,6 +257,22 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: "read_mission_page",
+    description:
+      "Read ONE mission page in full, in bounded parts. get_mission_dossier delivers every page it can in full, and lists the pages it could not fit in reading_plan: this tool reads those. Each answer states part N of M and the next part to call, so a page is never silently half-read. Use it to reach 100% coverage of a large mission before writing any synthesis.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        page_id: { type: "string", description: "UUID of the page (from reading_plan or the pages list)" },
+        part: {
+          type: "number",
+          description: "Part number, starting at 1 (default 1). Keep calling until next_part is null.",
+        },
+      },
+      required: ["page_id"],
+    },
+  },
+  {
     name: "read_mission_documents",
     description:
       "Read the actual content of ALL documents attached to a mission in one call (PDF, Word, Excel, text, images, and transcripts of audio/video files). Use this instead of calling read_document repeatedly when you need the whole documentary base of a mission. Combined with get_mission_dossier (pages + activities + gallery) and read_media_image, it gives complete access to a mission.",
@@ -320,34 +337,25 @@ const MCP_TOOLS = [
 // ── Dossiers agrégés (lecture seule, journalisés) ────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PAGE_CONTENT_MAX = 60000;
-const PAGES_TOTAL_MAX = 250000;
 
 /**
- * Plafond par page, réparti équitablement quand la mission dépasse le budget.
+ * Couverture intégrale garantie.
  *
- * Un budget consommé page après page donne tout aux premières et rien aux
- * dernières : sur une mission réelle de 929 000 caractères, une page « PRD »
- * de 304 caractères se retrouvait vidée pendant qu'un transcript d'atelier
- * prenait 60 000. On cherche donc le niveau L le plus haut tel que
- * somme(min(longueur, L)) tienne dans le budget : toute page plus courte que L
- * passe entière, les longues se partagent le reste à parts égales.
+ * Une réponse partielle qui ressemble à une réponse complète est pire qu'une
+ * absence de réponse : sur une mission réelle de 929 320 caractères, le dossier
+ * en livrait 16 % sans que rien ne le signale, et la synthèse produite semblait
+ * fondée sur tout le dossier.
+ *
+ * Deux invariants tiennent lieu de garantie :
+ *   1. Une page est livrée ENTIÈRE ou pas du tout. Jamais de page coupée dans
+ *      le dossier, donc jamais de contenu tronqué pris pour du contenu complet.
+ *   2. Ce qui n'est pas livré figure dans reading_plan, avec l'appel exact et
+ *      le nombre de parties. La couverture 100 % reste toujours atteignable.
  */
-function pageContentLevel(lengths: number[]): number {
-  const total = lengths.reduce((a, b) => a + b, 0);
-  if (total <= PAGES_TOTAL_MAX) return PAGE_CONTENT_MAX;
-
-  const sorted = [...lengths].sort((a, b) => a - b);
-  let remaining = PAGES_TOTAL_MAX;
-  let rest = sorted.length;
-  for (const len of sorted) {
-    const share = remaining / rest;
-    if (len > share) return Math.min(Math.floor(share), PAGE_CONTENT_MAX);
-    remaining -= len;
-    rest--;
-  }
-  return PAGE_CONTENT_MAX;
-}
+const DOSSIER_INLINE_MAX = 250000;
+const PAGE_PART_CHARS = 60000;
+/** Plafond de lignes par bloc annexe, avec comptage exact pour signaler la coupe. */
+const DOSSIER_ROWS_MAX = 100;
 
 async function auditDossierCall(supabase: Supabase, label: string): Promise<void> {
   const userId = await getAllowedUserId(supabase);
@@ -410,87 +418,163 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
   if ("problem" in resolved) return resolved.problem;
   const mission = resolved.mission;
 
+  const exact = { count: "exact" as const };
   const [pages, activities, documents, gallery] = await Promise.all([
+    // Toutes les pages, sans limite : le dossier doit connaître l'inventaire
+    // complet même quand il ne peut pas en livrer le contenu.
     supabase
       .from("mission_pages")
       .select("id, title, icon, content, page_type, parent_page_id, position, is_deliverable, created_at")
       .eq("mission_id", mission.id)
-      .order("position", { ascending: true })
-      .limit(60),
+      .order("position", { ascending: true }),
     supabase
       .from("mission_activities")
-      .select("activity_date, description, duration, duration_type, is_billed, notes")
+      .select("activity_date, description, duration, duration_type, is_billed, notes", exact)
       .eq("mission_id", mission.id)
       .order("activity_date", { ascending: true })
-      .limit(100),
+      .limit(DOSSIER_ROWS_MAX),
     supabase
       .from("mission_documents")
       // `id` est indispensable : c'est lui qu'on passe à read_document.
       // Son absence rendait les documents de mission illisibles.
-      .select("id, file_name, file_url, mime_type, file_size, is_deliverable, processing_status, transcript_page_id, created_at")
+      .select(
+        "id, file_name, file_url, mime_type, file_size, is_deliverable, processing_status, transcript_page_id, created_at",
+        exact,
+      )
       .eq("mission_id", mission.id)
       .order("created_at", { ascending: true })
-      .limit(100),
+      .limit(DOSSIER_ROWS_MAX),
     supabase
       .from("media")
-      .select("id, file_name, mime_type, file_size, position, tags, transcript, is_deliverable, created_at")
+      .select("id, file_name, mime_type, file_size, position, tags, transcript, is_deliverable, created_at", exact)
       .eq("source_type", "mission")
       .eq("source_id", mission.id)
       .order("position", { ascending: true })
-      .limit(100),
+      .limit(DOSSIER_ROWS_MAX),
   ]);
 
   const pageRows = (pages.data || []) as Array<Record<string, unknown>>;
-  const level = pageContentLevel(
-    pageRows.map((p) => (typeof p.content === "string" ? p.content.length : 0)),
-  );
+  const lengthOf = (p: Record<string, unknown>) =>
+    typeof p.content === "string" ? (p.content as string).length : 0;
+  const totalChars = pageRows.reduce((n, p) => n + lengthOf(p), 0);
 
-  const truncatedPages: Array<{ id: string; title: string; content_length: number }> = [];
+  // Invariant 1 : une page passe entière ou pas du tout. On remplit le budget
+  // en commençant par les plus courtes, pour qu'une seule page monumentale
+  // n'évince pas les dix petites (dont, sur une mission réelle, la page « PRD »).
+  const inlineIds = new Set<string>();
+  let budget = DOSSIER_INLINE_MAX;
+  for (const p of [...pageRows].sort((a, b) => lengthOf(a) - lengthOf(b))) {
+    const len = lengthOf(p);
+    if (len > budget) break;
+    budget -= len;
+    inlineIds.add(p.id as string);
+  }
+
+  // Invariant 2 : ce qui n'est pas livré devient un plan d'appels explicite.
+  const readingPlan: Array<Record<string, unknown>> = [];
   const mappedPages = pageRows.map((p) => {
-    const raw = typeof p.content === "string" ? p.content : "";
-    if (raw.length <= level) {
-      return { ...p, content_length: raw.length, content_truncated: false };
+    const len = lengthOf(p);
+    if (inlineIds.has(p.id as string)) {
+      return { ...p, content_length: len, content_complete: true };
     }
-    truncatedPages.push({
-      id: p.id as string,
-      title: (p.title as string) ?? "",
-      content_length: raw.length,
+    const parts = Math.max(1, Math.ceil(len / PAGE_PART_CHARS));
+    readingPlan.push({
+      page_id: p.id,
+      title: p.title,
+      content_length: len,
+      parts,
+      call: `read_mission_page("${p.id}", part)  // part de 1 à ${parts}`,
     });
-    return {
-      ...p,
-      content: raw.slice(0, level) + "… [tronqué]",
-      content_length: raw.length,
-      content_truncated: true,
-    };
+    const { content: _omitted, ...rest } = p;
+    return { ...rest, content_length: len, content_complete: false, parts };
   });
 
-  const totalChars = pageRows.reduce(
-    (n, p) => n + (typeof p.content === "string" ? p.content.length : 0),
-    0,
-  );
+  const planCalls = readingPlan.reduce((n, r) => n + (r.parts as number), 0);
+  const deliveredChars = totalChars - readingPlan.reduce((n, r) => n + (r.content_length as number), 0);
+
+  const overflow = (label: string, res: { data: unknown[] | null; count: number | null }) =>
+    (res.count ?? 0) > (res.data?.length ?? 0)
+      ? `${label} : ${res.data?.length ?? 0} lignes sur ${res.count} (interroger le reste avec query_database). `
+      : "";
 
   return JSON.stringify({
     found: true,
     mission,
     pages: mappedPages,
     activities: activities.data || [],
+    activities_total: activities.count ?? (activities.data || []).length,
     documents: documents.data || [],
+    documents_total: documents.count ?? (documents.data || []).length,
     gallery: gallery.data || [],
-    pages_total_chars: totalChars,
-    truncated_pages: truncatedPages,
+    gallery_total: gallery.count ?? (gallery.data || []).length,
+    coverage: {
+      pages_total: pageRows.length,
+      pages_complete: inlineIds.size,
+      chars_total: totalChars,
+      chars_delivered: deliveredChars,
+      remaining_calls: planCalls,
+    },
+    reading_plan: readingPlan,
     hint:
-      (truncatedPages.length
-        ? `ATTENTION : ${truncatedPages.length} page(s) sur ${pageRows.length} sont coupées ` +
-          `(${totalChars} caractères au total, ${level} livrés par page au maximum). ` +
-          `Une synthèse fondée sur ce seul appel serait incomplète : relire chaque page de ` +
-          `truncated_pages avec query_database (SELECT content FROM mission_pages WHERE id = '…', ` +
-          `une page par appel), ou cibler la recherche avec search_content(query, mission_id). `
-        : "") +
-      "Tout le contenu de la mission est accessible. Documents : chacun se lit avec " +
-      "read_document(document_id) — PDF, Word, Excel, scans — ou tous d'un coup avec " +
-      "read_mission_documents(mission). Galerie : chaque photo se lit avec " +
-      "read_media_image(media_id). Ne jamais répondre qu'un contenu de mission est " +
+      (readingPlan.length
+        ? `COUVERTURE PARTIELLE : ${inlineIds.size} page(s) sur ${pageRows.length} sont livrées ici, ` +
+          `intégralement (aucune page n'est tronquée). Les ${readingPlan.length} autres, soit ` +
+          `${totalChars - deliveredChars} caractères, ne sont PAS dans cette réponse. ` +
+          `Pour couvrir 100 % du dossier, exécuter les ${planCalls} appels listés dans reading_plan ` +
+          `avant de conclure. Ne pas produire de synthèse « du dossier » tant que reading_plan ` +
+          `n'est pas épuisé : le dire, ou faire les appels. Alternative quand seule une question ` +
+          `précise est posée : search_content(query, mission_id) cible sans tout lire. `
+        : "Couverture complète : toutes les pages sont livrées intégralement. ") +
+      overflow("Activités", activities as never) +
+      overflow("Documents", documents as never) +
+      overflow("Galerie", gallery as never) +
+      "Documents : read_document(document_id), ou read_mission_documents(mission) pour tous. " +
+      "Photos : read_media_image(media_id). Ne jamais répondre qu'un contenu de mission est " +
       "inaccessible sans avoir appelé ces tools.",
+  });
+}
+
+/**
+ * Une page de mission, en entier, découpée en parties de taille bornée.
+ * C'est le tool qui rend la couverture 100 % atteignable sur les pages que le
+ * dossier ne peut pas livrer.
+ */
+async function readMissionPage(
+  supabase: Supabase,
+  pageId: string,
+  part: number,
+): Promise<string> {
+  if (!UUID_RE.test(pageId.trim())) {
+    throw new Error("page_id doit être un UUID (voir reading_plan de get_mission_dossier)");
+  }
+  await auditDossierCall(supabase, `read_mission_page: ${pageId.slice(0, 60)} part ${part}`);
+
+  const { data: page, error } = await supabase
+    .from("mission_pages")
+    .select("id, mission_id, title, content, page_type, is_deliverable, created_at")
+    .eq("id", pageId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!page) throw new Error("Page introuvable");
+
+  const content = (page.content as string) ?? "";
+  const totalParts = Math.max(1, Math.ceil(content.length / PAGE_PART_CHARS));
+  const index = Math.min(Math.max(Math.trunc(part) || 1, 1), totalParts);
+  const slice = content.slice((index - 1) * PAGE_PART_CHARS, index * PAGE_PART_CHARS);
+
+  return JSON.stringify({
+    page_id: page.id,
+    mission_id: page.mission_id,
+    title: page.title,
+    part: index,
+    total_parts: totalParts,
+    chars_total: content.length,
+    content: slice,
+    next_part: index < totalParts ? index + 1 : null,
+    hint: index < totalParts
+      ? `Partie ${index}/${totalParts}. La page n'est PAS entièrement lue : appeler ` +
+        `read_mission_page("${page.id}", ${index + 1}) pour la suite.`
+      : `Partie ${index}/${totalParts}. Page lue en entier.`,
   });
 }
 
@@ -1068,6 +1152,19 @@ async function callTool(
         return await readDocument(supabase, (args.document_id as string) || "");
       } catch (e) {
         return textResult(`Document error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "read_mission_page": {
+      try {
+        return textResult(
+          await readMissionPage(
+            supabase,
+            (args.page_id as string) || "",
+            (args.part as number) || 1,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Page error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
     case "read_mission_documents": {
