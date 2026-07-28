@@ -186,7 +186,7 @@ export function useParticipantActions({
     const current = participant.coaching_sessions_completed || 0;
     const total = participant.coaching_sessions_total || 0;
     const newCompleted = current < total ? current + 1 : current - 1;
-    const { error } = await (supabase as ReturnType<typeof supabase.from>)
+    const { error } = await (supabase as any)
       .from("training_participants")
       .update({ coaching_sessions_completed: Math.max(0, newCompleted) })
       .eq("id", participant.id);
@@ -196,7 +196,7 @@ export function useParticipantActions({
   const handleUncheckCoachingSession = async (participant: Participant) => {
     const current = participant.coaching_sessions_completed || 0;
     if (current <= 0) return;
-    const { error } = await (supabase as ReturnType<typeof supabase.from>)
+    const { error } = await (supabase as any)
       .from("training_participants")
       .update({ coaching_sessions_completed: current - 1 })
       .eq("id", participant.id);

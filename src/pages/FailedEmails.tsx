@@ -60,7 +60,7 @@ const FailedEmails = () => {
   const fetchFailedEmails = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+      const { data, error } = await (supabase as unknown as { from: (table: string) => any })
         .from("failed_emails")
         .select("*")
         .order("created_at", { ascending: false });
@@ -91,7 +91,7 @@ const FailedEmails = () => {
 
   const handleDelete = async (failedEmailId: string) => {
     try {
-      const { error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+      const { error } = await (supabase as unknown as { from: (table: string) => any })
         .from("failed_emails")
         .delete()
         .eq("id", failedEmailId);

@@ -30,7 +30,7 @@ export function useParticipantData(
   // Fetch all evaluations (certificates + status) for all participants
   useEffect(() => {
     const fetchEvaluations = async () => {
-      const { data, error } = await (supabase as ReturnType<typeof supabase.from>)
+      const { data, error } = await (supabase as any)
         .from("training_evaluations")
         .select(`
           id, participant_id, certificate_url, etat, date_soumission,
@@ -56,7 +56,7 @@ export function useParticipantData(
   // Fetch attendance signatures to block deletion for participants who signed
   useEffect(() => {
     const fetchAttendanceSignatures = async () => {
-      const { data, error } = await (supabase as ReturnType<typeof supabase.from>)
+      const { data, error } = await (supabase as any)
         .from("attendance_signatures")
         .select("participant_id")
         .eq("training_id", trainingId)
@@ -81,7 +81,7 @@ export function useParticipantData(
 
       if (sponsorEmails.length === 0) return;
 
-      const { data, error } = await (supabase as ReturnType<typeof supabase.from>)
+      const { data, error } = await (supabase as any)
         .from("convention_signatures")
         .select("recipient_email, status, signed_at")
         .eq("training_id", trainingId)

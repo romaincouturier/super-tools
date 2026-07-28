@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const db = () =>
   supabase as unknown as {
-    from: (table: string) => ReturnType<typeof supabase.from>;
+    from: (table: string) => any;
   };
 
 /**

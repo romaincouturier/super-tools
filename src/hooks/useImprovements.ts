@@ -245,7 +245,7 @@ export function useImprovements() {
   // ── Notes ────────────────────────────────────────────────────────────────
 
   const fetchNotes = useCallback(async (improvementId: string) => {
-    const { data } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)("improvement_notes")
+    const { data } = await (supabase.from as (table: string) => any)("improvement_notes")
       .select("*")
       .eq("improvement_id" as never, improvementId)
       .order("created_at", { ascending: false });
@@ -254,7 +254,7 @@ export function useImprovements() {
 
   const addNote = useCallback(
     async (improvementId: string, content: string, userId?: string) => {
-      const { error } = await (supabase.from as (table: string) => ReturnType<typeof supabase.from>)("improvement_notes")
+      const { error } = await (supabase.from as (table: string) => any)("improvement_notes")
         .insert({
           improvement_id: improvementId,
           content: content.trim(),

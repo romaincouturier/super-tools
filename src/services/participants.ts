@@ -373,7 +373,7 @@ export async function fetchConventionSignature(
 export async function fetchParticipantFiles(
   participantId: string,
 ): Promise<ParticipantFile[]> {
-  const { data, error } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+  const { data, error } = await (supabase as unknown as { from: (table: string) => any })
     .from("participant_files")
     .select("id, file_url, file_name, uploaded_at")
     .eq("participant_id", participantId)
@@ -387,7 +387,7 @@ export async function fetchParticipantFiles(
 export async function fetchCouponCode(
   participantId: string,
 ): Promise<string | null> {
-  const { data } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+  const { data } = await (supabase as unknown as { from: (table: string) => any })
     .from("woocommerce_coupons")
     .select("coupon_code")
     .eq("participant_id", participantId)
@@ -437,7 +437,7 @@ export async function deleteParticipantFile(
     await supabase.storage.from("training-documents").remove([oldBucketParts[1]]);
   }
 
-  await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+  await (supabase as unknown as { from: (table: string) => any })
     .from("participant_files")
     .delete()
     .eq("id", fileToDelete.id);

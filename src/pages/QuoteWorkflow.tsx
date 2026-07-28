@@ -28,7 +28,7 @@ export default function QuoteWorkflowPage() {
 
     (async () => {
       try {
-        const { data, error: fetchError } = await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+        const { data, error: fetchError } = await (supabase as unknown as { from: (table: string) => any })
           .from("crm_cards")
           .select("*")
           .eq("id", cardId)
