@@ -480,8 +480,11 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const auth = await verifyAuth(req);
-    if (!auth.user) return createErrorResponse("Non authentifié", 401);
+    // Appel système (cron) : un secret partagé tient lieu d'identité.
+    const cronSecret = Deno.env.get("AGENT_CRON_SECRET");
+    const isCron = !!cronSecret && req.headers.get("x-cron-secret") === cronSecret;
+    const auth = isCron ? null : await verifyAuth(req.headers.get("Authorization"));
+    if (!isCron && !auth) return createErrorResponse("Non authentifié", 401);
 
     const supabase = getSupabaseClient();
     const body = await req.json().catch(() => ({}));
