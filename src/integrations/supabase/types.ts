@@ -5965,6 +5965,7 @@ export type Database = {
       }
       mission_contacts: {
         Row: {
+          access_token: string
           created_at: string
           email: string | null
           first_name: string | null
@@ -5980,6 +5981,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_token?: string
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -5995,6 +5997,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_token?: string
           created_at?: string
           email?: string | null
           first_name?: string | null
@@ -6235,6 +6238,92 @@ export type Database = {
           },
         ]
       }
+      mission_page_comments: {
+        Row: {
+          author_contact_id: string | null
+          author_email: string | null
+          author_name: string
+          author_user_id: string | null
+          block_id: string | null
+          body: string
+          created_at: string
+          id: string
+          is_deleted: boolean
+          is_resolved: boolean
+          is_staff: boolean
+          mission_id: string
+          page_id: string
+          parent_comment_id: string | null
+          quoted_text: string | null
+          resolved_at: string | null
+        }
+        Insert: {
+          author_contact_id?: string | null
+          author_email?: string | null
+          author_name: string
+          author_user_id?: string | null
+          block_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          is_resolved?: boolean
+          is_staff?: boolean
+          mission_id: string
+          page_id: string
+          parent_comment_id?: string | null
+          quoted_text?: string | null
+          resolved_at?: string | null
+        }
+        Update: {
+          author_contact_id?: string | null
+          author_email?: string | null
+          author_name?: string
+          author_user_id?: string | null
+          block_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          is_resolved?: boolean
+          is_staff?: boolean
+          mission_id?: string
+          page_id?: string
+          parent_comment_id?: string | null
+          quoted_text?: string | null
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_page_comments_author_contact_id_fkey"
+            columns: ["author_contact_id"]
+            isOneToOne: false
+            referencedRelation: "mission_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_page_comments_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_page_comments_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "mission_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_page_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "mission_page_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mission_page_templates: {
         Row: {
           content: string
@@ -6274,6 +6363,7 @@ export type Database = {
       mission_pages: {
         Row: {
           activity_id: string | null
+          comments_enabled: boolean
           content: string | null
           created_at: string | null
           icon: string | null
@@ -6289,6 +6379,7 @@ export type Database = {
         }
         Insert: {
           activity_id?: string | null
+          comments_enabled?: boolean
           content?: string | null
           created_at?: string | null
           icon?: string | null
@@ -6304,6 +6395,7 @@ export type Database = {
         }
         Update: {
           activity_id?: string | null
+          comments_enabled?: boolean
           content?: string | null
           created_at?: string | null
           icon?: string | null
@@ -11752,11 +11844,16 @@ export type Database = {
         Args: { p_mission_id: string }
         Returns: Json
       }
+      get_mission_contact_by_token: { Args: { p_token: string }; Returns: Json }
       get_mission_documents_public: {
         Args: { p_mission_id: string }
         Returns: Json
       }
       get_mission_media_public: {
+        Args: { p_mission_id: string }
+        Returns: Json
+      }
+      get_mission_page_comments_public: {
         Args: { p_mission_id: string }
         Returns: Json
       }
