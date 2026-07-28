@@ -62,7 +62,7 @@ export const IDEA_COLUMNS: IdeaStatus[] = [
 
 // `ideas` / `idea_votes` ne sont pas encore dans les types générés Supabase.
 const anyDb = supabase as unknown as {
-  from: (t: string) => ReturnType<typeof supabase.from>;
+  from: (t: string) => any;
 };
 
 /** Upload d'un fichier (image/PDF) via l'edge function dédiée (pas de storage direct). */

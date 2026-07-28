@@ -90,7 +90,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
     enabled: !!card?.id,
     queryFn: async () => {
       const { data, error } = await (supabase as unknown as {
-        from: (t: string) => ReturnType<typeof supabase.from>;
+        from: (t: string) => any;
       })
         .from("crm_scheduled_emails")
         .select("id, recipient_email, subject, scheduled_at, status")
@@ -109,7 +109,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
       return;
     }
     try {
-      await (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> }).from("crm_scheduled_emails").insert({
+      await (supabase as unknown as { from: (table: string) => any }).from("crm_scheduled_emails").insert({
         card_id: card.id,
         recipient_email: emailTo.trim(),
         subject: emailSubject.trim(),
@@ -128,7 +128,7 @@ const CardDetailCommunication = ({ state, handlers, details, emailFileInputRef, 
 
   const cancelScheduledEmail = async (id: string) => {
     try {
-      await (supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> })
+      await (supabase as unknown as { from: (t: string) => any })
         .from("crm_scheduled_emails")
         .delete()
         .eq("id", id);

@@ -101,7 +101,7 @@ const EventEdit = () => {
   // Fetch shares count
   useEffect(() => {
     if (!id) return;
-    (supabase as unknown as { from: (table: string) => ReturnType<typeof supabase.from> })
+    (supabase as unknown as { from: (table: string) => any })
       .from("event_shares")
       .select("id", { count: "exact", head: true })
       .eq("event_id", id)
