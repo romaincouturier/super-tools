@@ -460,11 +460,9 @@ interface ThreadViewProps {
   onDelete: (commentId: string) => void;
   onResolve: (resolved: boolean) => void;
   onReply: (body: string) => Promise<boolean>;
-  style?: React.CSSProperties;
 }
 
 const ThreadView = ({
-  ref,
   thread,
   quoted,
   isStaff,
@@ -476,15 +474,13 @@ const ThreadView = ({
   onDelete,
   onResolve,
   onReply,
-  style,
-}: ThreadViewProps & { ref?: (el: HTMLDivElement | null) => void }) => {
+}: ThreadViewProps) => {
   const [replying, setReplying] = useState(false);
 
   return (
     <div
-      ref={ref}
-      style={style}
       onClick={onActivate}
+
       className={cn(
         "rounded-lg border bg-card p-3 text-sm transition-shadow",
         active ? "border-primary/50 shadow-md" : "shadow-sm hover:shadow",
