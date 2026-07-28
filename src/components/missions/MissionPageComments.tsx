@@ -251,36 +251,44 @@ const MissionPageComments = ({
     else cardRefs.current.delete(id);
   };
 
-  const renderThread = (thread: Thread, options?: { positioned?: boolean }) => (
-    <ThreadView
-      key={thread.root.id}
-      ref={options?.positioned ? registerCard(thread.root.id) : undefined}
-      thread={thread}
-      quoted={thread.root.quoted_text}
-      isStaff={isStaff}
-      canComment={canComment}
-      loading={loading}
-      active={activeThreadId === thread.root.id}
-      onActivate={() => setActiveThreadId(thread.root.id)}
-      canDelete={canDelete}
-      onDelete={handleDelete}
-      onResolve={(isResolved) => resolveThread(thread.root.id, isResolved)}
-      onReply={(body) =>
-        addComment({
-          pageId: page.id,
-          body,
-          blockId: thread.root.block_id,
-          quotedText: thread.root.quoted_text,
-          parentCommentId: thread.root.id,
-        })
-      }
-      style={
-        options?.positioned
-          ? { position: "absolute", top: anchors[thread.root.id] ?? 0, left: 0, right: 0 }
-          : undefined
-      }
-    />
-  );
+  const renderThread = (thread: Thread, options?: { positioned?: boolean }) => {
+    const card = (
+      <ThreadView
+        thread={thread}
+        quoted={thread.root.quoted_text}
+        isStaff={isStaff}
+        canComment={canComment}
+        loading={loading}
+        active={activeThreadId === thread.root.id}
+        onActivate={() => setActiveThreadId(thread.root.id)}
+        canDelete={canDelete}
+        onDelete={handleDelete}
+        onResolve={(isResolved) => resolveThread(thread.root.id, isResolved)}
+        onReply={(body) =>
+          addComment({
+            pageId: page.id,
+            body,
+            blockId: thread.root.block_id,
+            quotedText: thread.root.quoted_text,
+            parentCommentId: thread.root.id,
+          })
+        }
+      />
+    );
+
+    if (!options?.positioned) return <div key={thread.root.id}>{card}</div>;
+
+    return (
+      <div
+        key={thread.root.id}
+        ref={registerCard(thread.root.id)}
+        style={{ position: "absolute", top: anchors[thread.root.id] ?? 0, left: 0, right: 0 }}
+      >
+        {card}
+      </div>
+    );
+  };
+
 
   const draftCard = draft && canComment && (
     <div
