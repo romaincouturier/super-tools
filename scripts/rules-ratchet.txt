@@ -8,4 +8,4 @@
 # 037a : catch {} sans binding dans src (erreur avalée, invisible pour Sentry)
 # 037b : réponses d'erreur JSON construites à la main dans les edge functions (utiliser createErrorResponse)
 037a=235
-037b=391
+037b=374

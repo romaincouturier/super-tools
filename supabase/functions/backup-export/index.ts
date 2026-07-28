@@ -7,6 +7,10 @@ import { verifyAuth } from "../_shared/supabase-client.ts";
 const TABLES_TO_BACKUP = [
   "activity_logs",
   "admin_documents",
+  "agent_action_log",
+  "agent_autonomy_policy",
+  "agent_memory",
+  "agent_objectives",
   "agent_conversations",
   "agent_feedback",
   "agent_query_audit_log",
