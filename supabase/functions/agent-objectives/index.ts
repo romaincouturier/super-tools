@@ -297,10 +297,12 @@ async function runCommerce(
       if (level !== "confirm") {
         const { error } = await supabase.from("crm_comments").insert({
           card_id: card.id,
+          author_email: "agent@supertools",
           content: overdue
             ? `Action datée du ${nextDate} dépassée : « ${card.waiting_next_action_text ?? "sans intitulé"} ». Relance à décider.`
             : `Aucune action datée et aucune activité depuis plus de ${DORMANT_DAYS} jours. Opportunité en sommeil.`,
         });
+        if (error) console.error("[agent-objectives] crm_comments insert", error);
         if (!error) {
           actions++;
           await logAction(supabase, {
