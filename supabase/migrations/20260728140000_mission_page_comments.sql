@@ -70,11 +70,13 @@ ALTER TABLE public.mission_page_comments ENABLE ROW LEVEL SECURITY;
 
 -- Le staff connecté lit et modère depuis l'app (règle [039] : le rôle
 -- `authenticated` doit toujours conserver un chemin de lecture).
+DROP POLICY IF EXISTS "Authenticated users can view mission page comments" ON public.mission_page_comments;
 CREATE POLICY "Authenticated users can view mission page comments"
   ON public.mission_page_comments FOR SELECT
   TO authenticated
   USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can update mission page comments" ON public.mission_page_comments;
 CREATE POLICY "Authenticated users can update mission page comments"
   ON public.mission_page_comments FOR UPDATE
   TO authenticated
