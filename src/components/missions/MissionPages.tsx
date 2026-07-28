@@ -28,6 +28,7 @@ import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TextAlign from "@tiptap/extension-text-align";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
+import { MermaidCodeBlock } from "./MermaidCodeBlock";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
