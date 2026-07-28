@@ -593,6 +593,7 @@ const PageEditor = ({
         link: false,
         underline: false,
       }),
+      MermaidCodeBlock,
       LinkExtension.configure({
         // Let the browser handle the click via the rendered <a target="_blank">
         // anchor; TipTap's own window.open is blocked as a popup when the
