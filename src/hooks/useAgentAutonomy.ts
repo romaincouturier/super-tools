@@ -59,10 +59,32 @@ export const LEVEL_LABELS: Record<AutonomyLevel, string> = {
   confirm: "Demande avant",
 };
 
+export interface AgentFinding {
+  gap?: string;
+  title?: string;
+  card_id?: string;
+  mission_id?: string;
+  transcript_id?: string;
+  status?: string;
+  client?: string;
+  value?: number;
+  next?: string;
+  [key: string]: unknown;
+}
+
+export interface AgentRunReport {
+  objectiveId: string;
+  dryRun: boolean;
+  summary: string;
+  actionsCount: number;
+  findings: AgentFinding[];
+}
+
 export function useAgentAutonomy() {
   const [objectives, setObjectives] = useState<AgentObjective[]>([]);
   const [actions, setActions] = useState<AgentActionEntry[]>([]);
   const [policy, setPolicy] = useState<AgentPolicyEntry[]>([]);
+  const [reports, setReports] = useState<Record<string, AgentRunReport>>({});
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
   const orchestrator = useEdgeFunction<Record<string, unknown>>("agent-objectives", {
@@ -136,7 +158,21 @@ export function useAgentAutonomy() {
       const data = await orchestrator.invoke({ objective_id: objectiveId, dry_run: dryRun });
       setRunning(null);
       if (!data) return null;
-      const result = (data as { results?: Array<{ summary?: string }> })?.results?.[0];
+      const result = (
+        data as {
+          results?: Array<{ summary?: string; actions?: number; findings?: AgentFinding[] }>;
+        }
+      )?.results?.[0];
+      setReports((prev) => ({
+        ...prev,
+        [objectiveId]: {
+          objectiveId,
+          dryRun,
+          summary: result?.summary ?? "Aucun constat",
+          actionsCount: result?.actions ?? 0,
+          findings: result?.findings ?? [],
+        },
+      }));
       toast.success(dryRun ? "Constat effectué" : "Objectif exécuté", {
         description: result?.summary ?? "Aucun constat",
       });
@@ -145,6 +181,14 @@ export function useAgentAutonomy() {
     },
     [load, orchestrator],
   );
+
+  const clearReport = useCallback((objectiveId: string) => {
+    setReports((prev) => {
+      const next = { ...prev };
+      delete next[objectiveId];
+      return next;
+    });
+  }, []);
 
   const revert = useCallback(
     async (actionId: string) => {
@@ -160,12 +204,14 @@ export function useAgentAutonomy() {
     objectives,
     actions,
     policy,
+    reports,
     loading,
     running,
     reload: load,
     setObjectiveState,
     setPolicyLevel,
     runObjective,
+    clearReport,
     revert,
   };
 }

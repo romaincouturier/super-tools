@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
-import { Bot, History, Play, RotateCcw, ShieldCheck, Search } from "lucide-react";
+import { Bot, History, Play, RotateCcw, ShieldCheck, Search, X, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   DOMAIN_LABELS,
   LEVEL_LABELS,
   useAgentAutonomy,
+  type AgentFinding,
   type AutonomyLevel,
 } from "@/hooks/useAgentAutonomy";
 
@@ -34,18 +36,56 @@ function formatDate(value: string | null) {
   });
 }
 
+/** Lien vers l'entité concernée par un constat, quand elle en a un. */
+function findingLink(finding: AgentFinding): string | null {
+  if (finding.card_id) return `/crm/card/${finding.card_id}`;
+  if (finding.mission_id) return `/missions/${finding.mission_id}`;
+  if (finding.transcript_id) return `/transcripts`;
+  return null;
+}
+
+function FindingRow({ finding }: { finding: AgentFinding }) {
+  const to = findingLink(finding);
+  const label = (finding.title as string) || (finding.gap as string) || "Constat";
+  return (
+    <li className="flex items-start justify-between gap-3 border-b py-2 last:border-b-0">
+      <div className="min-w-0 space-y-0.5">
+        <p className="truncate text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">
+          {finding.gap}
+          {finding.client ? ` — ${finding.client}` : ""}
+          {finding.status ? ` — ${finding.status}` : ""}
+          {typeof finding.value === "number" ? ` — ${finding.value} €` : ""}
+        </p>
+        {finding.next && <p className="text-xs text-muted-foreground">À faire : {finding.next}</p>}
+      </div>
+      {to && (
+        <Button asChild variant="ghost" size="sm" className="shrink-0">
+          <Link to={to}>
+            Ouvrir
+            <ExternalLink className="ml-1 h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      )}
+    </li>
+  );
+}
+
 export default function AgentAutonomySettings() {
   const {
     objectives,
     actions,
     policy,
+    reports,
     loading,
     running,
     setObjectiveState,
     setPolicyLevel,
     runObjective,
+    clearReport,
     revert,
   } = useAgentAutonomy();
+
 
   if (loading) {
     return (
@@ -72,51 +112,89 @@ export default function AgentAutonomySettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {objectives.map((objective) => (
-            <div
-              key={objective.id}
-              className="flex w-full flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between"
-            >
-              <div className="min-w-0 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{DOMAIN_LABELS[objective.domain] ?? objective.domain}</Badge>
-                  <span className="font-medium">{objective.title}</span>
-                  {objective.state === "met" && <Badge variant="secondary">Atteint</Badge>}
-                </div>
-                <p className="text-sm text-muted-foreground">{objective.criterion}</p>
-                <p className="text-xs text-muted-foreground">
-                  {objective.run_count} passage(s), dernier {formatDate(objective.last_run_at)}
-                  {objective.last_result ? ` — ${objective.last_result}` : ""}
-                </p>
-              </div>
+          {objectives.map((objective) => {
+            const report = reports[objective.id];
+            return (
+              <div key={objective.id} className="w-full space-y-3 rounded-lg border p-4">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">
+                        {DOMAIN_LABELS[objective.domain] ?? objective.domain}
+                      </Badge>
+                      <span className="font-medium">{objective.title}</span>
+                      {objective.state === "met" && <Badge variant="secondary">Atteint</Badge>}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{objective.criterion}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {objective.run_count} passage(s), dernier {formatDate(objective.last_run_at)}
+                      {objective.last_result ? ` — ${objective.last_result}` : ""}
+                    </p>
+                  </div>
 
-              <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={running === objective.id}
-                  onClick={() => runObjective(objective.id, true)}
-                >
-                  <Search className="mr-1 h-4 w-4" />
-                  Constater
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={running === objective.id}
-                  onClick={() => runObjective(objective.id, false)}
-                >
-                  {running === objective.id ? <Spinner /> : <Play className="mr-1 h-4 w-4" />}
-                  Exécuter
-                </Button>
-                <Switch
-                  checked={objective.state === "active"}
-                  onCheckedChange={(on) => setObjectiveState(objective.id, on ? "active" : "paused")}
-                  aria-label="Objectif actif"
-                />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={running === objective.id}
+                      onClick={() => runObjective(objective.id, true)}
+                    >
+                      <Search className="mr-1 h-4 w-4" />
+                      Constater
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={running === objective.id}
+                      onClick={() => runObjective(objective.id, false)}
+                    >
+                      {running === objective.id ? <Spinner /> : <Play className="mr-1 h-4 w-4" />}
+                      Exécuter
+                    </Button>
+                    <Switch
+                      checked={objective.state === "active"}
+                      onCheckedChange={(on) =>
+                        setObjectiveState(objective.id, on ? "active" : "paused")
+                      }
+                      aria-label="Objectif actif"
+                    />
+                  </div>
+                </div>
+
+                {report && (
+                  <div className="rounded-md bg-muted/50 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">
+                          {report.dryRun ? "Constat" : "Exécution"} — {report.summary}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {report.dryRun
+                            ? "Rien n'a été écrit."
+                            : `${report.actionsCount} action(s) effectuée(s).`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => clearReport(objective.id)}
+                        aria-label="Masquer le constat"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {report.findings.length > 0 && (
+                      <ul className="mt-2">
+                        {report.findings.map((finding, index) => (
+                          <FindingRow key={index} finding={finding} />
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
