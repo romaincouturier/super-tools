@@ -1188,7 +1188,13 @@ const MissionPages = ({ mission, initialActivityPageRequest, onActivityPageCreat
   useEffect(() => {
     if (selectedPage && pages) {
       const fresh = pages.find((p) => p.id === selectedPage.id);
-      if (fresh && (fresh.title !== selectedPage.title || fresh.icon !== selectedPage.icon)) {
+      if (
+        fresh &&
+        (fresh.title !== selectedPage.title ||
+          fresh.icon !== selectedPage.icon ||
+          fresh.is_deliverable !== selectedPage.is_deliverable ||
+          fresh.comments_enabled !== selectedPage.comments_enabled)
+      ) {
         setSelectedPage(fresh);
       }
     }
