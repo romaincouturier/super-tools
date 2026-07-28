@@ -584,7 +584,7 @@ const PageEditor = ({
         bulletList: { keepMarks: true, keepAttributes: false },
         orderedList: { keepMarks: true, keepAttributes: false },
         heading: { levels: [1, 2, 3, 4] },
-        codeBlock: { HTMLAttributes: { class: "bg-muted/50 rounded-md p-4 font-mono text-sm" } },
+        codeBlock: false,
         blockquote: { HTMLAttributes: { class: "border-l-4 border-primary/30 pl-4 italic text-muted-foreground" } },
         horizontalRule: { HTMLAttributes: { class: "my-6 border-muted-foreground/30 border-t-2" } },
         // StarterKit v3 bundles Link and Underline; disable them here so our
