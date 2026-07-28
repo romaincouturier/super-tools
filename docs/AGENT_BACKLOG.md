@@ -23,20 +23,25 @@ dernier dans le lot.
 | AG-08 | 2 | `execute_action` relit après écriture | fait | |
 | AG-09 | 2 | Lignes de prompt ciblées | fait | AG-06 |
 | AG-10 | 3 | Rejouer les évals et comparer | 0,5 j | |
-| AG-11 | 4 | Compaction par résumé réel | ? | AG-10 |
-| AG-12 | 4 | Mémoire entre conversations | ? | AG-10 |
-| AG-13 | 4 | Planification et sous-agents | ? | AG-10 |
-| AG-30 | 5 | Objectifs persistants | 1 j | AG-35 |
-| AG-31 | 5 | Déclencheurs autres que l'utilisateur | 0,5 j | AG-35 |
-| AG-32 | 5 | Journal d'actions, digest, réversibilité | 1 j | autonomie |
-| AG-33 | 5 | Catalogue d'outils métier | 1 j | |
-| AG-34 | 5 | Politique d'autonomie (décision) | décision | AG-36+ |
-| AG-35 | 5 | Métier facilitateur de bout en bout | 1 j | |
-| AG-36 | 5 | Métier contenus et marketing | 1 j | AG-34 |
-| AG-37 | 5 | Métier commerce | 1 j | AG-34 |
-| AG-38 | 5 | Métier transformation | 1,5 j | AG-34 |
+| AG-11 | 4 | Compaction par résumé réel | fait | |
+| AG-12 | 4 | Mémoire entre conversations | fait | |
+| AG-13 | 4 | Planification (fait) / sous-agents (écarté) | fait | |
+| AG-30 | 5 | Objectifs persistants | fait | |
+| AG-31 | 5 | Déclencheurs autres que l'utilisateur | fait | cron à poser |
+| AG-32 | 5 | Journal d'actions, digest, réversibilité | fait | |
+| AG-33 | 5 | Catalogue d'outils métier | écarté | |
+| AG-34 | 5 | Politique d'autonomie | mécanisme fait | valeurs à arbitrer |
+| AG-35 | 5 | Métier facilitateur | fait | |
+| AG-36 | 5 | Métier contenus et marketing | fait | |
+| AG-37 | 5 | Métier commerce | fait | |
+| AG-38 | 5 | Métier transformation | fait | |
+| AG-21 | — | Liste des tools figée par conversation claude.ai | contourné | |
+| AG-22 | — | Le dossier grossit de ses propres notes | à surveiller | |
 
 Hors agent : AG-20 (transcriptions de photos à refaire).
+
+**Il ne reste rien à coder.** Ce qui reste est du déploiement (AG-00, AG-01),
+de la mesure (AG-03, AG-10) et une décision d'exploitation (valeurs d'AG-34).
 
 ---
 
@@ -186,15 +191,27 @@ premier tour, à condition de le savoir d'avance.
 
 ---
 
-## Lot 4 : conditionnel
+## Lot 4 : livré
 
-À n'engager que si AG-10 montre que le lot de parité ne suffit pas. Autre ordre
-de grandeur d'effort.
+Ces trois items étaient conditionnés à AG-10. Ils ont été livrés sur demande
+explicite, avant mesure : la limite méthodologique est assumée et rappelée ici.
 
-- **AG-11** Compaction par résumé réel au lieu de troncature.
-- **AG-12** Mémoire entre conversations. Aujourd'hui rien ne persiste, sauf le
-  contexte métier statique d'`app_settings`.
-- **AG-13** Planification, décomposition de tâche, sous-agents.
+- **AG-11** Compaction par résumé. Au-delà de 24 messages, le début de la
+  conversation est remplacé une seule fois par un résumé produit avec le modèle
+  rapide, puis persisté. Le point de coupe ne tombe jamais au milieu d'une
+  paire `tool_use` / `tool_result`, que l'API rejetterait.
+- **AG-12** Mémoire entre conversations. Table `agent_memory`, 40 entrées
+  injectées au maximum, clé unique pour remplacer au lieu d'empiler, expiration
+  à 90 jours pour le type `contexte`. L'agent y écrit avec l'action `remember`.
+- **AG-13** Scindé, et c'est le point honnête de ce lot.
+  - *Planification* : **livrée**, mais pas sous la forme envisagée. Plutôt que
+    de laisser le modèle décomposer une tâche en vol, l'action
+    `create_objective` transforme une demande durable en objectif persistant
+    repris jusqu'à satisfaction. La décomposition devient structurelle donc
+    prévisible, au lieu d'être rejouée à chaque conversation.
+  - *Sous-agents* : **écartés pour l'instant**. Ils ne se conçoivent qu'en
+    sachant quelles tâches échouent, ce que seule AG-10 dira. Les construire
+    maintenant reviendrait à deviner.
 
 ---
 
@@ -361,6 +378,31 @@ l'utilisateur ne le demande.
 3. AG-34 : décider la politique métier par métier.
 4. AG-36, AG-37, AG-38.
 5. AG-33 quand le code en dur pèse.
+
+---
+
+## Constats d'exploitation
+
+### AG-21 La liste des tools est figée par conversation claude.ai
+
+Observé en conditions réelles : le serveur exposait `read_mission_page`, la
+conversation ne le voyait pas, Claude en a conclu que le serveur ne l'avait pas
+publié et a improvisé. Ce n'est pas un bug serveur, c'est le client qui fige la
+liste à la création de la conversation.
+
+**Contourné** : chaque entrée de `reading_plan` porte un champ `call_sql` qui
+donne le même découpage via `query_database`. Contrainte permanente à garder en
+tête à chaque ajout de tool.
+
+### AG-22 Le dossier grossit de ses propres notes
+
+929 320 caractères puis 1 022 451 après deux `save_mission_note` : les notes de
+l'agent deviennent des pages de mission et comptent dans le total. Ce n'est pas
+un bug, mais sur une mission où l'agent écrit beaucoup, la couverture se
+dégrade d'elle-même.
+
+**À surveiller**, à traiter seulement si cela devient gênant. Piste si besoin :
+exclure les pages préfixées « Note agent — » du budget d'inclusion.
 
 ---
 

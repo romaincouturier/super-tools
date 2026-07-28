@@ -36,6 +36,7 @@ import {
 
 import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { searchContent } from "../_shared/agent-search.ts";
+import { loadMemory, rememberFact, resolveAutonomy } from "../_shared/agent-autonomy.ts";
 import {
   BULK_DEFAULT_DOCUMENTS,
   getClientDossier,
@@ -107,7 +108,7 @@ async function getBusinessContext(supabase: ReturnType<typeof getSupabaseClient>
 
 // ── System prompt ────────────────────────────────────────────
 
-function buildSystemPrompt(dbSchema: string, businessContext: string): string {
+function buildSystemPrompt(dbSchema: string, businessContext: string, memory: string): string {
   // Date sans l'heure : le prompt sert de préfixe de cache (cache_control),
   // une heure qui change à chaque minute invaliderait le cache en permanence.
   const now = new Date();
@@ -146,7 +147,14 @@ Règles :
 - Formate les montants en euros (€) et les dates en français
 - Si une requête SQL échoue, analyse l'erreur et corrige la requête
 - Ne retourne jamais de données brutes JSON — synthétise toujours pour l'utilisateur
-- IMPORTANT : avant toute action d'écriture, décris ce que tu vas faire et demande confirmation à l'utilisateur. N'exécute l'action que si l'utilisateur confirme explicitement (oui, ok, vas-y, confirme, etc.)
+- Niveau d'autonomie des écritures : il est défini par action dans agent_autonomy_policy, pas par toi. Le serveur applique la règle.
+  • auto : agis directement, mentionne-le dans ta réponse
+  • notify : agis directement, puis signale clairement ce que tu as changé
+  • confirm : décris d'abord ce que tu vas faire, demande confirmation, et ne rappelle l'action qu'avec params.confirmed = true une fois l'accord obtenu
+  Si le serveur te renvoie blocked=true, c'est que la confirmation manque : demande-la, ne contourne pas.
+- Après une écriture, le serveur te renvoie l'état réel de la ligne. Rapporte cet état, pas ton intention.
+- Pour un besoin qui s'inscrit dans la durée (« assure-toi que… », « surveille… », « fais en sorte que… »), ne te contente pas de répondre : crée un objectif avec execute_action, action = create_objective, params { domain, title, criterion, cadence_hours }. domain vaut facilitateur, contenus, commerce ou transformation. criterion doit être vérifiable. L'objectif survit à la conversation et est repris tant qu'il n'est pas atteint.
+- Pour retenir durablement un fait ou une préférence utile aux conversations futures : execute_action avec action = remember, params { key, value, kind } où kind vaut fait, preference ou contexte. Ne mémorise jamais de donnée sensible, et n'utilise ce mécanisme que pour ce qui resservira.
 - Si l'utilisateur demande une action et que tu n'as pas assez d'infos, pose des questions avant d'agir
 - Pour les requêtes temporelles relatives ("cette semaine", "ce mois-ci", "les 7 derniers jours"), utilise la date actuelle ci-dessus pour calculer les bornes SQL appropriées
 - Tu ne peux requêter QUE les tables listées ci-dessous. Toute table hors de cette liste sera rejetée.
@@ -164,6 +172,9 @@ Fiabilité et traçabilité :
 ${businessContext ? `
 Contexte métier (fourni par l'équipe — fait foi pour les définitions, le vocabulaire et les priorités) :
 ${businessContext}
+` : ""}${memory ? `
+Mémoire (faits et préférences retenus des conversations précédentes — vérifie avant de t'en servir, une mémoire peut être périmée) :
+${memory}
 ` : ""}
 Jointures et conventions utiles :
 - Participants d'une formation : training_participants.training_id → trainings.id
@@ -315,7 +326,7 @@ const TOOLS = [
   {
     name: "execute_action",
     description:
-      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission, update_mission_status, update_ticket_status, update_quote_status.",
+      "Execute a write action on SuperTools data. ONLY use this AFTER the user has explicitly confirmed the action. Available actions: move_crm_card, update_crm_card, add_crm_comment, add_mission_page, add_support_note, add_content_card, update_mission, update_mission_status, update_ticket_status, update_quote_status, remember. Each action has an autonomy level defined in agent_autonomy_policy: auto (act alone), notify (act then say so), confirm (ask first). The server enforces it; a confirm-level action is refused unless the user confirmed. Use create_objective when the user asks for something to hold over time rather than to be answered now.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -332,6 +343,8 @@ const TOOLS = [
             "update_mission",
             "update_ticket_status",
             "update_quote_status",
+            "remember",
+            "create_objective",
           ],
           description: "The action to execute",
         },
@@ -375,6 +388,14 @@ const CONTENT_READ_TOOLS = new Set([
 ]);
 
 // ── Tool execution ───────────────────────────────────────────
+
+/**
+ * Erreur renvoyée à l'intérieur d'un tool_result, à ne pas confondre avec une
+ * réponse HTTP d'erreur : le modèle la lit et peut corriger son appel.
+ */
+function toolError(message: string): string {
+  return JSON.stringify({ tool_error: message });
+}
 
 /**
  * Relit la ligne après écriture et renvoie son état réel.
@@ -438,13 +459,11 @@ async function executeTool(
           p_explanation: explanation,
         });
         if (error) {
-          return JSON.stringify({ error: error.message });
+          return toolError(error.message);
         }
         return JSON.stringify(data ?? []);
       } catch (e) {
-        return JSON.stringify({
-          error: e instanceof Error ? e.message : "Query execution failed",
-        });
+        return toolError(e instanceof Error ? e.message : "Query execution failed");
       }
     }
 
@@ -457,9 +476,7 @@ async function executeTool(
         const results = await searchContent(supabase, query, sourceTypes, maxResults);
         return JSON.stringify(results);
       } catch (e) {
-        return JSON.stringify({
-          error: e instanceof Error ? e.message : "Search failed",
-        });
+        return toolError(e instanceof Error ? e.message : "Search failed");
       }
     }
 
@@ -480,9 +497,7 @@ async function executeTool(
         }
         return body;
       } catch (e) {
-        return JSON.stringify({
-          error: e instanceof Error ? e.message : "Business health call failed",
-        });
+        return toolError(e instanceof Error ? e.message : "Business health call failed");
       }
     }
 
@@ -556,14 +571,70 @@ async function executeTool(
       const action = toolInput.action as string;
       const params = (toolInput.params || {}) as Record<string, unknown>;
 
+      // AG-34 : la politique d'autonomie remplace la règle unique du prompt.
+      // Une action de niveau `confirm` ne s'exécute que si l'utilisateur a
+      // confirmé dans le tour précédent, ce que le modèle signale par
+      // params.confirmed. Une action inconnue de la politique est refusée.
+      const level = await resolveAutonomy(supabase, action);
+      if (level === "confirm" && params.confirmed !== true) {
+        return JSON.stringify({
+          blocked: true,
+          autonomy_level: level,
+          message:
+            `L'action « ${action} » exige une confirmation explicite de l'utilisateur. ` +
+            `Décris ce que tu vas faire, demande confirmation, puis rappelle cette action ` +
+            `avec params.confirmed = true.`,
+        });
+      }
+
       try {
         switch (action) {
+          case "create_objective": {
+            const domains = ["facilitateur", "contenus", "commerce", "transformation"];
+            if (!domains.includes(params.domain as string)) {
+              return toolError(`domain doit valoir : ${domains.join(", ")}`);
+            }
+            if (!params.title || !params.criterion) {
+              return toolError("title et criterion sont requis. criterion doit être vérifiable : ce qui permet de dire que l'objectif est atteint.");
+            }
+            const { data: created, error: objError } = await supabase
+              .from("agent_objectives")
+              .insert({
+                domain: params.domain,
+                title: params.title,
+                criterion: params.criterion,
+                cadence_hours: (params.cadence_hours as number) || 24,
+                entity_type: params.entity_type ?? null,
+                entity_id: params.entity_id ?? null,
+                state: "active",
+                created_by: userId,
+              })
+              .select("id, domain, title, criterion, cadence_hours, state")
+              .maybeSingle();
+            if (objError) return toolError(objError.message);
+            return JSON.stringify({
+              success: true,
+              message: "Objectif créé. Il sera repris tant qu'il n'est pas atteint, sans que l'utilisateur ait à le redemander.",
+              objective: created,
+            });
+          }
+
+          case "remember": {
+            return await rememberFact(
+              supabase,
+              (params.key as string) || "",
+              (params.value as string) || "",
+              (params.kind as string) || "fait",
+              userId,
+            );
+          }
+
           case "move_crm_card": {
             const { error } = await supabase
               .from("crm_cards")
               .update({ column_id: params.column_id, updated_at: new Date().toISOString() })
               .eq("id", params.card_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return await confirmWrite(supabase, "crm_cards", params.card_id,
               "id, title, column_id, sales_status, updated_at", "Carte CRM déplacée");
           }
@@ -574,7 +645,7 @@ async function executeTool(
               .from("crm_cards")
               .update({ ...updates, updated_at: new Date().toISOString() })
               .eq("id", card_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return await confirmWrite(supabase, "crm_cards", card_id,
               "id, title, sales_status, estimated_value, waiting_next_action_date, waiting_next_action_text, updated_at",
               "Carte CRM mise à jour");
@@ -588,7 +659,7 @@ async function executeTool(
                 content: params.content,
                 author_email: params.author_email || "agent@supertools.ai",
               });
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return JSON.stringify({ success: true, message: "Commentaire ajouté" });
           }
 
@@ -613,7 +684,7 @@ async function executeTool(
                 position,
                 created_by: userId,
               });
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return JSON.stringify({ success: true, message: "Page ajoutée à la mission" });
           }
 
@@ -632,7 +703,7 @@ async function executeTool(
               .from("support_tickets")
               .update({ resolution_notes: newNotes, updated_at: new Date().toISOString() })
               .eq("id", params.ticket_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return JSON.stringify({ success: true, message: "Note ajoutée au ticket support" });
           }
 
@@ -647,7 +718,7 @@ async function executeTool(
               columnId = colsList.find((c) => c.name === "Idées")?.id || colsList[0]?.id;
             }
             if (!columnId) {
-              return JSON.stringify({ error: "Aucune colonne trouvée pour le contenu" });
+              return toolError("Aucune colonne trouvée pour le contenu");
             }
 
             const { error } = await supabase
@@ -659,7 +730,7 @@ async function executeTool(
                 tags: params.tags || [],
                 created_by: userId,
               });
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return JSON.stringify({ success: true, message: "Carte de contenu créée" });
           }
 
@@ -683,15 +754,13 @@ async function executeTool(
               if (MISSION_FIELDS.includes(key)) updates[key] = value;
             }
             if (Object.keys(updates).length === 0) {
-              return JSON.stringify({
-                error: `Aucun champ modifiable fourni. Champs autorisés : ${MISSION_FIELDS.join(", ")}`,
-              });
+              return toolError(`Aucun champ modifiable fourni. Champs autorisés : ${MISSION_FIELDS.join(", ")}`);
             }
             const { error } = await supabase
               .from("missions")
               .update({ ...updates, updated_at: new Date().toISOString() })
               .eq("id", params.mission_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return await confirmWrite(supabase, "missions", params.mission_id,
               "id, title, status, waiting_next_action_date, waiting_next_action_text, start_date, end_date, updated_at",
               `Mission mise à jour (${Object.keys(updates).join(", ")})`);
@@ -700,13 +769,13 @@ async function executeTool(
           case "update_mission_status": {
             const validStatuses = ["not_started", "in_progress", "completed", "cancelled"];
             if (!validStatuses.includes(params.status as string)) {
-              return JSON.stringify({ error: `Statut invalide. Valeurs: ${validStatuses.join(", ")}` });
+              return toolError(`Statut invalide. Valeurs: ${validStatuses.join(", ")}`);
             }
             const { error } = await supabase
               .from("missions")
               .update({ status: params.status, updated_at: new Date().toISOString() })
               .eq("id", params.mission_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return await confirmWrite(supabase, "missions", params.mission_id,
               "id, title, status, updated_at", "Statut de la mission mis à jour");
           }
@@ -714,7 +783,7 @@ async function executeTool(
           case "update_ticket_status": {
             const validTicketStatuses = ["nouveau", "qualification", "vibe_coding", "resolu"];
             if (!validTicketStatuses.includes(params.status as string)) {
-              return JSON.stringify({ error: `Statut invalide. Valeurs: ${validTicketStatuses.join(", ")}` });
+              return toolError(`Statut invalide. Valeurs: ${validTicketStatuses.join(", ")}`);
             }
             const ticketUpdate: Record<string, unknown> = {
               status: params.status,
@@ -727,7 +796,7 @@ async function executeTool(
               .from("support_tickets")
               .update(ticketUpdate)
               .eq("id", params.ticket_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return await confirmWrite(supabase, "support_tickets", params.ticket_id,
               "id, status, resolution_notes, resolved_at, updated_at", "Ticket mis à jour");
           }
@@ -735,29 +804,27 @@ async function executeTool(
           case "update_quote_status": {
             const validQuoteStatuses = ["draft", "generated", "sent", "signed", "expired", "canceled"];
             if (!validQuoteStatuses.includes(params.status as string)) {
-              return JSON.stringify({ error: `Statut invalide. Valeurs: ${validQuoteStatuses.join(", ")}` });
+              return toolError(`Statut invalide. Valeurs: ${validQuoteStatuses.join(", ")}`);
             }
             const { error } = await supabase
               .from("quotes")
               .update({ status: params.status, updated_at: new Date().toISOString() })
               .eq("id", params.quote_id);
-            if (error) return JSON.stringify({ error: error.message });
+            if (error) return toolError(error.message);
             return await confirmWrite(supabase, "quotes", params.quote_id,
               "id, quote_number, status, total_ht, updated_at", "Statut du devis mis à jour");
           }
 
           default:
-            return JSON.stringify({ error: `Action inconnue: ${action}` });
+            return toolError(`Action inconnue: ${action}`);
         }
       } catch (e) {
-        return JSON.stringify({
-          error: e instanceof Error ? e.message : "Action execution failed",
-        });
+        return toolError(e instanceof Error ? e.message : "Action execution failed");
       }
     }
 
     default:
-      return JSON.stringify({ error: `Unknown tool: ${toolName}` });
+      return toolError(`Unknown tool: ${toolName}`);
   }
 }
 
@@ -856,6 +923,104 @@ function partsToApiContent(parts: ExtractedPart[]): Array<Record<string, unknown
   return content.length ? content : [{ type: "text", text: "(aucun contenu lisible)" }];
 }
 
+// ── AG-11 : compaction par résumé, et non par troncature ─────
+//
+// Tronquer perd l'information ; résumer la condense. Au-delà d'un certain
+// nombre d'échanges, le début de la conversation est remplacé par un résumé
+// produit une seule fois, puis persisté avec la conversation : les tours
+// suivants n'en repaient pas le coût.
+
+const SUMMARY_TRIGGER_MESSAGES = 24;
+const SUMMARY_MARKER = "[Résumé automatique des échanges précédents]";
+
+/**
+ * Point de coupe sûr : un vrai tour utilisateur, jamais au milieu d'une paire
+ * tool_use / tool_result — l'API rejette un tool_use orphelin.
+ */
+function safeSummaryCut(messages: Message[]): number {
+  for (let i = messages.length - KEEP_RECENT_MESSAGES; i > 1; i--) {
+    const m = messages[i];
+    if (m.role !== "user") continue;
+    const isToolTurn =
+      Array.isArray(m.content) &&
+      (m.content as Array<Record<string, unknown>>).some((b) => b.type === "tool_result");
+    if (!isToolTurn) return i;
+  }
+  return 0;
+}
+
+function messageToText(m: Message): string {
+  if (typeof m.content === "string") return `${m.role}: ${m.content}`;
+  if (!Array.isArray(m.content)) return "";
+  const parts = (m.content as Array<Record<string, unknown>>)
+    .map((b) => {
+      if (b.type === "text") return b.text as string;
+      if (b.type === "tool_use") return `[tool ${b.name}]`;
+      if (b.type === "tool_result") {
+        const c = b.content;
+        return `[résultat] ${typeof c === "string" ? c.slice(0, 600) : "(contenu structuré)"}`;
+      }
+      return "";
+    })
+    .filter(Boolean);
+  return parts.length ? `${m.role}: ${parts.join("\n")}` : "";
+}
+
+async function summarizeIfLong(messages: Message[]): Promise<Message[]> {
+  if (messages.length < SUMMARY_TRIGGER_MESSAGES || !ANTHROPIC_API_KEY) return messages;
+  // Déjà résumé : le marqueur ouvre la conversation compactée.
+  if (typeof messages[0]?.content === "string" && (messages[0].content as string).startsWith(SUMMARY_MARKER)) {
+    // On ne re-résume que si la partie non résumée a de nouveau beaucoup grossi.
+    if (messages.length < SUMMARY_TRIGGER_MESSAGES * 2) return messages;
+  }
+
+  const cut = safeSummaryCut(messages);
+  if (cut < 4) return messages;
+
+  const transcript = messages.slice(0, cut).map(messageToText).filter(Boolean).join("\n\n");
+  if (!transcript.trim()) return messages;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "content-type": "application/json",
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: CLAUDE_DEFAULT,
+        max_tokens: 1500,
+        messages: [
+          {
+            role: "user",
+            content:
+              "Résume les échanges ci-dessous pour qu'un assistant puisse poursuivre la conversation " +
+              "sans les relire. Conserve : les faits et chiffres établis, les identifiants (UUID, noms " +
+              "de tables, de missions, de clients), les décisions prises, les questions restées ouvertes " +
+              "et ce qui a été explicitement écarté. Va à l'essentiel, en français, sans introduction.\n\n" +
+              transcript.slice(0, 120000),
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return messages;
+    const data = await res.json();
+    const summary = data.content?.[0]?.text?.trim();
+    if (!summary) return messages;
+
+    return [
+      { role: "user", content: `${SUMMARY_MARKER}\n${summary}` },
+      { role: "assistant", content: "Contexte repris. Je poursuis." },
+      ...messages.slice(cut),
+    ];
+  } catch (e) {
+    // Un résumé raté ne doit pas casser la conversation : on continue sans.
+    console.error("Résumé de conversation impossible:", e);
+    return messages;
+  }
+}
+
 // ── SSE helpers ─────────────────────────────────────────────
 
 function sseEvent(event: string, data: Record<string, unknown>): string {
@@ -884,12 +1049,15 @@ async function runAgentStreaming(
   const write = (text: string) => writer.write(encoder.encode(text));
 
   // Load schema (registry) and business context (app_settings), cached 5 min
-  const [dbSchema, businessContext] = await Promise.all([
+  const [dbSchema, businessContext, memory] = await Promise.all([
     getDbSchema(supabase),
     getBusinessContext(supabase),
+    loadMemory(supabase),
   ]);
 
-  const conversationMessages = [...messages];
+  // AG-11 : le début d'une longue conversation est condensé une fois pour
+  // toutes, et le résultat est persisté avec la conversation.
+  const conversationMessages = await summarizeIfLong([...messages]);
   let fullResponse = "";
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -917,7 +1085,7 @@ async function runAgentStreaming(
         system: [
           {
             type: "text",
-            text: buildSystemPrompt(dbSchema, businessContext),
+            text: buildSystemPrompt(dbSchema, businessContext, memory),
             cache_control: { type: "ephemeral" },
           },
         ],
