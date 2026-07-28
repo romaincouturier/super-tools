@@ -158,7 +158,21 @@ export function useAgentAutonomy() {
       const data = await orchestrator.invoke({ objective_id: objectiveId, dry_run: dryRun });
       setRunning(null);
       if (!data) return null;
-      const result = (data as { results?: Array<{ summary?: string }> })?.results?.[0];
+      const result = (
+        data as {
+          results?: Array<{ summary?: string; actions?: number; findings?: AgentFinding[] }>;
+        }
+      )?.results?.[0];
+      setReports((prev) => ({
+        ...prev,
+        [objectiveId]: {
+          objectiveId,
+          dryRun,
+          summary: result?.summary ?? "Aucun constat",
+          actionsCount: result?.actions ?? 0,
+          findings: result?.findings ?? [],
+        },
+      }));
       toast.success(dryRun ? "Constat effectué" : "Objectif exécuté", {
         description: result?.summary ?? "Aucun constat",
       });
@@ -167,6 +181,14 @@ export function useAgentAutonomy() {
     },
     [load, orchestrator],
   );
+
+  const clearReport = useCallback((objectiveId: string) => {
+    setReports((prev) => {
+      const next = { ...prev };
+      delete next[objectiveId];
+      return next;
+    });
+  }, []);
 
   const revert = useCallback(
     async (actionId: string) => {
@@ -182,12 +204,14 @@ export function useAgentAutonomy() {
     objectives,
     actions,
     policy,
+    reports,
     loading,
     running,
     reload: load,
     setObjectiveState,
     setPolicyLevel,
     runObjective,
+    clearReport,
     revert,
   };
 }
