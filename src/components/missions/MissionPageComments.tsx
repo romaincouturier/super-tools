@@ -11,6 +11,12 @@ import { cn } from "@/lib/utils";
 import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 import { splitHtmlIntoBlocks } from "@/lib/missionPageBlocks";
 import {
+  buildThreads,
+  partitionThreads,
+  canDeleteComment,
+  type CommentThread as Thread,
+} from "@/lib/missionPageComments";
+import {
   useMissionPageComments,
   useMissionPageCommentActions,
 } from "@/hooks/useMissionPageComments";
@@ -20,8 +26,6 @@ import type {
   MissionPagePublic,
 } from "@/lib/supabase-rpc";
 
-const OWN_DELETE_WINDOW_MS = 15 * 60 * 1000;
-
 interface MissionPageCommentsProps {
   missionId: string;
   page: MissionPagePublic;
@@ -30,19 +34,6 @@ interface MissionPageCommentsProps {
   contactToken: string | null;
   /** Membre Supertilt connecté : peut répondre, supprimer et clore un fil. */
   isStaff: boolean;
-}
-
-interface Thread {
-  root: MissionPageCommentPublic;
-  replies: MissionPageCommentPublic[];
-}
-
-function buildThreads(comments: MissionPageCommentPublic[]): Thread[] {
-  const roots = comments.filter((c) => !c.parent_comment_id);
-  return roots.map((root) => ({
-    root,
-    replies: comments.filter((c) => c.parent_comment_id === root.id),
-  }));
 }
 
 const MissionPageComments = ({
@@ -67,24 +58,10 @@ const MissionPageComments = ({
     [allComments, page.id],
   );
 
-  const threads = useMemo(() => buildThreads(pageComments), [pageComments]);
-  const blockIds = useMemo(() => new Set(blocks.map((b) => b.id)), [blocks]);
-
-  const threadsByBlock = useMemo(() => {
-    const map = new Map<string, Thread[]>();
-    for (const thread of threads) {
-      const id = thread.root.block_id;
-      if (!id || !blockIds.has(id)) continue;
-      map.set(id, [...(map.get(id) || []), thread]);
-    }
-    return map;
-  }, [threads, blockIds]);
-
-  // Fils dont le bloc d'origine n'existe plus : la page a été réécrite depuis.
-  const detachedThreads = useMemo(
-    () => threads.filter((t) => !t.root.block_id || !blockIds.has(t.root.block_id)),
-    [threads, blockIds],
-  );
+  const { byBlock, detached, resolved } = useMemo(() => {
+    const blockIds = new Set(blocks.map((b) => b.id));
+    return partitionThreads(buildThreads(pageComments), blockIds);
+  }, [pageComments, blocks]);
 
   const canComment = page.comments_enabled && (isStaff || !!contact);
 
@@ -98,11 +75,8 @@ const MissionPageComments = ({
     if (ok) await deleteComment(commentId);
   };
 
-  const canDelete = (comment: MissionPageCommentPublic) => {
-    if (isStaff) return true;
-    if (!contact || comment.author_contact_id !== contact.id) return false;
-    return Date.now() - new Date(comment.created_at).getTime() < OWN_DELETE_WINDOW_MS;
-  };
+  const canDelete = (comment: MissionPageCommentPublic) =>
+    canDeleteComment(comment, { isStaff, contactId: contact?.id ?? null });
 
   const renderThread = (thread: Thread, quoted?: string | null) => (
     <ThreadView
@@ -114,7 +88,7 @@ const MissionPageComments = ({
       loading={loading}
       canDelete={canDelete}
       onDelete={handleDelete}
-      onResolve={(resolved) => resolveThread(thread.root.id, resolved)}
+      onResolve={(isResolved) => resolveThread(thread.root.id, isResolved)}
       onReply={(body) =>
         addComment({
           pageId: page.id,
@@ -126,9 +100,6 @@ const MissionPageComments = ({
       }
     />
   );
-
-  const openThreads = (list: Thread[]) => list.filter((t) => !t.root.is_resolved);
-  const resolvedThreads = threads.filter((t) => t.root.is_resolved);
 
   return (
     <article className="border rounded-lg p-5 bg-card">
@@ -159,7 +130,7 @@ const MissionPageComments = ({
           )}
 
           {blocks.map((block) => {
-            const blockThreads = openThreads(threadsByBlock.get(block.id) || []);
+            const blockThreads = byBlock.get(block.id) || [];
             const isOpen = openBlockId === block.id;
             return (
               <div key={block.id} className="group relative">
@@ -214,18 +185,16 @@ const MissionPageComments = ({
             );
           })}
 
-          {detachedThreads.filter((t) => !t.root.is_resolved).length > 0 && (
+          {detached.length > 0 && (
             <div className="mt-6 pt-4 border-t space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Commentaires sur une version précédente
               </p>
-              {detachedThreads
-                .filter((t) => !t.root.is_resolved)
-                .map((thread) => renderThread(thread, thread.root.quoted_text))}
+              {detached.map((thread) => renderThread(thread, thread.root.quoted_text))}
             </div>
           )}
 
-          {resolvedThreads.length > 0 && (
+          {resolved.length > 0 && (
             <div className="mt-6 pt-4 border-t">
               <button
                 type="button"
@@ -233,12 +202,12 @@ const MissionPageComments = ({
                 className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5"
               >
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                {resolvedThreads.length} conversation{resolvedThreads.length > 1 ? "s" : ""} terminée
-                {resolvedThreads.length > 1 ? "s" : ""}
+                {resolved.length} conversation{resolved.length > 1 ? "s" : ""} terminée
+                {resolved.length > 1 ? "s" : ""}
               </button>
               {showResolved && (
                 <div className="mt-2 space-y-2 opacity-70">
-                  {resolvedThreads.map((thread) => renderThread(thread, thread.root.quoted_text))}
+                  {resolved.map((thread) => renderThread(thread, thread.root.quoted_text))}
                 </div>
               )}
             </div>

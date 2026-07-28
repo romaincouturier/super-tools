@@ -11,25 +11,21 @@ import {
   wrapEmailHtml,
   getSigniticSignature,
 } from "../_shared/mod.ts";
+import {
+  validateCommentBody,
+  checkCanComment,
+  checkCanDelete,
+  resolveThreadParentId,
+  isRateLimited,
+  rateLimitSince,
+  notificationRecipients,
+  type CommentAuthor as Author,
+} from "../_shared/mission-comments.ts";
 
 // Écritures des commentaires de pages livrables. Point d'entrée unique :
 // aucune policy anon en écriture sur mission_page_comments.
 // Auteur = staff authentifié (JWT) ou contact identifié par son token de lien.
-
-const MAX_BODY_LENGTH = 5000;
-const RATE_LIMIT_WINDOW_MINUTES = 10;
-const RATE_LIMIT_MAX_COMMENTS = 20;
-const DELETE_WINDOW_MINUTES = 15;
-
-interface Author {
-  contactId: string | null;
-  userId: string | null;
-  /** Mission du contact porteur du token — null pour un membre du staff. */
-  missionId: string | null;
-  name: string;
-  email: string | null;
-  isStaff: boolean;
-}
+// Les règles d'autorisation sont dans _shared/mission-comments.ts (testées).
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -105,11 +101,9 @@ serve(async (req) => {
 
 // deno-lint-ignore no-explicit-any
 async function handleCreate(supabase: any, payload: any, author: Author): Promise<Response> {
-  const body = typeof payload.body === "string" ? payload.body.trim() : "";
-  if (!body) return createErrorResponse("Le commentaire est vide", 400);
-  if (body.length > MAX_BODY_LENGTH) {
-    return createErrorResponse(`Le commentaire dépasse ${MAX_BODY_LENGTH} caractères`, 400);
-  }
+  const validated = validateCommentBody(payload.body);
+  if (validated.error) return createErrorResponse(validated.error.message, validated.error.status);
+  const body = validated.body;
   if (!payload.page_id) return createErrorResponse("page_id is required", 400);
 
   const { data: page } = await supabase
@@ -118,37 +112,31 @@ async function handleCreate(supabase: any, payload: any, author: Author): Promis
     .eq("id", payload.page_id)
     .maybeSingle();
 
-  if (!page) return createErrorResponse("Page introuvable", 404);
-  if (!page.is_deliverable || !page.comments_enabled) {
-    return createErrorResponse("Les commentaires ne sont pas ouverts sur cette page", 403);
-  }
-  if (author.contactId && author.missionId !== page.mission_id) {
-    return createErrorResponse("Lien invalide pour cette mission", 403);
-  }
+  const denial = checkCanComment(page, author);
+  if (denial) return createErrorResponse(denial.message, denial.status);
 
-  // Une seule profondeur de fil : une réponse s'attache toujours à la racine.
-  let parentId: string | null = null;
+  let parent = null;
   if (payload.parent_comment_id) {
-    const { data: parent } = await supabase
+    const { data } = await supabase
       .from("mission_page_comments")
       .select("id, page_id, parent_comment_id")
       .eq("id", payload.parent_comment_id)
       .maybeSingle();
-    if (!parent || parent.page_id !== page.id) {
-      return createErrorResponse("Fil de discussion introuvable", 404);
-    }
-    parentId = parent.parent_comment_id || parent.id;
+    if (!data) return createErrorResponse("Fil de discussion introuvable", 404);
+    parent = data;
   }
+  const thread = resolveThreadParentId(parent, page.id);
+  if (thread.error) return createErrorResponse(thread.error.message, thread.error.status);
+  const parentId = thread.parentId;
 
-  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60_000).toISOString();
   const rateQuery = supabase
     .from("mission_page_comments")
     .select("id", { count: "exact", head: true })
-    .gte("created_at", since);
+    .gte("created_at", rateLimitSince(Date.now()));
   const { count } = author.contactId
     ? await rateQuery.eq("author_contact_id", author.contactId)
     : await rateQuery.eq("author_user_id", author.userId);
-  if ((count || 0) >= RATE_LIMIT_MAX_COMMENTS) {
+  if (isRateLimited(count || 0)) {
     return createErrorResponse("Trop de commentaires envoyés, réessayez dans quelques minutes", 429);
   }
 
@@ -194,20 +182,8 @@ async function handleDelete(supabase: any, payload: any, author: Author): Promis
     .select("id, author_contact_id, created_at")
     .eq("id", payload.comment_id)
     .maybeSingle();
-  if (!comment) return createErrorResponse("Commentaire introuvable", 404);
-
-  if (!author.isStaff) {
-    if (comment.author_contact_id !== author.contactId) {
-      return createErrorResponse("Vous ne pouvez supprimer que vos propres commentaires", 403);
-    }
-    const ageMinutes = (Date.now() - new Date(comment.created_at).getTime()) / 60_000;
-    if (ageMinutes > DELETE_WINDOW_MINUTES) {
-      return createErrorResponse(
-        `Un commentaire ne peut être supprimé que dans les ${DELETE_WINDOW_MINUTES} minutes`,
-        403,
-      );
-    }
-  }
+  const denial = checkCanDelete(comment, author, Date.now());
+  if (denial) return createErrorResponse(denial.message, denial.status);
 
   const { error } = await supabase
     .from("mission_page_comments")
@@ -250,18 +226,15 @@ async function notify(supabase: any, ctx: { page: any; comment: any; author: Aut
     .maybeSingle();
   if (!mission) return;
 
-  // Destinataires : le consultant de la mission + les participants du fil,
-  // jamais l'auteur du commentaire qui vient d'être écrit.
-  const emails = new Set<string>();
-
   const consultantId = mission.assigned_to || mission.created_by;
+  let consultantEmail: string | null = null;
   if (consultantId) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("email")
       .eq("user_id", consultantId)
       .maybeSingle();
-    if (profile?.email) emails.add(profile.email.toLowerCase());
+    consultantEmail = profile?.email ?? null;
   }
 
   const { data: threadComments } = await supabase
@@ -269,12 +242,14 @@ async function notify(supabase: any, ctx: { page: any; comment: any; author: Aut
     .select("author_email")
     .or(`id.eq.${threadId},parent_comment_id.eq.${threadId}`)
     .eq("is_deleted", false);
-  for (const c of threadComments || []) {
-    if (c.author_email) emails.add(c.author_email.toLowerCase());
-  }
 
-  if (author.email) emails.delete(author.email.toLowerCase());
-  if (emails.size === 0) return;
+  const emails = notificationRecipients({
+    consultantEmail,
+    // deno-lint-ignore no-explicit-any
+    threadEmails: (threadComments || []).map((c: any) => c.author_email),
+    authorEmail: author.email,
+  });
+  if (emails.length === 0) return;
 
   const { data: contacts } = await supabase
     .from("mission_contacts")
