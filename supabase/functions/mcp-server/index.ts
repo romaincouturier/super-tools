@@ -323,6 +323,32 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const PAGE_CONTENT_MAX = 60000;
 const PAGES_TOTAL_MAX = 250000;
 
+/**
+ * Plafond par page, réparti équitablement quand la mission dépasse le budget.
+ *
+ * Un budget consommé page après page donne tout aux premières et rien aux
+ * dernières : sur une mission réelle de 929 000 caractères, une page « PRD »
+ * de 304 caractères se retrouvait vidée pendant qu'un transcript d'atelier
+ * prenait 60 000. On cherche donc le niveau L le plus haut tel que
+ * somme(min(longueur, L)) tienne dans le budget : toute page plus courte que L
+ * passe entière, les longues se partagent le reste à parts égales.
+ */
+function pageContentLevel(lengths: number[]): number {
+  const total = lengths.reduce((a, b) => a + b, 0);
+  if (total <= PAGES_TOTAL_MAX) return PAGE_CONTENT_MAX;
+
+  const sorted = [...lengths].sort((a, b) => a - b);
+  let remaining = PAGES_TOTAL_MAX;
+  let rest = sorted.length;
+  for (const len of sorted) {
+    const share = remaining / rest;
+    if (len > share) return Math.min(Math.floor(share), PAGE_CONTENT_MAX);
+    remaining -= len;
+    rest--;
+  }
+  return PAGE_CONTENT_MAX;
+}
+
 async function auditDossierCall(supabase: Supabase, label: string): Promise<void> {
   const userId = await getAllowedUserId(supabase);
   await supabase.from("agent_query_audit_log").insert({
@@ -414,27 +440,34 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
       .limit(100),
   ]);
 
-  // Budget partagé entre les pages : une seule page très longue ne doit ni
-  // saturer la réponse, ni faire disparaître les suivantes. Toute coupe est
-  // signalée par page, avec la longueur réelle et comment lire la suite.
-  let pagesBudget = PAGES_TOTAL_MAX;
-  const truncatedPages: string[] = [];
-  const mappedPages = (pages.data || []).map((p: Record<string, unknown>) => {
+  const pageRows = (pages.data || []) as Array<Record<string, unknown>>;
+  const level = pageContentLevel(
+    pageRows.map((p) => (typeof p.content === "string" ? p.content.length : 0)),
+  );
+
+  const truncatedPages: Array<{ id: string; title: string; content_length: number }> = [];
+  const mappedPages = pageRows.map((p) => {
     const raw = typeof p.content === "string" ? p.content : "";
-    const allowed = Math.min(PAGE_CONTENT_MAX, Math.max(pagesBudget, 0));
-    if (raw.length <= allowed) {
-      pagesBudget -= raw.length;
+    if (raw.length <= level) {
       return { ...p, content_length: raw.length, content_truncated: false };
     }
-    pagesBudget -= allowed;
-    truncatedPages.push(p.id as string);
+    truncatedPages.push({
+      id: p.id as string,
+      title: (p.title as string) ?? "",
+      content_length: raw.length,
+    });
     return {
       ...p,
-      content: raw.slice(0, allowed) + "… [tronqué]",
+      content: raw.slice(0, level) + "… [tronqué]",
       content_length: raw.length,
       content_truncated: true,
     };
   });
+
+  const totalChars = pageRows.reduce(
+    (n, p) => n + (typeof p.content === "string" ? p.content.length : 0),
+    0,
+  );
 
   return JSON.stringify({
     found: true,
@@ -443,11 +476,17 @@ async function getMissionDossier(supabase: Supabase, missionQuery: string): Prom
     activities: activities.data || [],
     documents: documents.data || [],
     gallery: gallery.data || [],
-    truncated_page_ids: truncatedPages,
+    pages_total_chars: totalChars,
+    truncated_pages: truncatedPages,
     hint:
-      "Tout le contenu de la mission est accessible. Pages : celles marquées " +
-      "content_truncated=true se relisent en entier avec query_database " +
-      "(SELECT content FROM mission_pages WHERE id = '…'). Documents : chacun se lit avec " +
+      (truncatedPages.length
+        ? `ATTENTION : ${truncatedPages.length} page(s) sur ${pageRows.length} sont coupées ` +
+          `(${totalChars} caractères au total, ${level} livrés par page au maximum). ` +
+          `Une synthèse fondée sur ce seul appel serait incomplète : relire chaque page de ` +
+          `truncated_pages avec query_database (SELECT content FROM mission_pages WHERE id = '…', ` +
+          `une page par appel), ou cibler la recherche avec search_content(query, mission_id). `
+        : "") +
+      "Tout le contenu de la mission est accessible. Documents : chacun se lit avec " +
       "read_document(document_id) — PDF, Word, Excel, scans — ou tous d'un coup avec " +
       "read_mission_documents(mission). Galerie : chaque photo se lit avec " +
       "read_media_image(media_id). Ne jamais répondre qu'un contenu de mission est " +
