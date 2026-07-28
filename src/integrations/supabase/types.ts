@@ -89,89 +89,6 @@ export type Database = {
         }
         Relationships: []
       }
-      agent_action_log: {
-        Row: {
-          action: string
-          after_state: Json | null
-          autonomy_level: string
-          before_state: Json | null
-          created_at: string
-          domain: string | null
-          error_message: string | null
-          id: string
-          objective_id: string | null
-          rationale: string | null
-          reverted_at: string | null
-          reverted_by: string | null
-          succeeded: boolean
-          target_id: string | null
-          target_table: string | null
-        }
-        Insert: {
-          action: string
-          after_state?: Json | null
-          autonomy_level?: string
-          before_state?: Json | null
-          created_at?: string
-          domain?: string | null
-          error_message?: string | null
-          id?: string
-          objective_id?: string | null
-          rationale?: string | null
-          reverted_at?: string | null
-          reverted_by?: string | null
-          succeeded?: boolean
-          target_id?: string | null
-          target_table?: string | null
-        }
-        Update: {
-          action?: string
-          after_state?: Json | null
-          autonomy_level?: string
-          before_state?: Json | null
-          created_at?: string
-          domain?: string | null
-          error_message?: string | null
-          id?: string
-          objective_id?: string | null
-          rationale?: string | null
-          reverted_at?: string | null
-          reverted_by?: string | null
-          succeeded?: boolean
-          target_id?: string | null
-          target_table?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_action_log_objective_id_fkey"
-            columns: ["objective_id"]
-            isOneToOne: false
-            referencedRelation: "agent_objectives"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      agent_autonomy_policy: {
-        Row: {
-          action: string
-          level: string
-          reason: string | null
-          updated_at: string
-        }
-        Insert: {
-          action: string
-          level: string
-          reason?: string | null
-          updated_at?: string
-        }
-        Update: {
-          action?: string
-          level?: string
-          reason?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       agent_conversations: {
         Row: {
           created_at: string
@@ -263,99 +180,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      agent_memory: {
-        Row: {
-          confirmed_at: string
-          created_at: string
-          created_by: string | null
-          expires_at: string | null
-          id: string
-          key: string
-          kind: string
-          source: string | null
-          updated_at: string
-          value: string
-        }
-        Insert: {
-          confirmed_at?: string
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          key: string
-          kind?: string
-          source?: string | null
-          updated_at?: string
-          value: string
-        }
-        Update: {
-          confirmed_at?: string
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string | null
-          id?: string
-          key?: string
-          kind?: string
-          source?: string | null
-          updated_at?: string
-          value?: string
-        }
-        Relationships: []
-      }
-      agent_objectives: {
-        Row: {
-          attempts: Json
-          cadence_hours: number
-          created_at: string
-          created_by: string | null
-          criterion: string
-          domain: string
-          entity_id: string | null
-          entity_type: string | null
-          id: string
-          last_result: string | null
-          last_run_at: string | null
-          run_count: number
-          state: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          attempts?: Json
-          cadence_hours?: number
-          created_at?: string
-          created_by?: string | null
-          criterion: string
-          domain: string
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string
-          last_result?: string | null
-          last_run_at?: string | null
-          run_count?: number
-          state?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          attempts?: Json
-          cadence_hours?: number
-          created_at?: string
-          created_by?: string | null
-          criterion?: string
-          domain?: string
-          entity_id?: string | null
-          entity_type?: string | null
-          id?: string
-          last_result?: string | null
-          last_run_at?: string | null
-          run_count?: number
-          state?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       agent_query_audit_log: {
         Row: {
@@ -11809,17 +11633,7 @@ export type Database = {
       }
     }
     Views: {
-      agent_daily_digest: {
-        Row: {
-          action: string | null
-          actions: number | null
-          day: string | null
-          domain: string | null
-          failures: number | null
-          reverted: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       adjust_cron_timezones: { Args: never; Returns: Json }
