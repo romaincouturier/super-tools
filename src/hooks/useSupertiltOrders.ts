@@ -418,6 +418,35 @@ export function useWooOrders() {
 }
 
 // ── Email Templates ───────────────────────────────────────────────────
+//
+// La table `email_templates` de production suit le schéma historique
+// (template_type / template_name / html_content). Les modèles SuperTilt y
+// vivent sous le préfixe `supertilt_` — c'est ce que lit déjà l'edge function
+// supertilt-send-email. On expose ici la clé sans préfixe pour l'UI.
+
+const SUPERTILT_PREFIX = "supertilt_";
+
+type EmailTemplateRow = {
+  id: string;
+  template_type: string;
+  template_name: string | null;
+  subject: string | null;
+  html_content: string | null;
+  updated_at: string;
+};
+
+function rowToTemplate(row: EmailTemplateRow): EmailTemplate {
+  return {
+    id: row.id,
+    template_key: row.template_type.startsWith(SUPERTILT_PREFIX)
+      ? row.template_type.slice(SUPERTILT_PREFIX.length)
+      : row.template_type,
+    name: row.template_name ?? "",
+    subject: row.subject ?? "",
+    body: row.html_content ?? "",
+    updated_at: row.updated_at,
+  };
+}
 
 export function useEmailTemplates() {
   return useQuery({
@@ -425,10 +454,11 @@ export function useEmailTemplates() {
     queryFn: async () => {
       const { data, error } = await db
         .from("email_templates")
-        .select("*")
-        .order("template_key");
+        .select("id, template_type, template_name, subject, html_content, updated_at")
+        .like("template_type", `${SUPERTILT_PREFIX}%`)
+        .order("template_type");
       if (error) throw error;
-      return data as EmailTemplate[];
+      return (data as unknown as EmailTemplateRow[]).map(rowToTemplate);
     },
   });
 }
@@ -437,19 +467,39 @@ export function useUpsertEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: Partial<EmailTemplate> & { template_key: string }) => {
-      const { data, error } = payload.id
-        ? await db.from("email_templates").update(payload).eq("id", payload.id).select().single()
-        : await db
-            .from("email_templates")
-            .upsert(payload, { onConflict: "template_key" })
-            .select()
-            .single();
+      const templateType = payload.template_key.startsWith(SUPERTILT_PREFIX)
+        ? payload.template_key
+        : `${SUPERTILT_PREFIX}${payload.template_key}`;
+      const row = {
+        template_type: templateType,
+        template_name: payload.name ?? "",
+        subject: payload.subject ?? "",
+        html_content: payload.body ?? "",
+      };
+
+      // Pas d'index unique sur template_type : on résout l'existant à la main.
+      let id = payload.id ?? null;
+      if (!id) {
+        const { data: existing } = await db
+          .from("email_templates")
+          .select("id")
+          .eq("template_type", templateType)
+          .maybeSingle();
+        id = (existing as { id: string } | null)?.id ?? null;
+      }
+
+      const { data, error } = id
+        ? await db.from("email_templates").update(row).eq("id", id)
+            .select("id, template_type, template_name, subject, html_content, updated_at").single()
+        : await db.from("email_templates").insert(row)
+            .select("id, template_type, template_name, subject, html_content, updated_at").single();
       if (error) throw error;
-      return data as EmailTemplate;
+      return rowToTemplate(data as unknown as EmailTemplateRow);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["email-templates"] }),
   });
 }
+
 
 // ── Email Log ─────────────────────────────────────────────────────────
 
