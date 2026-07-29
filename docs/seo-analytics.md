@@ -91,6 +91,14 @@ et **référents IA** (ChatGPT, Perplexity, Gemini, Copilot, Le Chat…). Ces
 derniers sont la seule mesure factuelle de visibilité dans les moteurs
 génératifs : aucune API ne publie les citations.
 
+Le total du jour vient de l'endpoint `hits`, celui qui alimente la courbe de
+WP-Statistics, et non de la somme des vues par page : le rapport « pages » ne
+couvre pas tout le trafic (28/07/2026 : 107 vues cumulées sur les pages contre
+296 affichées par WP-Statistics). La réponse de la fonction expose les deux
+valeurs, `total_views` et `pages_sum` : un écart qui reste grand signifie que
+le rapport « pages » tronque toujours, et il faut alors regarder la pagination
+de cet endpoint.
+
 ## Planification des crons
 
 Règle [036] : les crons qui appellent une edge function sont planifiés

@@ -82,23 +82,108 @@ interface TrafficRow {
   visitors: number;
 }
 
-async function syncDay(admin: SupabaseClient, baseUrl: string, token: string, date: string): Promise<Record<string, number>> {
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
+}
+
+const MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** WP-Statistics étiquette ses journées au format d'affichage de WordPress
+ * (« Jul 28 »), pas en ISO : on essaie les formes connues avant de retomber
+ * sur la position dans la série. */
+function dayLabels(date: string): string[] {
+  const [y, m, d] = date.split("-");
+  const month = MONTHS_EN[Number(m) - 1] ?? "";
+  return [date, `${month} ${Number(d)}`, `${month} ${d}`, `${d}/${m}/${y}`, `${d}-${m}-${y}`, `${y}/${m}/${d}`];
+}
+
+/**
+ * Total du jour lu sur l'endpoint hits, celui qui alimente la courbe de
+ * WP-Statistics. La somme des vues par page le sous-estime : le rapport
+ * « pages » ne couvre pas tout le trafic (28/07/2026 : 107 vues cumulées sur
+ * les pages contre 296 affichées par WP-Statistics).
+ */
+async function fetchDailyTotal(
+  baseUrl: string,
+  token: string,
+  date: string,
+): Promise<{ views: number; visitors: number } | null> {
+  const offset = daysBetween(date, isoDay(new Date()));
+  if (offset < 0) return null;
+  const raw = await wpFetch(baseUrl, token, "hits", { days: String(Math.max(2, offset + 2)) })
+    .catch((e) => {
+      console.warn("wp-statistics-sync: endpoint hits indisponible", e);
+      return null;
+    });
+
+  const entries = Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [];
+  if (!entries.length) return null;
+
+  const labels = dayLabels(date);
+  const entry = entries.find((e) => labels.includes(String(e.date ?? e.day ?? "").trim()))
+    // Repli : la série est consécutive et se termine aujourd'hui.
+    ?? entries[entries.length - 1 - offset];
+  if (!entry) return null;
+
+  return {
+    views: Number(entry.visit ?? entry.views ?? entry.hits ?? entry.count ?? 0),
+    visitors: Number(entry.visitor ?? entry.visitors ?? 0),
+  };
+}
+
+/**
+ * Vues par page. La pagination de ce rapport n'est pas documentée : on tente
+ * les paramètres connus et on ne retient que les URI encore jamais vues. Si
+ * l'API ignore la pagination, la deuxième page ne rapporte aucune URI neuve
+ * et la boucle s'arrête sans jamais compter deux fois.
+ */
+async function fetchPageViews(
+  baseUrl: string,
+  token: string,
+  date: string,
+): Promise<Map<string, { views: number; title: string | null }>> {
+  const totals = new Map<string, { views: number; title: string | null }>();
+
+  for (let page = 1; page <= 10; page++) {
+    const raw = await wpFetch(baseUrl, token, "pages", {
+      rangestartdate: date,
+      rangeenddate: date,
+      per_page: "500",
+      number: "500",
+      page: String(page),
+      paged: String(page),
+    });
+    const rows = Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [];
+    if (!rows.length) break;
+
+    const batch = new Map<string, { views: number; title: string | null }>();
+    for (const p of rows) {
+      const uri = String(p?.uri ?? p?.page ?? "").trim();
+      if (!uri) continue;
+      const views = Number(p?.count ?? p?.hits ?? p?.views ?? 0);
+      const current = batch.get(uri);
+      if (current) current.views += views;
+      else batch.set(uri, { views, title: (p?.title as string) ?? null });
+    }
+
+    let added = 0;
+    for (const [uri, value] of batch) {
+      if (totals.has(uri)) continue;
+      totals.set(uri, value);
+      added++;
+    }
+    if (added === 0) break;
+  }
+
+  return totals;
+}
+
+async function syncDay(admin: SupabaseClient, baseUrl: string, token: string, date: string): Promise<Record<string, unknown>> {
   const range = { rangestartdate: date, rangeenddate: date };
   const rows: TrafficRow[] = [];
 
   // ── Vues par page ─────────────────────────────────────────
-  const pages = await wpFetch(baseUrl, token, "pages", { ...range, per_page: "500", number: "500" });
-  const pageTotals = new Map<string, { views: number; title: string | null }>();
-  if (Array.isArray(pages)) {
-    for (const p of pages as Array<Record<string, unknown>>) {
-      const uri = String(p?.uri ?? p?.page ?? "").trim();
-      if (!uri) continue;
-      const views = Number(p?.count ?? p?.hits ?? p?.views ?? 0);
-      const current = pageTotals.get(uri);
-      if (current) current.views += views;
-      else pageTotals.set(uri, { views, title: (p?.title as string) ?? null });
-    }
-  }
+  const pageTotals = await fetchPageViews(baseUrl, token, date);
   for (const [uri, value] of pageTotals) {
     rows.push({ date, scope: "page", key: uri, label: value.title, views: value.views, visitors: 0 });
   }
@@ -128,19 +213,19 @@ async function syncDay(admin: SupabaseClient, baseUrl: string, token: string, da
   }
 
   // ── Total du jour ─────────────────────────────────────────
-  const totalViews = [...pageTotals.values()].reduce((s, v) => s + v.views, 0);
-  let visitors = 0;
-  try {
-    const raw = await wpFetch(baseUrl, token, "visitors", { ...range, per_page: "1" });
-    if (Array.isArray(raw)) visitors = raw.length;
-    else if (raw && typeof raw === "object") {
-      const value = (raw as Record<string, unknown>).visitors ?? (raw as Record<string, unknown>).total;
-      visitors = Number(value ?? 0);
-    }
-  } catch (e) {
-    console.warn("wp-statistics-sync: visiteurs indisponibles", e);
-  }
-  rows.push({ date, scope: "total", key: "", label: null, views: totalViews, visitors });
+  // Le total fait foi sur l'endpoint hits, celui de la courbe WP-Statistics.
+  // La somme des pages n'est conservée que pour mesurer l'écart entre les deux.
+  const pagesSum = [...pageTotals.values()].reduce((s, v) => s + v.views, 0);
+  const daily = await fetchDailyTotal(baseUrl, token, date);
+  const totalViews = daily?.views ?? pagesSum;
+  rows.push({
+    date,
+    scope: "total",
+    key: "",
+    label: daily ? "hits" : "somme des pages",
+    views: totalViews,
+    visitors: daily?.visitors ?? 0,
+  });
 
   const { error: delError } = await admin.from("wp_traffic_daily").delete().eq("date", date);
   if (delError) throw new Error(`purge wp_traffic_daily: ${delError.message}`);
@@ -156,6 +241,11 @@ async function syncDay(admin: SupabaseClient, baseUrl: string, token: string, da
     search_engines: engineTotals.size,
     ai_referrers: aiTotals.size,
     total_views: totalViews,
+    total_visitors: daily?.visitors ?? 0,
+    total_source: daily ? "hits" : "pages_sum",
+    // Écart entre le total du jour et la somme des pages : s'il reste grand,
+    // c'est que le rapport « pages » ne remonte pas tout le trafic.
+    pages_sum: pagesSum,
   };
 }
 
