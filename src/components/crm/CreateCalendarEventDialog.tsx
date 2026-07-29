@@ -28,7 +28,10 @@ interface Props {
   defaultFormality?: Formality;
   /** Called when the event is successfully created, with the event date (YYYY-MM-DD) and summary. */
   onEventCreated?: (eventDate: string, eventSummary: string) => void;
+  /** Optional list of known contacts, selectable as attendees in one click. */
+  contactOptions?: { name: string; email: string }[];
 }
+
 
 const DESCRIPTION_VOUS = `Bonjour,
 
