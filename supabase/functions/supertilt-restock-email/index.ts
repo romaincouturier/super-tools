@@ -66,12 +66,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
     const internalEmail = String(getSetting("internal_email") ?? "").replace(/^"|"$/g, "");
     const defaultSender = String(getSetting("default_sender") ?? "noreply@supertilt.fr").replace(/^"|"$/g, "");
 
-    // Load template
+    // Load template (schéma historique : template_type / html_content)
     const { data: tpl } = await (admin as any)
       .from("email_templates")
-      .select("subject, body")
-      .eq("template_key", "restock")
-      .single();
+      .select("subject, html_content")
+      .eq("template_type", "supertilt_restock")
+      .maybeSingle();
 
     if (!tpl) {
       return new Response(JSON.stringify({ error: "Template 'restock' introuvable" }), {
@@ -89,7 +89,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     };
 
     const subject = processTemplate((tpl as any).subject, vars, false);
-    const html = processTemplate((tpl as any).body, vars, false);
+    const html = processTemplate((tpl as any).html_content, vars, false);
 
     if (preview) {
       return new Response(JSON.stringify({ subject, html }), {
