@@ -40,11 +40,10 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 GRANT anon, authenticated, service_role TO authenticator;
 GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated, service_role;
 
--- Supabase accorde par défaut les privilèges de table aux rôles API : sans ça
--- les tests RLS échouent en "permission denied" avant même d'évaluer la policy.
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated, service_role;
+-- Pas de privilèges de table accordés d'office : `supabase db start` n'en
+-- accorde pas non plus aux tables créées par les migrations. Les poser ici
+-- ferait passer en local des tests que le CI refuse — c'est aux tests de
+-- déclarer les GRANT dont ils ont besoin.
 
 -- auth
 CREATE TABLE IF NOT EXISTS auth.users (
