@@ -263,6 +263,29 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
 
             <div className="space-y-1.5">
               <Label htmlFor="cal-attendee">Emails des invités</Label>
+              {contactOptions && contactOptions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pb-1">
+                  {contactOptions.map((c) => {
+                    const selected = selectedEmails.includes(c.email.toLowerCase());
+                    return (
+                      <button
+                        key={c.email}
+                        type="button"
+                        onClick={() => toggleAttendee(c.email)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                          selected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {selected && <Check className="h-3 w-3" />}
+                        {c.name || c.email}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <Input
                 id="cal-attendee"
                 value={attendeeEmail}
@@ -271,6 +294,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
               />
               <p className="text-xs text-muted-foreground">Séparez plusieurs emails par une virgule, un point-virgule ou un espace.</p>
             </div>
+
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
