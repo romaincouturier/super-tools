@@ -43,26 +43,36 @@ BEGIN
 END;
 $$;
 
-CREATE TRIGGER trg_support_ticket_number
-  BEFORE INSERT ON public.support_tickets
-  FOR EACH ROW
-  WHEN (NEW.ticket_number IS NULL OR NEW.ticket_number = '')
-  EXECUTE FUNCTION public.generate_ticket_number();
+DO $do$ BEGIN
+  CREATE TRIGGER trg_support_ticket_number
+    BEFORE INSERT ON public.support_tickets
+    FOR EACH ROW
+    WHEN (NEW.ticket_number IS NULL OR NEW.ticket_number = '')
+    EXECUTE FUNCTION public.generate_ticket_number();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Auto-update updated_at
-CREATE TRIGGER trg_support_tickets_updated_at
-  BEFORE UPDATE ON public.support_tickets
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+DO $do$ BEGIN
+  CREATE TRIGGER trg_support_tickets_updated_at
+    BEFORE UPDATE ON public.support_tickets
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- RLS
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY support_tickets_insert ON public.support_tickets
-  FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY support_tickets_insert ON public.support_tickets
+    FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY support_tickets_select ON public.support_tickets
-  FOR SELECT TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY support_tickets_select ON public.support_tickets
+    FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY support_tickets_update ON public.support_tickets
-  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY support_tickets_update ON public.support_tickets
+    FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;

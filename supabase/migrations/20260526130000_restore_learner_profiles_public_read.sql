@@ -4,6 +4,8 @@
 -- Writes remain scoped (own email only via anon_insert/update_own_learner_profile).
 DROP POLICY IF EXISTS anon_read_own_learner_profile ON public.learner_profiles;
 
-CREATE POLICY anon_read_learner_profiles ON public.learner_profiles
-  FOR SELECT TO anon
-  USING (true);
+DO $do$ BEGIN
+  CREATE POLICY anon_read_learner_profiles ON public.learner_profiles
+    FOR SELECT TO anon
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;

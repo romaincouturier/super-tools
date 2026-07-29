@@ -1,1 +1,1 @@
-ALTER TABLE public.training_evaluations ADD COLUMN certificate_url text;
+ALTER TABLE public.training_evaluations ADD COLUMN IF NOT EXISTS certificate_url text;

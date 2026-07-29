@@ -1,6 +1,6 @@
 
 -- Create mission_contacts table
-CREATE TABLE public.mission_contacts (
+CREATE TABLE IF NOT EXISTS public.mission_contacts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   mission_id UUID NOT NULL REFERENCES public.missions(id) ON DELETE CASCADE,
   first_name TEXT,
@@ -19,31 +19,41 @@ CREATE TABLE public.mission_contacts (
 ALTER TABLE public.mission_contacts ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies (authenticated users only)
-CREATE POLICY "Authenticated users can view mission contacts"
-  ON public.mission_contacts FOR SELECT
-  TO authenticated
-  USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can view mission contacts"
+    ON public.mission_contacts FOR SELECT
+    TO authenticated
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert mission contacts"
-  ON public.mission_contacts FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert mission contacts"
+    ON public.mission_contacts FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update mission contacts"
-  ON public.mission_contacts FOR UPDATE
-  TO authenticated
-  USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update mission contacts"
+    ON public.mission_contacts FOR UPDATE
+    TO authenticated
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete mission contacts"
-  ON public.mission_contacts FOR DELETE
-  TO authenticated
-  USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete mission contacts"
+    ON public.mission_contacts FOR DELETE
+    TO authenticated
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Trigger for updated_at
-CREATE TRIGGER update_mission_contacts_updated_at
-  BEFORE UPDATE ON public.mission_contacts
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+DO $do$ BEGIN
+  CREATE TRIGGER update_mission_contacts_updated_at
+    BEFORE UPDATE ON public.mission_contacts
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Reload schema cache
 NOTIFY pgrst, 'reload schema';

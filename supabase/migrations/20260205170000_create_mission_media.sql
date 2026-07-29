@@ -15,22 +15,30 @@ CREATE TABLE IF NOT EXISTS public.mission_media (
 
 ALTER TABLE public.mission_media ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view mission media"
-  ON public.mission_media FOR SELECT USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Users can view mission media"
+    ON public.mission_media FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert mission media"
-  ON public.mission_media FOR INSERT TO authenticated
-  WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert mission media"
+    ON public.mission_media FOR INSERT TO authenticated
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update mission media"
-  ON public.mission_media FOR UPDATE TO authenticated
-  USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update mission media"
+    ON public.mission_media FOR UPDATE TO authenticated
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete mission media"
-  ON public.mission_media FOR DELETE TO authenticated
-  USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete mission media"
+    ON public.mission_media FOR DELETE TO authenticated
+    USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE INDEX idx_mission_media_mission_id ON public.mission_media(mission_id);
+CREATE INDEX IF NOT EXISTS idx_mission_media_mission_id ON public.mission_media(mission_id);
 
 -- Storage bucket for mission media (photos + videos)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -47,19 +55,27 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY "mission_media_select"
-  ON storage.objects FOR SELECT TO public
-  USING (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_select"
+    ON storage.objects FOR SELECT TO public
+    USING (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "mission_media_insert"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_insert"
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "mission_media_update"
-  ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'mission-media')
-  WITH CHECK (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_update"
+    ON storage.objects FOR UPDATE TO authenticated
+    USING (bucket_id = 'mission-media')
+    WITH CHECK (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "mission_media_delete"
-  ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_delete"
+    ON storage.objects FOR DELETE TO authenticated
+    USING (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;

@@ -1,4 +1,4 @@
-CREATE TABLE public.woocommerce_coupons (
+CREATE TABLE IF NOT EXISTS public.woocommerce_coupons (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   coupon_code text NOT NULL,
   woocommerce_coupon_id integer,
@@ -16,19 +16,25 @@ CREATE TABLE public.woocommerce_coupons (
   created_at timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_woocommerce_coupons_participant ON public.woocommerce_coupons(participant_id);
-CREATE INDEX idx_woocommerce_coupons_training ON public.woocommerce_coupons(training_id);
+CREATE INDEX IF NOT EXISTS idx_woocommerce_coupons_participant ON public.woocommerce_coupons(participant_id);
+CREATE INDEX IF NOT EXISTS idx_woocommerce_coupons_training ON public.woocommerce_coupons(training_id);
 
 ALTER TABLE public.woocommerce_coupons ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can read coupons"
-  ON public.woocommerce_coupons FOR SELECT
-  TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can read coupons"
+    ON public.woocommerce_coupons FOR SELECT
+    TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert coupons"
-  ON public.woocommerce_coupons FOR INSERT
-  TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert coupons"
+    ON public.woocommerce_coupons FOR INSERT
+    TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Service role full access"
-  ON public.woocommerce_coupons FOR ALL
-  TO service_role USING (true) WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Service role full access"
+    ON public.woocommerce_coupons FOR ALL
+    TO service_role USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
