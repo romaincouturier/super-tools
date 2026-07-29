@@ -209,6 +209,8 @@ serve(async (req) => {
       body_html: body_html,
       attachment_names: attachmentNames,
       attachment_paths: attachmentPaths.length > 0 ? attachmentPaths : null,
+      resend_email_id: emailResult.id ?? null,
+      delivery_status: "sent",
     });
 
     if (insertError) {
