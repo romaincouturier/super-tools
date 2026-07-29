@@ -35,13 +35,15 @@ interface NeedsSurvey {
   id: string;
   etat: string;
   created_at: string;
-  submitted_at: string | null;
-  attentes: string | null;
-  experience: string | null;
-  contraintes: string | null;
-  objectif_prioritaire: string | null;
-  autres_commentaires: string | null;
-  prerequis_data: Record<string, unknown> | null;
+  date_soumission: string | null;
+  competences_actuelles: string | null;
+  competences_visees: string | null;
+  experience_sujet: string | null;
+  experience_details: string | null;
+  contraintes_orga: string | null;
+  commentaires_libres: string | null;
+  prerequis_details: string | null;
+  prerequis_validation: string | null;
 }
 
 interface EvaluationData {
