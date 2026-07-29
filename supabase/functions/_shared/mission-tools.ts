@@ -746,7 +746,7 @@ export async function getClientDossier(
       .limit(20),
     supabase
       .from("crm_cards")
-      .select("id, title, sales_status, estimated_value, contact_email, waiting_next_action_text, created_at")
+      .select("id, title, sales_status, estimated_value, email, waiting_next_action_text, created_at")
       .ilike("title", pattern)
       .limit(20),
     supabase
