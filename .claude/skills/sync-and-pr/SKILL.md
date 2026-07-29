@@ -31,11 +31,11 @@ Exécute les étapes suivantes dans l'ordre :
 ## 4. Build & TypeScript
 
 ### 4a. Vérifier la compilation TypeScript
-- Exécuter `npx tsc --noEmit` pour vérifier qu'il n'y a aucune erreur de types
+- Exécuter `npm run typecheck` pour vérifier qu'il n'y a aucune erreur de types
 - Si des erreurs apparaissent :
   1. Lister toutes les erreurs TypeScript
   2. Pour chaque erreur, lire le fichier concerné et corriger le problème
-  3. Relancer `npx tsc --noEmit` jusqu'à ce que la compilation passe
+  3. Relancer `npm run typecheck` jusqu'à ce que la compilation passe
   4. Commiter les corrections : `git commit -m "fix: resolve TypeScript errors"`
 
 ### 4b. Vérifier le build Vite
@@ -182,7 +182,7 @@ Exécute les étapes suivantes dans l'ordre :
      - Types partagés → fichier de types existant ou nouveau dans le même dossier
      - Hooks React dupliqués → `src/hooks/`
   2. **Remplacer** chaque occurrence par un import de l'élément extrait
-  3. **Vérifier** que les imports sont corrects et que le code compile : `npx tsc --noEmit` (limité aux fichiers concernés si possible)
+  3. **Vérifier** que les imports sont corrects et que le code compile : `npm run typecheck` (limité aux fichiers concernés si possible)
   4. Demander confirmation à l'utilisateur avant de refactoriser si le changement touche plus de 5 fichiers
 
 ### 9d. Valider la refactorisation
@@ -258,7 +258,7 @@ Pour chaque fichier modifié, identifier :
 - Pour les violations classées **à corriger maintenant** :
   1. Effectuer l'extraction/déplacement du code
   2. Mettre à jour les imports
-  3. Vérifier la compilation : `npx tsc --noEmit`
+  3. Vérifier la compilation : `npm run typecheck`
   4. Relancer les tests : `npx vitest run`
 - Commiter si des corrections ont été faites :
   `git commit -m "refactor: improve architecture separation in <fichiers>"`

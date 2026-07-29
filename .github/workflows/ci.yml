@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: TypeScript
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Règles IMPROVEMENTS.md
         run: bash scripts/check-rules.sh

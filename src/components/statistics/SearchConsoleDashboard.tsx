@@ -147,7 +147,10 @@ const SearchConsoleDashboard = () => {
           toast.success("Synchronisation Search Console terminée");
           queryClient.invalidateQueries({ queryKey: ["gsc-statistics"] });
         },
-        onError: (e) => toast.error("Synchronisation impossible", { description: e instanceof Error ? e.message : String(e) }),
+        onError: (e) => toast.error("Synchronisation impossible", {
+          cause: e,
+          description: e instanceof Error ? e.message : String(e),
+        }),
       },
     );
   };

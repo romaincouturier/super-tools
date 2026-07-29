@@ -69,7 +69,7 @@ describe("reportHandledError", () => {
 describe("toast (wrapper sonner)", () => {
   it("toast.error avec cause capture la cause et ne la passe pas à sonner", () => {
     const err = new Error("edge failed");
-    toast.error("Impossible d'envoyer.", { cause: err, description: "detail" } as never);
+    toast.error("Impossible d'envoyer.", { cause: err, description: "detail" });
     expect(Sentry.captureException).toHaveBeenCalledWith(err, undefined);
     expect(sonnerToast.error).toHaveBeenCalledWith("Impossible d'envoyer.", { description: "detail" });
   });

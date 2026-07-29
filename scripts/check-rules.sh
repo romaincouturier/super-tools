@@ -268,6 +268,15 @@ check "041b" "Agent : get_agent_schema_prompt généré depuis pg_catalog (pas d
    [ -n \"\$last\" ] || { echo 'VIOLATION: get_agent_schema_prompt introuvable'; exit 0; }; \
    grep -q 'pg_attribute' \"\$last\" || echo \"VIOLATION: \$last redéfinit get_agent_schema_prompt sans lire pg_attribute\""
 
+# [043] TypeScript — `tsc --noEmit` à la racine ne vérifie AUCUN fichier
+# (tsconfig.json est un fichier solution : "files": [] + references, et les
+# references ne sont suivies qu'en mode --build). Le garde-fou doit cibler les
+# projets, ce que fait `npm run typecheck`.
+check "043" "Typecheck : cibler les projets, jamais 'tsc --noEmit' seul" \
+  "grep -q '\"typecheck\"' package.json || echo 'VIOLATION: script npm typecheck absent de package.json'; \
+   grep -q 'tsc -p tsconfig.app.json' package.json || echo 'VIOLATION: le script typecheck ne cible pas tsconfig.app.json'; \
+   grep -rn 'tsc --noEmit' .github/workflows/ .claude/skills/ 2>/dev/null | grep -v 'npm run typecheck' | sed 's/^/VIOLATION: /'"
+
 # [034] Enforcement machine — toute règle d'IMPROVEMENTS.md doit avoir un check ici.
 # Whitelist : règles legacy à vérification manuelle documentée.
 MANUAL_RULES="002|013|022|024|029|032|033"

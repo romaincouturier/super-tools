@@ -60,13 +60,13 @@ jobs:
 
             1. Récupère les logs de l'échec :
                gh run view ${{ github.event.workflow_run.id }} --log-failed
-            2. Reproduis en local (npx tsc --noEmit, bash scripts/check-rules.sh,
+            2. Reproduis en local (npm run typecheck, bash scripts/check-rules.sh,
                npm test) et identifie la cause racine.
             3. Applique le correctif minimal. Consulte IMPROVEMENTS.md avant de
                coder. Si le commit fautif vient de Lovable, applique aussi la
                règle 013 : simplifie les couches d'abstraction inutiles
                introduites au lieu de contourner le symptôme.
-            4. Vérifie : npx tsc --noEmit, bash scripts/check-rules.sh, et les
+            4. Vérifie : npm run typecheck, bash scripts/check-rules.sh, et les
                tests concernés.
             5. Crée une branche fix/ci-main-<sha-court>, committe, pousse, puis
                ouvre une PR vers main avec gh pr create en décrivant la cause
