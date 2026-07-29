@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarPlus, ExternalLink, Video } from "lucide-react";
+import { CalendarPlus, Check, ExternalLink, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { todayAsISO } from "@/lib/dateFormatters";
+
 
 export type Formality = "tu" | "vous";
 
