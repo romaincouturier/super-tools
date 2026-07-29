@@ -7,6 +7,12 @@ import {
 } from "../_shared/mod.ts";
 import { searchContent } from "../_shared/agent-search.ts";
 import {
+  getSeoPerformance,
+  getSeoOpportunities,
+  getContentPerformance,
+  getEditorialBrief,
+} from "../_shared/seo-tools.ts";
+import {
   BULK_DEFAULT_DOCUMENTS,
   getClientDossier,
   getMissionDossier,
@@ -38,6 +44,15 @@ import {
  *   - save_mission_note   : SEULE écriture — crée/met à jour une page de
  *                           mission pour capitaliser un travail (transcription,
  *                           synthèse) hors de la conversation
+ *   - get_seo_performance    : Search Console historisé, avec comparaison de
+ *                           période (totaux, série journalière, détail par
+ *                           requête / page / pays / appareil / apparence)
+ *   - get_seo_opportunities  : diagnostic calculé — quick wins, CTR anormal,
+ *                           cannibalisation, pages en déclin, indexation
+ *   - get_content_performance: croisement articles WordPress x audience
+ *                           (vues, clics, impressions, position, requêtes)
+ *   - get_editorial_brief    : dossier de préparation d'une newsletter ou d'un
+ *                           point éditorial en un seul appel
  *
  * Sécurité :
  *   - OAuth 2.1 (PKCE S256, dynamic client registration) requis par claude.ai
@@ -182,13 +197,44 @@ async function getAllowedUserId(supabase: Supabase): Promise<string | null> {
   return _allowedUserId;
 }
 
+// ── Instructions du serveur (champ `instructions` du protocole MCP) ──
+// Sans ce champ, le client ne sait pas quelles données existent : c'est ce qui
+// produisait des réponses évasives (« Search Console n'est pas accessible
+// d'ici ») alors que les données sont en base.
+
+const SERVER_INSTRUCTIONS = `SuperTools est le système d'information de SuperTilt, organisme de formation Qualiopi (facilitation graphique, sketchnoting, intelligence collective, IA appliquée) : CRM, formations et participants, évaluations, missions de conseil, LMS, kanban éditorial et newsletters, articles WordPress, audience web et Search Console, dropshipping de jeux, support.
+
+DONNÉES D'AUDIENCE — elles sont accessibles ici, ne jamais répondre le contraire.
+- Google Search Console est synchronisé chaque nuit dans SuperTools (clics, impressions, CTR, position ; par requête, page, pays, appareil, apparence dans les résultats, et croisement page x requête). Publication Google avec environ deux jours de décalage : la période utile s'arrête à J-2.
+- L'état d'indexation de chaque URL vient de l'API URL Inspection (balayage progressif : le corpus n'est pas forcément couvert en entier, get_seo_opportunities indique urls_inspected vs articles_published).
+- Le trafic WordPress (WP-Statistics) est figé chaque jour : vues par page, référents, moteurs de recherche et référents IA (ChatGPT, Perplexity, Gemini, Copilot).
+- Toute analyse commence par data_coverage : l'historisation a une date de début, ne jamais présenter une tendance plus longue que ce qui est stocké.
+
+QUEL OUTIL POUR QUELLE QUESTION
+- Visibilité, mots-clés, positions, évolution : get_seo_performance (comparaison de période incluse, ne pas la recalculer à la main).
+- « Que faut-il optimiser », audit SEO ou GEO : get_seo_opportunities. Chaque bloc est mesuré ; s'appuyer dessus plutôt que sur des recommandations génériques.
+- « Quels contenus marchent », préparation d'un article, refonte : get_content_performance.
+- Newsletter, point éditorial, arbitrage de sommaire : get_editorial_brief d'abord, puis get_content_performance pour justifier les choix.
+- Client, mission, formation, devis, évaluation : get_client_dossier, get_mission_dossier, read_mission_documents, search_content.
+- query_database reste disponible pour tout le reste (SELECT, allowlist de tables) mais les outils agrégés ci-dessus sont plus fiables que du SQL improvisé.
+
+MÉTHODE ATTENDUE
+- Croiser plusieurs sources avant de conclure : une recommandation éditoriale s'appuie sur l'audience (get_content_performance), l'existant (kanban contenu, newsletters passées) et l'enjeu commercial (sessions à remplir).
+- Distinguer les sources : les vues WP-Statistics comptent toutes les origines, les clics Search Console ne comptent que Google. Ne jamais additionner les deux.
+- Chiffrer et dater : « 1 711 vues sur 90 jours (période du X au Y) », pas « beaucoup de vues ». Citer l'URL ou le titre exact.
+- Ne pas extrapoler : si une donnée manque (URL non encore inspectée, période non synchronisée), le dire en une phrase et continuer avec ce qui existe.
+- GEO (visibilité dans les moteurs génératifs) : aucune API ne mesure les citations. Les seuls faits disponibles sont les référents IA (geo_referrals), les apparences dans les résultats et l'état d'indexation. Toute autre affirmation sur le GEO relève de la recommandation, pas de la mesure : le préciser.
+
+ÉCRITURE
+Le serveur est en lecture seule. save_mission_note est la seule écriture : elle crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. Aucune modification du site WordPress, du CRM ou des formations n'est possible depuis ici.`;
+
 // ── MCP tools ────────────────────────────────────────────────
 
 const MCP_TOOLS = [
   {
     name: "query_database",
     description:
-      "Execute a read-only SQL query (SELECT only) on the SuperTools database (organisme de formation : CRM, formations, participants, évaluations, devis, missions, transcripts, témoignages, dropshipping, support). Limited to an allowlist of tables, 100 rows max. Use tables/list first if unsure of the schema.",
+      "Execute a read-only SQL query (SELECT only) on the SuperTools database (organisme de formation : CRM, formations, participants, évaluations, devis, missions, transcripts, témoignages, dropshipping, support, contenus WordPress, audience). Limited to an allowlist of tables, 100 rows max. Use list_schema first if unsure of the schema. Audience data lives in gsc_metrics_daily (Search Console day by day), gsc_url_inspections (index status), gsc_sitemaps and wp_traffic_daily (WordPress traffic, including AI referrers) — but prefer the dedicated get_seo_* tools, which already aggregate and compare periods.",
     inputSchema: {
       type: "object",
       properties: {
@@ -324,6 +370,71 @@ const MCP_TOOLS = [
         },
       },
       required: ["mission_id", "title", "content"],
+    },
+  },
+  {
+    name: "get_seo_performance",
+    description:
+      "Google Search Console performance for the SuperTilt site, read from SuperTools' own history (synced daily, kept beyond Google's 16-month retention). Returns totals, the day-by-day series, the breakdown for one dimension, AND the comparison with the previous period of the same length (deltas per row). Use this for any question about search visibility, keywords, landing pages, countries, devices or rich results. Always check data_coverage: it states how far back the history actually goes.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        dimension: {
+          type: "string",
+          enum: ["query", "page", "country", "device", "appearance", "page_query"],
+          description:
+            "Breakdown to return. query = search terms, page = landing pages, appearance = rich result types, page_query = which query brings which page (default query)",
+        },
+        days: { type: "number", description: "Length of the period ending 2 days ago (default 28). Ignored if from/to are given." },
+        from: { type: "string", description: "Start date YYYY-MM-DD" },
+        to: { type: "string", description: "End date YYYY-MM-DD" },
+        limit: { type: "number", description: "Number of rows in the breakdown (default 25, max 500)" },
+        contains: { type: "string", description: "Only keep rows whose key contains this text (e.g. 'sketchnot' or '/formation')" },
+        search_type: { type: "string", description: "web (default), image, video, news, discover" },
+        compare: { type: "boolean", description: "Compare with the previous period (default true)" },
+      },
+    },
+  },
+  {
+    name: "get_seo_opportunities",
+    description:
+      "SEO/GEO diagnosis computed from the stored Search Console history: quick wins (queries ranked 4-20 with the extra clicks they would bring at position 3), pages whose CTR is far below the norm for their position (title/description problem), keyword cannibalisation, pages losing clicks, queries whose demand is rising, index coverage from the URL Inspection API, sitemap errors, and referrals coming from generative engines (ChatGPT, Perplexity...). Use this instead of inferring priorities from raw numbers: every item is measured, not estimated.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        days: { type: "number", description: "Length of the analysed period (default 90)" },
+        from: { type: "string", description: "Start date YYYY-MM-DD" },
+        to: { type: "string", description: "End date YYYY-MM-DD" },
+        limit: { type: "number", description: "Items per category (default 20)" },
+      },
+    },
+  },
+  {
+    name: "get_content_performance",
+    description:
+      "Cross-reference of WordPress articles and audience, article by article: WordPress views over the period, Search Console clicks/impressions/CTR/average position, the queries that bring each of the top articles, index status, publication and last modification dates. This is the tool for questions like 'which content works', 'what should we put in the newsletter', 'which articles should be refreshed'.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        days: { type: "number", description: "Length of the analysed period (default 90)" },
+        from: { type: "string", description: "Start date YYYY-MM-DD" },
+        to: { type: "string", description: "End date YYYY-MM-DD" },
+        limit: { type: "number", description: "Number of articles (default 30, max 200)" },
+        category: { type: "string", description: "Restrict to one WordPress category" },
+        with_queries: { type: "boolean", description: "Include the entry queries of the top 10 articles (default true)" },
+      },
+    },
+  },
+  {
+    name: "get_editorial_brief",
+    description:
+      "Everything needed to prepare a newsletter or an editorial meeting, in one call: past newsletters and the content cards they used, the current editorial board with column names and a flag telling whether a card has already been promoted, upcoming events, upcoming training sessions with their fill rate (and those below 70%), the best performing content of the period with its entry queries, and the audience signals (rising queries, quick wins, AI referrals). Call this before drafting any newsletter instead of assembling ten separate SQL queries.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        days: { type: "number", description: "Length of the audience period analysed (default 90)" },
+        horizon_days: { type: "number", description: "How far ahead to look for events and sessions (default 120)" },
+      },
     },
   },
   {
@@ -485,6 +596,62 @@ async function callTool(
         return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
       }
     }
+    case "get_seo_performance": {
+      try {
+        await log("get_seo_performance");
+        return textResult(JSON.stringify(await getSeoPerformance(supabase, {
+          from: args.from as string | undefined,
+          to: args.to as string | undefined,
+          days: args.days as number | undefined,
+          dimension: args.dimension as "query" | undefined,
+          search_type: args.search_type as string | undefined,
+          limit: args.limit as number | undefined,
+          contains: args.contains as string | undefined,
+          compare: args.compare !== false,
+        })));
+      } catch (e) {
+        return textResult(`SEO error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "get_seo_opportunities": {
+      try {
+        await log("get_seo_opportunities");
+        return textResult(JSON.stringify(await getSeoOpportunities(supabase, {
+          from: args.from as string | undefined,
+          to: args.to as string | undefined,
+          days: args.days as number | undefined,
+          limit: args.limit as number | undefined,
+        })));
+      } catch (e) {
+        return textResult(`SEO error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "get_content_performance": {
+      try {
+        await log("get_content_performance");
+        return textResult(JSON.stringify(await getContentPerformance(supabase, {
+          from: args.from as string | undefined,
+          to: args.to as string | undefined,
+          days: args.days as number | undefined,
+          limit: args.limit as number | undefined,
+          category: args.category as string | undefined,
+          with_queries: args.with_queries !== false,
+        })));
+      } catch (e) {
+        return textResult(`Content error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "get_editorial_brief": {
+      try {
+        await log("get_editorial_brief");
+        return textResult(JSON.stringify(await getEditorialBrief(supabase, {
+          days: args.days as number | undefined,
+          horizon_days: args.horizon_days as number | undefined,
+        })));
+      } catch (e) {
+        return textResult(`Brief error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
     case "read_media_image": {
       try {
         const img = await readMediaImage(
@@ -560,7 +727,8 @@ async function handleMcpRequest(req: Request, supabase: Supabase, baseUrl: strin
       return rpcResult(id, {
         protocolVersion,
         capabilities: { tools: {} },
-        serverInfo: { name: "supertools", title: "SuperTools (lecture seule)", version: "1.0.0" },
+        serverInfo: { name: "supertools", title: "SuperTools (lecture seule)", version: "1.1.0" },
+        instructions: SERVER_INSTRUCTIONS,
       });
     }
     case "ping":

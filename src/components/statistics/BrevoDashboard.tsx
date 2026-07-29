@@ -10,6 +10,7 @@ import { ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, Area
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PERIOD_LABELS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
+import { reportHandledError } from "@/lib/sentry";
 
 const fmtNum = (v: number) => v.toLocaleString("fr-FR");
 const rate = (num: number, den: number) => (den > 0 ? `${((num / den) * 100).toFixed(1)}%` : "—");
@@ -17,7 +18,8 @@ const rate = (num: number, den: number) => (den > 0 ? `${((num / den) * 100).toF
 function fmtSentDate(iso: string) {
   try {
     return format(parseISO(iso), "d MMM yyyy", { locale: fr });
-  } catch {
+  } catch (e) {
+    reportHandledError(e);
     return iso;
   }
 }

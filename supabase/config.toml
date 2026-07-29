@@ -440,6 +440,11 @@ verify_jwt = false
 
 [functions.gsc-statistics]
 verify_jwt = false
+[functions.gsc-sync]
+verify_jwt = false
+
+[functions.wp-statistics-sync]
+verify_jwt = false
 
 [functions.brevo-statistics]
 verify_jwt = false

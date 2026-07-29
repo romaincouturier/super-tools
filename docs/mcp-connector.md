@@ -5,14 +5,22 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Tools exposés (10)** : `query_database` (via `agent_sql_query` : SELECT
+- **Tools exposés (14)** : `query_database` (via `agent_sql_query` : SELECT
   uniquement, tables allowlistées du registry, 100 lignes max),
   `search_content` (recherche hybride, filtrable par mission via
   `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
-  `read_document`, `read_mission_page`, `read_mission_documents` et
-  `save_mission_note`. Tous sont journalisés dans `agent_query_audit_log`.
+  `read_document`, `read_mission_page`, `read_mission_documents`,
+  `save_mission_note`, et les quatre outils d'audience décrits ci-dessous.
+  Tous sont journalisés dans `agent_query_audit_log`.
+- **Instructions du serveur** : le champ `instructions` du protocole MCP,
+  renvoyé à l'initialisation, décrit à Claude le métier, les données
+  disponibles, l'outil à choisir selon la question et la méthode attendue
+  (croiser les sources, dater les chiffres, ne pas extrapoler). Sans lui, le
+  client ignore ce qui existe : c'est ce qui produisait des réponses évasives
+  du type « Search Console n'est pas accessible d'ici » alors que les données
+  sont en base.
 - **Lecture seule, à une exception près** : `save_mission_note` est la SEULE
   écriture du serveur. Elle crée ou met à jour **une page de mission**, titre
   préfixé « Note agent — », 200 000 caractères max. Elle ne peut rien
@@ -63,6 +71,40 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   backups car regénérable).
 - **Audit** : toutes les requêtes SQL passent par `agent_query_audit_log`
   avec l'identité et l'explication de la requête.
+
+## Outils d'audience (SEO, GEO, éditorial)
+
+Quatre outils lisent l'historique alimenté par les crons `gsc-sync` et
+`wp-statistics-sync` (voir `docs/seo-analytics.md`). Ils partagent leur
+implémentation avec la page Statistiques via
+`supabase/functions/_shared/seo-tools.ts` : Claude et l'interface affichent
+les mêmes chiffres.
+
+- **`get_seo_performance`** — totaux, série journalière et détail par
+  dimension (`query`, `page`, `page_query`, `country`, `device`,
+  `appearance`), avec la comparaison ligne à ligne avec la période
+  précédente de même longueur. Le bloc `data_coverage` indique jusqu'où
+  remonte réellement l'historique : une tendance ne peut pas être annoncée
+  au-delà.
+- **`get_seo_opportunities`** — diagnostic calculé, pas estimé : quick wins
+  (positions 4 à 20 avec les clics gagnés en atteignant la position 3), CTR
+  anormalement bas pour la position (problème de titre ou de description),
+  cannibalisation, pages en déclin, sujets en croissance, état d'indexation
+  issu de l'API URL Inspection, erreurs de sitemap et visites venues des
+  moteurs génératifs.
+- **`get_content_performance`** — croisement article par article : vues
+  WordPress sur la période, clics et impressions Search Console, position
+  moyenne, requêtes d'entrée des dix premiers, état d'indexation, date de
+  dernière modification.
+- **`get_editorial_brief`** — dossier complet pour préparer une newsletter :
+  newsletters passées et cartes déjà poussées, kanban éditorial, événements
+  à venir, sessions de formation avec leur taux de remplissage, meilleurs
+  contenus de la période et signaux d'audience. Un appel au lieu de dix
+  requêtes SQL approximatives.
+
+Les tables sous-jacentes (`gsc_metrics_daily`, `gsc_url_inspections`,
+`gsc_sitemaps`, `wp_traffic_daily`) restent accessibles en SQL via
+`query_database` pour les questions qui sortent de ces quatre cadres.
 
 ## Proxy racine obligatoire pour claude.ai
 
