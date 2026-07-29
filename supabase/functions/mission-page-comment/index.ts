@@ -32,7 +32,17 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const payload = await req.json();
+    const raw = await req.text();
+    if (!raw.trim()) {
+      return createErrorResponse("Corps de requête JSON manquant", 400);
+    }
+    // deno-lint-ignore no-explicit-any
+    let payload: any;
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      return createErrorResponse("Corps de requête JSON invalide", 400);
+    }
     const action = payload.action as string | undefined;
     if (!action || !["create", "delete", "resolve"].includes(action)) {
       return createErrorResponse("action must be one of: create, delete, resolve", 400);
