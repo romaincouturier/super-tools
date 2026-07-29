@@ -48,6 +48,7 @@ type TypeStagiaire =
 interface TrainingRow {
   id: string;
   source_financement_bpf: SourceFinancement | null;
+  type_stagiaire_bpf: TypeStagiaire | null;
   sold_price_ht: number | null;
   start_date: string | null;
   end_date: string | null;
@@ -63,6 +64,7 @@ function toTrainingRow(row: Record<string, unknown>): TrainingRow | null {
   return {
     id: String(row.id ?? ""),
     source_financement_bpf: (row.source_financement_bpf as SourceFinancement | null) ?? null,
+    type_stagiaire_bpf: (row.type_stagiaire_bpf as TypeStagiaire | null) ?? null,
     sold_price_ht: typeof row.sold_price_ht === "number" ? row.sold_price_ht : null,
     start_date: typeof row.start_date === "string" ? row.start_date : null,
     end_date: typeof row.end_date === "string" ? row.end_date : null,
@@ -336,7 +338,9 @@ export default function BPFReport() {
           return {
             id: p.id,
             training_id: p.training_id,
-            type_stagiaire_bpf: p.type_stagiaire_bpf ?? null,
+            // Intra / classe virtuelle : le type de stagiaire est défini au
+            // niveau de la formation ; le champ participant sert de surcharge.
+            type_stagiaire_bpf: p.type_stagiaire_bpf ?? t?.type_stagiaire_bpf ?? null,
             training: {
               start_date: t?.start_date ?? null,
               source_financement_bpf: t?.source_financement_bpf ?? null,

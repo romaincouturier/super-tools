@@ -68,7 +68,8 @@ const ParticipantMobileCard = ({
                   </Badge>
                 )}
                 {(() => {
-                  const missingType = !participant.type_stagiaire_bpf;
+                  const missingType =
+                    actionsProps.isInterEntreprise && !participant.type_stagiaire_bpf;
                   const missingSource =
                     actionsProps.isInterEntreprise &&
                     !actionsProps.bpfTrainingHasSource &&

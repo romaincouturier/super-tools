@@ -70,13 +70,18 @@ const FormationDetail = () => {
   const bpfIsInter =
     fd.isInterSession || fd.training.format_formation === "e_learning";
   const bpfTrainingMissingSource = !fd.training.source_financement_bpf;
-  const bpfSomeMissingType = fd.participants.some((p) => !p.type_stagiaire_bpf);
+  // Intra / classe virtuelle : le type de stagiaire est porté par la formation.
+  const bpfTrainingMissingType = !fd.training.type_stagiaire_bpf;
+  const bpfSomeMissingType =
+    bpfIsInter && fd.participants.some((p) => !p.type_stagiaire_bpf);
   const bpfSomeMissingSource = fd.participants.some(
     (p) => !p.source_financement_bpf,
   );
   const bpfHasParticipants = fd.participants.length > 0;
   const bpfTrainingNeedsAttention =
-    bpfHasParticipants && !bpfIsInter && bpfTrainingMissingSource;
+    bpfHasParticipants &&
+    !bpfIsInter &&
+    (bpfTrainingMissingSource || bpfTrainingMissingType);
   const bpfParticipantsNeedAttention =
     bpfHasParticipants &&
     (bpfSomeMissingType ||
