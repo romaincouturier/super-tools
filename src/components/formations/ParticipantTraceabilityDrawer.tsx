@@ -136,7 +136,7 @@ const ParticipantTraceabilityDrawer = ({
       // Fetch needs survey
       const surveyPromise = supabase
         .from("questionnaire_besoins")
-        .select("id, etat, created_at, submitted_at, attentes, experience, contraintes, objectif_prioritaire, autres_commentaires, prerequis_data")
+        .select("id, etat, created_at, date_soumission, competences_actuelles, competences_visees, experience_sujet, experience_details, contraintes_orga, commentaires_libres, prerequis_details, prerequis_validation")
         .eq("participant_id", participantId)
         .eq("training_id", trainingId)
         .maybeSingle();
