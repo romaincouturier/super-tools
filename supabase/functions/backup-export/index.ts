@@ -87,6 +87,9 @@ const TABLES_TO_BACKUP = [
   "group_matching_groups",
   "group_matching_members",
   "group_matching_registrations",
+  "gsc_metrics_daily",
+  "gsc_sitemaps",
+  "gsc_url_inspections",
   "idea_votes",
   "ideas",
   "improvements",
@@ -234,6 +237,7 @@ const TABLES_TO_BACKUP = [
   "woocommerce_orders",
   "woocommerce_pending_formations",
   "wp_articles",
+  "wp_traffic_daily",
 ];
 
 async function refreshGoogleAccessToken(refreshToken: string): Promise<string> {

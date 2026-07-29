@@ -50,6 +50,7 @@ const TABLES_TO_BACKUP = [
   "game_restock_items", "game_restocks", "game_sales", "games",
   "google_calendar_tokens", "google_drive_tokens", "google_tokens",
   "group_matching_configs", "group_matching_groups", "group_matching_members", "group_matching_registrations",
+  "gsc_metrics_daily", "gsc_sitemaps", "gsc_url_inspections",
   "idea_votes", "ideas", "improvements", "inbound_emails",
   "learner_magic_links", "learner_notifications", "learner_profiles",
   "lms_assignment_submissions", "lms_assignments", "lms_badge_awards", "lms_badges",
@@ -100,7 +101,7 @@ const TABLES_TO_BACKUP = [
   "watch_clusters", "watch_digests", "watch_items",
   "webhook_logs",
   "woocommerce_coupons", "woocommerce_orders", "woocommerce_pending_formations",
-  "wp_articles",
+  "wp_articles", "wp_traffic_daily",
 ];
 
 // ─── Storage buckets ────────────────────────────────────────────────────────

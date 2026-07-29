@@ -3937,6 +3937,162 @@ export type Database = {
           },
         ]
       }
+      gsc_metrics_daily: {
+        Row: {
+          clicks: number
+          ctr: number
+          date: string
+          dimension: string
+          id: string
+          impressions: number
+          key_1: string
+          key_2: string
+          position: number
+          search_type: string
+          site_url: string
+          synced_at: string
+        }
+        Insert: {
+          clicks?: number
+          ctr?: number
+          date: string
+          dimension: string
+          id?: string
+          impressions?: number
+          key_1?: string
+          key_2?: string
+          position?: number
+          search_type?: string
+          site_url: string
+          synced_at?: string
+        }
+        Update: {
+          clicks?: number
+          ctr?: number
+          date?: string
+          dimension?: string
+          id?: string
+          impressions?: number
+          key_1?: string
+          key_2?: string
+          position?: number
+          search_type?: string
+          site_url?: string
+          synced_at?: string
+        }
+        Relationships: []
+      }
+      gsc_sitemaps: {
+        Row: {
+          contents: Json | null
+          errors: number
+          id: string
+          is_pending: boolean
+          is_sitemaps_index: boolean
+          last_downloaded: string | null
+          last_submitted: string | null
+          path: string
+          site_url: string
+          synced_at: string
+          type: string | null
+          warnings: number
+        }
+        Insert: {
+          contents?: Json | null
+          errors?: number
+          id?: string
+          is_pending?: boolean
+          is_sitemaps_index?: boolean
+          last_downloaded?: string | null
+          last_submitted?: string | null
+          path: string
+          site_url: string
+          synced_at?: string
+          type?: string | null
+          warnings?: number
+        }
+        Update: {
+          contents?: Json | null
+          errors?: number
+          id?: string
+          is_pending?: boolean
+          is_sitemaps_index?: boolean
+          last_downloaded?: string | null
+          last_submitted?: string | null
+          path?: string
+          site_url?: string
+          synced_at?: string
+          type?: string | null
+          warnings?: number
+        }
+        Relationships: []
+      }
+      gsc_url_inspections: {
+        Row: {
+          coverage_state: string | null
+          crawled_as: string | null
+          error: string | null
+          google_canonical: string | null
+          id: string
+          indexing_state: string | null
+          inspected_at: string
+          last_crawl_time: string | null
+          page_fetch_state: string | null
+          referring_urls: string[]
+          rich_result_issues: Json | null
+          rich_result_types: string[]
+          rich_results_verdict: string | null
+          robots_txt_state: string | null
+          site_url: string
+          sitemaps: string[]
+          url: string
+          user_canonical: string | null
+          verdict: string | null
+        }
+        Insert: {
+          coverage_state?: string | null
+          crawled_as?: string | null
+          error?: string | null
+          google_canonical?: string | null
+          id?: string
+          indexing_state?: string | null
+          inspected_at?: string
+          last_crawl_time?: string | null
+          page_fetch_state?: string | null
+          referring_urls?: string[]
+          rich_result_issues?: Json | null
+          rich_result_types?: string[]
+          rich_results_verdict?: string | null
+          robots_txt_state?: string | null
+          site_url: string
+          sitemaps?: string[]
+          url: string
+          user_canonical?: string | null
+          verdict?: string | null
+        }
+        Update: {
+          coverage_state?: string | null
+          crawled_as?: string | null
+          error?: string | null
+          google_canonical?: string | null
+          id?: string
+          indexing_state?: string | null
+          inspected_at?: string
+          last_crawl_time?: string | null
+          page_fetch_state?: string | null
+          referring_urls?: string[]
+          rich_result_issues?: Json | null
+          rich_result_types?: string[]
+          rich_results_verdict?: string | null
+          robots_txt_state?: string | null
+          site_url?: string
+          sitemaps?: string[]
+          url?: string
+          user_canonical?: string | null
+          verdict?: string | null
+        }
+        Relationships: []
+      }
       idea_votes: {
         Row: {
           created_at: string
@@ -11723,6 +11879,39 @@ export type Database = {
         }
         Relationships: []
       }
+      wp_traffic_daily: {
+        Row: {
+          date: string
+          id: string
+          key: string
+          label: string | null
+          scope: string
+          synced_at: string
+          views: number
+          visitors: number
+        }
+        Insert: {
+          date: string
+          id?: string
+          key?: string
+          label?: string | null
+          scope: string
+          synced_at?: string
+          views?: number
+          visitors?: number
+        }
+        Update: {
+          date?: string
+          id?: string
+          key?: string
+          label?: string | null
+          scope?: string
+          synced_at?: string
+          views?: number
+          visitors?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -11989,6 +12178,34 @@ export type Database = {
       }
       get_training_survey_by_token: { Args: { p_token: string }; Returns: Json }
       get_user_org_id: { Args: { _user_id: string }; Returns: string }
+      gsc_aggregate: {
+        Args: {
+          p_contains?: string
+          p_dimension: string
+          p_from: string
+          p_limit?: number
+          p_search_type?: string
+          p_to: string
+        }
+        Returns: {
+          clicks: number
+          ctr: number
+          impressions: number
+          key_1: string
+          key_2: string
+          position: number
+        }[]
+      }
+      gsc_daily_totals: {
+        Args: { p_from: string; p_search_type?: string; p_to: string }
+        Returns: {
+          clicks: number
+          ctr: number
+          date: string
+          impressions: number
+          position: number
+        }[]
+      }
       has_crm_access: { Args: { _user_id: string }; Returns: boolean }
       has_module_access: {
         Args: { _module: string; _user_id: string }
@@ -12160,6 +12377,7 @@ export type Database = {
       monitor_missing_evaluation_reminders: { Args: never; Returns: Json }
       move_stale_tickets_to_boite_a_idees: { Args: never; Returns: undefined }
       next_location_contract_ref: { Args: { p_year: number }; Returns: string }
+      normalize_url: { Args: { u: string }; Returns: string }
       practice_popular_hashtags: {
         Args: { p_limit?: number }
         Returns: {
@@ -12168,6 +12386,7 @@ export type Database = {
         }[]
       }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
+      purge_seo_history: { Args: never; Returns: undefined }
       reap_stuck_ticket_coding: { Args: never; Returns: undefined }
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
@@ -12186,6 +12405,59 @@ export type Database = {
       resolve_formulaire_token: {
         Args: { p_course_id: number; p_email: string; p_form_type: string }
         Returns: Json
+      }
+      seo_cannibalisation: {
+        Args: {
+          p_from: string
+          p_limit?: number
+          p_min_impressions?: number
+          p_to: string
+        }
+        Returns: {
+          best_position: number
+          clicks: number
+          impressions: number
+          page_count: number
+          pages: string[]
+          query: string
+        }[]
+      }
+      seo_content_performance: {
+        Args: {
+          p_category?: string
+          p_from: string
+          p_limit?: number
+          p_to: string
+        }
+        Returns: {
+          article_id: string
+          category: string
+          clicks: number
+          coverage_state: string
+          ctr: number
+          has_excerpt: boolean
+          impressions: number
+          index_verdict: string
+          last_crawl_time: string
+          lifetime_views: number
+          modified_at: string
+          period_views: number
+          position: number
+          published_at: string
+          title: string
+          url: string
+          wp_id: number
+        }[]
+      }
+      seo_queries_for_page: {
+        Args: { p_from: string; p_limit?: number; p_page: string; p_to: string }
+        Returns: {
+          clicks: number
+          ctr: number
+          impressions: number
+          position: number
+          query: string
+        }[]
       }
       submit_training_survey: {
         Args: { p_answers: Json; p_token: string }
@@ -12224,6 +12496,7 @@ export type Database = {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
         Returns: undefined
       }
+      url_path: { Args: { u: string }; Returns: string }
       validate_learner_token: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
