@@ -22,9 +22,23 @@ const error = (message: Parameters<SonnerToast["error"]>[0], options?: ErrorOpti
   return sonnerToast.error(message, sonnerOptions);
 };
 
+/**
+ * Même API que sonner, à une exception près : `error` accepte `cause`, que
+ * `ExternalToast` ne connaît pas. Le proxy était typé `as SonnerToast`, donc
+ * l'appel documenté ci-dessus ne compilait pas — au point que le test de ce
+ * fichier devait le contourner par `as never`, et que la seule tentative de
+ * l'utiliser en production a cassé le build.
+ */
+type ToastApi = SonnerToast & {
+  error: (
+    message: Parameters<SonnerToast["error"]>[0],
+    options?: ErrorOptions,
+  ) => ReturnType<SonnerToast["error"]>;
+};
+
 export const toast = new Proxy(sonnerToast, {
   get(target, prop, receiver) {
     if (prop === "error") return error;
     return Reflect.get(target, prop, receiver);
   },
-}) as SonnerToast;
+}) as ToastApi;

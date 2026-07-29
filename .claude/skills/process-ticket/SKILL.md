@@ -106,7 +106,7 @@ Respecte l'architecture (pages / composants / hooks / services / types), TypeScr
 
 ```bash
 bash scripts/check-rules.sh
-npx tsc --noEmit
+npm run typecheck
 ```
 
 Corriger toutes les violations avant de continuer.
