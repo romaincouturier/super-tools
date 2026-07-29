@@ -9,7 +9,8 @@ SELECT cron.alter_job(
 );
 
 -- Remove existing process-logistics-reminders job (no-op if not found)
-SELECT cron.unschedule('process-logistics-reminders');
+SELECT cron.unschedule('process-logistics-reminders')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'process-logistics-reminders');
 
 -- Re-register at 7:05 — vault is accessed at cron runtime, not at migration time
 SELECT cron.schedule(

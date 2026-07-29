@@ -12,9 +12,48 @@
 #
 # Prérequis (Debian/Ubuntu) :
 #   sudo apt-get install postgresql-16 postgresql-16-pgvector postgresql-16-pgtap
-#   Les extensions pg_net et pg_cron ne sont pas nécessaires : elles n'existent
-#   pas hors Supabase et les migrations qui les appellent sont ignorées.
+#   pg_net et pg_cron n'existent pas hors Supabase : le script installe des
+#   doublures minimales, dont un cron.unschedule qui lève sur un job inconnu
+#   comme le vrai — sans quoi le banc masque des erreurs que le CI voit.
 set -u
+
+EXTDIR=$(pg_config --sharedir 2>/dev/null)/extension
+install_stub() {
+  local name="$1" body="$2"
+  [ -f "$EXTDIR/$name.control" ] && return 0
+  sudo -n tee "$EXTDIR/$name.control" >/dev/null <<CTL
+comment = 'doublure $name pour le rejeu local des migrations'
+default_version = '1.0'
+relocatable = false
+schema = 'extensions'
+CTL
+  echo "$body" | sudo -n tee "$EXTDIR/$name--1.0.sql" >/dev/null
+}
+
+install_stub pg_net "CREATE SCHEMA IF NOT EXISTS net;
+CREATE OR REPLACE FUNCTION net.http_post(url text, body jsonb DEFAULT '{}'::jsonb, params jsonb DEFAULT '{}'::jsonb, headers jsonb DEFAULT '{}'::jsonb, timeout_milliseconds integer DEFAULT 5000)
+RETURNS bigint LANGUAGE sql AS \$\$ SELECT 1::bigint \$\$;"
+
+install_stub pg_cron "CREATE SCHEMA IF NOT EXISTS cron;
+CREATE TABLE IF NOT EXISTS cron.job (jobid bigserial PRIMARY KEY, schedule text, command text, jobname text, active boolean DEFAULT true);
+CREATE TABLE IF NOT EXISTS cron.job_run_details (jobid bigint, runid bigserial PRIMARY KEY, job_pid integer, database text, username text, command text, status text, return_message text, start_time timestamptz, end_time timestamptz);
+CREATE OR REPLACE FUNCTION cron.schedule(job_name text, schedule text, command text)
+RETURNS bigint LANGUAGE sql AS \$\$ INSERT INTO cron.job(schedule, command, jobname) VALUES (\$2,\$3,\$1) RETURNING jobid \$\$;
+CREATE OR REPLACE FUNCTION cron.schedule(schedule text, command text)
+RETURNS bigint LANGUAGE sql AS \$\$ INSERT INTO cron.job(schedule, command) VALUES (\$1,\$2) RETURNING jobid \$\$;
+CREATE OR REPLACE FUNCTION cron.unschedule(job_name text)
+RETURNS boolean LANGUAGE plpgsql AS \$fn\$
+DECLARE n int;
+BEGIN
+  DELETE FROM cron.job WHERE jobname = job_name;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n = 0 THEN RAISE EXCEPTION 'could not find valid entry for job ''%''', job_name; END IF;
+  RETURN true;
+END \$fn\$;
+CREATE OR REPLACE FUNCTION cron.unschedule(job_id bigint)
+RETURNS boolean LANGUAGE sql AS \$\$ DELETE FROM cron.job WHERE jobid = \$1; SELECT true \$\$;
+CREATE OR REPLACE FUNCTION cron.alter_job(job_id bigint, schedule text DEFAULT NULL, command text DEFAULT NULL, database text DEFAULT NULL, username text DEFAULT NULL, active boolean DEFAULT NULL)
+RETURNS void LANGUAGE sql AS \$\$ UPDATE cron.job SET schedule = coalesce(\$2, schedule) WHERE jobid = \$1 \$\$;"
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 BOOTSTRAP="$REPO/scripts/replay-bootstrap.sql"

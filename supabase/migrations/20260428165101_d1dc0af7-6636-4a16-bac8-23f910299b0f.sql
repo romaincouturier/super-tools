@@ -1,6 +1,7 @@
 
 -- 1) Fix the broken cron: replace Vault-based secrets (which are empty) with inline values, like all other crons in this project
-SELECT cron.unschedule('process-logistics-reminders');
+SELECT cron.unschedule('process-logistics-reminders')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'process-logistics-reminders');
 
 SELECT cron.schedule(
   'process-logistics-reminders',
