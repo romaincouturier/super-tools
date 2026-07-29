@@ -353,6 +353,20 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "031b" "Pas de FOR ALL TO anon USING (true) sauf formulaires token-based" \
     "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ | grep -v '20260308225436\|fix_rls_anon\|20260321130000\|20260308224610'"
 
+  # [042] Rejouabilité — les migrations postérieures à la remise à plat de
+  # juillet 2026 doivent s'appliquer sur une base vierge. Garde-fou statique ;
+  # la vérification complète est `bash scripts/replay-migrations.sh --all --test`.
+  check "042" "Migrations récentes idempotentes (CREATE TABLE/INDEX, ADD COLUMN)" \
+    "ls supabase/migrations/*.sql | awk -F/ '\$NF > \"20260729000000\"' \
+       | xargs -r grep -HnPi 'CREATE TABLE (?!IF NOT EXISTS)|CREATE (UNIQUE )?INDEX (?!IF NOT EXISTS)|ADD COLUMN (?!IF NOT EXISTS)' 2>/dev/null"
+
+  # [042] Une policy créée dans une migration récente doit être protégée contre
+  # le rejeu : DROP POLICY IF EXISTS préalable, ou DO ... duplicate_object.
+  check "042b" "Migrations récentes : CREATE POLICY protégé contre le rejeu" \
+    "ls supabase/migrations/*.sql | awk -F/ '\$NF > \"20260729000000\"' \
+       | xargs -r grep -l 'CREATE POLICY' 2>/dev/null \
+       | xargs -r grep -L 'DROP POLICY IF EXISTS\|duplicate_object' 2>/dev/null"
+
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
   # structure mais pas le contenu — régression du 15/07/2026 sur lms_lesson_blocks).
