@@ -508,9 +508,16 @@ const MissionDetailDrawer = ({
           opportunityTitle=""
           company={clientName}
           contactEmail={primaryContactEmail}
+          contactOptions={(missionContacts ?? [])
+            .filter((c) => !!c.email)
+            .map((c) => ({
+              name: [c.first_name, c.last_name].filter(Boolean).join(" ") || (c.email as string),
+              email: c.email as string,
+            }))}
           initialSummary={clientName.trim() || undefined}
           defaultFormality="tu"
           onEventCreated={handleCalendarEventCreated}
+
         />
 
         <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
