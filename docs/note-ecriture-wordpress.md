@@ -4,12 +4,23 @@ Destinataire : la chargée de communication.
 Objet : ce que SuperTools pourrait faire directement dans WordPress, ce que ça
 rapporterait, et ce qu'il faut décider avant.
 
+**Statut de cette note : aucune de ces lignes ne repose sur une observation des
+données du site.** Elle décrit ce que le système permet et ce qu'il faudrait
+décider, à partir du code et du schéma de la base. Les volumes (combien
+d'articles sans description, combien de pages mal cliquées, combien de
+questions dans la FAQ) ne seront connus qu'une fois la synchronisation Search
+Console passée et l'onglet Opportunités renseigné. Chaque chiffre cité en
+réunion doit venir de là, pas d'ici.
+
 ## Où on en est aujourd'hui
 
-SuperTools **lit** WordPress (les articles publiés sont importés avec leur
-contenu, leur catégorie et leurs vues) et, depuis cette évolution, **historise
-Google Search Console** : chaque jour, les clics, impressions, positions et
-requêtes sont figés en base, page par page.
+SuperTools **lit** WordPress : les articles sont importés depuis un export CSV
+déposé à la main (titre, URL, catégorie, contenu, extrait, vues). Ce n'est pas
+une synchronisation automatique : les vues stockées datent du dernier import.
+
+Depuis cette évolution, SuperTools **historise Google Search Console** : chaque
+nuit, les clics, impressions, positions et requêtes sont figés en base, page
+par page, ainsi que le trafic WordPress du jour.
 
 Concrètement, SuperTools sait maintenant répondre à des questions du type :
 
@@ -34,6 +45,11 @@ relecture. Effet attendu : plus de clics à position inchangée. C'est mesurable
 dans les quatre à six semaines qui suivent, et la comparaison avant / après est
 désormais dans la page Statistiques.
 
+Réserve : SuperTools ne sait pas encore **lesquels** en sont dépourvus. L'export
+CSV utilisé pour l'import n'inclut pas la description SEO. Ajouter cette colonne
+à l'export puis à l'import est un petit chantier, et c'est le préalable pour
+chiffrer le lot au lieu de l'estimer.
+
 **2. Les titres des pages qui ne convertissent pas.**
 Le tableau « CTR anormalement bas » liste les pages bien classées dont personne
 ne clique le lien. Ce sont presque toujours des titres écrits pour la page, pas
@@ -47,23 +63,25 @@ contenus récents et vers la page formation correspondante. SuperTools sait
 lesquels : ce sont les pages en tête du croisement contenus / audience.
 
 **4. Le maillage interne vers les offres.**
-Les articles les plus lus ne mènent pas systématiquement vers la formation
-correspondante. Ajouter ce chemin de façon systématique est un travail
-mécanique, donc automatisable, avec relecture.
+Première question à trancher, et elle se vérifie en dix minutes : les articles
+les plus lus mènent-ils vers la formation correspondante ? Si le chemin manque
+sur une partie du corpus, l'ajouter est un travail mécanique, donc
+automatisable, avec relecture.
 
 **5. Les données structurées.**
 Ce sont des informations invisibles pour le lecteur mais lues par Google et par
 les moteurs génératifs : questions / réponses (FAQ), sessions de formation
-(dates, lieu, prix), avis clients. SuperTools possède déjà la matière : les
-questions fréquentes, les sessions et les témoignages sont en base. Les publier
-sous forme structurée est le seul chantier de cette liste qui améliore à la
-fois le référencement classique et les chances d'être cité par ChatGPT ou
-Perplexity.
+(dates, lieu, prix), avis clients. SuperTools tient déjà ces trois types de
+données (questions fréquentes, sessions, témoignages) ; leur volume réel est à
+regarder avant de décider. Les publier sous forme structurée est le seul
+chantier de cette liste qui améliore à la fois le référencement classique et
+les chances d'être cité par ChatGPT ou Perplexity.
 
 **6. Le ménage.**
 Redirections des articles obsolètes vers leur version à jour, désindexation des
-contenus périmés (comptes rendus d'événements anciens). Effet indirect mais
-réel : Google consacre son budget d'exploration aux pages qui comptent.
+contenus périmés. L'onglet Indexation dira lesquels Google ignore déjà, ce qui
+évite de trier le corpus à la main. Effet indirect mais réel : Google consacre
+son budget d'exploration aux pages qui comptent.
 
 ## Ce qu'il faut avant de lancer
 
@@ -92,7 +110,16 @@ réel : Google consacre son budget d'exploration aux pages qui comptent.
 
 ## Prochaine étape proposée
 
-Choisir ensemble le lot pilote : les vingt pages qui cumulent le plus
-d'impressions avec un taux de clic inférieur à la norme de leur position. La
-liste est déjà calculée dans SuperTools, onglet Statistiques, section
-Opportunités.
+Dans l'ordre :
+
+1. Laisser passer la première synchronisation Search Console, puis ouvrir
+   Statistiques > Opportunités. C'est le moment où les hypothèses de cette note
+   deviennent des chiffres.
+2. Regarder deux nombres avant tout : combien de pages figurent dans « CTR
+   anormalement bas », et combien d'URL apparaissent comme non indexées.
+3. Choisir ensemble le lot pilote : les vingt pages du premier tableau, celles
+   qui cumulent le plus d'impressions pour un taux de clic inférieur à la norme
+   de leur position.
+
+Si l'un de ces tableaux ressort vide ou très court, tant mieux : cela veut dire
+que le chantier n'est pas là, et il faut le dire aussi.
