@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
       crmRes,
       improvementsRes,
     ] = await Promise.all([
-      supabase.from("trainings").select("id, training_name, start_date, end_date, status, created_at").gte("created_at", isoThirty),
-      supabase.from("training_participants").select("id, needs_survey_status, evaluation_status, added_at").gte("added_at", isoThirty),
-      supabase.from("training_evaluations").select("id, etat, appreciation_generale, training_id").gte("created_at", isoThirty),
+      supabase.from("trainings").select("id, training_name, start_date, end_date, is_cancelled, created_at").gte("created_at", isoThirty),
+      supabase.from("training_participants").select("id, needs_survey_status, added_at").gte("added_at", isoThirty),
+      supabase.from("training_evaluations").select("id, etat, appreciation_generale, training_id, participant_id").gte("created_at", isoThirty),
       supabase.from("questionnaire_besoins").select("id, etat").gte("created_at", isoThirty),
       supabase.from("crm_cards").select("id, sales_status, estimated_value, won_at, lost_at, created_at").gte("created_at", isoThirty),
       supabase.from("improvements").select("id, status, priority").limit(50),
@@ -68,6 +68,9 @@ Deno.serve(async (req) => {
     const wonDeals = crmCards.filter(c => c.won_at).length;
     const lostDeals = crmCards.filter(c => c.lost_at).length;
     const pipeline = crmCards.filter(c => !c.won_at && !c.lost_at).reduce((acc, c) => acc + (c.estimated_value || 0), 0);
+    const submittedEvalParticipantIds = new Set(
+      evaluations.filter((e: any) => e.etat === "soumis" && e.participant_id).map((e: any) => e.participant_id),
+    );
     const openImprovements = improvements.filter(i => i.status !== "done").length;
 
     const metricsContext = `
@@ -80,7 +83,7 @@ Métriques business des 30 derniers jours :
 - CRM : ${wonDeals} deals gagnés, ${lostDeals} perdus, ${pipeline}€ en pipeline
 - Améliorations ouvertes : ${openImprovements}
 - Participants sans questionnaire complété : ${participants.filter(p => p.needs_survey_status !== "complete").length}
-- Participants sans évaluation : ${participants.filter(p => p.evaluation_status !== "complete").length}
+- Participants sans évaluation soumise : ${participants.filter(p => !submittedEvalParticipantIds.has(p.id)).length}
 `;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
