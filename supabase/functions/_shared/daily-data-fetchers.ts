@@ -1295,6 +1295,7 @@ export async function fetchSupertiltAlerts(supabase: SupabaseClient): Promise<Su
     .from("order_items")
     .select("id, product_name, wc_order_id, created_at, kanban_status, game_type, block_reason, woocommerce_orders(order_number, customer_email)")
     .in("kanban_status", ["to_validate", "received", "dropshipping"])
+    .is("archived_at", null)
     .order("created_at", { ascending: true })
     .limit(500);
   if (error) {
