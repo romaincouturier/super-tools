@@ -31,10 +31,12 @@ CREATE POLICY "Authenticated users can update failed emails"
   TO authenticated
   USING (true);
 
+-- FOR INSERT n'accepte pas USING : PostgreSQL exige WITH CHECK. Écrit avec
+-- USING à l'origine, ce qui faisait échouer la migration au rejeu.
 CREATE POLICY "Service role can insert failed emails"
   ON public.failed_emails FOR INSERT
   TO authenticated
-  USING (true);
+  WITH CHECK (true);
 
 -- Add convention follow-up settings defaults
 INSERT INTO public.app_settings (setting_key, setting_value, description)

@@ -1,1 +1,1 @@
-ALTER TABLE public.training_participants ADD COLUMN notes text;
+ALTER TABLE public.training_participants ADD COLUMN IF NOT EXISTS notes text;

@@ -8,6 +8,14 @@ create extension if not exists pgtap with schema extensions;
 
 select plan(6);
 
+-- Les privilèges de table relèvent de la plateforme, pas de l'historique de
+-- migrations : sur une instance neuve, `authenticated` se voit refuser la
+-- lecture avant même que la policy ne soit évaluée, et le test mesurerait le
+-- GRANT au lieu du RLS. On les pose ici, dans la transaction annulée en fin
+-- de fichier.
+grant usage on schema public to anon, authenticated;
+grant select on all tables in schema public to anon, authenticated;
+
 -- ── Seed (en tant que postgres, bypass RLS) ────────────────────────────────
 insert into auth.users (id, email, raw_user_meta_data)
 values

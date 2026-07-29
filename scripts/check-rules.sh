@@ -344,11 +344,34 @@ if [ "$STAGED_MODE" = "false" ]; then
 
   # [031] Isolation données apprenants — les NOUVELLES migrations (post-2026-05-29)
   # ne doivent pas introduire de nouvelles failles.
+  # « Nouvelle » se juge sur l'horodatage du NOM de fichier, pas sur la date de
+  # modification : réécrire une vieille migration (rejouabilité de l'historique)
+  # ne doit pas la faire passer pour une migration récente.
   check "031a" "Pas de FOR ALL TO authenticated USING (true) sur les tables sensibles dans les nouvelles migrations" \
-    "find supabase/migrations/ -name '*.sql' -newer supabase/migrations/20260529100000_staff_select_guard.sql | xargs grep -En 'FOR ALL TO authenticated USING .true.' 2>/dev/null | grep -E 'crm_|missions|quotes|watch_|improvements|newsletters|email_templates|training_supports|coaching_summaries|agent_schema_registry'"
+    "ls supabase/migrations/*.sql | awk -F/ '\$NF > \"20260529100000\"' | xargs -r grep -En 'FOR ALL TO authenticated USING .true.' 2>/dev/null | grep -E 'crm_|missions|quotes|watch_|improvements|newsletters|email_templates|training_supports|coaching_summaries|agent_schema_registry'"
 
   check "031b" "Pas de FOR ALL TO anon USING (true) sauf formulaires token-based" \
     "grep -rn 'FOR ALL TO anon USING (true)' supabase/migrations/ | grep -v '20260308225436\|fix_rls_anon\|20260321130000\|20260308224610'"
+
+  # [042] Rejouabilité — les migrations postérieures à la remise à plat de
+  # juillet 2026 doivent s'appliquer sur une base vierge. Garde-fou statique ;
+  # la vérification complète est `bash scripts/replay-migrations.sh --all --test`.
+  check "042" "Migrations récentes idempotentes (CREATE TABLE/INDEX, ADD COLUMN)" \
+    "ls supabase/migrations/*.sql | awk -F/ '\$NF > \"20260729000000\"' \
+       | xargs -r grep -HnPi 'CREATE TABLE (?!IF NOT EXISTS)|CREATE (UNIQUE )?INDEX (?!IF NOT EXISTS)|ADD COLUMN (?!IF NOT EXISTS)' 2>/dev/null"
+
+  # [042] Une policy créée dans une migration récente doit être protégée contre
+  # le rejeu : DROP POLICY IF EXISTS préalable, ou DO ... duplicate_object.
+  check "042b" "Migrations récentes : CREATE POLICY protégé contre le rejeu" \
+    "ls supabase/migrations/*.sql | awk -F/ '\$NF > \"20260729000000\"' \
+       | xargs -r grep -l 'CREATE POLICY' 2>/dev/null \
+       | xargs -r grep -L 'DROP POLICY IF EXISTS\|duplicate_object' 2>/dev/null"
+
+  # [042c] Deux migrations ne peuvent pas partager le même horodatage : la CLI
+  # Supabase indexe supabase_migrations.schema_migrations sur cette version et
+  # échoue en duplicate key au rejeu.
+  check "042c" "Pas deux migrations avec le même horodatage de version" \
+    "ls supabase/migrations/*.sql | sed -E 's|.*/([0-9]{14}).*|\\1|' | sort | uniq -d"
 
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la

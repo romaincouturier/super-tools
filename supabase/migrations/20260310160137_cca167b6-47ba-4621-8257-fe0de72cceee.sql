@@ -1,6 +1,6 @@
 
 -- Create quote_settings table (singleton for company/legal settings)
-CREATE TABLE public.quote_settings (
+CREATE TABLE IF NOT EXISTS public.quote_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   -- Émetteur
   company_name TEXT NOT NULL DEFAULT '',
@@ -55,7 +55,7 @@ CREATE TABLE public.quote_settings (
 INSERT INTO public.quote_settings (id) VALUES (gen_random_uuid());
 
 -- Create quotes table
-CREATE TABLE public.quotes (
+CREATE TABLE IF NOT EXISTS public.quotes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   crm_card_id UUID NOT NULL REFERENCES public.crm_cards(id) ON DELETE CASCADE,
   quote_number TEXT NOT NULL UNIQUE,
@@ -104,10 +104,22 @@ CREATE TABLE public.quotes (
 ALTER TABLE public.quote_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can read quote_settings" ON public.quote_settings FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can update quote_settings" ON public.quote_settings FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can read quote_settings" ON public.quote_settings FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update quote_settings" ON public.quote_settings FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can read quotes" ON public.quotes FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert quotes" ON public.quotes FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update quotes" ON public.quotes FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Authenticated users can delete quotes" ON public.quotes FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can read quotes" ON public.quotes FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert quotes" ON public.quotes FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update quotes" ON public.quotes FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete quotes" ON public.quotes FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;

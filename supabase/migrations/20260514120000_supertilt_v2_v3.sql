@@ -47,6 +47,16 @@ CREATE TRIGGER partner_payments_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ── V2 : template email réapprovisionnement ───────────────────────
+-- La table email_templates de production est celle de janvier
+-- (template_type / template_name / html_content) : ce CREATE TABLE est donc
+-- ignoré et la colonne template_key n'existe pas. L'insertion est gardée pour
+-- ne pas faire échouer le rejeu de l'historique.
+DO $do$ BEGIN
+IF EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'email_templates'
+    AND column_name = 'template_key'
+) THEN
 INSERT INTO public.email_templates (template_key, name, subject, body) VALUES
 (
   'restock',
@@ -63,6 +73,8 @@ INSERT INTO public.email_templates (template_key, name, subject, body) VALUES
 <p>Cordialement,<br>L''équipe SuperTilt</p>'
 )
 ON CONFLICT (template_key) DO NOTHING;
+END IF; END $do$;
+
 
 -- ── V3 : dépenses par jeu ────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.game_expenses (

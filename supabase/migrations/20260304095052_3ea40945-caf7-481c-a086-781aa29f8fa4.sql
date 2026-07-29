@@ -1,1 +1,1 @@
-ALTER TABLE public.training_participants DROP CONSTRAINT training_participants_formula_check;
+ALTER TABLE public.training_participants DROP CONSTRAINT IF EXISTS training_participants_formula_check;

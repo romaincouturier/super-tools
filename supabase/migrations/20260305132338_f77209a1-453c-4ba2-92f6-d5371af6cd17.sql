@@ -10,11 +10,31 @@ CREATE TABLE IF NOT EXISTS public.formulaire_rate_limits (
   requested_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 20260304180000 avait créé la table avec attempted_at ; c'est requested_at
+-- qui a gagné en production. Le CREATE ci-dessus étant sans effet quand la
+-- table existe déjà, on aligne la colonne.
+DO $do$ BEGIN
+IF EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'formulaire_rate_limits'
+    AND column_name = 'attempted_at'
+) AND NOT EXISTS (
+  SELECT 1 FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'formulaire_rate_limits'
+    AND column_name = 'requested_at'
+) THEN
+  ALTER TABLE public.formulaire_rate_limits RENAME COLUMN attempted_at TO requested_at;
+END IF; END $do$;
+
 -- Index for fast lookups
 CREATE INDEX IF NOT EXISTS idx_formulaire_rate_limits_ip_time
   ON public.formulaire_rate_limits (ip_address, requested_at);
 
 -- Create the rate limit function
+-- La version de 20260304180000 déclarait des valeurs par défaut : CREATE OR
+-- REPLACE ne peut pas les retirer, il faut supprimer la fonction d'abord.
+DROP FUNCTION IF EXISTS public.check_formulaire_rate_limit(text, integer, integer);
+
 CREATE OR REPLACE FUNCTION public.check_formulaire_rate_limit(
   p_ip_address text,
   p_max_requests integer,

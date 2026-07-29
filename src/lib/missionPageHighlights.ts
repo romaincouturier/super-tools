@@ -6,6 +6,7 @@
  * Si la citation traverse plusieurs éléments (gras, lien…), on se rabat sur le
  * premier nœud texte qui la contient partiellement, sinon sur le bloc entier.
  */
+import { reportHandledError } from "@/lib/sentry";
 
 export const MARK_ATTR = "data-comment-thread";
 export const MARK_CLASS = "mission-comment-mark";
@@ -58,7 +59,12 @@ export function highlightQuote(
       try {
         range.surroundContents(mark);
         return mark;
-      } catch {
+      } catch (err) {
+        // surroundContents lève quand la plage traverse une frontière
+        // d'élément (citation à cheval sur un <strong>, par exemple). Cas
+        // attendu : on renonce au surlignage, le fil reste lisible. Trace
+        // en fil d'Ariane pour ne pas laisser l'erreur muette (règle [037]).
+        reportHandledError("highlightQuote: surroundContents impossible", { cause: err });
         return null;
       }
     }

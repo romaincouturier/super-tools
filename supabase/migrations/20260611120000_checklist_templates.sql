@@ -1,3 +1,5 @@
+-- public.profiles n'a ni colonne role ni clé sur id : c'est user_id et
+-- is_admin (règle [027]). Les policies ci-dessous échouaient au rejeu.
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Unified checklist template system
 --
@@ -80,7 +82,7 @@ CREATE POLICY "ct_insert" ON public.checklist_templates
   WITH CHECK (
     (NOT is_global AND user_id = auth.uid())
     OR (is_global AND EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
     ))
   );
 
@@ -89,13 +91,13 @@ CREATE POLICY "ct_update" ON public.checklist_templates
   USING (
     (NOT is_global AND user_id = auth.uid())
     OR (is_global AND EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
     ))
   )
   WITH CHECK (
     (NOT is_global AND user_id = auth.uid())
     OR (is_global AND EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
     ))
   );
 
@@ -104,7 +106,7 @@ CREATE POLICY "ct_delete" ON public.checklist_templates
   USING (
     (NOT is_global AND user_id = auth.uid())
     OR (is_global AND EXISTS (
-      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+      SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
     ))
   );
 
@@ -134,7 +136,7 @@ CREATE POLICY "cti_insert" ON public.checklist_template_items
       AND (
         (NOT t.is_global AND t.user_id = auth.uid())
         OR (t.is_global AND EXISTS (
-          SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+          SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
         ))
       )
   ));
@@ -147,7 +149,7 @@ CREATE POLICY "cti_update" ON public.checklist_template_items
       AND (
         (NOT t.is_global AND t.user_id = auth.uid())
         OR (t.is_global AND EXISTS (
-          SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+          SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
         ))
       )
   ));
@@ -160,7 +162,7 @@ CREATE POLICY "cti_delete" ON public.checklist_template_items
       AND (
         (NOT t.is_global AND t.user_id = auth.uid())
         OR (t.is_global AND EXISTS (
-          SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+          SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND is_admin = true
         ))
       )
   ));

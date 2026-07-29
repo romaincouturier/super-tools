@@ -25,26 +25,36 @@ CREATE TABLE IF NOT EXISTS public.missions (
 
 ALTER TABLE public.missions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can view missions"
-  ON public.missions FOR SELECT TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can view missions"
+    ON public.missions FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert missions"
-  ON public.missions FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert missions"
+    ON public.missions FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update missions"
-  ON public.missions FOR UPDATE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update missions"
+    ON public.missions FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete missions"
-  ON public.missions FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete missions"
+    ON public.missions FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE INDEX idx_missions_status ON public.missions(status);
-CREATE INDEX idx_missions_created_by ON public.missions(created_by);
+CREATE INDEX IF NOT EXISTS idx_missions_status ON public.missions(status);
+CREATE INDEX IF NOT EXISTS idx_missions_created_by ON public.missions(created_by);
 
 -- Trigger for updated_at
-CREATE TRIGGER update_missions_updated_at
-  BEFORE UPDATE ON public.missions
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+DO $do$ BEGIN
+  CREATE TRIGGER update_missions_updated_at
+    BEFORE UPDATE ON public.missions
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Now create mission_activities table
 CREATE TABLE IF NOT EXISTS public.mission_activities (
@@ -65,25 +75,35 @@ CREATE TABLE IF NOT EXISTS public.mission_activities (
 
 ALTER TABLE public.mission_activities ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can view mission activities"
-  ON public.mission_activities FOR SELECT TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can view mission activities"
+    ON public.mission_activities FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert mission activities"
-  ON public.mission_activities FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert mission activities"
+    ON public.mission_activities FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update mission activities"
-  ON public.mission_activities FOR UPDATE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update mission activities"
+    ON public.mission_activities FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete mission activities"
-  ON public.mission_activities FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete mission activities"
+    ON public.mission_activities FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE INDEX idx_mission_activities_mission_id ON public.mission_activities(mission_id);
+CREATE INDEX IF NOT EXISTS idx_mission_activities_mission_id ON public.mission_activities(mission_id);
 
 -- Trigger for updated_at
-CREATE TRIGGER update_mission_activities_updated_at
-  BEFORE UPDATE ON public.mission_activities
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+DO $do$ BEGIN
+  CREATE TRIGGER update_mission_activities_updated_at
+    BEFORE UPDATE ON public.mission_activities
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Now create mission_pages table
 CREATE TABLE IF NOT EXISTS public.mission_pages (
@@ -101,26 +121,36 @@ CREATE TABLE IF NOT EXISTS public.mission_pages (
 
 ALTER TABLE public.mission_pages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can view mission pages"
-  ON public.mission_pages FOR SELECT TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can view mission pages"
+    ON public.mission_pages FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert mission pages"
-  ON public.mission_pages FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert mission pages"
+    ON public.mission_pages FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update mission pages"
-  ON public.mission_pages FOR UPDATE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update mission pages"
+    ON public.mission_pages FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete mission pages"
-  ON public.mission_pages FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete mission pages"
+    ON public.mission_pages FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE INDEX idx_mission_pages_mission_id ON public.mission_pages(mission_id);
-CREATE INDEX idx_mission_pages_parent_id ON public.mission_pages(parent_page_id);
+CREATE INDEX IF NOT EXISTS idx_mission_pages_mission_id ON public.mission_pages(mission_id);
+CREATE INDEX IF NOT EXISTS idx_mission_pages_parent_id ON public.mission_pages(parent_page_id);
 
 -- Trigger for updated_at
-CREATE TRIGGER update_mission_pages_updated_at
-  BEFORE UPDATE ON public.mission_pages
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
+DO $do$ BEGIN
+  CREATE TRIGGER update_mission_pages_updated_at
+    BEFORE UPDATE ON public.mission_pages
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Now create mission_media table
 CREATE TABLE IF NOT EXISTS public.mission_media (
@@ -138,19 +168,27 @@ CREATE TABLE IF NOT EXISTS public.mission_media (
 
 ALTER TABLE public.mission_media ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view mission media"
-  ON public.mission_media FOR SELECT USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Users can view mission media"
+    ON public.mission_media FOR SELECT USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert mission media"
-  ON public.mission_media FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert mission media"
+    ON public.mission_media FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update mission media"
-  ON public.mission_media FOR UPDATE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update mission media"
+    ON public.mission_media FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete mission media"
-  ON public.mission_media FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete mission media"
+    ON public.mission_media FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE INDEX idx_mission_media_mission_id ON public.mission_media(mission_id);
+CREATE INDEX IF NOT EXISTS idx_mission_media_mission_id ON public.mission_media(mission_id);
 
 -- Storage bucket for mission media (photos + videos)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -167,19 +205,27 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY "mission_media_select"
-  ON storage.objects FOR SELECT TO public
-  USING (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_select"
+    ON storage.objects FOR SELECT TO public
+    USING (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "mission_media_insert"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_insert"
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "mission_media_update"
-  ON storage.objects FOR UPDATE TO authenticated
-  USING (bucket_id = 'mission-media')
-  WITH CHECK (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_update"
+    ON storage.objects FOR UPDATE TO authenticated
+    USING (bucket_id = 'mission-media')
+    WITH CHECK (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "mission_media_delete"
-  ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'mission-media');
+DO $do$ BEGIN
+  CREATE POLICY "mission_media_delete"
+    ON storage.objects FOR DELETE TO authenticated
+    USING (bucket_id = 'mission-media');
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;

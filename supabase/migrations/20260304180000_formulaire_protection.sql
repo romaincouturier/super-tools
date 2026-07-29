@@ -108,6 +108,10 @@ GRANT EXECUTE ON FUNCTION public.check_formulaire_rate_limit(TEXT, INT, INT) TO 
 -- 6. Replace resolve_formulaire_token to return structured JSON
 --    and handle both known and unknown participants
 -- =============================================================================
+-- La version précédente (20260304150000) renvoyait TEXT : CREATE OR REPLACE ne
+-- peut pas changer le type de retour, il faut supprimer d'abord.
+DROP FUNCTION IF EXISTS public.resolve_formulaire_token(TEXT, INT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.resolve_formulaire_token(
   p_email TEXT,
   p_product_id INT,

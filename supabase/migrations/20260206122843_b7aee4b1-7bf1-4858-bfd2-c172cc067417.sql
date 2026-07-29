@@ -31,35 +31,53 @@ CREATE TABLE IF NOT EXISTS public.event_media (
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.event_media ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Authenticated users can read events"
-  ON public.events FOR SELECT TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can read events"
+    ON public.events FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert events"
-  ON public.events FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert events"
+    ON public.events FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update events"
-  ON public.events FOR UPDATE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update events"
+    ON public.events FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete events"
-  ON public.events FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete events"
+    ON public.events FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can read event_media"
-  ON public.event_media FOR SELECT TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can read event_media"
+    ON public.event_media FOR SELECT TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can insert event_media"
-  ON public.event_media FOR INSERT TO authenticated WITH CHECK (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can insert event_media"
+    ON public.event_media FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can update event_media"
-  ON public.event_media FOR UPDATE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can update event_media"
+    ON public.event_media FOR UPDATE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
-CREATE POLICY "Authenticated users can delete event_media"
-  ON public.event_media FOR DELETE TO authenticated USING (true);
+DO $do$ BEGIN
+  CREATE POLICY "Authenticated users can delete event_media"
+    ON public.event_media FOR DELETE TO authenticated USING (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
 
 -- Indexes
-CREATE INDEX idx_events_event_date ON public.events(event_date);
-CREATE INDEX idx_event_media_event_id ON public.event_media(event_id);
+CREATE INDEX IF NOT EXISTS idx_events_event_date ON public.events(event_date);
+CREATE INDEX IF NOT EXISTS idx_event_media_event_id ON public.event_media(event_id);
 
 -- Updated_at trigger
-CREATE TRIGGER events_updated_at
-  BEFORE UPDATE ON public.events
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+DO $do$ BEGIN
+  CREATE TRIGGER events_updated_at
+    BEFORE UPDATE ON public.events
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+EXCEPTION WHEN duplicate_object THEN NULL; END $do$;
