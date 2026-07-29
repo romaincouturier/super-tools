@@ -113,6 +113,7 @@ SELECT cron.schedule('gsc-sync-daily', '20 4 * * *', $$
     url := 'https://<PROJET>.supabase.co/functions/v1/gsc-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
                                   'x-cron-secret', '<SEO_CRON_SECRET>'),
+    timeout_milliseconds := 120000,
     body := '{"mode": "metrics", "days": 5}'::jsonb);
 $$);
 
@@ -122,6 +123,7 @@ SELECT cron.schedule('gsc-inspect-hourly', '35 * * * *', $$
     url := 'https://<PROJET>.supabase.co/functions/v1/gsc-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
                                   'x-cron-secret', '<SEO_CRON_SECRET>'),
+    timeout_milliseconds := 120000,
     body := '{"mode": "inspect", "limit": 60}'::jsonb);
 $$);
 
@@ -131,6 +133,7 @@ SELECT cron.schedule('gsc-sitemaps-daily', '50 4 * * *', $$
     url := 'https://<PROJET>.supabase.co/functions/v1/gsc-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
                                   'x-cron-secret', '<SEO_CRON_SECRET>'),
+    timeout_milliseconds := 120000,
     body := '{"mode": "sitemaps"}'::jsonb);
 $$);
 
@@ -140,11 +143,26 @@ SELECT cron.schedule('wp-statistics-sync-daily', '10 3 * * *', $$
     url := 'https://<PROJET>.supabase.co/functions/v1/wp-statistics-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
                                   'x-cron-secret', '<SEO_CRON_SECRET>'),
+    timeout_milliseconds := 120000,
     body := '{}'::jsonb);
 $$);
 ```
 
-Vérifier `cron.job_run_details` après la première exécution.
+`timeout_milliseconds` est indispensable : pg_net coupe à 5 secondes par
+défaut, alors qu'une passe de synchronisation dure plusieurs dizaines de
+secondes.
+
+Contrôle de la première exécution (le nom du job vit dans `cron.job`, pas dans
+`cron.job_run_details`, d'où la jointure) :
+
+```sql
+SELECT j.jobname, d.status, d.return_message, d.start_time
+FROM cron.job_run_details d
+JOIN cron.job j ON j.jobid = d.jobid
+WHERE j.jobname LIKE 'gsc%' OR j.jobname LIKE 'wp-statistics%'
+ORDER BY d.start_time DESC
+LIMIT 10;
+```
 
 ## Rattrapage de l'historique
 
