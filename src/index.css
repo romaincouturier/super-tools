@@ -371,3 +371,16 @@ All colors MUST be HSL.
   margin-top: 0.15em;
   margin-bottom: 0.15em;
 }
+
+/* Surlignage des passages commentés (pages livrables de mission) */
+.mission-comment-mark {
+  background-color: hsl(var(--primary) / 0.18);
+  border-bottom: 2px solid hsl(var(--primary) / 0.55);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.mission-comment-mark[data-active] {
+  background-color: hsl(var(--primary) / 0.35);
+}
