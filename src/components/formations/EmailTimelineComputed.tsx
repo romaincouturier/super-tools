@@ -183,7 +183,7 @@ const EmailTimelineComputed = ({
       .from("training_live_meetings")
       .select("*")
       .eq("training_id", trainingId)
-      .order("live_date", { ascending: true });
+      .order("scheduled_at", { ascending: true });
 
     if (emailsRes.data) setDbEmails(emailsRes.data);
     if (livesRes.data) setLiveMeetings(livesRes.data);
@@ -333,8 +333,8 @@ const EmailTimelineComputed = ({
 
     // --- LIVES ---
     liveMeetings.forEach((live) => {
-      if (!live.live_date) return;
-      const liveDate = parseISO(live.live_date as string);
+      if (!live.scheduled_at) return;
+      const liveDate = parseISO(live.scheduled_at as string);
       const reminderDate = addDays(liveDate, -1);
       if (isAfter(reminderDate, now)) {
         participants.forEach((p) => {

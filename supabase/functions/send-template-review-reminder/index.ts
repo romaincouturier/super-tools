@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
 
     // Counts of templates
     const [{ count: trainingTplCount }, { count: crmTplCount }, { count: snippetCount }] = await Promise.all([
-      supabase.from("email_templates").select("id", { count: "exact", head: true }),
-      supabase.from("crm_email_templates").select("id", { count: "exact", head: true }),
+      supabase.from("email_templates").select("id", { count: "exact", head: true }).not("template_type", "like", "crm_%"),
+      supabase.from("email_templates").select("id", { count: "exact", head: true }).like("template_type", "crm_%"),
       supabase.from("email_snippets").select("id", { count: "exact", head: true }).then((r) => r).catch(() => ({ count: 0 })),
     ]);
 

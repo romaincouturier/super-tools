@@ -47,7 +47,7 @@ serve(async (req) => {
     if (!allowed) {
       const { data: modAccess } = await supabase
         .from("user_module_access")
-        .select("module_key")
+        .select("module")
         .eq("user_id", callerUser.id)
         .limit(1);
       allowed = !!(modAccess && modAccess.length > 0);

@@ -1623,8 +1623,15 @@ export type Database = {
           attachment_paths: string[] | null
           body_html: string
           card_id: string
+          click_count: number
+          clicked_at: string | null
+          delivered_at: string | null
+          delivery_status: string
           id: string
+          open_count: number
+          opened_at: string | null
           recipient_email: string
+          resend_email_id: string | null
           sender_email: string
           sent_at: string
           subject: string
@@ -1634,8 +1641,15 @@ export type Database = {
           attachment_paths?: string[] | null
           body_html: string
           card_id: string
+          click_count?: number
+          clicked_at?: string | null
+          delivered_at?: string | null
+          delivery_status?: string
           id?: string
+          open_count?: number
+          opened_at?: string | null
           recipient_email: string
+          resend_email_id?: string | null
           sender_email: string
           sent_at?: string
           subject: string
@@ -1645,8 +1659,15 @@ export type Database = {
           attachment_paths?: string[] | null
           body_html?: string
           card_id?: string
+          click_count?: number
+          clicked_at?: string | null
+          delivered_at?: string | null
+          delivery_status?: string
           id?: string
+          open_count?: number
+          opened_at?: string | null
           recipient_email?: string
+          resend_email_id?: string | null
           sender_email?: string
           sent_at?: string
           subject?: string

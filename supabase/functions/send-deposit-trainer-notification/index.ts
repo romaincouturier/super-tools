@@ -78,7 +78,7 @@ serve(async (req) => {
 
     const { data: trainings } = await supabase
       .from("trainings")
-      .select("id, name, trainer_id, supports_lms_course_id")
+      .select("id, training_name, trainer_id, supports_lms_course_id")
       .in("id", trainingIds)
       .eq("supports_lms_course_id", deposit.course_id);
 

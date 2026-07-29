@@ -1262,7 +1262,7 @@ serve(async (req) => {
     if (!isAdm) {
       const { data: modAccess } = await supabaseAdmin
         .from("user_module_access")
-        .select("module_key")
+        .select("module")
         .eq("user_id", authResult.id)
         .limit(1);
       if (!modAccess || modAccess.length === 0) {

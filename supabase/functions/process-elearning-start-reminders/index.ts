@@ -25,7 +25,7 @@ serve(async (req) => {
     // E-learning trainings only
     const { data: trainings, error: trainingsError } = await supabase
       .from("trainings")
-      .select("id, training_name, start_date, end_date, supports_lms_course_id, supertilt_link, location, sponsor_formal_address, woocommerce_product_id, catalog_id, status")
+      .select("id, training_name, start_date, end_date, supports_lms_course_id, supertilt_link, location, sponsor_formal_address, catalog_id")
       .eq("format_formation", "e_learning");
 
     if (trainingsError) {
@@ -145,7 +145,7 @@ serve(async (req) => {
             .maybeSingle();
           if (formula?.woocommerce_product_id) productId = formula.woocommerce_product_id;
         }
-        if (!productId && training.woocommerce_product_id) productId = training.woocommerce_product_id;
+        
         if (!productId && training.catalog_id) {
           const { data: cfg } = await supabase
             .from("formation_configs")

@@ -95,9 +95,9 @@ serve(async (req: Request): Promise<Response> => {
       // Exclude participants with "online" payment status (convention handled externally)
       const { data: participants } = await supabase
         .from("training_participants")
-        .select("id, training_id, payment_status")
+        .select("id, training_id, payment_mode")
         .in("training_id", interTrainingIds)
-        .neq("payment_status", "online");
+        .neq("payment_mode", "online");
 
       if (participants) {
         for (const p of participants) {
@@ -143,7 +143,7 @@ serve(async (req: Request): Promise<Response> => {
           .from("training_participants")
           .select("id, convention_file_url, signed_convention_url")
           .eq("training_id", training.id)
-          .neq("payment_status", "online");
+          .neq("payment_mode", "online");
 
         const pWithConventionFiltered = (pWithConvention || []).filter(
           (p: { convention_file_url?: string | null; signed_convention_url?: string | null }) =>

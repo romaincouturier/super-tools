@@ -552,7 +552,7 @@ serve(async (req) => {
       .from("training_participants")
       .select("id, training_id")
       .eq("email", parsedFrom.email)
-      .order("created_at", { ascending: false })
+      .order("added_at", { ascending: false })
       .limit(1)
       .single();
 
