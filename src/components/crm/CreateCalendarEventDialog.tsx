@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarPlus, ExternalLink, Video } from "lucide-react";
+import { CalendarPlus, Check, ExternalLink, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { todayAsISO } from "@/lib/dateFormatters";
+
 
 export type Formality = "tu" | "vous";
 
@@ -26,7 +28,10 @@ interface Props {
   defaultFormality?: Formality;
   /** Called when the event is successfully created, with the event date (YYYY-MM-DD) and summary. */
   onEventCreated?: (eventDate: string, eventSummary: string) => void;
+  /** Optional list of known contacts, selectable as attendees in one click. */
+  contactOptions?: { name: string; email: string }[];
 }
+
 
 const DESCRIPTION_VOUS = `Bonjour,
 
@@ -73,7 +78,7 @@ function toIso(dateLocal: string, timeLocal: string): string {
   return dt.toISOString();
 }
 
-export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, initialDescription, defaultFormality = "vous", onEventCreated }: Props) {
+export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, initialDescription, defaultFormality = "vous", onEventCreated, contactOptions }: Props) {
   const today = todayAsISO();
   const [summary, setSummary] = useState(() => initialSummary ?? buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
@@ -86,6 +91,21 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [result, setResult] = useState<{ htmlLink: string; meetLink: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const descriptionDirtyRef = useRef(false);
+
+  const selectedEmails = attendeeEmail
+    .split(/[,;\s]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  const toggleAttendee = (email: string) => {
+    const lower = email.toLowerCase();
+    const next = selectedEmails.includes(lower)
+      ? selectedEmails.filter((e) => e !== lower)
+      : [...selectedEmails, lower];
+    setAttendeeEmail(next.join(", "));
+  };
+
+
 
   useEffect(() => {
     if (open) {
@@ -263,6 +283,29 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
 
             <div className="space-y-1.5">
               <Label htmlFor="cal-attendee">Emails des invités</Label>
+              {contactOptions && contactOptions.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pb-1">
+                  {contactOptions.map((c) => {
+                    const selected = selectedEmails.includes(c.email.toLowerCase());
+                    return (
+                      <button
+                        key={c.email}
+                        type="button"
+                        onClick={() => toggleAttendee(c.email)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                          selected
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {selected && <Check className="h-3 w-3" />}
+                        {c.name || c.email}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <Input
                 id="cal-attendee"
                 value={attendeeEmail}
@@ -271,6 +314,7 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
               />
               <p className="text-xs text-muted-foreground">Séparez plusieurs emails par une virgule, un point-virgule ou un espace.</p>
             </div>
+
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
