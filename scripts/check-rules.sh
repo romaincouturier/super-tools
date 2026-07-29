@@ -367,6 +367,12 @@ if [ "$STAGED_MODE" = "false" ]; then
        | xargs -r grep -l 'CREATE POLICY' 2>/dev/null \
        | xargs -r grep -L 'DROP POLICY IF EXISTS\|duplicate_object' 2>/dev/null"
 
+  # [042c] Deux migrations ne peuvent pas partager le même horodatage : la CLI
+  # Supabase indexe supabase_migrations.schema_migrations sur cette version et
+  # échoue en duplicate key au rejeu.
+  check "042c" "Pas deux migrations avec le même horodatage de version" \
+    "ls supabase/migrations/*.sql | sed -E 's|.*/([0-9]{14}).*|\\1|' | sort | uniq -d"
+
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
   # structure mais pas le contenu — régression du 15/07/2026 sur lms_lesson_blocks).
