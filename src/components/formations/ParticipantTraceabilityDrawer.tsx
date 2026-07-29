@@ -323,39 +323,38 @@ const ParticipantTraceabilityDrawer = ({
                       <Badge variant={surveyStatusLabel(needsSurvey.etat).variant}>
                         {surveyStatusLabel(needsSurvey.etat).label}
                       </Badge>
-                      {needsSurvey.submitted_at && (
+                      {needsSurvey.date_soumission && (
                         <span className="text-xs text-muted-foreground">
-                          Soumis le {formatDate(needsSurvey.submitted_at)}
+                          Soumis le {formatDate(needsSurvey.date_soumission)}
                         </span>
                       )}
                     </div>
 
                     {(needsSurvey.etat === "complete" || needsSurvey.etat === "valide_formateur") && (
                       <div className="space-y-3">
-                        {needsSurvey.objectif_prioritaire && (
-                          <FieldBlock label="Objectif prioritaire" value={needsSurvey.objectif_prioritaire} />
+                        {needsSurvey.competences_visees && (
+                          <FieldBlock label="Compétences visées" value={needsSurvey.competences_visees} />
                         )}
-                        {needsSurvey.attentes && (
-                          <FieldBlock label="Attentes" value={needsSurvey.attentes} />
+                        {needsSurvey.competences_actuelles && (
+                          <FieldBlock label="Compétences actuelles" value={needsSurvey.competences_actuelles} />
                         )}
-                        {needsSurvey.experience && (
-                          <FieldBlock label="Expérience" value={needsSurvey.experience} />
+                        {needsSurvey.experience_sujet && (
+                          <FieldBlock label="Expérience sur le sujet" value={needsSurvey.experience_sujet} />
                         )}
-                        {needsSurvey.contraintes && (
-                          <FieldBlock label="Contraintes" value={needsSurvey.contraintes} />
+                        {needsSurvey.experience_details && (
+                          <FieldBlock label="Détails de l'expérience" value={needsSurvey.experience_details} />
                         )}
-                        {needsSurvey.autres_commentaires && (
-                          <FieldBlock label="Commentaires" value={needsSurvey.autres_commentaires} />
+                        {needsSurvey.contraintes_orga && (
+                          <FieldBlock label="Contraintes d'organisation" value={needsSurvey.contraintes_orga} />
                         )}
-                        {needsSurvey.prerequis_data && (
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-1">Prérequis</p>
-                            <pre className="text-sm bg-muted/50 rounded p-3 whitespace-pre-wrap">
-                              {typeof needsSurvey.prerequis_data === "string"
-                                ? needsSurvey.prerequis_data
-                                : JSON.stringify(needsSurvey.prerequis_data, null, 2)}
-                            </pre>
-                          </div>
+                        {needsSurvey.commentaires_libres && (
+                          <FieldBlock label="Commentaires" value={needsSurvey.commentaires_libres} />
+                        )}
+                        {(needsSurvey.prerequis_details || needsSurvey.prerequis_validation) && (
+                          <FieldBlock
+                            label="Prérequis"
+                            value={[needsSurvey.prerequis_validation, needsSurvey.prerequis_details].filter(Boolean).join(" — ")}
+                          />
                         )}
                       </div>
                     )}
