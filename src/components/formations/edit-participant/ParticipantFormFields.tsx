@@ -152,7 +152,7 @@ const ParticipantFormFields = ({
       )}
 
 
-      {setTypeStagiaireBpf && (
+      {isInterEntreprise && setTypeStagiaireBpf && (
         <div className="space-y-2">
           <Label>Type de stagiaire (BPF)</Label>
           <Select

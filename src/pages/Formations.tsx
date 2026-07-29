@@ -188,14 +188,14 @@ const Formations = () => {
         const hasTrainingSource = !!t.source_financement_bpf;
         const bpfIncomplete = (() => {
           if (participants.length === 0) return false; // Rien à contrôler
-          // type_stagiaire_bpf requis pour chaque participant (section F du BPF)
-          if (participants.some((p) => !p.type_stagiaire_bpf)) return true;
           if (isInter) {
+            // type_stagiaire_bpf requis pour chaque participant (section F du BPF)
+            if (participants.some((p) => !p.type_stagiaire_bpf)) return true;
             // La source formation sert de fallback ; flag seulement si aucune source
             return !hasTrainingSource && participants.some((p) => !p.source_financement_bpf);
           }
-          // Non-inter : source obligatoire au niveau de la formation
-          return !hasTrainingSource;
+          // Non-inter : source ET type de stagiaire portés par la formation
+          return !hasTrainingSource || !t.type_stagiaire_bpf;
         })();
 
         return {
