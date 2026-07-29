@@ -36,7 +36,8 @@ serve(async (req) => {
     if (!raw.trim()) {
       return createErrorResponse("Corps de requête JSON manquant", 400);
     }
-    let payload: Record<string, unknown>;
+    // deno-lint-ignore no-explicit-any
+    let payload: any;
     try {
       payload = JSON.parse(raw);
     } catch {
