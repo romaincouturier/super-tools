@@ -78,7 +78,7 @@ function toIso(dateLocal: string, timeLocal: string): string {
   return dt.toISOString();
 }
 
-export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, initialDescription, defaultFormality = "vous", onEventCreated }: Props) {
+export default function CreateCalendarEventDialog({ open, onOpenChange, opportunityTitle, company, contactEmail, initialSummary, initialDescription, defaultFormality = "vous", onEventCreated, contactOptions }: Props) {
   const today = todayAsISO();
   const [summary, setSummary] = useState(() => initialSummary ?? buildTitle(company, opportunityTitle));
   const [date, setDate] = useState(today);
@@ -91,6 +91,21 @@ export default function CreateCalendarEventDialog({ open, onOpenChange, opportun
   const [result, setResult] = useState<{ htmlLink: string; meetLink: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const descriptionDirtyRef = useRef(false);
+
+  const selectedEmails = attendeeEmail
+    .split(/[,;\s]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  const toggleAttendee = (email: string) => {
+    const lower = email.toLowerCase();
+    const next = selectedEmails.includes(lower)
+      ? selectedEmails.filter((e) => e !== lower)
+      : [...selectedEmails, lower];
+    setAttendeeEmail(next.join(", "));
+  };
+
+
 
   useEffect(() => {
     if (open) {
