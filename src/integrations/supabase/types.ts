@@ -465,6 +465,66 @@ export type Database = {
           },
         ]
       }
+      backup_runs: {
+        Row: {
+          chunks_done: number
+          created_at: string
+          cursor_index: number
+          drive_file_ids: Json
+          drive_folder_id: string | null
+          errors: Json
+          finished_at: string | null
+          id: string
+          last_activity_at: string
+          phase: string
+          run_date: string
+          started_at: string
+          status: string
+          storage_folder_id: string | null
+          table_row_counts: Json
+          totals: Json
+          updated_at: string
+        }
+        Insert: {
+          chunks_done?: number
+          created_at?: string
+          cursor_index?: number
+          drive_file_ids?: Json
+          drive_folder_id?: string | null
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          last_activity_at?: string
+          phase?: string
+          run_date?: string
+          started_at?: string
+          status?: string
+          storage_folder_id?: string | null
+          table_row_counts?: Json
+          totals?: Json
+          updated_at?: string
+        }
+        Update: {
+          chunks_done?: number
+          created_at?: string
+          cursor_index?: number
+          drive_file_ids?: Json
+          drive_folder_id?: string | null
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          last_activity_at?: string
+          phase?: string
+          run_date?: string
+          started_at?: string
+          status?: string
+          storage_folder_id?: string | null
+          table_row_counts?: Json
+          totals?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       balance_sheets: {
         Row: {
           annee: number

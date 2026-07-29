@@ -815,6 +815,427 @@ async function triggerAndDownloadPgDump(
   return result;
 }
 
+// ─── Chunked run engine ─────────────────────────────────────────────────────
+// Le backup complet dépasse les limites CPU/mémoire d'une seule invocation
+// (209 tables + 25 buckets). On le découpe en tranches reprises par un tick
+// cron : chaque invocation traite ce qu'elle peut dans son budget temps puis
+// persiste son curseur dans public.backup_runs.
+
+const TICK_BUDGET_MS = 45_000;      // temps de travail max par invocation
+const RUN_LOCK_MS = 50_000;         // évite deux ticks simultanés sur le même run
+const STALE_RUN_MS = 15 * 60 * 1000; // run sans activité => repris
+const PAGE_SIZE = 1000;              // pagination par table
+const MISSING_BACKUP_ALERT_MS = 26 * 60 * 60 * 1000;
+
+const TABLES_SKIPPED_HEAVY = new Set<string>(["document_embeddings"]);
+
+interface RunRow {
+  id: string;
+  run_date: string;
+  status: string;
+  phase: string;
+  cursor_index: number;
+  drive_folder_id: string | null;
+  storage_folder_id: string | null;
+  drive_file_ids: string[];
+  table_row_counts: Record<string, number>;
+  totals: Record<string, number | string>;
+  errors: string[];
+  chunks_done: number;
+  started_at: string;
+}
+
+function parisDate(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+}
+
+async function saveRun(supabase: any, runId: string, patch: Record<string, unknown>) {
+  await supabase
+    .from("backup_runs")
+    .update({ ...patch, last_activity_at: new Date().toISOString() })
+    .eq("id", runId);
+}
+
+async function getDriveAccess(supabase: any): Promise<{ accessToken: string; rootFolderId?: string } | null> {
+  // Deux sources possibles : l'ancienne table dédiée Drive, ou la table Google
+  // unifiée alimentée par la reconnexion OAuth globale.
+  let tokenTable = "google_drive_tokens";
+  let { data: tokenRow } = await supabase
+    .from("google_drive_tokens")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+
+  if (!tokenRow?.refresh_token) {
+    tokenTable = "google_tokens";
+    const { data: unified } = await supabase
+      .from("google_tokens")
+      .select("*")
+      .not("refresh_token", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    tokenRow = unified;
+  }
+  if (!tokenRow?.refresh_token) return null;
+
+  const accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+  await supabase
+    .from(tokenTable)
+    .update({
+      access_token: accessToken,
+      token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", tokenRow.user_id);
+
+  const { data: folderSetting } = await supabase
+    .from("app_settings")
+    .select("setting_value")
+    .eq("setting_key", "backup_gdrive_folder_id")
+    .maybeSingle();
+
+  return { accessToken, rootFolderId: folderSetting?.setting_value || undefined };
+}
+
+/** Exporte une table entière (paginée) et l'envoie comme fichier JSON dédié. */
+async function exportTableToDrive(
+  supabase: any,
+  accessToken: string,
+  folderId: string,
+  tableName: string,
+): Promise<{ rows: number; fileId: string | null; error: string | null }> {
+  const chunks: string[] = [`{"table":${JSON.stringify(tableName)},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`];
+  let rows = 0;
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("*")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) return { rows, fileId: null, error: error.message };
+    const batch = data || [];
+    for (const row of batch) {
+      if (rows > 0) chunks.push(",");
+      chunks.push(JSON.stringify(row));
+      rows++;
+    }
+    if (batch.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+
+  chunks.push("]}");
+  const content = chunks.join("");
+  chunks.length = 0;
+
+  const uploaded = await uploadJsonToGoogleDrive(accessToken, `table__${tableName}.json`, content, folderId);
+  return { rows, fileId: uploaded.id, error: null };
+}
+
+async function sendBackupEmail(subject: string, html: string, type: string) {
+  const adminEmail = await getSenderEmail();
+  const bccList = await getBccList();
+  await sendEmail({
+    to: adminEmail,
+    bcc: bccList.filter((e) => e !== adminEmail),
+    subject,
+    html,
+    _emailType: type,
+  });
+}
+
+/** Traite une tranche du run et renvoie l'état atteint. */
+async function processRun(supabase: any, run: RunRow, startTime: number) {
+  const drive = await getDriveAccess(supabase);
+  if (!drive) {
+    await saveRun(supabase, run.id, {
+      status: "failed",
+      finished_at: new Date().toISOString(),
+      errors: [...run.errors, "Aucun compte Google Drive connecté"],
+    });
+    return { phase: "failed", done: true };
+  }
+
+  const { accessToken, rootFolderId } = drive;
+  const errors = [...run.errors];
+  const counts = { ...run.table_row_counts };
+  const fileIds = [...run.drive_file_ids];
+  let folderId = run.drive_folder_id;
+  let storageFolderId = run.storage_folder_id;
+  let phase = run.phase;
+  let cursor = run.cursor_index;
+  let chunks = run.chunks_done;
+
+  if (!folderId) {
+    folderId = await createGoogleDriveFolder(
+      accessToken,
+      `supertools_backup_${run.run_date}_${Date.now()}`,
+      rootFolderId,
+    );
+    await saveRun(supabase, run.id, { drive_folder_id: folderId });
+  }
+
+  const outOfBudget = () => Date.now() - startTime > TICK_BUDGET_MS;
+
+  // ── PHASE 1 : tables ──
+  if (phase === "db") {
+    while (cursor < TABLES_TO_BACKUP.length && !outOfBudget()) {
+      const tableName = TABLES_TO_BACKUP[cursor];
+      if (TABLES_SKIPPED_HEAVY.has(tableName)) {
+        counts[tableName] = -1;
+      } else {
+        try {
+          const res = await exportTableToDrive(supabase, accessToken, folderId!, tableName);
+          counts[tableName] = res.rows;
+          if (res.fileId) fileIds.push(res.fileId);
+          if (res.error) errors.push(`[DB] ${tableName}: ${res.error}`);
+        } catch (err) {
+          errors.push(`[DB] ${tableName}: ${err instanceof Error ? err.message : "export failed"}`);
+        }
+      }
+      cursor++;
+      chunks++;
+    }
+
+    if (cursor >= TABLES_TO_BACKUP.length) {
+      phase = "storage";
+      cursor = 0;
+    }
+    await saveRun(supabase, run.id, {
+      phase,
+      cursor_index: cursor,
+      table_row_counts: counts,
+      drive_file_ids: fileIds,
+      errors,
+      chunks_done: chunks,
+    });
+    return { phase, done: false };
+  }
+
+  // ── PHASE 2 : storage ──
+  if (phase === "storage") {
+    if (!storageFolderId) {
+      storageFolderId = await createGoogleDriveFolder(accessToken, `storage_${run.run_date}`, folderId!);
+      await saveRun(supabase, run.id, { storage_folder_id: storageFolderId });
+    }
+
+    let uploaded = Number(run.totals.storageUploadedFiles || 0);
+    let totalFiles = Number(run.totals.storageTotalFiles || 0);
+    let totalBytes = Number(run.totals.storageTotalBytes || 0);
+
+    while (cursor < STORAGE_BUCKETS.length && !outOfBudget()) {
+      const bucket = STORAGE_BUCKETS[cursor];
+      const res = await backupStorageBucket(supabase, accessToken, bucket, storageFolderId!);
+      totalFiles += res.filesCount;
+      uploaded += res.uploadedFiles;
+      totalBytes += res.totalSizeBytes;
+      if (res.errors.length > 0) {
+        errors.push(...res.errors.slice(0, 3));
+        if (res.errors.length > 3) errors.push(`[Storage] ${bucket}: +${res.errors.length - 3} autres erreurs`);
+      }
+      cursor++;
+      chunks++;
+    }
+
+    const totals = {
+      ...run.totals,
+      storageUploadedFiles: uploaded,
+      storageTotalFiles: totalFiles,
+      storageTotalBytes: totalBytes,
+    };
+
+    if (cursor >= STORAGE_BUCKETS.length) {
+      phase = "finalize";
+      cursor = 0;
+    }
+    await saveRun(supabase, run.id, {
+      phase,
+      cursor_index: cursor,
+      totals,
+      errors,
+      chunks_done: chunks,
+    });
+    return { phase, done: false };
+  }
+
+  // ── PHASE 3 : intégrité, rotation GFS, rapport ──
+  let integrityResult: IntegrityResult | null = null;
+  try {
+    integrityResult = await verifyBackupIntegrityByCounts(supabase, counts, TABLES_TO_BACKUP);
+    if (!integrityResult.passed) {
+      if (integrityResult.checks.tablesMissing.length > 0) {
+        errors.push(`[Integrity] Tables manquantes: ${integrityResult.checks.tablesMissing.slice(0, 10).join(", ")}`);
+      }
+      for (const m of integrityResult.checks.rowCountMismatches.slice(0, 5)) {
+        errors.push(`[Integrity] ${m.table}: backup=${m.backup} vs live=${m.live}`);
+      }
+    }
+  } catch (intErr) {
+    errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
+  }
+
+  let deletedOldBackups = 0;
+  if (rootFolderId) {
+    try {
+      const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
+      const keepIds = computeGfsKeepSet(dbBackups);
+      for (const b of dbBackups) {
+        if (!keepIds.has(b.id)) {
+          try {
+            await deleteGoogleDriveFile(accessToken, b.id);
+            deletedOldBackups++;
+          } catch { /* non critique */ }
+        }
+      }
+    } catch (rotErr) {
+      console.warn("[scheduled-backup] Rotation error:", rotErr);
+    }
+  }
+
+  const totalRows = Object.values(counts).reduce((s, n) => s + (n > 0 ? n : 0), 0);
+  const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
+  const success = dbErrors === 0 && integrityResult?.passed !== false;
+  const durationMs = Date.now() - new Date(run.started_at).getTime();
+  const storageMB = (Number(run.totals.storageTotalBytes || 0) / 1024 / 1024).toFixed(2);
+
+  const details = {
+    success,
+    runId: run.id,
+    driveFolderId: folderId,
+    tablesCount: TABLES_TO_BACKUP.length,
+    filesUploaded: fileIds.length,
+    totalRows,
+    storage: {
+      bucketsCount: STORAGE_BUCKETS.length,
+      totalFiles: Number(run.totals.storageTotalFiles || 0),
+      uploadedFiles: Number(run.totals.storageUploadedFiles || 0),
+      totalSizeMB: storageMB,
+    },
+    deletedOldBackups,
+    gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
+    integrity: integrityResult
+      ? {
+          passed: integrityResult.passed,
+          tablesPresent: integrityResult.checks.tablesPresent,
+          tablesMissing: integrityResult.checks.tablesMissing.length,
+          rowCountMatches: integrityResult.checks.rowCountMatches,
+          rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
+        }
+      : null,
+    durationMs,
+    chunks: chunks,
+    errors: errors.length > 0 ? errors.slice(0, 50) : null,
+  };
+
+  await supabase.from("activity_logs").insert({
+    action_type: "scheduled_backup",
+    recipient_email: "system",
+    details,
+  });
+
+  await saveRun(supabase, run.id, {
+    status: success ? "success" : "failed",
+    phase: "done",
+    cursor_index: 0,
+    errors,
+    totals: { ...run.totals, totalRows, deletedOldBackups, durationMs },
+    finished_at: new Date().toISOString(),
+    chunks_done: chunks,
+  });
+
+  try {
+    await sendBackupEmail(
+      `${success ? "✅" : "⚠️"} Sauvegarde SuperTools ${run.run_date} — ${TABLES_TO_BACKUP.length} tables, ${totalRows.toLocaleString("fr-FR")} lignes`,
+      `
+        <div style="font-family: sans-serif; max-width: 600px; text-align: left;">
+          <h2 style="color: ${success ? "#16a34a" : "#d97706"};">Sauvegarde automatique ${success ? "réussie" : "terminée avec avertissements"}</h2>
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Date</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${run.run_date}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length} (${fileIds.length} fichiers)</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Fichiers storage</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${Number(run.totals.storageUploadedFiles || 0)}/${Number(run.totals.storageTotalFiles || 0)} (${storageMB} Mo)</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Dossier Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${folderId}</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée totale</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${(durationMs / 1000).toFixed(0)}s en ${chunks} tranches</td></tr>
+          </table>
+          ${errors.length > 0 ? `
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
+              <h3 style="color: #dc2626; margin: 0 0 8px 0;">Avertissements (${errors.length})</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
+                ${errors.slice(0, 10).map((e) => "<li>" + escapeForHtml(e) + "</li>").join("")}
+              </ul>
+            </div>` : ""}
+          <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
+            Rétention GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m — ${deletedOldBackups} anciennes sauvegardes supprimées
+          </p>
+        </div>
+      `,
+      "scheduled_backup",
+    );
+  } catch (emailErr) {
+    console.warn("[scheduled-backup] Rapport non envoyé:", emailErr);
+  }
+
+  return { phase: "done", done: true, success };
+}
+
+function escapeForHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/** Alerte si aucune sauvegarde réussie depuis plus de 26 h (max 1 alerte / 20 h). */
+async function checkMissingBackupAlert(supabase: any): Promise<boolean> {
+  const { data: lastSuccess } = await supabase
+    .from("backup_runs")
+    .select("finished_at")
+    .eq("status", "success")
+    .order("finished_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const lastMs = lastSuccess?.finished_at ? new Date(lastSuccess.finished_at).getTime() : 0;
+  if (Date.now() - lastMs < MISSING_BACKUP_ALERT_MS) return false;
+
+  const since = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString();
+  const { count } = await supabase
+    .from("activity_logs")
+    .select("*", { count: "exact", head: true })
+    .eq("action_type", "backup_missing_alert")
+    .gte("created_at", since);
+  if ((count ?? 0) > 0) return false;
+
+  const lastLabel = lastMs
+    ? new Date(lastMs).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })
+    : "jamais";
+
+  try {
+    await sendBackupEmail(
+      `🚨 Aucune sauvegarde SuperTools depuis plus de 24 h`,
+      `
+        <div style="font-family: sans-serif; max-width: 600px; text-align: left;">
+          <h2 style="color: #dc2626;">Alerte sauvegarde</h2>
+          <p>Aucune sauvegarde complète n'a abouti depuis plus de 24 heures.</p>
+          <p style="color: #6b7280;">Dernière sauvegarde réussie : <strong>${lastLabel}</strong></p>
+          <p style="color: #6b7280;">Vérifie la connexion Google Drive et le cron <code>daily-scheduled-backup</code>.</p>
+        </div>
+      `,
+      "backup_missing_alert",
+    );
+  } catch (err) {
+    console.error("[scheduled-backup] Alerte non envoyée:", err);
+  }
+
+  await supabase.from("activity_logs").insert({
+    action_type: "backup_missing_alert",
+    recipient_email: "system",
+    details: { lastSuccessAt: lastSuccess?.finished_at || null },
+  });
+  return true;
+}
+
 // ─── Main handler ───────────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -824,468 +1245,120 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // Health check: respond immediately to empty body requests (from check-functions-health)
-    const body = await req.json().catch(() => ({}));
-    if (Object.keys(body).length === 0 && req.headers.get("authorization")?.includes(Deno.env.get("SUPABASE_ANON_KEY") || "__none__")) {
+    const rawBody = await req.text();
+    let body: Record<string, unknown> = {};
+    if (rawBody.trim()) {
+      try {
+        body = JSON.parse(rawBody);
+      } catch {
+        return createErrorResponse("Corps de requête JSON invalide", 400);
+      }
+    }
+
+    // Health check (check-functions-health)
+    if (
+      Object.keys(body).length === 0 &&
+      req.headers.get("authorization")?.includes(Deno.env.get("SUPABASE_ANON_KEY") || "__none__")
+    ) {
       return createJsonResponse({ status: "ok", function: "scheduled-backup" });
     }
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // ── Check if auto-backup is enabled ──
+    const mode = (body.mode as string) || "tick";
+
     const { data: enabledSetting } = await supabase
       .from("app_settings")
       .select("setting_value")
       .eq("setting_key", "backup_enabled")
-      .single();
+      .maybeSingle();
+    const backupEnabled = enabledSetting?.setting_value === "true";
 
-    if (enabledSetting?.setting_value !== "true") {
-      console.log("[scheduled-backup] Auto-backup is disabled, skipping.");
-      return createJsonResponse({ skipped: true, reason: "backup_disabled" });
-    }
-
-    console.log("[scheduled-backup] Starting automatic backup...");
-
-    const errors: string[] = [];
-
-    // ════════════════════════════════════════════════════════════════════════
-    // PHASE 1: Database backup
-    // ════════════════════════════════════════════════════════════════════════
-
-    // Tables excluded from JSON backup (regenerable, very large)
-    // document_embeddings (~36MB of vectors) is rebuilt from indexation_queue + source content.
-    const TABLES_SKIPPED_HEAVY = new Set<string>(["document_embeddings"]);
-
-    // Stream-serialize tables one by one to keep memory low (Edge Function memory cap).
-    // We build the final JSON as an array of string chunks and drop each table's
-    // raw rows as soon as they've been stringified.
-    const jsonChunks: string[] = [];
-    const tableRowCounts: Record<string, number> = {};
-    let totalRows = 0;
-
-    jsonChunks.push('{"exportedAt":');
-    jsonChunks.push(JSON.stringify(new Date().toISOString()));
-    jsonChunks.push(',"version":"2.0","source":"scheduled-backup","tables":{');
-
-    let firstTable = true;
-    for (const tableName of TABLES_TO_BACKUP) {
-      if (TABLES_SKIPPED_HEAVY.has(tableName)) {
-        tableRowCounts[tableName] = -1; // sentinel: intentionally skipped
-        continue;
-      }
-      let rows: unknown[] = [];
-      try {
-        const { data, error } = await supabase.from(tableName).select("*");
-        if (error) {
-          errors.push(`[DB] ${tableName}: ${error.message}`);
-        } else {
-          rows = data || [];
-        }
-      } catch (err) {
-        errors.push(`[DB] ${tableName}: ${err instanceof Error ? err.message : "Unknown error"}`);
-      }
-
-      if (!firstTable) jsonChunks.push(",");
-      jsonChunks.push(JSON.stringify(tableName));
-      jsonChunks.push(":");
-      jsonChunks.push(JSON.stringify(rows));
-      firstTable = false;
-
-      tableRowCounts[tableName] = rows.length;
-      totalRows += rows.length;
-      rows = []; // free reference ASAP
-    }
-
-    jsonChunks.push("}");
-    if (errors.length > 0) {
-      jsonChunks.push(',"errors":');
-      jsonChunks.push(JSON.stringify(errors));
-    }
-    jsonChunks.push("}");
-
-    const backupJson = jsonChunks.join("");
-    jsonChunks.length = 0; // free chunk array
-
-    const today = new Date().toISOString().split("T")[0];
-    const fileName = `supertools_backup_${today}_${Date.now()}.json`;
-    const backupSizeBytes = backupJson.length; // ASCII-dominant approximation
-    const backupSizeMB = (backupSizeBytes / 1024 / 1024).toFixed(2);
-
-    console.log(`[scheduled-backup] Phase 1: Exported ${TABLES_TO_BACKUP.length - TABLES_SKIPPED_HEAVY.size} tables (${TABLES_SKIPPED_HEAVY.size} skipped), ${totalRows} rows, ${backupSizeMB} MB`);
-
-    // ════════════════════════════════════════════════════════════════════════
-    // GOOGLE DRIVE SETUP
-    // ════════════════════════════════════════════════════════════════════════
-
-    let googleDriveResult: { id: string; name: string } | null = null;
-    let deletedOldBackups = 0;
-    let storageResults: StorageBackupResult[] = [];
-    let storageTotalFiles = 0;
-    let storageUploadedFiles = 0;
-    let storageTotalSizeMB = "0";
-    let earlyLogId: string | undefined;
-
-    // Find first user with Google Drive tokens
-    const { data: tokenRow } = await supabase
-      .from("google_drive_tokens")
+    // ── Reprise d'un run en cours ──
+    const { data: runningRun } = await supabase
+      .from("backup_runs")
       .select("*")
+      .eq("status", "running")
+      .order("started_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (!tokenRow) {
-      errors.push("Aucun compte Google Drive connecté");
-    } else {
-      const accessToken = await refreshGoogleAccessToken(tokenRow.refresh_token);
+    let run = runningRun as RunRow | null;
 
-      // Update token in DB
-      await supabase
-        .from("google_drive_tokens")
-        .update({
-          access_token: accessToken,
-          token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", tokenRow.user_id);
-
-      // Get folder ID from settings
-      const { data: folderSetting } = await supabase
-        .from("app_settings")
-        .select("setting_value")
-        .eq("setting_key", "backup_gdrive_folder_id")
+    if (!run) {
+      if (!backupEnabled) {
+        return createJsonResponse({ skipped: true, reason: "backup_disabled" });
+      }
+      const today = parisDate();
+      if (mode === "tick") {
+        // Un seul run abouti par jour
+        const { count } = await supabase
+          .from("backup_runs")
+          .select("*", { count: "exact", head: true })
+          .eq("run_date", today)
+          .in("status", ["success", "failed"]);
+        if ((count ?? 0) > 0) {
+          const alerted = await checkMissingBackupAlert(supabase);
+          return createJsonResponse({ skipped: true, reason: "already_run_today", alerted });
+        }
+      }
+      const { data: created, error: createErr } = await supabase
+        .from("backup_runs")
+        .insert({ run_date: today, status: "running", phase: "db", cursor_index: 0 })
+        .select("*")
         .single();
-
-      const rootFolderId = folderSetting?.setting_value || undefined;
-
-      // ── Upload DB backup ──
-      googleDriveResult = await uploadJsonToGoogleDrive(accessToken, fileName, backupJson, rootFolderId);
-      console.log("[scheduled-backup] DB backup uploaded to Google Drive:", googleDriveResult.id);
-
-      // ── Write an early activity log so the UI shows the latest backup even if storage phase times out ──
-      const earlyLogPayload = {
-        action_type: "scheduled_backup",
-        recipient_email: "system",
-        details: {
-          success: true,
-          fileName,
-          tablesCount: TABLES_TO_BACKUP.length,
-          totalRows,
-          backupSizeMB,
-          googleDriveFileId: googleDriveResult.id,
-          storage: null,
-          deletedOldBackups: 0,
-          gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
-          integrity: null,
-          pgDump: null,
-          durationMs: Date.now() - startTime,
-          errors: errors.length > 0 ? errors : null,
-          _partial: true,
-        },
-      };
-      const { data: earlyLog } = await supabase.from("activity_logs").insert(earlyLogPayload).select("id").single();
-      earlyLogId = earlyLog?.id;
-
-      // ── Send early confirmation email (before storage phase which may timeout) ──
-      try {
-        const adminEmail = await getSenderEmail();
-        const bccList = await getBccList();
-        const dbDurationSec = ((Date.now() - startTime) / 1000).toFixed(1);
-        await sendEmail({
-          to: adminEmail,
-          bcc: bccList.filter(e => e !== adminEmail),
-          subject: `✅ Sauvegarde SuperTools ${today} — ${TABLES_TO_BACKUP.length} tables, ${totalRows.toLocaleString("fr-FR")} lignes`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px;">
-              <h2 style="color: #16a34a;">Sauvegarde automatique réussie</h2>
-              <table style="width: 100%; border-collapse: collapse; margin: 8px 0;">
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Date</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${today}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Tables</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${TABLES_TO_BACKUP.length}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Lignes</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${totalRows.toLocaleString("fr-FR")}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Taille JSON</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${backupSizeMB} Mo</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Google Drive</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">✅ ${googleDriveResult.id}</td></tr>
-                <tr><td style="padding: 8px; border-bottom: 1px solid #e5e7eb; color: #6b7280;">Durée (DB)</td><td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${dbDurationSec}s</td></tr>
-              </table>
-              ${errors.length > 0 ? `
-                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-top: 16px;">
-                  <h3 style="color: #dc2626; margin: 0 0 8px 0;">Avertissements (${errors.length})</h3>
-                  <ul style="margin: 0; padding-left: 20px; color: #991b1b; font-size: 13px;">
-                    ${errors.slice(0, 10).map((e) => "<li>" + e + "</li>").join("")}
-                  </ul>
-                </div>
-              ` : ""}
-              <p style="color: #9ca3af; font-size: 12px; margin-top: 24px;">
-                Sauvegarde automatique SuperTools — Rétention GFS: ${GFS_DAILY}j / ${GFS_WEEKLY}s / ${GFS_MONTHLY}m
-              </p>
-            </div>
-          `,
-          _emailType: "scheduled_backup",
+      if (createErr) return createErrorResponse(`Impossible de créer le run: ${createErr.message}`);
+      run = created as RunRow;
+      console.log(`[scheduled-backup] Nouveau run ${run.id} (${today})`);
+    } else {
+      const idleMs = Date.now() - new Date((runningRun as any).last_activity_at).getTime();
+      if (idleMs < RUN_LOCK_MS) {
+        return createJsonResponse({ skipped: true, reason: "run_in_progress", runId: run.id });
+      }
+      console.log(`[scheduled-backup] Reprise run ${run.id} phase=${run.phase} cursor=${run.cursor_index} (idle ${Math.round(idleMs / 1000)}s)`);
+      if (idleMs > STALE_RUN_MS * 4) {
+        await saveRun(supabase, run.id, {
+          status: "failed",
+          finished_at: new Date().toISOString(),
+          errors: [...(run.errors || []), "Run abandonné (inactif trop longtemps)"],
         });
-        console.log("[scheduled-backup] Confirmation email sent to", adminEmail);
-      } catch (emailErr) {
-        console.warn("[scheduled-backup] Could not send early confirmation email:", emailErr);
-      }
-      // ══════════════════════════════════════════════════════════════════════
-      // PHASE 2: Storage files backup
-      // ══════════════════════════════════════════════════════════════════════
-
-      console.log("[scheduled-backup] Phase 2: Starting storage backup...");
-
-      try {
-        // Create a dated subfolder for storage files
-        const storageFolderName = `storage_${today}`;
-        const storageFolderId = await createGoogleDriveFolder(
-          accessToken,
-          storageFolderName,
-          rootFolderId,
-        );
-
-        for (const bucket of STORAGE_BUCKETS) {
-          // Check remaining time (leave 15s margin for integrity check + email)
-          const elapsed = Date.now() - startTime;
-          if (elapsed > 35_000) { // 35s = leave ~25s for wrap-up (edge function ~60s limit)
-            errors.push(`[Storage] Timeout après ${bucket} — buckets restants non sauvegardés`);
-            break;
-          }
-
-          console.log(`[scheduled-backup] Backing up storage bucket: ${bucket}`);
-          const bucketResult = await backupStorageBucket(supabase, accessToken, bucket, storageFolderId);
-          storageResults.push(bucketResult);
-          storageTotalFiles += bucketResult.filesCount;
-          storageUploadedFiles += bucketResult.uploadedFiles;
-
-          if (bucketResult.errors.length > 0) {
-            // Only add first 3 errors per bucket to avoid flooding
-            errors.push(...bucketResult.errors.slice(0, 3));
-            if (bucketResult.errors.length > 3) {
-              errors.push(`[Storage] ${bucket}: +${bucketResult.errors.length - 3} autres erreurs`);
-            }
-          }
-        }
-
-        const totalStorageBytes = storageResults.reduce((sum, r) => sum + r.totalSizeBytes, 0);
-        storageTotalSizeMB = (totalStorageBytes / 1024 / 1024).toFixed(2);
-        console.log(
-          `[scheduled-backup] Phase 2: ${storageUploadedFiles}/${storageTotalFiles} files uploaded, ${storageTotalSizeMB} MB`,
-        );
-      } catch (storageErr) {
-        errors.push(`[Storage] ${storageErr instanceof Error ? storageErr.message : "Storage backup failed"}`);
-      }
-
-      // ══════════════════════════════════════════════════════════════════════
-      // PHASE 3: GFS Rotation
-      // ══════════════════════════════════════════════════════════════════════
-
-      if (rootFolderId) {
-        try {
-          // Rotate DB backups (JSON files)
-          const dbBackups = await listFilesInFolder(accessToken, rootFolderId, "supertools_backup_");
-          const keepIds = computeGfsKeepSet(dbBackups);
-          for (const b of dbBackups) {
-            if (!keepIds.has(b.id)) {
-              try {
-                await deleteGoogleDriveFile(accessToken, b.id);
-                deletedOldBackups++;
-                console.log(`[scheduled-backup] GFS: deleted ${b.name}`);
-              } catch {
-                // non-critical
-              }
-            }
-          }
-
-          // Rotate storage folders
-          const storageFolders = await listFilesInFolder(accessToken, rootFolderId, "storage_");
-          const keepStorageIds = computeGfsKeepSet(storageFolders);
-          for (const sf of storageFolders) {
-            if (!keepStorageIds.has(sf.id)) {
-              try {
-                await deleteGoogleDriveFile(accessToken, sf.id);
-                deletedOldBackups++;
-                console.log(`[scheduled-backup] GFS: deleted storage folder ${sf.name}`);
-              } catch {
-                // non-critical
-              }
-            }
-          }
-        } catch (rotErr) {
-          console.warn("[scheduled-backup] Rotation error:", rotErr);
-        }
+        return createJsonResponse({ aborted: true, runId: run.id });
       }
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // PHASE 4: Integrity Verification
-    // ════════════════════════════════════════════════════════════════════════
+    const result = await processRun(supabase, run, startTime);
 
-    let integrityResult: IntegrityResult | null = null;
-    try {
-      console.log("[scheduled-backup] Phase 4: Verifying backup integrity...");
-      integrityResult = await verifyBackupIntegrityByCounts(supabase, tableRowCounts, TABLES_TO_BACKUP);
-      console.log(
-        `[scheduled-backup] Integrity: ${integrityResult.passed ? "PASSED" : "FAILED"} — ` +
-        `${integrityResult.checks.rowCountMatches}/${TABLES_TO_BACKUP.length} tables match, ` +
-        `${integrityResult.checks.rowCountMismatches.length} mismatches`,
-      );
-
-      if (!integrityResult.passed) {
-        if (integrityResult.checks.tablesMissing.length > 0) {
-          errors.push(`[Integrity] Tables manquantes: ${integrityResult.checks.tablesMissing.join(", ")}`);
-        }
-        for (const m of integrityResult.checks.rowCountMismatches.slice(0, 5)) {
-          errors.push(`[Integrity] ${m.table}: backup=${m.backup} vs live=${m.live}`);
-        }
-      }
-    } catch (intErr) {
-      console.warn("[scheduled-backup] Integrity check error:", intErr);
-      errors.push(`[Integrity] ${intErr instanceof Error ? intErr.message : "Verification failed"}`);
+    if (result.done) {
+      await checkMissingBackupAlert(supabase);
     }
-
-    // ════════════════════════════════════════════════════════════════════════
-    // PHASE 5: Native pg_dump (if Management API key is configured)
-    // ════════════════════════════════════════════════════════════════════════
-
-    let pgDumpResult: PgDumpResult | null = null;
-    const managementApiKey = Deno.env.get("SUPABASE_MANAGEMENT_API_KEY");
-    const projectRef = Deno.env.get("SUPABASE_URL")?.match(/https:\/\/([^.]+)\./)?.[1];
-
-    if (managementApiKey && projectRef) {
-      try {
-        console.log("[scheduled-backup] Phase 5: Triggering native pg_dump...");
-        const driveAccessToken = tokenRow ? await refreshGoogleAccessToken(tokenRow.refresh_token) : null;
-        const rootFolderIdForDump = (await supabase
-          .from("app_settings")
-          .select("setting_value")
-          .eq("setting_key", "backup_gdrive_folder_id")
-          .single()).data?.setting_value || undefined;
-
-        pgDumpResult = await triggerAndDownloadPgDump(
-          projectRef,
-          managementApiKey,
-          driveAccessToken,
-          rootFolderIdForDump,
-        );
-
-        console.log(
-          `[scheduled-backup] pg_dump: triggered=${pgDumpResult.triggered}, ` +
-          `uploaded=${pgDumpResult.uploadedToDrive}` +
-          (pgDumpResult.error ? `, error=${pgDumpResult.error}` : ""),
-        );
-
-        if (pgDumpResult.error) {
-          errors.push(`[pg_dump] ${pgDumpResult.error}`);
-        }
-      } catch (pgErr) {
-        console.warn("[scheduled-backup] pg_dump error:", pgErr);
-        errors.push(`[pg_dump] ${pgErr instanceof Error ? pgErr.message : "pg_dump failed"}`);
-      }
-    } else {
-      console.log("[scheduled-backup] Phase 5: Skipped (SUPABASE_MANAGEMENT_API_KEY not configured)");
-    }
-
-    const durationMs = Date.now() - startTime;
-    const dbErrors = errors.filter((e) => e.startsWith("[DB]")).length;
-    const success = dbErrors === 0 && googleDriveResult !== null && (integrityResult?.passed !== false);
-
-    // ── Log activity (update the early log or create new one) ──
-    const finalDetails = {
-      success,
-      fileName,
-      tablesCount: TABLES_TO_BACKUP.length,
-      totalRows,
-      backupSizeMB,
-      googleDriveFileId: googleDriveResult?.id || null,
-      storage: {
-        bucketsCount: storageResults.length,
-        totalFiles: storageTotalFiles,
-        uploadedFiles: storageUploadedFiles,
-        totalSizeMB: storageTotalSizeMB,
-      },
-      deletedOldBackups,
-      gfsRetention: `${GFS_DAILY}d/${GFS_WEEKLY}w/${GFS_MONTHLY}m`,
-      integrity: integrityResult ? {
-        passed: integrityResult.passed,
-        tablesPresent: integrityResult.checks.tablesPresent,
-        tablesMissing: integrityResult.checks.tablesMissing.length,
-        rowCountMatches: integrityResult.checks.rowCountMatches,
-        rowCountMismatches: integrityResult.checks.rowCountMismatches.length,
-      } : null,
-      pgDump: pgDumpResult ? {
-        triggered: pgDumpResult.triggered,
-        uploadedToDrive: pgDumpResult.uploadedToDrive,
-        driveFileId: pgDumpResult.driveFileId,
-      } : null,
-      durationMs,
-      errors: errors.length > 0 ? errors : null,
-    };
-
-    if (earlyLogId) {
-      // Update the early log with final results
-      await supabase.from("activity_logs").update({ details: finalDetails }).eq("id", earlyLogId);
-    } else {
-      // Fallback: create a new log
-      await supabase.from("activity_logs").insert({
-        action_type: "scheduled_backup",
-        recipient_email: "system",
-        details: finalDetails,
-      });
-    }
-
-    // Email already sent early (before storage phase) to avoid timeout issues
 
     return createJsonResponse({
-      success,
-      fileName,
-      tablesCount: TABLES_TO_BACKUP.length,
-      totalRows,
-      backupSizeMB,
-      googleDrive: googleDriveResult,
-      storage: {
-        bucketsProcessed: storageResults.length,
-        totalFiles: storageTotalFiles,
-        uploadedFiles: storageUploadedFiles,
-        totalSizeMB: storageTotalSizeMB,
-      },
-      deletedOldBackups,
-      integrity: integrityResult ? {
-        passed: integrityResult.passed,
-        rowCountMatches: integrityResult.checks.rowCountMatches,
-        mismatches: integrityResult.checks.rowCountMismatches.length,
-      } : null,
-      pgDump: pgDumpResult ? {
-        triggered: pgDumpResult.triggered,
-        uploadedToDrive: pgDumpResult.uploadedToDrive,
-      } : null,
-      durationMs,
-      errors: errors.length > 0 ? errors : undefined,
+      runId: run.id,
+      phase: result.phase,
+      done: result.done,
+      durationMs: Date.now() - startTime,
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("[scheduled-backup] Fatal error:", errorMessage);
-
-    // Try to send failure notification
     try {
-      const adminEmail = await getSenderEmail();
-      const bccList = await getBccList();
-      await sendEmail({
-        to: adminEmail,
-        bcc: bccList.filter(e => e !== adminEmail),
-        subject: `❌ ÉCHEC sauvegarde SuperTools ${new Date().toISOString().split("T")[0]}`,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px;">
+      await sendBackupEmail(
+        `❌ ÉCHEC sauvegarde SuperTools ${parisDate()}`,
+        `
+          <div style="font-family: sans-serif; max-width: 600px; text-align: left;">
             <h2 style="color: #dc2626;">Échec de la sauvegarde automatique</h2>
             <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px;">
-              <p style="margin: 0; color: #991b1b;"><strong>Erreur :</strong> ${errorMessage}</p>
+              <p style="margin: 0; color: #991b1b;"><strong>Erreur :</strong> ${escapeForHtml(errorMessage)}</p>
             </div>
-            <p style="margin-top: 16px; color: #6b7280;">
-              Vérifiez la configuration Google Drive et les paramètres de sauvegarde dans SuperTools.
-            </p>
           </div>
         `,
-        _emailType: "scheduled_backup_failure",
-      });
+        "scheduled_backup_failure",
+      );
     } catch (emailErr) {
       console.error("[scheduled-backup] Could not send failure notification:", emailErr);
     }
-
     return createErrorResponse(errorMessage);
   }
 });
