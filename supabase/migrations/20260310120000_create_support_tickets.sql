@@ -47,10 +47,15 @@ CREATE TRIGGER trg_support_ticket_number
   EXECUTE FUNCTION generate_ticket_number();
 
 -- Auto-update updated_at
+-- moddatetime vit dans le schéma `extensions` et n'est pas créée d'office :
+-- non qualifié, le trigger échouait en « function moddatetime() does not exist »
+-- sur toute base neuve.
+CREATE EXTENSION IF NOT EXISTS moddatetime WITH SCHEMA extensions;
+
 CREATE TRIGGER trg_support_tickets_updated_at
   BEFORE UPDATE ON public.support_tickets
   FOR EACH ROW
-  EXECUTE FUNCTION moddatetime(updated_at);
+  EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- RLS
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
