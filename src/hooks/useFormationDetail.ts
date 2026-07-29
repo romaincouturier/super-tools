@@ -57,6 +57,7 @@ export interface Training {
   venue_id?: string | null;
   venue_booking_sent_at?: string | null;
   source_financement_bpf?: string | null;
+  type_stagiaire_bpf?: string | null;
 }
 
 export interface Schedule {
