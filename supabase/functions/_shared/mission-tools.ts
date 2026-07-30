@@ -627,7 +627,7 @@ export async function readMissionDocuments(
 }
 
 const NOTE_PREFIX = "Note agent — ";
-const NOTE_MAX_CHARS = 200_000;
+export const NOTE_MAX_CHARS = 200_000;
 
 /**
  * Unique écriture du serveur : crée ou met à jour UNE page de mission.
@@ -715,6 +715,178 @@ export async function saveMissionNote(
     title: fullTitle,
     mode: "create",
     total_chars: content.length,
+  });
+}
+
+// ── Écriture de documents de mission (additive) ──────────────
+
+const DOCUMENT_BUCKET = "mission-documents";
+
+/**
+ * Formats acceptés : ce qu'un agent sait produire comme livrable (schéma
+ * vectoriel, capture, page exportée, rapport). Tout le reste est refusé — ce
+ * tool n'est pas un dépôt de fichiers générique.
+ */
+export const DOCUMENT_MIME_ALLOWLIST = [
+  "image/png",
+  "image/svg+xml",
+  "text/html",
+  "text/markdown",
+  "application/pdf",
+];
+
+/**
+ * Plafond du fichier DÉCODÉ. Le base64 pèse un tiers de plus et voyage dans le
+ * corps JSON d'un unique appel MCP (client -> worker Cloudflare -> edge
+ * function) : 3 Mo décodés font une requête d'environ 4 Mo. Au-delà, c'est le
+ * transport qui lâche, avec une erreur illisible côté client — donc on refuse
+ * ici, en annonçant la limite.
+ */
+export const DOCUMENT_MAX_BYTES = 3 * 1024 * 1024;
+
+/** Longueur base64 correspondante : 4 caractères pour 3 octets. */
+const DOCUMENT_MAX_BASE64_CHARS = Math.ceil(DOCUMENT_MAX_BYTES / 3) * 4;
+
+function tooLarge(bytes: number): Error {
+  return new Error(
+    `Fichier trop lourd (${Math.round(bytes / 1024)} Ko décodés, limite ${
+      Math.round(DOCUMENT_MAX_BYTES / 1024)
+    } Ko soit ${DOCUMENT_MAX_BYTES / (1024 * 1024)} Mo). ` +
+      "Réduire le fichier (compresser un PNG, préférer un SVG à une image matricielle, " +
+      "découper un PDF) puis rappeler le tool.",
+  );
+}
+
+/** Même règle que l'application (`src/lib/file-utils.ts`). */
+function sanitizeDocumentFileName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .toLowerCase();
+}
+
+function decodeBase64(input: string): Uint8Array {
+  // Tolère un préfixe data: et les retours à la ligne du base64 MIME.
+  const cleaned = input.replace(/^data:[^,]*,/, "").replace(/\s+/g, "");
+  if (!cleaned) throw new Error("content_base64 est vide");
+
+  let binary: string;
+  try {
+    binary = atob(cleaned);
+  } catch {
+    throw new Error("content_base64 n'est pas du base64 valide (encodage standard attendu)");
+  }
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * Deuxième écriture du serveur, et strictement additive : elle CRÉE un
+ * document de mission, jamais elle n'en remplace ni n'en supprime un.
+ *
+ * Garde-fous, dans le même esprit que saveMissionNote :
+ *   - allowlist de types (DOCUMENT_MIME_ALLOWLIST), pas de fichier arbitraire ;
+ *   - plafond de taille calé sur le transport, refusé avec la limite en clair ;
+ *   - chemin horodaté + `upsert: false` : deux appels ne peuvent pas viser le
+ *     même objet de storage, donc aucun écrasement possible ;
+ *   - si l'insertion en base échoue, le fichier est retiré du bucket : pas de
+ *     ligne sans fichier, pas de fichier sans ligne.
+ *
+ * `description` n'a pas de colonne dédiée dans `mission_documents` : elle est
+ * journalisée dans l'audit, avec le nom du fichier et la mission.
+ */
+export async function saveMissionDocument(
+  supabase: Supabase,
+  missionId: string,
+  fileName: string,
+  mimeType: string,
+  contentBase64: string,
+  isDeliverable: boolean,
+  description: string,
+  audit: AuditFn,
+): Promise<string> {
+  if (!UUID_RE.test(missionId.trim())) {
+    throw new Error("mission_id doit être un UUID (utiliser get_mission_dossier pour le trouver)");
+  }
+  const name = fileName.trim();
+  if (!name) throw new Error("file_name est requis");
+
+  const mime = (mimeType || "").trim().toLowerCase().split(";")[0];
+  if (!DOCUMENT_MIME_ALLOWLIST.includes(mime)) {
+    throw new Error(
+      `Type de fichier refusé (${mimeType || "vide"}). Types acceptés : ${DOCUMENT_MIME_ALLOWLIST.join(", ")}.`,
+    );
+  }
+
+  // Refus avant décodage : inutile de matérialiser 10 Mo pour les jeter.
+  if (contentBase64.length > DOCUMENT_MAX_BASE64_CHARS) {
+    throw tooLarge(Math.floor((contentBase64.length * 3) / 4));
+  }
+  const bytes = decodeBase64(contentBase64);
+  if (bytes.length > DOCUMENT_MAX_BYTES) throw tooLarge(bytes.length);
+  if (!bytes.length) throw new Error("content_base64 est vide");
+
+  const { data: mission } = await supabase
+    .from("missions")
+    .select("id, title")
+    .eq("id", missionId)
+    .maybeSingle();
+  if (!mission) throw new Error("Mission introuvable");
+
+  await audit(
+    `save_mission_document sur ${mission.title}: ${name.slice(0, 120)} ` +
+      `(${mime}, ${bytes.length} octets, livrable=${isDeliverable})` +
+      (description ? ` — ${description.slice(0, 300)}` : ""),
+  );
+
+  // Même convention de chemin que l'upload de l'application
+  // (upload-mission-document) : l'horodatage rend chaque objet unique, donc
+  // `upsert: false` ne peut jamais entrer en collision avec un fichier existant.
+  const path = `${missionId}/docs/${Date.now()}_${sanitizeDocumentFileName(name)}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .upload(path, bytes, { contentType: mime, upsert: false });
+  if (uploadError) throw new Error(`Upload impossible : ${uploadError.message}`);
+
+  const { data: urlData } = supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(path);
+  const fileUrl = urlData.publicUrl;
+
+  const { data: created, error } = await supabase
+    .from("mission_documents")
+    .insert({
+      mission_id: missionId,
+      file_name: name,
+      file_url: fileUrl,
+      mime_type: mime,
+      file_size: bytes.length,
+      is_deliverable: isDeliverable,
+      processing_status: "none",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    // Pas de ligne, pas de fichier : on ne laisse pas d'orphelin dans le bucket.
+    await supabase.storage.from(DOCUMENT_BUCKET).remove([path]);
+    throw new Error(error.message);
+  }
+
+  return JSON.stringify({
+    saved: true,
+    id: created.id,
+    file_url: fileUrl,
+    file_size: bytes.length,
+    file_name: name,
+    mime_type: mime,
+    is_deliverable: isDeliverable,
+    mission: { id: mission.id, title: mission.title },
+    hint:
+      "Document créé et visible dans les documents de la mission " +
+      "(get_mission_dossier le liste, read_document le relit). " +
+      "Rien n'a été remplacé : un nouvel appel avec le même nom crée un second document.",
   });
 }
 

@@ -129,6 +129,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { registerMediaEntry } from "@/hooks/useMedia";
 import { resolveContentType } from "@/lib/file-utils";
+import { sanitizeLmsHtml } from "@/lib/sanitizeLmsHtml";
 
 interface MissionPagesProps {
   mission: Mission;
@@ -302,6 +303,44 @@ const VideoNode = Node.create({
   },
 });
 
+/**
+ * Schéma vectoriel inline, conservé tel quel.
+ *
+ * Sans ce nœud, un `<svg>` écrit dans une page par le serveur MCP
+ * (save_mission_note) n'existe pas dans le schéma ProseMirror : TipTap le jette
+ * au chargement, et le premier auto-save réécrit la page sans le schéma. Le
+ * balisage est donc stocké dans un attribut et restitué à l'identique à la
+ * sérialisation, après passage par le sanitizer — le contenu vient de la base,
+ * il est rendu dans le DOM de l'éditeur.
+ */
+const SvgNode = Node.create({
+  name: "svgBlock",
+  group: "block",
+  atom: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      markup: {
+        default: "",
+        parseHTML: (el) => (el as HTMLElement).outerHTML,
+        // Attribut interne : il porte le balisage, il ne ressort pas en attribut.
+        renderHTML: () => ({}),
+      },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "svg" }];
+  },
+  renderHTML({ node }) {
+    const holder = document.createElement("div");
+    holder.innerHTML = sanitizeLmsHtml((node.attrs.markup as string) || "");
+    const svg = holder.querySelector("svg");
+    if (!svg) return ["div", { "data-svg-block": "" }];
+    svg.classList.add("max-w-full", "h-auto", "my-4");
+    return { dom: svg };
+  },
+});
+
 // ─── Page Tree Item ──────────────────────────────────────
 
 const PageTreeItem = ({
@@ -466,7 +505,7 @@ const PageTreeItem = ({
  */
 function ensureHtmlContent(content: string): string {
   if (!content) return content;
-  if (/<(p|h[1-6]|ul|ol|li|div|blockquote|table|pre|hr)\b/i.test(content)) {
+  if (/<(p|h[1-6]|ul|ol|li|div|blockquote|table|pre|hr|svg)\b/i.test(content)) {
     return content;
   }
   return content
@@ -617,6 +656,7 @@ const PageEditor = ({
       SummaryNode,
       CalloutNode,
       VideoNode,
+      SvgNode,
       ...tableExtensions("normal"),
     ],
     content: ensureHtmlContent(page.content || ""),

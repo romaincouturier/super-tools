@@ -5,15 +5,16 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Tools exposés (14)** : `query_database` (via `agent_sql_query` : SELECT
+- **Tools exposés (15)** : `query_database` (via `agent_sql_query` : SELECT
   uniquement, tables allowlistées du registry, 100 lignes max),
   `search_content` (recherche hybride, filtrable par mission via
   `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
   `read_document`, `read_mission_page`, `read_mission_documents`,
-  `save_mission_note`, et les quatre outils d'audience décrits ci-dessous.
-  Tous sont journalisés dans `agent_query_audit_log`.
+  `save_mission_note`, `save_mission_document`, et les quatre outils
+  d'audience décrits ci-dessous. Tous sont journalisés dans
+  `agent_query_audit_log`.
 - **Instructions du serveur** : le champ `instructions` du protocole MCP,
   renvoyé à l'initialisation, décrit à Claude le métier, les données
   disponibles, l'outil à choisir selon la question et la méthode attendue
@@ -21,13 +22,45 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   client ignore ce qui existe : c'est ce qui produisait des réponses évasives
   du type « Search Console n'est pas accessible d'ici » alors que les données
   sont en base.
-- **Lecture seule, à une exception près** : `save_mission_note` est la SEULE
-  écriture du serveur. Elle crée ou met à jour **une page de mission**, titre
-  préfixé « Note agent — », 200 000 caractères max. Elle ne peut rien
-  supprimer, ni toucher une autre table. Elle existe pour capitaliser un
-  travail long (transcription de photos d'atelier, synthèse intermédiaire)
-  hors de la conversation : le résultat survit à une saturation de contexte et
-  devient indexé, donc cherchable ensuite comme le reste.
+- **Lecture seule, à deux exceptions près, toutes deux additives** : elles ne
+  peuvent qu'**ajouter**. Aucun écrasement, aucune suppression, aucune autre
+  table touchée.
+  - `save_mission_note` crée ou met à jour **une page de mission**, titre
+    préfixé « Note agent — », 200 000 caractères max (en mode `append`, le
+    plafond porte sur la note résultante). Elle existe pour capitaliser un
+    travail long (transcription de photos d'atelier, synthèse intermédiaire)
+    hors de la conversation : le résultat survit à une saturation de contexte
+    et devient indexé, donc cherchable ensuite comme le reste. Le HTML accepte
+    le **SVG inline** (`svg`, `g`, `defs`, `marker`, `path`, `rect`, `circle`,
+    `ellipse`, `line`, `polyline`, `polygon`, `text`, `tspan`) : un schéma
+    vectoriel s'incruste directement dans la page. Le sanitizer
+    (`src/lib/sanitizeLmsHtml.ts`) laisse passer ces balises et continue de
+    retirer `script`, `foreignObject` et les handlers `on*` ; côté éditeur, le
+    nœud TipTap `svgBlock` (`MissionPages.tsx`) conserve le balisage, sans
+    quoi le premier auto-save réécrirait la page sans le schéma.
+  - `save_mission_document` crée **un document de mission** : un fichier
+    produit par l'agent, téléversé dans le bucket `mission-documents` au
+    chemin `{mission_id}/docs/{timestamp}_{nom}` (même convention que l'upload
+    de l'application), puis une ligne `mission_documents` avec l'URL publique.
+    Le fichier devient un livrable visible, téléchargeable et envoyable au
+    client. Garde-fous : allowlist de types (`image/png`, `image/svg+xml`,
+    `text/html`, `text/markdown`, `application/pdf`), **3 Mo décodés** max —
+    le base64 pèse un tiers de plus et voyage dans le corps JSON d'un unique
+    appel MCP, le refus annonce la limite en clair —, chemin horodaté et
+    `upsert: false` (deux appels ne peuvent pas viser le même objet), et
+    retrait du fichier si l'insertion en base échoue (ni ligne orpheline, ni
+    fichier orphelin). Deux envois du même nom créent deux documents : rien
+    n'est jamais remplacé. Le paramètre `description` n'a pas de colonne
+    dédiée, il est journalisé dans l'audit.
+
+  Le plafond de 3 Mo est calé sur ce que le transport MCP encaisse
+  (client → worker Cloudflare → edge function). Pour le réévaluer, la seule
+  constante à changer est `DOCUMENT_MAX_BYTES` dans
+  `supabase/functions/_shared/mission-tools.ts` — les descriptions des tools
+  et les messages d'erreur la reprennent. Un upload en trois temps
+  (`begin_upload` / `append_chunk` / `commit_upload`) reste possible si des
+  PNG haute résolution butent réellement dessus ; tant que ce n'est pas
+  constaté, la version simple suffit.
 - **Lecture des documents** : `read_document` renvoie le contenu réel d'une
   pièce jointe (mission, CRM, support). Les PDF avec texte sont renvoyés en
   texte ; les **PDF scannés** sont renvoyés en images de pages, à lire
@@ -175,8 +208,15 @@ export default {
 Le contenu lu depuis SuperTools (au premier chef les emails si un jour les
 inbound emails sont activés) est traité par Claude comme du contexte : un
 contenu piégé pourrait tenter de faire écrire Claude vers Notion/Drive.
-Le serveur SuperTools lui-même est en lecture seule, rien ne peut y être
-modifié. Périmètre revu à chaque ajout de source dans l'indexation.
+Le serveur SuperTools lui-même n'écrit que de façon additive
+(`save_mission_note`, `save_mission_document`) : au pire, un contenu piégé
+ferait créer une page ou un document de trop sur une mission — rien
+d'existant ne peut être modifié ni supprimé. Un fichier HTML poussé par
+`save_mission_document` est servi tel quel depuis le domaine de storage
+Supabase, distinct de l'origine de l'application : il ne peut donc pas lire la
+session SuperTools, exactement comme un HTML téléversé à la main dans les
+documents d'une mission. Périmètre revu à chaque ajout de source dans
+l'indexation.
 
 ## Suivi
 

@@ -14,12 +14,16 @@ import {
 } from "../_shared/seo-tools.ts";
 import {
   BULK_DEFAULT_DOCUMENTS,
+  DOCUMENT_MAX_BYTES,
+  DOCUMENT_MIME_ALLOWLIST,
   getClientDossier,
   getMissionDossier,
+  NOTE_MAX_CHARS,
   readDocument,
   readMediaImage,
   readMissionDocuments,
   readMissionPage,
+  saveMissionDocument,
   saveMissionNote,
   type AuditFn,
   type ExtractedPart,
@@ -41,9 +45,13 @@ import {
  *   - read_mission_page   : une page de mission en entier, par parties bornées
  *   - read_mission_documents : contenu réel de TOUS les documents d'une mission
  *                           en un appel
- *   - save_mission_note   : SEULE écriture — crée/met à jour une page de
+ *   - save_mission_note   : écriture additive — crée/met à jour une page de
  *                           mission pour capitaliser un travail (transcription,
  *                           synthèse) hors de la conversation
+ *   - save_mission_document : écriture additive — attache un FICHIER produit
+ *                           par l'agent (PNG, SVG, HTML, MD, PDF) aux
+ *                           documents de la mission. Création seule : jamais
+ *                           d'écrasement ni de suppression
  *   - get_seo_performance    : Search Console historisé, avec comparaison de
  *                           période (totaux, série journalière, détail par
  *                           requête / page / pays / appareil / apparence)
@@ -60,9 +68,11 @@ import {
  *     secret d'edge function — jamais dans le repo)
  *   - Chaque requête MCP est liée à ALLOWED_EMAIL : liste blanche d'un seul
  *     utilisateur, codée en dur, vérifiée à chaque appel
- *   - Écriture limitée à save_mission_note : création/mise à jour d'une page
- *     de mission uniquement. Aucune suppression, aucune autre table, aucun
- *     autre tool d'action ; agent_sql_query reste SELECT-only
+ *   - Écriture limitée à save_mission_note (page de mission) et
+ *     save_mission_document (document de mission, allowlist de types et
+ *     plafond de taille). Les deux sont additives : aucune suppression,
+ *     aucun écrasement, aucune autre table, aucun autre tool d'action ;
+ *     agent_sql_query reste SELECT-only
  *   - Rate limiting sur les tentatives de clé (5 échecs / 15 min)
  *   - Toutes les requêtes SQL sont journalisées (agent_query_audit_log)
  */
@@ -226,7 +236,10 @@ MÉTHODE ATTENDUE
 - GEO (visibilité dans les moteurs génératifs) : aucune API ne mesure les citations. Les seuls faits disponibles sont les référents IA (geo_referrals), les apparences dans les résultats et l'état d'indexation. Toute autre affirmation sur le GEO relève de la recommandation, pas de la mesure : le préciser.
 
 ÉCRITURE
-Le serveur est en lecture seule. save_mission_note est la seule écriture : elle crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. Aucune modification du site WordPress, du CRM ou des formations n'est possible depuis ici.`;
+Le serveur est en lecture seule, à deux exceptions près, toutes deux ADDITIVES : elles ne peuvent qu'ajouter, jamais supprimer ni écraser quoi que ce soit d'existant.
+- save_mission_note : crée ou met à jour une page de mission, pour capitaliser un travail long hors de la conversation. HTML simple, <svg> accepté pour incruster un schéma vectoriel.
+- save_mission_document : attache un fichier produit ici (PNG, SVG, HTML, Markdown, PDF) aux documents de la mission, où il devient un livrable téléchargeable et envoyable au client.
+Choisir le document quand le résultat est un fichier à remettre, la note quand c'est du contenu à lire dans la mission. Aucune modification du site WordPress, du CRM ou des formations n'est possible depuis ici.`;
 
 // ── MCP tools ────────────────────────────────────────────────
 
@@ -356,13 +369,17 @@ const MCP_TOOLS = [
   {
     name: "save_mission_note",
     description:
-      "Save a working note (e.g. transcriptions of workshop photos, an intermediate synthesis) as a page of a mission in SuperTools, so the work survives the conversation and becomes searchable later. Creates the page or replaces a previous note with the same title. This is the ONLY write operation of this server: it cannot delete anything nor touch any other data.",
+      "Save a working note (e.g. transcriptions of workshop photos, an intermediate synthesis) as a page of a mission in SuperTools, so the work survives the conversation and becomes searchable later. Creates the page or replaces a previous note with the same title. Content is plain text or simple HTML, including inline <svg> (path, rect, circle, line, text, tspan, polygon, polyline, ellipse, defs, marker, g) so a vector diagram can be embedded straight into the page. Hard limit: " +
+      `${NOTE_MAX_CHARS} characters per note (in append mode the limit applies to the resulting note, not to the added chunk) — split a longer body across several notes. Use save_mission_document instead to attach a real FILE (PNG, SVG, HTML, Markdown, PDF). This write is ADDITIVE: it creates or rewrites its own note page, and can neither delete anything nor touch any other data.`,
     inputSchema: {
       type: "object",
       properties: {
         mission_id: { type: "string", description: "UUID of the mission" },
         title: { type: "string", description: "Note title, e.g. 'Transcription des fiches action'" },
-        content: { type: "string", description: "Note content (plain text or simple HTML)" },
+        content: {
+          type: "string",
+          description: `Note content (plain text or simple HTML, inline <svg> allowed), ${NOTE_MAX_CHARS} characters max`,
+        },
         mode: {
           type: "string",
           enum: ["replace", "append"],
@@ -370,6 +387,34 @@ const MCP_TOOLS = [
         },
       },
       required: ["mission_id", "title", "content"],
+    },
+  },
+  {
+    name: "save_mission_document",
+    description:
+      "Attach a FILE you produced (diagram, chart, exported page, report) to a mission's documents in SuperTools, so it becomes a real deliverable: visible in the mission, downloadable, and sendable to the client. Pass the file base64-encoded in content_base64. Accepted types: " +
+      `${DOCUMENT_MIME_ALLOWLIST.join(", ")}. Size limit: ${DOCUMENT_MAX_BYTES / (1024 * 1024)} MB once decoded (base64 travels inside the MCP request body) — a bigger file is rejected with the limit stated, so compress it or send an SVG instead of a bitmap. This write is strictly ADDITIVE: it only creates a new document, and can never overwrite, modify or delete an existing file, row or anything else. Sending the same file name twice creates a second document, it does not replace the first. Use save_mission_note instead for a text/HTML page inside the mission.`,
+    inputSchema: {
+      type: "object",
+      properties: {
+        mission_id: { type: "string", description: "UUID of the mission (from get_mission_dossier)" },
+        file_name: { type: "string", description: "File name shown in SuperTools, with its extension, e.g. 'parcours-client.svg'" },
+        mime_type: {
+          type: "string",
+          enum: DOCUMENT_MIME_ALLOWLIST,
+          description: "MIME type of the file — must match its actual content",
+        },
+        content_base64: { type: "string", description: "File content, base64-encoded (standard encoding; a data: URL prefix is tolerated)" },
+        is_deliverable: {
+          type: "boolean",
+          description: "Flag the document as a client deliverable (default true). false for a working file.",
+        },
+        description: {
+          type: "string",
+          description: "Optional: what this file is and how it was produced. Kept in the audit log (the documents table has no description column).",
+        },
+      },
+      required: ["mission_id", "file_name", "mime_type", "content_base64"],
     },
   },
   {
@@ -589,6 +634,24 @@ async function callTool(
             (args.title as string) || "Note",
             (args.content as string) || "",
             (args.mode as string) === "append" ? "append" : "replace",
+            log,
+          ),
+        );
+      } catch (e) {
+        return textResult(`Save error: ${e instanceof Error ? e.message : "failed"}`, true);
+      }
+    }
+    case "save_mission_document": {
+      try {
+        return textResult(
+          await saveMissionDocument(
+            supabase,
+            (args.mission_id as string) || "",
+            (args.file_name as string) || "",
+            (args.mime_type as string) || "",
+            (args.content_base64 as string) || "",
+            args.is_deliverable !== false,
+            (args.description as string) || "",
             log,
           ),
         );

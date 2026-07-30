@@ -55,6 +55,67 @@ describe("sanitizeLmsHtml", () => {
     expect(sanitizeLmsHtml('<iframe src="//evil.example.com/x"></iframe>')).not.toContain("<iframe");
   });
 
+  it("conserve un schéma SVG inline avec ses enfants et ses attributs", () => {
+    const out = sanitizeLmsHtml(
+      '<p>Schéma</p><svg viewBox="0 0 100 50" width="100" height="50" xmlns="http://www.w3.org/2000/svg">' +
+        '<defs><marker id="fleche" markerWidth="6" markerHeight="6" refX="3" orient="auto">' +
+        '<path d="M0,0 L6,3 L0,6 z" fill="#101820"/></marker></defs>' +
+        '<g transform="translate(2,2)">' +
+        '<rect x="1" y="2" width="10" height="8" rx="2" fill="#ffd100" stroke="#101820" stroke-width="1.5"/>' +
+        '<circle cx="20" cy="10" r="5" fill="none"/>' +
+        '<ellipse cx="30" cy="10" rx="6" ry="4"/>' +
+        '<polygon points="0,0 10,0 5,9"/><polyline points="0,0 5,5"/>' +
+        '<line x1="0" y1="0" x2="10" y2="10" marker-end="url(#fleche)"/>' +
+        '<text x="5" y="20" font-size="10" text-anchor="middle">Étape<tspan dy="4">1</tspan></text>' +
+        "</g></svg>",
+    );
+    for (const tag of [
+      "<svg",
+      "<defs",
+      "<marker",
+      "<path",
+      "<g",
+      "<rect",
+      "<circle",
+      "<ellipse",
+      "<polygon",
+      "<polyline",
+      "<line",
+      "<text",
+      "<tspan",
+    ]) {
+      expect(out).toContain(tag);
+    }
+    expect(out).toContain('viewBox="0 0 100 50"');
+    expect(out).toContain('d="M0,0 L6,3 L0,6 z"');
+    expect(out).toContain('fill="#ffd100"');
+    expect(out).toContain('stroke-width="1.5"');
+    expect(out).toContain('transform="translate(2,2)"');
+    expect(out).toContain('text-anchor="middle"');
+    expect(out).toContain('marker-end="url(#fleche)"');
+    expect(out).toContain("Étape");
+  });
+
+  it("neutralise un SVG piégé sans jeter le schéma", () => {
+    const out = sanitizeLmsHtml(
+      '<svg viewBox="0 0 10 10" onload="alert(1)">' +
+        "<script>alert(2)</script>" +
+        '<rect width="10" height="10" onclick="alert(3)"/>' +
+        '<foreignObject><body><img src="x" onerror="alert(4)"></body></foreignObject>' +
+        '<a href="javascript:alert(5)"><circle r="2"/></a>' +
+        "</svg>",
+    );
+    expect(out).toContain("<svg");
+    expect(out).toContain("<rect");
+    expect(out).not.toContain("onload");
+    expect(out).not.toContain("onclick");
+    expect(out).not.toContain("onerror");
+    expect(out).not.toContain("<script");
+    expect(out).not.toContain("alert(");
+    expect(out).not.toContain("javascript:");
+    expect(out).not.toContain("foreignObject");
+  });
+
   it("rend le texte brut échappé avec sauts de ligne préservés", () => {
     const out = sanitizeLmsHtml("Étape 1 : lire\nÉtape 2 : 2 < 3 && \"tester\"");
     expect(out).toBe("Étape 1 : lire<br>Étape 2 : 2 &lt; 3 &amp;&amp; &quot;tester&quot;");

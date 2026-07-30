@@ -6,3 +6,4 @@ mcp_oauth_records
 formulaire_rate_limits
 indexation_queue
 pictodico_rate_limit
+backup_runs
