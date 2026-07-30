@@ -113,6 +113,8 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
   try {
     const defaultFrom = await getSenderFrom();
+    const senderEmail = await getSenderEmail();
+    const plainText = options.text || htmlToPlainText(options.html);
     const MAX_RETRIES = 3;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -127,12 +129,20 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
           to: toArray,
           cc: options.cc,
           bcc: options.bcc,
-          reply_to: options.replyTo,
+          reply_to: options.replyTo || senderEmail,
           subject: options.subject,
           html: options.html,
+          text: plainText,
+          headers: senderEmail
+            ? {
+                "List-Unsubscribe": `<mailto:${senderEmail}?subject=Unsubscribe>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              }
+            : undefined,
           attachments: options.attachments,
         }),
       });
+
 
       if (response.status === 429 && attempt < MAX_RETRIES) {
         const delay = 1000 * (attempt + 1); // 1s, 2s, 3s
