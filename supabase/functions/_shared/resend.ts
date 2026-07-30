@@ -19,6 +19,8 @@ export interface SendEmailOptions {
   to: string | string[];
   subject: string;
   html: string;
+  /** Plain-text alternative. Auto-generated from html when omitted. */
+  text?: string;
   from?: string;
   cc?: string[];
   bcc?: string[];
@@ -35,6 +37,32 @@ export interface SendEmailResult {
   id?: string;
   error?: string;
 }
+
+/**
+ * Build a plain-text alternative from HTML.
+ * Missing text/plain part is one of the strongest spam signals.
+ */
+export function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, "$2 : $1")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h[1-6]|li)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#39;|&rsquo;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((l) => l.trim())
+    .join("\n")
+    .trim();
+}
+
 
 /**
  * Log a failed email to the failed_emails table so the admin is notified.
