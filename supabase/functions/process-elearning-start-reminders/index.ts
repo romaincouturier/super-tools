@@ -130,30 +130,11 @@ serve(async (req) => {
       const template = pickTemplate(isTu ? "elearning_start_reminder_tu" : "elearning_start_reminder_vous");
       if (!template) { skipped++; continue; }
 
-      // Build access link (same logic as send-elearning-access)
-      let accessLink = training.supertilt_link || training.location || "";
-      if (cartBaseUrl) {
-        let productId: number | null = null;
-        if (p.formula && training.catalog_id) {
-          const { data: formula } = await supabase
-            .from("formation_formulas")
-            .select("woocommerce_product_id")
-            .eq("formation_config_id", training.catalog_id)
-            .ilike("name", p.formula)
-            .maybeSingle();
-          if (formula?.woocommerce_product_id) productId = formula.woocommerce_product_id;
-        }
-        
-        if (!productId && training.catalog_id) {
-          const { data: cfg } = await supabase
-            .from("formation_configs")
-            .select("woocommerce_product_id")
-            .eq("id", training.catalog_id)
-            .maybeSingle();
-          if (cfg?.woocommerce_product_id) productId = cfg.woocommerce_product_id;
-        }
-        if (productId) accessLink = `${cartBaseUrl}${productId}`;
-      }
+      // Access link: onboarding SuperTilt link only (never `location`, jamais un lien panier)
+      const accessLink = isHttpUrl(training.supertilt_link)
+        ? training.supertilt_link.trim()
+        : "https://www.supertilt.fr";
+
 
       const variables: Record<string, string> = {
         first_name: p.first_name || "",
