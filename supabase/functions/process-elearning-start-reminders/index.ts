@@ -10,6 +10,7 @@ import {
   sendEmail,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 // Send a friendly J+5 reminder to paying e-learning participants who haven't started (0% progress).
 // Idempotent: skip if elearning_start_reminder already logged for this participant.
