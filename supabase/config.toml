@@ -171,6 +171,11 @@ verify_jwt = false
 [functions.send-elearning-access]
 verify_jwt = false
 
+[functions.send-elearning-erratum]
+verify_jwt = false
+
+
+
 [functions.send-certificate-email]
 verify_jwt = false
 
