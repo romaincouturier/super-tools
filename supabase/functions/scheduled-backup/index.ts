@@ -388,31 +388,60 @@ interface StorageBackupResult {
   errors: string[];
 }
 
+/**
+ * Sauvegarde une tranche d'un bucket. Reprend à `startIndex` et s'arrête dès
+ * que `shouldStop()` est vrai, pour ne jamais dépasser le budget d'un tick.
+ */
 async function backupStorageBucket(
   supabase: any,
   accessToken: string,
   bucketName: string,
   storageFolderId: string,
-): Promise<StorageBackupResult> {
-  const result: StorageBackupResult = {
+  startIndex: number,
+  cachedBucketFolderId: string | null,
+  shouldStop: () => boolean,
+): Promise<StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null }> {
+  const result: StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null } = {
     bucket: bucketName,
     filesCount: 0,
     totalSizeBytes: 0,
     uploadedFiles: 0,
     errors: [],
+    nextIndex: startIndex,
+    done: false,
+    bucketFolderId: cachedBucketFolderId,
   };
 
   try {
-    // Create a subfolder for this bucket
-    const bucketFolderId = await createGoogleDriveFolder(accessToken, bucketName, storageFolderId);
+    const bucketFolderId =
+      cachedBucketFolderId || (await createGoogleDriveFolder(accessToken, bucketName, storageFolderId));
+    result.bucketFolderId = bucketFolderId;
 
-    // List all files in the bucket (recursive)
     const files = await listBucketFiles(supabase, bucketName);
-    result.filesCount = files.length;
+    // filesCount n'est compté qu'au premier passage sur le bucket
+    result.filesCount = startIndex === 0 ? files.length : 0;
 
-    for (const file of files) {
+    let i = startIndex;
+    while (i < files.length) {
+      if (shouldStop()) {
+        result.nextIndex = i;
+        result.done = false;
+        return result;
+      }
+
+      const file = files[i];
+      i++;
+
       try {
-        // Download from Supabase Storage
+        // Ignorer les gros fichiers sans les télécharger (limite mémoire edge)
+        if (file.size && file.size > 25 * 1024 * 1024) {
+          result.totalSizeBytes += file.size;
+          result.errors.push(
+            `${bucketName}/${file.name}: skipped (${(file.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`,
+          );
+          continue;
+        }
+
         const { data, error } = await supabase.storage.from(bucketName).download(file.name);
         if (error || !data) {
           result.errors.push(`${bucketName}/${file.name}: ${error?.message || "download failed"}`);
@@ -421,7 +450,6 @@ async function backupStorageBucket(
 
         result.totalSizeBytes += data.size;
 
-        // Skip files > 25MB to stay within edge function limits
         if (data.size > 25 * 1024 * 1024) {
           result.errors.push(`${bucketName}/${file.name}: skipped (${(data.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`);
           continue;
@@ -439,10 +467,14 @@ async function backupStorageBucket(
         );
       }
     }
+
+    result.nextIndex = i;
+    result.done = true;
   } catch (err) {
     result.errors.push(
       `${bucketName}: ${err instanceof Error ? err.message : "bucket backup failed"}`,
     );
+    result.done = true;
   }
 
   return result;
