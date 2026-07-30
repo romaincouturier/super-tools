@@ -484,8 +484,8 @@ async function listBucketFiles(
   supabase: ReturnType<typeof createClient>,
   bucketName: string,
   path = "",
-): Promise<{ name: string }[]> {
-  const allFiles: { name: string }[] = [];
+): Promise<{ name: string; size?: number }[]> {
+  const allFiles: { name: string; size?: number }[] = [];
 
   try {
     const { data, error } = await supabase.storage.from(bucketName).list(path, {
@@ -502,7 +502,7 @@ async function listBucketFiles(
         const subFiles = await listBucketFiles(supabase, bucketName, fullPath);
         allFiles.push(...subFiles);
       } else {
-        allFiles.push({ name: fullPath });
+        allFiles.push({ name: fullPath, size: (item as any)?.metadata?.size });
       }
     }
   } catch {
