@@ -771,6 +771,7 @@ Règles :
 - Terminer par une question ouverte qui invite à répondre
 - NE PAS mettre de signature (elle sera ajoutée automatiquement)
 - NE PAS mettre de formule de politesse finale type "Cordialement"
+- NE JAMAIS mentionner le nom d'une entreprise, d'un employeur ou d'une organisation
 - Retourner UNIQUEMENT le corps du message en HTML (balises <p>)`,
                   },
                   {
@@ -778,8 +779,8 @@ Règles :
                     content: `Écris un email de suivi informel :
 - Prénom du participant : ${participantFirstName}
 - Formation suivie : "${training.training_name}"
-- Entreprise : ${training.client_name || "non renseignée"}
 - Délai depuis la formation : environ 1 mois${evalContext}`,
+
                   },
                 ],
               }),
