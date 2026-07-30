@@ -38,10 +38,8 @@ serve(async (req) => {
       return createJsonResponse({ success: true, processed: 0, sent: 0, message: "No e-learning trainings" });
     }
 
-    // Access link = onboarding link on the SuperTilt platform (training.supertilt_link).
-    // Never build a WooCommerce cart URL here: the participant has already paid.
-    const isHttpUrl = (v: unknown): v is string =>
-      typeof v === "string" && /^https?:\/\//i.test(v.trim());
+    // Access link = personal magic link to the SuperTools learner portal (built per participant below).
+
 
 
     const trainingIds = trainings.map((t) => t.id);
