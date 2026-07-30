@@ -131,10 +131,29 @@ serve(async (req) => {
       const template = pickTemplate(isTu ? "elearning_start_reminder_tu" : "elearning_start_reminder_vous");
       if (!template) { skipped++; continue; }
 
-      // Access link: onboarding SuperTilt link only (never `location`, jamais un lien panier)
-      const accessLink = isHttpUrl(training.supertilt_link)
-        ? training.supertilt_link.trim()
-        : "https://www.supertilt.fr";
+      // Access link: personal magic link to the SuperTools learner portal (valid 1 year).
+      // Never a WooCommerce cart URL, never a generic page: the participant has already paid.
+      const urls = await getAppUrls();
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      const { data: magicLink, error: magicErr } = await supabase
+        .from("learner_magic_links")
+        .insert({
+          email: learnerEmail,
+          training_id: training.id,
+          expires_at: expiresAt.toISOString(),
+        })
+        .select("token")
+        .single();
+
+      if (magicErr || !magicLink) {
+        console.error(`Magic link generation failed for ${p.email}:`, magicErr?.message);
+        skipped++;
+        continue;
+      }
+
+      const accessLink = `${urls.app_url}/apprenant/connexion?token=${magicLink.token}`;
+
 
 
       const variables: Record<string, string> = {
