@@ -388,31 +388,60 @@ interface StorageBackupResult {
   errors: string[];
 }
 
+/**
+ * Sauvegarde une tranche d'un bucket. Reprend à `startIndex` et s'arrête dès
+ * que `shouldStop()` est vrai, pour ne jamais dépasser le budget d'un tick.
+ */
 async function backupStorageBucket(
   supabase: any,
   accessToken: string,
   bucketName: string,
   storageFolderId: string,
-): Promise<StorageBackupResult> {
-  const result: StorageBackupResult = {
+  startIndex: number,
+  cachedBucketFolderId: string | null,
+  shouldStop: () => boolean,
+): Promise<StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null }> {
+  const result: StorageBackupResult & { nextIndex: number; done: boolean; bucketFolderId: string | null } = {
     bucket: bucketName,
     filesCount: 0,
     totalSizeBytes: 0,
     uploadedFiles: 0,
     errors: [],
+    nextIndex: startIndex,
+    done: false,
+    bucketFolderId: cachedBucketFolderId,
   };
 
   try {
-    // Create a subfolder for this bucket
-    const bucketFolderId = await createGoogleDriveFolder(accessToken, bucketName, storageFolderId);
+    const bucketFolderId =
+      cachedBucketFolderId || (await createGoogleDriveFolder(accessToken, bucketName, storageFolderId));
+    result.bucketFolderId = bucketFolderId;
 
-    // List all files in the bucket (recursive)
     const files = await listBucketFiles(supabase, bucketName);
-    result.filesCount = files.length;
+    // filesCount n'est compté qu'au premier passage sur le bucket
+    result.filesCount = startIndex === 0 ? files.length : 0;
 
-    for (const file of files) {
+    let i = startIndex;
+    while (i < files.length) {
+      if (shouldStop()) {
+        result.nextIndex = i;
+        result.done = false;
+        return result;
+      }
+
+      const file = files[i];
+      i++;
+
       try {
-        // Download from Supabase Storage
+        // Ignorer les gros fichiers sans les télécharger (limite mémoire edge)
+        if (file.size && file.size > 25 * 1024 * 1024) {
+          result.totalSizeBytes += file.size;
+          result.errors.push(
+            `${bucketName}/${file.name}: skipped (${(file.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`,
+          );
+          continue;
+        }
+
         const { data, error } = await supabase.storage.from(bucketName).download(file.name);
         if (error || !data) {
           result.errors.push(`${bucketName}/${file.name}: ${error?.message || "download failed"}`);
@@ -421,7 +450,6 @@ async function backupStorageBucket(
 
         result.totalSizeBytes += data.size;
 
-        // Skip files > 25MB to stay within edge function limits
         if (data.size > 25 * 1024 * 1024) {
           result.errors.push(`${bucketName}/${file.name}: skipped (${(data.size / 1024 / 1024).toFixed(1)}MB > 25MB limit)`);
           continue;
@@ -439,10 +467,14 @@ async function backupStorageBucket(
         );
       }
     }
+
+    result.nextIndex = i;
+    result.done = true;
   } catch (err) {
     result.errors.push(
       `${bucketName}: ${err instanceof Error ? err.message : "bucket backup failed"}`,
     );
+    result.done = true;
   }
 
   return result;
@@ -452,8 +484,8 @@ async function listBucketFiles(
   supabase: ReturnType<typeof createClient>,
   bucketName: string,
   path = "",
-): Promise<{ name: string }[]> {
-  const allFiles: { name: string }[] = [];
+): Promise<{ name: string; size?: number }[]> {
+  const allFiles: { name: string; size?: number }[] = [];
 
   try {
     const { data, error } = await supabase.storage.from(bucketName).list(path, {
@@ -470,7 +502,7 @@ async function listBucketFiles(
         const subFiles = await listBucketFiles(supabase, bucketName, fullPath);
         allFiles.push(...subFiles);
       } else {
-        allFiles.push({ name: fullPath });
+        allFiles.push({ name: fullPath, size: (item as any)?.metadata?.size });
       }
     }
   } catch {
@@ -1023,10 +1055,22 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     let uploaded = Number(run.totals.storageUploadedFiles || 0);
     let totalFiles = Number(run.totals.storageTotalFiles || 0);
     let totalBytes = Number(run.totals.storageTotalBytes || 0);
+    let fileCursor = Number(run.totals.storageFileCursor || 0);
+    const totals: Record<string, number | string> = { ...run.totals };
 
     while (cursor < STORAGE_BUCKETS.length && !outOfBudget()) {
       const bucket = STORAGE_BUCKETS[cursor];
-      const res = await backupStorageBucket(supabase, accessToken, bucket, storageFolderId!);
+      const folderKey = `bucketFolder_${bucket}`;
+      const res = await backupStorageBucket(
+        supabase,
+        accessToken,
+        bucket,
+        storageFolderId!,
+        fileCursor,
+        (totals[folderKey] as string) || null,
+        outOfBudget,
+      );
+      if (res.bucketFolderId) totals[folderKey] = res.bucketFolderId;
       totalFiles += res.filesCount;
       uploaded += res.uploadedFiles;
       totalBytes += res.totalSizeBytes;
@@ -1034,16 +1078,22 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
         errors.push(...res.errors.slice(0, 3));
         if (res.errors.length > 3) errors.push(`[Storage] ${bucket}: +${res.errors.length - 3} autres erreurs`);
       }
-      cursor++;
       chunks++;
+
+      if (res.done) {
+        cursor++;
+        fileCursor = 0;
+      } else {
+        // budget épuisé au milieu du bucket : on reprendra à ce fichier
+        fileCursor = res.nextIndex;
+        break;
+      }
     }
 
-    const totals = {
-      ...run.totals,
-      storageUploadedFiles: uploaded,
-      storageTotalFiles: totalFiles,
-      storageTotalBytes: totalBytes,
-    };
+    totals.storageUploadedFiles = uploaded;
+    totals.storageTotalFiles = totalFiles;
+    totals.storageTotalBytes = totalBytes;
+    totals.storageFileCursor = fileCursor;
 
     if (cursor >= STORAGE_BUCKETS.length) {
       phase = "finalize";
