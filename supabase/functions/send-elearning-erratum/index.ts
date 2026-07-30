@@ -79,7 +79,7 @@ serve(async (req) => {
       `Le lien qu'il contenait était erroné : il renvoyait vers une page de commande, alors que votre inscription est bien enregistrée et réglée. Toutes mes excuses pour la confusion.`,
       `Ce message annule et remplace le précédent. Voici votre lien d'accès personnel à votre espace de formation en ligne :`,
       `<a href="${accessLink}">Accéder à ma formation en ligne</a>`,
-      `Ce lien vous connecte directement, sans mot de passe. Il est personnel, valable un an, et vous pouvez le réutiliser à chaque fois que vous souhaitez reprendre votre formation.`,
+      `À la première ouverture, il vous suffit de choisir un mot de passe pour créer votre accès (votre e-mail est déjà pré-rempli). Si vous avez déjà un compte, saisissez simplement votre mot de passe. Ce lien est personnel et valable un an.`,
       `Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindre point vous freine, répondez simplement à ce mail.`,
       `À très vite,`,
     ];
