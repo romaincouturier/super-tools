@@ -1055,10 +1055,22 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
     let uploaded = Number(run.totals.storageUploadedFiles || 0);
     let totalFiles = Number(run.totals.storageTotalFiles || 0);
     let totalBytes = Number(run.totals.storageTotalBytes || 0);
+    let fileCursor = Number(run.totals.storageFileCursor || 0);
+    const totals: Record<string, number | string> = { ...run.totals };
 
     while (cursor < STORAGE_BUCKETS.length && !outOfBudget()) {
       const bucket = STORAGE_BUCKETS[cursor];
-      const res = await backupStorageBucket(supabase, accessToken, bucket, storageFolderId!);
+      const folderKey = `bucketFolder_${bucket}`;
+      const res = await backupStorageBucket(
+        supabase,
+        accessToken,
+        bucket,
+        storageFolderId!,
+        fileCursor,
+        (totals[folderKey] as string) || null,
+        outOfBudget,
+      );
+      if (res.bucketFolderId) totals[folderKey] = res.bucketFolderId;
       totalFiles += res.filesCount;
       uploaded += res.uploadedFiles;
       totalBytes += res.totalSizeBytes;
@@ -1066,16 +1078,22 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
         errors.push(...res.errors.slice(0, 3));
         if (res.errors.length > 3) errors.push(`[Storage] ${bucket}: +${res.errors.length - 3} autres erreurs`);
       }
-      cursor++;
       chunks++;
+
+      if (res.done) {
+        cursor++;
+        fileCursor = 0;
+      } else {
+        // budget épuisé au milieu du bucket : on reprendra à ce fichier
+        fileCursor = res.nextIndex;
+        break;
+      }
     }
 
-    const totals = {
-      ...run.totals,
-      storageUploadedFiles: uploaded,
-      storageTotalFiles: totalFiles,
-      storageTotalBytes: totalBytes,
-    };
+    totals.storageUploadedFiles = uploaded;
+    totals.storageTotalFiles = totalFiles;
+    totals.storageTotalBytes = totalBytes;
+    totals.storageFileCursor = fileCursor;
 
     if (cursor >= STORAGE_BUCKETS.length) {
       phase = "finalize";
