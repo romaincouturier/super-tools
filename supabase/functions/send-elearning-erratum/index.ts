@@ -8,6 +8,7 @@ import {
   sendEmail,
 } from "../_shared/mod.ts";
 import { getBccList } from "../_shared/email-settings.ts";
+import { getAppUrls } from "../_shared/app-urls.ts";
 
 // Erratum: annule et remplace le lien erroné (panier WooCommerce) envoyé dans
 // la relance `elearning_start_reminder`. Envoi unitaire par participant,
@@ -45,17 +46,28 @@ serve(async (req) => {
 
     const { data: training, error: tErr } = await supabase
       .from("trainings")
-      .select("id, training_name, supertilt_link")
+      .select("id, training_name")
       .eq("id", participant.training_id)
       .maybeSingle();
     if (tErr) return createErrorResponse(tErr.message, 500);
     if (!training) return createErrorResponse("Formation introuvable", 404);
 
-    const isHttpUrl = (v: unknown): v is string =>
-      typeof v === "string" && /^https?:\/\//i.test(v.trim());
-    const accessLink = isHttpUrl(training.supertilt_link)
-      ? training.supertilt_link.trim()
-      : "https://www.supertilt.fr";
+    // Lien magique vers le portail apprenant SuperTools (validité 1 an)
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    const { data: link, error: lErr } = await supabase
+      .from("learner_magic_links")
+      .insert({
+        email: String(participant.email || "").toLowerCase(),
+        training_id: training.id,
+        expires_at: expiresAt.toISOString(),
+      })
+      .select("token")
+      .single();
+    if (lErr) return createErrorResponse(`Génération du lien magique impossible: ${lErr.message}`, 500);
+
+    const urls = await getAppUrls();
+    const accessLink = `${urls.app_url}/apprenant/connexion?token=${link.token}`;
 
     const firstName = participant.first_name || "";
     const trainingName = training.training_name || "";
@@ -65,8 +77,9 @@ serve(async (req) => {
       `Bonjour ${firstName},`,
       `Je reviens vers vous suite au message que je vous ai adressé ce matin au sujet de la formation « ${trainingName} ».`,
       `Le lien qu'il contenait était erroné : il renvoyait vers une page de commande, alors que votre inscription est bien enregistrée et réglée. Toutes mes excuses pour la confusion.`,
-      `Ce message annule et remplace le précédent. Voici le bon lien pour accéder à votre formation :`,
-      `<a href="${accessLink}">${accessLink}</a>`,
+      `Ce message annule et remplace le précédent. Voici votre lien d'accès personnel à votre espace de formation en ligne :`,
+      `<a href="${accessLink}">Accéder à ma formation en ligne</a>`,
+      `Ce lien vous connecte directement, sans mot de passe. Il est personnel, valable un an, et vous pouvez le réutiliser à chaque fois que vous souhaitez reprendre votre formation.`,
       `Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindre point vous freine, répondez simplement à ce mail.`,
       `À très vite,`,
     ];
