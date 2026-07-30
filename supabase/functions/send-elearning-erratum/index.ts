@@ -75,14 +75,16 @@ serve(async (req) => {
 
     const paragraphs = [
       `Bonjour ${firstName},`,
-      `Je reviens vers vous suite au message que je vous ai adressé ce matin au sujet de la formation « ${trainingName} ».`,
-      `Le lien qu'il contenait était erroné : il renvoyait vers une page de commande, alors que votre inscription est bien enregistrée et réglée. Toutes mes excuses pour la confusion.`,
-      `Ce message annule et remplace le précédent. Voici votre lien d'accès personnel à votre espace de formation en ligne :`,
-      `<a href="${accessLink}">Accéder à ma formation en ligne</a>`,
-      `À la première ouverture, il vous suffit de choisir un mot de passe pour créer votre accès (votre e-mail est déjà pré-rempli). Si vous avez déjà un compte, saisissez simplement votre mot de passe. Ce lien est personnel et valable un an.`,
+      `Je reviens vers vous suite au message que je vous ai adressé ce matin au sujet de la formation en ligne « ${trainingName} ».`,
+      `Le lien qu'il contenait était erroné : il renvoyait vers une page de commande, alors que votre inscription est bien enregistrée et réglée. Toutes mes excuses pour la confusion. Ce message annule et remplace le précédent.`,
+      `Toute votre formation se trouve dans votre espace apprenant SuperTilt. Pour y accéder, c'est très simple :`,
+      `<ol><li>Cliquez sur le bouton ci-dessous</li><li>Créez votre mot de passe (ou connectez-vous si vous avez déjà un compte)</li><li>Vous arrivez directement sur votre tableau de bord, avec votre formation</li></ol>`,
+      `<p style="margin: 24px 0;"><a href="${accessLink}" style="display:inline-block;padding:12px 24px;background-color:#ffd100;color:#101820;text-decoration:none;border-radius:8px;font-weight:bold;">Accéder à ma formation</a></p>`,
+      `Ce lien est personnel, valable 1 an et réutilisable autant de fois que nécessaire pendant cette période. Au-delà, connectez-vous directement depuis votre espace apprenant.`,
       `Le rythme reste totalement libre, vous avancez à votre convenance. Si le moindre point vous freine, répondez simplement à ce mail.`,
       `À très vite,`,
     ];
+
 
     const html = `${paragraphs.map((p) => `<p>${p}</p>`).join("\n")}\n${await getSigniticSignature()}`;
 
