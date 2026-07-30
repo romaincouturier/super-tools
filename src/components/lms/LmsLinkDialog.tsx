@@ -37,7 +37,7 @@ export default function LmsLinkDialog({
     }
   }, [open, initialUrl]);
 
-  const { data: lessons = [], isLoading } = useAllLmsLessons();
+  const { data: lessons = [], isLoading } = useAllLmsLessons(open);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
