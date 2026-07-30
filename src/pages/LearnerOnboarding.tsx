@@ -333,12 +333,12 @@ export default function LearnerOnboarding() {
             <GraduationCap className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-2xl font-bold">
-            {mode === "create" ? "Créer mon compte" : "Se connecter"}
+            {mode === "create" ? "Bienvenue — créez votre accès" : "Content de vous revoir"}
           </h2>
           <p className="text-sm text-muted-foreground pb-2">
             {mode === "create"
-              ? "Choisissez un mot de passe pour accéder à votre formation"
-              : "Connectez-vous avec votre email et votre mot de passe"}
+              ? "Première connexion : il vous suffit de choisir un mot de passe. Votre compte sera créé et votre formation vous attend juste derrière."
+              : "Vous avez déjà un compte : saisissez votre mot de passe pour accéder à votre formation."}
           </p>
         </div>
 
@@ -349,9 +349,26 @@ export default function LearnerOnboarding() {
             </div>
           )}
 
+          {mode === "create" && (
+            <ol className="rounded-lg bg-muted/60 border px-4 py-3 text-sm text-muted-foreground space-y-1.5">
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">1.</span>
+                Votre email est déjà reconnu, rien à saisir.
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">2.</span>
+                Choisissez le mot de passe de votre choix.
+              </li>
+              <li className="flex gap-2">
+                <span className="font-semibold text-foreground">3.</span>
+                Vous arrivez directement sur votre formation.
+              </li>
+            </ol>
+          )}
+
           <form onSubmit={mode === "create" ? handleCreate : handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Votre email</Label>
               <Input
                 id="email"
                 type="email"
@@ -361,8 +378,11 @@ export default function LearnerOnboarding() {
               />
             </div>
 
+
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">
+                {mode === "create" ? "Choisissez votre mot de passe" : "Votre mot de passe"}
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
