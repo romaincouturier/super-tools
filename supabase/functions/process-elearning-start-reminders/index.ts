@@ -37,13 +37,11 @@ serve(async (req) => {
       return createJsonResponse({ success: true, processed: 0, sent: 0, message: "No e-learning trainings" });
     }
 
-    // Cart base URL (for access_link building)
-    const { data: cartBaseUrlSetting } = await supabase
-      .from("app_settings")
-      .select("setting_value")
-      .eq("setting_key", "woocommerce_cart_base_url")
-      .maybeSingle();
-    const cartBaseUrl = cartBaseUrlSetting?.setting_value;
+    // Access link = onboarding link on the SuperTilt platform (training.supertilt_link).
+    // Never build a WooCommerce cart URL here: the participant has already paid.
+    const isHttpUrl = (v: unknown): v is string =>
+      typeof v === "string" && /^https?:\/\//i.test(v.trim());
+
 
     const trainingIds = trainings.map((t) => t.id);
 
