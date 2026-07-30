@@ -6,7 +6,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getSenderFrom } from "./email-settings.ts";
+import { getSenderFrom, getSenderEmail } from "./email-settings.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
