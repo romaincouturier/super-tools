@@ -147,6 +147,29 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
         </Button>
       </div>
 
+      {suggestions && suggestions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Utilisateurs SuperTools :</span>
+          {suggestions
+            .filter((s) => !contacts?.some((c) => c.email?.toLowerCase() === s.email.toLowerCase()))
+            .map((s) => (
+              <Button
+                key={s.email}
+                size="sm"
+                variant="secondary"
+                className="h-6 px-2 text-xs"
+                disabled={createContact.isPending}
+                onClick={() => handleQuickAdd(s)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                {[s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
+              </Button>
+            ))}
+        </div>
+      )}
+
+
+
       {(!contacts || contacts.length === 0) ? (
         <p className="text-sm text-muted-foreground text-center py-3">
           Aucun contact. Ajoutez des contacts pour cette mission.
