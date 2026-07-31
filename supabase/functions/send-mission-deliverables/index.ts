@@ -119,14 +119,80 @@ serve(async (req) => {
       }
     }
 
-    // Fetch custom templates for both modes
+    // Fetch custom templates for both modes (premier envoi + relance)
     const { data: customTemplates } = await supabase
       .from("email_templates")
       .select("template_type, subject, html_content")
-      .in("template_type", ["mission_deliverables_tu", "mission_deliverables_vous"]);
+      .in("template_type", [
+        "mission_deliverables_tu",
+        "mission_deliverables_vous",
+        "mission_deliverables_update_tu",
+        "mission_deliverables_update_vous",
+      ]);
 
-    const customTu = customTemplates?.find((t: any) => t.template_type === "mission_deliverables_tu");
-    const customVous = customTemplates?.find((t: any) => t.template_type === "mission_deliverables_vous");
+    const findTpl = (t: string) => customTemplates?.find((x: any) => x.template_type === t);
+    const customTu = findTpl("mission_deliverables_tu");
+    const customVous = findTpl("mission_deliverables_vous");
+    const customUpdateTu = findTpl("mission_deliverables_update_tu");
+    const customUpdateVous = findTpl("mission_deliverables_update_vous");
+
+    // ── Inventaire des livrables partagés (pages, documents, médias) ──
+    const [pagesRes, docsRes, mediaRes, sendsRes] = await Promise.all([
+      supabase
+        .from("mission_pages")
+        .select("id, title, is_deliverable")
+        .eq("mission_id", mission_id)
+        .eq("is_deliverable", true),
+      supabase
+        .from("mission_documents")
+        .select("id, file_name, is_deliverable")
+        .eq("mission_id", mission_id)
+        .eq("is_deliverable", true),
+      supabase
+        .from("media")
+        .select("id, title, file_name, is_deliverable")
+        .eq("source_type", "mission")
+        .eq("source_id", mission_id)
+        .eq("is_deliverable", true),
+      supabase
+        .from("mission_deliverable_sends")
+        .select("contact_id, email, item_keys")
+        .eq("mission_id", mission_id),
+    ]);
+
+    const currentItems: { key: string; label: string }[] = [
+      ...((pagesRes.data as any[]) || []).map((p) => ({
+        key: `page:${p.id}`,
+        label: p.title || "Page sans titre",
+      })),
+      ...((docsRes.data as any[]) || []).map((d) => ({
+        key: `doc:${d.id}`,
+        label: d.file_name || "Document",
+      })),
+      ...((mediaRes.data as any[]) || []).map((m) => ({
+        key: `media:${m.id}`,
+        label: m.title || m.file_name || "Média",
+      })),
+    ];
+    const currentKeys = currentItems.map((i) => i.key);
+
+    // Historique par destinataire (contact_id prioritaire, sinon email)
+    const previousKeysByContact = new Map<string, Set<string>>();
+    const previousKeysByEmail = new Map<string, Set<string>>();
+    for (const row of ((sendsRes.data as any[]) || [])) {
+      const keys: string[] = row.item_keys || [];
+      if (row.contact_id) {
+        const set = previousKeysByContact.get(row.contact_id) ?? new Set<string>();
+        keys.forEach((k) => set.add(k));
+        previousKeysByContact.set(row.contact_id, set);
+      }
+      if (row.email) {
+        const e = String(row.email).toLowerCase();
+        const set = previousKeysByEmail.get(e) ?? new Set<string>();
+        keys.forEach((k) => set.add(k));
+        previousKeysByEmail.set(e, set);
+      }
+    }
 
     // Fetch BCC and signature in parallel
     const [bccList, signature] = await Promise.all([
@@ -134,7 +200,8 @@ serve(async (req) => {
       getSigniticSignature(),
     ]);
 
-    const results: { email: string; success: boolean; error?: string }[] = [];
+    const results: { email: string; success: boolean; error?: string; is_update?: boolean; new_items?: number }[] = [];
+
 
     for (const recipient of recipients) {
       const { email, first_name, formal_address, contact_id } = recipient;
