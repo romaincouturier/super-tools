@@ -502,6 +502,9 @@ const MissionSummary = () => {
   // Invoiced activities
   const invoicedActivities = activities.filter((a) => a.invoice_number || a.is_billed);
 
+  // Suivi de mission + finances : réservés aux commanditaires (ou staff connecté)
+  const canSeeTracking = isAuthenticated || contact?.is_sponsor === true;
+
   const locale = lang === "fr" ? fr : enUS;
   const L = t[lang];
 
@@ -655,9 +658,8 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Financial Summary — authenticated only */}
-        {/* Financial Summary — always visible */}
-        {true && (
+        {/* Suivi financier — commanditaires (ou staff connecté) uniquement */}
+        {canSeeTracking && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -705,7 +707,7 @@ const MissionSummary = () => {
             </CardContent>
           </Card>
         )}
-        {actions.length > 0 && (
+        {canSeeTracking && actions.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -738,8 +740,8 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Invoices Table — visible to auth users, or public when mission is shared */}
-        {(isAuthenticated || mission.share_activities_with_client) && (
+        {/* Factures — commanditaires (ou staff connecté) uniquement */}
+        {canSeeTracking && (isAuthenticated || mission.share_activities_with_client) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">

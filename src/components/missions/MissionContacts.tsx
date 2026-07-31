@@ -229,6 +229,11 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
           {contact.role && (
             <span className="text-xs text-muted-foreground ml-2">({contact.role})</span>
           )}
+          {contact.is_sponsor && (
+            <span className="text-[10px] uppercase tracking-wide ml-2 px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+              Commanditaire
+            </span>
+          )}
         </div>
 
         <span className="text-xs text-muted-foreground shrink-0">{langLabel}</span>
@@ -346,6 +351,16 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
                 Vouvoiement
               </Label>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`sponsor-${contact.id}`}
+              checked={!!contact.is_sponsor}
+              onCheckedChange={(checked) => onUpdate(contact, "is_sponsor", checked)}
+            />
+            <Label htmlFor={`sponsor-${contact.id}`} className="text-xs cursor-pointer">
+              Commanditaire (voit le suivi de mission et les montants financiers)
+            </Label>
           </div>
         </div>
       )}
