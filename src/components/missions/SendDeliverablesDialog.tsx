@@ -19,6 +19,8 @@ import { useEntityDocuments } from "@/hooks/useEntityDocuments";
 import { useEntityMedia } from "@/hooks/useMedia";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { MissionContact } from "@/types/missions";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SendDeliverablesDialogProps {
   missionId: string;
@@ -51,6 +53,40 @@ Vous pouvez les consulter et les télécharger à tout moment en cliquant ci-des
 N'hésitez pas à revenir vers moi si vous avez la moindre question.
 
 Cordialement,`;
+
+// Templates de relance (2ème envoi et plus) — doivent rester alignés avec
+// supabase/functions/send-mission-deliverables/index.ts
+const DEFAULT_UPDATE_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+De nouveaux éléments viennent d'être ajoutés aux livrables de la mission "{{mission_title}}".
+
+{{#new_items_html}}Nouveautés depuis mon dernier envoi :
+{{new_items_html}}{{/new_items_html}}
+
+Tu retrouves l'ensemble des livrables (anciens et nouveaux) au même endroit :
+
+<p style="margin: 20px 0;"><a href="{{deliverables_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">📦 Accéder aux livrables</a></p>
+
+N'hésite pas à revenir vers moi si tu as la moindre question.
+
+À très bientôt !`;
+
+const DEFAULT_UPDATE_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+De nouveaux éléments viennent d'être ajoutés aux livrables de la mission "{{mission_title}}".
+
+{{#new_items_html}}Nouveautés depuis mon dernier envoi :
+{{new_items_html}}{{/new_items_html}}
+
+Vous retrouvez l'ensemble des livrables (anciens et nouveaux) au même endroit :
+
+<p style="margin: 20px 0;"><a href="{{deliverables_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">📦 Accéder aux livrables</a></p>
+
+N'hésitez pas à revenir vers moi si vous avez la moindre question.
+
+Cordialement,`;
+
+
 
 function processPreviewTemplate(template: string, variables: Record<string, string>): string {
   let result = template;
@@ -102,9 +138,49 @@ const SendDeliverablesDialog = ({
     [mediaItems],
   );
 
+  // Historique des envois précédents (pour basculer sur le template "nouveautés")
+  const { data: previousSends } = useQuery({
+    queryKey: ["mission-deliverable-sends", missionId],
+    enabled: open && !!missionId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("mission_deliverable_sends") as any)
+        .select("contact_id, email, item_keys, sent_at")
+        .eq("mission_id", missionId)
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as { contact_id: string | null; email: string; item_keys: string[]; sent_at: string }[];
+    },
+  });
+
+  const currentItems = useMemo(
+    () => [
+      ...deliverablePages.map((p: any) => ({ key: `page:${p.id}`, label: p.title || "Page sans titre" })),
+      ...deliverableDocs.map((d: any) => ({ key: `doc:${d.id}`, label: d.file_name || d.name || "Document" })),
+      ...deliverableMedia.map((m: any) => ({ key: `media:${m.id}`, label: m.title || m.file_name || "Média" })),
+    ],
+    [deliverablePages, deliverableDocs, deliverableMedia],
+  );
+
+  /** Éléments déjà envoyés + nouveautés pour un contact donné. */
+  const getSendState = (contact: MissionContact) => {
+    const rows = (previousSends || []).filter(
+      (r) =>
+        (r.contact_id && r.contact_id === contact.id) ||
+        (!!contact.email && r.email?.toLowerCase() === contact.email.toLowerCase()),
+    );
+    if (rows.length === 0) return { isUpdate: false, newItems: currentItems, lastSentAt: null as string | null };
+    const known = new Set<string>();
+    rows.forEach((r) => (r.item_keys || []).forEach((k) => known.add(k)));
+    return {
+      isUpdate: true,
+      newItems: currentItems.filter((i) => !known.has(i.key)),
+      lastSentAt: rows[0].sent_at,
+    };
+  };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState("");
+  const [subjectUpdate, setSubjectUpdate] = useState("");
   const [showPreview, setShowPreview] = useState(true);
   const { loading: sending, invoke: invokeSend } = useEdgeFunction(
     "send-mission-deliverables",
@@ -126,25 +202,37 @@ const SendDeliverablesDialog = ({
       const primary = contactsWithEmail.find((c) => c.is_primary);
       setSelectedIds(new Set(primary ? [primary.id] : [contactsWithEmail[0].id]));
       setSubject(`Vos livrables sont disponibles - ${missionTitle}`);
+      setSubjectUpdate(`Nouveaux livrables - ${missionTitle}`);
     }
   }, [open, contactsWithEmail, missionTitle]);
 
   const selectedContacts = contactsWithEmail.filter((c) => selectedIds.has(c.id));
+  const hasUpdateRecipient = selectedContacts.some((c) => getSendState(c).isUpdate);
 
   // Preview using the first selected contact
   const previewContact = selectedContacts[0];
   const previewHtml = useMemo(() => {
     if (!previewContact) return "";
     const useTu = !(previewContact as any).formal_address; // false (default) = tutoiement
-    const template = useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const state = getSendState(previewContact);
+    const template = state.isUpdate
+      ? (useTu ? DEFAULT_UPDATE_CONTENT_TU : DEFAULT_UPDATE_CONTENT_VOUS)
+      : (useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS);
     const link = `${window.location.origin}/mission-info/${missionId}`;
+    const newItemsHtml = state.newItems.length
+      ? `<ul>${state.newItems.map((i) => `<li>${i.label}</li>`).join("")}</ul>`
+      : "";
     const processed = processPreviewTemplate(template, {
       first_name: previewContact.first_name || "",
       mission_title: missionTitle,
       deliverables_link: link,
+      new_items_html: newItemsHtml,
+      new_items_count: String(state.newItems.length),
     });
     return textToHtmlPreview(processed);
-  }, [previewContact, missionId, missionTitle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewContact, missionId, missionTitle, previousSends, currentItems]);
+
 
   const toggleContact = (id: string) => {
     setSelectedIds((prev) => {
@@ -164,7 +252,12 @@ const SendDeliverablesDialog = ({
       formal_address: !!(c as any).formal_address,
     }));
 
-    const result = await invokeSend({ mission_id: missionId, recipients, subject });
+    const result = await invokeSend({
+      mission_id: missionId,
+      recipients,
+      subject,
+      subject_update: subjectUpdate,
+    });
     if (result !== null) {
       toast({
         title: "Emails envoyés",
@@ -203,6 +296,7 @@ const SendDeliverablesDialog = ({
                 {allContacts.map((contact) => {
                   const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
                   const hasEmail = !!contact.email;
+                  const sendState = hasEmail ? getSendState(contact) : null;
                   return (
                     <label
                       key={contact.id}
@@ -229,10 +323,32 @@ const SendDeliverablesDialog = ({
                             ({contact.role})
                           </span>
                         )}
+                        {sendState?.isUpdate && (
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              Déjà destinataire
+                              {sendState.lastSentAt
+                                ? ` le ${new Date(sendState.lastSentAt).toLocaleDateString("fr-FR")}`
+                                : ""}
+                            </span>
+                            <span
+                              className={`text-[11px] px-1.5 py-0.5 rounded ${
+                                sendState.newItems.length > 0
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {sendState.newItems.length > 0
+                                ? `${sendState.newItems.length} nouveau(x) élément(s)`
+                                : "aucune nouveauté"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </label>
                   );
                 })}
+
               </div>
               {contactsWithEmail.length === 0 && (
                 <p className="text-xs text-amber-600 mt-2">
@@ -340,13 +456,30 @@ const SendDeliverablesDialog = ({
 
             {/* Subject */}
             <div>
-              <Label className="text-sm font-medium">Objet</Label>
+              <Label className="text-sm font-medium">
+                {hasUpdateRecipient ? "Objet (premier envoi)" : "Objet"}
+              </Label>
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="mt-1"
               />
+              {hasUpdateRecipient && (
+                <div className="mt-3">
+                  <Label className="text-sm font-medium">Objet (relance / nouveautés)</Label>
+                  <Input
+                    value={subjectUpdate}
+                    onChange={(e) => setSubjectUpdate(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Utilisé pour les contacts ayant déjà reçu les livrables : le mail met en avant
+                    les nouveaux éléments ajoutés depuis leur dernier envoi.
+                  </p>
+                </div>
+              )}
             </div>
+
 
             {/* Preview */}
             <div>
