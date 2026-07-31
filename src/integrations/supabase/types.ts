@@ -6297,6 +6297,44 @@ export type Database = {
           },
         ]
       }
+      mission_deliverable_sends: {
+        Row: {
+          contact_id: string | null
+          email: string
+          id: string
+          item_keys: string[]
+          mission_id: string
+          new_item_keys: string[]
+          sent_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          email: string
+          id?: string
+          item_keys?: string[]
+          mission_id: string
+          new_item_keys?: string[]
+          sent_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          email?: string
+          id?: string
+          item_keys?: string[]
+          mission_id?: string
+          new_item_keys?: string[]
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_deliverable_sends_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mission_documents: {
         Row: {
           assemblyai_transcript_id: string | null
