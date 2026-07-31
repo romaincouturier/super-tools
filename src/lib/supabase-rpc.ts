@@ -292,6 +292,8 @@ export interface MissionContactByToken {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  /** Commanditaire : accès au suivi de mission et aux informations financières. */
+  is_sponsor?: boolean;
 }
 
 export interface MissionPageCommentPublic {
