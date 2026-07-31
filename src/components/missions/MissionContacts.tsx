@@ -34,11 +34,19 @@ const LANGUAGE_OPTIONS = [
   { value: "zh", label: "中文" },
 ];
 
-interface MissionContactsProps {
-  missionId: string;
+export interface ContactSuggestion {
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
-const MissionContacts = ({ missionId }: MissionContactsProps) => {
+interface MissionContactsProps {
+  missionId: string;
+  /** Quick-add suggestions (e.g. SuperTools users) shown as clickable chips. */
+  suggestions?: ContactSuggestion[];
+}
+
+const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
   const { toast } = useToast();
   const { data: contacts, isLoading } = useMissionContacts(missionId);
   const createContact = useCreateMissionContact();
@@ -60,6 +68,24 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
       toastError(toast, err instanceof Error ? err : "Erreur inconnue");
     }
   };
+
+  const handleQuickAdd = async (s: ContactSuggestion) => {
+    try {
+      const isPrimary = !contacts || contacts.length === 0;
+      await createContact.mutateAsync({
+        mission_id: missionId,
+        is_primary: isPrimary,
+        language: "fr",
+        email: s.email,
+        first_name: s.first_name || null,
+        last_name: s.last_name || null,
+      });
+    } catch (err: unknown) {
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
+    }
+  };
+
+
 
   const handleUpdate = async (contact: MissionContact, field: string, value: string | boolean) => {
     try {
@@ -120,6 +146,29 @@ const MissionContacts = ({ missionId }: MissionContactsProps) => {
           Ajouter
         </Button>
       </div>
+
+      {suggestions && suggestions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Utilisateurs SuperTools :</span>
+          {suggestions
+            .filter((s) => !contacts?.some((c) => c.email?.toLowerCase() === s.email.toLowerCase()))
+            .map((s) => (
+              <Button
+                key={s.email}
+                size="sm"
+                variant="secondary"
+                className="h-6 px-2 text-xs"
+                disabled={createContact.isPending}
+                onClick={() => handleQuickAdd(s)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                {[s.first_name, s.last_name].filter(Boolean).join(" ") || s.email}
+              </Button>
+            ))}
+        </div>
+      )}
+
+
 
       {(!contacts || contacts.length === 0) ? (
         <p className="text-sm text-muted-foreground text-center py-3">

@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, User, Briefcase } from "lucide-react";
+import { CalendarDays, User, Briefcase, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -10,9 +11,11 @@ interface Props {
   action: SupertiltAction;
   isDragging?: boolean;
   onToggle: (checked: boolean) => void;
+  /** Opens the lightweight action form (title, assignee, deadline). */
+  onEdit?: () => void;
 }
 
-export default function SupertiltActionCard({ action, isDragging, onToggle }: Props) {
+export default function SupertiltActionCard({ action, isDragging, onToggle, onEdit }: Props) {
   const deadlineDate = action.deadline ? new Date(action.deadline + "T00:00:00") : undefined;
   const isOverdue =
     deadlineDate && isPast(deadlineDate) && !isToday(deadlineDate) && !action.is_completed;
@@ -70,6 +73,20 @@ export default function SupertiltActionCard({ action, isDragging, onToggle }: Pr
             )}
           </div>
         </div>
+        {onEdit && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 shrink-0"
+            title="Modifier l'action"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            <Pencil className="h-3 w-3" />
+          </Button>
+        )}
       </div>
     </div>
   );
