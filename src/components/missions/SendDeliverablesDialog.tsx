@@ -19,6 +19,8 @@ import { useEntityDocuments } from "@/hooks/useEntityDocuments";
 import { useEntityMedia } from "@/hooks/useMedia";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { MissionContact } from "@/types/missions";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SendDeliverablesDialogProps {
   missionId: string;
