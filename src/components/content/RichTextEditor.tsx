@@ -271,6 +271,7 @@ const RichTextEditor = ({
         </Button>
       </div>
 
+      <TableBubbleMenu editor={editor} />
       <EditorContent editor={editor} />
       {linkDialog}
     </div>
