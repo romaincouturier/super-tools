@@ -456,13 +456,30 @@ const SendDeliverablesDialog = ({
 
             {/* Subject */}
             <div>
-              <Label className="text-sm font-medium">Objet</Label>
+              <Label className="text-sm font-medium">
+                {hasUpdateRecipient ? "Objet (premier envoi)" : "Objet"}
+              </Label>
               <Input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="mt-1"
               />
+              {hasUpdateRecipient && (
+                <div className="mt-3">
+                  <Label className="text-sm font-medium">Objet (relance / nouveautés)</Label>
+                  <Input
+                    value={subjectUpdate}
+                    onChange={(e) => setSubjectUpdate(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Utilisé pour les contacts ayant déjà reçu les livrables : le mail met en avant
+                    les nouveaux éléments ajoutés depuis leur dernier envoi.
+                  </p>
+                </div>
+              )}
             </div>
+
 
             {/* Preview */}
             <div>
