@@ -94,6 +94,8 @@ export interface MissionContact {
   language: string;
   formal_address: boolean;
   is_primary: boolean;
+  /** Commanditaire : voit le suivi de mission et les montants financiers. */
+  is_sponsor?: boolean;
   position: number;
   created_at: string;
   updated_at: string;
