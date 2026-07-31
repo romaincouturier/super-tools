@@ -347,6 +347,16 @@ const ContactCard = ({ contact, isEditing, onToggleEdit, onUpdate, onSetPrimary,
               </Label>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              id={`sponsor-${contact.id}`}
+              checked={!!contact.is_sponsor}
+              onCheckedChange={(checked) => onUpdate(contact, "is_sponsor", checked)}
+            />
+            <Label htmlFor={`sponsor-${contact.id}`} className="text-xs cursor-pointer">
+              Commanditaire (voit le suivi de mission et les montants financiers)
+            </Label>
+          </div>
         </div>
       )}
     </div>
