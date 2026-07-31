@@ -502,6 +502,9 @@ const MissionSummary = () => {
   // Invoiced activities
   const invoicedActivities = activities.filter((a) => a.invoice_number || a.is_billed);
 
+  // Suivi de mission + finances : réservés aux commanditaires (ou staff connecté)
+  const canSeeTracking = isAuthenticated || contact?.is_sponsor === true;
+
   const locale = lang === "fr" ? fr : enUS;
   const L = t[lang];
 
