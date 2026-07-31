@@ -34,11 +34,19 @@ const LANGUAGE_OPTIONS = [
   { value: "zh", label: "中文" },
 ];
 
-interface MissionContactsProps {
-  missionId: string;
+export interface ContactSuggestion {
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
 }
 
-const MissionContacts = ({ missionId }: MissionContactsProps) => {
+interface MissionContactsProps {
+  missionId: string;
+  /** Quick-add suggestions (e.g. SuperTools users) shown as clickable chips. */
+  suggestions?: ContactSuggestion[];
+}
+
+const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
   const { toast } = useToast();
   const { data: contacts, isLoading } = useMissionContacts(missionId);
   const createContact = useCreateMissionContact();
