@@ -138,9 +138,49 @@ const SendDeliverablesDialog = ({
     [mediaItems],
   );
 
+  // Historique des envois précédents (pour basculer sur le template "nouveautés")
+  const { data: previousSends } = useQuery({
+    queryKey: ["mission-deliverable-sends", missionId],
+    enabled: open && !!missionId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from("mission_deliverable_sends") as any)
+        .select("contact_id, email, item_keys, sent_at")
+        .eq("mission_id", missionId)
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as { contact_id: string | null; email: string; item_keys: string[]; sent_at: string }[];
+    },
+  });
+
+  const currentItems = useMemo(
+    () => [
+      ...deliverablePages.map((p: any) => ({ key: `page:${p.id}`, label: p.title || "Page sans titre" })),
+      ...deliverableDocs.map((d: any) => ({ key: `doc:${d.id}`, label: d.file_name || d.name || "Document" })),
+      ...deliverableMedia.map((m: any) => ({ key: `media:${m.id}`, label: m.title || m.file_name || "Média" })),
+    ],
+    [deliverablePages, deliverableDocs, deliverableMedia],
+  );
+
+  /** Éléments déjà envoyés + nouveautés pour un contact donné. */
+  const getSendState = (contact: MissionContact) => {
+    const rows = (previousSends || []).filter(
+      (r) =>
+        (r.contact_id && r.contact_id === contact.id) ||
+        (!!contact.email && r.email?.toLowerCase() === contact.email.toLowerCase()),
+    );
+    if (rows.length === 0) return { isUpdate: false, newItems: currentItems, lastSentAt: null as string | null };
+    const known = new Set<string>();
+    rows.forEach((r) => (r.item_keys || []).forEach((k) => known.add(k)));
+    return {
+      isUpdate: true,
+      newItems: currentItems.filter((i) => !known.has(i.key)),
+      lastSentAt: rows[0].sent_at,
+    };
+  };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [subject, setSubject] = useState("");
+  const [subjectUpdate, setSubjectUpdate] = useState("");
   const [showPreview, setShowPreview] = useState(true);
   const { loading: sending, invoke: invokeSend } = useEdgeFunction(
     "send-mission-deliverables",
@@ -162,25 +202,37 @@ const SendDeliverablesDialog = ({
       const primary = contactsWithEmail.find((c) => c.is_primary);
       setSelectedIds(new Set(primary ? [primary.id] : [contactsWithEmail[0].id]));
       setSubject(`Vos livrables sont disponibles - ${missionTitle}`);
+      setSubjectUpdate(`Nouveaux livrables - ${missionTitle}`);
     }
   }, [open, contactsWithEmail, missionTitle]);
 
   const selectedContacts = contactsWithEmail.filter((c) => selectedIds.has(c.id));
+  const hasUpdateRecipient = selectedContacts.some((c) => getSendState(c).isUpdate);
 
   // Preview using the first selected contact
   const previewContact = selectedContacts[0];
   const previewHtml = useMemo(() => {
     if (!previewContact) return "";
     const useTu = !(previewContact as any).formal_address; // false (default) = tutoiement
-    const template = useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
+    const state = getSendState(previewContact);
+    const template = state.isUpdate
+      ? (useTu ? DEFAULT_UPDATE_CONTENT_TU : DEFAULT_UPDATE_CONTENT_VOUS)
+      : (useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS);
     const link = `${window.location.origin}/mission-info/${missionId}`;
+    const newItemsHtml = state.newItems.length
+      ? `<ul>${state.newItems.map((i) => `<li>${i.label}</li>`).join("")}</ul>`
+      : "";
     const processed = processPreviewTemplate(template, {
       first_name: previewContact.first_name || "",
       mission_title: missionTitle,
       deliverables_link: link,
+      new_items_html: newItemsHtml,
+      new_items_count: String(state.newItems.length),
     });
     return textToHtmlPreview(processed);
-  }, [previewContact, missionId, missionTitle]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewContact, missionId, missionTitle, previousSends, currentItems]);
+
 
   const toggleContact = (id: string) => {
     setSelectedIds((prev) => {
