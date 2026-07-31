@@ -38,6 +38,42 @@ N'hésitez pas à revenir vers moi si vous avez la moindre question.
 
 Cordialement,`;
 
+const DEFAULT_UPDATE_SUBJECT = "Nouveaux livrables - {{mission_title}}";
+
+const DEFAULT_UPDATE_CONTENT_TU = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+De nouveaux éléments viennent d'être ajoutés aux livrables de la mission "{{mission_title}}".
+
+{{#new_items_html}}Nouveautés depuis mon dernier envoi :
+{{new_items_html}}{{/new_items_html}}
+
+Tu retrouves l'ensemble des livrables (anciens et nouveaux) au même endroit :
+
+<p style="margin: 20px 0;"><a href="{{deliverables_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">📦 Accéder aux livrables</a></p>
+
+N'hésite pas à revenir vers moi si tu as la moindre question.
+
+À très bientôt !`;
+
+const DEFAULT_UPDATE_CONTENT_VOUS = `Bonjour{{#first_name}} {{first_name}}{{/first_name}},
+
+De nouveaux éléments viennent d'être ajoutés aux livrables de la mission "{{mission_title}}".
+
+{{#new_items_html}}Nouveautés depuis mon dernier envoi :
+{{new_items_html}}{{/new_items_html}}
+
+Vous retrouvez l'ensemble des livrables (anciens et nouveaux) au même endroit :
+
+<p style="margin: 20px 0;"><a href="{{deliverables_link}}" style="display: inline-block; padding: 12px 24px; background-color: #e6bc00; color: #000; text-decoration: none; border-radius: 6px; font-weight: bold;">📦 Accéder aux livrables</a></p>
+
+N'hésitez pas à revenir vers moi si vous avez la moindre question.
+
+Cordialement,`;
+
+function escapeHtmlLabel(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
