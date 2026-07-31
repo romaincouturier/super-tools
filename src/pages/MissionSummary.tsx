@@ -655,9 +655,8 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Financial Summary — authenticated only */}
-        {/* Financial Summary — always visible */}
-        {true && (
+        {/* Suivi financier — commanditaires (ou staff connecté) uniquement */}
+        {canSeeTracking && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
