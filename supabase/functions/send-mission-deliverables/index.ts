@@ -79,7 +79,7 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const { mission_id, recipients, subject } = await req.json();
+    const { mission_id, recipients, subject, subject_update } = await req.json();
 
     if (!mission_id || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return createErrorResponse("mission_id and recipients[] are required", 400);
