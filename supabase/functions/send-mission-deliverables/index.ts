@@ -216,17 +216,41 @@ serve(async (req) => {
 
       // Tutoiement par défaut, vouvoiement uniquement si formal_address = true
       const useTu = !formal_address;
-      const custom = useTu ? customTu : customVous;
-      const defaultContent = useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS;
 
-      const subjectTemplate = subject || custom?.subject || DEFAULT_SUBJECT;
+      // Historique : 2ème envoi ou plus => template "nouveautés"
+      const previousKeys =
+        (contact_id ? previousKeysByContact.get(contact_id) : undefined) ??
+        previousKeysByEmail.get(email.toLowerCase());
+      const isUpdate = !!previousKeys && previousKeys.size > 0;
+      const newItems = isUpdate
+        ? currentItems.filter((i) => !previousKeys!.has(i.key))
+        : currentItems;
+      const newItemsHtml = newItems.length
+        ? `<ul style="margin: 12px 0; padding-left: 20px;">${newItems
+            .map((i) => `<li style="margin: 0 0 4px 0;">${escapeHtmlLabel(i.label)}</li>`)
+            .join("")}</ul>`
+        : "";
+
+      const custom = isUpdate
+        ? (useTu ? customUpdateTu : customUpdateVous)
+        : (useTu ? customTu : customVous);
+      const defaultContent = isUpdate
+        ? (useTu ? DEFAULT_UPDATE_CONTENT_TU : DEFAULT_UPDATE_CONTENT_VOUS)
+        : (useTu ? DEFAULT_CONTENT_TU : DEFAULT_CONTENT_VOUS);
+      const defaultSubject = isUpdate ? DEFAULT_UPDATE_SUBJECT : DEFAULT_SUBJECT;
+      const providedSubject = isUpdate ? (subject_update || undefined) : (subject || undefined);
+
+      const subjectTemplate = providedSubject || custom?.subject || defaultSubject;
       const contentTemplate = custom?.html_content || defaultContent;
 
       const variables = {
         first_name: first_name || "",
         mission_title: missionTitle,
         deliverables_link: recipientLink,
+        new_items_html: newItemsHtml,
+        new_items_count: String(newItems.length),
       };
+
 
       const processedSubject = processTemplate(subjectTemplate, variables, false);
       const contentText = processTemplate(contentTemplate, variables, false);
