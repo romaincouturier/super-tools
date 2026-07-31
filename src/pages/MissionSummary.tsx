@@ -707,7 +707,7 @@ const MissionSummary = () => {
             </CardContent>
           </Card>
         )}
-        {actions.length > 0 && (
+        {canSeeTracking && actions.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
