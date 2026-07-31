@@ -6,6 +6,7 @@ import ImageExtension from "@tiptap/extension-image";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
+import TableBubbleMenu from "@/components/shared/TableBubbleMenu";
 import {
   Bold,
   Italic,
