@@ -740,8 +740,8 @@ const MissionSummary = () => {
           </Card>
         )}
 
-        {/* Invoices Table — visible to auth users, or public when mission is shared */}
-        {(isAuthenticated || mission.share_activities_with_client) && (
+        {/* Factures — commanditaires (ou staff connecté) uniquement */}
+        {canSeeTracking && (isAuthenticated || mission.share_activities_with_client) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
