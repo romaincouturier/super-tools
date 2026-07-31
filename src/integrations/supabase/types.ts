@@ -6209,6 +6209,7 @@ export type Database = {
           formal_address: boolean
           id: string
           is_primary: boolean
+          is_sponsor: boolean
           language: string
           last_name: string | null
           mission_id: string
@@ -6225,6 +6226,7 @@ export type Database = {
           formal_address?: boolean
           id?: string
           is_primary?: boolean
+          is_sponsor?: boolean
           language?: string
           last_name?: string | null
           mission_id: string
@@ -6241,6 +6243,7 @@ export type Database = {
           formal_address?: boolean
           id?: string
           is_primary?: boolean
+          is_sponsor?: boolean
           language?: string
           last_name?: string | null
           mission_id?: string
