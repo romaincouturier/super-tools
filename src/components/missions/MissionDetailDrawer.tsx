@@ -30,17 +30,24 @@ import { todayAsISO } from "@/lib/dateFormatters";
 import { useQuery } from "@tanstack/react-query";
 import { useMissionContacts } from "@/hooks/useMissions";
 import CreateCalendarEventDialog from "@/components/crm/CreateCalendarEventDialog";
+import type { ContactSuggestion } from "./MissionContacts";
 
 interface MissionDetailDrawerProps {
   mission: Mission | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Hide billing UI (activities tab + financial fields). Used by SuperTilt. */
+  hideBilling?: boolean;
+  /** Quick-add contact suggestions (e.g. SuperTools users). */
+  contactSuggestions?: ContactSuggestion[];
 }
 
 const MissionDetailDrawer = ({
   mission,
   open,
   onOpenChange,
+  hideBilling = false,
+  contactSuggestions,
 }: MissionDetailDrawerProps) => {
   const updateMission = useUpdateMission();
   const deleteMission = useDeleteMission();
@@ -412,7 +419,7 @@ const MissionDetailDrawer = ({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${hideBilling ? "grid-cols-3" : "grid-cols-4"}`}>
             <TabsTrigger value="pages" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Pages
@@ -425,13 +432,16 @@ const MissionDetailDrawer = ({
               <ImageIcon className="h-4 w-4" />
               Galerie
             </TabsTrigger>
-            <TabsTrigger value="activities" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Activités
-            </TabsTrigger>
+            {!hideBilling && (
+              <TabsTrigger value="activities" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Activités
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Activities Tab */}
+          {!hideBilling && (
           <TabsContent value="activities" className="mt-4">
             <MissionActivityTracker
               mission={mission}
@@ -441,6 +451,7 @@ const MissionDetailDrawer = ({
               }}
             />
           </TabsContent>
+          )}
 
           {/* Pages Tab */}
           <TabsContent value="pages" className="mt-4">
@@ -492,6 +503,8 @@ const MissionDetailDrawer = ({
               color={color} setColor={setColor}
               tags={tags} setTags={setTags}
               onDelete={handleDelete} deletePending={deleteMission.isPending}
+              hideBilling={hideBilling}
+              contactSuggestions={contactSuggestions}
             />
           </TabsContent>
         </Tabs>
