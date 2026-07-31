@@ -1,6 +1,7 @@
 import { EditorContent } from "@tiptap/react";
 import Image from "@tiptap/extension-image";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
+import TableBubbleMenu from "@/components/shared/TableBubbleMenu";
 import { useTiptapEditor } from "@/hooks/useTiptapEditor";
 import { useTiptapImagePaste } from "@/hooks/useTiptapImagePaste";
 import { transformEmojiImageTags } from "@/lib/tiptapPasteUtils";
@@ -231,6 +232,7 @@ const CrmDescriptionEditor = ({
         </span>
       </div>
 
+      <TableBubbleMenu editor={editor} />
       <EditorContent editor={editor} />
       {linkDialog}
 

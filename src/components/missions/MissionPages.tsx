@@ -28,6 +28,7 @@ import Highlight from "@tiptap/extension-highlight";
 import Typography from "@tiptap/extension-typography";
 import TextAlign from "@tiptap/extension-text-align";
 import { tableExtensions } from "@/lib/tiptapTableExtensions";
+import TableBubbleMenu from "@/components/shared/TableBubbleMenu";
 import { MermaidCodeBlock } from "./MermaidCodeBlock";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -1098,6 +1099,7 @@ const PageEditor = ({
 
       {/* Editor */}
       <div className="flex-1 relative overflow-y-auto">
+        <TableBubbleMenu editor={editor} />
         <EditorContent editor={editor} />
         {(imageUploading || fileUploading) && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-md z-10">
