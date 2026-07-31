@@ -22,7 +22,7 @@ import { LocationInput } from "@/components/shared/LocationInput";
 import { LogisticsChecklist } from "@/components/shared/LogisticsChecklist";
 import EmojiPickerButton from "@/components/ui/emoji-picker-button";
 import AssignedUserSelector from "@/components/formations/AssignedUserSelector";
-import MissionContacts from "./MissionContacts";
+import MissionContacts, { type ContactSuggestion } from "./MissionContacts";
 import { useMissionActivities } from "@/hooks/useMissions";
 import { MissionStatus, missionStatusConfig } from "@/types/missions";
 import { useDemoMode } from "@/contexts/DemoModeContext";
@@ -73,6 +73,10 @@ interface MissionSettingsTabProps {
   setTags: (tags: string[]) => void;
   onDelete: () => void;
   deletePending: boolean;
+  /** Hide all billing-related fields (used by SuperTilt action spaces). */
+  hideBilling?: boolean;
+  /** Quick-add contact suggestions. */
+  contactSuggestions?: ContactSuggestion[];
 }
 
 const MissionSettingsTab = ({
@@ -108,6 +112,8 @@ const MissionSettingsTab = ({
   setTags,
   onDelete,
   deletePending,
+  hideBilling = false,
+  contactSuggestions,
 }: MissionSettingsTabProps) => {
   // Block setting an end_date until at least one mission activity carries
   // an invoice (number or URL). Existing end_dates stay editable so we
@@ -115,7 +121,7 @@ const MissionSettingsTab = ({
   const { isDemoMode } = useDemoMode();
   const { data: activities } = useMissionActivities(missionId);
   const hasInvoice = !!activities?.some((a) => a.invoice_number?.trim() || a.invoice_url?.trim());
-  const endDateLocked = !endDate && !hasInvoice;
+  const endDateLocked = !hideBilling && !endDate && !hasInvoice;
 
   return (
     <>
@@ -192,7 +198,7 @@ const MissionSettingsTab = ({
       </div>
 
       {/* Multi-contact management */}
-      <MissionContacts missionId={missionId} />
+      <MissionContacts missionId={missionId} suggestions={contactSuggestions} />
 
       {/* Dates */}
       <div className="grid grid-cols-2 gap-3">
@@ -231,6 +237,7 @@ const MissionSettingsTab = ({
       </div>
 
       {/* Financials */}
+      {!hideBilling && (
       <div className="p-4 bg-muted/50 rounded-lg space-y-3">
         <h4 className="font-medium text-sm">Facturation (HT)</h4>
         <div className="grid grid-cols-3 gap-3">
@@ -276,6 +283,7 @@ const MissionSettingsTab = ({
           </div>
         )}
       </div>
+      )}
 
       {/* Color */}
       <div>
