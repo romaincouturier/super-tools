@@ -69,6 +69,24 @@ const MissionContacts = ({ missionId, suggestions }: MissionContactsProps) => {
     }
   };
 
+  const handleQuickAdd = async (s: ContactSuggestion) => {
+    try {
+      const isPrimary = !contacts || contacts.length === 0;
+      await createContact.mutateAsync({
+        mission_id: missionId,
+        is_primary: isPrimary,
+        language: "fr",
+        email: s.email,
+        first_name: s.first_name || null,
+        last_name: s.last_name || null,
+      });
+    } catch (err: unknown) {
+      toastError(toast, err instanceof Error ? err : "Erreur inconnue");
+    }
+  };
+
+
+
   const handleUpdate = async (contact: MissionContact, field: string, value: string | boolean) => {
     try {
       // Booleans must be passed as-is (false ≠ null), only empty strings become null
