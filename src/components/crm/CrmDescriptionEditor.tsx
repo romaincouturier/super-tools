@@ -231,6 +231,7 @@ const CrmDescriptionEditor = ({
         </span>
       </div>
 
+      <TableBubbleMenu editor={editor} />
       <EditorContent editor={editor} />
       {linkDialog}
 
