@@ -33,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   useSupertiltActions,
   useSupertiltColumns,
+  useEnsureActionMission,
   type SupertiltAction,
 } from "@/hooks/useSupertilt";
 import GenericKanbanBoard from "@/components/shared/kanban/GenericKanbanBoard";
@@ -40,6 +41,9 @@ import AddColumnDialog from "@/components/shared/AddColumnDialog";
 import type { KanbanColumnDef, KanbanCardDef } from "@/types/kanban";
 import SupertiltActionCard from "@/components/supertilt/SupertiltActionCard";
 import SupertiltActionDialog from "@/components/supertilt/SupertiltActionDialog";
+import MissionDetailDrawer from "@/components/missions/MissionDetailDrawer";
+import { fetchMissionById } from "@/services/missions";
+import { useQuery } from "@tanstack/react-query";
 
 interface SystemUser {
   user_id: string;
@@ -83,6 +87,44 @@ const SuperTilt = () => {
   const [renameValue, setRenameValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SupertiltKanbanColumn | null>(null);
   const [editingAction, setEditingAction] = useState<SupertiltAction | null>(null);
+  // Card click opens the full mission workspace (pages, documents, gallery)
+  const [openedAction, setOpenedAction] = useState<SupertiltAction | null>(null);
+  const [openedMissionId, setOpenedMissionId] = useState<string | null>(null);
+  const ensureMission = useEnsureActionMission();
+
+  const { data: openedMission } = useQuery({
+    queryKey: ["mission-by-id", openedMissionId],
+    queryFn: () => fetchMissionById(openedMissionId as string),
+    enabled: !!openedMissionId,
+  });
+
+  const contactSuggestions = useMemo(
+    () =>
+      systemUsers
+        .filter((u) => !!u.email)
+        .map((u) => ({
+          email: u.email,
+          first_name: u.display_name || u.email,
+        })),
+    [systemUsers],
+  );
+
+  const handleOpenAction = async (action: SupertiltAction) => {
+    setOpenedAction(action);
+    const id = action.mission_id ?? (await ensureMission.mutateAsync(action).catch(() => null));
+    if (id) setOpenedMissionId(id);
+    else setOpenedAction(null);
+  };
+
+  const handleCloseMission = (open: boolean) => {
+    if (open) return;
+    // Keep the action title in sync with the mission title edited in the drawer
+    if (openedAction && openedMission && openedMission.title !== openedAction.title) {
+      updateAction.mutate({ id: openedAction.id, title: openedMission.title });
+    }
+    setOpenedAction(null);
+    setOpenedMissionId(null);
+  };
 
   const isLoading = actionsLoading || columnsLoading;
 
@@ -171,6 +213,7 @@ const SuperTilt = () => {
                 onToggle={(checked) =>
                   updateAction.mutate({ id: card.id, is_completed: checked })
                 }
+                onEdit={() => setEditingAction(card)}
               />
             )}
             renderColumnHeader={(col, colCards, dragHandle) => (
@@ -222,7 +265,7 @@ const SuperTilt = () => {
             onColumnReorder={async (ids) => {
               await reorderColumns.mutateAsync(ids);
             }}
-            onCardClick={(card) => setEditingAction(card)}
+            onCardClick={(card) => handleOpenAction(card)}
           />
         </div>
       </main>
@@ -318,6 +361,14 @@ const SuperTilt = () => {
           if (!editingAction) return;
           deleteAction.mutate(editingAction.id);
         }}
+      />
+      {/* Full mission workspace for the clicked action */}
+      <MissionDetailDrawer
+        mission={openedMission ?? null}
+        open={!!openedMissionId && !!openedMission}
+        onOpenChange={handleCloseMission}
+        hideBilling
+        contactSuggestions={contactSuggestions}
       />
     </ModuleLayout>
   );
