@@ -296,6 +296,7 @@ const SendDeliverablesDialog = ({
                 {allContacts.map((contact) => {
                   const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
                   const hasEmail = !!contact.email;
+                  const sendState = hasEmail ? getSendState(contact) : null;
                   return (
                     <label
                       key={contact.id}
@@ -322,10 +323,32 @@ const SendDeliverablesDialog = ({
                             ({contact.role})
                           </span>
                         )}
+                        {sendState?.isUpdate && (
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                              Déjà destinataire
+                              {sendState.lastSentAt
+                                ? ` le ${new Date(sendState.lastSentAt).toLocaleDateString("fr-FR")}`
+                                : ""}
+                            </span>
+                            <span
+                              className={`text-[11px] px-1.5 py-0.5 rounded ${
+                                sendState.newItems.length > 0
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {sendState.newItems.length > 0
+                                ? `${sendState.newItems.length} nouveau(x) élément(s)`
+                                : "aucune nouveauté"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </label>
                   );
                 })}
+
               </div>
               {contactsWithEmail.length === 0 && (
                 <p className="text-xs text-amber-600 mt-2">
