@@ -1,4 +1,4 @@
-CREATE TABLE public.backup_runs (
+CREATE TABLE IF NOT EXISTS public.backup_runs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   run_date DATE NOT NULL DEFAULT (now() AT TIME ZONE 'Europe/Paris')::date,
   status TEXT NOT NULL DEFAULT 'running',
@@ -18,18 +18,20 @@ CREATE TABLE public.backup_runs (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_backup_runs_status ON public.backup_runs (status, last_activity_at DESC);
-CREATE INDEX idx_backup_runs_started ON public.backup_runs (started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_backup_runs_status ON public.backup_runs (status, last_activity_at DESC);
+CREATE INDEX IF NOT EXISTS idx_backup_runs_started ON public.backup_runs (started_at DESC);
 
 GRANT SELECT ON public.backup_runs TO authenticated;
 GRANT ALL ON public.backup_runs TO service_role;
 
 ALTER TABLE public.backup_runs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can view backup runs" ON public.backup_runs;
 CREATE POLICY "Staff can view backup runs"
 ON public.backup_runs FOR SELECT TO authenticated
 USING (public.is_staff_user());
 
+DROP TRIGGER IF EXISTS update_backup_runs_updated_at ON public.backup_runs;
 CREATE TRIGGER update_backup_runs_updated_at
 BEFORE UPDATE ON public.backup_runs
 FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

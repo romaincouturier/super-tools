@@ -2,10 +2,19 @@ import DOMPurify from "dompurify";
 
 /**
  * Sanitizer partagé pour le HTML saisi par les auteurs dans les blocs LMS
- * (consignes d'exercice, corrigés). Autorise les balises HTML classiques
- * (comportement DOMPurify par défaut) plus les iframes d'embed, avec :
+ * (consignes d'exercice, corrigés) et pour le rendu des pages de mission.
+ * Autorise les balises HTML classiques (comportement DOMPurify par défaut)
+ * plus les iframes d'embed, avec :
  * - src http(s) uniquement (javascript:, data:, protocol-relative -> iframe supprimée)
  * - allowlist stricte d'attributs sur les iframes
+ *
+ * Le SVG inline est conservé : c'est ainsi qu'un schéma vectoriel produit par
+ * l'agent (save_mission_note du serveur MCP) s'affiche dans une page. Le
+ * profil SVG de DOMPurify tient l'invariant de sécurité — script, handlers
+ * `on*` et foreignObject restent supprimés. Les balises sont listées
+ * explicitement plutôt que laissées au défaut de la bibliothèque : un
+ * `USE_PROFILES` ou un `ALLOWED_TAGS` ajouté ici plus tard les ferait
+ * disparaître sans bruit.
  */
 
 const IFRAME_ALLOWED_ATTRS = new Set([
@@ -39,9 +48,70 @@ purify.addHook("uponSanitizeAttribute", (node, data) => {
   }
 });
 
+const SVG_TAGS = [
+  "svg",
+  "g",
+  "defs",
+  "marker",
+  "path",
+  "rect",
+  "circle",
+  "ellipse",
+  "line",
+  "polyline",
+  "polygon",
+  "text",
+  "tspan",
+];
+
+const SVG_ATTRS = [
+  "viewbox",
+  "preserveaspectratio",
+  "xmlns",
+  "d",
+  "points",
+  "transform",
+  "fill",
+  "fill-opacity",
+  "fill-rule",
+  "stroke",
+  "stroke-width",
+  "stroke-opacity",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-dasharray",
+  "x",
+  "y",
+  "x1",
+  "y1",
+  "x2",
+  "y2",
+  "cx",
+  "cy",
+  "r",
+  "rx",
+  "ry",
+  "dx",
+  "dy",
+  "font-size",
+  "font-family",
+  "font-weight",
+  "text-anchor",
+  "dominant-baseline",
+  "opacity",
+  "marker-start",
+  "marker-mid",
+  "marker-end",
+  "markerwidth",
+  "markerheight",
+  "refx",
+  "refy",
+  "orient",
+];
+
 const SANITIZE_CONFIG = {
-  ADD_TAGS: ["iframe"],
-  ADD_ATTR: ["allow", "allowfullscreen", "frameborder"],
+  ADD_TAGS: ["iframe", ...SVG_TAGS],
+  ADD_ATTR: ["allow", "allowfullscreen", "frameborder", ...SVG_ATTRS],
 };
 
 function escapeHtml(text: string): string {
