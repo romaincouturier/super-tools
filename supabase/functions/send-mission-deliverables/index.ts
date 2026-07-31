@@ -276,10 +276,28 @@ serve(async (req) => {
         bcc: bccList,
         subject: processedSubject,
         html: fullHtml,
-        _emailType: "mission_deliverables",
+        _emailType: isUpdate ? "mission_deliverables_update" : "mission_deliverables",
       });
 
-      results.push({ email, success: result.success, error: result.error });
+      results.push({
+        email,
+        success: result.success,
+        error: result.error,
+        is_update: isUpdate,
+        new_items: newItems.length,
+      });
+
+      if (result.success) {
+        const { error: logError } = await supabase.from("mission_deliverable_sends").insert({
+          mission_id,
+          contact_id: contact_id || null,
+          email,
+          item_keys: currentKeys,
+          new_item_keys: newItems.map((i) => i.key),
+        });
+        if (logError) console.warn("Failed to log deliverable send:", logError);
+      }
+
 
       // Rate limit: 600ms between emails
       if (recipients.indexOf(recipient) < recipients.length - 1) {
