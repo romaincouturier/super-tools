@@ -252,7 +252,12 @@ const SendDeliverablesDialog = ({
       formal_address: !!(c as any).formal_address,
     }));
 
-    const result = await invokeSend({ mission_id: missionId, recipients, subject });
+    const result = await invokeSend({
+      mission_id: missionId,
+      recipients,
+      subject,
+      subject_update: subjectUpdate,
+    });
     if (result !== null) {
       toast({
         title: "Emails envoyés",
