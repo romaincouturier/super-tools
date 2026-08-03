@@ -5,7 +5,15 @@
  * Go/No Go : échéance, titulaire sortant, pondération des critères,
  * allotissement, montant et durée, puis l'historique avec cet acheteur.
  */
-import { AlertTriangle, Building2, CalendarClock, ExternalLink, FileDown, Layers } from "lucide-react";
+import {
+  AlertTriangle,
+  Building2,
+  CalendarClock,
+  ExternalLink,
+  FileDown,
+  Layers,
+  Maximize2,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +27,8 @@ interface TenderCardProps {
   onGo: () => void;
   onNoGo: () => void;
   onReopen: () => void;
+  /** Ouvre la fiche détaillée : texte intégral de l'avis, lots, contact. */
+  onOpen: () => void;
   decided?: boolean;
 }
 
@@ -45,7 +55,7 @@ function DeadlineBadge({ deadline }: { deadline: string | null }) {
   );
 }
 
-export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCardProps) {
+export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: TenderCardProps) {
   const d = tender.decision ?? {};
   const prix = d.criteres?.find((c) => /prix/i.test(c.libelle));
   // Un marché majoritairement noté sur le prix n'est pas pour SuperTilt :
@@ -58,7 +68,13 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-medium leading-snug">{tender.objet || "(sans objet)"}</p>
+            <button
+              type="button"
+              onClick={onOpen}
+              className="font-medium leading-snug text-left hover:underline"
+            >
+              {tender.objet || "(sans objet)"}
+            </button>
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
               <Building2 className="h-3.5 w-3.5 shrink-0" />
               {tender.acheteur || "Acheteur non précisé"}
@@ -90,7 +106,8 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
               className={cn(prixDominant && /prix/i.test(c.libelle) && "border-destructive text-destructive")}
             >
               {c.libelle}
-              {c.poids !== null ? ` ${c.poids}%` : ""}
+              {c.poids !== null ? ` ${c.poids} %` : ""}
+              {prixDominant && /prix/i.test(c.libelle) ? " — critère dominant" : ""}
             </Badge>
           ))}
           {d.montant != null && (
@@ -152,6 +169,10 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
         )}
 
         <div className="flex flex-wrap items-center gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={onOpen}>
+            <Maximize2 className="h-3.5 w-3.5 mr-1.5" />
+            Détails
+          </Button>
           {tender.url_avis && (
             <Button variant="outline" size="sm" asChild>
               <a href={tender.url_avis} target="_blank" rel="noopener noreferrer">
