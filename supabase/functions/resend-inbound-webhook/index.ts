@@ -427,14 +427,13 @@ async function verifyWebhookSignature(
 
 // Extract email and name from "Name <email@domain.com>" format
 function parseEmailAddress(address: string): { email: string; name: string | null } {
-  const match = address.match(/^(?:"?([^"<]*)"?\s*)?<?([^>]+)>?$/);
-  if (match) {
-    return {
-      name: match[1]?.trim() || null,
-      email: match[2]?.trim() || address,
-    };
+  const raw = (address ?? "").trim();
+  const angle = raw.match(/^(.*?)<([^<>]+)>\s*$/);
+  if (angle) {
+    const name = angle[1].trim().replace(/^"(.*)"$/, "$1").trim();
+    return { email: angle[2].trim(), name: name || null };
   }
-  return { email: address, name: null };
+  return { email: raw, name: null };
 }
 
 serve(async (req) => {
