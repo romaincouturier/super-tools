@@ -45,15 +45,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
-    const folderId = get("google_drive_folder_transcripts");
+    // Plusieurs dossiers possibles, séparés par des virgules
+    const folderIds = get("google_drive_folder_transcripts")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
-    if (!folderId) {
+    if (folderIds.length === 0) {
       return new Response(
         JSON.stringify({ skipped: true, reason: "google_drive_folder_transcripts not configured" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     if (!ASSEMBLYAI_API_KEY) {
       return new Response(
@@ -154,7 +159,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    await assertDriveFolderAccessible(folderId, accessToken);
+    for (const folderId of folderIds) {
+      await assertDriveFolderAccessible(folderId, accessToken);
+    }
 
     const { data: cursorRow } = await (admin as any)
       .from("polling_cursors")
@@ -166,10 +173,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (cursorRow as { cursor?: string; last_synced_at?: string } | null)?.last_synced_at,
     );
 
-    const { files } = await listDriveFolder(folderId, accessToken, {
-      modifiedAfter,
-      mimeTypePrefix: "video/",
-    });
+    const files: Array<{ id: string; name: string }> = [];
+    const seenFileIds = new Set<string>();
+    for (const folderId of folderIds) {
+      const { files: folderFiles } = await listDriveFolder(folderId, accessToken, {
+        modifiedAfter,
+        mimeTypePrefix: "video/",
+      });
+      for (const file of folderFiles) {
+        if (seenFileIds.has(file.id)) continue;
+        seenFileIds.add(file.id);
+        files.push(file);
+      }
+    }
+
 
     // Filter to files not already queued, while retrying stuck rows with no AssemblyAI job.
     const existingRows = files.length > 0
