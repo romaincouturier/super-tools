@@ -70,7 +70,7 @@ const TABLES_TO_BACKUP = [
   "network_actions", "network_contacts", "network_conversation", "network_interactions",
   "newsletter_cards", "newsletter_comments", "newsletters",
   "okr_check_ins", "okr_initiatives", "okr_key_results", "okr_objectives", "okr_participants",
-  "okr_scheduled_emails",
+  
   "order_email_log", "order_items", "org_members", "organizations",
   "participant_files", "partner_access_tokens", "partner_payments",
   "pictodico_challenges", "pictodico_words",
