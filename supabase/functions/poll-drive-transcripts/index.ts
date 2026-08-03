@@ -45,15 +45,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (settingsRows as Array<{ setting_key: string; setting_value: string }>)
         ?.find((s) => s.setting_key === k)?.setting_value ?? "";
 
-    const folderId = get("google_drive_folder_transcripts");
+    // Plusieurs dossiers possibles, séparés par des virgules
+    const folderIds = get("google_drive_folder_transcripts")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     const slackChannel = get("slack_content_channel") || "publications-réso-sociaux";
 
-    if (!folderId) {
+    if (folderIds.length === 0) {
       return new Response(
         JSON.stringify({ skipped: true, reason: "google_drive_folder_transcripts not configured" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
 
     if (!ASSEMBLYAI_API_KEY) {
       return new Response(
