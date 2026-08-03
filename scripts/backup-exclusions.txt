@@ -7,3 +7,7 @@ formulaire_rate_limits
 indexation_queue
 pictodico_rate_limit
 backup_runs
+# okr_scheduled_emails : table declaree en migration mais jamais creee en prod et
+# inutilisee par le code (aucune reference hors backup). Son export faisait echouer
+# chaque run (dbErrors > 0) et declenchait l alerte "aucune sauvegarde depuis 24h".
+okr_scheduled_emails

@@ -9,7 +9,7 @@ import {
   useWpHits, useWpVisitors, useWpSearch,
 } from "@/hooks/useWpStatistics";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area } from "recharts";
-import { PERIOD_LABELS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
+import { PERIOD_LABELS, DEFAULT_PERIODS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
 
 // Concrete palette — avoids relying on `--chart-N` CSS vars which may be
 // undefined in some themes and would render the pie cells as solid black.
@@ -339,7 +339,7 @@ const WpStatisticsDashboard = () => {
           variant="outline"
           size="sm"
         >
-          {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+          {DEFAULT_PERIODS.map((p) => (
             <ToggleGroupItem key={p} value={p} aria-label={PERIOD_LABELS[p]}>
               {PERIOD_LABELS[p]}
             </ToggleGroupItem>

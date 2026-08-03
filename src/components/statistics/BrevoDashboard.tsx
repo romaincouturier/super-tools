@@ -9,7 +9,7 @@ import { useBrevoOverview, type BrevoCampaign } from "@/hooks/useBrevoStatistics
 import { ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area } from "recharts";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
-import { PERIOD_LABELS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
+import { PERIOD_LABELS, DEFAULT_PERIODS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
 import { reportHandledError } from "@/lib/sentry";
 
 const fmtNum = (v: number) => v.toLocaleString("fr-FR");
@@ -120,7 +120,7 @@ const BrevoDashboard = () => {
             variant="outline"
             size="sm"
           >
-            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            {DEFAULT_PERIODS.map((p) => (
               <ToggleGroupItem key={p} value={p} aria-label={PERIOD_LABELS[p]}>
                 {PERIOD_LABELS[p]}
               </ToggleGroupItem>
