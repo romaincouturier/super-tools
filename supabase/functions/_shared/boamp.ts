@@ -82,6 +82,8 @@ function dig(obj: Json, ...path: string[]): Json {
     cur = cur[key];
   }
   return cur;
+}
+
 
 /**
  * Cherche récursivement toutes les valeurs portées par une clé, où qu'elle
