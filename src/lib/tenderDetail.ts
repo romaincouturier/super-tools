@@ -68,6 +68,24 @@ export interface TenderDetail {
   typeMarche: string | null;
 }
 
+/**
+ * Intitulés des lots. On descend d'abord sur les noeuds de lot pour ne pas
+ * ramasser les noms d'organisations, qui portent la même clé `cbc:Name`.
+ */
+function lotNames(raw: Json): string[] {
+  const lots = collect(raw, (k) => k.toLowerCase().split(":").pop() === "procurementprojectlot");
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const lot of lots.flat ? lots : lots) {
+    for (const name of texts(lot, "Name")) {
+      if (name.length < 5 || name.length > 300 || seen.has(name)) continue;
+      seen.add(name);
+      out.push(name);
+    }
+  }
+  return out.slice(0, 12);
+}
+
 export function extractTenderDetail(raw: unknown): TenderDetail {
   if (!raw || typeof raw !== "object") {
     return {
@@ -90,9 +108,7 @@ export function extractTenderDetail(raw: unknown): TenderDetail {
 
   return {
     descriptions,
-    lots: texts(raw, "Name")
-      .filter((t) => t.length > 5 && t.length < 300)
-      .slice(0, 12),
+    lots: lotNames(raw),
     descripteurs: asText(rec.descripteur_libelle),
     villes: texts(raw, "CityName").slice(0, 4),
     emails: texts(raw, "ElectronicMail").slice(0, 3),
