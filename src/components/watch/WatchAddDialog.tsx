@@ -39,10 +39,18 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [transcriptId, setTranscriptId] = useState<string | null>(null);
+  const [transcriptSearch, setTranscriptSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addMutation = useAddWatchItem();
   const queryClient = useQueryClient();
+
+  const { data: transcriptList = [], isLoading: transcriptsLoading } = useTranscripts({
+    search: transcriptSearch || undefined,
+    status: "ready",
+  });
+  const { data: selectedTranscript } = useTranscript(tab === "transcript" ? transcriptId : null);
 
   const reset = () => {
     setTitle("");
@@ -54,8 +62,11 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setAssignedUserIds([]);
     setFile(null);
     setDuplicateWarning(null);
+    setTranscriptId(null);
+    setTranscriptSearch("");
     setTab("text");
   };
+
 
   const addTag = (tag: string) => {
     const t = tag.trim().toLowerCase();
