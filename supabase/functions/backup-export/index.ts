@@ -154,7 +154,7 @@ const TABLES_TO_BACKUP = [
   "okr_key_results",
   "okr_objectives",
   "okr_participants",
-  "okr_scheduled_emails",
+  
   "order_email_log",
   "order_items",
   "org_members",
