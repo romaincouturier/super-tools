@@ -426,6 +426,56 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
               />
             </TabsContent>
 
+            <TabsContent value="transcript" className="mt-0 space-y-2">
+              <Label>Transcript existant</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrer par titre..."
+                  value={transcriptSearch}
+                  onChange={(e) => setTranscriptSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <ScrollArea className="h-[220px] pr-2 border rounded-md">
+                {transcriptsLoading && <div className="p-3"><Spinner /></div>}
+                {!transcriptsLoading && transcriptList.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Aucun transcript disponible
+                  </p>
+                )}
+                <div className="p-1 space-y-1">
+                  {transcriptList.map((t) => {
+                    const selected = t.id === transcriptId;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTranscriptId(selected ? null : t.id)}
+                        className={`w-full text-left p-2 rounded flex items-center gap-2 transition-colors ${selected ? "bg-accent" : "hover:bg-accent/60"}`}
+                      >
+                        <FileAudio className="h-4 w-4 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {t.ai_title || t.title || "Sans titre"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(t.created_at), "d MMM yyyy", { locale: fr })}
+                            {t.duration_seconds ? ` • ${Math.round(t.duration_seconds / 60)} min` : ""}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+              <p className="text-xs text-muted-foreground">
+                Le contenu du transcript (résumé + texte) sera ajouté à la veille et analysé par l'IA.
+              </p>
+            </TabsContent>
+
+
+
             {/* Comment — contexte libre saisi par l'utilisateur */}
             <div>
               <Label htmlFor="watch-comment">Commentaire (optionnel)</Label>
