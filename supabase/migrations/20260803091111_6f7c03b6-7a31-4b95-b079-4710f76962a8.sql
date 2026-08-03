@@ -1,0 +1,1 @@
+UPDATE public.app_settings SET setting_value = 'sc-domain:supertilt.fr' WHERE setting_key = 'gsc_site_url';
