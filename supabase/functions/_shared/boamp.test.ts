@@ -251,6 +251,42 @@ describe("mapBoampRecord — robustesse", () => {
   });
 });
 
+describe("fullTextOf, via mapBoampRecord", () => {
+  it("ramasse la prose de l'avis, pas seulement le titre", () => {
+    // Le cas qui a motivé le changement : le terme métier vit dans l'intitulé
+    // d'un lot, jamais dans le titre.
+    const t = mapBoampRecord({
+      idweb: "23-9",
+      objet: "Prestations en design de services et parcours utilisateurs",
+      descripteur_libelle: ["Prestations de services"],
+      donnees: JSON.stringify({
+        OBJET: {
+          OBJET_COMPLET: "Accord-cadre de prestations de design de services",
+          LOTS: { LOT: [{ INTITULE: "Intelligence collective et facilitation" }] },
+        },
+      }),
+    });
+    expect(t.full_text).toContain("Intelligence collective et facilitation");
+    expect(t.full_text).toContain("Accord-cadre de prestations");
+    expect(t.full_text).toContain("Prestations de services");
+  });
+
+  it("ignore les clauses administratives du JSON brut", () => {
+    const t = mapBoampRecord({
+      idweb: "23-10",
+      objet: "Marché de conseil",
+      donnees: JSON.stringify({
+        OBJET: { OBJET_COMPLET: "Conseil en organisation" },
+        RENSEIGNEMENTS_COMPLEMENTAIRES: {
+          ADRESSES_COMPLEMENTAIRES: { ADRESSE: { DENOMINATION: "Tribunal administratif" } },
+        },
+      }),
+    });
+    expect(t.full_text).toContain("Conseil en organisation");
+    expect(t.full_text).not.toContain("Tribunal");
+  });
+});
+
 describe("buildBoampWhere", () => {
   it("compose natures, date, CPV plein texte et mots-clés", () => {
     const where = buildBoampWhere({
@@ -262,6 +298,9 @@ describe("buildBoampWhere", () => {
     expect(where).toContain('(nature="APPEL_OFFRE" OR nature="ATTRIBUTION")');
     expect(where).toContain("dateparution >= date'2026-08-01'");
     expect(where).toContain('"79822500" OR "80530000"');
-    expect(where).toContain('search(objet, "facilitation graphique")');
+    // Plein texte : le titre seul ratait les avis dont le terme métier vit
+    // dans la description ou dans un lot.
+    expect(where).toContain('"facilitation graphique"');
+    expect(where).not.toContain("search(objet");
   });
 });

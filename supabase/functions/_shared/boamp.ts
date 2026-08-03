@@ -26,6 +26,28 @@ export const BOAMP_BASE =
 // deno-lint-ignore no-explicit-any
 type Json = any;
 
+/**
+ * Prose de l'avis : titre, descripteurs métier, objet complet, intitulés des
+ * lots et critères. C'est là-dessus que les mots-clés sont cherchés, et non
+ * sur le seul titre.
+ *
+ * Volontairement pas le JSON brut entier : il contient les clauses
+ * administratives, les adresses de tribunal et les conditions de paiement, où
+ * n'importe quel mot finit par apparaître.
+ */
+function fullTextOf(record: Json, donnees: Json, decision: TenderDecisionInfo): string {
+  const parts: Array<string | null> = [
+    textOf(record?.objet),
+    ...asArray(record?.descripteur_libelle).map((v: Json) => textOf(v)),
+    ...deepFind(donnees, "OBJET_COMPLET").map((v) => textOf(v)),
+    ...deepFind(donnees, "TITRE_MARCHE").map((v) => textOf(v)),
+    ...deepFind(donnees, "cbc:Description").map((v) => textOf(v)),
+    ...decision.lots,
+    ...decision.criteres.map((c) => c.libelle),
+  ];
+  return parts.filter(Boolean).join(" ");
+}
+
 /** Ligne normalisée, prête pour `tender_opportunities`. */
 export interface NormalizedTender {
   source: string;
@@ -42,6 +64,8 @@ export interface NormalizedTender {
   datelimitereponse: string | null;
   /** Éléments d'aide à la décision, extraits des deux schémas. */
   decision: TenderDecisionInfo;
+  /** Prose de l'avis, sur laquelle porte la recherche par mots-clés. */
+  full_text: string;
   raw: Json;
   parse_error: string | null;
 }
@@ -426,6 +450,7 @@ export function mapBoampRecord(record: Json): NormalizedTender {
     dateparution: textOf(record?.dateparution),
     datelimitereponse: deadlineOf(record, donnees),
     decision,
+    full_text: fullTextOf(record, donnees, decision),
     raw: record,
     parse_error: parseError,
   };
@@ -445,9 +470,14 @@ export function buildBoampWhere(opts: {
   keywords: string[];
 }): string {
   const natures = opts.natures.map((n) => `nature="${n}"`).join(" OR ");
+  // Plein texte et non `search(objet, …)` : mesuré sur deux mois d'ingestion,
+  // le titre seul ramenait 1 avis sur « facilitation » et 0 sur « intelligence
+  // collective », alors que ces termes vivent dans la description ou dans
+  // l'intitulé d'un lot. Le marché DITP, dont le lot 4 s'appelle
+  // « Intelligence collective et facilitation », passait entièrement à côté.
   const terms = [
     ...opts.cpvCodes.map((c) => `"${c}"`),
-    ...opts.keywords.map((k) => `search(objet, "${k.replace(/"/g, "")}")`),
+    ...opts.keywords.map((k) => `"${k.replace(/"/g, "")}"`),
   ];
   return `(${natures}) AND dateparution >= date'${opts.since}' AND (${terms.join(" OR ")})`;
 }
