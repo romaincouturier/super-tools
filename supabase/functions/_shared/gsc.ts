@@ -76,7 +76,12 @@ export async function getGscSiteUrl(admin: SupabaseClient): Promise<string | nul
     .eq("setting_key", "gsc_site_url")
     .maybeSingle();
   const value = (data as { setting_value?: string } | null)?.setting_value?.trim();
-  return value || null;
+  if (!value) return null;
+  // Corrige les saisies du type "sc-domain:https://www.exemple.fr/" que
+  // l'API refuse avec un 400 invalidParameter.
+  const domainMatch = value.match(/^sc-domain:\s*(?:https?:\/\/)?(?:www\.)?([^/\s]+)\/?$/i);
+  if (domainMatch) return `sc-domain:${domainMatch[1].toLowerCase()}`;
+  return value;
 }
 
 function apiBase(siteUrl: string): string {
