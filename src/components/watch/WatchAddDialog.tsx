@@ -7,15 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users, FileAudio, Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
 import { resolveContentType } from "@/lib/file-utils";
+import { useTranscripts, useTranscript } from "@/hooks/useTranscripts";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import WatchRichEditor, { stripWatchHtml } from "./WatchRichEditor";
 import { extractMentionedUserIdsFromHtml } from "@/lib/tiptapMentionSuggestion";
 import MultiUserSelector from "@/components/shared/MultiUserSelector";
+
 
 interface WatchAddDialogProps {
   allTags: string[];
