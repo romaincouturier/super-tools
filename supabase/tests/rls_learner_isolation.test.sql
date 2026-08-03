@@ -41,7 +41,8 @@ insert into staff_tables values
   ('training_support_templates'), ('training_support_template_sections'),
   ('training_support_media'), ('training_support_imports'),
   ('coaching_summaries'), ('evaluation_analyses'), ('woocommerce_coupons'),
-  ('session_start_notifications'), ('agent_schema_registry');
+  ('session_start_notifications'), ('agent_schema_registry'),
+  ('tender_opportunities');
 
 select is(
   (select count(*)::int from staff_tables s

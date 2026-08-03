@@ -85,6 +85,7 @@ const TABLES_TO_BACKUP = [
   "sponsor_cold_evaluations", "stakeholder_appreciations", "subscriptions",
   "supertilt_actions", "supertilt_columns", "supertilt_settings",
   "support_ticket_attachments", "support_tickets",
+  "tender_opportunities",
   "testimonials", "time_entries",
   "trainer_attendance_signatures", "trainer_documents", "trainer_evaluations",
   "trainer_training_adequacy", "trainers",

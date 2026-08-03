@@ -6,6 +6,7 @@
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { daysUntil } from "./tender-tools.ts";
 
 // ─── Types ───────────────────────────────────────────────────────────
 export interface Recipient {
@@ -199,6 +200,21 @@ export interface OkrInitiativeItem {
   objectiveTitle: string;
   keyResultTitle: string;
   progressPercentage: number;
+}
+
+export interface TenderItem {
+  id: string;
+  objet: string;
+  acheteur: string | null;
+  source: string;
+  deadline: string | null;
+  daysLeft: number | null;
+}
+
+export interface TenderBacklogItem {
+  /** Avis reçus mais jamais analysés, et depuis combien de jours. */
+  count: number;
+  oldestDays: number;
 }
 
 export interface SupportTicketItem {
@@ -1474,6 +1490,93 @@ export async function fetchLmsCommunityPending(supabase: SupabaseClient): Promis
 
 // ─── Convenience: fetch everything at once ───────────────────────────
 
+
+/**
+ * Appels d'offres publics en attente de décision.
+ *
+ * Remontés par urgence, pas par date d'arrivée : un avis à J-5 doit revenir
+ * tous les matins, un avis à J-40 n'a rien à faire dans la liste du jour. Les
+ * avis sans date limite publiée remontent aussi, ils ne peuvent simplement pas
+ * être priorisés.
+ */
+export async function fetchTendersToDecide(
+  supabase: SupabaseClient,
+  today: string,
+): Promise<TenderItem[]> {
+  const HORIZON_DAYS = 21;
+
+  const { data, error } = await supabase
+    .from("tender_opportunities")
+    .select("id, objet, acheteur, source, datelimitereponse")
+    .in("status", ["raw", "to_review"])
+    .is("duplicate_of", null)
+    .order("datelimitereponse", { ascending: true, nullsFirst: false })
+    .limit(50);
+
+  if (error) {
+    console.error("fetchTendersToDecide error:", error.message);
+    return [];
+  }
+  if (!data || data.length === 0) return [];
+
+  const now = new Date(today);
+  // deno-lint-ignore no-explicit-any
+  return (data as any[])
+    .map((t) => {
+      const deadline = t.datelimitereponse as string | null;
+      const daysLeft = daysUntil(deadline, now);
+      return {
+        id: t.id as string,
+        objet: (t.objet as string) || "(sans objet)",
+        acheteur: (t.acheteur as string) ?? null,
+        source: (t.source as string) ?? "boamp",
+        deadline,
+        daysLeft,
+      };
+    })
+    // Une échéance dépassée n'a plus à être proposée : le cron d'expiration
+    // la sortira de la liste, inutile d'en parler ce matin.
+    .filter((t) => t.daysLeft === null || (t.daysLeft >= 0 && t.daysLeft <= HORIZON_DAYS));
+}
+
+
+/**
+ * Santé du flux de détection.
+ *
+ * Un avis reste en `raw` tant qu'il n'a pas été analysé. Une file qui stagne
+ * est le seul symptôme visible d'une chaîne cassée : sans cette alerte, une
+ * ingestion en panne ou une analyse qui ne tourne plus passe inaperçue, et on
+ * s'en aperçoit en ratant une échéance.
+ */
+export async function fetchTenderBacklog(
+  supabase: SupabaseClient,
+  today: string,
+): Promise<TenderBacklogItem | null> {
+  const STALE_DAYS = 3;
+  const cutoff = new Date(new Date(today).getTime() - STALE_DAYS * 86400000).toISOString();
+
+  const { data, error } = await supabase
+    .from("tender_opportunities")
+    .select("created_at")
+    .eq("status", "raw")
+    .is("duplicate_of", null)
+    .lt("created_at", cutoff)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    console.error("fetchTenderBacklog error:", error.message);
+    return null;
+  }
+  if (!data || data.length === 0) return null;
+
+  const oldest = new Date(data[0].created_at as string).getTime();
+  return {
+    count: data.length,
+    oldestDays: Math.max(0, Math.floor((new Date(today).getTime() - oldest) / 86400000)),
+  };
+}
+
 export interface DailyData {
   recipients: Recipient[];
   missionActions: MissionActionItem[];
@@ -1494,6 +1597,8 @@ export interface DailyData {
   reservations: ReservationItem[];
   okrInitiatives: OkrInitiativeItem[];
   supportTickets: SupportTicketItem[];
+  tendersToDecide: TenderItem[];
+  tenderBacklog: TenderBacklogItem | null;
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
   supertiltAlerts: SupertiltAlertItem[];
@@ -1528,6 +1633,8 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reservations,
     okrInitiatives,
     supportTickets,
+    tendersToDecide,
+    tenderBacklog,
     pendingEmailDrafts,
     logisticsReminders,
     supertiltAlerts,
@@ -1556,6 +1663,8 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchReservationAlerts(supabase, today),
     fetchOkrInitiatives(supabase),
     fetchPendingSupportTickets(supabase, today),
+    fetchTendersToDecide(supabase, today),
+    fetchTenderBacklog(supabase, today),
     fetchPendingEmailDrafts(supabase),
     fetchLogisticsReminders(supabase, today),
     fetchSupertiltAlerts(supabase),
@@ -1571,7 +1680,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
-    reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
+    reservations, okrInitiatives, supportTickets, tendersToDecide, tenderBacklog, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
     inProgressRestocks,

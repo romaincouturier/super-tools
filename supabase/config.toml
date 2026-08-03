@@ -445,6 +445,9 @@ verify_jwt = false
 
 [functions.gsc-statistics]
 verify_jwt = false
+[functions.boamp-sync]
+verify_jwt = false
+
 [functions.gsc-sync]
 verify_jwt = false
 

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Trash2,
+  XCircle,
 } from "lucide-react";
 import DOMPurify from "dompurify";
 import { isWonColumnName, isLostColumnName } from "@/lib/crmColumnStatus";
@@ -877,6 +878,33 @@ const CardDetailDrawer = ({
 
           {/* Delete section */}
           <div className="mt-8 pt-4 border-t border-destructive/20">
+            {/* No Go : renoncer en gardant la trace et le motif. Vaut pour
+                toutes les opportunités, appel d'offres ou non — le motif est
+                la seule donnée qui explique après coup pourquoi on n'y est
+                pas allé. */}
+            <div className="p-4 bg-muted/40 rounded-lg space-y-3">
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <XCircle className="h-4 w-4" />
+                Renoncer
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Passe l'opportunité en perdue avec un motif obligatoire. Rien n'est supprimé, et le
+                statut commercial reste modifiable ensuite.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={salesStatus === "LOST"}
+                onClick={() => {
+                  setPendingLossStatus(true);
+                  setShowLossReasonDialog(true);
+                }}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                {salesStatus === "LOST" ? "Déjà écartée" : "No Go"}
+              </Button>
+            </div>
+
             <div className="p-4 bg-destructive/5 rounded-lg space-y-3">
               <h4 className="font-medium text-sm flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-4 w-4" />

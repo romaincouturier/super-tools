@@ -7,6 +7,8 @@ import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/b
 import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
+import { parseEmailAddress } from "../_shared/email-address.ts";
+import { inboundRecipients, routeTenderEmail } from "../_shared/tender-inbound.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
@@ -344,6 +346,8 @@ interface ResendInboundPayload {
     email_id: string;
     from: string;
     to: string[];
+    /** Destinataire d'enveloppe : seul fiable sur un mail transféré. */
+    received_for?: string[];
     cc?: string[];
     bcc?: string[];
     reply_to?: string[];
@@ -426,16 +430,6 @@ async function verifyWebhookSignature(
 }
 
 // Extract email and name from "Name <email@domain.com>" format
-function parseEmailAddress(address: string): { email: string; name: string | null } {
-  const raw = (address ?? "").trim();
-  const angle = raw.match(/^(.*?)<([^<>]+)>\s*$/);
-  if (angle) {
-    const name = angle[1].trim().replace(/^"(.*)"$/, "$1").trim();
-    return { email: angle[2].trim(), name: name || null };
-  }
-  return { email: raw, name: null };
-}
-
 serve(async (req) => {
   // Handle CORS
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -569,17 +563,47 @@ serve(async (req) => {
       console.log("Auto-linked email to participant:", matchingParticipant.id);
     }
 
-    // CRM: auto-create opportunity if email matches configured CRM address
-    let crmCardCreated = false;
+    // Marchés publics : les alertes PLACE / AWS alimentent la salle d'attente
+    // `tender_opportunities` et ne peuvent JAMAIS créer de carte CRM. Le
+    // routage se fait sur le destinataire d'enveloppe, seul fiable sur un mail
+    // transféré automatiquement. Voir docs/marches-publics.md.
+    const recipients = inboundRecipients(emailData);
+    let tender = { routed: false, source: null as string | null, created: false, reason: null as string | null };
     try {
-      crmCardCreated = await createCrmOpportunityFromEmail(
-        supabase,
-        emailData,
-        parsedFrom,
-        insertedEmail.id,
-      );
-    } catch (crmError) {
-      console.error("CRM auto-create error (non-fatal):", crmError);
+      tender = await routeTenderEmail(supabase, {
+        id: insertedEmail.id,
+        messageId: emailData.email_id,
+        subject: emailData.subject,
+        from: parsedFrom.email,
+        body: emailData.text ?? emailData.html ?? null,
+        recipients,
+      });
+    } catch (tenderError) {
+      // Non bloquant pour la réception, mais silencieux serait pire : si le
+      // routage casse, les alertes de marchés publics disparaissent sans que
+      // rien ne le signale (règle [037]).
+      console.error("Tender routing error (non-fatal):", tenderError);
+      await reportEdgeError(tenderError, {
+        fn: "resend-inbound-webhook",
+        phase: "tender-routing",
+      });
+    }
+
+    // CRM: auto-create opportunity if email matches configured CRM address.
+    // Jamais pour une alerte de marché public : c'est l'invariant qui protège
+    // le kanban commercial du flux d'appels d'offres.
+    let crmCardCreated = false;
+    if (!tender.routed) {
+      try {
+        crmCardCreated = await createCrmOpportunityFromEmail(
+          supabase,
+          emailData,
+          parsedFrom,
+          insertedEmail.id,
+        );
+      } catch (crmError) {
+        console.error("CRM auto-create error (non-fatal):", crmError);
+      }
     }
 
     return new Response(
@@ -587,6 +611,9 @@ serve(async (req) => {
         success: true,
         email_id: insertedEmail.id,
         crm_card_created: crmCardCreated,
+        tender_routed: tender.routed,
+        tender_source: tender.source,
+        tender_created: tender.created,
       }),
       {
         status: 200,
