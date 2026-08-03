@@ -159,7 +159,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    await assertDriveFolderAccessible(folderId, accessToken);
+    for (const folderId of folderIds) {
+      await assertDriveFolderAccessible(folderId, accessToken);
+    }
 
     const { data: cursorRow } = await (admin as any)
       .from("polling_cursors")
@@ -171,10 +173,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
       (cursorRow as { cursor?: string; last_synced_at?: string } | null)?.last_synced_at,
     );
 
-    const { files } = await listDriveFolder(folderId, accessToken, {
-      modifiedAfter,
-      mimeTypePrefix: "video/",
-    });
+    const files: Array<{ id: string; name: string }> = [];
+    const seenFileIds = new Set<string>();
+    for (const folderId of folderIds) {
+      const { files: folderFiles } = await listDriveFolder(folderId, accessToken, {
+        modifiedAfter,
+        mimeTypePrefix: "video/",
+      });
+      for (const file of folderFiles) {
+        if (seenFileIds.has(file.id)) continue;
+        seenFileIds.add(file.id);
+        files.push(file);
+      }
+    }
+
 
     // Filter to files not already queued, while retrying stuck rows with no AssemblyAI job.
     const existingRows = files.length > 0
