@@ -399,7 +399,14 @@ export function mapBoampRecord(record: Json): NormalizedTender {
       contact_email: null,
       ville: null,
     };
-  decision.titulaire = textOf(record?.titulaire);
+  // `titulaire` est un TABLEAU dans le flux, un avis d'attribution pouvant en
+  // désigner plusieurs. Passé tel quel à textOf, il rendait null : le signal de
+  // décision numéro un de la spec était perdu sur tous les avis d'attribution.
+  const titulaires = asArray(record?.titulaire)
+    .map((t: Json) => textOf(t))
+    .filter((v): v is string => !!v);
+  decision.titulaire = titulaires.length ? titulaires.join(", ") : null;
+
 
   const cpv = new Set<string>();
   collectCpv(donnees, cpv);
