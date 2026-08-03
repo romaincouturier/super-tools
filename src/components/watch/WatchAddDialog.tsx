@@ -196,7 +196,9 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setDuplicateWarning(null);
     setUploading(true);
     try {
-      const contentType = tab as "text" | "url" | "image" | "audio" | "document";
+      const isTranscript = tab === "transcript";
+      const contentType = (isTranscript ? "text" : tab) as "text" | "url" | "image" | "audio" | "document";
+      const finalBody = isTranscript ? transcriptBody() : body;
       let fileUrl: string | null = null;
       let fileName: string | null = null;
       let fileSize: number | null = null;
@@ -210,8 +212,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       const item = await addMutation.mutateAsync({
-        title: title || (contentType === "document" && file ? file.name : "(Sans titre)"),
-        body,
+        title: title || (isTranscript ? transcriptTitle() : contentType === "document" && file ? file.name : "(Sans titre)"),
+        body: finalBody,
         comment: comment.trim(),
         content_type: contentType,
         source_url: contentType === "url" ? url : null,
@@ -223,10 +225,11 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         assigned_user_ids: [
           ...new Set([
             ...assignedUserIds,
-            ...extractMentionedUserIdsFromHtml(body),
+            ...extractMentionedUserIdsFromHtml(finalBody),
           ]),
         ],
       });
+
 
       const processed = await processWatchItem(item.id);
       await queryClient.invalidateQueries({ queryKey: ["watch-items"] });
