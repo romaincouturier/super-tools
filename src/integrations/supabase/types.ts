@@ -9590,12 +9590,12 @@ export type Database = {
       tender_opportunities: {
         Row: {
           acheteur: string | null
-          cpv_codes: string[]
           code_departement: string[]
+          cpv_codes: string[]
           created_at: string
           crm_card_id: string | null
-          dateparution: string | null
           datelimitereponse: string | null
+          dateparution: string | null
           decision: Json
           dedup_key: string | null
           duplicate_of: string | null
@@ -9621,12 +9621,12 @@ export type Database = {
         }
         Insert: {
           acheteur?: string | null
-          cpv_codes?: string[]
           code_departement?: string[]
+          cpv_codes?: string[]
           created_at?: string
           crm_card_id?: string | null
-          dateparution?: string | null
           datelimitereponse?: string | null
+          dateparution?: string | null
           decision?: Json
           dedup_key?: string | null
           duplicate_of?: string | null
@@ -9652,12 +9652,12 @@ export type Database = {
         }
         Update: {
           acheteur?: string | null
-          cpv_codes?: string[]
           code_departement?: string[]
+          cpv_codes?: string[]
           created_at?: string
           crm_card_id?: string | null
-          dateparution?: string | null
           datelimitereponse?: string | null
+          dateparution?: string | null
           decision?: Json
           dedup_key?: string | null
           duplicate_of?: string | null
@@ -9687,6 +9687,13 @@ export type Database = {
             columns: ["crm_card_id"]
             isOneToOne: false
             referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_opportunities_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "tender_opportunities"
             referencedColumns: ["id"]
           },
           {
@@ -12188,6 +12195,7 @@ export type Database = {
         Args: { encryption_key: string; plain_token: string }
         Returns: string
       }
+      expire_tender_opportunities: { Args: never; Returns: number }
       get_agent_allowed_tables: { Args: never; Returns: string[] }
       get_agent_schema_prompt: { Args: never; Returns: string }
       get_app_setting_public: { Args: { p_key: string }; Returns: string }
@@ -12469,6 +12477,7 @@ export type Database = {
         Args: { p_emails: string[] }
         Returns: string[]
       }
+      link_tender_duplicates: { Args: never; Returns: number }
       lms_learner_is_enrolled: {
         Args: { _course_id: string }
         Returns: boolean
@@ -12625,6 +12634,7 @@ export type Database = {
         Args: { p_card_id: string }
         Returns: number
       }
+      refresh_tender_card_actions: { Args: never; Returns: number }
       register_formulaire_orphan: {
         Args: {
           p_course_id: number
@@ -12728,6 +12738,15 @@ export type Database = {
       upsert_profile: {
         Args: { p_display_name?: string; p_email: string; p_user_id: string }
         Returns: undefined
+      }
+      upsert_tender_opportunity: {
+        Args: {
+          p_initial_status?: string
+          p_payload: Json
+          p_source: string
+          p_source_ref: string
+        }
+        Returns: string
       }
       url_path: { Args: { u: string }; Returns: string }
       validate_learner_token: { Args: { p_token: string }; Returns: Json }
