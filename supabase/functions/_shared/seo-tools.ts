@@ -196,14 +196,20 @@ export async function getSeoPerformance(
   const searchType = opts.search_type ?? "web";
   const limit = Math.min(opts.limit ?? 25, 500);
 
-  const [dailyRes, currentRows, previousRows, previousDaily] = await Promise.all([
+  // Mêmes précautions que dans getSeoOpportunities : les deux gsc_aggregate ne
+  // tournent pas en parallèle (work_mem cumulé + I/O = statement timeout).
+  const currentRows = await aggregate(supabase, period, dimension, { searchType, limit, contains: opts.contains });
+  const previousRows = compare
+    ? await aggregate(supabase, previous, dimension, { searchType, limit: limit * 4, contains: opts.contains })
+    : [];
+
+  const [dailyRes, previousDaily] = await Promise.all([
     supabase.rpc("gsc_daily_totals", { p_from: period.from, p_to: period.to, p_search_type: searchType }),
-    aggregate(supabase, period, dimension, { searchType, limit, contains: opts.contains }),
-    compare ? aggregate(supabase, previous, dimension, { searchType, limit: limit * 4, contains: opts.contains }) : Promise.resolve([]),
     compare
       ? supabase.rpc("gsc_daily_totals", { p_from: previous.from, p_to: previous.to, p_search_type: searchType })
       : Promise.resolve({ data: [] as unknown[] }),
   ]);
+
 
   if (dailyRes.error) throw new Error(`gsc_daily_totals: ${dailyRes.error.message}`);
 
