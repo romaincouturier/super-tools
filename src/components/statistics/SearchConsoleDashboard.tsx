@@ -17,7 +17,7 @@ import {
 import SeoOpportunitiesPanel from "./SeoOpportunitiesPanel";
 import SeoIndexationPanel from "./SeoIndexationPanel";
 import { ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, AreaChart, Area } from "recharts";
-import { PERIOD_LABELS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
+import { PERIOD_LABELS, GSC_PERIODS, periodToRange, formatPeriodLabel, type Period } from "./statsPeriods";
 
 const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`;
 const fmtNum = (v: number) => v.toLocaleString("fr-FR");
@@ -210,7 +210,7 @@ const SearchConsoleDashboard = () => {
             variant="outline"
             size="sm"
           >
-            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+            {GSC_PERIODS.map((p) => (
               <ToggleGroupItem key={p} value={p} aria-label={PERIOD_LABELS[p]}>
                 {PERIOD_LABELS[p]}
               </ToggleGroupItem>
