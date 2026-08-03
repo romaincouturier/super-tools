@@ -17,6 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -57,6 +67,7 @@ export default function InboundEmails() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -65,7 +76,7 @@ export default function InboundEmails() {
   }, [user, authLoading, navigate]);
 
   // Fetch emails
-  const { data: emails, isLoading, refetch } = useQuery({
+  const { data: emails, isLoading, error, refetch } = useQuery({
     queryKey: ["inbound-emails", statusFilter, searchQuery],
     queryFn: async () => {
       let query = supabase
@@ -199,6 +210,17 @@ export default function InboundEmails() {
           <div className="text-center py-12">
             <Spinner size="lg" className="mx-auto" />
           </div>
+        ) : error ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Mail className="h-12 w-12 mx-auto mb-4 text-destructive opacity-60" />
+              <h3 className="text-lg font-medium mb-2">Emails inaccessibles</h3>
+              <p className="text-muted-foreground">
+                Ce module est réservé aux administrateurs, ou une erreur est survenue :{" "}
+                {(error as Error).message}
+              </p>
+            </CardContent>
+          </Card>
         ) : emails?.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -367,11 +389,7 @@ export default function InboundEmails() {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => {
-                  if (selectedEmail && confirm("Supprimer cet email ?")) {
-                    deleteMutation.mutate(selectedEmail.id);
-                  }
-                }}
+                onClick={() => setDeleteId(selectedEmail?.id ?? null)}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Supprimer
@@ -379,6 +397,28 @@ export default function InboundEmails() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer cet email ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est définitive.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteId) deleteMutation.mutate(deleteId);
+                  setDeleteId(null);
+                }}
+              >
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </ModuleLayout>
   );
