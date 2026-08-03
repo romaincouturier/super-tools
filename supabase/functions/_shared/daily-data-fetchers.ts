@@ -1510,6 +1510,10 @@ export async function fetchTendersToDecide(
     .select("id, objet, acheteur, source, datelimitereponse")
     .in("status", ["raw", "to_review"])
     .is("duplicate_of", null)
+    // Même règle que l'écran de revue : un avis d'attribution ne se décide pas,
+    // il est ingéré pour connaître le titulaire sortant. Sans ce filtre, le mail
+    // du matin propose « Go / No Go » sur des marchés déjà attribués.
+    .neq("nature", "ATTRIBUTION")
     .order("datelimitereponse", { ascending: true, nullsFirst: false })
     .limit(50);
 
