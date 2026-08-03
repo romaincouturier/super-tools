@@ -130,6 +130,7 @@ const TABLES_TO_BACKUP = [
   "mission_activities",
   "mission_contacts",
   "mission_credits",
+  "mission_deliverable_sends",
   "mission_documents",
   "mission_email_drafts",
   "mission_media",
@@ -154,7 +155,7 @@ const TABLES_TO_BACKUP = [
   "okr_key_results",
   "okr_objectives",
   "okr_participants",
-  "okr_scheduled_emails",
+  
   "order_email_log",
   "order_items",
   "org_members",
