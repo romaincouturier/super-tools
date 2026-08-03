@@ -378,11 +378,7 @@ export default function InboundEmails() {
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={() => {
-                  if (selectedEmail && confirm("Supprimer cet email ?")) {
-                    deleteMutation.mutate(selectedEmail.id);
-                  }
-                }}
+                onClick={() => setDeleteId(selectedEmail?.id ?? null)}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Supprimer
@@ -390,6 +386,28 @@ export default function InboundEmails() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer cet email ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est définitive.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (deleteId) deleteMutation.mutate(deleteId);
+                  setDeleteId(null);
+                }}
+              >
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </ModuleLayout>
   );
