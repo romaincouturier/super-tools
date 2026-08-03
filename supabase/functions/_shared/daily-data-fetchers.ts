@@ -6,6 +6,7 @@
  */
 
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { daysUntil } from "./tender-tools.ts";
 
 // ─── Types ───────────────────────────────────────────────────────────
 export interface Recipient {
@@ -1512,14 +1513,12 @@ export async function fetchTendersToDecide(
   }
   if (!data || data.length === 0) return [];
 
-  const now = new Date(today).getTime();
+  const now = new Date(today);
   // deno-lint-ignore no-explicit-any
   return (data as any[])
     .map((t) => {
       const deadline = t.datelimitereponse as string | null;
-      const daysLeft = deadline
-        ? Math.ceil((new Date(deadline).getTime() - now) / 86400000)
-        : null;
+      const daysLeft = daysUntil(deadline, now);
       return {
         id: t.id as string,
         objet: (t.objet as string) || "(sans objet)",

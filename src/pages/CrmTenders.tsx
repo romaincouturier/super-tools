@@ -11,6 +11,8 @@ import PageHeader from "@/components/PageHeader";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { toastError } from "@/lib/toastError";
 import { useCrmBoard } from "@/hooks/useCrmBoard";
 import {
   useTenderGo,
@@ -26,6 +28,7 @@ import type { ServiceType } from "@/types/crm";
 
 export default function CrmTenders() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [tab, setTab] = useState<"open" | "decided">("open");
   const [goTarget, setGoTarget] = useState<TenderWithContext | null>(null);
   const [noGoTarget, setNoGoTarget] = useState<TenderWithContext | null>(null);
@@ -61,7 +64,7 @@ export default function CrmTenders() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as "open" | "decided")} className="mt-4">
         <TabsList>
           <TabsTrigger value="open">
-            À décider{rows.length && tab === "open" ? ` (${rows.length})` : ""}
+            À décider{tab === "open" && rows.length > 0 ? ` (${rows.length})` : ""}
           </TabsTrigger>
           <TabsTrigger value="decided">Historique</TabsTrigger>
         </TabsList>
@@ -116,7 +119,13 @@ export default function CrmTenders() {
         onOpenChange={(v) => !v && setGoTarget(null)}
         pending={goMutation.isPending}
         onConfirm={(serviceType: ServiceType, estimatedValue: number) => {
-          if (!goTarget || !targetColumn) return;
+          if (!goTarget) return;
+          if (!targetColumn) {
+            // Sans colonne, createCard échouerait sur une contrainte NOT NULL
+            // avec un message incompréhensible. On le dit avant.
+            toastError(toast, "Aucune colonne dans le kanban CRM : impossible de créer la carte.");
+            return;
+          }
           goMutation.mutate({
             tender: goTarget,
             serviceType,

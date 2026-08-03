@@ -579,7 +579,14 @@ serve(async (req) => {
         recipients,
       });
     } catch (tenderError) {
+      // Non bloquant pour la réception, mais silencieux serait pire : si le
+      // routage casse, les alertes de marchés publics disparaissent sans que
+      // rien ne le signale (règle [037]).
       console.error("Tender routing error (non-fatal):", tenderError);
+      await reportEdgeError(tenderError, {
+        fn: "resend-inbound-webhook",
+        phase: "tender-routing",
+      });
     }
 
     // CRM: auto-create opportunity if email matches configured CRM address.

@@ -59,6 +59,10 @@ serve(async (req) => {
       .filter((a) => a.entity_type === "crm_card")
       .map((a) => a.entity_id);
 
+    const tenderIds = pendingActions
+      .filter((a) => a.entity_type === "tender_opportunity")
+      .map((a) => a.entity_id);
+
     const trainingIds = pendingActions
       .filter((a) => a.entity_type === "training")
       .map((a) => a.entity_id);
@@ -153,6 +157,16 @@ serve(async (req) => {
     // Check each pending action
     const toComplete: string[] = [];
     const now = new Date().toISOString();
+    // Statuts des appels d'offres encore en attente de décision.
+    const tenders = new Map<string, { status: string }>();
+    if (tenderIds.length > 0) {
+      const { data } = await supabase
+        .from("tender_opportunities")
+        .select("id, status")
+        .in("id", tenderIds);
+      for (const t of data || []) tenders.set(t.id as string, { status: t.status as string });
+    }
+
 
     for (const action of pendingActions) {
       let resolved = false;
@@ -196,6 +210,15 @@ serve(async (req) => {
           } else {
             resolved = true; // card deleted
           }
+          break;
+        }
+
+        // Un appel d'offres est traité dès qu'il quitte la file de décision,
+        // que ce soit par un Go, un No Go ou l'expiration automatique.
+        case "marches_publics": {
+          const t = tenders.get(action.entity_id);
+          // Ligne absente = supprimée : plus rien à décider non plus.
+          if (!t || !["raw", "to_review"].includes(t.status)) resolved = true;
           break;
         }
 

@@ -6,6 +6,7 @@
  * allotissement, montant et durée, puis l'historique avec cet acheteur.
  */
 import { AlertTriangle, Building2, CalendarClock, ExternalLink, FileDown, Layers } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,6 +155,9 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
           <div className="ml-auto flex items-center gap-2">
             {decided ? (
               <>
+                {tender.status === "expired" && !tender.no_go_reason && (
+                  <span className="text-xs text-muted-foreground">Échéance dépassée</span>
+                )}
                 {tender.no_go_reason && (
                   <span className="text-xs text-muted-foreground">
                     {tenderNoGoReasonConfig[
@@ -161,7 +165,11 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
                     ] ?? tender.no_go_reason}
                   </span>
                 )}
-                {tender.status !== "go" && (
+                {tender.status === "go" && tender.crm_card_id ? (
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to={`/crm/card/${tender.crm_card_id}`}>Voir la carte</Link>
+                  </Button>
+                ) : (
                   <Button variant="ghost" size="sm" onClick={onReopen}>
                     Remettre en revue
                   </Button>

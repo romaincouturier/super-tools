@@ -1,11 +1,11 @@
 # Détection des appels d'offres (BOAMP, PLACE, AWS)
 
-**Statut : spécification validée, développement non commencé.**
+**Statut : livré, en attente de déploiement et de calibrage.**
 Document de reprise : il contient tout ce qui a été décidé, ce qui reste
 ouvert, et l'état réel de l'existant vérifié en base. Écrit pour pouvoir
 reprendre le sujet des semaines plus tard sans rien réinventer.
 
-Dernière mise à jour : 03/08/2026.
+Dernière mise à jour : 03/08/2026 (après livraison).
 
 ---
 
@@ -481,3 +481,141 @@ seul.
   stocke que les métadonnées, pas le contenu.
 - Fréquence de la revue : quotidienne pour les catégories A et les échéances
   proches, hebdomadaire pour le reste. À confirmer à l'usage.
+
+---
+
+# Ce qui a été livré
+
+Cette partie remplace les sections de spécification ci-dessus là où elles
+divergent. En cas de contradiction, c'est elle qui fait foi.
+
+## Dimensionnement revu
+
+Volume attendu confirmé par l'usage visé : **une dizaine d'avis pertinents par
+mois**, pour deux ou trois réponses par an. Le No Go est donc le cas normal, à
+98 %.
+
+Conséquence : **le scoring pondéré et les catégories A/B/C ont été abandonnés.**
+Ils servaient à absorber un volume qui n'existe pas. À dix par mois, les avis
+sont tous lus. Le filtre se contente d'écarter le hors-sujet évident, et
+l'effort est mis sur la qualité de l'information affichée pour décider.
+
+Les colonnes `score` et `category` n'existent plus ; `matched_on` indique ce
+qui a fait retenir l'avis.
+
+## Ce que le flux BOAMP réserve réellement
+
+Vérifié sur l'API le 03/08/2026, ces trois points ne figurent dans aucune
+documentation et cassent silencieusement un parseur naïf :
+
+1. **`donnees` a deux structures incompatibles.** Les avis anciens dérivent du
+   XML BOAMP (`{IDENTITE, OBJET, PROCEDURE…}` en majuscules), les récents sont
+   au format européen eForms (`{EFORMS: {ContractNotice: {"cac:…", "cbc:…"}}}`).
+   Le champ `source_schema` les distingue. Un parseur écrit pour l'un renvoie du
+   vide sur l'autre, sans lever d'erreur.
+2. **`datelimitereponse` est souvent NULL** alors que l'avis a bien une date
+   limite, présente dans `donnees.CONDITION_DELAI.RECEPT_OFFRES` ou, en eForms,
+   dans `cac:TenderSubmissionDeadlinePeriod`. Trier sur la colonne à plat
+   perdrait une bonne partie des avis.
+3. **`type_marche` est un tableau**, les CPV sont tantôt un objet tantôt une
+   liste, et vivent aussi au niveau de chaque lot.
+
+`search(objet, '…')` fonctionne sur ce portail, pas besoin de replier sur
+`like`.
+
+## Fichiers
+
+| Rôle | Fichier |
+|---|---|
+| Table, RLS, fonctions SQL, réglages | `supabase/migrations/20260803160000_tender_opportunities.sql` |
+| Lecture et normalisation du flux BOAMP | `supabase/functions/_shared/boamp.ts` |
+| Filtre, clé de rapprochement, délais | `supabase/functions/_shared/tender-tools.ts` |
+| Routage des alertes mail | `supabase/functions/_shared/tender-inbound.ts` |
+| Ingestion quotidienne | `supabase/functions/boamp-sync/index.ts` |
+| Écran de décision | `src/pages/CrmTenders.tsx`, `src/components/crm/TenderCard.tsx`, `TenderDecisionDialogs.tsx` |
+| Lecture, No Go, promotion CRM | `src/hooks/crm/useTenderOpportunities.ts` |
+| Alerte du matin | `daily-data-fetchers.ts` (`fetchTendersToDecide`), `generate-daily-actions`, `check-daily-actions-completion` |
+
+## Écriture : toujours par la fonction SQL
+
+`upsert_tender_opportunity(source, source_ref, payload, initial_status)` est le
+seul point d'entrée des connecteurs. Un `upsert` PostgREST réécrirait toutes
+les colonnes fournies, `status` compris : la synchronisation quotidienne
+remettrait en revue les avis déjà écartés et **le No Go reviendrait tous les
+matins**. La fonction met à jour le contenu et la date limite d'un rectificatif
+sans jamais toucher à `status`, `no_go_reason`, `reviewed_*` ni `crm_card_id`.
+
+Les trois fonctions SQL sont `SECURITY DEFINER` avec `EXECUTE` révoqué pour
+`authenticated` et `anon`, réservé à `service_role`.
+
+## Routage des alertes mail
+
+Clé de routage : **l'adresse de destination**, jamais l'expéditeur. Le réglage
+`app_settings.tender_inbound_email` vaut `@inbound.supertilt.fr` : la partie
+locale de l'adresse devient la source (`place@`, `aws@`, `boamp@`). Ajouter une
+source demain ne demande qu'une règle de transfert Gmail de plus.
+
+Le routage lit **`received_for`** (destinataire d'enveloppe) et non l'en-tête
+`To` : sur un mail transféré automatiquement, `To` garde l'adresse d'origine.
+
+Invariant testé : un mail reçu sur ce sous-domaine ne peut jamais créer de
+carte CRM. Tant que `tender_inbound_email` est vide, le routage est inactif et
+rien ne change.
+
+Limite connue : le webhook Resend ne livre **que des métadonnées**, pas le
+corps du message. L'analyse ne dispose donc que du sujet ; récupérer le texte
+complet demandera un appel à l'API Resend avec l'`email_id`, stocké dans
+`inbound_emails.message_id`.
+
+## Déploiement
+
+1. Appliquer la migration.
+2. Déployer `boamp-sync`, `resend-inbound-webhook`, `generate-daily-actions`,
+   `check-daily-actions-completion`.
+3. **Vérifier le contrat de l'API avant de faire confiance au mapping** :
+   ```
+   POST /functions/v1/boamp-sync  { "probe": true }
+   ```
+   Ne écrit rien, renvoie les clés réelles d'un enregistrement, la requête
+   construite et un exemple normalisé.
+4. Première ingestion manuelle sur une fenêtre large :
+   ```
+   POST /functions/v1/boamp-sync  { "since": "2026-06-01" }
+   ```
+   Le retour donne `records_received`, `kept`, `excluded`, `unmatched`,
+   `failed`. C'est ce qui dit si le filtre est bien réglé.
+5. Planifier le cron. Règle [036] : il porte un secret, il se pose **en base**
+   et jamais dans une migration versionnée.
+   ```sql
+   SELECT cron.schedule('boamp-sync', '20 6 * * *', $$
+     SELECT net.http_post(
+       url := 'https://<ref>.supabase.co/functions/v1/boamp-sync',
+       headers := '{"Content-Type":"application/json","Authorization":"Bearer <service_role_key>"}'::jsonb,
+       body := '{}'::jsonb
+     );
+   $$);
+   ```
+6. Quand la réception mail sera branchée :
+   `UPDATE app_settings SET setting_value = '@inbound.supertilt.fr' WHERE setting_key = 'tender_inbound_email';`
+
+## Calibrage
+
+Les trois listes sont dans `app_settings`, modifiables sans déploiement :
+`tender_cpv_codes`, `tender_keywords`, `tender_exclusions`.
+
+Après deux semaines, regarder `unmatched` et `excluded` dans les journaux, et
+les motifs de No Go accumulés. Un motif `hors_domaine` qui revient désigne un
+mot d'exclusion à ajouter.
+
+Faux positif connu et assumé, tiré du flux réel : « Démarche d'animation et de
+facilitation autour des Bassins d'alimentation de captages » passe le filtre
+sur le mot « facilitation ». Il sera écarté à la main, et c'est précisément ce
+que la boucle de calibrage doit absorber.
+
+## Ce qui reste à faire
+
+- Récupération du corps des alertes mail via l'API Resend.
+- Croisement avec les DECP (data.gouv.fr) pour la durée et le montant exacts
+  des marchés attribués, et le radar des renouvellements.
+- Réévaluer la question du statut distinct pour le No Go si le forecast doit
+  séparer « renoncé » de « perdu ».

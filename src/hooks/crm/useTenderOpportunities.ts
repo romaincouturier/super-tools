@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCrmMutation } from "./useCrmMutation";
 import { useCreateCard } from "./useCreateCard";
 import { notifyCrmSlack } from "@/services/crmSlack";
+import { escapeHtml, safeUrl } from "@/lib/tenderHtml";
 import type { ServiceType } from "@/types/crm";
 import type { TenderOpportunity, TenderWithContext } from "@/types/tenders";
 
@@ -59,7 +60,14 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
 
       // Historique CRM avec les mêmes acheteurs : c'est l'élément de décision
       // le plus rapide à lire, et il est déjà en base.
-      const buyers = [...new Set(rows.map((r) => r.acheteur).filter(Boolean))] as string[];
+      // Plafonné : `.in()` part dans l'URL de la requête, et 200 noms
+      // d'acheteurs la feraient dépasser la limite du serveur. Les avis les
+      // plus urgents sont en tête, ce sont eux qui ont besoin du contexte.
+      const BUYERS_MAX = 60;
+      const buyers = ([...new Set(rows.map((r) => r.acheteur).filter(Boolean))] as string[]).slice(
+        0,
+        BUYERS_MAX,
+      );
       const history = new Map<string, TenderWithContext["buyer_history"]>();
       if (buyers.length) {
         const { data: cards } = await supabase
@@ -166,27 +174,37 @@ export const useTenderGo = () => {
 
   return useCrmMutation(
     async ({ tender, serviceType, estimatedValue, columnId, tagId, actorEmail }: TenderGoInput) => {
+      // Un second Go créerait une deuxième carte pour le même marché. Le cas
+      // arrive si la liste n'a pas été rafraîchie entre deux onglets.
+      if (tender.crm_card_id) {
+        throw new Error("Cet appel d'offres a déjà une carte dans le CRM.");
+      }
+
       const deadline = tender.datelimitereponse
         ? new Date(tender.datelimitereponse).toLocaleDateString("fr-FR")
         : null;
       const title = (tender.objet || "Appel d'offres").slice(0, 180);
 
+      const dceUrl = safeUrl(tender.decision.url_dce);
+      const avisUrl = safeUrl(tender.url_avis);
       const descriptionLines = [
-        tender.acheteur ? `<p><strong>Acheteur :</strong> ${tender.acheteur}</p>` : "",
+        tender.acheteur ? `<p><strong>Acheteur :</strong> ${escapeHtml(tender.acheteur)}</p>` : "",
         deadline ? `<p><strong>Remise des offres avant le ${deadline}</strong></p>` : "",
         tender.decision.montant
           ? `<p><strong>Montant annoncé :</strong> ${tender.decision.montant.toLocaleString("fr-FR")} €</p>`
           : "",
         tender.decision.criteres?.length
-          ? `<p><strong>Critères :</strong> ${tender.decision.criteres
-              .map((c) => `${c.libelle}${c.poids !== null ? ` ${c.poids}%` : ""}`)
-              .join(", ")}</p>`
+          ? `<p><strong>Critères :</strong> ${escapeHtml(
+              tender.decision.criteres
+                .map((c) => `${c.libelle}${c.poids !== null ? ` ${c.poids}%` : ""}`)
+                .join(", "),
+            )}</p>`
           : "",
-        tender.decision.url_dce
-          ? `<p><a href="${tender.decision.url_dce}" target="_blank" rel="noopener noreferrer">Retirer le DCE</a></p>`
+        dceUrl
+          ? `<p><a href="${dceUrl}" target="_blank" rel="noopener noreferrer">Retirer le DCE</a></p>`
           : "",
-        tender.url_avis
-          ? `<p><a href="${tender.url_avis}" target="_blank" rel="noopener noreferrer">Voir l'avis</a></p>`
+        avisUrl
+          ? `<p><a href="${avisUrl}" target="_blank" rel="noopener noreferrer">Voir l'avis</a></p>`
           : "",
       ].filter(Boolean);
 
@@ -230,7 +248,14 @@ export const useTenderGo = () => {
           reviewed_by: actorEmail,
         })
         .eq("id", tender.id);
-      if (error) throw error;
+      // La carte existe déjà à ce stade : un message générique ferait recliquer
+      // sur Go et créerait un doublon. On dit explicitement quoi faire.
+      if (error) {
+        throw new Error(
+          `La carte CRM a bien été créée mais l'avis n'a pas pu être marqué comme traité ` +
+            `(${error.message}). Ne pas recliquer sur Go : l'opportunité est dans le kanban.`,
+        );
+      }
 
       notifyCrmSlack(
         "opportunity_created",
@@ -247,6 +272,7 @@ export const useTenderGo = () => {
       queryClient.invalidateQueries({ queryKey: [TENDERS_QUERY_KEY] });
       return card;
     },
-    { successMessage: "Opportunité créée dans le CRM", invalidateKey: [TENDERS_QUERY_KEY] },
+    // Pas de successMessage ici : useCreateCard affiche déjà « Opportunité créée ».
+    { invalidateKey: [TENDERS_QUERY_KEY] },
   );
 };

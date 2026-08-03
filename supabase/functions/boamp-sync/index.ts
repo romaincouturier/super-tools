@@ -208,6 +208,21 @@ serve(async (req) => {
       parse_errors: parseErrors.slice(0, 20),
     };
     console.log(`[${VERSION}]`, JSON.stringify(summary));
+
+    // Une synchronisation qui n'écrit rien alors que le BOAMP a répondu est un
+    // échec déguisé. Répondre 500 plutôt que 200 fait échouer le cron
+    // visiblement, et createErrorResponse reporte à Sentry (règle [037]) :
+    // sans ça, le job se dirait « réussi » tous les matins pendant que la
+    // table reste vide.
+    if (failed > 0 && kept === 0) {
+      return createErrorResponse(
+        `Synchronisation sans effet : ${failed} avis en échec, aucun enregistré. ` +
+          parseErrors.slice(0, 3).join(" | "),
+        500,
+        { fn: "boamp-sync" },
+      );
+    }
+
     return createJsonResponse({ success: true, ...summary });
   } catch (error) {
     console.error(`[${VERSION}] erreur`, error);
