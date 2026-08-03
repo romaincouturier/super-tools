@@ -295,12 +295,46 @@ function decisionFromEforms(donnees: Json): TenderDecisionInfo {
     .map((lot) => textOf(dig(lot, "cac:ProcurementProject", "cbc:Name")))
     .filter((v): v is string => !!v);
 
+  // Pondération des critères : c'est le deuxième signal de décision de la
+  // spec, et il vit sous `cac:AwardingCriterion`, au niveau du lot le plus
+  // souvent. Le poids est dans une extension eForms, pas dans le critère.
+  const criteres: Array<{ libelle: string; poids: number | null }> = [];
+  const seen = new Set<string>();
+  for (const criterion of deepFind(notice, "cac:AwardingCriterion")) {
+    for (const sub of asArray(dig(criterion, "cac:SubordinateAwardingCriterion"))) {
+      const libelle = textOf(dig(sub, "cbc:Description"));
+      if (!libelle) continue;
+      const poids = numberOf(deepFind(sub, "efbc:ParameterNumeric")[0]);
+      const key = `${libelle}|${poids}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      criteres.push({ libelle, poids });
+    }
+  }
+
+  // Durée : `cbc:DurationMeasure` porte l'unité en attribut XML.
+  let dureeMois: number | null = null;
+  for (const measure of deepFind(notice, "cbc:DurationMeasure")) {
+    const value = numberOf(measure);
+    if (value === null) continue;
+    const unit = String(dig(measure, "@unitCode") ?? "MONTH").toUpperCase();
+    const months =
+      unit === "YEAR" ? value * 12 : unit === "DAY" || unit === "DAYS" ? value / 30 : value;
+    dureeMois = Math.round(months);
+    break;
+  }
+
+  // Reconduction : la présence d'un bloc `cac:ContractExtension` suffit, avec
+  // ou sans nombre maximal de reconductions.
+  const extensions = deepFind(notice, "cac:ContractExtension");
+  const reconductible = extensions.length > 0 ? true : null;
+
   return {
     titulaire: null,
     montant,
-    duree_mois: null,
-    reconductible: null,
-    criteres: [],
+    duree_mois: dureeMois,
+    reconductible,
+    criteres,
     lots,
     url_dce: urlDce,
     contact_email: contact,
@@ -309,6 +343,7 @@ function decisionFromEforms(donnees: Json): TenderDecisionInfo {
     ),
   };
 }
+
 
 /**
  * Date limite de remise des offres.
