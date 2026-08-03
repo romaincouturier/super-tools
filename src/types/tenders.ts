@@ -78,7 +78,7 @@ export interface TenderOpportunity {
   updated_at: string;
 }
 
-/** Opportunité enrichie de l'historique CRM avec le même acheteur. */
+/** Opportunité enrichie de l'historique CRM et des attributions du même acheteur. */
 export interface TenderWithContext extends TenderOpportunity {
   buyer_history: Array<{
     id: string;
@@ -87,4 +87,14 @@ export interface TenderWithContext extends TenderOpportunity {
     estimated_value: number | null;
     created_at: string;
   }>;
+  /** Attributions passées du même acheteur : titulaire sortant et montant. */
+  buyer_awards: Array<{
+    id: string;
+    objet: string | null;
+    titulaire: string;
+    montant: number | null;
+    dateparution: string | null;
+    url_avis: string | null;
+  }>;
 }
+
