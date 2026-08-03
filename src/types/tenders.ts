@@ -73,6 +73,8 @@ export interface TenderOpportunity {
   reviewed_at: string | null;
   reviewed_by: string | null;
   crm_card_id: string | null;
+  /** JSON d'origine de l'avis, lu par la fiche détaillée. */
+  raw?: Record<string, unknown> | null;
   parse_error: string | null;
   created_at: string;
   updated_at: string;
