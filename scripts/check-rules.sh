@@ -382,6 +382,14 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "042c" "Pas deux migrations avec le même horodatage de version" \
     "ls supabase/migrations/*.sql | sed -E 's|.*/([0-9]{14}).*|\\1|' | sort | uniq -d"
 
+  # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
+  # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide
+  # (constat du 03/08/2026 sur inbound_emails). Le contrôle de droits passe par
+  # une fonction SECURITY DEFINER (is_admin, is_staff_user, has_module_access).
+  check "044" "Aucun CREATE POLICY lisant auth.users dans les migrations récentes" \
+    "bash scripts/check-policy-auth-users.sh"
+
+
   # [039] RLS LMS — chaque table de contenu apprenant doit avoir au moins une policy
   # FOR SELECT TO authenticated dans les migrations (sinon les apprenants voient la
   # structure mais pas le contenu — régression du 15/07/2026 sur lms_lesson_blocks).
