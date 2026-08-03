@@ -199,6 +199,17 @@ export default function InboundEmails() {
           <div className="text-center py-12">
             <Spinner size="lg" className="mx-auto" />
           </div>
+        ) : error ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Mail className="h-12 w-12 mx-auto mb-4 text-destructive opacity-60" />
+              <h3 className="text-lg font-medium mb-2">Emails inaccessibles</h3>
+              <p className="text-muted-foreground">
+                Ce module est réservé aux administrateurs, ou une erreur est survenue :{" "}
+                {(error as Error).message}
+              </p>
+            </CardContent>
+          </Card>
         ) : emails?.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
