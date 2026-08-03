@@ -65,7 +65,7 @@ export default function InboundEmails() {
   }, [user, authLoading, navigate]);
 
   // Fetch emails
-  const { data: emails, isLoading, refetch } = useQuery({
+  const { data: emails, isLoading, error, refetch } = useQuery({
     queryKey: ["inbound-emails", statusFilter, searchQuery],
     queryFn: async () => {
       let query = supabase
