@@ -226,7 +226,7 @@ async function createCrmOpportunityFromEmail(
   emailData: ResendInboundPayload["data"],
   parsedFrom: { email: string; name: string | null },
   insertedEmailId: string,
-): Promise<void> {
+): Promise<boolean> {
   // Check if CRM inbound email is configured
   const { data: crmSetting } = await supabase
     .from("app_settings")
@@ -235,11 +235,11 @@ async function createCrmOpportunityFromEmail(
     .single();
 
   const crmInboundEmail = crmSetting?.setting_value?.trim().toLowerCase();
-  if (!crmInboundEmail) return;
+  if (!crmInboundEmail) return false;
 
   // Check if any recipient matches the CRM email
   const allRecipients = emailData.to.map((addr) => parseEmailAddress(addr).email.toLowerCase());
-  if (!allRecipients.includes(crmInboundEmail)) return;
+  if (!allRecipients.includes(crmInboundEmail)) return false;
 
   console.log("CRM inbound email matched, creating opportunity...");
 
@@ -264,7 +264,7 @@ async function createCrmOpportunityFromEmail(
 
   if (!firstColumn) {
     console.error("No CRM column found, skipping card creation");
-    return;
+    return false;
   }
 
   // Get max position in column
@@ -302,7 +302,7 @@ async function createCrmOpportunityFromEmail(
 
   if (cardError) {
     console.error("Error creating CRM card:", cardError);
-    return;
+    return false;
   }
 
   console.log("CRM card created from inbound email:", newCard.id);
@@ -332,6 +332,8 @@ async function createCrmOpportunityFromEmail(
     email: parsedFrom.email,
     source_label: `Email entrant — ${parsedFrom.email}`,
   });
+
+  return true;
 }
 
 // Resend webhook payload structure for inbound emails
@@ -571,8 +573,12 @@ serve(async (req) => {
     // CRM: auto-create opportunity if email matches configured CRM address
     let crmCardCreated = false;
     try {
-      await createCrmOpportunityFromEmail(supabase, emailData, parsedFrom, insertedEmail.id);
-      crmCardCreated = true;
+      crmCardCreated = await createCrmOpportunityFromEmail(
+        supabase,
+        emailData,
+        parsedFrom,
+        insertedEmail.id,
+      );
     } catch (crmError) {
       console.error("CRM auto-create error (non-fatal):", crmError);
     }
