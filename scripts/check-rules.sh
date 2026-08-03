@@ -382,6 +382,15 @@ if [ "$STAGED_MODE" = "false" ]; then
   check "042c" "Pas deux migrations avec le même horodatage de version" \
     "ls supabase/migrations/*.sql | sed -E 's|.*/([0-9]{14}).*|\\1|' | sort | uniq -d"
 
+  # [042d] Un cron ne se désigne jamais par son identifiant numérique : ce
+  # jobid n'existe qu'en production, et le rejeu sur base vierge échoue en
+  # « Job N does not exist or you don't own it » (constaté le 03/08/2026, CI
+  # rouge sur deux migrations du 29/07). Passer par le nom du job, ou garder
+  # l'appel derrière un EXISTS sur cron.job.
+  check "042d" "Pas de cron.alter_job/unschedule sur un jobid en dur sans garde" \
+    "grep -l 'cron\.alter_job([0-9]\\|cron\.unschedule([0-9]' supabase/migrations/*.sql 2>/dev/null \
+       | xargs -r grep -L 'FROM cron.job WHERE jobid' 2>/dev/null"
+
   # [044] Aucun CREATE POLICY ne doit lire auth.users : le rôle `authenticated`
   # n'a pas SELECT dessus, la policy échoue en 403 / 42501 et l'écran reste vide
   # (constat du 03/08/2026 sur inbound_emails). Le contrôle de droits passe par
