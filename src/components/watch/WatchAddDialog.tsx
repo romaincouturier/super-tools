@@ -80,12 +80,31 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setTags(tags.filter((t) => t !== tag));
   };
 
+  const transcriptBody = () => {
+    if (!selectedTranscript) return "";
+    const parts = [
+      selectedTranscript.summary ? `Résumé :\n${selectedTranscript.summary}` : "",
+      selectedTranscript.raw_text || "",
+    ].filter(Boolean);
+    return parts.join("\n\n");
+  };
+
+  const transcriptTitle = () =>
+    selectedTranscript?.ai_title || selectedTranscript?.title || "Transcript";
+
   const handleSubmit = async () => {
-    const contentType = tab as "text" | "url" | "image" | "audio" | "document";
-    const finalBody = body;
+    const isTranscript = tab === "transcript";
+    const contentType = (isTranscript ? "text" : tab) as "text" | "url" | "image" | "audio" | "document";
+    const finalBody = isTranscript ? transcriptBody() : body;
     // Plain-text representation used for duplicate detection + emptiness checks.
     // `body` may now contain HTML (rich paste), so we strip tags before comparing.
     const plainBody = stripWatchHtml(finalBody);
+
+    if (isTranscript && (!transcriptId || !plainBody.trim())) {
+      toast.error("Veuillez sélectionner un transcript");
+      return;
+    }
+
     let sourceUrl: string | null = null;
     let fileUrl: string | null = null;
     let fileName: string | null = null;
