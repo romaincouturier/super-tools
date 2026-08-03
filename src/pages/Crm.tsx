@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { BarChart3, Sparkles, Kanban, BrainCircuit, Settings2 } from "lucide-react";
+import { BarChart3, Sparkles, Kanban, BrainCircuit, Settings2, Gavel } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import ModuleLayout from "@/components/ModuleLayout";
@@ -51,6 +51,12 @@ const Crm = () => {
               <Button size="sm" onClick={() => setShowNewOpportunity(true)}>
                 <Sparkles className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Nouvelle opportunité</span>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/crm/marches-publics">
+                  <Gavel className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Marchés publics</span>
+                </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="/crm/reports">

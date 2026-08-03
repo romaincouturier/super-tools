@@ -201,6 +201,15 @@ export interface OkrInitiativeItem {
   progressPercentage: number;
 }
 
+export interface TenderItem {
+  id: string;
+  objet: string;
+  acheteur: string | null;
+  source: string;
+  deadline: string | null;
+  daysLeft: number | null;
+}
+
 export interface SupportTicketItem {
   id: string;
   ticketNumber: string;
@@ -1474,6 +1483,57 @@ export async function fetchLmsCommunityPending(supabase: SupabaseClient): Promis
 
 // ─── Convenience: fetch everything at once ───────────────────────────
 
+
+/**
+ * Appels d'offres publics en attente de décision.
+ *
+ * Remontés par urgence, pas par date d'arrivée : un avis à J-5 doit revenir
+ * tous les matins, un avis à J-40 n'a rien à faire dans la liste du jour. Les
+ * avis sans date limite publiée remontent aussi, ils ne peuvent simplement pas
+ * être priorisés.
+ */
+export async function fetchTendersToDecide(
+  supabase: SupabaseClient,
+  today: string,
+): Promise<TenderItem[]> {
+  const HORIZON_DAYS = 21;
+
+  const { data, error } = await supabase
+    .from("tender_opportunities")
+    .select("id, objet, acheteur, source, datelimitereponse")
+    .in("status", ["raw", "to_review"])
+    .is("duplicate_of", null)
+    .order("datelimitereponse", { ascending: true, nullsFirst: false })
+    .limit(50);
+
+  if (error) {
+    console.error("fetchTendersToDecide error:", error.message);
+    return [];
+  }
+  if (!data || data.length === 0) return [];
+
+  const now = new Date(today).getTime();
+  // deno-lint-ignore no-explicit-any
+  return (data as any[])
+    .map((t) => {
+      const deadline = t.datelimitereponse as string | null;
+      const daysLeft = deadline
+        ? Math.ceil((new Date(deadline).getTime() - now) / 86400000)
+        : null;
+      return {
+        id: t.id as string,
+        objet: (t.objet as string) || "(sans objet)",
+        acheteur: (t.acheteur as string) ?? null,
+        source: (t.source as string) ?? "boamp",
+        deadline,
+        daysLeft,
+      };
+    })
+    // Une échéance dépassée n'a plus à être proposée : le cron d'expiration
+    // la sortira de la liste, inutile d'en parler ce matin.
+    .filter((t) => t.daysLeft === null || (t.daysLeft >= 0 && t.daysLeft <= HORIZON_DAYS));
+}
+
 export interface DailyData {
   recipients: Recipient[];
   missionActions: MissionActionItem[];
@@ -1494,6 +1554,7 @@ export interface DailyData {
   reservations: ReservationItem[];
   okrInitiatives: OkrInitiativeItem[];
   supportTickets: SupportTicketItem[];
+  tendersToDecide: TenderItem[];
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
   supertiltAlerts: SupertiltAlertItem[];
@@ -1528,6 +1589,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     reservations,
     okrInitiatives,
     supportTickets,
+    tendersToDecide,
     pendingEmailDrafts,
     logisticsReminders,
     supertiltAlerts,
@@ -1556,6 +1618,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchReservationAlerts(supabase, today),
     fetchOkrInitiatives(supabase),
     fetchPendingSupportTickets(supabase, today),
+    fetchTendersToDecide(supabase, today),
     fetchPendingEmailDrafts(supabase),
     fetchLogisticsReminders(supabase, today),
     fetchSupertiltAlerts(supabase),
@@ -1571,7 +1634,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
-    reservations, okrInitiatives, supportTickets, pendingEmailDrafts,
+    reservations, okrInitiatives, supportTickets, tendersToDecide, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
     inProgressRestocks,

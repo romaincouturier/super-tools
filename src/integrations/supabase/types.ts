@@ -9587,6 +9587,117 @@ export type Database = {
         }
         Relationships: []
       }
+      tender_opportunities: {
+        Row: {
+          acheteur: string | null
+          cpv_codes: string[]
+          code_departement: string[]
+          created_at: string
+          crm_card_id: string | null
+          dateparution: string | null
+          datelimitereponse: string | null
+          decision: Json
+          dedup_key: string | null
+          duplicate_of: string | null
+          famille_libelle: string | null
+          id: string
+          matched_on: string[]
+          nature: string | null
+          no_go_detail: string | null
+          no_go_reason: string | null
+          objet: string | null
+          parse_error: string | null
+          raw: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          score: number
+          source: string
+          source_email_id: string | null
+          source_ref: string
+          status: string
+          type_marche: string | null
+          updated_at: string
+          url_avis: string | null
+        }
+        Insert: {
+          acheteur?: string | null
+          cpv_codes?: string[]
+          code_departement?: string[]
+          created_at?: string
+          crm_card_id?: string | null
+          dateparution?: string | null
+          datelimitereponse?: string | null
+          decision?: Json
+          dedup_key?: string | null
+          duplicate_of?: string | null
+          famille_libelle?: string | null
+          id?: string
+          matched_on?: string[]
+          nature?: string | null
+          no_go_detail?: string | null
+          no_go_reason?: string | null
+          objet?: string | null
+          parse_error?: string | null
+          raw?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          source: string
+          source_email_id?: string | null
+          source_ref: string
+          status?: string
+          type_marche?: string | null
+          updated_at?: string
+          url_avis?: string | null
+        }
+        Update: {
+          acheteur?: string | null
+          cpv_codes?: string[]
+          code_departement?: string[]
+          created_at?: string
+          crm_card_id?: string | null
+          dateparution?: string | null
+          datelimitereponse?: string | null
+          decision?: Json
+          dedup_key?: string | null
+          duplicate_of?: string | null
+          famille_libelle?: string | null
+          id?: string
+          matched_on?: string[]
+          nature?: string | null
+          no_go_detail?: string | null
+          no_go_reason?: string | null
+          objet?: string | null
+          parse_error?: string | null
+          raw?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          score?: number
+          source?: string
+          source_email_id?: string | null
+          source_ref?: string
+          status?: string
+          type_marche?: string | null
+          updated_at?: string
+          url_avis?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_opportunities_crm_card_id_fkey"
+            columns: ["crm_card_id"]
+            isOneToOne: false
+            referencedRelation: "crm_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tender_opportunities_source_email_id_fkey"
+            columns: ["source_email_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       testimonials: {
         Row: {
           client_name: string | null

@@ -118,21 +118,21 @@ export async function routeTenderEmail(
     return { routed: true, source, created: false, reason: `exclu (${match.excludedBy})` };
   }
 
-  const { error } = await supabase.from("tender_opportunities").upsert(
-    {
-      source,
-      source_ref: email.messageId,
+  // Même raison que pour le connecteur BOAMP : un upsert réécrirait `status`
+  // et ferait réapparaître un avis déjà écarté si l'alerte est renvoyée.
+  const { error } = await supabase.rpc("upsert_tender_opportunity", {
+    p_source: source,
+    p_source_ref: email.messageId,
+    p_initial_status: "raw",
+    p_payload: {
       source_email_id: email.id,
       objet,
-      acheteur: null,
       nature: "APPEL_OFFRE",
       matched_on: match.matched,
       dedup_key: dedupKey({ objet }),
       raw: { subject: email.subject, from: email.from, body: email.body },
-      status: "raw",
     },
-    { onConflict: "source,source_ref", ignoreDuplicates: false },
-  );
+  });
 
   if (error) {
     return { routed: true, source, created: false, reason: error.message };

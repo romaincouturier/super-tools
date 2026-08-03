@@ -320,6 +320,25 @@ serve(async (req) => {
       });
     }
 
+    // Marchés publics — appels d'offres à décider
+    // Priorisés par l'échéance : c'est elle qui commande, pas la date d'arrivée.
+    for (const t of data.tendersToDecide) {
+      const urgence =
+        t.daysLeft === null
+          ? "date limite non publiée"
+          : t.daysLeft <= 12
+            ? `⚠️ J-${t.daysLeft}`
+            : `J-${t.daysLeft}`;
+      actions.push({
+        category: "marches_publics",
+        title: `⚖️ ${t.objet.slice(0, 120)}`,
+        description: `${t.acheteur ?? "Acheteur non précisé"} — ${urgence} — Go / No Go`,
+        link: `${appUrl}/crm/marches-publics`,
+        entityType: "tender_opportunity", entityId: t.id,
+        scope: "global",
+      });
+    }
+
     // 14. Tickets support en attente (global — visible par tous)
     const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
     const statusLabels: Record<string, string> = { nouveau: "Nouveau", qualification: "Qualification", vibe_coding: "Vibe Coding" };

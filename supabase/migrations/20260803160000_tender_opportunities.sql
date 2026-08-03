@@ -106,6 +106,16 @@ DROP POLICY IF EXISTS "tender_opportunities_delete" ON public.tender_opportuniti
 CREATE POLICY "tender_opportunities_delete" ON public.tender_opportunities
   FOR DELETE TO authenticated USING (public.has_crm_access(auth.uid()));
 
+-- Isolation apprenant (migration 20260529100000) : la policy SELECT ci-dessus
+-- est permissive pour tout `authenticated`, ce qui inclut les apprenants du
+-- LMS. La policy RESTRICTIVE ci-dessous est ce qui les exclut réellement,
+-- comme sur crm_cards et les autres tables métier. Sans elle, un apprenant
+-- connecté lirait les appels d'offres.
+DROP POLICY IF EXISTS staff_only_select ON public.tender_opportunities;
+CREATE POLICY staff_only_select ON public.tender_opportunities
+  AS RESTRICTIVE FOR SELECT TO authenticated
+  USING (public.is_staff_user());
+
 -- ── Réglages du filtre ───────────────────────────────────────
 -- En données et non en dur : les codes et les mots-clés bougeront à chaque
 -- revue, sans déploiement.
@@ -133,6 +143,15 @@ INSERT INTO public.app_settings (setting_key, setting_value, description) VALUES
   )
 ON CONFLICT (setting_key) DO NOTHING;
 
+-- ── Tag CRM ──────────────────────────────────────────────────
+-- Les appels d'offres restent dans le pipeline commercial commun : ce tag est
+-- ce qui permet de les isoler dans les rapports, leur cycle de vie (retrait du
+-- DCE, mémoire technique, attente d'attribution) n'étant pas celui du gré à gré.
+
+INSERT INTO public.crm_tags (name, color, category)
+SELECT 'Marché public', '#0ea5e9', 'origine'
+WHERE NOT EXISTS (SELECT 1 FROM public.crm_tags WHERE name = 'Marché public');
+
 -- ── Allowlist agent SQL / connecteur MCP ─────────────────────
 
 INSERT INTO public.agent_schema_registry (table_name, description, display_order) VALUES
@@ -142,6 +161,91 @@ INSERT INTO public.agent_schema_registry (table_name, description, display_order
     170
   )
 ON CONFLICT (table_name) DO NOTHING;
+
+-- ── Écriture depuis les connecteurs ──────────────────────────
+--
+-- Un `upsert` PostgREST réécrit TOUTES les colonnes fournies, `status`
+-- compris : la synchronisation quotidienne remettrait donc en revue un avis
+-- déjà écarté, et le No Go reviendrait chaque matin. Cette fonction met à jour
+-- le contenu de l'avis (un rectificatif peut prolonger la date limite) sans
+-- jamais toucher à la décision humaine.
+
+CREATE OR REPLACE FUNCTION public.upsert_tender_opportunity(
+  p_source text,
+  p_source_ref text,
+  p_payload jsonb,
+  p_initial_status text DEFAULT 'to_review'
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_id uuid;
+BEGIN
+  INSERT INTO public.tender_opportunities (
+    source, source_ref, source_email_id, url_avis, objet, acheteur, nature,
+    type_marche, famille_libelle, code_departement, cpv_codes, dateparution,
+    datelimitereponse, decision, matched_on, dedup_key, raw, parse_error, status
+  )
+  VALUES (
+    p_source,
+    p_source_ref,
+    nullif(p_payload->>'source_email_id', '')::uuid,
+    p_payload->>'url_avis',
+    p_payload->>'objet',
+    p_payload->>'acheteur',
+    p_payload->>'nature',
+    p_payload->>'type_marche',
+    p_payload->>'famille_libelle',
+    coalesce(
+      (SELECT array_agg(value::text) FROM jsonb_array_elements_text(coalesce(p_payload->'code_departement', '[]'::jsonb)) AS value),
+      '{}'
+    ),
+    coalesce(
+      (SELECT array_agg(value::text) FROM jsonb_array_elements_text(coalesce(p_payload->'cpv_codes', '[]'::jsonb)) AS value),
+      '{}'
+    ),
+    nullif(p_payload->>'dateparution', '')::date,
+    nullif(p_payload->>'datelimitereponse', '')::timestamptz,
+    coalesce(p_payload->'decision', '{}'::jsonb),
+    coalesce(
+      (SELECT array_agg(value::text) FROM jsonb_array_elements_text(coalesce(p_payload->'matched_on', '[]'::jsonb)) AS value),
+      '{}'
+    ),
+    p_payload->>'dedup_key',
+    p_payload->'raw',
+    p_payload->>'parse_error',
+    p_initial_status
+  )
+  ON CONFLICT (source, source_ref) DO UPDATE SET
+    url_avis          = excluded.url_avis,
+    objet             = excluded.objet,
+    acheteur          = excluded.acheteur,
+    nature            = excluded.nature,
+    type_marche       = excluded.type_marche,
+    famille_libelle   = excluded.famille_libelle,
+    code_departement  = excluded.code_departement,
+    cpv_codes         = excluded.cpv_codes,
+    dateparution      = excluded.dateparution,
+    -- Un rectificatif prolonge souvent le délai : c'est la seule raison de
+    -- réécrire cette colonne.
+    datelimitereponse = excluded.datelimitereponse,
+    decision          = excluded.decision,
+    matched_on        = excluded.matched_on,
+    dedup_key         = excluded.dedup_key,
+    raw               = excluded.raw,
+    parse_error       = excluded.parse_error,
+    updated_at        = now()
+    -- status, no_go_reason, no_go_detail, reviewed_at, reviewed_by et
+    -- crm_card_id sont volontairement absents : ils appartiennent à la
+    -- décision humaine, une synchronisation ne les écrase jamais.
+  RETURNING id INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
 
 -- ── Rapprochement inter-sources ──────────────────────────────
 -- Le même marché arrive par le BOAMP et par une alerte PLACE. Sans ce
@@ -217,3 +321,24 @@ SELECT cron.schedule(
 -- Le cron d'ingestion boamp-sync appelle une edge function et porte donc un
 -- secret : règle [036], il se planifie directement en base, pas ici. Le SQL
 -- exact est dans docs/marches-publics.md.
+
+-- ── Droits sur les fonctions ─────────────────────────────────
+-- Elles sont SECURITY DEFINER, donc elles contournent la RLS. Exposées telles
+-- quelles par PostgREST, n'importe quel compte authentifié — apprenant compris
+-- — pourrait écrire dans la table ou déclencher l'expiration. Seuls les
+-- connecteurs (service_role) et le cron (postgres) en ont besoin.
+
+REVOKE ALL ON FUNCTION public.upsert_tender_opportunity(text, text, jsonb, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.upsert_tender_opportunity(text, text, jsonb, text) FROM anon;
+REVOKE ALL ON FUNCTION public.upsert_tender_opportunity(text, text, jsonb, text) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.upsert_tender_opportunity(text, text, jsonb, text) TO service_role;
+
+REVOKE ALL ON FUNCTION public.link_tender_duplicates() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.link_tender_duplicates() FROM anon;
+REVOKE ALL ON FUNCTION public.link_tender_duplicates() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.link_tender_duplicates() TO service_role;
+
+REVOKE ALL ON FUNCTION public.expire_tender_opportunities() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.expire_tender_opportunities() FROM anon;
+REVOKE ALL ON FUNCTION public.expire_tender_opportunities() FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.expire_tender_opportunities() TO service_role;

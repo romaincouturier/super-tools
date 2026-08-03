@@ -154,33 +154,32 @@ serve(async (req) => {
         continue;
       }
 
-      const { error } = await supabase
-        .from("tender_opportunities")
-        .upsert(
-          {
-            source: tender.source,
-            source_ref: tender.source_ref,
-            url_avis: tender.url_avis,
-            objet: tender.objet,
-            acheteur: tender.acheteur,
-            nature: tender.nature,
-            type_marche: tender.type_marche,
-            famille_libelle: tender.famille_libelle,
-            code_departement: tender.code_departement,
-            cpv_codes: tender.cpv_codes,
-            dateparution: tender.dateparution,
-            datelimitereponse: tender.datelimitereponse,
-            decision: tender.decision,
-            matched_on: match.matched,
-            dedup_key: dedupKey(tender),
-            raw: tender.raw,
-            parse_error: tender.parse_error,
-            status: "to_review",
-          },
-          // Un rectificatif porte le même idweb : il met à jour l'avis existant,
-          // notamment sa date limite, au lieu de créer un doublon.
-          { onConflict: "source,source_ref", ignoreDuplicates: false },
-        );
+      // Passe par la fonction SQL et non par un upsert PostgREST : un upsert
+      // réécrirait `status`, donc remettrait en revue un avis déjà écarté à
+      // chaque synchronisation. Un rectificatif met à jour le contenu et la
+      // date limite, jamais la décision.
+      const { error } = await supabase.rpc("upsert_tender_opportunity", {
+        p_source: tender.source,
+        p_source_ref: tender.source_ref,
+        p_initial_status: "to_review",
+        p_payload: {
+          url_avis: tender.url_avis,
+          objet: tender.objet,
+          acheteur: tender.acheteur,
+          nature: tender.nature,
+          type_marche: tender.type_marche,
+          famille_libelle: tender.famille_libelle,
+          code_departement: tender.code_departement,
+          cpv_codes: tender.cpv_codes,
+          dateparution: tender.dateparution,
+          datelimitereponse: tender.datelimitereponse,
+          decision: tender.decision,
+          matched_on: match.matched,
+          dedup_key: dedupKey(tender),
+          raw: tender.raw,
+          parse_error: tender.parse_error,
+        },
+      });
 
       if (error) {
         failed++;
