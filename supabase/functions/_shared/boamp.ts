@@ -82,7 +82,26 @@ function dig(obj: Json, ...path: string[]): Json {
     cur = cur[key];
   }
   return cur;
+
+/**
+ * Cherche récursivement toutes les valeurs portées par une clé, où qu'elle
+ * vive. En eForms, les critères d'attribution et la durée sont tantôt au
+ * niveau de la procédure, tantôt au niveau de chaque lot : un chemin fixe
+ * rend du vide sur la moitié des avis.
+ */
+function deepFind(node: Json, key: string, out: Json[] = []): Json[] {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) {
+    for (const item of node) deepFind(item, key, out);
+    return out;
+  }
+  for (const [k, v] of Object.entries(node)) {
+    if (k === key) out.push(v);
+    else deepFind(v, key, out);
+  }
+  return out;
 }
+
 
 /**
  * BOAMP encode certaines valeurs en `{"@DEVISE": "EUR", "#text": "20000"}`
