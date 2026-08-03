@@ -42,10 +42,19 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
         // Les doublons inter-sources ne sont jamais affichés : le même marché
         // arrive par le BOAMP et par une alerte PLACE, et le qualifier deux
         // fois est ce qui décourage la revue.
-        .is("duplicate_of", null);
+        .is("duplicate_of", null)
+        // Un avis d'attribution ne se décide pas : il est ingéré pour dire qui
+        // est le titulaire sortant. Le laisser dans la file de décision ajoute
+        // un tiers de lignes sur lesquelles il n'y a rien à faire.
+        .neq("nature", "ATTRIBUTION");
 
       query = status === "open"
-        ? query.in("status", OPEN_STATUSES)
+        ? query
+            .in("status", OPEN_STATUSES)
+            // Une échéance dépassée n'est plus une décision : le cron
+            // d'expiration ne passe qu'une fois par jour, et sans ce filtre la
+            // liste s'ouvre sur des marchés morts.
+            .or(`datelimitereponse.is.null,datelimitereponse.gte.${new Date().toISOString()}`)
         : query.in("status", ["go", "no_go", "expired"]);
 
       // Les avis sans date limite connue passent en dernier plutôt que d'être
@@ -69,13 +78,25 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
         BUYERS_MAX,
       );
       const history = new Map<string, TenderWithContext["buyer_history"]>();
+      const awards = new Map<string, TenderWithContext["buyer_awards"]>();
       if (buyers.length) {
-        const { data: cards } = await supabase
-          .from("crm_cards")
-          .select("id, title, company, sales_status, estimated_value, created_at")
-          .in("company", buyers)
-          .order("created_at", { ascending: false })
-          .limit(100);
+        const [{ data: cards }, { data: attributions }] = await Promise.all([
+          supabase
+            .from("crm_cards")
+            .select("id, title, company, sales_status, estimated_value, created_at")
+            .in("company", buyers)
+            .order("created_at", { ascending: false })
+            .limit(100),
+          // Les attributions passées du même acheteur : titulaire sortant et
+          // montant, le signal de décision numéro un de la spec.
+          supabase
+            .from("tender_opportunities")
+            .select("id, objet, acheteur, decision, dateparution, url_avis")
+            .eq("nature", "ATTRIBUTION")
+            .in("acheteur", buyers)
+            .order("dateparution", { ascending: false })
+            .limit(100),
+        ]);
         for (const card of cards || []) {
           const key = card.company as string;
           if (!history.has(key)) history.set(key, []);
@@ -87,13 +108,29 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
             created_at: card.created_at,
           });
         }
+        for (const row of (attributions || []) as unknown as TenderOpportunity[]) {
+          const key = row.acheteur as string;
+          const titulaire = row.decision?.titulaire ?? null;
+          if (!key || !titulaire) continue;
+          if (!awards.has(key)) awards.set(key, []);
+          awards.get(key)!.push({
+            id: row.id,
+            objet: row.objet,
+            titulaire,
+            montant: row.decision?.montant ?? null,
+            dateparution: row.dateparution,
+            url_avis: row.url_avis,
+          });
+        }
       }
 
       return rows.map((row) => ({
         ...row,
         decision: row.decision ?? {},
         buyer_history: (row.acheteur && history.get(row.acheteur)) || [],
+        buyer_awards: (row.acheteur && awards.get(row.acheteur)?.slice(0, 3)) || [],
       }));
+
     },
   });
 };

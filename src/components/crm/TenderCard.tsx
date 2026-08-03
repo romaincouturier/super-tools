@@ -116,6 +116,21 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
           </ul>
         )}
 
+        {tender.buyer_awards?.length > 0 && (
+          <div className="text-xs text-muted-foreground space-y-0.5">
+            <p className="font-medium text-foreground">Attributions passées de cet acheteur</p>
+            {tender.buyer_awards.map((a) => (
+              <p key={a.id} className="line-clamp-1">
+                {a.titulaire}
+                {a.montant != null ? ` — ${a.montant.toLocaleString("fr-FR")} €` : ""}
+                {a.dateparution
+                  ? ` (${new Date(a.dateparution).toLocaleDateString("fr-FR")})`
+                  : ""}
+              </p>
+            ))}
+          </div>
+        )}
+
         {tender.buyer_history.length > 0 && (
           <p className="text-xs text-muted-foreground">
             Déjà {tender.buyer_history.length} opportunité
@@ -123,6 +138,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
             {wonWithBuyer > 0 && `, dont ${wonWithBuyer} gagnée${wonWithBuyer > 1 ? "s" : ""}`}.
           </p>
         )}
+
 
         {!!tender.matched_on.length && (
           <p className="text-[11px] text-muted-foreground">
