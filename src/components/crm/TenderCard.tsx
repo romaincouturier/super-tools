@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { daysLeft, TENDER_URGENT_DAYS } from "@/lib/tenders";
+import { daysLeft, describeMatch, TENDER_URGENT_DAYS } from "@/lib/tenders";
 import { tenderNoGoReasonConfig, tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
 
 interface TenderCardProps {
@@ -126,9 +126,10 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
 
         {!!tender.matched_on.length && (
           <p className="text-[11px] text-muted-foreground">
-            Retenu sur : {tender.matched_on.join(", ")}
+            Retenu sur : {tender.matched_on.map(describeMatch).join(", ")}
           </p>
         )}
+
 
         {tender.parse_error && (
           <p className="text-[11px] text-destructive">Avis partiellement illisible : {tender.parse_error}</p>
