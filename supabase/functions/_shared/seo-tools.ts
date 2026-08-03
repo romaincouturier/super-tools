@@ -284,11 +284,17 @@ export async function getSeoOpportunities(
   const previous = previousPeriod(period);
   const limit = Math.min(opts.limit ?? 20, 100);
 
-  const [queries, prevQueries, pages, prevPages, cannibal, inspections, sitemaps, aiReferrers] = await Promise.all([
-    aggregate(supabase, period, "query", { limit: 1000 }),
-    aggregate(supabase, previous, "query", { limit: 1000 }),
-    aggregate(supabase, period, "page", { limit: 1000 }),
-    aggregate(supabase, previous, "page", { limit: 1000 }),
+  // Les quatre agrégations gsc_aggregate sont les requêtes les plus lourdes de
+  // la fonction. Lancées en parallèle, elles multiplient le work_mem et la
+  // pression I/O sur gsc_metrics_daily et finissent en statement timeout.
+  // Elles sont donc séquentielles ; seules les lectures légères restent en
+  // parallèle.
+  const queries = await aggregate(supabase, period, "query", { limit: 1000 });
+  const prevQueries = await aggregate(supabase, previous, "query", { limit: 1000 });
+  const pages = await aggregate(supabase, period, "page", { limit: 1000 });
+  const prevPages = await aggregate(supabase, previous, "page", { limit: 1000 });
+
+  const [cannibal, inspections, sitemaps, aiReferrers] = await Promise.all([
     supabase.rpc("seo_cannibalisation", { p_from: period.from, p_to: period.to, p_min_impressions: 30, p_limit: limit }),
     supabase
       .from("gsc_url_inspections")
@@ -301,6 +307,7 @@ export async function getSeoOpportunities(
       .gte("date", period.from)
       .lte("date", period.to),
   ]);
+
 
   const prevQueryMap = new Map(prevQueries.map((r) => [r.key_1, r]));
   const prevPageMap = new Map(prevPages.map((r) => [normalizeUrl(r.key_1), r]));
