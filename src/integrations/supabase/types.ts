@@ -12634,6 +12634,7 @@ export type Database = {
         Args: { p_card_id: string }
         Returns: number
       }
+      refresh_tender_card_actions: { Args: never; Returns: number }
       register_formulaire_orphan: {
         Args: {
           p_course_id: number
