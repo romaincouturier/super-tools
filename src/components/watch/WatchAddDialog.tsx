@@ -7,15 +7,20 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Link, Image, Mic, FileText, File, X, AlertTriangle, Users, FileAudio, Search } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/lib/toast";
 import { useAddWatchItem, uploadWatchFile } from "@/hooks/useWatch";
 import { detectContentType, checkDuplicates, processWatchItem } from "@/services/watchProcessing";
 import { resolveContentType } from "@/lib/file-utils";
+import { useTranscripts, useTranscript } from "@/hooks/useTranscripts";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import WatchRichEditor, { stripWatchHtml } from "./WatchRichEditor";
 import { extractMentionedUserIdsFromHtml } from "@/lib/tiptapMentionSuggestion";
 import MultiUserSelector from "@/components/shared/MultiUserSelector";
+
 
 interface WatchAddDialogProps {
   allTags: string[];
@@ -34,10 +39,18 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [transcriptId, setTranscriptId] = useState<string | null>(null);
+  const [transcriptSearch, setTranscriptSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addMutation = useAddWatchItem();
   const queryClient = useQueryClient();
+
+  const { data: transcriptList = [], isLoading: transcriptsLoading } = useTranscripts({
+    search: transcriptSearch || undefined,
+    status: "ready",
+  });
+  const { data: selectedTranscript } = useTranscript(tab === "transcript" ? transcriptId : null);
 
   const reset = () => {
     setTitle("");
@@ -49,8 +62,11 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setAssignedUserIds([]);
     setFile(null);
     setDuplicateWarning(null);
+    setTranscriptId(null);
+    setTranscriptSearch("");
     setTab("text");
   };
+
 
   const addTag = (tag: string) => {
     const t = tag.trim().toLowerCase();
@@ -64,12 +80,31 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setTags(tags.filter((t) => t !== tag));
   };
 
+  const transcriptBody = () => {
+    if (!selectedTranscript) return "";
+    const parts = [
+      selectedTranscript.summary ? `Résumé :\n${selectedTranscript.summary}` : "",
+      selectedTranscript.raw_text || "",
+    ].filter(Boolean);
+    return parts.join("\n\n");
+  };
+
+  const transcriptTitle = () =>
+    selectedTranscript?.ai_title || selectedTranscript?.title || "Transcript";
+
   const handleSubmit = async () => {
-    const contentType = tab as "text" | "url" | "image" | "audio" | "document";
-    const finalBody = body;
+    const isTranscript = tab === "transcript";
+    const contentType = (isTranscript ? "text" : tab) as "text" | "url" | "image" | "audio" | "document";
+    const finalBody = isTranscript ? transcriptBody() : body;
     // Plain-text representation used for duplicate detection + emptiness checks.
     // `body` may now contain HTML (rich paste), so we strip tags before comparing.
     const plainBody = stripWatchHtml(finalBody);
+
+    if (isTranscript && (!transcriptId || !plainBody.trim())) {
+      toast.error("Veuillez sélectionner un transcript");
+      return;
+    }
+
     let sourceUrl: string | null = null;
     let fileUrl: string | null = null;
     let fileName: string | null = null;
@@ -119,7 +154,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       const item = await addMutation.mutateAsync({
-        title: title || (contentType === "document" && file ? file.name : "(Sans titre)"),
+        title: title || (isTranscript ? transcriptTitle() : contentType === "document" && file ? file.name : "(Sans titre)"),
         body: finalBody,
         comment: comment.trim(),
         content_type: contentType,
@@ -161,7 +196,9 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
     setDuplicateWarning(null);
     setUploading(true);
     try {
-      const contentType = tab as "text" | "url" | "image" | "audio" | "document";
+      const isTranscript = tab === "transcript";
+      const contentType = (isTranscript ? "text" : tab) as "text" | "url" | "image" | "audio" | "document";
+      const finalBody = isTranscript ? transcriptBody() : body;
       let fileUrl: string | null = null;
       let fileName: string | null = null;
       let fileSize: number | null = null;
@@ -175,8 +212,8 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       const item = await addMutation.mutateAsync({
-        title: title || (contentType === "document" && file ? file.name : "(Sans titre)"),
-        body,
+        title: title || (isTranscript ? transcriptTitle() : contentType === "document" && file ? file.name : "(Sans titre)"),
+        body: finalBody,
         comment: comment.trim(),
         content_type: contentType,
         source_url: contentType === "url" ? url : null,
@@ -188,10 +225,11 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
         assigned_user_ids: [
           ...new Set([
             ...assignedUserIds,
-            ...extractMentionedUserIdsFromHtml(body),
+            ...extractMentionedUserIdsFromHtml(finalBody),
           ]),
         ],
       });
+
 
       const processed = await processWatchItem(item.id);
       await queryClient.invalidateQueries({ queryKey: ["watch-items"] });
@@ -245,7 +283,12 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
               <File className="h-3.5 w-3.5" />
               PDF
             </TabsTrigger>
+            <TabsTrigger value="transcript" className="gap-1.5 flex-1">
+              <FileAudio className="h-3.5 w-3.5" />
+              Transcript
+            </TabsTrigger>
           </TabsList>
+
 
           <div className="space-y-3 mt-4">
             {/* Title (optional — AI will auto-fill if empty) */}
@@ -382,6 +425,56 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
                 }}
               />
             </TabsContent>
+
+            <TabsContent value="transcript" className="mt-0 space-y-2">
+              <Label>Transcript existant</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrer par titre..."
+                  value={transcriptSearch}
+                  onChange={(e) => setTranscriptSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <ScrollArea className="h-[220px] pr-2 border rounded-md">
+                {transcriptsLoading && <div className="p-3"><Spinner /></div>}
+                {!transcriptsLoading && transcriptList.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Aucun transcript disponible
+                  </p>
+                )}
+                <div className="p-1 space-y-1">
+                  {transcriptList.map((t) => {
+                    const selected = t.id === transcriptId;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTranscriptId(selected ? null : t.id)}
+                        className={`w-full text-left p-2 rounded flex items-center gap-2 transition-colors ${selected ? "bg-accent" : "hover:bg-accent/60"}`}
+                      >
+                        <FileAudio className="h-4 w-4 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">
+                            {t.ai_title || t.title || "Sans titre"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(t.created_at), "d MMM yyyy", { locale: fr })}
+                            {t.duration_seconds ? ` • ${Math.round(t.duration_seconds / 60)} min` : ""}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+              <p className="text-xs text-muted-foreground">
+                Le contenu du transcript (résumé + texte) sera ajouté à la veille et analysé par l'IA.
+              </p>
+            </TabsContent>
+
+
 
             {/* Comment — contexte libre saisi par l'utilisateur */}
             <div>
