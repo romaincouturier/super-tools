@@ -283,7 +283,12 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
               <File className="h-3.5 w-3.5" />
               PDF
             </TabsTrigger>
+            <TabsTrigger value="transcript" className="gap-1.5 flex-1">
+              <FileAudio className="h-3.5 w-3.5" />
+              Transcript
+            </TabsTrigger>
           </TabsList>
+
 
           <div className="space-y-3 mt-4">
             {/* Title (optional — AI will auto-fill if empty) */}
