@@ -67,6 +67,7 @@ export default function InboundEmails() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
