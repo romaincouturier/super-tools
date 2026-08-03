@@ -21,7 +21,9 @@ import {
   useTenderReopen,
 } from "@/hooks/crm/useTenderOpportunities";
 import { TenderCard } from "@/components/crm/TenderCard";
-import { isTenderUrgent } from "@/lib/tenders";
+import { TenderDetailDialog } from "@/components/crm/TenderDetailDialog";
+import { TenderFilterSettings } from "@/components/crm/TenderFilterSettings";
+import { isTenderUrgent, TENDER_URGENT_DAYS } from "@/lib/tenders";
 import { TenderGoDialog, TenderNoGoDialog } from "@/components/crm/TenderDecisionDialogs";
 import type { TenderWithContext } from "@/types/tenders";
 import type { ServiceType } from "@/types/crm";
@@ -32,6 +34,7 @@ export default function CrmTenders() {
   const [tab, setTab] = useState<"open" | "decided">("open");
   const [goTarget, setGoTarget] = useState<TenderWithContext | null>(null);
   const [noGoTarget, setNoGoTarget] = useState<TenderWithContext | null>(null);
+  const [detailTarget, setDetailTarget] = useState<TenderWithContext | null>(null);
 
   const { data: tenders, isLoading } = useTenderOpportunities(tab);
   const { data: board } = useCrmBoard();
@@ -70,9 +73,18 @@ export default function CrmTenders() {
         </TabsList>
 
         <TabsContent value={tab} className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              En rouge : la date limite à moins de {TENDER_URGENT_DAYS} jours, et un critère prix
+              qui pèse 50 % ou plus de la note. Cliquez le titre ou « Détails » pour lire l'avis
+              en entier.
+            </p>
+            <TenderFilterSettings />
+          </div>
+
           {tab === "open" && urgent > 0 && (
             <p className="text-sm text-destructive">
-              {urgent} avis à moins de 12 jours de la date limite.
+              {urgent} avis à moins de {TENDER_URGENT_DAYS} jours de la date limite.
             </p>
           )}
 
@@ -94,12 +106,22 @@ export default function CrmTenders() {
                 decided={tab === "decided"}
                 onGo={() => setGoTarget(tender)}
                 onNoGo={() => setNoGoTarget(tender)}
+                onOpen={() => setDetailTarget(tender)}
                 onReopen={() => reopenMutation.mutate(tender.id)}
               />
             ))
           )}
         </TabsContent>
       </Tabs>
+
+      <TenderDetailDialog
+        tender={detailTarget}
+        open={!!detailTarget}
+        onOpenChange={(v) => !v && setDetailTarget(null)}
+        decided={tab === "decided"}
+        onGo={() => setGoTarget(detailTarget)}
+        onNoGo={() => setNoGoTarget(detailTarget)}
+      />
 
       <TenderNoGoDialog
         tender={noGoTarget}
