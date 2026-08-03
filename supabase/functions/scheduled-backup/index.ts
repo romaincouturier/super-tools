@@ -63,7 +63,7 @@ const TABLES_TO_BACKUP = [
   "location_contract_signatures", "login_attempts", "logistics_checklist_items",
   "media",
   "mission_actions", "mission_activities", "mission_contacts", "mission_credits",
-  "mission_documents", "mission_email_drafts", "mission_media",
+  "mission_deliverable_sends", "mission_documents", "mission_email_drafts", "mission_media",
   "mission_page_comments", "mission_page_templates", "mission_pages",
   "mission_survey_answers", "mission_survey_questions", "mission_survey_responses", "mission_surveys",
   "missions", "monthly_reports",

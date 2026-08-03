@@ -7,6 +7,7 @@ import { decode as base64Decode } from "https://deno.land/std@0.190.0/encoding/b
 import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
+import { parseEmailAddress } from "../_shared/email-address.ts";
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
@@ -424,17 +425,6 @@ async function verifyWebhookSignature(
 }
 
 // Extract email and name from "Name <email@domain.com>" format
-function parseEmailAddress(address: string): { email: string; name: string | null } {
-  const match = address.match(/^(?:"?([^"<]*)"?\s*)?<?([^>]+)>?$/);
-  if (match) {
-    return {
-      name: match[1]?.trim() || null,
-      email: match[2]?.trim() || address,
-    };
-  }
-  return { email: address, name: null };
-}
-
 serve(async (req) => {
   // Handle CORS
   const corsResponse = handleCorsPreflightIfNeeded(req);
