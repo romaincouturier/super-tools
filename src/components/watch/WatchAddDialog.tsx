@@ -154,7 +154,7 @@ const WatchAddDialog = ({ allTags }: WatchAddDialogProps) => {
       }
 
       const item = await addMutation.mutateAsync({
-        title: title || (contentType === "document" && file ? file.name : "(Sans titre)"),
+        title: title || (isTranscript ? transcriptTitle() : contentType === "document" && file ? file.name : "(Sans titre)"),
         body: finalBody,
         comment: comment.trim(),
         content_type: contentType,
