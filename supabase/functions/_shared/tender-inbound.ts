@@ -82,8 +82,8 @@ export function matchTenderRecipient(
  *
  * Le corps du message n'est pas livré par le webhook de Resend, qui ne
  * transmet que des métadonnées : on travaille donc sur le sujet, et le texte
- * complet est récupéré plus tard s'il est nécessaire. L'avis arrive en `raw` :
- * c'est l'analyse qui le fera passer en `to_review`.
+ * complet est récupéré plus tard s'il est nécessaire. L'avis arrive donc
+ * directement en `to_review` : il est décidable en l'état.
  */
 export async function routeTenderEmail(
   // deno-lint-ignore no-explicit-any
@@ -123,7 +123,11 @@ export async function routeTenderEmail(
   const { error } = await supabase.rpc("upsert_tender_opportunity", {
     p_source: source,
     p_source_ref: email.messageId,
-    p_initial_status: "raw",
+    // `to_review` et non `raw` : il n'existe aucune étape d'analyse, et une
+    // alerte mail est décidable telle quelle (objet + lien dans le message).
+    // La laisser en `raw` la rendrait invisible pour la revue tout en
+    // déclenchant en permanence l'alerte de file qui stagne.
+    p_initial_status: "to_review",
     p_payload: {
       source_email_id: email.id,
       objet,

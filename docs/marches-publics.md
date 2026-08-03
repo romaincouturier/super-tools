@@ -39,11 +39,11 @@ d'API** : la seule voie d'entrée est le mail d'alerte.
    ├─ cron quotidien  → API BOAMP (avis + attributions)
    ├─ mail PLACE      → resend-inbound-webhook → table tampon
    └─ mail AWS        → resend-inbound-webhook → table tampon
-        └─ écriture immédiate en statut `raw`, dédoublonnage, fusion inter-sources
+        └─ écriture immédiate en `to_review`, dédoublonnage, fusion inter-sources
 
 2. ANALYSE (Claude Cowork via connecteur MCP)
    ├─ préfiltre déterministe (exclusions) AVANT tout appel modèle
-   └─ enrichissement, scoring, passage en `to_review`
+   └─ enrichissement et passage en `to_review`
         └─ l'agent n'écrit QUE dans la table tampon, jamais dans crm_cards
 
 3. NOTIFICATION (daily_actions, 7h)
@@ -56,7 +56,7 @@ d'API** : la seule voie d'entrée est le mail d'alerte.
 
 5. EXPIRATION automatique des avis non décidés après la date limite
 
-6. CALIBRAGE du scoring sur les motifs de No Go accumulés
+6. CALIBRAGE des listes de filtrage sur les motifs de No Go accumulés
 ```
 
 ### Pourquoi la réception est séparée de l'analyse
@@ -80,9 +80,9 @@ décision humaine de l'étape 4 : aucun chemin ne doit la contourner.
 | Une table par source ? | **Non.** Une seule table pour les trois sources, avec une colonne `source`. Sinon : trois scorings, trois écrans, trois lignes de backup. |
 | Doublons inter-sources | Fusion **à l'ingestion**, ligne canonique + sources rattachées. Pas un filtre à l'affichage. Le même marché arrive par PLACE et par BOAMP, souvent le même jour. |
 | Pipeline CRM | **Les AO restent dans le pipeline existant**, pas de colonne dédiée. Distingués par le tag « Marché public ». |
-| Scoring | En **données** (table ou `app_settings`), pas en dur. Les pondérations bougeront tous les mois. |
+| Scoring | **Abandonné** après révision du dimensionnement (voir « Ce qui a été livré »). Les listes de filtrage vivent dans `app_settings`. |
 | Attributions BOAMP | **Ingérées dès le début**, pas « plus tard ». Le titulaire sortant est le signal de décision le plus fort, et c'est une requête de plus sur la même API. |
-| Ordre scoring / ingestion | **Ingérer deux semaines avant d'écrire le scoring.** Calibrer sur des données réelles, pas sur des pondérations devinées. |
+| Ordre calibrage / ingestion | **Ingérer deux semaines avant de resserrer le filtre.** Calibrer sur des données réelles, pas sur des listes devinées. |
 | No Go hors AO | Action « No Go » disponible sur **toutes** les opportunités CRM, pas seulement les AO. |
 | Statut du No Go | `sales_status = 'LOST'` avec `loss_reason = 'no_go'`. Pas de nouveau statut pour l'instant. À réévaluer si le forecast doit séparer « renoncé » de « perdu ». |
 | `acquisition_source` | Une seule valeur `marche_public`, pas une par source, sinon les rapports d'acquisition se fragmentent. |
@@ -183,6 +183,11 @@ Un domaine séparé à dix euros l'an, même mécanique, zéro intersection avec
 ## 6. Architecture technique
 
 ### 6.1 Table unique
+
+> Schéma indicatif de la conception initiale. **La migration
+> `20260803160000_tender_opportunities.sql` fait foi** : elle ajoute
+> `reviewed_by`, conserve `score` (inutilisée, laissée pour un éventuel tri
+> ultérieur) et ne crée pas `category`, le scoring ayant été abandonné.
 
 ```sql
 create table tender_opportunities (
@@ -500,8 +505,8 @@ Ils servaient à absorber un volume qui n'existe pas. À dix par mois, les avis
 sont tous lus. Le filtre se contente d'écarter le hors-sujet évident, et
 l'effort est mis sur la qualité de l'information affichée pour décider.
 
-Les colonnes `score` et `category` n'existent plus ; `matched_on` indique ce
-qui a fait retenir l'avis.
+La colonne `category` n'existe pas ; `score` existe mais reste à zéro, aucun
+code ne l'alimente. `matched_on` indique ce qui a fait retenir l'avis.
 
 ## Ce que le flux BOAMP réserve réellement
 
@@ -619,3 +624,46 @@ que la boucle de calibrage doit absorber.
   des marchés attribués, et le radar des renouvellements.
 - Réévaluer la question du statut distinct pour le No Go si le forecast doit
   séparer « renoncé » de « perdu ».
+
+## Cycle de vie complet des actions CRM
+
+Une carte issue d'un Go traverse deux intitulés, posés automatiquement :
+
+1. À la création : « Retirer le DCE et décider de candidater », datée du jour,
+   `next_action_type = 'other'`, `expected_close_date` = date limite.
+2. À sept jours de l'échéance, par le cron `refresh-tender-card-actions`
+   (`refresh_tender_card_actions()`, migration `20260803180000`) : « Déposer
+   l'offre avant le {date} », remontée chaque matin tant qu'elle n'est pas
+   traitée. La bascule est idempotente et ne touche que les cartes
+   `acquisition_source = 'marche_public'` encore ouvertes.
+
+## Réversibilité
+
+Le Go comme le No Go se défont depuis l'onglet Historique. Sur un Go, l'avis
+repasse en `to_review` et le lien `crm_card_id` est effacé, **mais la carte CRM
+n'est pas supprimée** : elle peut déjà porter des commentaires ou un devis.
+C'est à l'utilisateur de la traiter dans le kanban, le bouton « Voir la carte »
+y mène.
+
+## Alerte de santé du flux
+
+Un avis reste en `raw` tant qu'il n'a pas été analysé. Au-delà de trois jours,
+une ligne unique remonte dans les alertes du matin : « N avis non analysés, le
+plus ancien depuis X jours ». C'est le seul symptôme visible d'une chaîne de
+détection cassée. Une ligne agrégée, pas une par avis : c'est un signal, pas
+une liste de tâches.
+
+## Étape d'analyse : ce qui n'existe pas
+
+Le workflow de la section 3 décrit `raw` → analyse Cowork → `to_review`.
+**Cette étape n'a pas été construite.** Le connecteur BOAMP écrit directement
+en `to_review` puisqu'il dispose déjà de l'avis structuré ; les alertes mail
+arrivent en `raw` et y restent, faute de corps de message à analyser (le
+webhook Resend ne livre que des métadonnées).
+
+Conséquence : les deux connecteurs écrivent en `to_review`, et une alerte mail
+est décidable telle quelle, son objet et son lien suffisant à trancher. Le
+statut `raw` reste dans le schéma pour le jour où une analyse sera ajoutée, et
+l'alerte de santé le surveille : aujourd'hui elle ne peut donc pas se
+déclencher, ce qui est le comportement correct. Elle deviendra utile dès qu'un
+traitement intermédiaire existera.

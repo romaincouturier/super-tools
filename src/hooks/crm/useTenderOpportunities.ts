@@ -133,7 +133,16 @@ export const useTenderNoGo = () =>
     { successMessage: "Opportunité écartée", invalidateKey: [TENDERS_QUERY_KEY] },
   );
 
-/** Remet une opportunité en attente de décision : un No Go doit être réversible. */
+/**
+ * Remet une opportunité en attente de décision. Vaut pour un No Go comme pour
+ * un Go : on se trompe dans les deux sens.
+ *
+ * Sur un Go, la carte CRM déjà créée n'est PAS supprimée — elle peut porter
+ * des commentaires ou un devis. Seul le lien est défait, et l'appelant
+ * prévient l'utilisateur pour qu'il aille la traiter dans le kanban. Sans ça,
+ * l'avis resterait en `go` avec un crm_card_id pointant vers une carte
+ * abandonnée.
+ */
 export const useTenderReopen = () =>
   useCrmMutation(
     async (id: string) => {
@@ -145,6 +154,7 @@ export const useTenderReopen = () =>
           no_go_detail: null,
           reviewed_at: null,
           reviewed_by: null,
+          crm_card_id: null,
         })
         .eq("id", id);
       if (error) throw error;
@@ -227,13 +237,19 @@ export const useTenderGo = () => {
       });
 
       // La date limite pilote le suivi commercial : sans elle, la carte
-      // stagnerait dans le pipeline sans échéance visible.
-      if (tender.datelimitereponse) {
-        await supabase
-          .from("crm_cards")
-          .update({ expected_close_date: tender.datelimitereponse.slice(0, 10) })
-          .eq("id", card.id);
-      }
+      // stagnerait dans le pipeline sans échéance visible, et la bascule
+      // automatique à J-7 ne pourrait pas la retrouver.
+      // `next_action_type` n'est pas porté par CreateCardInput : il se pose ici
+      // plutôt que d'élargir un type partagé par trois appelants.
+      await supabase
+        .from("crm_cards")
+        .update({
+          next_action_type: "other",
+          expected_close_date: tender.datelimitereponse
+            ? tender.datelimitereponse.slice(0, 10)
+            : null,
+        })
+        .eq("id", card.id);
 
       if (tagId) {
         await supabase.from("crm_card_tags").insert({ card_id: card.id, tag_id: tagId });

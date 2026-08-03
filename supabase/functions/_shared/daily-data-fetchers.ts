@@ -211,6 +211,12 @@ export interface TenderItem {
   daysLeft: number | null;
 }
 
+export interface TenderBacklogItem {
+  /** Avis reçus mais jamais analysés, et depuis combien de jours. */
+  count: number;
+  oldestDays: number;
+}
+
 export interface SupportTicketItem {
   id: string;
   ticketNumber: string;
@@ -1533,6 +1539,44 @@ export async function fetchTendersToDecide(
     .filter((t) => t.daysLeft === null || (t.daysLeft >= 0 && t.daysLeft <= HORIZON_DAYS));
 }
 
+
+/**
+ * Santé du flux de détection.
+ *
+ * Un avis reste en `raw` tant qu'il n'a pas été analysé. Une file qui stagne
+ * est le seul symptôme visible d'une chaîne cassée : sans cette alerte, une
+ * ingestion en panne ou une analyse qui ne tourne plus passe inaperçue, et on
+ * s'en aperçoit en ratant une échéance.
+ */
+export async function fetchTenderBacklog(
+  supabase: SupabaseClient,
+  today: string,
+): Promise<TenderBacklogItem | null> {
+  const STALE_DAYS = 3;
+  const cutoff = new Date(new Date(today).getTime() - STALE_DAYS * 86400000).toISOString();
+
+  const { data, error } = await supabase
+    .from("tender_opportunities")
+    .select("created_at")
+    .eq("status", "raw")
+    .is("duplicate_of", null)
+    .lt("created_at", cutoff)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    console.error("fetchTenderBacklog error:", error.message);
+    return null;
+  }
+  if (!data || data.length === 0) return null;
+
+  const oldest = new Date(data[0].created_at as string).getTime();
+  return {
+    count: data.length,
+    oldestDays: Math.max(0, Math.floor((new Date(today).getTime() - oldest) / 86400000)),
+  };
+}
+
 export interface DailyData {
   recipients: Recipient[];
   missionActions: MissionActionItem[];
@@ -1554,6 +1598,7 @@ export interface DailyData {
   okrInitiatives: OkrInitiativeItem[];
   supportTickets: SupportTicketItem[];
   tendersToDecide: TenderItem[];
+  tenderBacklog: TenderBacklogItem | null;
   pendingEmailDrafts: MissionEmailDraftItem[];
   logisticsReminders: LogisticsReminderItem[];
   supertiltAlerts: SupertiltAlertItem[];
@@ -1589,6 +1634,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     okrInitiatives,
     supportTickets,
     tendersToDecide,
+    tenderBacklog,
     pendingEmailDrafts,
     logisticsReminders,
     supertiltAlerts,
@@ -1618,6 +1664,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     fetchOkrInitiatives(supabase),
     fetchPendingSupportTickets(supabase, today),
     fetchTendersToDecide(supabase, today),
+    fetchTenderBacklog(supabase, today),
     fetchPendingEmailDrafts(supabase),
     fetchLogisticsReminders(supabase, today),
     fetchSupertiltAlerts(supabase),
@@ -1633,7 +1680,7 @@ export async function fetchAllDailyData(supabase: SupabaseClient, today: string)
     unbilledActivities, missionsNoStartDate, crmCards, trainingConventions,
     reviewArticles, blockedArticles, unresolvedComments, upcomingEvents,
     cfpAlerts, cfpReminders, pastTrainingsNoInvoice, pastEventsNoSummary,
-    reservations, okrInitiatives, supportTickets, tendersToDecide, pendingEmailDrafts,
+    reservations, okrInitiatives, supportTickets, tendersToDecide, tenderBacklog, pendingEmailDrafts,
     logisticsReminders, supertiltAlerts, supertiltActions, lmsCommunityPending,
     restockDeliveries,
     inProgressRestocks,

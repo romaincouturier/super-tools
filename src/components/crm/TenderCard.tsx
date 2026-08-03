@@ -165,15 +165,14 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, decided }: TenderCa
                     ] ?? tender.no_go_reason}
                   </span>
                 )}
-                {tender.status === "go" && tender.crm_card_id ? (
+                {tender.status === "go" && tender.crm_card_id && (
                   <Button variant="outline" size="sm" asChild>
                     <Link to={`/crm/card/${tender.crm_card_id}`}>Voir la carte</Link>
                   </Button>
-                ) : (
-                  <Button variant="ghost" size="sm" onClick={onReopen}>
-                    Remettre en revue
-                  </Button>
                 )}
+                <Button variant="ghost" size="sm" onClick={onReopen}>
+                  Remettre en revue
+                </Button>
               </>
             ) : (
               <>

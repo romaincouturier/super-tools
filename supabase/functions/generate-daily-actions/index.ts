@@ -320,6 +320,21 @@ serve(async (req) => {
       });
     }
 
+    // Marchés publics — santé du flux de détection
+    // Une seule ligne, pas une par avis : c'est un symptôme, pas une liste de
+    // tâches. Sans elle, une chaîne cassée reste invisible jusqu'à l'échéance
+    // ratée.
+    if (data.tenderBacklog) {
+      actions.push({
+        category: "marches_publics",
+        title: `⚠️ ${data.tenderBacklog.count} avis non analysés`,
+        description: `Le plus ancien attend depuis ${data.tenderBacklog.oldestDays} jours — vérifier la chaîne de détection`,
+        link: `${appUrl}/crm/marches-publics`,
+        entityType: "tender_backlog", entityId: "flux",
+        scope: "global",
+      });
+    }
+
     // Marchés publics — appels d'offres à décider
     // Priorisés par l'échéance : c'est elle qui commande, pas la date d'arrivée.
     for (const t of data.tendersToDecide) {
