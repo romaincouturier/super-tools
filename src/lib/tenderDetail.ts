@@ -76,7 +76,7 @@ function lotNames(raw: Json): string[] {
   const lots = collect(raw, (k) => k.toLowerCase().split(":").pop() === "procurementprojectlot");
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const lot of lots.flat ? lots : lots) {
+  for (const lot of lots) {
     for (const name of texts(lot, "Name")) {
       if (name.length < 5 || name.length > 300 || seen.has(name)) continue;
       seen.add(name);
