@@ -103,8 +103,11 @@ export function useAuth(options: UseAuthOptions = {}) {
           return;
         }
 
+        // Keep the same user object identity when it's the same account.
+        // A new object reference would re-trigger effects depending on `user`
+        // (data refetch) and wipe unsaved form state on tab focus / token refresh.
         if (session?.user) {
-          setUser(session.user);
+          setUser((prev) => (prev && prev.id === session.user.id ? prev : session.user));
         }
       }
     );
