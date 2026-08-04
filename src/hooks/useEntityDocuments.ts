@@ -243,3 +243,23 @@ export const deleteEntityDocumentFile = async (
     }
   }
 };
+
+/**
+ * URL de téléchargement effective d'un document.
+ *
+ * Le bucket `tender-documents` est privé (les buckets publics sont bloqués par
+ * la politique de l'espace de travail) : l'URL publique stockée en base renvoie
+ * un 401. On la resigne à la volée. Sur un bucket public, la signature marche
+ * aussi, donc pas de branche par type d'entité.
+ */
+export const resolveEntityDocumentUrl = async (
+  fileUrl: string,
+  entityType: DocumentEntityType,
+): Promise<string> => {
+  const config = configs[entityType];
+  const path = extractStoragePath(fileUrl, config.bucket);
+  if (!path) return fileUrl;
+  const { data, error } = await supabase.storage.from(config.bucket).createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) return fileUrl;
+  return data.signedUrl;
+};
