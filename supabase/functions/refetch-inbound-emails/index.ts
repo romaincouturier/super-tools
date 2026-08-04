@@ -8,7 +8,7 @@ import {
   handleCorsPreflightIfNeeded,
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
-import { fetchReceivedEmailContent } from "../_shared/resend-inbound-content.ts";
+import * as inbound from "../_shared/resend-inbound-content.ts";
 
 const corsHeaders = extendCorsHeaders({});
 
@@ -60,9 +60,13 @@ serve(async (req) => {
         results.push({ id: email.id, updated: false, reason: "déjà rempli" });
         continue;
       }
-      const content = await fetchReceivedEmailContent(email.message_id);
+      const content = await inbound.fetchReceivedEmailContent(email.message_id);
       if (!content || (!content.text && !content.html)) {
-        results.push({ id: email.id, updated: false, reason: "contenu indisponible" });
+        results.push({
+          id: email.id,
+          updated: false,
+          reason: inbound.lastFetchError ?? "contenu indisponible",
+        });
         continue;
       }
       const { error: updateError } = await supabase
