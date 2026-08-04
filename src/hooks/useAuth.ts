@@ -59,7 +59,7 @@ export function useAuth(options: UseAuthOptions = {}) {
         return;
       }
 
-      setUser(session.user);
+      setUser((prev) => (prev && prev.id === session.user.id ? prev : session.user));
 
       if (checkPasswordChange) {
         const mustChange = await checkPasswordChangeRequired(session.user.id);
