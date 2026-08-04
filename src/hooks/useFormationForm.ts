@@ -51,6 +51,15 @@ export interface FormationFormState {
   sponsorPhone: string;
   sponsorFormalAddress: boolean;
 
+  // Responsable administratif
+  adminContactSameAsSponsor: boolean;
+  adminContactFirstName: string;
+  adminContactLastName: string;
+  adminContactEmail: string;
+  adminContactPhone: string;
+
+
+
   // Financeur
   financeurSameAsSponsor: boolean;
   financeurName: string;
