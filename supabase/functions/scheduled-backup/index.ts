@@ -634,8 +634,9 @@ async function verifyBackupIntegrity(
   // Flag as failed only if >10% of tables have mismatches or a table lost >50% of rows
   const mismatchRate = result.checks.rowCountMismatches.length / tablesToBackup.length;
   const hasSevereLoss = result.checks.rowCountMismatches.some(
-    (m) => m.live > 0 && m.backup < m.live * 0.5,
+    (m) => m.live > 0 && m.backup < m.live * 0.5 && !APPEND_ONLY_TABLES.has(m.table),
   );
+
 
   if (result.checks.tablesMissing.length > 0 || mismatchRate > 0.1 || hasSevereLoss) {
     result.passed = false;
@@ -700,8 +701,9 @@ async function verifyBackupIntegrityByCounts(
 
   const mismatchRate = result.checks.rowCountMismatches.length / tablesToBackup.length;
   const hasSevereLoss = result.checks.rowCountMismatches.some(
-    (m) => m.live > 0 && m.backup < m.live * 0.5,
+    (m) => m.live > 0 && m.backup < m.live * 0.5 && !APPEND_ONLY_TABLES.has(m.table),
   );
+
   if (result.checks.tablesMissing.length > 0 || mismatchRate > 0.1 || hasSevereLoss) {
     result.passed = false;
   }
@@ -859,9 +861,33 @@ const TICK_BUDGET_MS = 45_000;      // temps de travail max par invocation
 const RUN_LOCK_MS = 50_000;         // évite deux ticks simultanés sur le même run
 const STALE_RUN_MS = 15 * 60 * 1000; // run sans activité => repris
 const PAGE_SIZE = 1000;              // pagination par table
+const MAX_ROWS_PER_FILE = 50_000;    // découpage des grosses tables en plusieurs fichiers
+const MAX_TABLE_ATTEMPTS = 3;        // au-delà, la table est sautée (crash-loop)
+const MAX_RUNS_PER_DAY = 3;          // nombre de tentatives de run par journée
+
 const MISSING_BACKUP_ALERT_MS = 26 * 60 * 60 * 1000;
 
 const TABLES_SKIPPED_HEAVY = new Set<string>(["document_embeddings"]);
+
+/**
+ * Tables append-only à forte croissance : entre le moment où elles sont
+ * exportées et la vérification d'intégrité (plusieurs heures plus tard), leur
+ * volume peut plus que doubler. L'écart n'est pas une perte de données, donc on
+ * ne le traite pas comme une anomalie bloquante.
+ */
+const APPEND_ONLY_TABLES = new Set<string>([
+  "activity_logs",
+  "agent_events",
+  "crm_activity_log",
+  "daily_actions",
+  "daily_action_analytics",
+  "feature_usage",
+  "gsc_metrics_daily",
+  "sent_emails_log",
+  "email_send_log",
+  "wp_metrics_daily",
+]);
+
 
 interface RunRow {
   id: string;
@@ -932,40 +958,58 @@ async function getDriveAccess(supabase: any): Promise<{ accessToken: string; roo
   return { accessToken, rootFolderId: folderSetting?.setting_value || undefined };
 }
 
-/** Exporte une table entière (paginée) et l'envoie comme fichier JSON dédié. */
+/**
+ * Exporte une tranche d'une table (à partir de `startOffset`, au maximum
+ * MAX_ROWS_PER_FILE lignes) dans un fichier JSON dédié. Les très grosses tables
+ * (gsc_metrics_daily : 590k lignes) sont ainsi découpées en plusieurs fichiers
+ * `table__x__partN.json`, ce qui évite le WORKER_RESOURCE_LIMIT provoqué par la
+ * construction d'un seul JSON de plusieurs centaines de Mo en mémoire.
+ */
 async function exportTableToDrive(
   supabase: any,
   accessToken: string,
   folderId: string,
   tableName: string,
-): Promise<{ rows: number; fileId: string | null; error: string | null }> {
-  const chunks: string[] = [`{"table":${JSON.stringify(tableName)},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`];
+  startOffset = 0,
+  part = 0,
+): Promise<{ rows: number; fileId: string | null; error: string | null; nextOffset: number; done: boolean }> {
+  const chunks: string[] = [
+    `{"table":${JSON.stringify(tableName)},"part":${part},"offset":${startOffset},"exportedAt":${JSON.stringify(new Date().toISOString())},"rows":[`,
+  ];
   let rows = 0;
-  let from = 0;
+  let from = startOffset;
+  let done = false;
 
-  while (true) {
+  while (rows < MAX_ROWS_PER_FILE) {
     const { data, error } = await supabase
       .from(tableName)
       .select("*")
       .range(from, from + PAGE_SIZE - 1);
-    if (error) return { rows, fileId: null, error: error.message };
+    if (error) return { rows, fileId: null, error: error.message, nextOffset: from, done: true };
     const batch = data || [];
     for (const row of batch) {
       if (rows > 0) chunks.push(",");
       chunks.push(JSON.stringify(row));
       rows++;
     }
-    if (batch.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
+    from += batch.length;
+    if (batch.length < PAGE_SIZE) {
+      done = true;
+      break;
+    }
   }
 
   chunks.push("]}");
   const content = chunks.join("");
   chunks.length = 0;
 
-  const uploaded = await uploadJsonToGoogleDrive(accessToken, `table__${tableName}.json`, content, folderId);
-  return { rows, fileId: uploaded.id, error: null };
+  const fileName = part === 0 && done
+    ? `table__${tableName}.json`
+    : `table__${tableName}__part${part}.json`;
+  const uploaded = await uploadJsonToGoogleDrive(accessToken, fileName, content, folderId);
+  return { rows, fileId: uploaded.id, error: null, nextOffset: from, done };
 }
+
 
 async function sendBackupEmail(subject: string, html: string, type: string) {
   const adminEmail = await getSenderEmail();
@@ -1014,21 +1058,66 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
 
   // ── PHASE 1 : tables ──
   if (phase === "db") {
+    const totals: Record<string, number | string> = { ...run.totals };
+
     while (cursor < TABLES_TO_BACKUP.length && !outOfBudget()) {
       const tableName = TABLES_TO_BACKUP[cursor];
       if (TABLES_SKIPPED_HEAVY.has(tableName)) {
         counts[tableName] = -1;
-      } else {
-        try {
-          const res = await exportTableToDrive(supabase, accessToken, folderId!, tableName);
-          counts[tableName] = res.rows;
-          if (res.fileId) fileIds.push(res.fileId);
-          if (res.error) errors.push(`[DB] ${tableName}: ${res.error}`);
-        } catch (err) {
-          errors.push(`[DB] ${tableName}: ${err instanceof Error ? err.message : "export failed"}`);
-        }
+        cursor++;
+        chunks++;
+        continue;
       }
-      cursor++;
+
+      const offsetKey = `dbOffset_${tableName}`;
+      const partKey = `dbPart_${tableName}`;
+      const attemptKey = `dbAttempt_${tableName}`;
+      const attempts = Number(totals[attemptKey] || 0) + 1;
+
+      // La tentative est persistée AVANT l'export : si le worker meurt sur cette
+      // table (mémoire), le tick suivant le voit et finit par la sauter au lieu
+      // de boucler jusqu'à l'abandon du run.
+      if (attempts > MAX_TABLE_ATTEMPTS) {
+        errors.push(`[DB] ${tableName}: sautée après ${MAX_TABLE_ATTEMPTS} tentatives échouées`);
+        counts[tableName] = counts[tableName] ?? -1;
+        cursor++;
+        chunks++;
+        continue;
+      }
+      totals[attemptKey] = attempts;
+      await saveRun(supabase, run.id, { totals, cursor_index: cursor });
+
+      const startOffset = Number(totals[offsetKey] || 0);
+      const part = Number(totals[partKey] || 0);
+
+      try {
+        const res = await exportTableToDrive(
+          supabase,
+          accessToken,
+          folderId!,
+          tableName,
+          startOffset,
+          part,
+        );
+        counts[tableName] = (startOffset > 0 ? Number(counts[tableName] || 0) : 0) + res.rows;
+        if (res.fileId) fileIds.push(res.fileId);
+        if (res.error) errors.push(`[DB] ${tableName}: ${res.error}`);
+
+        if (res.done) {
+          delete totals[offsetKey];
+          delete totals[partKey];
+          delete totals[attemptKey];
+          cursor++;
+        } else {
+          // Table trop grosse : on reprendra à cet offset au tick suivant.
+          totals[offsetKey] = res.nextOffset;
+          totals[partKey] = part + 1;
+          totals[attemptKey] = 0;
+        }
+      } catch (err) {
+        errors.push(`[DB] ${tableName}: ${err instanceof Error ? err.message : "export failed"}`);
+        cursor++;
+      }
       chunks++;
     }
 
@@ -1041,11 +1130,13 @@ async function processRun(supabase: any, run: RunRow, startTime: number) {
       cursor_index: cursor,
       table_row_counts: counts,
       drive_file_ids: fileIds,
+      totals,
       errors,
       chunks_done: chunks,
     });
     return { phase, done: false };
   }
+
 
   // ── PHASE 2 : storage ──
   if (phase === "storage") {
@@ -1345,15 +1436,19 @@ serve(async (req) => {
       }
       const today = parisDate();
       if (mode === "tick") {
-        // Un seul run abouti par jour
-        const { count } = await supabase
+        // Un seul run réussi par jour, mais on réessaye après un échec
+        // (max MAX_RUNS_PER_DAY tentatives) au lieu d'attendre le lendemain.
+        const { data: todayRuns } = await supabase
           .from("backup_runs")
-          .select("*", { count: "exact", head: true })
+          .select("status")
           .eq("run_date", today)
           .in("status", ["success", "failed"]);
-        if ((count ?? 0) > 0) {
+        const done = todayRuns || [];
+        const hasSuccess = done.some((r: { status: string }) => r.status === "success");
+        if (hasSuccess || done.length >= MAX_RUNS_PER_DAY) {
           const alerted = await checkMissingBackupAlert(supabase);
           return createJsonResponse({ skipped: true, reason: "already_run_today", alerted });
+
         }
       }
       const { data: created, error: createErr } = await supabase
