@@ -30,6 +30,9 @@ interface ConventionSectionProps {
   sponsorName: string | null;
   sponsorFirstName: string | null;
   sponsorFormalAddress: boolean;
+  adminContactEmail?: string | null;
+  adminContactFirstName?: string | null;
+  adminContactLastName?: string | null;
   conventionSentAt: string | null;
   setConventionSentAt: (date: string | null) => void;
   conventionSignatureStatus: ConventionSignatureStatus | null;
@@ -44,6 +47,7 @@ const ConventionSection = ({
   trainingId, isInterEntreprise, formatFormation,
   conventionFileUrl, setConventionFileUrl,
   sponsorEmail, sponsorName, sponsorFirstName, sponsorFormalAddress,
+  adminContactEmail, adminContactFirstName, adminContactLastName,
   conventionSentAt, setConventionSentAt,
   conventionSignatureStatus, conventionSignatureUrl, setConventionSignatureUrl,
   signedConventionUrls, setSignedConventionUrls, onUpdate,
@@ -61,10 +65,18 @@ const ConventionSection = ({
 
   const formatSentDate = formatSentDateTime;
 
+  // La convention part au responsable administratif s'il est défini, sinon au commanditaire
+  // (même règle que l'edge function send-convention-email).
+  const recipientEmail = adminContactEmail || sponsorEmail;
+  const recipientFirstName = adminContactEmail ? (adminContactFirstName || null) : sponsorFirstName;
+  const recipientName = adminContactEmail
+    ? ([adminContactFirstName, adminContactLastName].filter(Boolean).join(" ") || null)
+    : sponsorName;
+
   const handleSendConventionReminder = async () => {
     const result = await invokeReminder({ trainingId });
     if (result !== null) {
-      toast({ title: "Relance envoyée", description: `Une relance convention a été envoyée à ${sponsorEmail}.` });
+      toast({ title: "Relance envoyée", description: `Une relance convention a été envoyée à ${recipientEmail}.` });
     }
   };
 
@@ -112,14 +124,14 @@ const ConventionSection = ({
   };
 
   const handleSendConvention = async () => {
-    if (!conventionFileUrl || !sponsorEmail) {
+    if (!conventionFileUrl || !recipientEmail) {
       toastError(toast, !conventionFileUrl ? "Aucune convention générée." : "Aucun email de commanditaire défini.", { title: "Impossible" });
       return;
     }
     setSendingConvention(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-convention-email", {
-        body: { trainingId, conventionUrl: conventionFileUrl, recipientEmail: sponsorEmail, recipientName: sponsorName, recipientFirstName: sponsorFirstName, formalAddress: sponsorFormalAddress, conventionFileName: lastGeneratedConventionFileName, enableOnlineSignature },
+        body: { trainingId, conventionUrl: conventionFileUrl, recipientEmail, recipientName, recipientFirstName, formalAddress: sponsorFormalAddress, conventionFileName: lastGeneratedConventionFileName, enableOnlineSignature },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error as string);
@@ -141,8 +153,8 @@ const ConventionSection = ({
       toast({
         title: "Convention envoyée",
         description: enableOnlineSignature
-          ? `Convention envoyée à ${sponsorEmail} avec lien de signature en ligne.`
-          : `La convention a été envoyée à ${sponsorEmail}.`,
+          ? `Convention envoyée à ${recipientEmail} avec lien de signature en ligne.`
+          : `La convention a été envoyée à ${recipientEmail}.`,
       });
     } catch (error: unknown) {
       console.error("Send convention error:", error);
@@ -174,7 +186,7 @@ const ConventionSection = ({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleDownloadConvention}><Download className="h-4 w-4 mr-2" />Télécharger</DropdownMenuItem>
                   <DropdownMenuItem onClick={handleGenerateConvention} disabled={generatingConvention}><RotateCw className="h-4 w-4 mr-2" />Regénérer</DropdownMenuItem>
-                  {sponsorEmail && <DropdownMenuItem onClick={handleSendConvention} disabled={sendingConvention}><Send className="h-4 w-4 mr-2" />Envoyer</DropdownMenuItem>}
+                  {recipientEmail && <DropdownMenuItem onClick={handleSendConvention} disabled={sendingConvention}><Send className="h-4 w-4 mr-2" />Envoyer</DropdownMenuItem>}
                   {conventionSentAt && conventionSignatureStatus?.status !== "signed" && signedConventionUrls.length === 0 && (
                     <DropdownMenuItem onClick={handleSendConventionReminder} disabled={sendingConventionReminder}>
                       {sendingConventionReminder ? <Spinner className="mr-2" /> : <BellRing className="h-4 w-4 mr-2" />}Relancer convention
@@ -195,7 +207,7 @@ const ConventionSection = ({
             <CheckCircle className="h-4 w-4 text-primary" />
             <button type="button" onClick={handleDownloadConvention} className="text-sm text-foreground hover:underline flex-1 truncate text-left">Convention générée</button>
           </div>
-          {sponsorEmail && (
+          {recipientEmail && (
             <div className="flex items-center space-x-2 pl-1">
               <Checkbox id="enableOnlineSignature" checked={enableOnlineSignature} onCheckedChange={(checked) => setEnableOnlineSignature(checked === true)} />
               <Label htmlFor="enableOnlineSignature" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1">
@@ -204,7 +216,7 @@ const ConventionSection = ({
             </div>
           )}
           {conventionSentAt && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" />Envoyée le {formatSentDate(conventionSentAt)} à {sponsorEmail}</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" />Envoyée le {formatSentDate(conventionSentAt)} à {recipientEmail}</span>
           )}
           {conventionSignatureUrl && (
             <span className="text-xs text-muted-foreground flex items-center gap-1"><PenLine className="h-3 w-3 text-primary" />Lien de signature en ligne envoyé</span>
