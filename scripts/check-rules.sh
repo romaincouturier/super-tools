@@ -425,6 +425,15 @@ if [ "$STAGED_MODE" = "false" ]; then
        | grep -v '_shared/api-usage.ts' \
        | while read -r f; do grep -q 'api-usage' \"\$f\" || echo \"VIOLATION [045]: \$f appelle une API payante sans logApiUsage\"; done"
 
+  # [046] Prompt caching de l'agent — le cache ne tient que si le prefixe rendu est
+  # append-only pendant un tour (cutoff de compaction fige) ET si des points de cache
+  # sont poses sur l'historique, pas seulement sur le system.
+  check "046" "Agent : historique cache et cutoff de compaction fige" \
+    "grep -q 'withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff))' supabase/functions/agent-chat/index.ts \
+       || echo 'VIOLATION [046]: agent-chat doit envoyer withCacheBreakpoints(compactForApi(..., compactionCutoff))'; \
+     test -f supabase/functions/_shared/agent-history.test.ts \
+       || echo 'VIOLATION [046]: test invariant de prefixe supprime (_shared/agent-history.test.ts)'"
+
   # Ratchet [017] / [020] — migrations progressives : la dette ne peut que descendre.
   # Baselines dans scripts/rules-ratchet.txt. Compte > baseline = violation.
   # Compte < baseline = abaisser la baseline dans le même commit.

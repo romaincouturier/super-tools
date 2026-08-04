@@ -258,6 +258,7 @@ export async function pollAssemblyAIJob(
     await logAssemblyAiUsage({
       origin: "google-drive-helper",
       operation: "poll-transcript",
+      transcriptId: jobId,
       audioSeconds: duration,
       trigger: "cron",
     });
@@ -267,6 +268,7 @@ export async function pollAssemblyAIJob(
     await logAssemblyAiUsage({
       origin: "google-drive-helper",
       operation: "poll-transcript",
+      transcriptId: jobId,
       audioSeconds: Math.round(result.audio_duration ?? 0),
       trigger: "cron",
       status: "error",
