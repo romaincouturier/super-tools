@@ -37,9 +37,10 @@ serve(async (req) => {
       }
     }
 
-
+    const supabase = getSupabaseClient();
     const body = await req.json().catch(() => ({}));
     const targetId: string | undefined = body?.id;
+
 
     let query = supabase
       .from("inbound_emails")
