@@ -535,6 +535,23 @@ serve(async (req) => {
         )
       );
 
+      // 15e. Marchés publics — Go / No Go à décider
+      add("⚖️", "Marchés publics — Go / No Go", COLORS.amber,
+        data.tendersToDecide.map(t => {
+          const urgence = t.daysLeft === null
+            ? "date limite non publiée"
+            : t.daysLeft <= 12 ? `⚠️ J-${t.daysLeft}` : `J-${t.daysLeft}`;
+          return `<li>${linkHtml(`${appUrl}/crm/marches-publics`, t.objet.slice(0, 120))} — ${t.acheteur ?? "Acheteur non précisé"} — ${urgence} — Go / No Go</li>`;
+        })
+      );
+
+      // 15f. Marchés publics — flux de détection en souffrance
+      if (data.tenderBacklog) {
+        add("⚠️", "Marchés publics — avis non analysés", COLORS.red, [
+          `<li>${linkHtml(`${appUrl}/crm/marches-publics`, `${data.tenderBacklog.count} avis non analysés`)} — le plus ancien attend depuis ${data.tenderBacklog.oldestDays} jours</li>`,
+        ]);
+      }
+
 
       // 16. Tickets support en attente
       const priorityEmojis: Record<string, string> = { critical: "🔴", high: "🟠", medium: "🟡", low: "🟢" };
