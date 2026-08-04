@@ -19,6 +19,13 @@ import type { TenderOpportunity, TenderWithContext } from "@/types/tenders";
 
 export const TENDERS_QUERY_KEY = "tender-opportunities";
 
+export interface TenderPage {
+  items: TenderWithContext[];
+  /** Nombre réel d'avis à décider, avant le plafond d'affichage. */
+  total: number;
+  truncated: boolean;
+}
+
 /** Statuts qui appellent une décision. */
 const OPEN_STATUSES = ["raw", "to_review"];
 
@@ -35,10 +42,12 @@ function todayParis(): string {
 export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
   return useQuery({
     queryKey: [TENDERS_QUERY_KEY, status],
-    queryFn: async (): Promise<TenderWithContext[]> => {
+    queryFn: async (): Promise<TenderPage> => {
       let query = supabase
         .from("tender_opportunities")
-        .select("*")
+        // `count: exact` : afficher 200 quand il y en a 278 ferait passer un
+        // plafond d'affichage pour un total, et croire la revue terminée.
+        .select("*", { count: "exact" })
         // Les doublons inter-sources ne sont jamais affichés : le même marché
         // arrive par le BOAMP et par une alerte PLACE, et le qualifier deux
         // fois est ce qui décourage la revue.
@@ -59,10 +68,11 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
 
       // Les avis sans date limite connue passent en dernier plutôt que d'être
       // traités comme les plus urgents.
-      const { data, error } = await query
+      const PAGE_MAX = 200;
+      const { data, error, count } = await query
         .order("datelimitereponse", { ascending: true, nullsFirst: false })
         .order("dateparution", { ascending: false })
-        .limit(200);
+        .limit(PAGE_MAX);
       if (error) throw error;
 
       const rows = (data || []) as unknown as TenderOpportunity[];
@@ -124,12 +134,13 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
         }
       }
 
-      return rows.map((row) => ({
+      const items = rows.map((row) => ({
         ...row,
         decision: row.decision ?? {},
         buyer_history: (row.acheteur && history.get(row.acheteur)) || [],
         buyer_awards: (row.acheteur && awards.get(row.acheteur)?.slice(0, 3)) || [],
       }));
+      return { items, total: count ?? items.length, truncated: (count ?? 0) > PAGE_MAX };
 
     },
   });

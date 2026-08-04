@@ -56,7 +56,7 @@ const previewStatus = (status: string, email = "alice@example.com") =>
   });
 
 const typePassword = (value: string) =>
-  fireEvent.change(screen.getByLabelText("Mot de passe"), { target: { value } });
+  fireEvent.change(screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i), { target: { value } });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ describe("LearnerOnboarding — token validation", () => {
     render(<LearnerOnboarding />);
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /créer mon compte/i })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: /créez votre accès/i })).toBeInTheDocument(),
     );
   });
 
@@ -111,9 +111,9 @@ describe("LearnerOnboarding — token validation", () => {
     render(<LearnerOnboarding />);
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: /content de vous revoir/i })).toBeInTheDocument(),
     );
-    expect(screen.queryByRole("heading", { name: /créer mon compte/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /créez votre accès/i })).not.toBeInTheDocument();
   });
 
   it("shows login mode with explanatory banner when token is already used", async () => {
@@ -123,7 +123,7 @@ describe("LearnerOnboarding — token validation", () => {
     await waitFor(() =>
       expect(screen.getByText(/ce lien d'accès a déjà été utilisé/i)).toBeInTheDocument(),
     );
-    expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /content de vous revoir/i })).toBeInTheDocument();
   });
 
   it("pre-fills the email field from the token (editable)", async () => {
@@ -149,14 +149,14 @@ describe("LearnerOnboarding — create account flow", () => {
 
   it("keeps submit button disabled until password field has a value", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     expect(screen.getByRole("button", { name: /créer mon compte/i })).toBeDisabled();
   });
 
   it("keeps submit button disabled for a weak password (score < 4)", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("weak"));
 
@@ -165,7 +165,7 @@ describe("LearnerOnboarding — create account flow", () => {
 
   it("enables submit once password meets strength requirements", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("Str0ng!Pass"));
 
@@ -174,7 +174,7 @@ describe("LearnerOnboarding — create account flow", () => {
 
   it("calls create-learner-account edge function on submit", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("Str0ng!Pass"));
     await act(async () => {
@@ -191,7 +191,7 @@ describe("LearnerOnboarding — create account flow", () => {
 
   it("consumes the token after successful signup", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("Str0ng!Pass"));
     await act(async () => {
@@ -205,7 +205,7 @@ describe("LearnerOnboarding — create account flow", () => {
 
   it("navigates to /espace-apprenant after successful signup", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("Str0ng!Pass"));
     await act(async () => {
@@ -220,7 +220,7 @@ describe("LearnerOnboarding — create account flow", () => {
   it("switches to login mode when create-learner-account returns already_exists", async () => {
     mockInvoke.mockResolvedValueOnce({ data: { error: "already_exists" }, error: null });
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("Str0ng!Pass"));
     await act(async () => {
@@ -228,14 +228,14 @@ describe("LearnerOnboarding — create account flow", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: /content de vous revoir/i })).toBeInTheDocument(),
     );
   });
 
   it("shows error message when create-learner-account fails", async () => {
     mockInvoke.mockResolvedValueOnce({ data: { error: "server error" }, error: null });
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("Str0ng!Pass"));
     await act(async () => {
@@ -257,7 +257,7 @@ describe("LearnerOnboarding — login flow", () => {
 
   it("calls signInWithPassword on submit", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("mypassword"));
     await act(async () => {
@@ -274,7 +274,7 @@ describe("LearnerOnboarding — login flow", () => {
 
   it("navigates to /espace-apprenant after successful login", async () => {
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("mypassword"));
     await act(async () => {
@@ -289,7 +289,7 @@ describe("LearnerOnboarding — login flow", () => {
   it("shows error message on wrong password", async () => {
     mockSignIn.mockResolvedValueOnce({ error: { message: "Invalid login credentials" } });
     render(<LearnerOnboarding />);
-    await waitFor(() => screen.getByLabelText("Mot de passe"));
+    await waitFor(() => screen.getByLabelText(/^(choisissez votre|votre) mot de passe$/i));
 
     act(() => typePassword("wrongpassword"));
     await act(async () => {
@@ -318,10 +318,10 @@ describe("LearnerOnboarding — mode switcher", () => {
     previewOk(false);
     render(<LearnerOnboarding />);
 
-    await waitFor(() => screen.getByRole("heading", { name: /créer mon compte/i }));
+    await waitFor(() => screen.getByRole("heading", { name: /créez votre accès/i }));
     fireEvent.click(screen.getByRole("button", { name: /se connecter/i }));
 
-    expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /content de vous revoir/i })).toBeInTheDocument();
   });
 
   it("lets user switch from login to create mode manually (has_account=false)", async () => {
@@ -334,16 +334,16 @@ describe("LearnerOnboarding — mode switcher", () => {
     render(<LearnerOnboarding />);
 
     // Start in create mode, switch to login
-    await waitFor(() => screen.getByRole("heading", { name: /créer mon compte/i }));
+    await waitFor(() => screen.getByRole("heading", { name: /créez votre accès/i }));
     fireEvent.click(screen.getByRole("button", { name: /se connecter/i }));
 
     await waitFor(() =>
-      expect(screen.getByRole("heading", { name: /se connecter/i })).toBeInTheDocument(),
+      expect(screen.getByRole("heading", { name: /content de vous revoir/i })).toBeInTheDocument(),
     );
 
     // Now switch back to create
     fireEvent.click(screen.getByRole("button", { name: /créer un compte/i }));
-    expect(screen.getByRole("heading", { name: /créer mon compte/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /créez votre accès/i })).toBeInTheDocument();
   });
 
   it("hides create-account switcher when user already has an account (used token)", async () => {

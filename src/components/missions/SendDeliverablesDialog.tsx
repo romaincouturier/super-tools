@@ -20,7 +20,7 @@ import { useEntityMedia } from "@/hooks/useMedia";
 import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import { MissionContact } from "@/types/missions";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMissionDeliverableSends } from "@/hooks/useMissionDeliverableSends";
 
 interface SendDeliverablesDialogProps {
   missionId: string;
@@ -139,18 +139,7 @@ const SendDeliverablesDialog = ({
   );
 
   // Historique des envois précédents (pour basculer sur le template "nouveautés")
-  const { data: previousSends } = useQuery({
-    queryKey: ["mission-deliverable-sends", missionId],
-    enabled: open && !!missionId,
-    queryFn: async () => {
-      const { data, error } = await (supabase.from("mission_deliverable_sends") as any)
-        .select("contact_id, email, item_keys, sent_at")
-        .eq("mission_id", missionId)
-        .order("sent_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as { contact_id: string | null; email: string; item_keys: string[]; sent_at: string }[];
-    },
-  });
+  const { data: previousSends } = useMissionDeliverableSends(missionId, open);
 
   const currentItems = useMemo(
     () => [

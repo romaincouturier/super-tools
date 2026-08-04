@@ -13,8 +13,10 @@
 # Prérequis (Debian/Ubuntu) :
 #   sudo apt-get install postgresql-16 postgresql-16-pgvector postgresql-16-pgtap
 #   pg_net et pg_cron n'existent pas hors Supabase : le script installe des
-#   doublures minimales, dont un cron.unschedule qui lève sur un job inconnu
-#   comme le vrai — sans quoi le banc masque des erreurs que le CI voit.
+#   doublures minimales. cron.unschedule ET cron.alter_job lèvent sur un job
+#   inconnu, comme les vrais : sans ça le banc rend un faux vert sur une
+#   migration qui référence un jobid de production (constaté le 03/08/2026,
+#   CI rouge alors que le rejeu local annonçait 0 échec).
 set -u
 
 EXTDIR=$(pg_config --sharedir 2>/dev/null)/extension
@@ -50,10 +52,23 @@ BEGIN
   IF n = 0 THEN RAISE EXCEPTION 'could not find valid entry for job ''%''', job_name; END IF;
   RETURN true;
 END \$fn\$;
-CREATE OR REPLACE FUNCTION cron.unschedule(job_id bigint)
-RETURNS boolean LANGUAGE sql AS \$\$ DELETE FROM cron.job WHERE jobid = \$1; SELECT true \$\$;
 CREATE OR REPLACE FUNCTION cron.alter_job(job_id bigint, schedule text DEFAULT NULL, command text DEFAULT NULL, database text DEFAULT NULL, username text DEFAULT NULL, active boolean DEFAULT NULL)
-RETURNS void LANGUAGE sql AS \$\$ UPDATE cron.job SET schedule = coalesce(\$2, schedule) WHERE jobid = \$1 \$\$;"
+RETURNS void LANGUAGE plpgsql AS \$\$
+BEGIN
+  UPDATE cron.job j SET schedule = coalesce(alter_job.schedule, j.schedule) WHERE j.jobid = alter_job.job_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Job % does not exist or you don''t own it', job_id;
+  END IF;
+END \$\$;
+CREATE OR REPLACE FUNCTION cron.unschedule(job_id bigint)
+RETURNS boolean LANGUAGE plpgsql AS \$\$
+BEGIN
+  DELETE FROM cron.job WHERE jobid = job_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Job % does not exist or you don''t own it', job_id;
+  END IF;
+  RETURN true;
+END \$\$;"
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 BOOTSTRAP="$REPO/scripts/replay-bootstrap.sql"

@@ -141,7 +141,9 @@ serve(async (req) => {
         {
           objet: tender.objet,
           cpvCodes: tender.cpv_codes,
-          extraText: tender.decision.lots.join(" "),
+          // Même périmètre que la requête API : la prose complète de l'avis,
+          // pas seulement son titre.
+          extraText: tender.full_text,
         },
         config,
       );

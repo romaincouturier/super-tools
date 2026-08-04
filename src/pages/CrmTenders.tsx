@@ -36,7 +36,7 @@ export default function CrmTenders() {
   const [noGoTarget, setNoGoTarget] = useState<TenderWithContext | null>(null);
   const [detailTarget, setDetailTarget] = useState<TenderWithContext | null>(null);
 
-  const { data: tenders, isLoading } = useTenderOpportunities(tab);
+  const { data: page, isLoading } = useTenderOpportunities(tab);
   const { data: board } = useCrmBoard();
   const goMutation = useTenderGo();
   const noGoMutation = useTenderNoGo();
@@ -52,7 +52,8 @@ export default function CrmTenders() {
     [board],
   );
 
-  const rows = tenders ?? [];
+  const rows = page?.items ?? [];
+  const total = page?.total ?? 0;
   const urgent = rows.filter((t) => isTenderUrgent(t.datelimitereponse)).length;
 
   return (
@@ -67,7 +68,7 @@ export default function CrmTenders() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as "open" | "decided")} className="mt-4">
         <TabsList>
           <TabsTrigger value="open">
-            À décider{tab === "open" && rows.length > 0 ? ` (${rows.length})` : ""}
+            À décider{tab === "open" && total > 0 ? ` (${total})` : ""}
           </TabsTrigger>
           <TabsTrigger value="decided">Historique</TabsTrigger>
         </TabsList>
@@ -85,6 +86,13 @@ export default function CrmTenders() {
           {tab === "open" && urgent > 0 && (
             <p className="text-sm text-destructive">
               {urgent} avis à moins de {TENDER_URGENT_DAYS} jours de la date limite.
+            </p>
+          )}
+
+          {page?.truncated && (
+            <p className="text-sm text-muted-foreground">
+              {rows.length} avis affichés sur {total}, les plus urgents d'abord. Resserrer les
+              réglages de filtrage réduira la liste.
             </p>
           )}
 
