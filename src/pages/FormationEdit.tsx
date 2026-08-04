@@ -28,6 +28,7 @@ import {
   TrainingDaysCalendar,
   SponsorCard,
   FinanceurCard,
+  AdminContactCard,
   CatalogSummaryCard,
   SourceFinancementSelector,
   TypeStagiaireBpfSelector,
@@ -627,6 +628,7 @@ N'hésitez pas à me contacter en amont pour toute question.
               </Card>
 
               <SponsorCard form={form} />
+              <AdminContactCard form={form} />
               <FinanceurCard form={form} />
 
               {/* Notes */}

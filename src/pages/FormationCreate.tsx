@@ -31,6 +31,7 @@ import {
   LocationRadioGroup,
   SponsorCard,
   FinanceurCard,
+  AdminContactCard,
   CatalogSummaryCard,
 } from "@/components/formations/FormationFormFields";
 import CreateCatalogEntryDialog from "@/components/formations/CreateCatalogEntryDialog";
@@ -633,6 +634,7 @@ const FormationCreate = () => {
               )}
 
               <SponsorCard form={form} />
+              <AdminContactCard form={form} />
               <FinanceurCard form={form} />
             </div>
 
