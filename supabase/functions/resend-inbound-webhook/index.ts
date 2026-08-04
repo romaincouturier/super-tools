@@ -495,14 +495,28 @@ serve(async (req) => {
 
     console.log("Received inbound email from:", parsedFrom.email, "subject:", emailData.subject);
 
+    // Le webhook ne contient AUCUN corps : on récupère le contenu via l'API
+    // Resend « Retrieve Received Email » et on l'injecte dans emailData pour
+    // que le stockage, le routage marchés publics et l'extraction CRM en
+    // disposent tous.
+    const fetched = await fetchReceivedEmailContent(emailData.email_id);
+    if (fetched) {
+      emailData.text = emailData.text ?? fetched.text ?? undefined;
+      emailData.html = emailData.html ?? fetched.html ?? undefined;
+      if (Object.keys(fetched.headers).length > 0) {
+        emailData.headers = { ...(fetched.headers as Record<string, string>), ...(emailData.headers || {}) };
+      }
+    } else {
+      console.error("Corps de l'email entrant indisponible pour", emailData.email_id);
+    }
+
     // Prepare attachments (store metadata, not full content for large files)
     const attachments = emailData.attachments?.map((att) => ({
       filename: att.filename,
       content_type: att.content_type,
       size: att.content ? Math.ceil((att.content.length * 3) / 4) : 0, // Approximate decoded size
-      // Note: For large attachments, you might want to store them in Supabase Storage
-      // and only keep a reference here
-    })) || [];
+    })) || fetched?.attachments || [];
+
 
     // Insert email into database
     const { data: insertedEmail, error: insertError } = await supabase
