@@ -34,7 +34,9 @@ export default function CrmTenders() {
   const [tab, setTab] = useState<"open" | "decided">("open");
   const [goTarget, setGoTarget] = useState<TenderWithContext | null>(null);
   const [noGoTarget, setNoGoTarget] = useState<TenderWithContext | null>(null);
-  const [detailTarget, setDetailTarget] = useState<TenderWithContext | null>(null);
+  // L'id et non l'objet : produire la synthèse rafraîchit la liste, et une
+  // copie figée dans l'état afficherait encore la fiche d'avant.
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const { data: page, isLoading } = useTenderOpportunities(tab);
   const { data: board } = useCrmBoard();
@@ -53,6 +55,7 @@ export default function CrmTenders() {
   );
 
   const rows = page?.items ?? [];
+  const detailTarget = rows.find((t) => t.id === detailId) ?? null;
   const total = page?.total ?? 0;
   const urgent = rows.filter((t) => isTenderUrgent(t.datelimitereponse)).length;
 
@@ -114,7 +117,7 @@ export default function CrmTenders() {
                 decided={tab === "decided"}
                 onGo={() => setGoTarget(tender)}
                 onNoGo={() => setNoGoTarget(tender)}
-                onOpen={() => setDetailTarget(tender)}
+                onOpen={() => setDetailId(tender.id)}
                 onReopen={() => reopenMutation.mutate(tender.id)}
               />
             ))
@@ -125,7 +128,7 @@ export default function CrmTenders() {
       <TenderDetailDialog
         tender={detailTarget}
         open={!!detailTarget}
-        onOpenChange={(v) => !v && setDetailTarget(null)}
+        onOpenChange={(v) => !v && setDetailId(null)}
         decided={tab === "decided"}
         onGo={() => setGoTarget(detailTarget)}
         onNoGo={() => setNoGoTarget(detailTarget)}

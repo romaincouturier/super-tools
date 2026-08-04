@@ -8,7 +8,7 @@ import { sanitizeFileName, extractStoragePath, resolveContentType } from "@/lib/
 
 // ── Types ────────────────────────────────────────────────────────────
 
-export type DocumentEntityType = "mission" | "training";
+export type DocumentEntityType = "mission" | "training" | "tender";
 
 export interface EntityDocument {
   id: string;
@@ -32,7 +32,7 @@ export interface EntityDocument {
 // ── Config per entity type ───────────────────────────────────────────
 
 interface EntityDocumentConfig {
-  table: "mission_documents" | "training_documents";
+  table: "mission_documents" | "training_documents" | "tender_documents";
   foreignKey: string;
   bucket: string;
   queryKey: string;
@@ -51,7 +51,29 @@ const configs: Record<DocumentEntityType, EntityDocumentConfig> = {
     bucket: "training-documents",
     queryKey: "training-documents",
   },
+  // Pièces du DCE déposées à la main sur un appel d'offres. Pas de livrable ni
+  // de transcription ici : le gestionnaire mutualisé masque ces colonnes via
+  // `showDeliverableToggle`, et les valeurs absentes retombent sur les défauts
+  // du mapper.
+  tender: {
+    table: "tender_documents",
+    foreignKey: "tender_id",
+    bucket: "tender-documents",
+    queryKey: "tender-documents",
+  },
 };
+
+/**
+ * Accès à la table de documents de l'entité.
+ *
+ * Les types Supabase sont générés depuis la base hébergée : `tender_documents`
+ * n'y figure pas tant que la migration n'y est pas appliquée, et `from()`
+ * refuse un nom de table qu'il ne connaît pas. Un seul point d'échappement ici
+ * vaut mieux qu'un `as any` recopié sur chaque requête.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const documentsTable = (name: EntityDocumentConfig["table"]): any =>
+  (supabase as unknown as { from: (t: string) => unknown }).from(name);
 
 // ── Fetch documents for an entity ────────────────────────────────────
 
@@ -61,8 +83,7 @@ export const useEntityDocuments = (entityType: DocumentEntityType, entityId: str
     queryKey: [config.queryKey, entityId],
     enabled: !!entityId,
     queryFn: async () => {
-      const { data, error } = await (supabase
-        .from(config.table) as any)
+      const { data, error } = await documentsTable(config.table)
         .select("*")
         .eq(config.foreignKey as any, entityId)
         .order("created_at", { ascending: false });
@@ -110,8 +131,7 @@ export const useAddEntityDocument = (entityType: DocumentEntityType) => {
     }) => {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user?.id;
-      const { data, error } = await supabase
-        .from(config.table)
+      const { data, error } = await documentsTable(config.table)
         .insert({
           [config.foreignKey]: input.entityId,
           file_name: input.file_name,
@@ -140,8 +160,7 @@ export const useDeleteEntityDocument = (entityType: DocumentEntityType) => {
 
   return useMutation({
     mutationFn: async ({ id, entityId }: { id: string; entityId: string }) => {
-      const { error } = await supabase
-        .from(config.table)
+      const { error } = await documentsTable(config.table)
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -163,9 +182,8 @@ export const useToggleDocumentDeliverable = (entityType: DocumentEntityType) => 
 
   return useMutation({
     mutationFn: async ({ id, entityId, is_deliverable }: { id: string; entityId: string; is_deliverable: boolean }) => {
-      const { error } = await supabase
-        .from(config.table)
-        .update({ is_deliverable } as any)
+      const { error } = await documentsTable(config.table)
+        .update({ is_deliverable })
         .eq("id", id);
       if (error) throw error;
       return entityId;
@@ -185,10 +203,15 @@ export const uploadEntityDocument = async (
   entityType: DocumentEntityType,
   entityId: string,
 ): Promise<{ file_url: string; document?: EntityDocument }> => {
-  if (entityType === "mission" || entityType === "training") {
+  const uploaders: Record<DocumentEntityType, { idKey: string; fn: string }> = {
+    mission: { idKey: "missionId", fn: "upload-mission-document" },
+    training: { idKey: "trainingId", fn: "upload-training-document" },
+    tender: { idKey: "tenderId", fn: "upload-tender-document" },
+  };
+  const uploader = uploaders[entityType];
+  if (uploader) {
     const formData = new FormData();
-    const idKey = entityType === "mission" ? "missionId" : "trainingId";
-    const fnName = entityType === "mission" ? "upload-mission-document" : "upload-training-document";
+    const { idKey, fn: fnName } = uploader;
     formData.append(idKey, entityId);
     formData.append("file", file);
 

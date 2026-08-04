@@ -202,6 +202,7 @@ const TABLES_TO_BACKUP = [
   "trainers",
   "training_actions",
   "training_coaching_slots",
+  "tender_documents",
   "tender_opportunities",
   "training_documents",
   "training_evaluations",

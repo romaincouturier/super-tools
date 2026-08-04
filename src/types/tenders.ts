@@ -75,6 +75,9 @@ export interface TenderOpportunity {
   crm_card_id: string | null;
   /** JSON d'origine de l'avis, lu par la fiche détaillée. */
   raw?: Record<string, unknown> | null;
+  /** Synthèse produite à la demande. Absente tant qu'on ne l'a pas demandée. */
+  ai_summary: TenderNoticeSummary | null;
+  ai_summary_at: string | null;
   parse_error: string | null;
   created_at: string;
   updated_at: string;
@@ -100,3 +103,38 @@ export interface TenderWithContext extends TenderOpportunity {
   }>;
 }
 
+
+/** Synthèse d'un avis, produite à la demande depuis la fiche. */
+export interface TenderNoticeSummary {
+  synthese: string;
+  attendu: string[];
+  criteres: Array<{ libelle: string; poids: string | null }>;
+  vigilance: string[];
+  adequation: { verdict: string; motif: string };
+}
+
+/** Analyse d'une pièce du DCE déposée à la main. */
+export interface TenderDocumentAnalysis {
+  synthese: string;
+  demande: string[];
+  contraintes: string[];
+  pieces_a_produire: string[];
+  vigilance: string[];
+}
+
+/** Ligne de `tender_documents`, côté analyse. Le fichier lui-même passe par
+ *  le gestionnaire de documents mutualisé. */
+export interface TenderDocumentAi {
+  id: string;
+  file_name: string;
+  ai_analysis: TenderDocumentAnalysis | null;
+  ai_analysis_at: string | null;
+  ai_error: string | null;
+}
+
+/** Verdicts d'adéquation, du plus au moins favorable. */
+export const tenderAdequacyTone: Record<string, string> = {
+  forte: "bg-primary/10 text-primary",
+  partielle: "bg-muted text-muted-foreground",
+  faible: "bg-destructive/10 text-destructive",
+};

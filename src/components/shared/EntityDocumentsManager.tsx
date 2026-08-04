@@ -45,6 +45,12 @@ interface EntityDocumentsManagerProps {
   /** Custom title */
   title?: string;
   /**
+   * Bascule « livrable ». Sans objet sur les entités où la notion n'existe pas
+   * (pièces d'un DCE) : l'afficher promettrait une action que la table ne sait
+   * pas enregistrer.
+   */
+  showDeliverableToggle?: boolean;
+  /**
    * Fired once per successful upload, after the document row is inserted.
    * Lets the parent trigger post-upload pipelines (e.g. auto-transcription
    * of audio files into mission pages). Fire-and-forget.
@@ -58,6 +64,7 @@ const EntityDocumentsManager = ({
   variant = "card",
   accept,
   title = "Documents",
+  showDeliverableToggle = true,
   onUploadComplete,
 }: EntityDocumentsManagerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -279,6 +286,7 @@ const EntityDocumentsManager = ({
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
+                {showDeliverableToggle && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -303,6 +311,7 @@ const EntityDocumentsManager = ({
                     {doc.is_deliverable ? "Retirer des livrables" : "Marquer comme livrable"}
                   </TooltipContent>
                 </Tooltip>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
