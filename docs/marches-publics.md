@@ -667,3 +667,39 @@ statut `raw` reste dans le schéma pour le jour où une analyse sera ajoutée, e
 l'alerte de santé le surveille : aujourd'hui elle ne peut donc pas se
 déclencher, ce qui est le comportement correct. Elle deviendra utile dès qu'un
 traitement intermédiaire existera.
+
+## Synthèse IA et dossier de consultation
+
+Deux analyses à la demande, dans la fiche de revue. Ni l'une ni l'autre n'est
+lancée à l'ingestion : à une trentaine d'avis par mois dont 98 % finissent en
+No Go, résumer tout le flux serait payer un appel de modèle pour des marchés
+qu'on écarte en lisant le titre. Les deux résultats sont stockés — rouvrir une
+fiche ne repaye rien — et les deux boutons restent disponibles pour refaire
+l'analyse après un rectificatif ou l'ajout d'une pièce.
+
+**Synthèse de l'avis.** L'avis est déjà en base, mais il se lit mal. La
+synthèse reformule l'objet en trois phrases, liste ce qui est réellement
+attendu, la pondération des critères, les points qui coûtent cher (références
+exigées, chiffre d'affaires minimum, reconduction, allotissement, titulaire
+sortant) et un verdict d'adéquation motivé. Le texte complet n'étant pas
+stocké en colonne, il est reconstitué depuis `raw` par `mapBoampRecord` : une
+colonne dupliquée sur toute la table coûterait plus que ce rejeu.
+
+**Dossier de consultation.** Le DCE n'est pas dans l'API : il se retire sur
+PLACE ou AWS, derrière un compte. Le récupérer automatiquement voudrait dire
+scraper une session authentifiée, qui casse à chaque refonte de plateforme.
+Pour deux ou trois réponses par an, le dépôt manuel coûte deux minutes et ne
+casse jamais. Le fichier passe par le gestionnaire de documents mutualisé
+(règle [002]) dans `tender_documents`, et l'analyse dit ce que le DCE ajoute à
+l'avis : volume réel, contraintes, pièces à produire.
+
+Limite connue : un PDF scanné ne rend aucun texte exploitable. Le motif est
+alors stocké sur la ligne et affiché, plutôt que de rendre une analyse vide
+qui passerait pour un résultat. Une archive ZIP, format habituel d'un DCE,
+doit être décompressée avant dépôt — l'accepter donnerait un document que le
+modèle ne peut pas ouvrir.
+
+Fichiers : `supabase/functions/tender-analyze/`,
+`supabase/functions/upload-tender-document/`,
+`supabase/functions/_shared/tender-ai.ts`,
+`src/components/crm/TenderAiPanel.tsx`, `src/hooks/crm/useTenderAi.ts`.
