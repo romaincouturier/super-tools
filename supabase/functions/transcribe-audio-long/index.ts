@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { logAssemblyAiUsage } from "../_shared/api-usage.ts";
 
 const FETCH_TIMEOUT_MS = 25_000;
 
@@ -121,6 +122,17 @@ serve(async (req) => {
       }
 
       const result = await pollResponse.json();
+
+      if (result.status === "completed" || result.status === "error") {
+        await logAssemblyAiUsage({
+          origin: "transcribe-audio-long",
+          operation: "poll",
+          audioSeconds: Math.round(result.audio_duration ?? 0),
+          trigger: "user",
+          status: result.status === "error" ? "error" : "success",
+          errorMessage: result.status === "error" ? String(result.error ?? "") : undefined,
+        });
+      }
 
       if (result.status === "completed") {
         let transcript = result.text;

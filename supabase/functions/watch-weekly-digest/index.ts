@@ -7,6 +7,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+import { logApiUsage } from "../_shared/api-usage.ts";
 
 /**
  * Generate a weekly digest of the best watch items and post it to Slack.
@@ -110,6 +111,15 @@ Style: professionnel mais accessible, en français. Max 500 mots.`,
     }
 
     const aiData = await aiRes.json();
+    await logApiUsage({
+      provider: "openai",
+      origin: "watch-weekly-digest",
+      operation: "digest",
+      model: "gpt-4o-mini",
+      trigger: "cron",
+      inputTokens: aiData.usage?.prompt_tokens ?? 0,
+      outputTokens: aiData.usage?.completion_tokens ?? 0,
+    });
     const summary = aiData.choices?.[0]?.message?.content || "Pas de résumé disponible.";
 
     const itemIds = items.map((i: { id: string }) => i.id);

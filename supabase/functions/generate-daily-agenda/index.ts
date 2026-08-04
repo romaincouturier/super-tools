@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -76,6 +77,15 @@ Propose-moi un agenda priorisé pour traiter ces actions.`;
         }),
       });
       const lovableData = await lovableResponse.json();
+      await logApiUsage({
+        provider: "lovable",
+        origin: "generate-daily-agenda",
+        operation: "agenda",
+        model: "google/gemini-2.5-flash",
+        trigger: "cron",
+        inputTokens: lovableData.usage?.prompt_tokens ?? 0,
+        outputTokens: lovableData.usage?.completion_tokens ?? 0,
+      });
       agenda = lovableData.choices?.[0]?.message?.content || "Impossible de générer l'agenda.";
     } else {
       const response = await fetch(ANTHROPIC_API_URL, {
@@ -94,6 +104,13 @@ Propose-moi un agenda priorisé pour traiter ces actions.`;
         }),
       });
       const data = await response.json();
+      await logAnthropicUsage({
+        origin: "generate-daily-agenda",
+        operation: "agenda",
+        model: CLAUDE_DEFAULT,
+        trigger: "cron",
+        usage: data.usage,
+      });
       agenda = data.content?.[0]?.text || "Impossible de générer l'agenda.";
     }
 

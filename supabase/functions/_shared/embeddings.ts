@@ -1,4 +1,5 @@
 import { getOpenAIApiKey } from "./api-keys.ts";
+import { logEmbeddingUsage } from "./api-usage.ts";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
@@ -17,6 +18,12 @@ export async function embedText(text: string): Promise<number[] | null> {
       return null;
     }
     const data = await res.json();
+    await logEmbeddingUsage({
+      origin: "shared-embeddings",
+      model: EMBEDDING_MODEL,
+      totalTokens: data.usage?.total_tokens ?? 0,
+      trigger: "trigger",
+    });
     return data.data?.[0]?.embedding ?? null;
   } catch (e) {
     console.error("[embeddings] failed", e);

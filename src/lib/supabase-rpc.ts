@@ -319,6 +319,43 @@ export interface DbSize {
 
 // ─── RPC wrappers ────────────────────────────────────────────────────
 
+// ─── Consommation des APIs payantes (Monitoring → Usage) ─────────────
+
+export interface ApiUsageDailyRow {
+  day: string;
+  provider: string;
+  origin: string;
+  operation: string;
+  model: string;
+  trigger_source: string;
+  calls: number;
+  errors: number;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
+  audio_seconds: number;
+  cost_usd: number;
+  avg_duration_ms: number;
+}
+
+export interface ApiUsageTopCall {
+  id: string;
+  created_at: string;
+  provider: string;
+  origin: string;
+  operation: string;
+  model: string;
+  trigger_source: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cost_usd: number;
+  duration_ms: number | null;
+  status: string;
+  error_message: string | null;
+}
+
 export const rpc = {
   // --- Training public ---
   getTrainingPublicInfo: (trainingId: string) =>
@@ -462,6 +499,13 @@ export const rpc = {
   // --- DB utilities ---
   getDbSize: () =>
     call<DbSize>("get_db_size", {}),
+
+  // --- Consommation API ---
+  getApiUsageDaily: (days: number) =>
+    call<ApiUsageDailyRow[]>("get_api_usage_daily", { p_days: days }),
+
+  getApiUsageTopCalls: (days: number, limit: number) =>
+    call<ApiUsageTopCall[]>("get_api_usage_top_calls", { p_days: days, p_limit: limit }),
 
   // --- Rate limiting ---
   checkFormulairRateLimit: (ipAddress: string, maxRequests: number, windowSeconds: number) =>

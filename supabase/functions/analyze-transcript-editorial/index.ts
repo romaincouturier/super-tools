@@ -15,6 +15,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -88,6 +89,19 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    /**
+     * Un échec doit laisser une trace : sans compteur, `editorial_qualification`
+     * reste NULL et le cron de backfill réanalyse le même transcript toutes les
+     * 10 minutes indéfiniment. Au-delà de MAX_ATTEMPTS le transcript sort du lot.
+     */
+    const failed = async (message: string, status: number) => {
+      await (admin as any).rpc("record_editorial_analysis_failure", {
+        p_transcript_id: transcriptId,
+        p_error: message.slice(0, 500),
+      });
+      return json({ error: message }, status);
+    };
+
     const { data: t, error: tErr } = await (admin as any)
       .from("transcripts")
       .select("id, raw_text")
@@ -101,7 +115,7 @@ Deno.serve(async (req) => {
       .select("system_prompt, user_prompt_template, model")
       .eq("kind", "editorial")
       .maybeSingle();
-    if (!prompt) return json({ error: "Prompt 'editorial' introuvable (migration non appliquée ?)" }, 500);
+    if (!prompt) return failed("Prompt 'editorial' introuvable (migration non appliquée ?)", 500);
 
     // 30k caractères ≈ largement assez pour qualifier ; évite les dépassements.
     const excerpt = (t.raw_text as string).slice(0, 30000);
@@ -127,13 +141,18 @@ Deno.serve(async (req) => {
       console.error("[analyze-transcript-editorial] AI error", aiRes.status, errText);
       if (aiRes.status === 429) return json({ error: "Rate limit IA, réessayez plus tard." }, 429);
       if (aiRes.status === 402) return json({ error: "Crédits IA épuisés." }, 402);
-      return json({ error: "Erreur IA" }, 500);
+      return failed(`Erreur IA ${aiRes.status}`, 500);
     }
 
     const aiJson = await aiRes.json();
+    await logLovableUsage({
+      origin: "analyze-transcript-editorial",
+      trigger: "cron",
+      data: aiJson,
+    });
     const content = (aiJson?.choices?.[0]?.message?.content ?? "").trim();
     const parsed = extractJson(content);
-    if (!parsed) return json({ error: "Réponse IA non parsable" }, 500);
+    if (!parsed) return failed("Réponse IA non parsable", 500);
 
     // Validation stricte des énumérations, avec valeurs de repli prudentes.
     const qualification = QUALIFICATIONS.has(String(parsed.qualification))
@@ -173,9 +192,11 @@ Deno.serve(async (req) => {
         editorial_qualification: qualification,
         editorial_analysis: analysis,
         editorial_analyzed_at: new Date().toISOString(),
+        editorial_analysis_attempts: 0,
+        editorial_analysis_error: null,
       })
       .eq("id", transcriptId);
-    if (updErr) return json({ error: updErr.message }, 500);
+    if (updErr) return failed(updErr.message, 500);
 
     return json({ ok: true, qualification, analysis });
   } catch (error) {

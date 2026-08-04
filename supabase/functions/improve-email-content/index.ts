@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 interface ImproveEmailRequest {
   subject: string;
@@ -93,6 +94,11 @@ Améliore le style et la formulation tout en gardant toutes les variables {{...}
     }
 
     const data = await response.json();
+    await logLovableUsage({
+      origin: "improve-email-content",
+      trigger: "user",
+      data: data,
+    });
     const aiResponse = data.choices?.[0]?.message?.content;
 
     if (!aiResponse) {

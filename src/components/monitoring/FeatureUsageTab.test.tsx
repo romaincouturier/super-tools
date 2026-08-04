@@ -8,12 +8,21 @@ afterEach(cleanup);
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
+// Dates relatives : le graphe journalier ne couvre que la période sélectionnée,
+// des dates figées tomberaient hors fenêtre et rendraient les tests muets.
+const daysAgo = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  d.setHours(10, 0, 0, 0);
+  return d.toISOString();
+};
+
 const mockRows = [
-  { id: "1", user_id: "u1", feature_name: "quiz", feature_category: "learning", metadata: null, created_at: "2026-03-01T10:00:00Z" },
-  { id: "2", user_id: "u1", feature_name: "quiz", feature_category: "learning", metadata: null, created_at: "2026-03-01T14:00:00Z" },
-  { id: "3", user_id: "u1", feature_name: "export_pdf", feature_category: "export", metadata: null, created_at: "2026-03-02T09:00:00Z" },
-  { id: "4", user_id: "u1", feature_name: "dashboard", feature_category: "navigation", metadata: null, created_at: "2026-03-03T11:00:00Z" },
-  { id: "5", user_id: "u1", feature_name: "quiz", feature_category: "learning", metadata: null, created_at: "2026-03-03T12:00:00Z" },
+  { id: "1", user_id: "u1", feature_name: "quiz", feature_category: "learning", metadata: null, created_at: daysAgo(3) },
+  { id: "2", user_id: "u1", feature_name: "quiz", feature_category: "learning", metadata: null, created_at: daysAgo(3) },
+  { id: "3", user_id: "u1", feature_name: "export_pdf", feature_category: "export", metadata: null, created_at: daysAgo(2) },
+  { id: "4", user_id: "u1", feature_name: "dashboard", feature_category: "navigation", metadata: null, created_at: daysAgo(1) },
+  { id: "5", user_id: "u1", feature_name: "quiz", feature_category: "learning", metadata: null, created_at: daysAgo(1) },
 ];
 
 const mockSelect = vi.fn().mockReturnValue({
@@ -56,6 +65,13 @@ vi.mock("@/components/ui/select", () => ({
   SelectValue: () => <span />,
 }));
 
+vi.mock("@/components/ui/toggle-group", () => ({
+  ToggleGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  ToggleGroupItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <button data-value={value}>{children}</button>
+  ),
+}));
+
 vi.mock("@/components/ui/chart", () => ({
   ChartContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="chart">{children}</div>,
   ChartTooltip: () => null,
@@ -64,15 +80,21 @@ vi.mock("@/components/ui/chart", () => ({
 
 vi.mock("recharts", () => ({
   BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
+  ComposedChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="composed-chart">{children}</div>
+  ),
   Bar: () => null,
+  Line: () => null,
   XAxis: () => null,
   YAxis: () => null,
   CartesianGrid: () => null,
   Cell: () => null,
+  Legend: () => null,
 }));
 
 vi.mock("lucide-react", () => ({
   BarChart3: () => <span />,
+  CalendarCheck: () => <span />,
   MousePointerClick: () => <span />,
   Layers: () => <span />,
   TrendingUp: () => <span />,
@@ -90,69 +112,61 @@ function renderWithQuery(ui: React.ReactElement) {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("FeatureUsageTab", () => {
-  it("renders KPI cards and charts after data loads", async () => {
+  it("renders KPI cards after data loads", async () => {
     const { default: FeatureUsageTab } = await import("./FeatureUsageTab");
     renderWithQuery(<FeatureUsageTab />);
 
-    // Wait for data to load — KPIs should appear
-    expect(await screen.findByText("5")).toBeInTheDocument(); // total events
+    // Portée par défaut = actions métier : les 4 événements hors navigation.
+    expect(await screen.findByText("4")).toBeInTheDocument();
     expect(screen.getByText("Événements")).toBeInTheDocument();
     expect(screen.getByText("Features")).toBeInTheDocument();
-    expect(screen.getByText("Catégories")).toBeInTheDocument();
-    expect(screen.getByText("Moy. / jour")).toBeInTheDocument();
+    expect(screen.getByText("Jours actifs")).toBeInTheDocument();
+    expect(screen.getByText("Moy. / jour actif")).toBeInTheDocument();
   });
 
-  it("displays correct unique feature and category counts", async () => {
+  it("excludes page views from the default scope", async () => {
     const { default: FeatureUsageTab } = await import("./FeatureUsageTab");
     renderWithQuery(<FeatureUsageTab />);
 
-    // 3 unique features and 3 unique categories — both show "3"
-    const threes = await screen.findAllByText("3");
-    // At least 2 KPI cards show "3" (features + categories), plus the quiz row count
-    expect(threes.length).toBeGreaterThanOrEqual(2);
+    await screen.findByText("4");
+    // `dashboard` est en catégorie navigation : absent du détail par feature.
+    expect(screen.queryByText("dashboard")).not.toBeInTheDocument();
+    expect(screen.getByText("quiz")).toBeInTheDocument();
+    expect(screen.getByText("export_pdf")).toBeInTheDocument();
+    // Le graphe par catégorie reste sur l'ensemble : navigation y figure.
+    expect(screen.getByText("Répartition par catégorie")).toBeInTheDocument();
   });
 
-  it("displays correct unique category count", async () => {
+  it("counts active days over the selected window", async () => {
     const { default: FeatureUsageTab } = await import("./FeatureUsageTab");
     renderWithQuery(<FeatureUsageTab />);
 
-    // 3 unique categories: learning, export, navigation
-    // (also represented by "3" already checked above — both features and categories = 3)
-    await screen.findByText("Catégories");
-    const cards = screen.getAllByTestId("card");
-    expect(cards.length).toBeGreaterThanOrEqual(4);
+    await screen.findByText("4");
+    // 3 jours distincts portent des événements, dont 2 hors navigation.
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("/ 30")).toBeInTheDocument();
   });
 
-  it("renders daily chart", async () => {
+  it("renders the daily chart with a trend line", async () => {
     const { default: FeatureUsageTab } = await import("./FeatureUsageTab");
     renderWithQuery(<FeatureUsageTab />);
 
-    await screen.findByText("5"); // wait for data
+    await screen.findByText("4");
     expect(screen.getByText("Utilisation par jour")).toBeInTheDocument();
-    expect(screen.getAllByTestId("chart").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId("composed-chart")).toBeInTheDocument();
   });
 
   it("renders feature detail table with correct data", async () => {
     const { default: FeatureUsageTab } = await import("./FeatureUsageTab");
     renderWithQuery(<FeatureUsageTab />);
 
-    await screen.findByText("5");
+    await screen.findByText("4");
     expect(screen.getByText("Détail par feature")).toBeInTheDocument();
     expect(screen.getByText("quiz")).toBeInTheDocument();
     expect(screen.getByText("export_pdf")).toBeInTheDocument();
-    expect(screen.getByText("dashboard")).toBeInTheDocument();
-  });
-
-  it("renders category breakdown chart", async () => {
-    const { default: FeatureUsageTab } = await import("./FeatureUsageTab");
-    renderWithQuery(<FeatureUsageTab />);
-
-    await screen.findByText("5");
-    expect(screen.getByText("Répartition par catégorie")).toBeInTheDocument();
   });
 
   it("shows empty state when no data", async () => {
-    // Override mock to return empty data
     mockSelect.mockReturnValueOnce({
       gte: vi.fn().mockReturnValue({
         order: vi.fn().mockResolvedValue({ data: [], error: null }),

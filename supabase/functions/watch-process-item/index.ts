@@ -7,6 +7,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+import { logAssemblyAiUsage } from "../_shared/api-usage.ts";
 
 /**
  * Process a newly added watch item:
@@ -324,6 +325,15 @@ async function transcribeWithAssemblyAI(audioUrl: string, apiKey: string): Promi
       });
       if (pollRes.ok) {
         const result = await pollRes.json();
+        if (result.status === "completed" || result.status === "error") {
+          await logAssemblyAiUsage({
+            origin: "watch-process-item",
+            operation: "podcast-transcript",
+            audioSeconds: Math.round(result.audio_duration ?? 0),
+            trigger: "cron",
+            status: result.status === "error" ? "error" : "success",
+          });
+        }
         if (result.status === "completed") return result.text || null;
         if (result.status === "error") return null;
       }

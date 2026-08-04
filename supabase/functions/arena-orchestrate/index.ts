@@ -3,6 +3,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 interface RequestBody {
   provider: "claude" | "openai" | "gemini";
@@ -111,6 +112,13 @@ async function streamClaude(
           }
         }
         const final = await stream.finalMessage();
+        await logAnthropicUsage({
+          origin: "arena-orchestrate",
+          operation: "stream",
+          model: final.model,
+          trigger: "user",
+          usage: final.usage,
+        });
         controller.enqueue(sseEncode(encoder, JSON.stringify({
           type: "usage",
           inputTokens: final.usage.input_tokens,

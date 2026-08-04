@@ -39,6 +39,8 @@ export {
   formatDateTime,
   formatICSDate,
   calculateDurationDays,
+  todayAsISO,
+  dateAsISO,
 } from "./date-utils.ts";
 
 // Supabase client
@@ -125,3 +127,17 @@ export {
   type ReservationItem,
   type OkrInitiativeItem,
 } from "./daily-data-fetchers.ts";
+
+// Traçage de consommation des APIs payantes
+export {
+  logApiUsage,
+  logAnthropicUsage,
+  logAssemblyAiUsage,
+  logLovableUsage,
+  logEmbeddingUsage,
+  estimateCostUsd,
+  type ApiProvider,
+  type ApiUsageEntry,
+  type AnthropicUsage,
+  type TriggerSource,
+} from "./api-usage.ts";

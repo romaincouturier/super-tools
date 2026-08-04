@@ -6,6 +6,7 @@
  */
 import { getSupabaseClient } from "./supabase-client.ts";
 import { getOpenAIApiKey } from "./api-keys.ts";
+import { logEmbeddingUsage } from "./api-usage.ts";
 
 type SupabaseClient = ReturnType<typeof getSupabaseClient>;
 
@@ -94,6 +95,12 @@ export async function searchContent(
     }
 
     const embData = await embRes.json();
+    await logEmbeddingUsage({
+      origin: "agent-search",
+      model: "text-embedding-3-small",
+      totalTokens: embData.usage?.total_tokens ?? 0,
+      trigger: "user",
+    });
     queryEmbedding = embData.data?.[0]?.embedding;
     if (!queryEmbedding) {
       throw new Error("Failed to generate query embedding");

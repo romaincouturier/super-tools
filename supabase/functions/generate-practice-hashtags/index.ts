@@ -8,6 +8,7 @@
 import { corsHeaders, handleCorsPreflightIfNeeded, createJsonResponse, createErrorResponse } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
@@ -85,6 +86,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     const result = await res.json();
+    await logAnthropicUsage({
+      origin: "generate-practice-hashtags",
+      operation: "hashtags",
+      model: CLAUDE_DEFAULT,
+      trigger: "user",
+      usage: result.usage,
+    });
     const out = result?.content?.[0]?.text ?? "";
     return createJsonResponse({ hashtags: parseHashtags(out) });
   } catch (err) {

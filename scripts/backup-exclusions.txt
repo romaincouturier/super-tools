@@ -11,3 +11,6 @@ backup_runs
 # inutilisee par le code (aucune reference hors backup). Son export faisait echouer
 # chaque run (dbErrors > 0) et declenchait l alerte "aucune sauvegarde depuis 24h".
 okr_scheduled_emails
+# api_usage_events : télémétrie de consommation des APIs payantes, volumineuse et
+# purgée à 180 jours. Aucune donnée métier, rien à restaurer.
+api_usage_events

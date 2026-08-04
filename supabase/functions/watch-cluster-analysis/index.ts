@@ -7,6 +7,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+import { logApiUsage } from "../_shared/api-usage.ts";
 
 /**
  * Analyze watch items for clusters of related content.
@@ -89,6 +90,15 @@ Retourne UNIQUEMENT le JSON, sans markdown.`,
     }
 
     const clusterData = await clusterRes.json();
+    await logApiUsage({
+      provider: "openai",
+      origin: "watch-cluster-analysis",
+      operation: "cluster",
+      model: "gpt-4o-mini",
+      trigger: "cron",
+      inputTokens: clusterData.usage?.prompt_tokens ?? 0,
+      outputTokens: clusterData.usage?.completion_tokens ?? 0,
+    });
     const aiContent = clusterData.choices?.[0]?.message?.content || "";
 
     let parsedClusters: { title: string; summary: string; item_ids: string[] }[] = [];

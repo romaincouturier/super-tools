@@ -7,6 +7,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+import { logEmbeddingUsage } from "../_shared/api-usage.ts";
 
 /**
  * Check if a new watch item is a potential duplicate of an existing one.
@@ -80,6 +81,12 @@ serve(async (req) => {
 
         if (embRes.ok) {
           const embData = await embRes.json();
+          await logEmbeddingUsage({
+            origin: "watch-check-duplicate",
+            model: "text-embedding-3-small",
+            totalTokens: embData.usage?.total_tokens ?? 0,
+            trigger: "user",
+          });
           const embedding = embData.data?.[0]?.embedding;
 
           if (embedding) {

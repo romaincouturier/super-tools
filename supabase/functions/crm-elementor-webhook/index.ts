@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 /**
  * Edge Function: crm-elementor-webhook
@@ -290,6 +291,11 @@ async function extractOpportunity(
   }
 
   const result = await response.json();
+  await logLovableUsage({
+    origin: "crm-elementor-webhook",
+    trigger: "webhook",
+    data: result,
+  });
   const content = result.choices?.[0]?.message?.content || "{}";
   const cleanContent = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -163,6 +164,15 @@ serve(async (req) => {
 
     const data = await anthropicResp.json();
     console.log("Anthropic stop_reason:", data.stop_reason, "usage:", data.usage);
+    await logAnthropicUsage({
+      origin: "generate-transcript-content",
+      operation: kind,
+      model: promptCfg.model || "claude-sonnet-4-6",
+      trigger: "user",
+      userId,
+      usage: data.usage,
+      metadata: { transcript_id, stop_reason: data.stop_reason },
+    });
     const toolUse = data.content?.find((c: any) => c.type === "tool_use");
     if (!toolUse?.input) {
       return new Response(JSON.stringify({ error: "Réponse IA invalide" }), {

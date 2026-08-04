@@ -1,5 +1,6 @@
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -148,6 +149,11 @@ Retourne un JSON :
     }
 
     const data = await response.json();
+    await logLovableUsage({
+      origin: "business-health-score",
+      trigger: "cron",
+      data: data,
+    });
     const content = data.choices?.[0]?.message?.content || "";
 
     let report;

@@ -7,6 +7,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SETTING_KEY = "lms_audio_reformulation_prompt";
@@ -126,6 +127,13 @@ serve(async (req) => {
     }
 
     const aiData = await response.json();
+    await logAnthropicUsage({
+      origin: "lms-analyze-audio",
+      operation: "analyze",
+      model: CLAUDE_ADVANCED,
+      trigger: "user",
+      usage: aiData.usage,
+    });
     const rawText = aiData.content?.[0]?.text ?? "";
 
     let parsed: { assignments: AudioAssignment[] };

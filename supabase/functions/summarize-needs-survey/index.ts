@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -151,6 +152,11 @@ Sois concis et actionnable.`;
     }
 
     const aiResponse = await response.json();
+    await logLovableUsage({
+      origin: "summarize-needs-survey",
+      trigger: "user",
+      data: aiResponse,
+    });
     const aiContent = aiResponse.choices?.[0]?.message?.content || "Impossible de générer la synthèse.";
 
     return new Response(

@@ -7,6 +7,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { getOpenAIApiKey } from "../_shared/api-keys.ts";
+import { logEmbeddingUsage } from "../_shared/api-usage.ts";
 
 /**
  * Universal document indexing edge function.
@@ -674,6 +675,12 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
     }
 
     const data = await res.json();
+    await logEmbeddingUsage({
+      origin: "index-documents",
+      model: EMBEDDING_MODEL,
+      totalTokens: data.usage?.total_tokens ?? 0,
+      trigger: "trigger",
+    });
     return data.data?.[0]?.embedding || null;
   } catch (e) {
     console.error("Embedding generation failed:", e);

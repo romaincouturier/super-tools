@@ -39,6 +39,9 @@ async function enrichOne(supabase: ReturnType<typeof getSupabaseClient>, idea: I
       messages: [{ role: "user", content: text }],
       tier: "fast",
       temperature: 0.2,
+      origin: "enrich-idea",
+      operation: "enrich",
+      trigger: "user",
     }).catch((e) => {
       console.error("[enrich-idea] aiChat failed", e);
       return "";

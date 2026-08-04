@@ -5,6 +5,7 @@ import { getSenderFrom, getSenderEmail, getBccList } from "../_shared/email-sett
 import { getSigniticSignature } from "../_shared/signitic.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { emailButton, emailInfoBox, wrapEmailHtml } from "../_shared/templates.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const VERSION = "archive-resolved-tickets@2026-05-22.1";
 
@@ -99,6 +100,11 @@ serve(async (req) => {
           });
           if (aiResp.ok) {
             const aiData = await aiResp.json();
+            await logLovableUsage({
+              origin: "archive-resolved-tickets",
+              trigger: "cron",
+              data: aiData,
+            });
             const summary = aiData?.choices?.[0]?.message?.content?.trim() || "";
             if (summary) {
               userSummaryHtml = `

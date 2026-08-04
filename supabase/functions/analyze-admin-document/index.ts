@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const CATEGORIES = [
   "Facture",
@@ -123,6 +124,13 @@ serve(async (req) => {
     }
 
     const claudeJson = await claudeRes.json();
+    await logAnthropicUsage({
+      origin: "analyze-admin-document",
+      operation: "classify",
+      model: "claude-sonnet-4-6",
+      trigger: "user",
+      usage: claudeJson.usage,
+    });
     const rawText = claudeJson.content?.[0]?.text ?? "{}";
 
     let analysis: { year?: number | null; category?: string; tags?: string[]; summary?: string } = {};

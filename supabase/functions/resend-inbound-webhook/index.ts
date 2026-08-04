@@ -10,6 +10,7 @@ import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 import { parseEmailAddress } from "../_shared/email-address.ts";
 import { inboundRecipients, routeTenderEmail } from "../_shared/tender-inbound.ts";
 import { fetchReceivedEmailContent } from "../_shared/resend-inbound-content.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 
 const corsHeaders = extendCorsHeaders({
@@ -110,6 +111,11 @@ Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
   }
 
   const result = await response.json();
+  await logLovableUsage({
+    origin: "resend-inbound-webhook",
+    trigger: "webhook",
+    data: result,
+  });
   const content = result.choices?.[0]?.message?.content || "{}";
 
   try {

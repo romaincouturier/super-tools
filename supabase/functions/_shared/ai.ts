@@ -16,6 +16,7 @@
 import { getSupabaseClient } from "./supabase-client.ts";
 import { getOpenAIApiKey, getAnthropicApiKey } from "./api-keys.ts";
 import { CLAUDE_DEFAULT, CLAUDE_ADVANCED } from "./claude-models.ts";
+import { logApiUsage, type ApiProvider, type TriggerSource } from "./api-usage.ts";
 
 export type AiTier = "fast" | "smart";
 export type AiProvider = "lovable" | "anthropic" | "openai" | "gemini";
@@ -65,6 +66,11 @@ export interface AiChatOptions {
   maxTokens?: number;
   /** Force un provider en ignorant le réglage (rare). */
   provider?: AiProvider;
+  /** Edge function appelante — indispensable pour le suivi de consommation. */
+  origin?: string;
+  operation?: string;
+  trigger?: TriggerSource;
+  userId?: string | null;
 }
 
 const RETRYABLE = new Set([429, 502, 503, 504, 529]);
@@ -89,12 +95,20 @@ async function withRetry(label: string, doFetch: () => Promise<Response>): Promi
   throw new Error(`AI API error: ${lastStatus}`);
 }
 
+interface AiCallResult {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens?: number;
+  cacheWriteTokens?: number;
+}
+
 async function callOpenAICompatible(
   url: string,
   apiKey: string | null | undefined,
   model: string,
   opts: AiChatOptions,
-): Promise<string> {
+): Promise<AiCallResult> {
   if (!apiKey) throw new Error(`Clé API manquante pour ${url}`);
   const messages = opts.system
     ? [{ role: "system", content: opts.system }, ...opts.messages]
@@ -111,10 +125,14 @@ async function callOpenAICompatible(
     }),
   );
   const data = await res.json();
-  return data.choices?.[0]?.message?.content || "";
+  return {
+    text: data.choices?.[0]?.message?.content || "",
+    inputTokens: data.usage?.prompt_tokens ?? 0,
+    outputTokens: data.usage?.completion_tokens ?? 0,
+  };
 }
 
-async function callAnthropic(model: string, opts: AiChatOptions): Promise<string> {
+async function callAnthropic(model: string, opts: AiChatOptions): Promise<AiCallResult> {
   const apiKey = await getAnthropicApiKey();
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not configured");
   const body: Record<string, unknown> = {
@@ -137,7 +155,13 @@ async function callAnthropic(model: string, opts: AiChatOptions): Promise<string
     }),
   );
   const data = await res.json();
-  return data.content?.[0]?.text || "";
+  return {
+    text: data.content?.[0]?.text || "",
+    inputTokens: data.usage?.input_tokens ?? 0,
+    outputTokens: data.usage?.output_tokens ?? 0,
+    cacheReadTokens: data.usage?.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: data.usage?.cache_creation_input_tokens ?? 0,
+  };
 }
 
 /**
@@ -153,10 +177,45 @@ export async function aiChat(opts: AiChatOptions): Promise<string> {
   }
   const model = MODEL_MAP[provider as "lovable" | "anthropic" | "openai"][tier];
 
-  if (provider === "anthropic") {
-    return callAnthropic(model, opts);
+  const startedAt = Date.now();
+  const origin = opts.origin ?? "unknown";
+  try {
+    let result: AiCallResult;
+    if (provider === "anthropic") {
+      result = await callAnthropic(model, opts);
+    } else {
+      const url = provider === "openai" ? OPENAI_URL : LOVABLE_URL;
+      const apiKey = provider === "openai" ? await getOpenAIApiKey() : Deno.env.get("LOVABLE_API_KEY");
+      result = await callOpenAICompatible(url, apiKey, model, opts);
+    }
+    await logApiUsage({
+      provider: provider as ApiProvider,
+      origin,
+      operation: opts.operation,
+      model,
+      trigger: opts.trigger,
+      userId: opts.userId,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      cacheReadTokens: result.cacheReadTokens,
+      cacheWriteTokens: result.cacheWriteTokens,
+      durationMs: Date.now() - startedAt,
+      metadata: { tier },
+    });
+    return result.text;
+  } catch (e) {
+    await logApiUsage({
+      provider: provider as ApiProvider,
+      origin,
+      operation: opts.operation,
+      model,
+      trigger: opts.trigger,
+      userId: opts.userId,
+      durationMs: Date.now() - startedAt,
+      status: "error",
+      errorMessage: e instanceof Error ? e.message : String(e),
+      metadata: { tier },
+    });
+    throw e;
   }
-  const url = provider === "openai" ? OPENAI_URL : LOVABLE_URL;
-  const apiKey = provider === "openai" ? await getOpenAIApiKey() : Deno.env.get("LOVABLE_API_KEY");
-  return callOpenAICompatible(url, apiKey, model, opts);
 }

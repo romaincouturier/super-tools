@@ -3,19 +3,31 @@ import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
+  ComposedChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Cell,
+  Legend,
 } from "recharts";
-import { format, parseISO, subDays } from "date-fns";
+import {
+  eachDayOfInterval,
+  format,
+  isWeekend,
+  parseISO,
+  startOfDay,
+  subDays,
+} from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   BarChart3,
+  CalendarCheck,
   MousePointerClick,
   Layers,
   TrendingUp,
 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
@@ -61,10 +73,24 @@ const chartConfig = {
     label: "Utilisations",
     color: "hsl(var(--primary))",
   },
+  trend: {
+    label: "Moyenne 7 jours",
+    color: "hsl(var(--muted-foreground))",
+  },
 };
+
+/**
+ * `page_view` représente à lui seul ~94% des événements : mélangé aux actions
+ * métier il rend le graphe journalier illisible. Le filtre par défaut l'écarte
+ * pour laisser voir ce qui est réellement utilisé.
+ */
+const NAVIGATION_CATEGORY = "navigation";
+
+type Scope = "actions" | "all";
 
 const FeatureUsageTab = () => {
   const [period, setPeriod] = useState<Period>("30");
+  const [scope, setScope] = useState<Scope>("actions");
 
   const since = useMemo(
     () => subDays(new Date(), Number(period)).toISOString(),
@@ -84,18 +110,29 @@ const FeatureUsageTab = () => {
     },
   });
 
-  // KPIs
-  const totalEvents = rows.length;
-  const uniqueFeatures = useMemo(
-    () => new Set(rows.map((r) => r.feature_name)).size,
-    [rows],
-  );
-  const uniqueCategories = useMemo(
-    () => new Set(rows.map((r) => r.feature_category)).size,
-    [rows],
+  // Les vues de page noient tout le reste : le graphe journalier et les KPI
+  // travaillent par défaut sur les seules actions métier.
+  const scopedRows = useMemo(
+    () =>
+      scope === "all"
+        ? rows
+        : rows.filter((r) => r.feature_category !== NAVIGATION_CATEGORY),
+    [rows, scope],
   );
 
-  // By category
+  // KPIs
+  const totalEvents = scopedRows.length;
+  const uniqueFeatures = useMemo(
+    () => new Set(scopedRows.map((r) => r.feature_name)).size,
+    [scopedRows],
+  );
+  const uniqueCategories = useMemo(
+    () => new Set(scopedRows.map((r) => r.feature_category)).size,
+    [scopedRows],
+  );
+
+  // By category — toujours sur l'ensemble, c'est là que la comparaison
+  // navigation / métier a du sens.
   const categoryData = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const r of rows) {
@@ -109,7 +146,7 @@ const FeatureUsageTab = () => {
   // By feature
   const featureData = useMemo(() => {
     const counts: Record<string, { count: number; category: string }> = {};
-    for (const r of rows) {
+    for (const r of scopedRows) {
       if (!counts[r.feature_name]) {
         counts[r.feature_name] = { count: 0, category: r.feature_category };
       }
@@ -118,32 +155,91 @@ const FeatureUsageTab = () => {
     return Object.entries(counts)
       .map(([name, { count, category }]) => ({ name, count, category }))
       .sort((a, b) => b.count - a.count);
-  }, [rows]);
+  }, [scopedRows]);
 
-  // Daily timeline
-  const dailyData = useMemo(() => {
+  // Catégories présentes dans le graphe empilé, les plus volumineuses d'abord.
+  const stackedCategories = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const r of rows) {
-      const day = format(parseISO(r.created_at), "yyyy-MM-dd");
-      counts[day] = (counts[day] || 0) + 1;
+    for (const r of scopedRows) {
+      counts[r.feature_category] = (counts[r.feature_category] || 0) + 1;
     }
     return Object.entries(counts)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([day, count]) => ({
-        date: format(parseISO(day), "d MMM", { locale: fr }),
-        fullDate: format(parseISO(day), "d MMMM yyyy", { locale: fr }),
-        count,
-      }));
-  }, [rows]);
+      .sort(([, a], [, b]) => b - a)
+      .map(([name]) => name);
+  }, [scopedRows]);
 
+  /**
+   * Timeline journalière. Trois corrections par rapport à un simple group by :
+   * - les jours sans événement sont matérialisés (sinon un week-end mort
+   *   disparaît du graphe et la série paraît continue) ;
+   * - les barres sont empilées par catégorie ;
+   * - une moyenne glissante 7 jours donne la tendance, que le bruit
+   *   quotidien masque complètement.
+   */
+  const dailyData = useMemo(() => {
+    const counts = new Map<string, Record<string, number>>();
+    for (const r of scopedRows) {
+      const day = format(parseISO(r.created_at), "yyyy-MM-dd");
+      const entry = counts.get(day) ?? {};
+      entry[r.feature_category] = (entry[r.feature_category] ?? 0) + 1;
+      counts.set(day, entry);
+    }
+
+    const end = startOfDay(new Date());
+    const start = subDays(end, Number(period) - 1);
+    const days = eachDayOfInterval({ start, end });
+
+    const base = days.map((d) => {
+      const key = format(d, "yyyy-MM-dd");
+      const byCategory = counts.get(key) ?? {};
+      const total = Object.values(byCategory).reduce((a, b) => a + b, 0);
+      return {
+        key,
+        date: format(d, "d MMM", { locale: fr }),
+        fullDate: format(d, "EEEE d MMMM", { locale: fr }),
+        weekend: isWeekend(d),
+        total,
+        ...byCategory,
+      };
+    });
+
+    return base.map((d, i) => {
+      const window = base.slice(Math.max(0, i - 6), i + 1);
+      const trend = window.reduce((a, b) => a + b.total, 0) / window.length;
+      return { ...d, trend: Number(trend.toFixed(1)) };
+    });
+  }, [scopedRows, period]);
+
+  // Un jour est « actif » s'il a produit au moins un événement : diviser par le
+  // nombre de jours calendaires écrase la moyenne, diviser par les seuls jours
+  // avec données la gonfle. On affiche les deux.
+  const activeDays = dailyData.filter((d) => d.total > 0).length;
   const avgPerDay = dailyData.length > 0
     ? Math.round(totalEvents / dailyData.length)
     : 0;
+  const avgPerActiveDay = activeDays > 0 ? Math.round(totalEvents / activeDays) : 0;
+  const busiestDay = useMemo(
+    () => dailyData.reduce<(typeof dailyData)[number] | null>(
+      (best, d) => (!best || d.total > best.total ? d : best),
+      null,
+    ),
+    [dailyData],
+  );
 
   return (
     <div className="space-y-6">
-      {/* Period selector */}
-      <div className="flex justify-end">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <ToggleGroup
+          type="single"
+          value={scope}
+          onValueChange={(v) => v && setScope(v as Scope)}
+          variant="outline"
+          size="sm"
+        >
+          <ToggleGroupItem value="actions">Actions métier</ToggleGroupItem>
+          <ToggleGroupItem value="all">Tout (avec vues de page)</ToggleGroupItem>
+        </ToggleGroup>
         <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue />
@@ -190,11 +286,19 @@ const FeatureUsageTab = () => {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <Layers className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <CalendarCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Catégories</p>
-                <p className="text-2xl font-bold">{uniqueCategories}</p>
+                <p className="text-sm text-muted-foreground">Jours actifs</p>
+                <p className="text-2xl font-bold">
+                  {activeDays}
+                  <span className="text-base font-normal text-muted-foreground">
+                    {" "}/ {dailyData.length}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {uniqueCategories} catégorie{uniqueCategories > 1 ? "s" : ""}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -207,8 +311,11 @@ const FeatureUsageTab = () => {
                 <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Moy. / jour</p>
-                <p className="text-2xl font-bold">{avgPerDay}</p>
+                <p className="text-sm text-muted-foreground">Moy. / jour actif</p>
+                <p className="text-2xl font-bold">{avgPerActiveDay}</p>
+                <p className="text-xs text-muted-foreground">
+                  {avgPerDay} sur la période complète
+                </p>
               </div>
             </div>
           </CardContent>
@@ -222,30 +329,67 @@ const FeatureUsageTab = () => {
             <BarChart3 className="h-5 w-5" />
             Utilisation par jour
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Barres empilées par catégorie, jours sans activité inclus, tendance en
+            moyenne glissante sur 7 jours.
+          </p>
         </CardHeader>
         <CardContent>
-          {dailyData.length === 0 ? (
+          {totalEvents === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <MousePointerClick className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Aucune donnée d'usage sur cette période.</p>
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <BarChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <ChartContainer config={chartConfig} className="h-[320px] w-full">
+              <ComposedChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11 }}
+                  interval="preserveStartEnd"
+                  minTickGap={16}
+                />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11 }} allowDecimals={false} />
                 <ChartTooltip
                   content={
                     <ChartTooltipContent
-                      formatter={(value) => [`${value}`, "Événements"]}
-                      labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate || ""}
+                      formatter={(value, name) => [`${value} `, String(name)]}
+                      labelFormatter={(_, payload) => {
+                        const point = payload?.[0]?.payload;
+                        if (!point) return "";
+                        return point.weekend ? `${point.fullDate} (week-end)` : point.fullDate;
+                      }}
                     />
                   }
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
-              </BarChart>
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {stackedCategories.map((category, i) => (
+                  <Bar
+                    key={category}
+                    dataKey={category}
+                    stackId="events"
+                    fill={COLORS[i % COLORS.length]}
+                  />
+                ))}
+                <Line
+                  type="monotone"
+                  dataKey="trend"
+                  name="Moyenne 7 j"
+                  stroke="hsl(var(--foreground))"
+                  strokeWidth={2}
+                  strokeDasharray="4 3"
+                  dot={false}
+                />
+              </ComposedChart>
             </ChartContainer>
+          )}
+          {busiestDay && busiestDay.total > 0 && (
+            <p className="text-sm text-muted-foreground mt-3">
+              Pic d'activité le {busiestDay.fullDate} : {busiestDay.total} événements.
+            </p>
           )}
         </CardContent>
       </Card>

@@ -35,6 +35,13 @@ import {
  */
 
 import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import {
+  compactForApi,
+  withCacheBreakpoints,
+  KEEP_RECENT_MESSAGES,
+  type Message,
+} from "../_shared/agent-history.ts";
 import { searchContent } from "../_shared/agent-search.ts";
 import {
   BULK_DEFAULT_DOCUMENTS,
@@ -366,15 +373,6 @@ const TOOL_LABELS: Record<string, string> = {
  * Ils sont exemptés du rabotage de compaction : tronquer une lecture à 1200
  * caractères revenait à lire un .docx puis à l'oublier au tour suivant.
  */
-const CONTENT_READ_TOOLS = new Set([
-  "get_mission_dossier",
-  "get_client_dossier",
-  "read_mission_page",
-  "read_document",
-  "read_mission_documents",
-  "read_media_image",
-]);
-
 // ── Tool execution ───────────────────────────────────────────
 
 /**
@@ -761,80 +759,6 @@ async function executeTool(
 }
 
 // ── History compaction ──────────────────────────────────────
-// Les tool_results (jusqu'à 100 lignes JSON) sont conservés en base mais
-// tronqués à l'envoi API au-delà des derniers messages : sans cela chaque
-// tour renvoie l'intégralité des résultats SQL de toute la conversation.
-
-const KEEP_RECENT_MESSAGES = 6;
-const TOOL_RESULT_MAX_CHARS = 1200;
-/**
- * Plafond des lectures de contenu. Très supérieur au rabotage ordinaire : un
- * document ou une page de mission n'a d'intérêt que lu en entier, et le
- * relire coûte un aller-retour complet. Assez large pour qu'une lecture
- * survive à plusieurs tours, assez borné pour qu'une conversation entière de
- * lectures ne sature pas le contexte.
- */
-const CONTENT_RESULT_MAX_CHARS = 120000;
-
-/** tool_use_id -> nom du tool, pour savoir quoi raboter et quoi préserver. */
-function toolNamesById(messages: Message[]): Map<string, string> {
-  const names = new Map<string, string>();
-  for (const m of messages) {
-    if (!Array.isArray(m.content)) continue;
-    for (const block of m.content as Array<Record<string, unknown>>) {
-      if (block.type === "tool_use" && block.id) {
-        names.set(block.id as string, block.name as string);
-      }
-    }
-  }
-  return names;
-}
-
-function compactForApi(messages: Message[]): Message[] {
-  const cutoff = messages.length - KEEP_RECENT_MESSAGES;
-  const names = toolNamesById(messages);
-
-  return messages.map((m, i) => {
-    if (i >= cutoff || !Array.isArray(m.content)) return m;
-    const content = (m.content as Array<Record<string, unknown>>).map((block) => {
-      if (block.type !== "tool_result") return block;
-
-      // Blocs mixtes (documents scannés, photos) : le texte est conservé, les
-      // images sont remplacées par une note. Une image base64 renvoyée à
-      // chaque tour pèse plusieurs Mo pour une information déjà exploitée.
-      if (Array.isArray(block.content)) {
-        const blocks = block.content as Array<Record<string, unknown>>;
-        const images = blocks.filter((b) => b.type === "image").length;
-        if (images === 0) return block;
-        return {
-          ...block,
-          content: [
-            ...blocks.filter((b) => b.type !== "image"),
-            {
-              type: "text",
-              text: `[${images} image(s) déjà lue(s), retirées de l'historique — relancer le tool pour les revoir]`,
-            },
-          ],
-        };
-      }
-
-      if (typeof block.content !== "string") return block;
-
-      const isRead = CONTENT_READ_TOOLS.has(names.get(block.tool_use_id as string) ?? "");
-      const max = isRead ? CONTENT_RESULT_MAX_CHARS : TOOL_RESULT_MAX_CHARS;
-      const text = block.content as string;
-      if (text.length <= max) return block;
-
-      return {
-        ...block,
-        content: text.slice(0, max) +
-          "\n… [résultat tronqué — relancer le tool si besoin du détail]",
-      };
-    });
-    return { ...m, content };
-  });
-}
-
 /**
  * ExtractedPart -> blocs de l'API Anthropic. Les images des documents scannés
  * et des photos d'atelier passent en base64 dans le tool_result, ce qui permet
@@ -898,7 +822,7 @@ function messageToText(m: Message): string {
   return parts.length ? `${m.role}: ${parts.join("\n")}` : "";
 }
 
-async function summarizeIfLong(messages: Message[]): Promise<Message[]> {
+async function summarizeIfLong(messages: Message[], userId?: string): Promise<Message[]> {
   if (messages.length < SUMMARY_TRIGGER_MESSAGES || !ANTHROPIC_API_KEY) return messages;
   // Déjà résumé : le marqueur ouvre la conversation compactée.
   if (typeof messages[0]?.content === "string" && (messages[0].content as string).startsWith(SUMMARY_MARKER)) {
@@ -912,6 +836,7 @@ async function summarizeIfLong(messages: Message[]): Promise<Message[]> {
   const transcript = messages.slice(0, cut).map(messageToText).filter(Boolean).join("\n\n");
   if (!transcript.trim()) return messages;
 
+  const startedAt = Date.now();
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -938,6 +863,15 @@ async function summarizeIfLong(messages: Message[]): Promise<Message[]> {
     });
     if (!res.ok) return messages;
     const data = await res.json();
+    await logAnthropicUsage({
+      origin: "agent-chat",
+      operation: "summary",
+      model: CLAUDE_DEFAULT,
+      trigger: "user",
+      userId,
+      usage: data.usage,
+      durationMs: Date.now() - startedAt,
+    });
     const summary = data.content?.[0]?.text?.trim();
     if (!summary) return messages;
 
@@ -961,18 +895,20 @@ function sseEvent(event: string, data: Record<string, unknown>): string {
 
 // ── Streaming agent with tool loop ──────────────────────────
 
-interface Message {
-  role: string;
-  content: unknown;
-}
-
 async function runAgentStreaming(
   messages: Message[],
   supabase: ReturnType<typeof getSupabaseClient>,
   writer: WritableStreamDefaultWriter<Uint8Array>,
   userId?: string,
   authHeader?: string | null,
-): Promise<{ fullResponse: string; updatedMessages: Message[]; totalInputTokens: number; totalOutputTokens: number }> {
+): Promise<{
+  fullResponse: string;
+  updatedMessages: Message[];
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheWriteTokens: number;
+}> {
   if (!ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY not configured");
   }
@@ -988,12 +924,25 @@ async function runAgentStreaming(
 
   // AG-11 : le début d'une longue conversation est condensé une fois pour
   // toutes, et le résultat est persisté avec la conversation.
-  const conversationMessages = await summarizeIfLong([...messages]);
+  const conversationMessages = await summarizeIfLong([...messages], userId);
+  // Figé avant le premier round : tout ce que le tour ajoute ensuite reste
+  // intact, donc le préfixe envoyé à l'API ne fait que croître.
+  const compactionCutoff = conversationMessages.length - KEEP_RECENT_MESSAGES;
   let fullResponse = "";
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
+  let totalCacheReadTokens = 0;
+  let totalCacheWriteTokens = 0;
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    // Un événement de consommation est écrit par round : une conversation qui
+    // part en boucle d'outils se voit round par round, pas noyée dans un total.
+    const roundStartedAt = Date.now();
+    let roundInputTokens = 0;
+    let roundOutputTokens = 0;
+    let roundCacheReadTokens = 0;
+    let roundCacheWriteTokens = 0;
+
     // Call Claude with streaming
     const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1021,13 +970,24 @@ async function runAgentStreaming(
           },
         ],
         tools: TOOLS,
-        messages: compactForApi(conversationMessages),
+        messages: withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff)),
       }),
     });
 
     if (!apiRes.ok) {
       const errBody = await apiRes.text();
       console.error("Claude API error:", apiRes.status, errBody);
+      await logAnthropicUsage({
+        origin: "agent-chat",
+        operation: "chat",
+        model: CLAUDE_MODEL,
+        trigger: "user",
+        userId,
+        durationMs: Date.now() - roundStartedAt,
+        status: "error",
+        errorMessage: `HTTP ${apiRes.status}`,
+        metadata: { round },
+      });
       throw new Error(`Claude API error: ${apiRes.status}`);
     }
 
@@ -1140,8 +1100,18 @@ async function runAgentStreaming(
 
           case "message_start": {
             // Capture input tokens from the message start event
-            if (event.message?.usage?.input_tokens) {
-              totalInputTokens += event.message.usage.input_tokens;
+            const startUsage = event.message?.usage;
+            if (startUsage?.input_tokens) {
+              roundInputTokens += startUsage.input_tokens;
+              totalInputTokens += startUsage.input_tokens;
+            }
+            if (startUsage?.cache_read_input_tokens) {
+              roundCacheReadTokens += startUsage.cache_read_input_tokens;
+              totalCacheReadTokens += startUsage.cache_read_input_tokens;
+            }
+            if (startUsage?.cache_creation_input_tokens) {
+              roundCacheWriteTokens += startUsage.cache_creation_input_tokens;
+              totalCacheWriteTokens += startUsage.cache_creation_input_tokens;
             }
             break;
           }
@@ -1152,6 +1122,7 @@ async function runAgentStreaming(
             }
             // Capture output tokens from the message delta event
             if (event.usage?.output_tokens) {
+              roundOutputTokens += event.usage.output_tokens;
               totalOutputTokens += event.usage.output_tokens;
             }
             break;
@@ -1159,6 +1130,22 @@ async function runAgentStreaming(
         }
       }
     }
+
+    await logAnthropicUsage({
+      origin: "agent-chat",
+      operation: "chat",
+      model: CLAUDE_MODEL,
+      trigger: "user",
+      userId,
+      usage: {
+        input_tokens: roundInputTokens,
+        output_tokens: roundOutputTokens,
+        cache_read_input_tokens: roundCacheReadTokens,
+        cache_creation_input_tokens: roundCacheWriteTokens,
+      },
+      durationMs: Date.now() - roundStartedAt,
+      metadata: { round, stop_reason: stopReason },
+    });
 
     // Add assistant response to conversation
     const validBlocks = contentBlocks.filter(Boolean);
@@ -1207,14 +1194,26 @@ async function runAgentStreaming(
     conversationMessages.push({ role: "user", content: toolResults });
   }
 
-  return { fullResponse, updatedMessages: conversationMessages, totalInputTokens, totalOutputTokens };
+  return {
+    fullResponse,
+    updatedMessages: conversationMessages,
+    totalInputTokens,
+    totalOutputTokens,
+    totalCacheReadTokens,
+    totalCacheWriteTokens,
+  };
 }
 
 // ── Title generation ────────────────────────────────────────
 
-async function generateTitle(userMessage: string, assistantResponse: string): Promise<string> {
+async function generateTitle(
+  userMessage: string,
+  assistantResponse: string,
+  userId?: string,
+): Promise<string> {
   if (!ANTHROPIC_API_KEY) return userMessage.slice(0, 80);
 
+  const startedAt = Date.now();
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -1238,6 +1237,15 @@ async function generateTitle(userMessage: string, assistantResponse: string): Pr
     if (!res.ok) return userMessage.slice(0, 80);
 
     const data = await res.json();
+    await logAnthropicUsage({
+      origin: "agent-chat",
+      operation: "title",
+      model: CLAUDE_DEFAULT,
+      trigger: "user",
+      userId,
+      usage: data.usage,
+      durationMs: Date.now() - startedAt,
+    });
     const title = data.content?.[0]?.text?.trim();
     return title || userMessage.slice(0, 80);
   } catch {
@@ -1326,7 +1334,8 @@ serve(async (req) => {
     (async () => {
       const encoder = new TextEncoder();
       try {
-        const { fullResponse, updatedMessages, totalInputTokens, totalOutputTokens } = await runAgentStreaming(
+        const { fullResponse, updatedMessages, totalInputTokens, totalOutputTokens } =
+          await runAgentStreaming(
           messages,
           supabase,
           writer,
@@ -1347,7 +1356,7 @@ serve(async (req) => {
           });
         } else {
           // Generate a smart title for new conversations
-          title = await generateTitle(message, fullResponse);
+          title = await generateTitle(message, fullResponse, userId);
 
           const { data: newConv, error: insertError } = await supabase
             .from("agent_conversations")

@@ -17,6 +17,9 @@ import { reportEdgeError } from "../_shared/sentry.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+/** Doit rester aligné sur le garde SQL du cron et sur l'index partiel. */
+const MAX_ANALYSIS_ATTEMPTS = 3;
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -62,6 +65,9 @@ Deno.serve(async (req) => {
       .eq("status", "ready")
       .not("raw_text", "is", null)
       .is("editorial_qualification", null)
+      // Plafond de tentatives : un transcript dont l'analyse échoue de façon
+      // reproductible sortait jamais du lot et repassait à chaque cron.
+      .lt("editorial_analysis_attempts", MAX_ANALYSIS_ATTEMPTS)
       .order("created_at", { ascending: false })
       .limit(limit);
 

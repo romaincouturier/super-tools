@@ -409,6 +409,13 @@ if [ "$STAGED_MODE" = "false" ]; then
          | head -1 | grep -q . || echo \"VIOLATION: table \$t sans policy SELECT TO authenticated\"; \
      done"
 
+  # [045] Coûts IA — tout appel à une API payante doit tracer sa consommation via
+  # _shared/api-usage.ts, sinon un pic de facture reste inattribuable.
+  check "045" "Appels aux APIs payantes tracés dans api_usage_events" \
+    "grep -rl -E 'api\\.anthropic\\.com|ai\\.gateway\\.lovable\\.dev|api\\.openai\\.com|api\\.assemblyai\\.com/v2/transcript' supabase/functions/ --include='*.ts' 2>/dev/null \
+       | grep -v '_shared/api-usage.ts' \
+       | while read -r f; do grep -q 'api-usage' \"\$f\" || echo \"VIOLATION [045]: \$f appelle une API payante sans logApiUsage\"; done"
+
   # Ratchet [017] / [020] — migrations progressives : la dette ne peut que descendre.
   # Baselines dans scripts/rules-ratchet.txt. Compte > baseline = violation.
   # Compte < baseline = abaisser la baseline dans le même commit.
