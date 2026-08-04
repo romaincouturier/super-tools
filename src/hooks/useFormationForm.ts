@@ -303,6 +303,11 @@ export function useFormationForm() {
         sponsor_formal_address: isInter ? true : sponsorFormalAddress,
         participants_formal_address: false,
         financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
+        admin_contact_same_as_sponsor: isInter ? true : adminContactSameAsSponsor,
+        admin_contact_first_name: (isInter || adminContactSameAsSponsor) ? null : (adminContactFirstName || null),
+        admin_contact_last_name: (isInter || adminContactSameAsSponsor) ? null : (adminContactLastName || null),
+        admin_contact_email: (isInter || adminContactSameAsSponsor) ? null : (adminContactEmail || null),
+        admin_contact_phone: (isInter || adminContactSameAsSponsor) ? null : (adminContactPhone || null),
         catalog_id: catalogId || null,
       };
 
