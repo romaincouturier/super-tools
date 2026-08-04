@@ -87,17 +87,19 @@ CREATE POLICY staff_only_select ON public.tender_documents
   USING (public.is_staff_user());
 
 -- ── 4. Stockage ──────────────────────────────────────────────
--- Bucket public, comme `mission-documents` et `training-documents` : un DCE est
--- déjà publié par l'acheteur, il n'y a rien à protéger, et le gestionnaire de
--- documents mutualisé (règle [002]) travaille sur des URL publiques. Un bucket
--- privé aurait imposé des URL signées partout et un composant d'upload à part.
+-- Bucket PRIVÉ. Il avait d'abord été déclaré public, comme `mission-documents`
+-- et `training-documents` : un DCE est déjà publié par l'acheteur, il n'y a
+-- rien à protéger. La politique de l'espace de travail interdit les buckets
+-- publics, constaté au déploiement du 04/08/2026. Le gestionnaire de documents
+-- mutualisé resigne donc l'URL au téléchargement (`resolveEntityDocumentUrl`),
+-- ce qui marche aussi sur un bucket public : aucune branche par type d'entité.
 -- Les formats acceptés sont ceux que `_shared/document-extract.ts` sait lire :
 -- une archive ZIP, format habituel d'un DCE, doit être décompressée avant
 -- dépôt — l'accepter donnerait un document que le modèle ne peut pas ouvrir.
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
-  'tender-documents', 'tender-documents', true, 26214400,
+  'tender-documents', 'tender-documents', false, 26214400,
   ARRAY[
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -112,9 +114,12 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 DROP POLICY IF EXISTS "tender_documents_storage_select" ON storage.objects;
+-- Signer une URL demande un SELECT sur l'objet : la policy est donc ce qui
+-- décide qui peut télécharger. Réservée au staff, comme `staff_only_select`
+-- sur la table — sans quoi un apprenant pourrait se signer une pièce de DCE.
 CREATE POLICY "tender_documents_storage_select" ON storage.objects
   FOR SELECT TO authenticated
-  USING (bucket_id = 'tender-documents');
+  USING (bucket_id = 'tender-documents' AND public.is_staff_user());
 
 DROP POLICY IF EXISTS "tender_documents_storage_insert" ON storage.objects;
 CREATE POLICY "tender_documents_storage_insert" ON storage.objects

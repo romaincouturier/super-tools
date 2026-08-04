@@ -54,7 +54,7 @@ CREATE POLICY staff_only_select ON public.tender_documents
 DROP POLICY IF EXISTS "tender_documents_storage_select" ON storage.objects;
 CREATE POLICY "tender_documents_storage_select" ON storage.objects
   FOR SELECT TO authenticated
-  USING (bucket_id = 'tender-documents');
+  USING (bucket_id = 'tender-documents' AND public.is_staff_user());
 
 DROP POLICY IF EXISTS "tender_documents_storage_insert" ON storage.objects;
 CREATE POLICY "tender_documents_storage_insert" ON storage.objects
