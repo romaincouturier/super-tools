@@ -1254,15 +1254,17 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
 
 /**
  * Fetch pending support tickets (nouveau, qualification, vibe_coding).
- * Excludes resolved tickets.
+ * Excludes resolved tickets and tickets whose dev is already finished
+ * (coding_status = 'done'), qui n'attendent plus d'action de notre part.
  */
 export async function fetchPendingSupportTickets(supabase: SupabaseClient, today: string): Promise<SupportTicketItem[]> {
   const PENDING_STATUSES = ["nouveau", "qualification", "vibe_coding"];
 
   const { data, error } = await supabase
     .from("support_tickets")
-    .select("id, ticket_number, title, type, priority, status, created_at")
+    .select("id, ticket_number, title, type, priority, status, created_at, coding_status")
     .in("status", PENDING_STATUSES)
+    .or("coding_status.is.null,coding_status.neq.done")
     .order("priority", { ascending: true })
     .order("created_at", { ascending: true });
 
@@ -1271,6 +1273,7 @@ export async function fetchPendingSupportTickets(supabase: SupabaseClient, today
     return [];
   }
   if (!data || data.length === 0) return [];
+
 
   return data.map((t: any) => {
     const created = t.created_at?.slice(0, 10) || today;
