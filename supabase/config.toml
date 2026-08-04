@@ -81,6 +81,11 @@ verify_jwt = false
 [functions.resend-inbound-webhook]
 verify_jwt = false
 
+[functions.refetch-inbound-emails]
+verify_jwt = false
+
+
+
 [functions.chatbot-query]
 verify_jwt = false
 
