@@ -11533,6 +11533,8 @@ export type Database = {
           created_at: string
           duration_seconds: number | null
           editorial_analysis: Json | null
+          editorial_analysis_attempts: number
+          editorial_analysis_error: string | null
           editorial_analyzed_at: string | null
           editorial_qualification: string | null
           error_message: string | null
@@ -11553,6 +11555,8 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           editorial_analysis?: Json | null
+          editorial_analysis_attempts?: number
+          editorial_analysis_error?: string | null
           editorial_analyzed_at?: string | null
           editorial_qualification?: string | null
           error_message?: string | null
@@ -11573,6 +11577,8 @@ export type Database = {
           created_at?: string
           duration_seconds?: number | null
           editorial_analysis?: Json | null
+          editorial_analysis_attempts?: number
+          editorial_analysis_error?: string | null
           editorial_analyzed_at?: string | null
           editorial_qualification?: string | null
           error_message?: string | null
@@ -12736,6 +12742,10 @@ export type Database = {
       recompute_opportunity_estimated_value: {
         Args: { p_card_id: string }
         Returns: number
+      }
+      record_editorial_analysis_failure: {
+        Args: { p_error: string; p_transcript_id: string }
+        Returns: undefined
       }
       refresh_tender_card_actions: { Args: never; Returns: number }
       register_formulaire_orphan: {
