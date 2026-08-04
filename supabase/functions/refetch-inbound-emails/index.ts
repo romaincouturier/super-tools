@@ -2,10 +2,13 @@
 // (les webhooks Resend `email.received` ne transportent que les métadonnées).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-import { extendCorsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import {
+  createErrorResponse,
+  extendCorsHeaders,
+  handleCorsPreflightIfNeeded,
+} from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import { fetchReceivedEmailContent } from "../_shared/resend-inbound-content.ts";
-import { reportEdgeError } from "../_shared/sentry.ts";
 
 const corsHeaders = extendCorsHeaders({});
 
@@ -22,18 +25,12 @@ serve(async (req) => {
     if (!viaSecret) {
       const user = await verifyAuth(req);
       if (!user) {
-        return new Response(JSON.stringify({ error: "Non autorisé" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return createErrorResponse("Non autorisé", 401, { fn: "refetch-inbound-emails" });
       }
       const authed = getSupabaseClient();
       const { data: isAdmin } = await authed.rpc("is_admin", { _user_id: user.id });
       if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Non autorisé" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return createErrorResponse("Non autorisé", 403, { fn: "refetch-inbound-emails" });
       }
     }
 
@@ -85,11 +82,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    await reportEdgeError(error, { fn: "refetch-inbound-emails" });
     const message = error instanceof Error ? error.message : "Erreur interne";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return createErrorResponse(message, 500, { cause: error, fn: "refetch-inbound-emails" });
   }
 });
