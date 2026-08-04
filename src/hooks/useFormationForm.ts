@@ -372,6 +372,8 @@ export function useFormationForm() {
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail, sponsorPhone,
       financeurName, financeurUrl,
+      adminContactSameAsSponsor, adminContactFirstName, adminContactLastName,
+      adminContactEmail, adminContactPhone,
       locationType, locationCustom,
       trainerId, assignedTo, trainingNotes, specificInstructions,
       getStartDate, getEndDate, getLegacyFormatFormation, getFinalLocation,
