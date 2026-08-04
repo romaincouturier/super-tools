@@ -245,6 +245,15 @@ check "037d" "Pas de reportEdgeError + createErrorResponse dans la même fonctio
 check "036" "Pas de vault.decrypted_secrets / x-cron-secret dans les nouvelles migrations" \
   "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260708235959 ] 2>/dev/null || continue; grep -vE '^\s*--' \"\$f\" | grep -qE 'vault\.decrypted_secrets|x-cron-secret' && echo \"VIOLATION: \$f\"; done; true"
 
+# [046] Réglages en base — un UPDATE de app_settings dans une migration doit être
+# conditionné à la valeur attendue, sinon il écrase un réglage fait depuis l'écran
+# d'administration (et le réécrase à chaque rejeu). On repère l'UPDATE qui écrit
+# setting_value et on exige une seconde occurrence, celle du WHERE.
+# Deux migrations du 03/08 (URL GSC, dossiers Drive) sont antérieures à la règle :
+# déjà appliquées, valeurs posées une fois pour toutes, laissées telles quelles.
+check "046" "Migrations app_settings — UPDATE de setting_value conditionné à la valeur attendue" \
+  "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260803155909 ] 2>/dev/null || continue; grep -vE '^[[:space:]]*--' \"\$f\" | awk -v F=\"\$f\" '/UPDATE[[:space:]]+public\.app_settings/{u=1;s=\"\"} u{s=s\" \"\$0} u&&/;[[:space:]]*\$/{u=0; if (s ~ /SET[[:space:]]+setting_value/ && gsub(/setting_value/,\"&\",s) < 2) print \"VIOLATION: \" F \" — UPDATE setting_value sans condition sur la valeur precedente\"}'; done; true"
+
 # [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
 # des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
