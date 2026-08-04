@@ -120,7 +120,28 @@ describe("ApiUsageTab", () => {
     getApiUsageDaily.mockClear();
     getApiUsageTopCalls.mockClear();
     getApiUsageDaily.mockResolvedValue({ data: mockRows, error: null });
-    getApiUsageTopCalls.mockResolvedValue({ data: [], error: null });
+    getApiUsageTopCalls.mockResolvedValue({
+      data: [
+        {
+          id: "c1",
+          created_at: new Date().toISOString(),
+          provider: "assemblyai",
+          origin: "google-drive-helper",
+          operation: "poll-transcript",
+          model: "universal",
+          trigger_source: "cron",
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_tokens: 0,
+          audio_seconds: 12_000,
+          cost_usd: 0.9,
+          duration_ms: null,
+          status: "success",
+          error_message: null,
+        },
+      ],
+      error: null,
+    });
   });
 
   it("agrège le coût total sur la période", async () => {
@@ -185,6 +206,17 @@ describe("ApiUsageTab", () => {
     ).toBeInTheDocument();
     // Le second RPC ne doit pas être tenté après un refus.
     expect(getApiUsageTopCalls).not.toHaveBeenCalled();
+  });
+
+  it("affiche la durée audio et non des tokens à zéro dans le top des appels", async () => {
+    // Une transcription facturée à la minute affichait « 0 / 0 » pour 0,90 $ :
+    // la ligne paraissait absurde.
+    const { default: ApiUsageTab } = await import("./ApiUsageTab");
+    renderWithQuery(<ApiUsageTab />);
+
+    await screen.findByText("$22.50");
+    expect(await screen.findByText("200 min audio")).toBeInTheDocument();
+    expect(screen.getByText("Appels unitaires les plus coûteux")).toBeInTheDocument();
   });
 
   it("affiche l'état vide quand rien n'est encore tracé", async () => {

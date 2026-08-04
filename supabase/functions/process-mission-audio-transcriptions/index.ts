@@ -226,6 +226,7 @@ async function processDocument(supabase: ReturnType<typeof createClient>, apiKey
       await logAssemblyAiUsage({
         origin: "process-mission-audio-transcriptions",
         operation: "poll",
+        transcriptId: result.id,
         audioSeconds: Math.round(result.audio_duration ?? 0),
         trigger: "cron",
         status: result.status === "error" ? "error" : "success",

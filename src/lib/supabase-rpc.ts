@@ -350,6 +350,7 @@ export interface ApiUsageTopCall {
   input_tokens: number;
   output_tokens: number;
   cache_read_tokens: number;
+  audio_seconds: number;
   cost_usd: number;
   duration_ms: number | null;
   status: string;

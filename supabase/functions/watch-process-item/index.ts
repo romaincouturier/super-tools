@@ -329,6 +329,7 @@ async function transcribeWithAssemblyAI(audioUrl: string, apiKey: string): Promi
           await logAssemblyAiUsage({
             origin: "watch-process-item",
             operation: "podcast-transcript",
+            transcriptId,
             audioSeconds: Math.round(result.audio_duration ?? 0),
             trigger: "cron",
             status: result.status === "error" ? "error" : "success",

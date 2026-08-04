@@ -97,6 +97,12 @@ export interface ApiUsageEntry {
   status?: "success" | "error";
   errorMessage?: string;
   metadata?: Record<string, unknown>;
+  /**
+   * Identifiant de l'unité facturée chez le provider (ex: transcript_id
+   * AssemblyAI). À renseigner dès que la ressource peut être relue plusieurs
+   * fois : un index unique garantit alors un seul événement de coût.
+   */
+  externalId?: string | null;
   /** Force un coût (sinon calculé depuis les tarifs). */
   costUsd?: number;
 }
@@ -127,8 +133,9 @@ export function estimateCostUsd(entry: ApiUsageEntry): number {
 export async function logApiUsage(entry: ApiUsageEntry): Promise<void> {
   try {
     const supabase = getSupabaseClient();
-    await supabase.from("api_usage_events").insert({
+    const { error } = await supabase.from("api_usage_events").insert({
       provider: entry.provider,
+      external_id: entry.externalId ?? null,
       origin: entry.origin,
       operation: entry.operation ?? null,
       model: entry.model ?? null,
@@ -145,6 +152,12 @@ export async function logApiUsage(entry: ApiUsageEntry): Promise<void> {
       error_message: entry.errorMessage ?? null,
       metadata: entry.metadata ?? {},
     });
+    // 23505 = violation d'unicité sur (provider, external_id) : la ressource a
+    // déjà été facturée et relue. C'est la déduplication qui fait son travail,
+    // pas une erreur — ne pas polluer les logs.
+    if (error && error.code !== "23505") {
+      console.error("[api-usage] insert failed:", error.message);
+    }
   } catch (e) {
     console.error("[api-usage] log failed:", e instanceof Error ? e.message : e);
   }
@@ -185,6 +198,12 @@ export function logAnthropicUsage(opts: {
 export function logAssemblyAiUsage(opts: {
   origin: string;
   operation?: string;
+  /**
+   * Identifiant du transcript AssemblyAI. AssemblyAI facture une fois, à la
+   * soumission ; relire le résultat est gratuit. Le transmettre est ce qui
+   * empêche un job relu (webhook + cron) d'être compté plusieurs fois.
+   */
+  transcriptId?: string | null;
   audioDurationMs?: number | null;
   audioSeconds?: number | null;
   trigger?: TriggerSource;
@@ -201,6 +220,7 @@ export function logAssemblyAiUsage(opts: {
     model: "universal",
     trigger: opts.trigger,
     userId: opts.userId,
+    externalId: opts.transcriptId ?? null,
     audioSeconds: seconds,
     status: opts.status,
     errorMessage: opts.errorMessage,

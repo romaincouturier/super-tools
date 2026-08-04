@@ -627,7 +627,9 @@ const ApiUsageTab = () => {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{c.model || "—"}</TableCell>
                       <TableCell className="text-right text-sm">
-                        {formatCompact(c.input_tokens)} / {formatCompact(c.output_tokens)}
+                        {Number(c.audio_seconds) > 0
+                          ? `${Math.round(Number(c.audio_seconds) / 60)} min audio`
+                          : `${formatCompact(c.input_tokens)} / ${formatCompact(c.output_tokens)}`}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {c.duration_ms ? `${(c.duration_ms / 1000).toFixed(1)}s` : "—"}

@@ -127,6 +127,7 @@ serve(async (req) => {
         await logAssemblyAiUsage({
           origin: "transcribe-audio-long",
           operation: "poll",
+          transcriptId,
           audioSeconds: Math.round(result.audio_duration ?? 0),
           trigger: "user",
           status: result.status === "error" ? "error" : "success",
