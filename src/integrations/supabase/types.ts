@@ -372,6 +372,7 @@ export type Database = {
           created_at: string
           duration_ms: number | null
           error_message: string | null
+          external_id: string | null
           id: string
           input_tokens: number
           metadata: Json
@@ -392,6 +393,7 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          external_id?: string | null
           id?: string
           input_tokens?: number
           metadata?: Json
@@ -412,6 +414,7 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          external_id?: string | null
           id?: string
           input_tokens?: number
           metadata?: Json
@@ -12370,6 +12373,7 @@ export type Database = {
       get_api_usage_top_calls: {
         Args: { p_days?: number; p_limit?: number }
         Returns: {
+          audio_seconds: number
           cache_read_tokens: number
           cost_usd: number
           created_at: string
