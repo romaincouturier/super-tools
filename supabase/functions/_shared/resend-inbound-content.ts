@@ -12,11 +12,16 @@ export interface ReceivedEmailContent {
   attachments: { filename: string; content_type: string; size: number }[];
 }
 
+/** Dernière erreur de récupération, pour diagnostic (rattrapage manuel). */
+export let lastFetchError: string | null = null;
+
 export async function fetchReceivedEmailContent(
   emailId: string,
 ): Promise<ReceivedEmailContent | null> {
+  lastFetchError = null;
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) {
+    lastFetchError = "RESEND_API_KEY manquant";
     console.error("RESEND_API_KEY manquant : impossible de récupérer le corps de l'email entrant");
     return null;
   }
@@ -28,6 +33,7 @@ export async function fetchReceivedEmailContent(
 
   if (!response.ok) {
     const body = await response.text();
+    lastFetchError = `Resend ${response.status}: ${body.slice(0, 300)}`;
     console.error(`Resend receiving API error [${response.status}]: ${body}`);
     return null;
   }
