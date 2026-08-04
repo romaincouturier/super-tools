@@ -363,6 +363,69 @@ export type Database = {
           },
         ]
       }
+      api_usage_events: {
+        Row: {
+          audio_seconds: number | null
+          cache_read_tokens: number
+          cache_write_tokens: number
+          cost_usd: number
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          input_tokens: number
+          metadata: Json
+          model: string | null
+          operation: string | null
+          origin: string
+          output_tokens: number
+          provider: string
+          status: string
+          trigger_source: string
+          user_id: string | null
+        }
+        Insert: {
+          audio_seconds?: number | null
+          cache_read_tokens?: number
+          cache_write_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input_tokens?: number
+          metadata?: Json
+          model?: string | null
+          operation?: string | null
+          origin: string
+          output_tokens?: number
+          provider: string
+          status?: string
+          trigger_source?: string
+          user_id?: string | null
+        }
+        Update: {
+          audio_seconds?: number | null
+          cache_read_tokens?: number
+          cache_write_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          input_tokens?: number
+          metadata?: Json
+          model?: string | null
+          operation?: string | null
+          origin?: string
+          output_tokens?: number
+          provider?: string
+          status?: string
+          trigger_source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -12198,6 +12261,45 @@ export type Database = {
       expire_tender_opportunities: { Args: never; Returns: number }
       get_agent_allowed_tables: { Args: never; Returns: string[] }
       get_agent_schema_prompt: { Args: never; Returns: string }
+      get_api_usage_daily: {
+        Args: { p_days?: number }
+        Returns: {
+          audio_seconds: number
+          avg_duration_ms: number
+          cache_read_tokens: number
+          cache_write_tokens: number
+          calls: number
+          cost_usd: number
+          day: string
+          errors: number
+          input_tokens: number
+          model: string
+          operation: string
+          origin: string
+          output_tokens: number
+          provider: string
+          trigger_source: string
+        }[]
+      }
+      get_api_usage_top_calls: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          cache_read_tokens: number
+          cost_usd: number
+          created_at: string
+          duration_ms: number
+          error_message: string
+          id: string
+          input_tokens: number
+          model: string
+          operation: string
+          origin: string
+          output_tokens: number
+          provider: string
+          status: string
+          trigger_source: string
+        }[]
+      }
       get_app_setting_public: { Args: { p_key: string }; Returns: string }
       get_attendance_by_token: { Args: { p_token: string }; Returns: Json }
       get_convention_signature_by_token: {
@@ -12628,6 +12730,7 @@ export type Database = {
         }[]
       }
       preview_learner_token: { Args: { p_token: string }; Returns: Json }
+      purge_api_usage_events: { Args: never; Returns: undefined }
       purge_seo_history: { Args: never; Returns: undefined }
       reap_stuck_ticket_coding: { Args: never; Returns: undefined }
       recompute_opportunity_estimated_value: {
