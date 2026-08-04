@@ -146,20 +146,25 @@ export function extractTenderDetail(rawInput: unknown): TenderDetail {
   const raw = decodeNestedJson(rawInput);
   const rec = raw as Record<string, Json>;
 
-  // eForms : `cbc:Description`. Ancien schéma MAPA/AVIS : `objet`,
-  // `OBJET_COMPLET`, plus les conditions et renseignements complémentaires.
-  const descriptions = firstTexts(raw, [
-    "Description",
-    "OBJET_COMPLET",
-    "objet",
-    "TITRE_MARCHE",
-    "conditions",
-    "renseignements",
-    "infosSup",
-  ])
-    .filter((t) => t.length > 40)
-    .sort((a, b) => b.length - a.length)
-    .slice(0, 4);
+  // L'objet réel du marché d'abord : il vit sous `ProcurementProject` en
+  // eForms, sous `description.objet` dans l'ancien schéma. Le reste (recours,
+  // conditions financières) ne doit pas passer devant sous prétexte d'être
+  // plus long.
+  const projectNodes = collect(
+    raw,
+    (k) => k.toLowerCase().split(":").pop() === "procurementproject",
+  );
+  const primary = [
+    ...projectNodes.flatMap((n) => firstTexts(n, ["Description", "Name"])),
+    ...firstTexts(raw, ["OBJET_COMPLET", "objet", "TITRE_MARCHE"]),
+  ].filter((t) => t.length > 40);
+
+  const others = firstTexts(raw, ["Description", "conditions", "renseignements", "infosSup"])
+    .filter((t) => t.length > 40 && !primary.includes(t))
+    .sort((a, b) => b.length - a.length);
+
+  const descriptions = [...new Set([...primary, ...others])].slice(0, 5);
+
 
   return {
     descriptions,
