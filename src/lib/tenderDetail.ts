@@ -116,8 +116,22 @@ function lotNames(raw: Json): string[] {
   return out.slice(0, 12);
 }
 
-export function extractTenderDetail(raw: unknown): TenderDetail {
-  if (!raw || typeof raw !== "object") {
+/** Plusieurs noms de clé pour une même information, selon le schéma. */
+function firstTexts(raw: Json, names: string[], min = 2): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of names) {
+    for (const t of texts(raw, name)) {
+      if (t.length < min || seen.has(t)) continue;
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+export function extractTenderDetail(rawInput: unknown): TenderDetail {
+  if (!rawInput || typeof rawInput !== "object") {
     return {
       descriptions: [],
       lots: [],
@@ -129,9 +143,20 @@ export function extractTenderDetail(raw: unknown): TenderDetail {
       typeMarche: null,
     };
   }
+  const raw = decodeNestedJson(rawInput);
   const rec = raw as Record<string, Json>;
 
-  const descriptions = texts(raw, "Description")
+  // eForms : `cbc:Description`. Ancien schéma MAPA/AVIS : `objet`,
+  // `OBJET_COMPLET`, plus les conditions et renseignements complémentaires.
+  const descriptions = firstTexts(raw, [
+    "Description",
+    "OBJET_COMPLET",
+    "objet",
+    "TITRE_MARCHE",
+    "conditions",
+    "renseignements",
+    "infosSup",
+  ])
     .filter((t) => t.length > 40)
     .sort((a, b) => b.length - a.length)
     .slice(0, 4);
@@ -140,10 +165,13 @@ export function extractTenderDetail(raw: unknown): TenderDetail {
     descriptions,
     lots: lotNames(raw),
     descripteurs: asText(rec.descripteur_libelle),
-    villes: texts(raw, "CityName").slice(0, 4),
-    emails: texts(raw, "ElectronicMail").slice(0, 3),
-    telephones: texts(raw, "Telephone").slice(0, 2),
+    villes: firstTexts(raw, ["CityName", "ville", "VILLE"]).slice(0, 4),
+    emails: firstTexts(raw, ["ElectronicMail", "mel", "MEL"], 5)
+      .filter((t) => t.includes("@"))
+      .slice(0, 3),
+    telephones: firstTexts(raw, ["Telephone", "tel", "TEL"], 6).slice(0, 2),
     procedure: asText(rec.procedure_libelle)[0] ?? null,
+
     typeMarche: asText(rec.type_marche)[0] ?? null,
   };
 }
