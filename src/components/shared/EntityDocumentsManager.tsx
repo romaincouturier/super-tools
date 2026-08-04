@@ -20,7 +20,9 @@ import {
   useToggleDocumentDeliverable,
   uploadEntityDocument,
   deleteEntityDocumentFile,
+  resolveEntityDocumentUrl,
 } from "@/hooks/useEntityDocuments";
+
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
