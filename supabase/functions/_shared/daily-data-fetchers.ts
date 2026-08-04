@@ -555,10 +555,15 @@ export async function fetchTrainingConventions(supabase: SupabaseClient, today: 
     participantsByTraining.set(p.training_id, list);
   }
 
+  // Un même destinataire peut avoir plusieurs lignes (relances) : "signed" prime
+  // sur "pending", sinon une ancienne demande en attente masque la signature.
   const signaturesByKey = new Map<string, string>();
   for (const sig of (allSignatures || [])) {
-    signaturesByKey.set(`${sig.training_id}:${sig.recipient_email}`, sig.status);
+    const key = `${sig.training_id}:${sig.recipient_email}`;
+    if (signaturesByKey.get(key) === "signed") continue;
+    signaturesByKey.set(key, sig.status);
   }
+
 
   const results: TrainingConventionItem[] = [];
 
