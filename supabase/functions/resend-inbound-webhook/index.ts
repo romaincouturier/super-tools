@@ -9,6 +9,8 @@ import { reportEdgeError } from "../_shared/sentry.ts";
 import { postCrmOpportunityToSlack } from "../_shared/crm-slack.ts";
 import { parseEmailAddress } from "../_shared/email-address.ts";
 import { inboundRecipients, routeTenderEmail } from "../_shared/tender-inbound.ts";
+import { fetchReceivedEmailContent } from "../_shared/resend-inbound-content.ts";
+
 
 const corsHeaders = extendCorsHeaders({
   "Access-Control-Allow-Headers": "content-type, svix-id, svix-timestamp, svix-signature",
