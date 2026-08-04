@@ -65,6 +65,26 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Responsable administratif: if defined, the convention goes to them
+    // instead of the sponsor.
+    let toEmail = recipientEmail;
+    let toName = recipientName;
+    let toFirstName = recipientFirstName;
+    const t = training as unknown as Record<string, string | boolean | null>;
+    if (
+      t.admin_contact_same_as_sponsor === false &&
+      typeof t.admin_contact_email === "string" &&
+      t.admin_contact_email &&
+      (!t.sponsor_email || recipientEmail === t.sponsor_email)
+    ) {
+      toEmail = t.admin_contact_email as string;
+      toFirstName = (t.admin_contact_first_name as string) || "";
+      toName = [t.admin_contact_first_name, t.admin_contact_last_name]
+        .filter(Boolean)
+        .join(" ") || toEmail;
+      console.log("Convention routed to responsable administratif:", toEmail);
+    }
+
     // If online signature is enabled, create a signature token
     let signatureUrl = "";
     let signatureToken = "";
@@ -86,9 +106,9 @@ serve(async (req: Request): Promise<Response> => {
         .insert({
           token: signatureToken,
           training_id: trainingId,
-          recipient_email: recipientEmail,
-          recipient_name: recipientName || null,
-          client_name: training.client_name || recipientName || "",
+          recipient_email: toEmail,
+          recipient_name: toName || null,
+          client_name: training.client_name || toName || "",
           formation_name: training.training_name,
           pdf_url: conventionUrl,
           status: "pending",
@@ -117,7 +137,7 @@ serve(async (req: Request): Promise<Response> => {
     const endDateFormatted = training.end_date
       ? formatDateFr(training.end_date)
       : startDateFormatted;
-    const firstName = recipientFirstName || recipientName || "";
+    const firstName = toFirstName || toName || "";
 
     // Build subject and body from template (or defaults)
     let subject = template?.subject || `Convention de formation - ${training.training_name}`;
@@ -264,7 +284,7 @@ serve(async (req: Request): Promise<Response> => {
 
     // Send email with attachment
     const result = await sendEmail({
-      to: recipientEmail,
+      to: toEmail,
       subject,
       html: fullHtml,
       bcc: bccList,
@@ -286,12 +306,12 @@ serve(async (req: Request): Promise<Response> => {
     try {
       await supabase.from("activity_logs").insert({
         action_type: "convention_email_sent",
-        recipient_email: recipientEmail,
+        recipient_email: toEmail,
         details: {
           training_id: trainingId,
           training_name: training.training_name,
           convention_url: conventionUrl,
-          recipient_name: recipientName,
+          recipient_name: toName,
           email_id: result.id,
           online_signature_enabled: enableOnlineSignature,
           signature_token: signatureToken || undefined,
@@ -301,7 +321,7 @@ serve(async (req: Request): Promise<Response> => {
       console.warn("Failed to log activity:", logError);
     }
 
-    console.log(`Convention email sent to ${recipientEmail}${enableOnlineSignature ? " (with online signature)" : ""}`);
+    console.log(`Convention email sent to ${toEmail}${enableOnlineSignature ? " (with online signature)" : ""}`);
 
     return new Response(
       JSON.stringify({
