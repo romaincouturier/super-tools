@@ -142,7 +142,8 @@ const EntityDocumentsManager = ({
   const handleDownload = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
     setDownloadingId(docId);
     try {
-      await downloadFile(fileUrl, fileName);
+      const url = await resolveEntityDocumentUrl(fileUrl, entityType);
+      await downloadFile(url, fileName);
     } catch (err: unknown) {
       console.error("Download error:", err);
       toast.error("Erreur de téléchargement", {
@@ -151,7 +152,8 @@ const EntityDocumentsManager = ({
     } finally {
       setDownloadingId(null);
     }
-  }, []);
+  }, [entityType]);
+
 
   const handleDelete = useCallback(async (docId: string, fileUrl: string, fileName: string) => {
     if (!confirm(`Supprimer le document "${fileName}" ?`)) return;
