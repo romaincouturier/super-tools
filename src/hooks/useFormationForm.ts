@@ -141,6 +141,15 @@ export function useFormationForm() {
   const [sponsorPhone, setSponsorPhone] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(false);
 
+  // Responsable administratif
+  const [adminContactSameAsSponsor, setAdminContactSameAsSponsor] = useState(true);
+  const [adminContactFirstName, setAdminContactFirstName] = useState("");
+  const [adminContactLastName, setAdminContactLastName] = useState("");
+  const [adminContactEmail, setAdminContactEmail] = useState("");
+  const [adminContactPhone, setAdminContactPhone] = useState("");
+
+
+
   // Financeur
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
   const [financeurName, setFinanceurName] = useState("");
