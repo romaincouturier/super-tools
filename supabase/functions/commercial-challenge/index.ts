@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -103,6 +104,11 @@ IMPORTANT : Retourne UNIQUEMENT le HTML, sans wrapper markdown.`;
     }
 
     const result = await response.json();
+    await logLovableUsage({
+      origin: "commercial-challenge",
+      trigger: "user",
+      data: result,
+    });
     let raw = (result.choices?.[0]?.message?.content || "").trim();
     raw = raw.replace(/^```html?\s*\n?/i, "").replace(/\n?```\s*$/i, "");
 

@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_ADVANCED } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -238,6 +239,14 @@ Format attendu :
   }
 
   const aiData = await response.json();
+  await logAnthropicUsage({
+    origin: "time-tracker-github-import",
+    operation: "describe-prs",
+    model: CLAUDE_ADVANCED,
+    trigger: "user",
+    usage: aiData.usage,
+    metadata: { pr_count: prs.length },
+  });
   const content = aiData.content?.[0]?.text || "";
   console.log(`AI batch (${prs.length} PRs) stop_reason:`, aiData.stop_reason, "len:", content.length);
 

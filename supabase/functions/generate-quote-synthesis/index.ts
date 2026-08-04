@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -81,6 +82,11 @@ IMPORTANT : Retourne UNIQUEMENT le HTML, sans aucun wrapper markdown, sans \`\`\
     }
 
     const result = await response.json();
+    await logLovableUsage({
+      origin: "generate-quote-synthesis",
+      trigger: "user",
+      data: result,
+    });
     let raw = (result.choices?.[0]?.message?.content || "").trim();
 
     // Strip markdown code fences if present

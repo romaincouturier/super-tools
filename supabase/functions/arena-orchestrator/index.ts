@@ -3,6 +3,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJs
 import Anthropic from "https://esm.sh/@anthropic-ai/sdk@0.74.0";
 import OpenAI from "https://esm.sh/openai@4.77.0";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
 
 interface RequestBody {
@@ -129,6 +130,13 @@ Tu DOIS repondre UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte a
         messages: [{ role: "user", content: userContent }],
       });
       text = response.content[0].type === "text" ? response.content[0].text : "";
+      await logAnthropicUsage({
+        origin: "arena-orchestrator",
+        operation: "next-speaker",
+        model: CLAUDE_DEFAULT,
+        trigger: "user",
+        usage: response.usage,
+      });
     }
 
     // Extract JSON from response

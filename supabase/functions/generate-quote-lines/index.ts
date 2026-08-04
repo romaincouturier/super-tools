@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -147,6 +148,11 @@ IMPORTANT : Utilise la fonction suggest_quote_lines pour retourner les lignes.`;
     }
 
     const result = await response.json();
+    await logLovableUsage({
+      origin: "generate-quote-lines",
+      trigger: "user",
+      data: result,
+    });
 
     // Extract tool call arguments
     const toolCall = result.choices?.[0]?.message?.tool_calls?.[0];

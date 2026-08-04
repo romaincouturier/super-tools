@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -165,6 +166,11 @@ Réponds UNIQUEMENT avec le titre.`;
     }
 
     const data = await response.json();
+    await logLovableUsage({
+      origin: "ai-content-assist",
+      trigger: "user",
+      data: data,
+    });
     const result = data.choices?.[0]?.message?.content || "";
 
     return new Response(

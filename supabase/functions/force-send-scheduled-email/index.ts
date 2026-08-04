@@ -11,6 +11,7 @@ import {
   personalizeSupportsLinks,
   resolveSupportsUrlBase,
 } from "../_shared/supports-url.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 interface ForceSendRequest {
   scheduledEmailId: string;
@@ -788,6 +789,11 @@ Règles :
 
             if (aiResponse.ok) {
               const aiResult = await aiResponse.json();
+              await logLovableUsage({
+                origin: "force-send-scheduled-email",
+                trigger: "cron",
+                data: aiResult,
+              });
               followUpBody = (aiResult.choices?.[0]?.message?.content || "")
                 .replace(/^\s*```(?:html?)?\s*\n?/i, "")
                 .replace(/\n?```\s*$/i, "")

@@ -1,5 +1,6 @@
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -89,6 +90,11 @@ Retourne un JSON avec cette structure exacte :
     }
 
     const data = await response.json();
+    await logLovableUsage({
+      origin: "generate-training-program",
+      trigger: "user",
+      data: data,
+    });
     const content = data.choices?.[0]?.message?.content || "";
 
     // Parse JSON from response (handle potential markdown wrapping)

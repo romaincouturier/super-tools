@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -142,6 +143,11 @@ Génère une analyse structurée avec points forts, points faibles et recommanda
     }
 
     const aiResponse = await response.json();
+    await logLovableUsage({
+      origin: "analyze-evaluations",
+      trigger: "user",
+      data: aiResponse,
+    });
     const aiContent = aiResponse.choices?.[0]?.message?.content || "";
 
     // Parse AI response

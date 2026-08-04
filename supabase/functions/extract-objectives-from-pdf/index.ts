@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -137,6 +138,11 @@ Instructions:
     }
 
     const aiData = await aiResponse.json();
+    await logLovableUsage({
+      origin: "extract-objectives-from-pdf",
+      trigger: "user",
+      data: aiData,
+    });
     console.log("AI response received");
 
     const content = aiData.choices?.[0]?.message?.content;

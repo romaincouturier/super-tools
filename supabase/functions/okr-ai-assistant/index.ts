@@ -3,6 +3,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -201,6 +202,15 @@ Règles :
       });
 
       const lovableData = await lovableResponse.json();
+      await logApiUsage({
+        provider: "lovable",
+        origin: "okr-ai-assistant",
+        operation: "assist",
+        model: "google/gemini-2.5-flash",
+        trigger: "user",
+        inputTokens: lovableData.usage?.prompt_tokens ?? 0,
+        outputTokens: lovableData.usage?.completion_tokens ?? 0,
+      });
       const answer = lovableData.choices?.[0]?.message?.content || "Pas de réponse";
 
       return new Response(JSON.stringify({ answer, mode }), {
@@ -225,6 +235,13 @@ Règles :
     });
 
     const data = await response.json();
+    await logAnthropicUsage({
+      origin: "okr-ai-assistant",
+      operation: "assist",
+      model: CLAUDE_DEFAULT,
+      trigger: "user",
+      usage: data.usage,
+    });
     const answer = data.content?.[0]?.text || "Pas de réponse";
 
     return new Response(JSON.stringify({ answer, mode }), {

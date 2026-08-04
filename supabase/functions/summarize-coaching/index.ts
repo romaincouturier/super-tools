@@ -33,6 +33,9 @@ Réponds UNIQUEMENT en JSON valide, sans markdown.`;
       messages: [{ role: "user", content: `Notes de session :\n\n${notes}` }],
       tier: "fast",
       temperature: 0.3,
+      origin: "summarize-coaching",
+      operation: "summary",
+      trigger: "user",
     });
 
     // Parse JSON from AI response

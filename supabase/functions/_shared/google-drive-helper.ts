@@ -3,6 +3,7 @@
  * Used by poll-drive-transcripts and poll-drive-testimonials.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
 
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID")!;
 const GOOGLE_OAUTH_CLIENT_SECRET = Deno.env.get("GOOGLE_OAUTH_CLIENT_SECRET")!;
@@ -253,9 +254,26 @@ export async function pollAssemblyAIJob(
           .join("\n\n");
       }
     }
-    return { text, duration: Math.round((result.audio_duration ?? 0)) };
+    const duration = Math.round(result.audio_duration ?? 0);
+    await logAssemblyAiUsage({
+      origin: "google-drive-helper",
+      operation: "poll-transcript",
+      audioSeconds: duration,
+      trigger: "cron",
+    });
+    return { text, duration };
   }
-  if (result.status === "error") return "error";
+  if (result.status === "error") {
+    await logAssemblyAiUsage({
+      origin: "google-drive-helper",
+      operation: "poll-transcript",
+      audioSeconds: Math.round(result.audio_duration ?? 0),
+      trigger: "cron",
+      status: "error",
+      errorMessage: String(result.error ?? "transcription error"),
+    });
+    return "error";
+  }
   return null; // still queued/processing
 }
 
@@ -305,6 +323,13 @@ ${text.slice(0, 4000)}`;
       }),
     });
     const data = await res.json();
+    await logAnthropicUsage({
+      origin: "google-drive-helper",
+      operation: "summarize-transcript",
+      model: "claude-haiku-4-5-20251001",
+      trigger: "cron",
+      usage: data.usage,
+    });
     const raw = data.content?.[0]?.text ?? "{}";
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     return jsonMatch ? JSON.parse(jsonMatch[0]) : { summary: "", tags: [] };
@@ -374,6 +399,13 @@ ${text.slice(0, 4000)}`;
       }),
     });
     const data = await res.json();
+    await logAnthropicUsage({
+      origin: "google-drive-helper",
+      operation: "extract-testimonial-meta",
+      model: "claude-haiku-4-5-20251001",
+      trigger: "cron",
+      usage: data.usage,
+    });
     const raw = data.content?.[0]?.text ?? "{}";
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     return jsonMatch

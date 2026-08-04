@@ -15,6 +15,7 @@ import {
   getSupabaseClient,
   verifyAuth,
 } from "../_shared/mod.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 interface RequestBody {
   mission_id: string;
@@ -177,6 +178,11 @@ Génère maintenant le canevas 9P complet en HTML.`;
     }
 
     const aiData = await aiResp.json();
+    await logLovableUsage({
+      origin: "generate-mission-8p",
+      trigger: "user",
+      data: aiData,
+    });
     const html = aiData?.choices?.[0]?.message?.content || "";
 
     if (!html) return createErrorResponse("Réponse IA vide", 500);

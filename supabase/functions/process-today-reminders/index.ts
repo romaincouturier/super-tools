@@ -364,6 +364,9 @@ serve(async (req) => {
             ].filter(Boolean).join("\n");
 
             const raw = await aiChat({
+              origin: "process-today-reminders",
+              operation: "story-copy",
+              trigger: "cron",
               tier: "fast",
               temperature: 0.8,
               maxTokens: 500,

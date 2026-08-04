@@ -13,6 +13,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -97,6 +98,11 @@ Deno.serve(async (req) => {
   }
 
   const aiJson = await aiRes.json();
+  await logLovableUsage({
+    origin: "generate-transcript-title",
+    trigger: "webhook",
+    data: aiJson,
+  });
   let title = (aiJson?.choices?.[0]?.message?.content ?? "").trim();
   // Nettoyage : strip guillemets / ponctuation finale
   title = title.replace(/^["'«»]+|["'«»]+$/g, "").replace(/[.!?]+$/, "").trim();

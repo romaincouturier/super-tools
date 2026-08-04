@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createJsonResponse, createErrorResponse } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -76,6 +77,13 @@ async function generateHashtags(text: string): Promise<string[]> {
       return [];
     }
     const result = await res.json();
+    await logAnthropicUsage({
+      origin: "backfill-practice-hashtags",
+      operation: "hashtags",
+      model: CLAUDE_DEFAULT,
+      trigger: "user",
+      usage: result.usage,
+    });
     const out = result?.content?.[0]?.text ?? "";
     return parseHashtags(out);
   } catch (err) {

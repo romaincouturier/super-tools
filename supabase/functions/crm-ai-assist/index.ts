@@ -6,6 +6,7 @@ import {
   verifyAuth,
 } from "../_shared/mod.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
+import { logAnthropicUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
@@ -73,6 +74,13 @@ async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<
 
     if (response.ok) {
       const result = await response.json();
+      await logAnthropicUsage({
+        origin: "crm-ai-assist",
+        operation: "assist",
+        model: CLAUDE_DEFAULT,
+        trigger: "user",
+        usage: result.usage,
+      });
       return result.content[0]?.text || "";
     }
 

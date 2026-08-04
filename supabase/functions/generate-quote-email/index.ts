@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -60,6 +61,11 @@ Réponds UNIQUEMENT avec le JSON, sans markdown.`;
     }
 
     const aiData = await response.json();
+    await logLovableUsage({
+      origin: "generate-quote-email",
+      trigger: "user",
+      data: aiData,
+    });
     const raw = aiData.choices?.[0]?.message?.content || "";
     
     // Clean markdown fences

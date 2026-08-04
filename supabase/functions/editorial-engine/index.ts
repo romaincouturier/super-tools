@@ -26,6 +26,7 @@ import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { embedText } from "../_shared/embeddings.ts";
 import { getValidDriveAccessToken } from "../_shared/google-drive-helper.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -659,6 +660,11 @@ Deno.serve(async (req) => {
         continue;
       }
       const aiJson = await aiRes.json();
+      await logLovableUsage({
+        origin: "editorial-engine",
+        trigger: "cron",
+        data: aiJson,
+      });
       const parsed = extractJson((aiJson?.choices?.[0]?.message?.content ?? "").trim());
       if (!parsed) {
         results.push({ label: theme.label, status: "réponse IA non parsable" });

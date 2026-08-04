@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logAnthropicUsage, logApiUsage } from "../_shared/api-usage.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -101,6 +102,15 @@ serve(async (req) => {
         }),
       });
       const lovableData = await lovableResponse.json();
+      await logApiUsage({
+        provider: "lovable",
+        origin: "network-ai-assistant",
+        operation: "assist",
+        model: "google/gemini-2.5-flash",
+        trigger: "user",
+        inputTokens: lovableData.usage?.prompt_tokens ?? 0,
+        outputTokens: lovableData.usage?.completion_tokens ?? 0,
+      });
       answer = lovableData.choices?.[0]?.message?.content || "Pas de réponse";
     } else {
       const response = await fetch(ANTHROPIC_API_URL, {
@@ -119,6 +129,13 @@ serve(async (req) => {
         }),
       });
       const data = await response.json();
+      await logAnthropicUsage({
+        origin: "network-ai-assistant",
+        operation: "assist",
+        model: CLAUDE_DEFAULT,
+        trigger: "user",
+        usage: data.usage,
+      });
       answer = data.content?.[0]?.text || "Pas de réponse";
     }
 

@@ -156,3 +156,15 @@ export function calculateDurationDays(startStr: string | Date, endStr: string | 
   const diffTime = Math.abs(end.getTime() - start.getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 }
+
+// ── ISO helpers ─────────────────────────────────────────────────────────────
+
+/** Date du jour au format ISO (`YYYY-MM-DD`). Règle [023] : ne jamais inliner. */
+export function todayAsISO(): string {
+  return dateAsISO(new Date());
+}
+
+/** Une `Date` au format ISO (`YYYY-MM-DD`). */
+export function dateAsISO(date: Date): string {
+  return date.toISOString().split("T")[0];
+}

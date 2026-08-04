@@ -6,6 +6,7 @@ import {
   verifyAuth,
   getSupabaseClient,
 } from "../_shared/mod.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -42,6 +43,11 @@ async function callAI(systemPrompt: string, userPrompt: string): Promise<string>
   }
 
   const result = await response.json();
+  await logLovableUsage({
+    origin: "generate-mission-summary",
+    trigger: "user",
+    data: result,
+  });
   return result.choices?.[0]?.message?.content || "";
 }
 

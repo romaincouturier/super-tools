@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { reportEdgeError } from "../_shared/sentry.ts";
 import { getSupabaseClient } from "../_shared/supabase-client.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL = "google/gemini-2.5-flash";
@@ -128,6 +129,11 @@ Règles :
     }
 
     const aiData = await response.json();
+    await logLovableUsage({
+      origin: "rag-chatbot",
+      trigger: "user",
+      data: aiData,
+    });
     const answer = aiData.choices?.[0]?.message?.content || "Désolé, je n'ai pas pu générer de réponse.";
 
     // Log conversation

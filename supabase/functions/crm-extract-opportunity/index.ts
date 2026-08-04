@@ -5,6 +5,7 @@ import {
   createJsonResponse,
   getSupabaseClient,
   verifyAuth,
+  todayAsISO,
 } from "../_shared/mod.ts";
 import { aiChat } from "../_shared/ai.ts";
 
@@ -95,10 +96,6 @@ Règles:
 Réponds UNIQUEMENT avec un JSON valide, sans texte autour.`;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function normalizeNextAction(
   raw: unknown,
   today: string,
@@ -133,12 +130,15 @@ async function extractWithAI(
   rawInput: string,
   availableTags: AvailableTag[],
 ): Promise<ExtractionResult> {
-  const today = todayISO();
+  const today = todayAsISO();
 
   const content = (await aiChat({
     system: buildSystemPrompt(today, availableTags),
     messages: [{ role: "user", content: rawInput }],
     tier: "fast",
+    origin: "crm-extract-opportunity",
+    operation: "extract",
+    trigger: "user",
   })) || "{}";
 
   // Strip markdown code fences if present

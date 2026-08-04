@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -78,6 +79,11 @@ Si c'est une **évolution**, réponds avec ce schéma exact :
     }
 
     const aiData = await response.json();
+    await logLovableUsage({
+      origin: "support-analyze-ticket",
+      trigger: "user",
+      data: aiData,
+    });
     const rawContent = aiData.choices?.[0]?.message?.content || "";
 
     // Parse the JSON response from AI

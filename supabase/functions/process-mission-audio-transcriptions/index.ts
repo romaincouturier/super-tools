@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
+import { logAssemblyAiUsage } from "../_shared/api-usage.ts";
 
 type MissionDocument = {
   id: string;
@@ -20,6 +21,8 @@ type AssemblyResult = {
   status: "queued" | "processing" | "completed" | "error";
   text?: string;
   error?: string;
+  /** Durée d'audio facturée par AssemblyAI, en secondes. */
+  audio_duration?: number;
   utterances?: Array<{ speaker: string; text: string }>;
 };
 
@@ -218,6 +221,16 @@ async function processDocument(supabase: ReturnType<typeof createClient>, apiKey
 
   while (Date.now() < deadline) {
     const result = await pollAssemblyJob(apiKey, workingDoc.assemblyai_transcript_id!);
+
+    if (result.status === "completed" || result.status === "error") {
+      await logAssemblyAiUsage({
+        origin: "process-mission-audio-transcriptions",
+        operation: "poll",
+        audioSeconds: Math.round(result.audio_duration ?? 0),
+        trigger: "cron",
+        status: result.status === "error" ? "error" : "success",
+      });
+    }
 
     if (result.status === "completed") {
       await completeDocument(supabase, workingDoc, buildTranscript(result));

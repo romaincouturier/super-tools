@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders, handleCorsPreflightIfNeeded, createErrorResponse, createJsonResponse } from "../_shared/cors.ts";
 import { verifyAuth } from "../_shared/supabase-client.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   const preflight = handleCorsPreflightIfNeeded(req);
@@ -128,6 +129,11 @@ Données : ${JSON.stringify(reclamation)}`;
     }
 
     const aiData = await response.json();
+    await logLovableUsage({
+      origin: "reclamation-ai-assist",
+      trigger: "user",
+      data: aiData,
+    });
     const content = aiData.choices?.[0]?.message?.content || "";
 
     const resultKey = action === "analyze" ? "analysis" : action === "draft_response" ? "draft" : action === "qualiopi_summary" ? "summary" : "report";

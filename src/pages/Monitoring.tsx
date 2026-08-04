@@ -1,4 +1,4 @@
-import { Database, Clock, Zap, MousePointerClick } from "lucide-react";
+import { Database, Clock, Zap, MousePointerClick, CircleDollarSign } from "lucide-react";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,7 @@ import DbSizeTab from "@/components/monitoring/DbSizeTab";
 import CronJobsTab from "@/components/monitoring/CronJobsTab";
 import EdgeFunctionsTab from "@/components/monitoring/EdgeFunctionsTab";
 import FeatureUsageTab from "@/components/monitoring/FeatureUsageTab";
+import ApiUsageTab from "@/components/monitoring/ApiUsageTab";
 import { useEdgeFunctionsAlert } from "@/hooks/useEdgeFunctionsAlert";
 
 const Monitoring = () => {
@@ -36,8 +37,12 @@ const Monitoring = () => {
               )}
             </TabsTrigger>
             <TabsTrigger value="usage" className="gap-2">
+              <CircleDollarSign className="h-4 w-4" />
+              Coûts API
+            </TabsTrigger>
+            <TabsTrigger value="features" className="gap-2">
               <MousePointerClick className="h-4 w-4" />
-              Usage
+              Usage produit
             </TabsTrigger>
           </TabsList>
 
@@ -54,6 +59,10 @@ const Monitoring = () => {
           </TabsContent>
 
           <TabsContent value="usage">
+            <ApiUsageTab />
+          </TabsContent>
+
+          <TabsContent value="features">
             <FeatureUsageTab />
           </TabsContent>
         </Tabs>

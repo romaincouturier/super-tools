@@ -6,6 +6,7 @@ import {
   getSupabaseClient,
   escapeHtml,
 } from "../_shared/mod.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -121,6 +122,11 @@ ${contextText || "Aucune information pertinente trouvée dans la base de connais
   }
 
   const result = await response.json();
+  await logLovableUsage({
+    origin: "chatbot-query",
+    trigger: "user",
+    data: result,
+  });
   const answer = result.choices?.[0]?.message?.content || "Désolé, je n'ai pas pu générer une réponse.";
 
   return {

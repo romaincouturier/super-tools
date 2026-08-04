@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
+import { logLovableUsage } from "../_shared/api-usage.ts";
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -107,6 +108,11 @@ Identifie les idées les plus pertinentes par rapport à cette recherche.`;
     }
 
     const data = await response.json();
+    await logLovableUsage({
+      origin: "search-content-ideas",
+      trigger: "user",
+      data: data,
+    });
     const aiResponse = data.choices?.[0]?.message?.content || "{}";
 
     // Parse AI response
