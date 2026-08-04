@@ -88,8 +88,11 @@ async function resolveTicketScreenshots<T extends { id: string; screenshot_url: 
   for (const t of tickets) {
     const path = firstImageByTicket.get(t.id) ?? extractPath(t.screenshot_url);
     if (!path) continue;
-    const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
-    if (data?.publicUrl) t.screenshot_url = data.publicUrl;
+    // Bucket privé : on génère une URL signée (1 h) au lieu d'une URL publique.
+    const { data } = await supabase.storage
+      .from("support-attachments")
+      .createSignedUrl(path, 60 * 60);
+    if (data?.signedUrl) t.screenshot_url = data.signedUrl;
   }
 
   return tickets;
