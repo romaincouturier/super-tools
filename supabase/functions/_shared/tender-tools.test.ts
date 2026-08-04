@@ -78,6 +78,41 @@ describe("matchTender", () => {
     );
     expect(m.keep).toBe(true);
   });
+
+  // Le mot-clé « intelligence artificielle » seul retenait 22 avis sur deux
+  // mois, dont vingt de matériel et de développement informatique : le terme
+  // est trop porteur pour dire quoi que ce soit. Les formulations retenues
+  // nomment l'usage et non la technologie.
+  describe("mots-clés IA resserrés", () => {
+    const IA_CONFIG: TenderFilterConfig = {
+      cpvCodes: [],
+      keywords: ["intelligence artificielle générative", "ia générative", "prompt engineering"],
+      exclusions: [],
+    };
+
+    it("retient une formation à l'IA générative", () => {
+      const m = matchTender(
+        {
+          objet:
+            "Prestations de formation à l'ingénierie de requête (prompt engineering) et à " +
+            "l'intelligence artificielle générative pour les collaborateurs de l'INPI",
+        },
+        IA_CONFIG,
+      );
+      expect(m.keep).toBe(true);
+      expect(m.matched).toEqual(["intelligence artificielle générative", "prompt engineering"]);
+    });
+
+    it("écarte le matériel et l'informatique qui mentionnent l'IA", () => {
+      for (const objet of [
+        "Fourniture d'un serveur de calcul dédié aux modèles d'intelligence artificielle",
+        "Fourniture et installation de dispositifs d'intelligence artificielle pour la détection visuelle de tri",
+        "Surveillance du littoral par vidéo en Intelligence Artificielle et modélisation morpho dynamique",
+      ]) {
+        expect(matchTender({ objet }, IA_CONFIG).keep).toBe(false);
+      }
+    });
+  });
 });
 
 describe("dedupKey", () => {
