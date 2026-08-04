@@ -693,6 +693,13 @@ casse jamais. Le fichier passe par le gestionnaire de documents mutualisé
 (règle [002]) dans `tender_documents`, et l'analyse dit ce que le DCE ajoute à
 l'avis : volume réel, contraintes, pièces à produire.
 
+Le bucket est privé — la politique de l'espace de travail interdit les buckets
+publics — donc l'URL stockée en base renvoie un 401 et le téléchargement passe
+par `resolveEntityDocumentUrl`, qui la resigne pour une heure. La signature
+fonctionne aussi sur un bucket public : le gestionnaire mutualisé n'a pas de
+branche par type d'entité. La policy `SELECT` sur `storage.objects` est ce qui
+décide qui peut télécharger, elle est réservée au staff.
+
 Limite connue : un PDF scanné ne rend aucun texte exploitable. Le motif est
 alors stocké sur la ligne et affiché, plutôt que de rendre une analyse vide
 qui passerait pour un résultat. Une archive ZIP, format habituel d'un DCE,
