@@ -10,6 +10,35 @@
 
 type Json = unknown;
 
+/**
+ * Le BOAMP livre `donnees` (tout le contenu réel de l'avis) sous forme de
+ * CHAÎNE JSON, pas d'objet. Sans ce décodage, toute recherche en profondeur
+ * s'arrête à la surface de l'enregistrement et la fiche paraît vide.
+ */
+function decodeNestedJson(node: Json, depth = 0): Json {
+  if (depth > 6) return node;
+  if (typeof node === "string") {
+    const s = node.trim();
+    if (s.length > 1 && (s[0] === "{" || s[0] === "[")) {
+      try {
+        return decodeNestedJson(JSON.parse(s), depth + 1);
+      } catch {
+        return node;
+      }
+    }
+    return node;
+  }
+  if (Array.isArray(node)) return node.map((n) => decodeNestedJson(n, depth + 1));
+  if (node && typeof node === "object") {
+    const out: Record<string, Json> = {};
+    for (const [k, v] of Object.entries(node as Record<string, Json>)) {
+      out[k] = decodeNestedJson(v, depth + 1);
+    }
+    return out;
+  }
+  return node;
+}
+
 /** Toutes les valeurs rencontrées sous une clé donnée, quelle que soit la profondeur. */
 function collect(node: Json, keyMatcher: (key: string) => boolean, out: Json[] = []): Json[] {
   if (node === null || typeof node !== "object") return out;
@@ -23,6 +52,7 @@ function collect(node: Json, keyMatcher: (key: string) => boolean, out: Json[] =
   }
   return out;
 }
+
 
 /** Texte d'un noeud eForms : chaîne nue, ou `{ "#text": ... }`, ou tableau des deux. */
 function asText(node: Json): string[] {
