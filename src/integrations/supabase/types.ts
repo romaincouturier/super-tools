@@ -11214,6 +11214,11 @@ export type Database = {
       }
       trainings: {
         Row: {
+          admin_contact_email: string | null
+          admin_contact_first_name: string | null
+          admin_contact_last_name: string | null
+          admin_contact_phone: string | null
+          admin_contact_same_as_sponsor: boolean
           ancillary_fees_ht: number | null
           assigned_to: string | null
           attendance_sheets_urls: string[] | null
@@ -11280,6 +11285,11 @@ export type Database = {
           venue_id: string | null
         }
         Insert: {
+          admin_contact_email?: string | null
+          admin_contact_first_name?: string | null
+          admin_contact_last_name?: string | null
+          admin_contact_phone?: string | null
+          admin_contact_same_as_sponsor?: boolean
           ancillary_fees_ht?: number | null
           assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
@@ -11346,6 +11356,11 @@ export type Database = {
           venue_id?: string | null
         }
         Update: {
+          admin_contact_email?: string | null
+          admin_contact_first_name?: string | null
+          admin_contact_last_name?: string | null
+          admin_contact_phone?: string | null
+          admin_contact_same_as_sponsor?: boolean
           ancillary_fees_ht?: number | null
           assigned_to?: string | null
           attendance_sheets_urls?: string[] | null
