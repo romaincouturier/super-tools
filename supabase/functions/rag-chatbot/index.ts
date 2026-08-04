@@ -136,14 +136,10 @@ Règles :
     });
     const answer = aiData.choices?.[0]?.message?.content || "Désolé, je n'ai pas pu générer de réponse.";
 
-    // Log conversation
-    const authHeader = req.headers.get("Authorization");
-    let userId: string | null = null;
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
-    }
+    // Log conversation — l'appelant est déjà authentifié plus haut (401 sinon),
+    // le re-résoudre ici redéclarait `authHeader` dans la même portée et
+    // empêchait la fonction de compiler.
+    const userId = callerUser.id;
 
     await supabase.from("chatbot_conversations").insert({
       question,

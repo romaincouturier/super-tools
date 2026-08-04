@@ -36,6 +36,12 @@ import {
 
 import { CLAUDE_ADVANCED, CLAUDE_DEFAULT } from "../_shared/claude-models.ts";
 import { logAnthropicUsage } from "../_shared/api-usage.ts";
+import {
+  compactForApi,
+  withCacheBreakpoints,
+  KEEP_RECENT_MESSAGES,
+  type Message,
+} from "../_shared/agent-history.ts";
 import { searchContent } from "../_shared/agent-search.ts";
 import {
   BULK_DEFAULT_DOCUMENTS,
@@ -367,15 +373,6 @@ const TOOL_LABELS: Record<string, string> = {
  * Ils sont exemptés du rabotage de compaction : tronquer une lecture à 1200
  * caractères revenait à lire un .docx puis à l'oublier au tour suivant.
  */
-const CONTENT_READ_TOOLS = new Set([
-  "get_mission_dossier",
-  "get_client_dossier",
-  "read_mission_page",
-  "read_document",
-  "read_mission_documents",
-  "read_media_image",
-]);
-
 // ── Tool execution ───────────────────────────────────────────
 
 /**
@@ -762,80 +759,6 @@ async function executeTool(
 }
 
 // ── History compaction ──────────────────────────────────────
-// Les tool_results (jusqu'à 100 lignes JSON) sont conservés en base mais
-// tronqués à l'envoi API au-delà des derniers messages : sans cela chaque
-// tour renvoie l'intégralité des résultats SQL de toute la conversation.
-
-const KEEP_RECENT_MESSAGES = 6;
-const TOOL_RESULT_MAX_CHARS = 1200;
-/**
- * Plafond des lectures de contenu. Très supérieur au rabotage ordinaire : un
- * document ou une page de mission n'a d'intérêt que lu en entier, et le
- * relire coûte un aller-retour complet. Assez large pour qu'une lecture
- * survive à plusieurs tours, assez borné pour qu'une conversation entière de
- * lectures ne sature pas le contexte.
- */
-const CONTENT_RESULT_MAX_CHARS = 120000;
-
-/** tool_use_id -> nom du tool, pour savoir quoi raboter et quoi préserver. */
-function toolNamesById(messages: Message[]): Map<string, string> {
-  const names = new Map<string, string>();
-  for (const m of messages) {
-    if (!Array.isArray(m.content)) continue;
-    for (const block of m.content as Array<Record<string, unknown>>) {
-      if (block.type === "tool_use" && block.id) {
-        names.set(block.id as string, block.name as string);
-      }
-    }
-  }
-  return names;
-}
-
-function compactForApi(messages: Message[]): Message[] {
-  const cutoff = messages.length - KEEP_RECENT_MESSAGES;
-  const names = toolNamesById(messages);
-
-  return messages.map((m, i) => {
-    if (i >= cutoff || !Array.isArray(m.content)) return m;
-    const content = (m.content as Array<Record<string, unknown>>).map((block) => {
-      if (block.type !== "tool_result") return block;
-
-      // Blocs mixtes (documents scannés, photos) : le texte est conservé, les
-      // images sont remplacées par une note. Une image base64 renvoyée à
-      // chaque tour pèse plusieurs Mo pour une information déjà exploitée.
-      if (Array.isArray(block.content)) {
-        const blocks = block.content as Array<Record<string, unknown>>;
-        const images = blocks.filter((b) => b.type === "image").length;
-        if (images === 0) return block;
-        return {
-          ...block,
-          content: [
-            ...blocks.filter((b) => b.type !== "image"),
-            {
-              type: "text",
-              text: `[${images} image(s) déjà lue(s), retirées de l'historique — relancer le tool pour les revoir]`,
-            },
-          ],
-        };
-      }
-
-      if (typeof block.content !== "string") return block;
-
-      const isRead = CONTENT_READ_TOOLS.has(names.get(block.tool_use_id as string) ?? "");
-      const max = isRead ? CONTENT_RESULT_MAX_CHARS : TOOL_RESULT_MAX_CHARS;
-      const text = block.content as string;
-      if (text.length <= max) return block;
-
-      return {
-        ...block,
-        content: text.slice(0, max) +
-          "\n… [résultat tronqué — relancer le tool si besoin du détail]",
-      };
-    });
-    return { ...m, content };
-  });
-}
-
 /**
  * ExtractedPart -> blocs de l'API Anthropic. Les images des documents scannés
  * et des photos d'atelier passent en base64 dans le tool_result, ce qui permet
@@ -972,11 +895,6 @@ function sseEvent(event: string, data: Record<string, unknown>): string {
 
 // ── Streaming agent with tool loop ──────────────────────────
 
-interface Message {
-  role: string;
-  content: unknown;
-}
-
 async function runAgentStreaming(
   messages: Message[],
   supabase: ReturnType<typeof getSupabaseClient>,
@@ -1007,6 +925,9 @@ async function runAgentStreaming(
   // AG-11 : le début d'une longue conversation est condensé une fois pour
   // toutes, et le résultat est persisté avec la conversation.
   const conversationMessages = await summarizeIfLong([...messages], userId);
+  // Figé avant le premier round : tout ce que le tour ajoute ensuite reste
+  // intact, donc le préfixe envoyé à l'API ne fait que croître.
+  const compactionCutoff = conversationMessages.length - KEEP_RECENT_MESSAGES;
   let fullResponse = "";
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -1049,7 +970,7 @@ async function runAgentStreaming(
           },
         ],
         tools: TOOLS,
-        messages: compactForApi(conversationMessages),
+        messages: withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff)),
       }),
     });
 
