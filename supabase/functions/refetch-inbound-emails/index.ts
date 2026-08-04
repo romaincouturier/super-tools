@@ -14,22 +14,29 @@ serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
-    const user = await verifyAuth(req);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Accès admin (JWT) ou maintenance (secret partagé).
+    const maintenanceSecret = Deno.env.get("INBOUND_REFETCH_SECRET");
+    const providedSecret = req.headers.get("x-refetch-secret");
+    const viaSecret = !!maintenanceSecret && providedSecret === maintenanceSecret;
+
+    if (!viaSecret) {
+      const user = await verifyAuth(req);
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Non autorisé" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const authed = getSupabaseClient();
+      const { data: isAdmin } = await authed.rpc("is_admin", { _user_id: user.id });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Non autorisé" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    const supabase = getSupabaseClient();
-    const { data: isAdmin } = await supabase.rpc("is_admin", { _user_id: user.id });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const body = await req.json().catch(() => ({}));
     const targetId: string | undefined = body?.id;
