@@ -25,24 +25,7 @@ export const useTenderDocumentAnalyses = (tenderId: string | undefined) => {
     queryKey: [TENDER_DOCS_AI_QUERY_KEY, tenderId],
     enabled: !!tenderId,
     queryFn: async (): Promise<TenderDocumentAi[]> => {
-      // Table récente : les types Supabase sont générés depuis la base hébergée
-      // et ne la connaissent pas tant que la migration n'y est pas appliquée.
-      const client = supabase as unknown as {
-        from: (t: string) => {
-          select: (c: string) => {
-            eq: (
-              k: string,
-              v: string,
-            ) => {
-              order: (
-                c: string,
-                o: { ascending: boolean },
-              ) => Promise<{ data: unknown[] | null; error: Error | null }>;
-            };
-          };
-        };
-      };
-      const { data, error } = await client
+      const { data, error } = await supabase
         .from("tender_documents")
         .select("id, file_name, ai_analysis, ai_analysis_at, ai_error")
         .eq("tender_id", tenderId!)
