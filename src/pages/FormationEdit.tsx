@@ -28,6 +28,7 @@ import {
   TrainingDaysCalendar,
   SponsorCard,
   FinanceurCard,
+  AdminContactCard,
   CatalogSummaryCard,
   SourceFinancementSelector,
   TypeStagiaireBpfSelector,
@@ -182,6 +183,12 @@ N'hésitez pas à me contacter en amont pour toute question.
       form.setFinanceurSameAsSponsor(t.financeur_same_as_sponsor ?? true);
       form.setFinanceurName(t.financeur_name || "");
       form.setFinanceurUrl(t.financeur_url || "");
+      const tAny = t as unknown as Record<string, unknown>;
+      form.setAdminContactSameAsSponsor((tAny.admin_contact_same_as_sponsor as boolean) ?? true);
+      form.setAdminContactFirstName((tAny.admin_contact_first_name as string) || "");
+      form.setAdminContactLastName((tAny.admin_contact_last_name as string) || "");
+      form.setAdminContactEmail((tAny.admin_contact_email as string) || "");
+      form.setAdminContactPhone((tAny.admin_contact_phone as string) || "");
       form.setTrainingNotes(t.notes || "");
       form.setSpecificInstructions(t.specific_instructions || "");
       form.setCatalogId(t.catalog_id || null);
@@ -621,6 +628,7 @@ N'hésitez pas à me contacter en amont pour toute question.
               </Card>
 
               <SponsorCard form={form} />
+              <AdminContactCard form={form} />
               <FinanceurCard form={form} />
 
               {/* Notes */}

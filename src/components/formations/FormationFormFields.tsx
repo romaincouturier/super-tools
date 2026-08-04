@@ -316,7 +316,81 @@ export function SponsorCard({ form }: { form: FormationFormHook }) {
   );
 }
 
+// --- Responsable administratif Card ---
+
+export function AdminContactCard({ form }: { form: FormationFormHook }) {
+  if (form.isInter) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Responsable administratif</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Switch
+            id="adminContactSameAsSponsor"
+            checked={form.adminContactSameAsSponsor}
+            onCheckedChange={form.setAdminContactSameAsSponsor}
+          />
+          <Label htmlFor="adminContactSameAsSponsor" className="text-sm">
+            Identique au commanditaire
+          </Label>
+        </div>
+
+        {!form.adminContactSameAsSponsor && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminContactFirstName">Prénom</Label>
+                <Input
+                  id="adminContactFirstName"
+                  value={form.adminContactFirstName}
+                  onChange={(e) => form.setAdminContactFirstName(e.target.value)}
+                  placeholder="Ex: Jean"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adminContactLastName">Nom</Label>
+                <Input
+                  id="adminContactLastName"
+                  value={form.adminContactLastName}
+                  onChange={(e) => form.setAdminContactLastName(e.target.value)}
+                  placeholder="Ex: Dupont"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminContactEmail">Email</Label>
+                <Input
+                  id="adminContactEmail"
+                  type="email"
+                  value={form.adminContactEmail}
+                  onChange={(e) => form.setAdminContactEmail(e.target.value)}
+                  placeholder="jean.dupont@entreprise.fr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adminContactPhone">Téléphone</Label>
+                <Input
+                  id="adminContactPhone"
+                  type="tel"
+                  value={form.adminContactPhone}
+                  onChange={(e) => form.setAdminContactPhone(e.target.value)}
+                  placeholder="06 12 34 56 78"
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // --- Financeur Card ---
+
 
 export function FinanceurCard({ form }: { form: FormationFormHook }) {
   if (form.isInter) return null;

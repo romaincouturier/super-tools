@@ -51,6 +51,15 @@ export interface FormationFormState {
   sponsorPhone: string;
   sponsorFormalAddress: boolean;
 
+  // Responsable administratif
+  adminContactSameAsSponsor: boolean;
+  adminContactFirstName: string;
+  adminContactLastName: string;
+  adminContactEmail: string;
+  adminContactPhone: string;
+
+
+
   // Financeur
   financeurSameAsSponsor: boolean;
   financeurName: string;
@@ -131,6 +140,15 @@ export function useFormationForm() {
   const [sponsorEmail, setSponsorEmail] = useState("");
   const [sponsorPhone, setSponsorPhone] = useState("");
   const [sponsorFormalAddress, setSponsorFormalAddress] = useState(false);
+
+  // Responsable administratif
+  const [adminContactSameAsSponsor, setAdminContactSameAsSponsor] = useState(true);
+  const [adminContactFirstName, setAdminContactFirstName] = useState("");
+  const [adminContactLastName, setAdminContactLastName] = useState("");
+  const [adminContactEmail, setAdminContactEmail] = useState("");
+  const [adminContactPhone, setAdminContactPhone] = useState("");
+
+
 
   // Financeur
   const [financeurSameAsSponsor, setFinanceurSameAsSponsor] = useState(true);
@@ -285,6 +303,11 @@ export function useFormationForm() {
         sponsor_formal_address: isInter ? true : sponsorFormalAddress,
         participants_formal_address: false,
         financeur_same_as_sponsor: isInter ? true : financeurSameAsSponsor,
+        admin_contact_same_as_sponsor: isInter ? true : adminContactSameAsSponsor,
+        admin_contact_first_name: (isInter || adminContactSameAsSponsor) ? null : (adminContactFirstName || null),
+        admin_contact_last_name: (isInter || adminContactSameAsSponsor) ? null : (adminContactLastName || null),
+        admin_contact_email: (isInter || adminContactSameAsSponsor) ? null : (adminContactEmail || null),
+        admin_contact_phone: (isInter || adminContactSameAsSponsor) ? null : (adminContactPhone || null),
         catalog_id: catalogId || null,
       };
 
@@ -349,6 +372,8 @@ export function useFormationForm() {
       clientName, clientAddress, soldPriceHt, ancillaryFeesHt, maxParticipants,
       sponsorFirstName, sponsorLastName, sponsorEmail, sponsorPhone,
       financeurName, financeurUrl,
+      adminContactSameAsSponsor, adminContactFirstName, adminContactLastName,
+      adminContactEmail, adminContactPhone,
       locationType, locationCustom,
       trainerId, assignedTo, trainingNotes, specificInstructions,
       getStartDate, getEndDate, getLegacyFormatFormation, getFinalLocation,
@@ -385,6 +410,11 @@ export function useFormationForm() {
     sponsorEmail, setSponsorEmail,
     sponsorPhone, setSponsorPhone,
     sponsorFormalAddress, setSponsorFormalAddress,
+    adminContactSameAsSponsor, setAdminContactSameAsSponsor,
+    adminContactFirstName, setAdminContactFirstName,
+    adminContactLastName, setAdminContactLastName,
+    adminContactEmail, setAdminContactEmail,
+    adminContactPhone, setAdminContactPhone,
     financeurSameAsSponsor, setFinanceurSameAsSponsor,
     financeurName, setFinanceurName,
     financeurUrl, setFinanceurUrl,
