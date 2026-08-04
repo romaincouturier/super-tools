@@ -10,6 +10,35 @@
 
 type Json = unknown;
 
+/**
+ * Le BOAMP livre `donnees` (tout le contenu réel de l'avis) sous forme de
+ * CHAÎNE JSON, pas d'objet. Sans ce décodage, toute recherche en profondeur
+ * s'arrête à la surface de l'enregistrement et la fiche paraît vide.
+ */
+function decodeNestedJson(node: Json, depth = 0): Json {
+  if (depth > 6) return node;
+  if (typeof node === "string") {
+    const s = node.trim();
+    if (s.length > 1 && (s[0] === "{" || s[0] === "[")) {
+      try {
+        return decodeNestedJson(JSON.parse(s), depth + 1);
+      } catch {
+        return node;
+      }
+    }
+    return node;
+  }
+  if (Array.isArray(node)) return node.map((n) => decodeNestedJson(n, depth + 1));
+  if (node && typeof node === "object") {
+    const out: Record<string, Json> = {};
+    for (const [k, v] of Object.entries(node as Record<string, Json>)) {
+      out[k] = decodeNestedJson(v, depth + 1);
+    }
+    return out;
+  }
+  return node;
+}
+
 /** Toutes les valeurs rencontrées sous une clé donnée, quelle que soit la profondeur. */
 function collect(node: Json, keyMatcher: (key: string) => boolean, out: Json[] = []): Json[] {
   if (node === null || typeof node !== "object") return out;
@@ -23,6 +52,7 @@ function collect(node: Json, keyMatcher: (key: string) => boolean, out: Json[] =
   }
   return out;
 }
+
 
 /** Texte d'un noeud eForms : chaîne nue, ou `{ "#text": ... }`, ou tableau des deux. */
 function asText(node: Json): string[] {
@@ -86,8 +116,22 @@ function lotNames(raw: Json): string[] {
   return out.slice(0, 12);
 }
 
-export function extractTenderDetail(raw: unknown): TenderDetail {
-  if (!raw || typeof raw !== "object") {
+/** Plusieurs noms de clé pour une même information, selon le schéma. */
+function firstTexts(raw: Json, names: string[], min = 2): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const name of names) {
+    for (const t of texts(raw, name)) {
+      if (t.length < min || seen.has(t)) continue;
+      seen.add(t);
+      out.push(t);
+    }
+  }
+  return out;
+}
+
+export function extractTenderDetail(rawInput: unknown): TenderDetail {
+  if (!rawInput || typeof rawInput !== "object") {
     return {
       descriptions: [],
       lots: [],
@@ -99,21 +143,40 @@ export function extractTenderDetail(raw: unknown): TenderDetail {
       typeMarche: null,
     };
   }
+  const raw = decodeNestedJson(rawInput);
   const rec = raw as Record<string, Json>;
 
-  const descriptions = texts(raw, "Description")
-    .filter((t) => t.length > 40)
-    .sort((a, b) => b.length - a.length)
-    .slice(0, 4);
+  // L'objet réel du marché d'abord : il vit sous `ProcurementProject` en
+  // eForms, sous `description.objet` dans l'ancien schéma. Le reste (recours,
+  // conditions financières) ne doit pas passer devant sous prétexte d'être
+  // plus long.
+  const projectNodes = collect(
+    raw,
+    (k) => k.toLowerCase().split(":").pop() === "procurementproject",
+  );
+  const primary = [
+    ...projectNodes.flatMap((n) => firstTexts(n, ["Description", "Name"])),
+    ...firstTexts(raw, ["OBJET_COMPLET", "objet", "TITRE_MARCHE"]),
+  ].filter((t) => t.length > 40);
+
+  const others = firstTexts(raw, ["Description", "conditions", "renseignements", "infosSup"])
+    .filter((t) => t.length > 40 && !primary.includes(t))
+    .sort((a, b) => b.length - a.length);
+
+  const descriptions = [...new Set([...primary, ...others])].slice(0, 5);
+
 
   return {
     descriptions,
     lots: lotNames(raw),
     descripteurs: asText(rec.descripteur_libelle),
-    villes: texts(raw, "CityName").slice(0, 4),
-    emails: texts(raw, "ElectronicMail").slice(0, 3),
-    telephones: texts(raw, "Telephone").slice(0, 2),
+    villes: firstTexts(raw, ["CityName", "ville", "VILLE"]).slice(0, 4),
+    emails: firstTexts(raw, ["ElectronicMail", "mel", "MEL"], 5)
+      .filter((t) => t.includes("@"))
+      .slice(0, 3),
+    telephones: firstTexts(raw, ["Telephone", "tel", "TEL"], 6).slice(0, 2),
     procedure: asText(rec.procedure_libelle)[0] ?? null,
+
     typeMarche: asText(rec.type_marche)[0] ?? null,
   };
 }
