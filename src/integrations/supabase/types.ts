@@ -9650,9 +9650,68 @@ export type Database = {
         }
         Relationships: []
       }
+      tender_documents: {
+        Row: {
+          ai_analysis: Json | null
+          ai_analysis_at: string | null
+          ai_analysis_model: string | null
+          ai_error: string | null
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          storage_path: string
+          tender_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_analysis_at?: string | null
+          ai_analysis_model?: string | null
+          ai_error?: string | null
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          storage_path: string
+          tender_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_analysis_at?: string | null
+          ai_analysis_model?: string | null
+          ai_error?: string | null
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          storage_path?: string
+          tender_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tender_documents_tender_id_fkey"
+            columns: ["tender_id"]
+            isOneToOne: false
+            referencedRelation: "tender_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tender_opportunities: {
         Row: {
           acheteur: string | null
+          ai_summary: Json | null
+          ai_summary_at: string | null
+          ai_summary_model: string | null
           code_departement: string[]
           cpv_codes: string[]
           created_at: string
@@ -9684,6 +9743,9 @@ export type Database = {
         }
         Insert: {
           acheteur?: string | null
+          ai_summary?: Json | null
+          ai_summary_at?: string | null
+          ai_summary_model?: string | null
           code_departement?: string[]
           cpv_codes?: string[]
           created_at?: string
@@ -9715,6 +9777,9 @@ export type Database = {
         }
         Update: {
           acheteur?: string | null
+          ai_summary?: Json | null
+          ai_summary_at?: string | null
+          ai_summary_model?: string | null
           code_departement?: string[]
           cpv_codes?: string[]
           created_at?: string
