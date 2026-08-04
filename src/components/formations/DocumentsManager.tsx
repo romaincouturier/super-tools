@@ -13,6 +13,7 @@ const DocumentsManager = ({
   invoiceFileUrl: initialInvoiceUrl,
   attendanceSheetsUrls: initialSheetsUrls,
   sponsorEmail, sponsorName, sponsorFirstName, sponsorFormalAddress,
+  adminContactEmail, adminContactFirstName, adminContactLastName,
   supportsUrl: initialSupportsUrl,
   supportsType: initialSupportsType,
   supportsFileName: initialSupportsFileName,
@@ -57,7 +58,9 @@ const DocumentsManager = ({
             trainingId={trainingId} isInterEntreprise={isInterEntreprise} formatFormation={formatFormation}
             conventionFileUrl={conventionFileUrl} setConventionFileUrl={setConventionFileUrl}
             sponsorEmail={sponsorEmail} sponsorName={sponsorName} sponsorFirstName={sponsorFirstName}
-            sponsorFormalAddress={sponsorFormalAddress} conventionSentAt={conventionSentAt}
+            sponsorFormalAddress={sponsorFormalAddress}
+            adminContactEmail={adminContactEmail} adminContactFirstName={adminContactFirstName}
+            adminContactLastName={adminContactLastName} conventionSentAt={conventionSentAt}
             setConventionSentAt={setConventionSentAt} conventionSignatureStatus={conventionSignatureStatus}
             conventionSignatureUrl={conventionSignatureUrl} setConventionSignatureUrl={setConventionSignatureUrl}
             signedConventionUrls={signedConventionUrls} setSignedConventionUrls={setSignedConventionUrls}

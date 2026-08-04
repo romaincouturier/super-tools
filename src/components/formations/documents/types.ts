@@ -53,6 +53,9 @@ export interface DocumentsManagerProps {
   sponsorName: string | null;
   sponsorFirstName: string | null;
   sponsorFormalAddress: boolean;
+  adminContactEmail?: string | null;
+  adminContactFirstName?: string | null;
+  adminContactLastName?: string | null;
   supportsUrl: string | null;
   supportsType: "url" | "file" | "lms";
   supportsFileName: string | null;

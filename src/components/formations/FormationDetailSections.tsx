@@ -100,6 +100,9 @@ const FormationDetailSections = ({
           sponsorName={getSponsorName()}
           sponsorFirstName={training.sponsor_first_name}
           sponsorFormalAddress={training.sponsor_formal_address}
+          adminContactEmail={(training as any).admin_contact_same_as_sponsor === false ? (training as any).admin_contact_email : null}
+          adminContactFirstName={(training as any).admin_contact_first_name}
+          adminContactLastName={(training as any).admin_contact_last_name}
           supportsUrl={training.supports_url}
           supportsType={training.supports_type}
           supportsFileName={training.supports_file_name}
