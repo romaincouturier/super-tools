@@ -42,4 +42,8 @@ AS $$
   WHERE id = p_transcript_id;
 $$;
 
+-- Écriture réservée aux edge functions : ni les clients authentifiés ni anon
+-- ne doivent pouvoir gonfler le compteur pour désactiver une analyse.
 REVOKE ALL ON FUNCTION public.record_editorial_analysis_failure(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.record_editorial_analysis_failure(uuid, text) FROM authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.record_editorial_analysis_failure(uuid, text) TO service_role;

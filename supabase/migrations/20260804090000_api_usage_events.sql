@@ -69,11 +69,20 @@ RETURNS TABLE (
   cost_usd numeric,
   avg_duration_ms numeric
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
+BEGIN
+  -- SECURITY DEFINER contourne la RLS de la table : sans ce garde, tout
+  -- utilisateur `authenticated` (apprenants inclus) lirait la structure
+  -- interne et les coûts d'infrastructure.
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Accès réservé aux administrateurs';
+  END IF;
+
+  RETURN QUERY
   SELECT
     (e.created_at AT TIME ZONE 'Europe/Paris')::date AS day,
     e.provider,
@@ -93,6 +102,7 @@ AS $$
   FROM public.api_usage_events e
   WHERE e.created_at > now() - make_interval(days => greatest(1, least(p_days, 365)))
   GROUP BY 1, 2, 3, 4, 5, 6;
+END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_api_usage_daily(integer) TO authenticated;
@@ -121,11 +131,17 @@ RETURNS TABLE (
   status text,
   error_message text
 )
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
+BEGIN
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Accès réservé aux administrateurs';
+  END IF;
+
+  RETURN QUERY
   SELECT e.id, e.created_at, e.provider, e.origin, COALESCE(e.operation, ''),
          COALESCE(e.model, ''), e.trigger_source, e.input_tokens, e.output_tokens,
          e.cache_read_tokens, e.cost_usd, e.duration_ms, e.status, e.error_message
@@ -133,6 +149,7 @@ AS $$
   WHERE e.created_at > now() - make_interval(days => greatest(1, least(p_days, 365)))
   ORDER BY e.cost_usd DESC
   LIMIT greatest(1, least(p_limit, 100));
+END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_api_usage_top_calls(integer, integer) TO authenticated;
@@ -148,6 +165,10 @@ SET search_path = public
 AS $$
   DELETE FROM public.api_usage_events WHERE created_at < now() - interval '180 days';
 $$;
+
+-- Purge destructive : jamais appelable depuis un client, seulement par le cron.
+REVOKE ALL ON FUNCTION public.purge_api_usage_events() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.purge_api_usage_events() FROM authenticated, anon;
 
 SELECT cron.unschedule('purge-api-usage-events')
 WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'purge-api-usage-events');

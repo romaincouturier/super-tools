@@ -18,6 +18,7 @@ import {
   Clock,
   Cpu,
   Flame,
+  ShieldAlert,
   Zap,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,8 +85,12 @@ const ApiUsageTab = () => {
   const [period, setPeriod] = useState<Period>("30");
   const [provider, setProvider] = useState<string>("all");
 
-  const { data: allRows = [], isLoading } = useQuery({
+  // La route /monitoring n'est pas gardée : le refus vient du RPC, qui exige
+  // `is_admin`. Inutile de réessayer, et inutile d'alerter — c'est un refus
+  // attendu, pas une panne.
+  const { data: allRows = [], isLoading, error: usageError } = useQuery({
     queryKey: ["api-usage-daily", period],
+    retry: false,
     queryFn: async () => {
       const { data, error } = await rpc.getApiUsageDaily(Number(period));
       if (error) throw error;
@@ -95,6 +100,10 @@ const ApiUsageTab = () => {
 
   const { data: topCalls = [] } = useQuery({
     queryKey: ["api-usage-top-calls", period],
+    retry: false,
+    // N'a de sens qu'une fois l'agrégat chargé et non vide : évite un second
+    // appel refusé pour un non-administrateur, et un appel inutile à vide.
+    enabled: !usageError && allRows.length > 0,
     queryFn: async () => {
       const { data, error } = await rpc.getApiUsageTopCalls(Number(period), 15);
       if (error) throw error;
@@ -224,6 +233,20 @@ const ApiUsageTab = () => {
     }
     return Array.from(map.values()).sort((a, b) => b.cost - a.cost);
   }, [rows]);
+
+  if (usageError) {
+    return (
+      <Card>
+        <CardContent className="text-center py-16 text-muted-foreground">
+          <ShieldAlert className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p className="font-medium">Accès réservé aux administrateurs.</p>
+          <p className="text-sm mt-2">
+            Les coûts d'infrastructure ne sont visibles que par un compte administrateur.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!isLoading && allRows.length === 0) {
     return (
