@@ -266,9 +266,11 @@ export function mapTedNotice(notice: Json): NormalizedTender {
   return {
     source: "ted",
     source_ref: sourceRef,
+    // Le numéro de publication d'abord : `links` mène au XML ou au PDF d'une
+    // langue, pas à la page lisible de l'avis.
     url_avis:
-      firstText(notice, ["links", "url", "notice-url"]) ??
-      (sourceRef ? tedNoticeUrl(sourceRef) : null),
+      (sourceRef ? tedNoticeUrl(sourceRef) : null) ??
+      firstText(notice, ["url", "notice-url"]),
     objet: firstText(notice, ["notice-title", "title", "cbc:Name"]),
     acheteur: firstText(notice, ["buyer-name", "official-name", "cbc:RegistrationName"]),
     nature: firstText(notice, ["notice-type", "form-type"]),
