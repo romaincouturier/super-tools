@@ -48,7 +48,7 @@ interface Training {
   id: string;
   training_name: string;
   client_name: string;
-  start_date: string;
+  start_date: string | null;
   end_date: string | null;
   location: string;
   program_file_url: string | null;
