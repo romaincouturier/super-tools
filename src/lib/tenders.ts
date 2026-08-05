@@ -133,16 +133,33 @@ function searchUrl(host: string, term: string): string | null {
   return null;
 }
 
+/** Hôtes de plateformes de retrait : un avis qui pointe là mène au DCE. */
+const PLATFORM_HOSTS =
+  /(achatpublic\.com|marches-publics\.gouv\.fr|maximilien\.fr|ternum-bfc\.fr|e-marchespublics\.com|megalis\.bretagne\.bzh|marches-securises\.fr|mpe-?[a-z]*\.[a-z.]+)$/i;
+
 export function resolveDceLink(tender: {
   decision?: { url_dce?: string | null } | null;
+  url_avis?: string | null;
   raw?: unknown;
 }): TenderDceLink | null {
-  const rawUrl = tender.decision?.url_dce;
+  // Les avis issus d'alertes mail n'ont pas d'`url_dce` : le lien de l'avis est
+  // déjà la page de consultation sur la plateforme de retrait.
+  let rawUrl = tender.decision?.url_dce;
+  if (!rawUrl && tender.url_avis) {
+    try {
+      if (PLATFORM_HOSTS.test(new URL(decodeEntities(tender.url_avis)).hostname)) {
+        rawUrl = tender.url_avis;
+      }
+    } catch (_invalidUrl) {
+      // Lien non analysable : pas de bouton DCE.
+    }
+  }
   if (!rawUrl) return null;
   const url = decodeEntities(rawUrl);
   if (!/^https?:\/\//i.test(url)) return null;
 
   if (!isPlatformRoot(url)) return { url, direct: true, label: "Le DCE" };
+
 
   const reference = extractTenderReference(tender.raw);
   if (reference) {
