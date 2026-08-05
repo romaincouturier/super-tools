@@ -118,6 +118,34 @@ export default function CrmTenders() {
         </TabsList>
 
         <TabsContent value={tab} className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Toggle
+              size="sm"
+              variant="outline"
+              pressed={sources.length === 0}
+              onPressedChange={() => setSources([])}
+              aria-label="Toutes les sources"
+            >
+              <Layers className="h-3.5 w-3.5 mr-1.5" />
+              Tous
+              <span className="ml-1.5 text-xs text-muted-foreground">{allRows.length}</span>
+            </Toggle>
+            {SOURCE_FILTERS.map(({ key, label, icon: Icon }) => (
+              <Toggle
+                key={key}
+                size="sm"
+                variant="outline"
+                pressed={sources.includes(key)}
+                onPressedChange={() => toggleSource(key)}
+                aria-label={label}
+              >
+                <Icon className="h-3.5 w-3.5 mr-1.5" />
+                {label}
+                <span className="ml-1.5 text-xs text-muted-foreground">{counts[key] ?? 0}</span>
+              </Toggle>
+            ))}
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               En rouge : la date limite à moins de {TENDER_URGENT_DAYS} jours, et un critère prix
@@ -126,6 +154,7 @@ export default function CrmTenders() {
             </p>
             <TenderFilterSettings />
           </div>
+
 
           {tab === "open" && urgent > 0 && (
             <p className="text-sm text-destructive">
