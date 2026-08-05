@@ -307,7 +307,9 @@ export default function GameDevisTab() {
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
-        ))}
+          );
+        })}
+
 
         {lines.length > 0 && (
           <div className="text-sm text-right text-muted-foreground">
