@@ -42,6 +42,11 @@ function todayParis(): string {
 export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
   return useQuery({
     queryKey: [TENDERS_QUERY_KEY, status],
+    // Un onglet resté ouvert affichait encore la liste d'avant une purge ou une
+    // resynchronisation : ici la fraîcheur compte plus que le cache.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async (): Promise<TenderPage> => {
       let query = supabase
         .from("tender_opportunities")
