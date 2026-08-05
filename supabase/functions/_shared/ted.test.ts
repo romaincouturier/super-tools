@@ -3,9 +3,7 @@ import {
   allTexts,
   buildTedSearchBody,
   firstText,
-  isReadableLanguage,
   mapTedNotice,
-  noticeLanguages,
   noticesOf,
   tedNoticeUrl,
   walkTedPages,
@@ -292,49 +290,43 @@ describe("noticesOf", () => {
   });
 });
 
-describe("langue de l'avis", () => {
-  it("repère les langues déclarées d'un avis", () => {
-    const langs = noticeLanguages({
-      "notice-title": { fra: "Ateliers", eng: "Workshops" },
-      "buyer-name": { nld: "Stad Gent" },
+describe("filtre sujet du TED : mots-clés, CPV propre au TED", () => {
+  // Le TED se repère sur les mots-clés, sa liste CPV étant vide par défaut :
+  // les codes de formation du BOAMP inondent à l'échelle de l'Europe.
+  it("construit une requête mots-clés seuls quand la liste CPV est vide", () => {
+    const body = buildTedSearchBody({
+      countries: [],
+      cpvCodes: [],
+      keywords: ["graphic facilitation", "collective intelligence"],
+      since: "2026-06-01",
     });
-    expect([...langs].sort()).toEqual(["eng", "fra", "nld"]);
+    const query = body.query as string;
+    expect(query).not.toContain("classification-cpv");
+    expect(query).not.toContain("buyer-country");
+    expect(query).toContain('FT~"graphic facilitation"');
+    expect(query).toContain('FT~"collective intelligence"');
   });
 
-  it("retient un avis disponible en français ou en anglais", () => {
-    expect(isReadableLanguage({ "notice-title": { fra: "Ateliers" } }, ["fra", "eng"])).toBe(true);
-    expect(isReadableLanguage({ "notice-title": { eng: "Workshops" } }, ["fra", "eng"])).toBe(true);
-  });
-
-  // Un avis uniquement en néerlandais ou en allemand n'est ni lisible ni
-  // répondable : il finirait en No Go après avoir encombré la revue.
-  it("écarte un avis qui n'existe dans aucune langue pratiquée", () => {
-    expect(
-      isReadableLanguage({ "notice-title": { nld: "Workshops", deu: "Werkstätten" } }, ["fra", "eng"]),
-    ).toBe(false);
-  });
-
-  // Mieux vaut une ligne de trop à écarter à la main qu'un marché manqué
-  // parce que le TED n'a pas étiqueté son titre.
-  it("laisse passer un avis sans langue déclarée", () => {
-    expect(isReadableLanguage({ "notice-title": "Ateliers de facilitation" }, ["fra"])).toBe(true);
-    expect(isReadableLanguage({}, ["fra"])).toBe(true);
-  });
-
-  it("accepte tout quand aucune langue n'est configurée", () => {
-    expect(isReadableLanguage({ "notice-title": { nld: "Workshops" } }, [])).toBe(true);
-  });
-
-  // Le pays ne doit plus restreindre par défaut : c'est la langue qui commande.
+  // Ni la géographie ni la langue ne filtrent : sans pays, aucune clause pays.
   it("n'ajoute aucune clause de pays quand la liste est vide", () => {
     const body = buildTedSearchBody({
       countries: [],
-      cpvCodes: ["80511000"],
-      keywords: ["graphic facilitation"],
+      cpvCodes: [],
+      keywords: ["facilitation"],
       since: "2026-06-01",
     });
     expect(body.query).not.toContain("buyer-country");
-    expect(body.query).toContain('FT~"graphic facilitation"');
+  });
+
+  // Une liste CPV propre au TED est utilisable si on veut resserrer autrement.
+  it("intègre les CPV propres au TED quand la liste est renseignée", () => {
+    const body = buildTedSearchBody({
+      countries: [],
+      cpvCodes: ["79952000"],
+      keywords: ["facilitation"],
+      since: "2026-06-01",
+    });
+    expect(body.query).toContain("classification-cpv=79952000");
   });
 });
 

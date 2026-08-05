@@ -95,8 +95,8 @@ check "003" "getFileType/resolveContentType non dupliqué" \
 check "004" "Pas d'usage direct de file.type (utiliser resolveContentType)" \
   "search_files 'file\.type' | grep -v 'file-utils.ts' | grep -v 'file-utils.test.ts' | grep -v '// safe:' | grep -vi 'resolveContentType\|resolvedContentType' | grep -v '\.d\.ts'"
 
-check "006" "Pas de refetchOnWindowFocus: true dans le code" \
-  "search_files 'refetchOnWindowFocus:\s*true'"
+check "006" "Pas de refetchOnWindowFocus: true dans le code (hors // safe: justifié)" \
+  "search_files 'refetchOnWindowFocus:\s*true' | grep -v '// safe:'"
 
 check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
   "search_files 'DialogContent\|AlertDialogContent\|SheetContent' | grep 'max-w-' | grep -v 'w-full' | grep -v 'sm:max-w-md'"
@@ -267,6 +267,14 @@ check "047" "Pas de nouveau bucket storage public dans les migrations" \
 # qui définit walkXxxPages) doit avoir un fichier .test.ts à côté.
 check "050" "Connecteurs paginés : parcours dans _shared/ avec test" \
   "for f in supabase/functions/*-sync/index.ts; do [ -f \"\$f\" ] || continue; grep -qE 'iterationNextToken|nextToken|next_page' \"\$f\" || continue; grep -qE 'from \"\\.\\./_shared/' \"\$f\" || echo \"VIOLATION: \$f pagine sans importer de parcours _shared/\"; done; for w in \$(grep -rlE 'export (async )?function walk[A-Za-z]*Pages' supabase/functions/_shared/ 2>/dev/null); do t=\${w%.ts}.test.ts; [ -f \"\$t\" ] || echo \"VIOLATION: \$w (parcours paginé) sans \$t\"; done; true"
+
+# [051] Filtre multi-sources — le TED a sa propre liste CPV (le volume diffère
+# du BOAMP à l'échelle européenne), et le filtre de langue inerte a été retiré.
+check "051" "TED : liste CPV par source, pas de filtre de langue inerte" \
+  "f=supabase/functions/ted-sync/index.ts; [ -f \"\$f\" ] || exit 0; \
+   grep -q 'tender_ted_cpv_codes' \"\$f\" || echo \"VIOLATION: \$f ne charge pas tender_ted_cpv_codes (liste CPV propre au TED)\"; \
+   grep -qE 'tender_ted_languages|isReadableLanguage' \"\$f\" && echo \"VIOLATION: \$f référence encore le filtre de langue inerte\"; \
+   grep -qE 'export function (isReadableLanguage|noticeLanguages)' supabase/functions/_shared/ted.ts && echo \"VIOLATION: filtre de langue inerte toujours exporté dans _shared/ted.ts\"; true"
 
 # [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
 # des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).

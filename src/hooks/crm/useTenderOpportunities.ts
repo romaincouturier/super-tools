@@ -43,9 +43,10 @@ export const useTenderOpportunities = (status: "open" | "decided" = "open") => {
   return useQuery({
     queryKey: [TENDERS_QUERY_KEY, status],
     // Un onglet resté ouvert affichait encore la liste d'avant une purge ou une
-    // resynchronisation : ici la fraîcheur compte plus que le cache.
+    // resynchronisation : ici la fraîcheur compte plus que le cache. La règle
+    // [006] protège les formulaires ; ceci est une liste en lecture seule.
     staleTime: 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: true, // safe: liste en lecture seule, aucun formulaire
     refetchOnMount: "always",
     queryFn: async (): Promise<TenderPage> => {
       let query = supabase
