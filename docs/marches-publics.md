@@ -710,3 +710,52 @@ Fichiers : `supabase/functions/tender-analyze/`,
 `supabase/functions/upload-tender-document/`,
 `supabase/functions/_shared/tender-ai.ts`,
 `src/components/crm/TenderAiPanel.tsx`, `src/hooks/crm/useTenderAi.ts`.
+
+## Source TED : les marchés européens
+
+Tout marché français au-dessus du seuil européen est publié à la fois au BOAMP
+et au TED. Sur la France, le TED ne fait donc que doublonner, avec un parseur
+moins éprouvé. Ce qu'il apporte réellement, ce sont les autres pays et les
+institutions européennes — d'où l'unique réglage propre à ce connecteur,
+`tender_ted_countries`, qui vaut `BE,LU` par défaut et dont la France est
+volontairement absente. Le vider désactive la source.
+
+Le reste du filtrage est **partagé** avec le BOAMP : mêmes codes CPV, mêmes
+mots-clés, mêmes exclusions. Un filtre par source aurait doublé la surface à
+calibrer pour un volume attendu d'une poignée d'avis par mois.
+
+Les avis TED sont au format eForms, celui que le BOAMP publie depuis 2024 :
+`_shared/eforms.ts` a été extrait de `boamp.ts` pour que les deux connecteurs
+lisent un avis européen avec le même code, déjà éprouvé sur des données
+réelles. `boamp.ts` garde ce qui lui est propre — l'ancien schéma XML BOAMP,
+la construction des requêtes ODSQL.
+
+### Ce qui n'a pas pu être vérifié
+
+Le **contrat de transport** de l'API TED — chemin, forme de la requête, noms
+des champs de réponse — n'a pas pu être vérifié à l'écriture : la sortie réseau
+de l'environnement de développement ne porte pas jusqu'à `api.ted.europa.eu`.
+
+Deux partis pris en conséquence. La requête est construite en un seul endroit
+(`buildTedSearchBody`), pour qu'une correction tienne en trois lignes. Et la
+lecture d'un avis ne code aucun chemin en dur : elle cherche les valeurs par
+nom de clé, en profondeur, en essayant plusieurs noms candidats — ce que fait
+déjà `src/lib/tenderDetail.ts` sur le BOAMP.
+
+**Le premier geste est donc le mode sonde**, qui n'écrit rien :
+
+```
+POST /functions/v1/ted-sync  { "probe": true }
+```
+
+Il renvoie la requête envoyée, le code HTTP, les clés de la réponse, celles du
+premier avis et le résultat du mapping, côte à côte. Une exécution suffit à
+confirmer ou corriger le contrat.
+
+### Limite connue : la langue
+
+Les mots-clés sont français. Un avis flamand ou luxembourgeois rédigé en
+néerlandais ou en allemand ne sera retenu que par son code CPV. Le mapper
+préfère la version française d'un libellé multilingue quand elle existe, ce qui
+est fréquent en Belgique, mais pas systématique. Si la mesure montre que la
+source ne ramène rien, c'est la première piste — avant d'élargir les pays.
