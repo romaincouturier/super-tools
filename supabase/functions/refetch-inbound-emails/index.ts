@@ -12,6 +12,33 @@ import * as inbound from "../_shared/resend-inbound-content.ts";
 
 const corsHeaders = extendCorsHeaders({});
 
+async function syncTenderBody(
+  supabase: ReturnType<typeof getSupabaseClient>,
+  emailId: string,
+  text: string | null,
+  html: string | null,
+) {
+  const body = text || html;
+  if (!body) return;
+
+  const { data: tenders, error } = await supabase
+    .from("tender_opportunities")
+    .select("id, raw")
+    .eq("source_email_id", emailId);
+  if (error) throw error;
+
+  for (const tender of tenders || []) {
+    const raw = tender.raw && typeof tender.raw === "object" && !Array.isArray(tender.raw)
+      ? tender.raw
+      : {};
+    const { error: updateError } = await supabase
+      .from("tender_opportunities")
+      .update({ raw: { ...raw, body } })
+      .eq("id", tender.id);
+    if (updateError) throw updateError;
+  }
+}
+
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -57,6 +84,7 @@ serve(async (req) => {
 
     for (const email of emails || []) {
       if (email.text_body || email.html_body) {
+        await syncTenderBody(supabase, email.id, email.text_body, email.html_body);
         results.push({ id: email.id, updated: false, reason: "déjà rempli" });
         continue;
       }
@@ -78,6 +106,9 @@ serve(async (req) => {
           attachments: content.attachments,
         })
         .eq("id", email.id);
+      if (!updateError) {
+        await syncTenderBody(supabase, email.id, content.text, content.html);
+      }
       results.push({ id: email.id, updated: !updateError, reason: updateError?.message });
     }
 
