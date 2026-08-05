@@ -64,7 +64,7 @@ export function parseTenderEmailNotices(body: string | null | undefined): Parsed
     // L'objet court sur plusieurs lignes : on s'arrête à la prochaine
     // étiquette connue ou au lien de l'avis.
     const objetMatch = block.match(
-      /^Objet\s*:\s*([\s\S]*?)(?=\n\s*(?:Date limite|R[ée]f[ée]rence|Acheteur|CP)\s*:|\nhttps?:|\n\s*\n|$)/im,
+      /(?:^|\n)Objet\s*:\s*([\s\S]*?)(?=\n\s*(?:Date limite|R[ée]f[ée]rence|Acheteur|CP)\s*:|\nhttps?:|\n\s*\n|$)/i,
     );
     const objet = (objetMatch?.[1] ?? "").replace(/\s+/g, " ").trim();
     if (!objet) continue;
