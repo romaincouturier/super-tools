@@ -75,10 +75,30 @@ export default function CrmTenders() {
     [board],
   );
 
-  const rows = page?.items ?? [];
+  const allRows = page?.items ?? [];
+  const counts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const t of allRows) {
+      const b = sourceBucket(t.source);
+      m[b] = (m[b] ?? 0) + 1;
+    }
+    return m;
+  }, [allRows]);
+  // Aucune source cochée = tout affiché : le filtre ne doit jamais vider l'écran
+  // par défaut.
+  const rows = useMemo(
+    () =>
+      sources.length === 0
+        ? allRows
+        : allRows.filter((t) => sources.includes(sourceBucket(t.source))),
+    [allRows, sources],
+  );
   const detailTarget = rows.find((t) => t.id === detailId) ?? null;
   const total = page?.total ?? 0;
   const urgent = rows.filter((t) => isTenderUrgent(t.datelimitereponse)).length;
+
+  const toggleSource = (key: string) =>
+    setSources((prev) => (prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key]));
 
   return (
     <ModuleLayout>
