@@ -3459,6 +3459,50 @@ export type Database = {
           },
         ]
       }
+      game_price_options: {
+        Row: {
+          created_at: string
+          display_order: number
+          game_id: string
+          id: string
+          label: string
+          offer_type: string
+          prix: number
+          updated_at: string
+          woocommerce_variation_id: number | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          game_id: string
+          id?: string
+          label?: string
+          offer_type: string
+          prix?: number
+          updated_at?: string
+          woocommerce_variation_id?: number | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          game_id?: string
+          id?: string
+          label?: string
+          offer_type?: string
+          prix?: number
+          updated_at?: string
+          woocommerce_variation_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_price_options_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_restock_action_files: {
         Row: {
           action_id: string
