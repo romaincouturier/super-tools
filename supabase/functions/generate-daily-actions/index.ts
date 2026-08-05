@@ -420,7 +420,11 @@ serve(async (req) => {
           : `dans ${item.daysUntilDue} j`;
       const dateLabel = item.startDate ? ` (${fmtLogisticsDate(item.startDate, item.endDate)})` : "";
       actions.push({
-        category: "reservations_mission",
+        category: ({
+          mission: "reservations_mission",
+          training: "reservations_formation",
+          event: "reservations_evenement",
+        } as const)[item.entityType],
         title: `✅ ${item.entityTitle}${dateLabel} — ${item.label}`,
         description: `Logistique à traiter (${dueLabel})`,
         link: `${appUrl}/${path}/${item.entityId}`,
