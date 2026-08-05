@@ -39,6 +39,7 @@ import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useEdgeFunction } from "@/hooks/useEdgeFunction";
 import PageHeader from "@/components/PageHeader";
 
 interface InboundEmail {
@@ -102,11 +103,16 @@ export default function InboundEmails() {
   });
 
   // Sync: récupère le contenu manquant des emails puis rafraîchit la liste
+  const { invoke: invokeRefetchInbound } = useEdgeFunction<{ results?: { updated: boolean }[] }>(
+    "refetch-inbound-emails",
+    { silentOnError: true },
+  );
+
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("refetch-inbound-emails", { body: {} });
-      if (error) throw error;
-      const results = (data as { results?: { updated: boolean }[] } | null)?.results || [];
+      const data = await invokeRefetchInbound({});
+      if (!data) throw new Error("Impossible de récupérer le contenu manquant");
+      const results = data.results || [];
       return results.filter((r) => r.updated).length;
     },
     onSuccess: async (updated) => {
