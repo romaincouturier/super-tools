@@ -234,11 +234,11 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                 </a>
               </Button>
             )}
-            {d.url_dce && (
+            {dce && (
               <Button variant="outline" size="sm" asChild>
-                <a href={d.url_dce} target="_blank" rel="noopener noreferrer">
+                <a href={dce.url} target="_blank" rel="noopener noreferrer">
                   <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                  Le DCE
+                  {dce.label}
                 </a>
               </Button>
             )}
