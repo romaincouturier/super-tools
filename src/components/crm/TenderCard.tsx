@@ -183,10 +183,23 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
             </Button>
           )}
           {dce && (
-            <Button variant="outline" size="sm" asChild>
-              <a href={dce.url} target="_blank" rel="noopener noreferrer">
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              // Ouvert : l'analyse est en cours ailleurs, la couleur le rappelle.
+              className={cn(
+                dceOpened && "border-primary bg-primary/10 text-primary hover:bg-primary/20",
+              )}
+            >
+              <a
+                href={dce.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={markDceOpened}
+              >
                 <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                {dce.label}
+                {dceOpened ? "DCE en cours d'analyse" : dce.label}
               </a>
             </Button>
           )}
