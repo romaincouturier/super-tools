@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { daysLeft, describeMatch } from "@/lib/tenders";
+import { daysLeft, describeMatch, resolveDceLink } from "@/lib/tenders";
 import { extractTenderDetail } from "@/lib/tenderDetail";
 import { TenderAiPanel } from "@/components/crm/TenderAiPanel";
 import { tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
@@ -45,6 +45,7 @@ function Line({ label, value }: { label: string; value: React.ReactNode }) {
 export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, decided }: Props) {
   if (!tender) return null;
   const d = tender.decision ?? {};
+  const dce = resolveDceLink(tender);
   const detail = extractTenderDetail(tender.raw);
   const left = daysLeft(tender.datelimitereponse);
   const lots = d.lots?.length ? d.lots : detail.lots;
@@ -234,11 +235,11 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
                 </a>
               </Button>
             )}
-            {d.url_dce && (
+            {dce && (
               <Button variant="outline" size="sm" asChild>
-                <a href={d.url_dce} target="_blank" rel="noopener noreferrer">
+                <a href={dce.url} target="_blank" rel="noopener noreferrer">
                   <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                  Le DCE
+                  {dce.label}
                 </a>
               </Button>
             )}

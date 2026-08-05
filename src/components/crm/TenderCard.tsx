@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { daysLeft, describeMatch, TENDER_URGENT_DAYS } from "@/lib/tenders";
+import { daysLeft, describeMatch, resolveDceLink, TENDER_URGENT_DAYS } from "@/lib/tenders";
 import { tenderNoGoReasonConfig, tenderSourceConfig, type TenderWithContext } from "@/types/tenders";
 
 interface TenderCardProps {
@@ -61,6 +61,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
   // Un marché majoritairement noté sur le prix n'est pas pour SuperTilt :
   // c'est le deuxième signal de décision, après le titulaire sortant.
   const prixDominant = prix?.poids != null && prix.poids >= 50;
+  const dce = resolveDceLink(tender);
   const wonWithBuyer = tender.buyer_history.filter((h) => h.sales_status === "WON").length;
 
   return (
@@ -181,14 +182,15 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
               </a>
             </Button>
           )}
-          {d.url_dce && (
+          {dce && (
             <Button variant="outline" size="sm" asChild>
-              <a href={d.url_dce} target="_blank" rel="noopener noreferrer">
+              <a href={dce.url} target="_blank" rel="noopener noreferrer">
                 <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                Le DCE
+                {dce.label}
               </a>
             </Button>
           )}
+
 
           <div className="ml-auto flex items-center gap-2">
             {decided ? (
