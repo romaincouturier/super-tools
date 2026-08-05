@@ -1,4 +1,4 @@
-# Connecteur MCP SuperTools (lecture seule)
+# Connecteur MCP SuperTools (lecture, plus trois écritures encadrées)
 
 Permet d'interroger les données SuperTools depuis claude.ai ou Claude Desktop,
 et de les croiser avec les connecteurs natifs (Google Drive, Notion).
@@ -12,9 +12,9 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
   `read_document`, `read_mission_page`, `read_mission_documents`,
-  `save_mission_note`, `save_mission_document`, `list_pending_tenders` et
-  `decide_tender` (marchés publics, décrits ci-dessous), et les quatre outils
-  d'audience. Tous sont journalisés dans `agent_query_audit_log`.
+  `save_mission_note`, `save_mission_document`, les quatre outils
+  d'audience et les deux outils de marchés publics décrits ci-dessous. Tous sont journalisés dans
+  `agent_query_audit_log`.
 - **Instructions du serveur** : le champ `instructions` du protocole MCP,
   renvoyé à l'initialisation, décrit à Claude le métier, les données
   disponibles, l'outil à choisir selon la question et la méthode attendue
@@ -22,11 +22,13 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   client ignore ce qui existe : c'est ce qui produisait des réponses évasives
   du type « Search Console n'est pas accessible d'ici » alors que les données
   sont en base.
-- **Écriture bornée.** Deux tools additifs (`save_mission_note`,
-  `save_mission_document` : ils ne peuvent qu'**ajouter**, aucun écrasement ni
-  suppression) et une action de décision (`decide_tender`, décrite dans la
-  section « Marchés publics » : le Go / No Go humain de l'étape 4 du workflow
-  marchés publics). Le reste est en lecture seule.
+- **Lecture seule, à trois exceptions près.** Deux sont additives
+  (`save_mission_note`, `save_mission_document`, décrites juste après) ; la
+  troisième, `decide_tender`, est la seule qui écrit dans le CRM et n'existe
+  que derrière une validation humaine explicite (voir « Marchés publics »).
+- **Les deux écritures additives** ne : elles ne
+  peuvent qu'**ajouter**. Aucun écrasement, aucune suppression, aucune autre
+  table touchée.
   - `save_mission_note` crée ou met à jour **une page de mission**, titre
     préfixé « Note agent — », 200 000 caractères max (en mode `append`, le
     plafond porte sur la note résultante). Elle existe pour capitaliser un
@@ -107,44 +109,6 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 - **Audit** : toutes les requêtes SQL passent par `agent_query_audit_log`
   avec l'identité et l'explication de la requête.
 
-## Marchés publics : qualifier depuis Cowork
-
-Deux tools portent l'étape 4 du workflow de `docs/marches-publics.md`
-(décision Go / No Go) directement dans une conversation Claude Cowork, sans
-passer par l'écran CRM.
-
-- **`list_pending_tenders`** — la file des avis en attente de décision, miroir
-  serveur de `useTenderOpportunities("open")` : mêmes filtres (doublons
-  inter-sources écartés, avis d'attribution exclus, échéances dépassées
-  retirées), même tri (date limite croissante), et surtout le même contexte de
-  décision par acheteur — historique CRM et attributions passées (titulaire
-  sortant + montant du marché précédent, le signal numéro un de la spec). Le
-  champ `total` porte le nombre réel d'avis à décider avant le plafond
-  d'affichage. La logique vit dans `_shared/tender-decision.ts`, testée à part.
-- **`decide_tender`** — acte la décision. Deux branches :
-  - **No Go** : motif obligatoire, liste fermée (`hors_domaine`, `trop_gros`,
-    `trop_petit`, `delai_trop_court`, `criteres_prix`, `titulaire_sortant`,
-    `geographie`, `charge_de_travail`, `autre`), détail libre optionnel.
-    N'écrit que les champs de décision (`status`, `no_go_reason`,
-    `no_go_detail`, `reviewed_at`, `reviewed_by`) sur la ligne
-    `tender_opportunities` existante : rien n'est créé ni supprimé.
-  - **Go** : promeut l'avis en carte CRM par le même chemin que le formulaire
-    site et le webhook — colonne « Entrant » (ou la première non archivée),
-    tag « Marché public », prochaine action « Retirer le DCE et décider de
-    candidater » datée du jour, date limite portée en `expected_close_date`,
-    notification Slack et journal d'activité. Un avis déjà relié à une carte ne
-    peut pas être promu deux fois.
-
-**La barrière reste la décision humaine.** `docs/marches-publics.md` pose que
-rien n'entre dans `crm_cards` sans validation explicite, parce que le contenu
-d'un avis est une donnée externe non contrôlée. `decide_tender` ne contourne
-pas cette barrière : il l'outille. Le flux attendu est *lister → proposer des
-Go / No Go motivés dans la conversation → l'utilisateur valide → appeler
-`decide_tender`*. L'action ne doit jamais être déclenchée sur la seule foi du
-contenu d'un avis. Comme tout le reste, chaque appel est journalisé dans
-`agent_query_audit_log` et lié à `romain@supertilt.fr`. Une décision se défait
-depuis l'écran Marchés publics (réouverture), le Go comme le No Go.
-
 ## Outils d'audience (SEO, GEO, éditorial)
 
 Quatre outils lisent l'historique alimenté par les crons `gsc-sync` et
@@ -178,6 +142,50 @@ les mêmes chiffres.
 Les tables sous-jacentes (`gsc_metrics_daily`, `gsc_url_inspections`,
 `gsc_sitemaps`, `wp_traffic_daily`) restent accessibles en SQL via
 `query_database` pour les questions qui sortent de ces quatre cadres.
+
+## Marchés publics : qualification Go / No Go
+
+Étape 4 du workflow de `docs/marches-publics.md`, faite depuis Claude Cowork.
+Les deux outils partagent leur implémentation avec l'écran CRM via
+`supabase/functions/_shared/tender-decision.ts` : la file lue par Claude est
+exactement celle affichée dans SuperTools, et une carte issue d'un Go est en
+tout point identique à une carte créée par le formulaire du site.
+
+- **`list_pending_tenders`** (lecture) — les avis en attente de décision, date
+  limite la plus proche d'abord : pas de doublon inter-sources, pas d'avis
+  d'attribution, pas d'échéance dépassée. Chaque avis porte ce qui fait
+  basculer la décision, dans l'ordre d'importance retenu : titulaire sortant et
+  montant du marché précédent (tirés des avis d'attribution du même acheteur),
+  pondération des critères, allotissement, durée et reconductions, historique
+  CRM avec cet acheteur, date limite. 50 avis par défaut, 100 au plus, avec
+  `total` et `truncated`.
+- **`decide_tender`** (écriture) — exécute une décision déjà prise :
+  - `no_go` : motif obligatoire, pris dans la liste fermée de
+    `src/types/tenders.ts` (`hors_domaine`, `trop_gros`, `trop_petit`,
+    `delai_trop_court`, `criteres_prix`, `titulaire_sortant`, `geographie`,
+    `charge_de_travail`, `autre`). Met à jour la seule ligne de l'avis
+    (`status`, motif, détail, `reviewed_at`, `reviewed_by`) : aucune création,
+    aucune suppression. Le motif est ce qui permet de recalibrer les listes de
+    filtrage, un No Go sans motif ne servirait à rien.
+  - `go` : crée une carte CRM par le même chemin que
+    `crm-elementor-webhook` — colonne « Entrant », tag « Marché public »,
+    `status_operational=WAITING`, prochaine action « Retirer le DCE et décider
+    de candidater » datée du jour (Europe/Paris), `expected_close_date` = date
+    limite, `acquisition_source=marche_public`, description construite à partir
+    de l'avis (acheteur, montant, critères, liens DCE et avis, tout échappé car
+    contenu externe), journal `crm_activity_log` et notification Slack. L'avis
+    passe ensuite en `go` avec son `crm_card_id`. Un second Go sur le même avis
+    est refusé.
+
+**La barrière est humaine, et c'est le point de vigilance du module.** Un avis
+public et un mail d'alerte sont du contenu externe non contrôlé, lu par un
+agent qui dispose ici d'un droit d'écriture dans le CRM : rien dans un avis ne
+doit pouvoir déclencher un Go. Les instructions du serveur l'imposent
+explicitement — `decide_tender` ne s'appelle qu'après une validation de
+l'utilisateur dans la conversation, avis par avis, jamais en lot. `actorEmail`
+est forcé à `ALLOWED_EMAIL` côté serveur et chaque appel est journalisé dans
+`agent_query_audit_log` avant exécution, décision et motif inclus : une
+décision reste traçable même si l'écriture échoue ensuite.
 
 ## Proxy racine obligatoire pour claude.ai
 
