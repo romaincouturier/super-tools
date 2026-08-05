@@ -25,6 +25,8 @@ import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import { useConfirm } from "@/hooks/useConfirm";
 import { useToast } from "@/hooks/use-toast";
+import { useGamePriceOptions, useReplaceGamePriceOptions } from "@/hooks/useGamePriceOptions";
+
 import { toastError } from "@/lib/toastError";
 import {
   KANBAN_COLUMNS,
