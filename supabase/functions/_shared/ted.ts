@@ -332,8 +332,15 @@ export async function walkTedPages(opts: {
   fetchPage: (token: string | null) => Promise<TedPage>;
   maxRecords: number;
   maxPages: number;
+  /**
+   * Première page déjà récupérée par l'appelant. La sonde a besoin de la lire
+   * avant de décider ; sans ce passage de relais, elle serait demandée deux
+   * fois — un appel gaspillé, et surtout deux gels d'index différents en mode
+   * itération, donc un jeton qui ne correspond plus au parcours en cours.
+   */
+  firstPage?: TedPage;
 }): Promise<TedWalkResult> {
-  const first = await opts.fetchPage(null);
+  const first = opts.firstPage ?? (await opts.fetchPage(null));
   if (first.status < 200 || first.status >= 300) {
     return { notices: [], pages: 0, truncated: false, error: `TED a répondu ${first.status}` };
   }

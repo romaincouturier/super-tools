@@ -337,3 +337,35 @@ describe("langue de l'avis", () => {
     expect(body.query).toContain('FT~"graphic facilitation"');
   });
 });
+
+describe("walkTedPages : première page fournie", () => {
+  it("ne redemande pas une page déjà en main", async () => {
+    const calls: Array<string | null> = [];
+    const r = await walkTedPages({
+      firstPage: { status: 200, payload: { notices: [{ id: 1 }], iterationNextToken: "t1" } },
+      fetchPage: (token) => {
+        calls.push(token);
+        return Promise.resolve({
+          status: 200,
+          payload: { notices: [{ id: 2 }], iterationNextToken: null },
+        });
+      },
+      maxRecords: 100,
+      maxPages: 10,
+    });
+    expect(r.notices).toHaveLength(2);
+    // Le premier appel réseau porte le jeton : la page 1 n'a pas été refaite.
+    expect(calls).toEqual(["t1"]);
+  });
+
+  it("remonte l'échec d'une première page fournie", async () => {
+    const r = await walkTedPages({
+      firstPage: { status: 500, payload: null },
+      fetchPage: () => Promise.reject(new Error("ne doit pas être appelé")),
+      maxRecords: 100,
+      maxPages: 10,
+    });
+    expect(r.error).toContain("500");
+    expect(r.notices).toEqual([]);
+  });
+});

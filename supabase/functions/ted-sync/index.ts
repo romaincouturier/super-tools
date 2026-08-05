@@ -164,6 +164,9 @@ serve(async (req) => {
     // teste, et celle où une erreur avalée coûte le plus cher.
     const walk = await walkTedPages({
       fetchPage: (token) => fetchPage(token).then((p) => ({ status: p.status, payload: p.payload })),
+      // La première page est déjà en main : la redemander la paierait deux
+      // fois et repartirait sur un autre gel d'index.
+      firstPage: { status: firstPage.status, payload: firstPage.payload },
       maxRecords: MAX_RECORDS,
       maxPages: MAX_PAGES,
     });

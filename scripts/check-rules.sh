@@ -261,6 +261,13 @@ check "046" "Migrations app_settings — UPDATE de setting_value conditionné à
 check "047" "Pas de nouveau bucket storage public dans les migrations" \
   "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260804162002 ] 2>/dev/null || continue; grep -vE '^[[:space:]]*--' \"\$f\" | awk -v F=\"\$f\" '/INSERT INTO storage\\.buckets/{u=1;s=\"\"} u{s=s\" \"\$0} u&&/;[[:space:]]*\$/{u=0; if (s ~ /,[[:space:]]*true[[:space:]]*,/) print \"VIOLATION: \" F \" — bucket cree en public, les buckets doivent etre prives\"}'; done; true"
 
+# [050] Connecteurs paginés — la boucle de parcours vit dans _shared/ (testable)
+# et non dans le handler. Un handler *-sync qui pagine par jeton doit importer
+# une fonction de parcours depuis ../_shared/, et le module de parcours (celui
+# qui définit walkXxxPages) doit avoir un fichier .test.ts à côté.
+check "050" "Connecteurs paginés : parcours dans _shared/ avec test" \
+  "for f in supabase/functions/*-sync/index.ts; do [ -f \"\$f\" ] || continue; grep -qE 'iterationNextToken|nextToken|next_page' \"\$f\" || continue; grep -qE 'from \"\\.\\./_shared/' \"\$f\" || echo \"VIOLATION: \$f pagine sans importer de parcours _shared/\"; done; for w in \$(grep -rlE 'export (async )?function walk[A-Za-z]*Pages' supabase/functions/_shared/ 2>/dev/null); do t=\${w%.ts}.test.ts; [ -f \"\$t\" ] || echo \"VIOLATION: \$w (parcours paginé) sans \$t\"; done; true"
+
 # [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
 # des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
