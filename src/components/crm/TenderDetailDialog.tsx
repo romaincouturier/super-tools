@@ -43,6 +43,8 @@ function Line({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, decided }: Props) {
+  // Avant le retour anticipé : un hook ne peut pas être conditionnel.
+  const { opened: dceOpened, markOpened: markDceOpened } = useDceReviewFlag(tender?.id ?? "");
   if (!tender) return null;
   const d = tender.decision ?? {};
   const dce = resolveDceLink(tender);
