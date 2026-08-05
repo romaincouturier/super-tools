@@ -241,7 +241,7 @@ export interface MissionEmailDraftItem {
 
 export interface LogisticsReminderItem {
   id: string;
-  entityType: "mission" | "training";
+  entityType: "mission" | "training" | "event";
   entityId: string;
   entityTitle: string;
   label: string;
@@ -1233,6 +1233,7 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
   // Resolve entity titles in two batched queries
   const missionIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "mission").map((d) => d.row.entity_id)));
   const trainingIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "training").map((d) => d.row.entity_id)));
+  const eventIds = Array.from(new Set(due.filter((d) => d.row.entity_type === "event").map((d) => d.row.entity_id)));
 
   const titleMap = new Map<string, { title: string; assignedTo: string | null; startDate: string | null; endDate: string | null }>();
 
@@ -1249,6 +1250,13 @@ export async function fetchLogisticsReminders(supabase: SupabaseClient, today: s
       .select("id, training_name, assigned_to, start_date, end_date")
       .in("id", trainingIds);
     (data || []).forEach((t: any) => titleMap.set(`training:${t.id}`, { title: t.training_name, assignedTo: t.assigned_to, startDate: t.start_date ?? null, endDate: t.end_date ?? null }));
+  }
+  if (eventIds.length) {
+    const { data } = await supabase
+      .from("events")
+      .select("id, title, assigned_to, event_date")
+      .in("id", eventIds);
+    (data || []).forEach((e: any) => titleMap.set(`event:${e.id}`, { title: e.title, assignedTo: e.assigned_to, startDate: e.event_date ?? null, endDate: null }));
   }
 
   return due.map(({ row, daysUntil }) => {
