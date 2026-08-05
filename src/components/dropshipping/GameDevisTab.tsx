@@ -94,7 +94,7 @@ export default function GameDevisTab() {
   const addLine = () => {
     setLines((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), gameId: "", title: "", quantity: 1, unitPrice: 0 },
+      { id: crypto.randomUUID(), gameId: "", priceOptionId: "", title: "", quantity: 1, unitPrice: 0 },
     ]);
   };
 
@@ -104,11 +104,34 @@ export default function GameDevisTab() {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   };
 
+  const optionsForGame = (gameId: string) => priceOptions.filter((o) => o.game_id === gameId);
+
   const selectGame = (lineId: string, gameId: string) => {
     const game = games.find((g) => g.id === gameId);
     if (!game) return;
-    updateLine(lineId, { gameId, title: game.title });
+    const opts = optionsForGame(gameId);
+    // Un seul tarif : on le préselectionne pour éviter une saisie inutile.
+    const only = opts.length === 1 ? opts[0] : null;
+    updateLine(lineId, {
+      gameId,
+      priceOptionId: only?.id ?? "",
+      title: only ? `${game.title} — ${priceOptionLabel(only)}` : game.title,
+      ...(only ? { unitPrice: Number(only.prix) || 0 } : {}),
+    });
   };
+
+  const selectPriceOption = (lineId: string, optionId: string) => {
+    const line = lines.find((l) => l.id === lineId);
+    const game = games.find((g) => g.id === line?.gameId);
+    const opt = priceOptions.find((o) => o.id === optionId);
+    if (!game || !opt) return;
+    updateLine(lineId, {
+      priceOptionId: optionId,
+      title: `${game.title} — ${priceOptionLabel(opt)}`,
+      unitPrice: Number(opt.prix) || 0,
+    });
+  };
+
 
   const subtotal = lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
   const totalHT =
