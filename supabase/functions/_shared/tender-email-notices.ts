@@ -163,7 +163,7 @@ export async function ingestTenderEmailNotices(
         url_avis: url ?? undefined,
         datelimitereponse: notice?.datelimitereponse ??
           parseFrenchDeadline(
-            email.body.match(/jusqu[’']?\s*[àa]\s*([^\n*]{0,60})/i)?.[1] ??
+            email.body.match(/jusqu[’']?\s*[àa]\s*([^*]{0,80})/i)?.[1] ??
               email.body.match(/(?:date limite|remise des offres)[^\n]{0,60}/i)?.[0] ?? null,
           ) ?? undefined,
         code_departement: notice ? departementFromCp(notice.cp) : undefined,
