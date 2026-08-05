@@ -5,7 +5,8 @@
  * Voir docs/marches-publics.md.
  */
 import { useMemo, useState } from "react";
-import { Gavel } from "lucide-react";
+import { Gavel, Globe2, Landmark, Layers, Mail, Building2, HelpCircle } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Spinner } from "@/components/ui/spinner";
@@ -28,10 +29,30 @@ import { TenderGoDialog, TenderNoGoDialog } from "@/components/crm/TenderDecisio
 import type { TenderWithContext } from "@/types/tenders";
 import type { ServiceType } from "@/types/crm";
 
+/**
+ * Sources filtrables. « autre » regroupe tout ce qui n'est pas nommé ici, pour
+ * qu'un avis d'une source ajoutée demain ne disparaisse pas de la liste.
+ */
+const SOURCE_FILTERS = [
+  { key: "boamp", label: "BOAMP", icon: Landmark },
+  { key: "ted", label: "TED", icon: Globe2 },
+  { key: "aws", label: "AWS", icon: Mail },
+  { key: "place", label: "PLACE", icon: Building2 },
+  { key: "autre", label: "Autre", icon: HelpCircle },
+] as const;
+
+const NAMED_SOURCES = SOURCE_FILTERS.filter((s) => s.key !== "autre").map((s) => s.key as string);
+
+function sourceBucket(source: string): string {
+  const s = (source ?? "").toLowerCase();
+  return NAMED_SOURCES.includes(s) ? s : "autre";
+}
+
 export default function CrmTenders() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [tab, setTab] = useState<"open" | "decided">("open");
+  const [sources, setSources] = useState<string[]>([]);
   const [goTarget, setGoTarget] = useState<TenderWithContext | null>(null);
   const [noGoTarget, setNoGoTarget] = useState<TenderWithContext | null>(null);
   // L'id et non l'objet : produire la synthèse rafraîchit la liste, et une
@@ -54,10 +75,30 @@ export default function CrmTenders() {
     [board],
   );
 
-  const rows = page?.items ?? [];
+  const allRows = page?.items ?? [];
+  const counts = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const t of allRows) {
+      const b = sourceBucket(t.source);
+      m[b] = (m[b] ?? 0) + 1;
+    }
+    return m;
+  }, [allRows]);
+  // Aucune source cochée = tout affiché : le filtre ne doit jamais vider l'écran
+  // par défaut.
+  const rows = useMemo(
+    () =>
+      sources.length === 0
+        ? allRows
+        : allRows.filter((t) => sources.includes(sourceBucket(t.source))),
+    [allRows, sources],
+  );
   const detailTarget = rows.find((t) => t.id === detailId) ?? null;
   const total = page?.total ?? 0;
   const urgent = rows.filter((t) => isTenderUrgent(t.datelimitereponse)).length;
+
+  const toggleSource = (key: string) =>
+    setSources((prev) => (prev.includes(key) ? prev.filter((s) => s !== key) : [...prev, key]));
 
   return (
     <ModuleLayout>
@@ -77,6 +118,34 @@ export default function CrmTenders() {
         </TabsList>
 
         <TabsContent value={tab} className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Toggle
+              size="sm"
+              variant="outline"
+              pressed={sources.length === 0}
+              onPressedChange={() => setSources([])}
+              aria-label="Toutes les sources"
+            >
+              <Layers className="h-3.5 w-3.5 mr-1.5" />
+              Tous
+              <span className="ml-1.5 text-xs text-muted-foreground">{allRows.length}</span>
+            </Toggle>
+            {SOURCE_FILTERS.map(({ key, label, icon: Icon }) => (
+              <Toggle
+                key={key}
+                size="sm"
+                variant="outline"
+                pressed={sources.includes(key)}
+                onPressedChange={() => toggleSource(key)}
+                aria-label={label}
+              >
+                <Icon className="h-3.5 w-3.5 mr-1.5" />
+                {label}
+                <span className="ml-1.5 text-xs text-muted-foreground">{counts[key] ?? 0}</span>
+              </Toggle>
+            ))}
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               En rouge : la date limite à moins de {TENDER_URGENT_DAYS} jours, et un critère prix
@@ -85,6 +154,7 @@ export default function CrmTenders() {
             </p>
             <TenderFilterSettings />
           </div>
+
 
           {tab === "open" && urgent > 0 && (
             <p className="text-sm text-destructive">
@@ -105,10 +175,13 @@ export default function CrmTenders() {
             </div>
           ) : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground py-12 text-center">
-              {tab === "open"
-                ? "Aucun appel d'offres en attente de décision."
-                : "Aucune décision enregistrée pour l'instant."}
+              {sources.length > 0 && allRows.length > 0
+                ? "Aucun avis pour les sources sélectionnées."
+                : tab === "open"
+                  ? "Aucun appel d'offres en attente de décision."
+                  : "Aucune décision enregistrée pour l'instant."}
             </p>
+
           ) : (
             rows.map((tender) => (
               <TenderCard
