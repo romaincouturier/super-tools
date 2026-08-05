@@ -717,27 +717,30 @@ Le TED couvre toute l'Europe, là où le BOAMP s'arrête à la France. Un march�
 français au-dessus du seuil européen est publié aux deux endroits, mais c'est
 le rapprochement inter-sources qui s'en occupe, pas une exclusion de pays.
 
-**Le critère est la langue, pas la géographie.** Un marché est prospectable dès
-lors qu'il se lit et se répond en français ou en anglais, où qu'il soit publié.
-D'où deux réglages :
+**Ni la géographie ni la langue ne filtrent.** Mesuré sur la première ingestion
+réelle du 05/08/2026 :
 
-- `tender_ted_countries` : **vide par défaut**, c'est-à-dire tous les pays. Ne
-  sert qu'à resserrer si le volume devient ingérable.
-- `tender_ted_languages` : `fra,eng` par défaut. Un avis qui n'existe dans
-  aucune de ces langues est écarté et compté à part (`unreadable`) — il n'est
-  ni lisible ni répondable, l'afficher n'encombrerait la revue que pour finir
-  en No Go. Un avis sans langue déclarée passe : mieux vaut une ligne de trop à
-  écarter à la main qu'un marché manqué parce que le TED n'a pas étiqueté son
-  titre.
+- `tender_ted_countries` : **vide par défaut**, tous les pays. Ne sert qu'à
+  resserrer si le volume devient ingérable.
+- La langue ne filtre pas non plus, et c'est une correction sur ma conception
+  initiale. Le TED **traduit chaque avis dans les 24 langues officielles**, donc
+  « existe en français ou anglais » est vrai pour 100 % des avis : un filtre de
+  langue y est inerte. Le repointer sur la langue d'origine (`links.pdfs`)
+  écarterait un avis polonais qu'on lit très bien dans la traduction anglaise
+  que le TED fournit. Le réglage `tender_ted_languages` a donc été supprimé et
+  la fonction retirée du code.
 
-Les mots-clés métier existent désormais en français **et en anglais** dans la
-liste partagée (`graphic facilitation`, `graphic recording`, `collective
-intelligence`, `change management`, `ai literacy`…). Ils ne créent pas de faux
-positifs sur le BOAMP : aucun avis français ne parle de « change management ».
+**Le sujet, c'est les mots-clés, pas les CPV larges.** Les six codes CPV de
+formation partagés avec le BOAMP faisaient 262 des 265 retenues sur deux mois,
+les mots-clés seulement 6. Ces codes tiennent à l'échelle de la France (le
+BOAMP en tirait 19) mais inondent à l'échelle de l'Europe. Le TED a donc sa
+**propre liste CPV**, `tender_ted_cpv_codes`, **vide par défaut** : il se repère
+sur les mots-clés métier, désormais bilingues (`graphic facilitation`,
+`collective intelligence`, `change management`, `ai literacy`…). Le BOAMP garde
+`tender_cpv_codes`, inchangé — c'est tout l'intérêt d'une liste par source.
 
-Le reste du filtrage est **partagé** avec le BOAMP : mêmes codes CPV, mêmes
-mots-clés, mêmes exclusions. Un filtre par source aurait doublé la surface à
-calibrer pour un volume attendu d'une poignée d'avis par mois.
+Les mots-clés et les exclusions, eux, restent **partagés** : ce sont le vrai
+signal métier, et un avis français ne parle jamais de « change management ».
 
 Les avis TED sont au format eForms, celui que le BOAMP publie depuis 2024 :
 `_shared/eforms.ts` a été extrait de `boamp.ts` pour que les deux connecteurs
@@ -788,14 +791,15 @@ confirmer ou corriger le contrat.
 
 ### Volume : à mesurer avant d'automatiser
 
-Ouvrir tous les pays est le bon réglage de départ, mais c'est aussi celui qui
-peut inonder. Trois choses le retiennent : le filtre métier partagé avec le
-BOAMP, qui est étroit ; le filtre de langue, qui écarte tout ce qui n'est ni
-français ni anglais ; et les garde-fous du parcours, 1 000 avis et 20 pages.
+La première ingestion réelle a ramené 248 avis pour une poignée attendue, tous
+tirés des codes CPV de formation à l'échelle de l'Europe. D'où le passage aux
+mots-clés seuls décrit plus haut. Ce qui retient le volume désormais : le filtre
+mots-clés, étroit et sur le métier ; et les garde-fous du parcours, 1 000 avis
+et 20 pages.
 
 La séquence est la même que pour le BOAMP, et pour la même raison — la
-première ingestion réelle avait ramené 278 avis pour une vingtaine attendue :
+première ingestion BOAMP avait ramené 278 avis pour une vingtaine attendue :
 sonde, puis ingestion manuelle sur une fenêtre large, puis lecture des
-compteurs (`kept`, `excluded`, `unmatched`, `unreadable`) avant de programmer
+compteurs (`kept`, `excluded`, `unmatched`) avant de programmer
 quoi que ce soit. Si `kept` est élevé, resserrer les pays est le levier le plus
 direct.

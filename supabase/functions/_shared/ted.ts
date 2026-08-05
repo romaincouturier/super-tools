@@ -7,11 +7,19 @@
  * publié aux deux endroits, mais c'est le rapprochement inter-sources qui s'en
  * occupe, pas une exclusion de pays.
  *
- * LE CRITÈRE EST LA LANGUE, PAS LA GÉOGRAPHIE. Un marché est prospectable dès
- * lors qu'il se lit et se répond en français ou en anglais, où qu'il soit
- * publié. Aucun pays n'est exclu par défaut ; en revanche un avis qui n'existe
- * que dans une langue qu'on ne pratique pas est écarté, parce qu'il n'est ni
- * lisible ni répondable et qu'il ne ferait qu'encombrer la revue.
+ * NI LA GÉOGRAPHIE NI LA LANGUE NE FILTRENT. Aucun pays n'est exclu par défaut.
+ * La langue non plus : mesure faite le 05/08/2026 sur les avis réels, le TED
+ * traduit chaque avis dans les 24 langues officielles, donc « existe en
+ * français ou anglais » est vrai pour 100 % des avis. Un filtre de langue y est
+ * inerte, et le repointer sur la langue d'origine écarterait un avis polonais
+ * qu'on lit très bien dans la traduction anglaise que le TED fournit. Le seul
+ * tri qui a du sens est le SUJET, par mots-clés.
+ *
+ * ET LE SUJET, C'EST LES MOTS-CLÉS, PAS LES CPV LARGES. Les codes CPV de
+ * formation partagés avec le BOAMP tiennent à l'échelle de la France mais
+ * inondent à l'échelle de l'Europe (262 avis retenus sur deux mois contre 6
+ * pour les mots-clés). Le TED a donc sa propre liste CPV, vide par défaut : il
+ * se repère sur les mots-clés métier, en français et en anglais.
  *
  * CE QUI EST VÉRIFIÉ, CE QUI NE L'EST PAS. Le format des avis est eForms, le
  * même que celui du BOAMP depuis 2024 : le parseur de `_shared/eforms.ts` est
@@ -498,49 +506,4 @@ export async function walkTedPages(opts: {
   }
 
   return { notices, pages, truncated: false, error: null };
-}
-
-
-// ── Langue de l'avis ─────────────────────────────────────────
-
-/**
- * Codes langue portés par un avis.
- *
- * Le TED rend ses libellés en `{ "fra": "...", "eng": "..." }` : les clés sont
- * les langues disponibles. Un avis qui n'a aucune clé de langue est du texte
- * nu, dont la langue n'est pas déclarée — on ne l'écarte pas sur un doute.
- */
-export function noticeLanguages(notice: Json): Set<string> {
-  const langs = new Set<string>();
-  const visit = (node: Json, depth = 0) => {
-    if (depth > 8 || !node || typeof node !== "object") return;
-    if (Array.isArray(node)) {
-      for (const item of node) visit(item, depth + 1);
-      return;
-    }
-    for (const [key, value] of Object.entries(node as Record<string, Json>)) {
-      // Code ISO 639-2 : trois lettres minuscules, avec une valeur textuelle.
-      if (/^[a-z]{3}$/.test(key) && typeof value === "string" && value.trim()) {
-        langs.add(key);
-        continue;
-      }
-      visit(value, depth + 1);
-    }
-  };
-  visit(notice);
-  return langs;
-}
-
-/**
- * L'avis est-il exploitable dans l'une des langues pratiquées.
- *
- * Un avis sans langue déclarée passe : mieux vaut une ligne de trop à écarter
- * à la main qu'un marché manqué parce que le TED n'a pas étiqueté son titre.
- * Une liste de langues vide accepte tout.
- */
-export function isReadableLanguage(notice: Json, languages: string[]): boolean {
-  if (!languages.length) return true;
-  const found = noticeLanguages(notice);
-  if (found.size === 0) return true;
-  return languages.some((lang) => found.has(lang.toLowerCase()));
 }
