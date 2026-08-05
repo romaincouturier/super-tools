@@ -5,7 +5,8 @@
  * Voir docs/marches-publics.md.
  */
 import { useMemo, useState } from "react";
-import { Gavel } from "lucide-react";
+import { Gavel, Globe2, Landmark, Layers, Mail, Building2, HelpCircle } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 import ModuleLayout from "@/components/ModuleLayout";
 import PageHeader from "@/components/PageHeader";
 import { Spinner } from "@/components/ui/spinner";
