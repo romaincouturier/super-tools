@@ -14,6 +14,8 @@ import { useSirenSearch } from "@/hooks/useSirenSearch";
 import { useGames, useGameDevisHistory, resolveGameDevisPdfUrl } from "@/hooks/useDropshipping";
 import { useAuth } from "@/hooks/useAuth";
 import { useGenerateGameDevis, type GameDevisItem } from "@/hooks/useGameDevis";
+import { useGamePriceOptions, priceOptionLabel } from "@/hooks/useGamePriceOptions";
+
 import { useToast } from "@/hooks/use-toast";
 import { toastError } from "@/lib/toastError";
 
