@@ -62,6 +62,7 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
   // c'est le deuxième signal de décision, après le titulaire sortant.
   const prixDominant = prix?.poids != null && prix.poids >= 50;
   const dce = resolveDceLink(tender);
+  const { opened: dceOpened, markOpened: markDceOpened } = useDceReviewFlag(tender.id);
   const wonWithBuyer = tender.buyer_history.filter((h) => h.sales_status === "WON").length;
 
   return (
