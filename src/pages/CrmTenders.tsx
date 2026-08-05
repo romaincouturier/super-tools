@@ -175,10 +175,13 @@ export default function CrmTenders() {
             </div>
           ) : rows.length === 0 ? (
             <p className="text-sm text-muted-foreground py-12 text-center">
-              {tab === "open"
-                ? "Aucun appel d'offres en attente de décision."
-                : "Aucune décision enregistrée pour l'instant."}
+              {sources.length > 0 && allRows.length > 0
+                ? "Aucun avis pour les sources sélectionnées."
+                : tab === "open"
+                  ? "Aucun appel d'offres en attente de décision."
+                  : "Aucune décision enregistrée pour l'instant."}
             </p>
+
           ) : (
             rows.map((tender) => (
               <TenderCard
