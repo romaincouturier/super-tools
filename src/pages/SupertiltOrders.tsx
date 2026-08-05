@@ -1,5 +1,5 @@
 import DOMPurify from "dompurify";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutGrid, Package, ShoppingCart, Settings, Mail, AlertTriangle,
   CheckCircle, Clock, Truck, RefreshCw, Ban, Loader2, Plus,
