@@ -9,35 +9,33 @@ import {
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import * as inbound from "../_shared/resend-inbound-content.ts";
+import { ingestTenderEmailNotices } from "../_shared/tender-email-notices.ts";
 
 const corsHeaders = extendCorsHeaders({});
 
+/**
+ * Le corps du mail rend enfin les avis lisibles : on rejoue le filtrage sur
+ * son contenu. Une alerte AWS contient une dizaine d'avis, la fiche créée à
+ * l'arrivée n'en portait que le sujet.
+ */
 async function syncTenderBody(
   supabase: ReturnType<typeof getSupabaseClient>,
-  emailId: string,
+  email: { id: string; message_id: string | null; subject?: string | null; from_email?: string | null },
   text: string | null,
   html: string | null,
 ) {
   const body = text || html;
-  if (!body) return;
+  if (!body) return null;
 
-  const { data: tenders, error } = await supabase
-    .from("tender_opportunities")
-    .select("id, raw")
-    .eq("source_email_id", emailId);
-  if (error) throw error;
-
-  for (const tender of tenders || []) {
-    const raw = tender.raw && typeof tender.raw === "object" && !Array.isArray(tender.raw)
-      ? tender.raw
-      : {};
-    const { error: updateError } = await supabase
-      .from("tender_opportunities")
-      .update({ raw: { ...raw, body } })
-      .eq("id", tender.id);
-    if (updateError) throw updateError;
-  }
+  return await ingestTenderEmailNotices(supabase, {
+    id: email.id,
+    messageId: email.message_id,
+    subject: email.subject ?? null,
+    from: email.from_email ?? null,
+    body,
+  });
 }
+
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
