@@ -181,14 +181,15 @@ export function TenderCard({ tender, onGo, onNoGo, onReopen, onOpen, decided }: 
               </a>
             </Button>
           )}
-          {d.url_dce && (
+          {dce && (
             <Button variant="outline" size="sm" asChild>
-              <a href={d.url_dce} target="_blank" rel="noopener noreferrer">
+              <a href={dce.url} target="_blank" rel="noopener noreferrer">
                 <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                Le DCE
+                {dce.label}
               </a>
             </Button>
           )}
+
 
           <div className="ml-auto flex items-center gap-2">
             {decided ? (
