@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { daysLeft, describeMatch, resolveDceLink } from "@/lib/tenders";
 import { cn } from "@/lib/utils";
@@ -57,7 +56,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="shrink-0">
           <DialogTitle className="leading-snug pr-6">{tender.objet || "(sans objet)"}</DialogTitle>
           <DialogDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Building2 className="h-3.5 w-3.5" />
@@ -68,7 +67,7 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-3 -mr-3">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-3 -mr-3">
           <div className="space-y-4">
             {!!detail.descripteurs.length && (
               <div className="flex flex-wrap gap-1.5">
@@ -227,9 +226,9 @@ export function TenderDetailDialog({ tender, open, onOpenChange, onGo, onNoGo, d
             <Separator />
             <TenderAiPanel tender={tender} />
           </div>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+        <DialogFooter className="shrink-0 flex-wrap gap-2 sm:justify-between">
           <div className="flex gap-2">
             {tender.url_avis && (
               <Button variant="outline" size="sm" asChild>
