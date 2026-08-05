@@ -96,11 +96,14 @@ function localizedText(value: Json): string | null {
   if (value && typeof value === "object") {
     const rec = value as Record<string, Json>;
     // Français d'abord, anglais ensuite, puis la première langue venue.
-    const preferred = textOf(rec.fra) ?? textOf(rec.fre) ?? textOf(rec.eng);
+    // Récursif : le TED rend souvent la valeur d'une langue comme un TABLEAU
+    // (`{"eng": ["Fingal County Council"]}`), que `textOf` seul voit comme un
+    // objet et rend null — c'est ce qui laissait `acheteur` vide.
+    const preferred = localizedText(rec.fra) ?? localizedText(rec.fre) ?? localizedText(rec.eng);
     if (preferred) return preferred;
     for (const key of Object.keys(rec)) {
       if (key.startsWith("@") || key === "#text") continue;
-      const text = textOf(rec[key]);
+      const text = localizedText(rec[key]);
       if (text) return text;
     }
   }
