@@ -12,7 +12,7 @@
  * gsc_url_inspections, gsc_sitemaps, wp_traffic_daily) alimentées par les
  * crons gsc-sync et wp-statistics-sync. Aucun appel réseau ici.
  */
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { normalizeUrl } from "./gsc.ts";
 
 export interface Period {

@@ -2,7 +2,7 @@
  * Google Drive helper — token refresh + file operations.
  * Used by poll-drive-transcripts and poll-drive-testimonials.
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { logAnthropicUsage, logAssemblyAiUsage } from "./api-usage.ts";
 
 const GOOGLE_OAUTH_CLIENT_ID = Deno.env.get("GOOGLE_OAUTH_CLIENT_ID")!;

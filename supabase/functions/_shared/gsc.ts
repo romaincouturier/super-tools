@@ -10,7 +10,7 @@
  * Utilisé par gsc-statistics (lecture live pour l'UI) et gsc-sync (cron
  * d'historisation). Aucune logique métier ici : voir seo-tools.ts.
  */
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 export const GSC_DIMENSIONS = [
   "date",

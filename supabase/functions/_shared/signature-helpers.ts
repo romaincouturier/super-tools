@@ -4,7 +4,7 @@
  * Shared utilities for submit-*-signature edge functions.
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { hashArrayBuffer } from "./crypto.ts";
 
 export interface JourneyEvent {

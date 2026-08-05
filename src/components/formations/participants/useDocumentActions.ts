@@ -122,6 +122,10 @@ export function useDocumentActions({
             }],
             userId: session.data.session?.user?.id,
             trainingId,
+            // Action manuelle explicite : on régénère toujours le PDF au lieu de
+            // renvoyer une attestation déjà stockée (durée ou libellés corrigés).
+            forceRegenerate: true,
+
           }),
         },
       );

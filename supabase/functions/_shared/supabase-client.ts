@@ -4,7 +4,9 @@
  * Provides a centralized way to create Supabase clients
  */
 
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Version épinglée : le tag flottant "@2" résout vers 2.112.1, dont la
+// sous-dépendance auth-js est cassée sur esm.sh (404) et empêche le bundling.
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 let cachedClient: SupabaseClient | null = null;
 
