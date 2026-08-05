@@ -828,7 +828,106 @@ function Kanban() {
   );
 }
 
+// ── Tarifs location / vente d'un jeu ───────────────────────────────
+
+type DraftPrice = { offer_type: "location" | "vente"; label: string; prix: string; woocommerce_variation_id: string };
+
+function GamePricesSection({ gameId }: { gameId: string }) {
+  const { data: options = [], isLoading } = useGamePriceOptions(gameId);
+  const { mutateAsync: replaceOptions, isPending } = useReplaceGamePriceOptions();
+  const { toast } = useToast();
+  const [rows, setRows] = useState<DraftPrice[] | null>(null);
+
+  useEffect(() => {
+    if (rows === null && !isLoading) {
+      setRows(
+        options.map((o) => ({
+          offer_type: o.offer_type,
+          label: o.label ?? "",
+          prix: o.prix != null ? String(o.prix) : "",
+          woocommerce_variation_id: o.woocommerce_variation_id != null ? String(o.woocommerce_variation_id) : "",
+        })),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, options.length]);
+
+  const list = rows ?? [];
+  const update = (idx: number, patch: Partial<DraftPrice>) =>
+    setRows((prev) => (prev ?? []).map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const save = async () => {
+    try {
+      await replaceOptions({
+        gameId,
+        options: list
+          .filter((r) => r.prix !== "" || r.label.trim())
+          .map((r) => ({
+            offer_type: r.offer_type,
+            label: r.label,
+            prix: r.prix ? parseFloat(r.prix) : 0,
+            woocommerce_variation_id: r.woocommerce_variation_id ? parseInt(r.woocommerce_variation_id) : null,
+          })),
+      });
+      toast({ title: "Tarifs sauvegardés" });
+    } catch {
+      toastError(toast, "Erreur lors de la sauvegarde des tarifs");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Tarifs (location / vente)</h3>
+      <p className="text-xs text-muted-foreground">
+        Un même jeu peut être proposé à la location et à la vente. Ces tarifs sont proposés au moment de la création d&apos;un devis de jeu.
+      </p>
+      {list.map((r, idx) => (
+        <div key={idx} className="grid grid-cols-[130px_1fr_100px_110px_auto] gap-2 items-end">
+          <div className="space-y-1">
+            <Label className="text-xs">Type d&apos;offre</Label>
+            <Select value={r.offer_type} onValueChange={(v) => update(idx, { offer_type: v as DraftPrice["offer_type"] })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="location">Location</SelectItem>
+                <SelectItem value="vente">Vente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Libellé</Label>
+            <Input value={r.label} onChange={(e) => update(idx, { label: e.target.value })} placeholder="ex : 1 semaine" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Prix HT (€)</Label>
+            <Input type="number" min="0" step="0.01" value={r.prix} onChange={(e) => update(idx, { prix: e.target.value })} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">ID variation WC</Label>
+            <Input type="number" value={r.woocommerce_variation_id} onChange={(e) => update(idx, { woocommerce_variation_id: e.target.value })} />
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setRows((prev) => (prev ?? []).filter((_, i) => i !== idx))}>
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </Button>
+        </div>
+      ))}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setRows((prev) => [...(prev ?? []), { offer_type: "vente", label: "", prix: "", woocommerce_variation_id: "" }])}
+        >
+          <Plus className="h-4 w-4 mr-1" />Ajouter un tarif
+        </Button>
+        <Button size="sm" onClick={save} disabled={isPending}>
+          {isPending && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}Enregistrer les tarifs
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── Game Form Dialog ───────────────────────────────────────────────
+
 
 function GameDialog({
   game,
