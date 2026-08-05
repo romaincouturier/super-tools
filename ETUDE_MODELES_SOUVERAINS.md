@@ -10,9 +10,11 @@ Le blocage n'est pas le modèle, c'est le routage. Sur 62 edge functions qui app
 codent en dur leur `fetch`, leur URL de provider, leur nom de modèle et leur parsing de réponse. Dans cet état,
 « basculer les modèles » signifie modifier 57 fichiers, et recommencer à chaque changement d'avis.
 
-L'ordre correct est donc : centraliser d'abord, basculer ensuite. Une fois `aiChat` généralisé, un changement de
-modèle est une ligne dans `app_settings`, avec rollback immédiat, ce que l'architecture prévoit déjà
-(`_shared/ai.ts:37-54`).
+L'ordre correct est donc : centraliser d'abord, basculer ensuite. Bonne nouvelle sur ce point précis : Mistral,
+DeepSeek, Kimi et Qwen exposent tous une API compatible OpenAI, le même format que `aiChat` sait déjà parler
+(section 8). « Juste une bascule de modèle » est donc atteignable — mais seulement après avoir généralisé
+`aiChat`, sinon chaque bascule reste une réécriture par fonction. Une fois fait, changer de modèle est une
+ligne dans `app_settings`, avec rollback immédiat, ce que l'architecture prévoit déjà (`_shared/ai.ts:37-54`).
 
 Côté prix, le gain existe mais il est plus faible qu'attendu, parce que le gros du trafic tourne déjà sur du
 low-cost (Gemini Flash via Lovable). Le gain net vient de trois postes précis, pas d'une bascule globale :
@@ -48,7 +50,27 @@ propre parsing. Ce motif est recopié dans `network-ai-assistant/index.ts:95-109
 `src/lib/claude-models.ts:10` déclare `CLAUDE_ADVANCED = "claude-sonnet-4-6"`. Le commentaire du second dit
 qu'il doit rester aligné sur le premier. Il ne l'est pas.
 
-## 3. Les cinq familles d'appels, par difficulté de bascule
+## 3. Le point aveugle actuel : Lovable, pas les candidats à l'étude
+
+Avant de comparer des candidats français ou chinois, un fait sur la **production actuelle** doit être posé,
+parce qu'il change la lecture de tout ce qui suit : les 32 fonctions qui passent par la gateway Lovable sont
+aujourd'hui, sur le plan RGPD et sécurité, **le maillon le moins couvert du système**, avant Anthropic, avant
+tout candidat chinois.
+
+Deux raisons précises. D'abord, `ai.gateway.lovable.dev` appelle l'API Gemini **consumer**, pas Vertex AI
+entreprise : pas de garantie contractuelle d'absence d'entraînement sur vos données, pas de résidence UE
+par défaut, revue humaine possible. Ensuite, et ce point n'apparaissait pas dans le rapport initial, la
+politique de confidentialité de Lovable indique que la gateway route les prompts vers un intermédiaire
+supplémentaire, **OpenRouter**, avant qu'ils n'atteignent Google. Le chemin réel d'une donnée de stagiaire
+saisie dans SuperTools aujourd'hui est donc : SuperTools → Lovable → OpenRouter → Google. Trois sauts, trois
+politiques de rétention distinctes qui s'additionnent, et aucun DPA signé côté SuperTools sur les deux
+intermédiaires — Lovable en propose un sur demande, OpenRouter uniquement en offre entreprise.
+
+Ce constat précède la question posée sur OpenRouter (section 8) : vous ne demandez pas s'il faut *introduire*
+OpenRouter dans le système, vous l'utilisez déjà, sans l'avoir choisi et sans en maîtriser les réglages de
+routage.
+
+## 4. Les cinq familles d'appels, par difficulté de bascule
 
 Toutes les fonctions ne se valent pas. Classées par ce qu'elles exigent du modèle :
 
@@ -80,7 +102,7 @@ pas en risque, mais à planifier.
 Poste de coût réel et mesuré à part (`api-usage.ts:56`, 0,27 $ par heure d'audio). Hors périmètre « modèles de
 langage » mais dans le périmètre « facture », et c'est là que le ratio de gain est le plus élevé.
 
-## 4. Candidats et prix
+## 5. Candidats et prix
 
 Prix relevés le 2026-08-05, en USD par million de tokens. Sources en fin de document. **À revérifier avant
 décision** : ces tarifs bougent tous les deux à trois mois et les sources publiques se contredisent sur les
@@ -127,7 +149,7 @@ Lectures utiles :
   `vector(1536)` du schéma. `text-embedding-v4` de Qwen accepte 1536 en sortie, ce qui évite la migration de
   schéma. Dans les deux cas, la ré-indexation complète reste obligatoire.
 
-## 5. Chiffrer le gain réel
+## 6. Chiffrer le gain réel
 
 Cette étude ne chiffre pas d'économie en euros, pour une raison à assumer : **la table `api_usage_events` n'est
 pas lisible depuis cet environnement** (hors allowlist du MCP). Toute économie annoncée ici serait inventée.
@@ -171,7 +193,7 @@ Deux angles morts que ces requêtes ne couvrent pas, à traiter à part :
    qu'Anthropic. Il concentre à la fois le risque de prix, le risque de disponibilité et le risque de
    changement de modèle sous-jacent sans préavis.
 
-## 6. Risques
+## 7. Risques
 
 **Données personnelles et Qualiopi.** SuperTools traite des données de stagiaires, des évaluations nominatives,
 des dossiers clients, des comptes rendus de mission. Envoyer ces contenus vers une API hébergée en Chine
@@ -198,21 +220,67 @@ aux structured outputs à schéma, pas en priant.
 **Le nom du fichier ment déjà.** `_shared/claude-models.ts` deviendra un contresens dès le premier modèle non
 Claude. À renommer en `models.ts` au moment du lot 1, sinon la dette de nommage se fige.
 
-## 7. Plan de bascule proposé
+## 8. OpenRouter : pertinent ou pas dans ce contexte
+
+Vous l'avez déjà, sans le savoir (section 3) : Lovable route une partie de son trafic via OpenRouter. La
+question utile n'est donc pas « faut-il l'introduire » mais « faut-il s'appuyer dessus délibérément ».
+
+**Ce que c'est.** Une passerelle unique (une clé API, une URL) qui donne accès à plus de 300 modèles chez
+60+ fournisseurs, avec un format de requête compatible OpenAI. Elle ne prend pas de marge sur le prix des
+tokens — ils sont refacturés au tarif fournisseur — mais prélève une commission au rechargement de crédit
+(5,5 % par carte, 5 % en crypto), ou 5 % au-delà d'un million de requêtes mensuelles gratuites si vous
+apportez vos propres clés (BYOK).
+
+**Ce qui change tout : elle n'est pas nécessaire pour « juste basculer un modèle ».**
+Vérification faite sur chaque candidat de cette étude : **Mistral, DeepSeek, Kimi (Moonshot) et Qwen
+(Alibaba) exposent chacun un point d'entrée natif compatible avec le format OpenAI**
+(`api.mistral.ai/v1/chat/completions`, `api.deepseek.com/v1`, `api.moonshot.ai/v1`,
+`dashscope.aliyuncs.com/compatible-mode/v1`). C'est exactement le format que `callOpenAICompatible()`
+(`_shared/ai.ts:106-133`) sait déjà parler, puisqu'il sert aujourd'hui à appeler Lovable et OpenAI. Passer à
+un de ces candidats en direct ne demande donc **aucun nouveau code de parsing** — seulement une URL, une clé
+et une entrée dans `MODEL_MAP`. C'est la version la plus proche de « juste une bascule de modèle » que
+l'architecture actuelle permette, à condition d'avoir fait le lot 1 ci-dessous.
+
+**Ce qu'OpenRouter apporte que l'appel direct n'apporte pas.**
+Un fournisseur en panne bascule automatiquement sur un autre sans changement de code, un seul relevé de
+consommation au lieu de N, et des leviers de filtrage par requête (`data_collection: "deny"` pour exclure
+les fournisseurs qui entraînent sur vos prompts, `zdr: true` pour forcer la rétention zéro, `provider.only`
+pour épingler un fournisseur précis). Utile pour un banc d'essai qui compare beaucoup de modèles vite,
+inutile une fois qu'un candidat est choisi pour la production.
+
+**Ce qu'il ne faut pas en attendre : un raccourci RGPD.** Sur le compte self-serve (celui qu'un projet de
+cette taille utiliserait), il n'y a **pas de DPA signé** et **pas de garantie de résidence UE par défaut** —
+les deux ne s'obtiennent qu'en offre entreprise, sur demande. Le routage passe par un intermédiaire
+supplémentaire aux États-Unis (OpenRouter Inc., New York), au-dessus du fournisseur final. La politique de
+rétention qui s'applique à vos données est l'**union** des deux politiques — celle d'OpenRouter et celle du
+fournisseur qu'il choisit ce jour-là. À l'inverse, appeler Mistral en direct donne un DPA et une résidence UE
+**dès le plan standard**, sans rien négocier. Pour les fonctions qui touchent des données de stagiaires ou de
+clients, l'appel direct à Mistral est donc à la fois plus simple, moins cher (pas de commission) et mieux
+couvert juridiquement qu'un passage par OpenRouter.
+
+**Verdict pour SuperTools :** ne pas construire l'intégration principale dessus. À réserver au module Arena
+(section 10), qui est un banc d'essai, pas un flux de production — c'est exactement le cas d'usage qu'OpenRouter
+sert le mieux : comparer beaucoup de modèles vite, avec une seule clé, sans engager de données réelles de
+stagiaires dans le circuit.
+
+## 9. Plan de bascule proposé
 
 **Lot 0 — mesurer (avant toute décision).**
 Passer les deux requêtes SQL ci-dessus, corriger le cache de `agent-chat` (règle [046]), aligner les deux
 catalogues de modèles divergents. Sortie : le vrai top 10 des origines coûteuses. Sans cela, tout le reste est
 de l'optimisation à l'aveugle.
 
-**Lot 1 — centraliser le routage (le vrai travail).**
-Étendre `_shared/ai.ts` : ajouter les providers `mistral`, `deepseek`, `qwen`, `moonshot`, `minimax` dans
-`MODEL_MAP` (`_shared/ai.ts:28-32`), ajouter un tier `reasoning`, et migrer les 57 fonctions qui codent leur
-`fetch` en dur vers `aiChat`. Supprimer au passage les trois fallbacks recopiés à la main. Un check dans
-`scripts/check-rules.sh` doit interdire tout nouveau `fetch` direct vers une URL de provider hors `_shared/`,
-faute de quoi la centralisation se re-dégradera (règle [034] : toute règle doit être appliquée par un mécanisme
-bloquant). C'est le lot le plus long et il ne produit aucune économie par lui-même. Il rend toutes les autres
-possibles et réversibles.
+**Lot 1 — centraliser le routage (plus léger qu'il n'y paraît).**
+Étendre `_shared/ai.ts` : ajouter les providers `mistral`, `deepseek`, `qwen`, `moonshot` dans `MODEL_MAP`
+(`_shared/ai.ts:28-32`) — chacun réutilise `callOpenAICompatible()` tel quel, sans nouveau parseur, puisque
+les quatre candidats parlent nativement le format OpenAI (section 8). Le vrai travail n'est donc pas
+d'écrire de nouveaux appels, c'est de **migrer les 57 fonctions qui codent leur `fetch` en dur vers `aiChat`**
+pour qu'un changement de modèle redevienne un réglage et non une réécriture. Supprimer au passage les trois
+fallbacks recopiés à la main. Un check dans `scripts/check-rules.sh` doit interdire tout nouveau `fetch`
+direct vers une URL de provider hors `_shared/`, faute de quoi la centralisation se re-dégradera (règle [034] :
+toute règle doit être appliquée par un mécanisme bloquant). C'est le lot le plus long en nombre de fichiers
+touchés, mais chaque fichier ne change qu'un appel réseau contre un autre — c'est mécanique, pas architectural.
+Il ne produit aucune économie par lui-même. Il rend toutes les autres possibles et réversibles.
 
 **Lot 2 — bascule de la famille A, par vagues.**
 Une fois `aiChat` généralisé, tester en conditions réelles sur les fonctions les moins exposées d'abord
@@ -237,23 +305,27 @@ calling des candidats. Ce sont 1400 lignes de boucle d'outils, c'est le cœur du
 part en boucle coûte plus cher qu'il ne fait économiser. Idem pour la famille C (vision et documents) tant que
 Mistral OCR n'a pas été mesuré sur vos bilans et documents administratifs réels.
 
-## 8. Un actif déjà présent : Arena
+## 10. Un actif déjà présent : Arena
 
 Le module Arena (`arena-orchestrate`, `arena-orchestrator`, `arena-suggest-experts`, `src/lib/arena/`) sait déjà
 faire dialoguer plusieurs modèles de plusieurs providers, avec gestion de clés par provider
-(`src/lib/arena/api.ts:80-84`). Étendre ses trois providers actuels aux candidats de cette étude en fait le banc
-d'essai de la migration, sans construire d'outillage neuf. C'est le chemin le plus court pour comparer des
-sorties françaises réelles sur vos propres prompts.
+(`src/lib/arena/api.ts:80-84`). C'est le bon endroit pour brancher OpenRouter (section 8) : aucune donnée réelle
+de stagiaire n'y transite, et une seule clé donne accès à tous les candidats de cette étude pour comparer des
+sorties réelles sur vos prompts, avant d'engager un choix en production.
 
-## 9. Décisions attendues
+## 11. Décisions attendues
 
 1. **Priorité entre souveraineté et prix.** Mistral coûte à peu près le prix actuel et règle le sujet RGPD.
    DeepSeek divise le coût de sortie par 9 mais impose soit un transfert hors UE, soit un hébergement européen
    des poids ouverts. Les deux objectifs annoncés (réduire la facture, développer l'autonomie) ne pointent pas
    vers le même choix.
-2. **Sortir de Lovable ou non.** 32 fonctions en dépendent, et c'est la dépendance la plus concentrée du
-   système, avant même Anthropic.
-3. **Accepter que le lot 1 ne rapporte rien à court terme.** C'est le prix de l'autonomie réelle : après lui,
+2. **Sortir de Lovable ou non.** 32 fonctions en dépendent, et c'est aujourd'hui la dépendance la plus
+   concentrée du système ET la moins couverte contractuellement (section 3), avant même Anthropic.
+3. **OpenRouter : banc d'essai seulement, ou aussi la production ?** Ma recommandation (section 8) est de le
+   garder pour Arena et d'appeler Mistral/DeepSeek/Kimi/Qwen en direct pour la production, parce que l'appel
+   direct est aussi simple, moins cher et mieux couvert en RGPD. Si vous voyez un besoin que je n'ai pas
+   identifié (bascule automatique multi-fournisseurs en production, par exemple), dites-le : ça change le lot 1.
+4. **Accepter que le lot 1 ne rapporte rien à court terme.** C'est le prix de l'autonomie réelle : après lui,
    changer de modèle est un réglage ; avant lui, c'est un chantier à chaque fois.
 
 ## Sources
@@ -276,3 +348,16 @@ Prix relevés le 2026-08-05, tous indicatifs, à revérifier avant engagement.
 - [MiniMax API Pricing 2026 - pricepertoken](https://pricepertoken.com/pricing-page/provider/minimax)
 - [EU GDPR Cloud GPU 2026: Hetzner, Scaleway, OVHcloud](https://www.promptquorum.com/local-llms/eu-cloud-gpu-gdpr-2026)
 - [Open-Weight LLM Showdown 2026 - Wavect](https://wavect.io/blog/open-weight-llm-comparison-2026/)
+- [Anthropic API and GDPR - Compound](https://compound.law/en-DE/tools/anthropic-api/)
+- [OpenAI Enterprise privacy](https://openai.com/enterprise-privacy/)
+- [Google Gemini / Vertex AI data residency - Google Cloud Docs](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/data-residency)
+- [Lovable Privacy Policy](https://lovable.dev/privacy)
+- [Lovable Data Processing Agreement](https://lovable.dev/data-processing-agreement)
+- [OpenRouter Pricing — how the markup model works](https://www.layer3labs.io/guides/openrouter-pricing)
+- [OpenRouter Privacy Policy](https://openrouter.ai/privacy)
+- [OpenRouter Provider Routing docs](https://openrouter.ai/docs/guides/routing/provider-selection)
+- [Enforce AI Data Residency at the Routing Layer - OpenRouter Blog](https://openrouter.ai/blog/insights/ai-data-residency/)
+- [Mistral API — OpenAI-compatible endpoint](https://docs.mistral.ai/api/endpoint/chat)
+- [DeepSeek API — OpenAI-compatible base URL](https://deepseek.day/en/api/)
+- [Migrating from OpenAI to Kimi API - Moonshot](https://platform.moonshot.ai/docs/guide/migrating-from-openai-to-kimi)
+- [Call Qwen models via OpenAI API - Alibaba Cloud](https://www.alibabacloud.com/help/en/model-studio/compatibility-of-openai-with-dashscope)
