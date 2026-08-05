@@ -34,7 +34,18 @@ export interface TenderDecisionInfo {
   /** Contact de l'acheteur. */
   contact_email: string | null;
   ville: string | null;
+  /** Devise du montant : hors de France, ce n'est pas toujours l'euro. */
+  devise?: string | null;
+  /** Type de procédure tel que codé par la source. */
+  procedure?: string | null;
+  /** Langue officielle de l'avis (TED). */
+  langue?: string | null;
+  /** URL de dépôt de l'offre. */
+  url_soumission?: string | null;
+  /** Site de l'acheteur. */
+  site_acheteur?: string | null;
 }
+
 
 /** BOAMP alterne objet unique et tableau pour les mêmes champs. */
 export function asArray<T>(value: T | T[] | null | undefined): T[] {

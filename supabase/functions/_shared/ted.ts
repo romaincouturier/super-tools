@@ -57,18 +57,62 @@ export const TED_PAGE_SIZE = 250;
 /** Plafond documenté : nombre d'avis × nombre de champs, par page. */
 export const TED_MAX_FIELDS_PER_PAGE = 10_000;
 
-/** Champs demandés pour chaque avis. */
+/**
+ * Champs demandés pour chaque avis.
+ *
+ * La première version n'en demandait que neuf : la fiche d'un avis TED était
+ * donc vide là où celle d'un avis BOAMP montrait la description, le montant,
+ * les critères et le lien du DCE. Le TED ne renvoie QUE les champs demandés,
+ * il n'y a pas de « tout l'avis » implicite : ce qui n'est pas listé ici est
+ * définitivement absent du `raw` stocké, et aucune lecture côté fiche ne peut
+ * le rattraper.
+ *
+ * Plafond documenté : avis × champs ≤ 10 000 par page. `buildTedSearchBody`
+ * calcule la taille de page à partir de cette liste, donc l'allonger réduit
+ * la page au lieu de casser la requête.
+ */
 export const TED_FIELDS = [
   "publication-number",
   "notice-title",
+  "notice-type",
+  "procedure-type",
+  "contract-nature",
+  "official-language",
+  // Contenu réel de l'avis : c'est ce qui manquait le plus.
+  "description-proc",
+  "description-lot",
+  "title-lot",
+  // Acheteur et contact.
   "buyer-name",
   "buyer-country",
+  "buyer-city",
+  "buyer-email",
+  "buyer-internet-address",
+  "main-activity",
+  // Objet et calendrier.
   "classification-cpv",
   "publication-date",
   "deadline-receipt-request",
-  "notice-type",
+  // Montant, durée, accord-cadre.
+  "estimated-value-proc",
+  "estimated-value-cur-proc",
+  "estimated-value-lot",
+  "estimated-value-cur-lot",
+  "framework-agreement-lot",
+  "duration-period-value-lot",
+  "duration-period-unit-lot",
+  // Lieu d'exécution.
+  "place-of-performance-city-lot",
+  "place-of-performance-country-lot",
+  // Critères d'attribution.
+  "award-criterion-name-lot",
+  "award-criterion-type-lot",
+  // Retrait du dossier et dépôt de l'offre.
+  "document-url-lot",
+  "submission-url-lot",
   "links",
 ];
+
 
 /**
  * Première valeur textuelle trouvée sous l'un des noms donnés, à n'importe
@@ -150,11 +194,13 @@ export function tedFullText(notice: Json, decision: TenderDecisionInfo): string 
     ...allTexts(notice, [
       "notice-title",
       "title",
+      "title-lot",
       "cbc:Name",
       "description-lot",
       "description-proc",
       "cbc:Description",
     ]),
+
     ...decision.lots,
     ...decision.criteres.map((c) => c.libelle),
   ];
@@ -222,6 +268,79 @@ export function tedNoticeUrl(publicationNumber: string): string | null {
 }
 
 /**
+ * Complète la fiche de décision avec les champs plats de la recherche TED.
+ *
+ * `decisionFromEforms` sait lire un avis eForms complet (le XML), pas la
+ * réponse de recherche, qui est un objet plat aux clés en tirets. Sans cette
+ * reprise, un avis TED n'affichait ni montant, ni durée, ni critères, ni lien
+ * du DCE : tout était présent dans la réponse et perdu à la lecture.
+ */
+function enrichFromFlatFields(notice: Json, base: TenderDecisionInfo): TenderDecisionInfo {
+  const num = (v: string | null): number | null => {
+    if (!v) return null;
+    const n = Number(String(v).replace(/[^\d.,-]/g, "").replace(",", "."));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+
+  const devise = firstText(notice, ["estimated-value-cur-proc", "estimated-value-cur-lot"]);
+  const montant =
+    base.montant ??
+    num(firstText(notice, ["estimated-value-proc", "estimated-value-lot"]));
+
+  // Durée : la valeur et son unité sont dans deux champs distincts.
+  const dureeValeur = num(firstText(notice, ["duration-period-value-lot"]));
+  const dureeUnite = (firstText(notice, ["duration-period-unit-lot"]) ?? "").toUpperCase();
+  const dureeMois =
+    base.duree_mois ??
+    (dureeValeur == null
+      ? null
+      : dureeUnite.startsWith("YEAR")
+        ? dureeValeur * 12
+        : dureeUnite.startsWith("WEEK")
+          ? Math.round(dureeValeur / 4.345)
+          : dureeUnite.startsWith("DAY")
+            ? Math.round(dureeValeur / 30)
+            : dureeValeur);
+
+  // Le TED ne publie pas la pondération chiffrée dans la recherche : le champ
+  // de poids ne contient qu'un code de type (`per-exa`). Afficher un intitulé
+  // sans poids vaut mieux qu'une liste vide.
+  const criteres = base.criteres.length
+    ? base.criteres
+    : allTexts(notice, ["award-criterion-name-lot"]).map((libelle) => ({ libelle, poids: null }));
+
+  const lots = base.lots.length
+    ? base.lots
+    : allTexts(notice, ["title-lot", "description-lot"]).slice(0, 12);
+
+  const lieu =
+    base.ville ??
+    firstText(notice, ["place-of-performance-city-lot", "buyer-city"]);
+
+  const accordCadre = (firstText(notice, ["framework-agreement-lot"]) ?? "").toLowerCase();
+
+  return {
+    ...base,
+    montant,
+    duree_mois: dureeMois,
+    reconductible:
+      base.reconductible ?? (accordCadre && accordCadre !== "none" ? true : base.reconductible),
+    criteres,
+    lots,
+    ville: lieu,
+    url_dce: base.url_dce ?? firstText(notice, ["document-url-lot", "submission-url-lot"]),
+    contact_email: base.contact_email ?? firstText(notice, ["buyer-email"]),
+    // Champs propres au TED : la fiche les affiche, la devise en premier —
+    // « 3 500 000 € » pour un marché en couronnes serait un contresens.
+    devise: devise ?? null,
+    procedure: firstText(notice, ["procedure-type"]),
+    langue: firstText(notice, ["official-language"]),
+    url_soumission: firstText(notice, ["submission-url-lot"]),
+    site_acheteur: firstText(notice, ["buyer-internet-address"]),
+  };
+}
+
+/**
  * Normalise un avis TED vers la même forme qu'un avis BOAMP.
  *
  * Rien n'est cherché par chemin fixe : l'API peut aplatir ou non la réponse,
@@ -249,6 +368,8 @@ export function mapTedNotice(notice: Json): NormalizedTender {
       ville: null,
     };
   }
+  decision = enrichFromFlatFields(notice, decision);
+
 
   const sourceRef =
     firstText(notice, ["publication-number", "ND", "publicationNumber", "cbc:ID"]) ?? "";
