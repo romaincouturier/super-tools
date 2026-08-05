@@ -334,7 +334,7 @@ export default function InboundEmails() {
 
             <Separator />
 
-            <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto overscroll-contain -mx-6 px-6">
               <div className="space-y-4 py-4">
                 {/* Metadata */}
                 <div className="grid grid-cols-2 gap-2 text-sm">
