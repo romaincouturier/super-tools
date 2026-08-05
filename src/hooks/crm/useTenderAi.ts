@@ -31,7 +31,7 @@ export const useTenderDocumentAnalyses = (tenderId: string | undefined) => {
         .eq("tender_id", tenderId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as TenderDocumentAi[];
+      return (data ?? []) as TenderDocumentAi[];
     },
   });
 };
