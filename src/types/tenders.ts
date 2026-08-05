@@ -29,6 +29,7 @@ export const tenderNoGoReasonConfig: Record<TenderNoGoReason, string> = {
 
 export const tenderSourceConfig: Record<string, string> = {
   boamp: "BOAMP",
+  ted: "TED",
   place: "PLACE",
   aws: "AWS",
   mail: "Alerte mail",

@@ -710,3 +710,92 @@ Fichiers : `supabase/functions/tender-analyze/`,
 `supabase/functions/upload-tender-document/`,
 `supabase/functions/_shared/tender-ai.ts`,
 `src/components/crm/TenderAiPanel.tsx`, `src/hooks/crm/useTenderAi.ts`.
+
+## Source TED : les marchés européens
+
+Le TED couvre toute l'Europe, là où le BOAMP s'arrête à la France. Un marché
+français au-dessus du seuil européen est publié aux deux endroits, mais c'est
+le rapprochement inter-sources qui s'en occupe, pas une exclusion de pays.
+
+**Le critère est la langue, pas la géographie.** Un marché est prospectable dès
+lors qu'il se lit et se répond en français ou en anglais, où qu'il soit publié.
+D'où deux réglages :
+
+- `tender_ted_countries` : **vide par défaut**, c'est-à-dire tous les pays. Ne
+  sert qu'à resserrer si le volume devient ingérable.
+- `tender_ted_languages` : `fra,eng` par défaut. Un avis qui n'existe dans
+  aucune de ces langues est écarté et compté à part (`unreadable`) — il n'est
+  ni lisible ni répondable, l'afficher n'encombrerait la revue que pour finir
+  en No Go. Un avis sans langue déclarée passe : mieux vaut une ligne de trop à
+  écarter à la main qu'un marché manqué parce que le TED n'a pas étiqueté son
+  titre.
+
+Les mots-clés métier existent désormais en français **et en anglais** dans la
+liste partagée (`graphic facilitation`, `graphic recording`, `collective
+intelligence`, `change management`, `ai literacy`…). Ils ne créent pas de faux
+positifs sur le BOAMP : aucun avis français ne parle de « change management ».
+
+Le reste du filtrage est **partagé** avec le BOAMP : mêmes codes CPV, mêmes
+mots-clés, mêmes exclusions. Un filtre par source aurait doublé la surface à
+calibrer pour un volume attendu d'une poignée d'avis par mois.
+
+Les avis TED sont au format eForms, celui que le BOAMP publie depuis 2024 :
+`_shared/eforms.ts` a été extrait de `boamp.ts` pour que les deux connecteurs
+lisent un avis européen avec le même code, déjà éprouvé sur des données
+réelles. `boamp.ts` garde ce qui lui est propre — l'ancien schéma XML BOAMP,
+la construction des requêtes ODSQL.
+
+### Ce qui est confirmé par la documentation
+
+`POST /v3/notices/search`, sans authentification : l'API est ouverte aux
+réutilisateurs de données. Deux modes de parcours, et le connecteur prend le
+second : le mode **itération** gèle l'index le temps du parcours, donc aucun
+avis manqué ni compté deux fois si le TED publie pendant la synchronisation, et
+il n'a pas le plafond de 15 000 avis du mode paginé. On suit `iterationNextToken`
+jusqu'à épuisement, avec deux garde-fous : 1 000 avis et 20 pages.
+
+Deux plafonds documentés sont respectés et figés par un test : 250 avis par
+page, et avis × champs demandés au plus 10 000 par page.
+
+### Ce qui n'a pas pu être vérifié
+
+Les **noms des champs** de la requête experte (`buyer-country`,
+`classification-cpv`, `publication-date`, `FT~`) et la **forme de l'enveloppe**
+de réponse. La documentation renvoie à la page Expert Search pour la liste des
+champs, et la sortie réseau de l'environnement de développement ne porte pas
+jusqu'à `api.ted.europa.eu`.
+
+Une requête refusée renvoie une erreur structurée qui nomme le champ fautif
+(`QueryUnknownFieldError`, `QueryUnsupportedFieldValueError`). Le mode sonde
+renvoie ce corps d'erreur tel quel : c'est le chemin le plus court pour
+corriger.
+
+Deux partis pris en conséquence. La requête est construite en un seul endroit
+(`buildTedSearchBody`), pour qu'une correction tienne en trois lignes. Et la
+lecture d'un avis ne code aucun chemin en dur : elle cherche les valeurs par
+nom de clé, en profondeur, en essayant plusieurs noms candidats — ce que fait
+déjà `src/lib/tenderDetail.ts` sur le BOAMP.
+
+**Le premier geste est donc le mode sonde**, qui n'écrit rien :
+
+```
+POST /functions/v1/ted-sync  { "probe": true }
+```
+
+Il renvoie la requête envoyée, le code HTTP, les clés de la réponse, celles du
+premier avis et le résultat du mapping, côte à côte. Une exécution suffit à
+confirmer ou corriger le contrat.
+
+### Volume : à mesurer avant d'automatiser
+
+Ouvrir tous les pays est le bon réglage de départ, mais c'est aussi celui qui
+peut inonder. Trois choses le retiennent : le filtre métier partagé avec le
+BOAMP, qui est étroit ; le filtre de langue, qui écarte tout ce qui n'est ni
+français ni anglais ; et les garde-fous du parcours, 1 000 avis et 20 pages.
+
+La séquence est la même que pour le BOAMP, et pour la même raison — la
+première ingestion réelle avait ramené 278 avis pour une vingtaine attendue :
+sonde, puis ingestion manuelle sur une fenêtre large, puis lecture des
+compteurs (`kept`, `excluded`, `unmatched`, `unreadable`) avant de programmer
+quoi que ce soit. Si `kept` est élevé, resserrer les pays est le levier le plus
+direct.
