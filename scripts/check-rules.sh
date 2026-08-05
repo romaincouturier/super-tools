@@ -254,6 +254,13 @@ check "036" "Pas de vault.decrypted_secrets / x-cron-secret dans les nouvelles m
 check "046" "Migrations app_settings — UPDATE de setting_value conditionné à la valeur attendue" \
   "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260803155909 ] 2>/dev/null || continue; grep -vE '^[[:space:]]*--' \"\$f\" | awk -v F=\"\$f\" '/UPDATE[[:space:]]+public\.app_settings/{u=1;s=\"\"} u{s=s\" \"\$0} u&&/;[[:space:]]*\$/{u=0; if (s ~ /SET[[:space:]]+setting_value/ && gsub(/setting_value/,\"&\",s) < 2) print \"VIOLATION: \" F \" — UPDATE setting_value sans condition sur la valeur precedente\"}'; done; true"
 
+# [047] Buckets storage — les nouveaux buckets sont privés. La politique de
+# l'espace de travail refuse les buckets publics, et sur un bucket privé c'est
+# la policy SELECT de storage.objects qui autorise le téléchargement.
+# Les buckets antérieurs au 04/08/2026 sont legacy : publics et déjà en service.
+check "047" "Pas de nouveau bucket storage public dans les migrations" \
+  "for f in supabase/migrations/*.sql; do bn=\$(basename \"\$f\"); ts=\${bn%%_*}; [ \"\$ts\" -gt 20260804162002 ] 2>/dev/null || continue; grep -vE '^[[:space:]]*--' \"\$f\" | awk -v F=\"\$f\" '/INSERT INTO storage\\.buckets/{u=1;s=\"\"} u{s=s\" \"\$0} u&&/;[[:space:]]*\$/{u=0; if (s ~ /,[[:space:]]*true[[:space:]]*,/) print \"VIOLATION: \" F \" — bucket cree en public, les buckets doivent etre prives\"}'; done; true"
+
 # [038] Backup — toute table créée en migration doit être dans TABLES_TO_BACKUP
 # des deux fonctions de backup, ou exclue explicitement (scripts/backup-exclusions.txt).
 check "038" "Toute table migrée est backupée (backup-export + scheduled-backup) ou exclue explicitement" \
@@ -428,7 +435,7 @@ if [ "$STAGED_MODE" = "false" ]; then
   # [046] Prompt caching de l'agent — le cache ne tient que si le prefixe rendu est
   # append-only pendant un tour (cutoff de compaction fige) ET si des points de cache
   # sont poses sur l'historique, pas seulement sur le system.
-  check "046" "Agent : historique cache et cutoff de compaction fige" \
+  check "048" "Agent : historique cache et cutoff de compaction fige" \
     "grep -q 'withCacheBreakpoints(compactForApi(conversationMessages, compactionCutoff))' supabase/functions/agent-chat/index.ts \
        || echo 'VIOLATION [046]: agent-chat doit envoyer withCacheBreakpoints(compactForApi(..., compactionCutoff))'; \
      test -f supabase/functions/_shared/agent-history.test.ts \

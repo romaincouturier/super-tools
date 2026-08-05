@@ -22,7 +22,10 @@ function decodeNestedJson(node: Json, depth = 0): Json {
     if (s.length > 1 && (s[0] === "{" || s[0] === "[")) {
       try {
         return decodeNestedJson(JSON.parse(s), depth + 1);
-      } catch {
+      } catch (_notJson) {
+        // Sonde de type et non gestion d'erreur : une chaîne qui commence par
+        // { ou [ sans être du JSON est simplement du texte. Rien à reporter,
+        // d'où la liaison explicitement ignorée plutôt qu'un catch nu.
         return node;
       }
     }
