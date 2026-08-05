@@ -16,7 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { daysLeft, describeMatch, resolveDceLink } from "@/lib/tenders";
 import { cn } from "@/lib/utils";
