@@ -41,6 +41,7 @@ import { useAuth } from "@/hooks/useAuth";
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   mission: "Mission",
   training: "Formation",
+  event: "Événement",
 };
 
 // ── New template form ──────────────────────────────────────────────────────
@@ -91,6 +92,7 @@ function NewTemplateForm({ isAdmin, userId, onClose }: { isAdmin: boolean; userI
               <SelectItem value="both">Missions et formations</SelectItem>
               <SelectItem value="mission">Mission uniquement</SelectItem>
               <SelectItem value="training">Formation uniquement</SelectItem>
+              <SelectItem value="event">Événement uniquement</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -436,7 +438,7 @@ export default function ChecklistTemplateManager() {
             <div>
               <CardTitle>Modèles de checklist logistique</CardTitle>
               <CardDescription>
-                Créez des groupes d'items réutilisables à importer en un clic dans une mission ou formation.
+                Créez des groupes d'items réutilisables à importer en un clic dans une mission, une formation ou un événement.
                 Le décalage (jours) est calculé à partir de la date de début de l'entité.
               </CardDescription>
             </div>

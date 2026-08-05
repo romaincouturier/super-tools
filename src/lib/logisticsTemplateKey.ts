@@ -7,6 +7,7 @@ import type { LogisticsEntityType } from "@/types/logistics";
  * unit-tested without the full client chain.
  *
  * Mission examples:  "mission.remote", "mission.presentiel"
+ * Event examples:    "event.remote", "event.presentiel"
  * Training examples: "training.inter.presentiel", "training.classe_virtuelle",
  *                    "training.intra.presentiel", "training.e_learning"
  */
@@ -18,6 +19,9 @@ export function resolveTemplateKey(args: {
 }): string {
   if (args.entityType === "mission") {
     return args.isRemote ? "mission.remote" : "mission.presentiel";
+  }
+  if (args.entityType === "event") {
+    return args.isRemote ? "event.remote" : "event.presentiel";
   }
   // Training
   const rawFmt = args.format || "presentiel";
