@@ -1069,8 +1069,12 @@ function GameDialog({
           </>)}
         </div>
       </div>
+
+      {/* Tarifs location / vente */}
+      {form.id && <GamePricesSection gameId={form.id} />}
     </div>
   );
+
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
