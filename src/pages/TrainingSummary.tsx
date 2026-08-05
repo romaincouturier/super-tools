@@ -192,7 +192,7 @@ const TrainingSummary = () => {
 
   const isOnlineLocation = () => {
     if (!training) return false;
-    const location = training.location.toLowerCase();
+    const location = (training.location || "").toLowerCase();
     return (
       location.includes("visio") ||
       location.includes("en ligne") ||
@@ -208,13 +208,13 @@ const TrainingSummary = () => {
 
   const extractUrlFromLocation = () => {
     if (!training) return null;
-    const urlMatch = training.location.match(/(https?:\/\/[^\s]+)/);
+    const urlMatch = (training.location || "").match(/(https?:\/\/[^\s]+)/);
     return urlMatch ? urlMatch[0] : null;
   };
 
   const getDirectionsUrl = () => {
     if (!training) return "";
-    return getGoogleMapsDirectionsUrl(training.location);
+    return getGoogleMapsDirectionsUrl(training.location || "");
   };
 
   const getEventTitle = () => {
@@ -253,7 +253,7 @@ BEGIN:VEVENT
 DTSTART:${startDate}T${startTime}
 DTEND:${startDate}T${endTime}
 SUMMARY:${getEventTitle()} (${dayLabel})
-LOCATION:${training.location}
+LOCATION:${training.location || ""}
 DESCRIPTION:${desc}
 URL:${getSummaryPageUrl()}
 END:VEVENT
@@ -286,7 +286,7 @@ END:VCALENDAR`;
     url.searchParams.set("text", `${getEventTitle()} (${dayLabel})`);
     url.searchParams.set("dates", `${startDate}T${startTime}/${startDate}T${endTime}`);
     url.searchParams.set("details", getEventDescription());
-    url.searchParams.set("location", training.location);
+    url.searchParams.set("location", training.location || "");
 
     window.open(url.toString(), "_blank");
   };
@@ -298,7 +298,7 @@ END:VCALENDAR`;
     const url = new URL("https://outlook.live.com/calendar/0/deeplink/compose");
     url.searchParams.set("subject", `${getEventTitle()} (${dayLabel})`);
     url.searchParams.set("body", getEventDescription());
-    url.searchParams.set("location", training.location);
+    url.searchParams.set("location", training.location || "");
     url.searchParams.set("startdt", `${schedule.day_date}T${schedule.start_time}`);
     url.searchParams.set("enddt", `${schedule.day_date}T${schedule.end_time}`);
 
@@ -318,7 +318,7 @@ END:VCALENDAR`;
     url.searchParams.set("st", `${startDate}T${startTime}`);
     url.searchParams.set("et", `${startDate}T${endTime}`);
     url.searchParams.set("desc", getEventDescription());
-    url.searchParams.set("in_loc", training.location);
+    url.searchParams.set("in_loc", training.location || "");
 
     window.open(url.toString(), "_blank");
   };
@@ -578,7 +578,7 @@ END:VCALENDAR`;
         )}
 
         {/* ═══ SECTION: Lieu ═══ */}
-        {training.format_formation !== "e_learning" && (
+        {training.format_formation !== "e_learning" && training.location && (
           <section ref={sectionLieu} id="section-lieu" className="scroll-mt-20">
             {isOnlineLocation() ? (
               /* Online / Visio */
@@ -625,21 +625,21 @@ END:VCALENDAR`;
                 <div className="relative block h-48" style={{ background: c.surfaceContainerHighest }}>
                   <iframe
                     title="Carte du lieu de formation"
-                    src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(training.location)}`}
+                    src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(training.location || "")}`}
                     className="w-full h-full border-0"
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
                   <a
-                    href={getGoogleMapsSearchUrl(training.location)}
+                    href={getGoogleMapsSearchUrl(training.location || "")}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="absolute bottom-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full shadow-sm hover:bg-white transition-colors"
                   >
                     <MIcon icon="location_on" className="text-sm" />
                     <span className="text-xs font-bold">
-                      {training.location.split(",").pop()?.trim() || training.location}
+                      {training.location?.split(",").pop()?.trim() || training.location}
                     </span>
                   </a>
                 </div>
@@ -852,7 +852,7 @@ END:VCALENDAR`;
           active={activeNav === "documents"}
           onClick={() => scrollTo(sectionDocuments, "documents")}
         />
-        {training.format_formation !== "e_learning" && (
+        {training.format_formation !== "e_learning" && training.location && (
           <NavItem
             icon="location_on"
             label="Lieu"
