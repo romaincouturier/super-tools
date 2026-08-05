@@ -1,19 +1,19 @@
-# Connecteur MCP SuperTools (lecture seule)
+# Connecteur MCP SuperTools (lecture, plus trois écritures encadrées)
 
 Permet d'interroger les données SuperTools depuis claude.ai ou Claude Desktop,
 et de les croiser avec les connecteurs natifs (Google Drive, Notion).
 
 ## Modèle de sécurité
 
-- **Tools exposés (15)** : `query_database` (via `agent_sql_query` : SELECT
+- **Tools exposés (17)** : `query_database` (via `agent_sql_query` : SELECT
   uniquement, tables allowlistées du registry, 100 lignes max),
   `search_content` (recherche hybride, filtrable par mission via
   `mission_id`), `list_schema`, `get_mission_dossier` (mission + pages +
   activités + documents + galerie), `get_client_dossier`, `read_media_image`
   (photo de galerie en image, redimensionnée côté serveur, 3 Mo max),
   `read_document`, `read_mission_page`, `read_mission_documents`,
-  `save_mission_note`, `save_mission_document`, et les quatre outils
-  d'audience décrits ci-dessous. Tous sont journalisés dans
+  `save_mission_note`, `save_mission_document`, les quatre outils
+  d'audience et les deux outils de marchés publics décrits ci-dessous. Tous sont journalisés dans
   `agent_query_audit_log`.
 - **Instructions du serveur** : le champ `instructions` du protocole MCP,
   renvoyé à l'initialisation, décrit à Claude le métier, les données
@@ -22,7 +22,11 @@ et de les croiser avec les connecteurs natifs (Google Drive, Notion).
   client ignore ce qui existe : c'est ce qui produisait des réponses évasives
   du type « Search Console n'est pas accessible d'ici » alors que les données
   sont en base.
-- **Lecture seule, à deux exceptions près, toutes deux additives** : elles ne
+- **Lecture seule, à trois exceptions près.** Deux sont additives
+  (`save_mission_note`, `save_mission_document`, décrites juste après) ; la
+  troisième, `decide_tender`, est la seule qui écrit dans le CRM et n'existe
+  que derrière une validation humaine explicite (voir « Marchés publics »).
+- **Les deux écritures additives** ne : elles ne
   peuvent qu'**ajouter**. Aucun écrasement, aucune suppression, aucune autre
   table touchée.
   - `save_mission_note` crée ou met à jour **une page de mission**, titre
@@ -138,6 +142,50 @@ les mêmes chiffres.
 Les tables sous-jacentes (`gsc_metrics_daily`, `gsc_url_inspections`,
 `gsc_sitemaps`, `wp_traffic_daily`) restent accessibles en SQL via
 `query_database` pour les questions qui sortent de ces quatre cadres.
+
+## Marchés publics : qualification Go / No Go
+
+Étape 4 du workflow de `docs/marches-publics.md`, faite depuis Claude Cowork.
+Les deux outils partagent leur implémentation avec l'écran CRM via
+`supabase/functions/_shared/tender-decision.ts` : la file lue par Claude est
+exactement celle affichée dans SuperTools, et une carte issue d'un Go est en
+tout point identique à une carte créée par le formulaire du site.
+
+- **`list_pending_tenders`** (lecture) — les avis en attente de décision, date
+  limite la plus proche d'abord : pas de doublon inter-sources, pas d'avis
+  d'attribution, pas d'échéance dépassée. Chaque avis porte ce qui fait
+  basculer la décision, dans l'ordre d'importance retenu : titulaire sortant et
+  montant du marché précédent (tirés des avis d'attribution du même acheteur),
+  pondération des critères, allotissement, durée et reconductions, historique
+  CRM avec cet acheteur, date limite. 50 avis par défaut, 100 au plus, avec
+  `total` et `truncated`.
+- **`decide_tender`** (écriture) — exécute une décision déjà prise :
+  - `no_go` : motif obligatoire, pris dans la liste fermée de
+    `src/types/tenders.ts` (`hors_domaine`, `trop_gros`, `trop_petit`,
+    `delai_trop_court`, `criteres_prix`, `titulaire_sortant`, `geographie`,
+    `charge_de_travail`, `autre`). Met à jour la seule ligne de l'avis
+    (`status`, motif, détail, `reviewed_at`, `reviewed_by`) : aucune création,
+    aucune suppression. Le motif est ce qui permet de recalibrer les listes de
+    filtrage, un No Go sans motif ne servirait à rien.
+  - `go` : crée une carte CRM par le même chemin que
+    `crm-elementor-webhook` — colonne « Entrant », tag « Marché public »,
+    `status_operational=WAITING`, prochaine action « Retirer le DCE et décider
+    de candidater » datée du jour (Europe/Paris), `expected_close_date` = date
+    limite, `acquisition_source=marche_public`, description construite à partir
+    de l'avis (acheteur, montant, critères, liens DCE et avis, tout échappé car
+    contenu externe), journal `crm_activity_log` et notification Slack. L'avis
+    passe ensuite en `go` avec son `crm_card_id`. Un second Go sur le même avis
+    est refusé.
+
+**La barrière est humaine, et c'est le point de vigilance du module.** Un avis
+public et un mail d'alerte sont du contenu externe non contrôlé, lu par un
+agent qui dispose ici d'un droit d'écriture dans le CRM : rien dans un avis ne
+doit pouvoir déclencher un Go. Les instructions du serveur l'imposent
+explicitement — `decide_tender` ne s'appelle qu'après une validation de
+l'utilisateur dans la conversation, avis par avis, jamais en lot. `actorEmail`
+est forcé à `ALLOWED_EMAIL` côté serveur et chaque appel est journalisé dans
+`agent_query_audit_log` avant exécution, décision et motif inclus : une
+décision reste traçable même si l'écriture échoue ensuite.
 
 ## Proxy racine obligatoire pour claude.ai
 
