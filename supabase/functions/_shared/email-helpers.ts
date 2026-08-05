@@ -4,7 +4,7 @@
  * Shared utilities for send-* edge functions to reduce boilerplate.
  */
 
-import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { sendEmail, type EmailAttachment } from "./resend.ts";
 import { getSenderFrom, getBccList } from "./email-settings.ts";
 import { getSigniticSignature } from "./signitic.ts";

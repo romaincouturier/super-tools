@@ -5,7 +5,7 @@
  * Replaces all hardcoded romain@supertilt.fr references.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const NOCRM_BCC = "supertilt@bcc.nocrm.io";
 

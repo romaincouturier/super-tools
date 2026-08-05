@@ -7,6 +7,8 @@ import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
+import { resolveCertificateHours } from "../_shared/certificate-duration.ts";
+
 
 const PDFMONKEY_API_KEY = Deno.env.get("PDFMONKEY_API_KEY");
 const GOOGLE_SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
@@ -213,28 +215,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Training not found");
     }
 
-    // Get schedules for duration calculation
-    const { data: schedules } = await supabase
-      .from("training_schedules")
-      .select("day_date, start_time, end_time")
-      .eq("training_id", training.id)
-      .order("day_date", { ascending: true });
+    // Durée officielle : créneaux planifiés, sinon formule du participant,
+    // sinon durée de l'entrée catalogue (cas e-learning sans planning).
+    const totalHours = await resolveCertificateHours(supabase, training.id, {
+      participantId: evaluation.participant_id ?? null,
+      participantEmail: evaluation.email ?? null,
+    });
 
-    // Calculate duration: 3.5h per half-day, 7h per full day
-    let totalHours = 0;
-    if (schedules && schedules.length > 0) {
-      for (const s of schedules) {
-        const [startH, startM] = s.start_time.split(":").map(Number);
-        const [endH, endM] = s.end_time.split(":").map(Number);
-        const sessionMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-        // Half-day (<=4h) = 3.5h, Full day (>4h) = 7h
-        if (sessionMinutes <= 240) {
-          totalHours += 3.5;
-        } else {
-          totalHours += 7;
-        }
-      }
-    }
 
     const [signatureHtml, senderFrom, bccList] = await Promise.all([
       getSigniticSignature(),

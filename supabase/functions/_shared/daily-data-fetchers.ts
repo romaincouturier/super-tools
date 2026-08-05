@@ -5,7 +5,7 @@
  * however they need (HTML for emails, ActionItem for the TODO table).
  */
 
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { daysUntil } from "./tender-tools.ts";
 
 // ─── Types ───────────────────────────────────────────────────────────

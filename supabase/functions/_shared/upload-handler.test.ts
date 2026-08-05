@@ -39,7 +39,7 @@ const mockCreateClient = vi.fn(() => ({
   storage: { from: mockStorageFrom },
 }));
 
-vi.mock("https://esm.sh/@supabase/supabase-js@2", () => ({
+vi.mock("https://esm.sh/@supabase/supabase-js@2.49.4", () => ({
   createClient: (...args: unknown[]) => mockCreateClient(...args),
 }));
 

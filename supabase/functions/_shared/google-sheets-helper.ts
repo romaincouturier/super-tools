@@ -3,7 +3,7 @@
  * and appends a row. Reuses the shared google_tokens OAuth (needs the
  * `spreadsheets` scope).
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getValidDriveAccessToken } from "./google-drive-helper.ts";
 
 export function parseSheetsUrl(url: string): { spreadsheetId: string; gid: number | null } | null {

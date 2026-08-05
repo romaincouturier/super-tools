@@ -10,7 +10,7 @@
  * Failure guarantee: if the DB persist step throws, the uploaded file is removed
  * from storage before returning an error (no orphaned files).
  */
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import {
   corsHeaders,
   handleCorsPreflightIfNeeded,

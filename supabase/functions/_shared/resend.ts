@@ -5,7 +5,7 @@
  * Automatically logs failed emails to the failed_emails table for admin notification.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { getSenderFrom, getSenderEmail } from "./email-settings.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";

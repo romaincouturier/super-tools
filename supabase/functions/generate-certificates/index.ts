@@ -7,6 +7,8 @@ import { sendEmail } from "../_shared/resend.ts";
 
 import { corsHeaders, handleCorsPreflightIfNeeded } from "../_shared/cors.ts";
 import { formatDateFr } from "../_shared/date-utils.ts";
+import { resolveCertificateHours } from "../_shared/certificate-duration.ts";
+
 
 function uint8ToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -60,6 +62,7 @@ interface RequestBody {
   emailCommanditaire?: string;
   participants: Participant[];
   trainingId?: string; // For storing certificate_url in training_evaluations
+  forceRegenerate?: boolean; // Ignore le PDF déjà stocké et régénère l'attestation
 }
 
 interface PdfData {
@@ -583,7 +586,7 @@ serve(async (req: Request): Promise<Response> => {
     // --- End authentication check ---
 
     const body: RequestBody = await req.json();
-    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId } = body;
+    const { formationName, entreprise, duree, dateDebut, dateFin, emailDestinataire, emailCommanditaire, participants, userId, trainingId, forceRegenerate } = body;
 
     console.log(`Processing ${participants.length} participants for formation: ${formationName}`);
     if (userId) {
@@ -621,7 +624,7 @@ serve(async (req: Request): Promise<Response> => {
           const errors: string[] = [];
 
           // Check if certificate already exists in storage; reuse it if so
-          if (trainingId) {
+          if (trainingId && !forceRegenerate) {
             try {
               const participantId = participant.participantId || participant.email;
               const storagePath = `${trainingId}/${participantId}.pdf`;
@@ -669,15 +672,31 @@ serve(async (req: Request): Promise<Response> => {
           });
 
           try {
+            // Durée : si le planning ne donne rien (e-learning), on retombe sur la
+            // formule achetée par le participant ou sur l'entrée catalogue.
+            let effectiveDuree = duree;
+            const zeroDuree = /^\s*0(?:[.,]0+)?\s*h(.*)$/.exec(duree || "");
+            if (zeroDuree && trainingId) {
+              const hours = await resolveCertificateHours(supabaseAdmin, trainingId, {
+                participantId: participant.participantId ?? null,
+                participantEmail: participant.email ?? null,
+              });
+              if (hours > 0) {
+                const suffix = zeroDuree[1]?.trim();
+                effectiveDuree = suffix ? `${hours}h ${suffix}` : `${hours}h`;
+              }
+            }
+
             // Generate PDF
             const result = await generatePdfWithPdfMonkey(
               participant,
               formationName,
               entreprise,
-              duree,
+              effectiveDuree,
               dateDebut,
               dateFin
             );
+
             pdfUrl = result.pdfUrl;
             pdfGenerated = true;
 

@@ -5,7 +5,7 @@
  * Cached for the lifetime of the edge function invocation.
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const DEFAULTS: Record<string, string> = {
   app_url: "https://super-tools.lovable.app",
