@@ -281,3 +281,82 @@ export function mapTedNotice(notice: Json): NormalizedTender {
     parse_error: parseError,
   };
 }
+
+
+// ── Parcours des pages ───────────────────────────────────────
+
+/** Une page telle que rendue par l'API, avant interprétation. */
+export interface TedPage {
+  status: number;
+  payload: Json;
+}
+
+export interface TedWalkResult {
+  notices: unknown[];
+  pages: number;
+  /** Vrai quand le parcours s'est arrêté avant d'avoir tout lu. */
+  truncated: boolean;
+  /**
+   * Raison de l'arrêt anticipé, `null` si le parcours est allé au bout.
+   * Une page en échec au milieu du parcours ne doit PAS passer pour une
+   * synchronisation réussie : sans cette remontée, il manquerait des avis et
+   * le compteur dirait quand même « succès ».
+   */
+  error: string | null;
+}
+
+/** Les avis d'une page, quelle que soit la clé d'enveloppe. */
+export function noticesOf(payload: Json): unknown[] {
+  const found = payload?.notices ?? payload?.results ?? payload?.content ?? payload;
+  return Array.isArray(found) ? found : [];
+}
+
+/**
+ * Suit `iterationNextToken` jusqu'à épuisement.
+ *
+ * Sans ce parcours, une seule page serait lue — 250 avis au plus — et le reste
+ * manquerait sans que rien ne le signale. C'est le défaut le plus coûteux
+ * possible sur un connecteur : invisible.
+ *
+ * Deux garde-fous, parce qu'un jeton qui ne s'épuise jamais boucle à l'infini :
+ * un nombre maximum d'avis et un nombre maximum de pages. Atteindre l'un des
+ * deux marque le résultat comme tronqué.
+ */
+export async function walkTedPages(opts: {
+  fetchPage: (token: string | null) => Promise<TedPage>;
+  maxRecords: number;
+  maxPages: number;
+}): Promise<TedWalkResult> {
+  const first = await opts.fetchPage(null);
+  if (first.status < 200 || first.status >= 300) {
+    return { notices: [], pages: 0, truncated: false, error: `TED a répondu ${first.status}` };
+  }
+
+  const notices: unknown[] = [...noticesOf(first.payload)];
+  let token: string | null = first.payload?.iterationNextToken ?? null;
+  let pages = 1;
+
+  while (token) {
+    if (notices.length >= opts.maxRecords || pages >= opts.maxPages) {
+      return { notices, pages, truncated: true, error: null };
+    }
+    const next = await opts.fetchPage(token);
+    if (next.status < 200 || next.status >= 300) {
+      return {
+        notices,
+        pages,
+        truncated: true,
+        error: `page ${pages + 1} : TED a répondu ${next.status}`,
+      };
+    }
+    const batch = noticesOf(next.payload);
+    // Page vide alors que le jeton existait encore : le TED considère le
+    // parcours terminé, ce n'est pas une anomalie.
+    if (!batch.length) break;
+    notices.push(...batch);
+    token = next.payload?.iterationNextToken ?? null;
+    pages++;
+  }
+
+  return { notices, pages, truncated: false, error: null };
+}

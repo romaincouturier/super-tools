@@ -8,7 +8,9 @@ import {
 import {
   buildTedSearchBody,
   mapTedNotice,
+  noticesOf,
   TED_BASE,
+  walkTedPages,
   type NormalizedTender,
 } from "../_shared/ted.ts";
 import {
@@ -125,12 +127,6 @@ serve(async (req) => {
       return { searchBody, status: res.status, payload: await res.json().catch(() => null) };
     };
 
-    // deno-lint-ignore no-explicit-any
-    const noticesOf = (payload: any): unknown[] => {
-      const found = payload?.notices ?? payload?.results ?? payload?.content ?? payload;
-      return Array.isArray(found) ? found : [];
-    };
-
     const firstPage = await fetchPage(null);
 
     // ── Sonde : le contrat de l'API sans rien écrire ─────────
@@ -163,21 +159,14 @@ serve(async (req) => {
       );
     }
 
-    // Mode itération : on suit le jeton jusqu'à épuisement, sans dépasser le
-    // garde-fou. Sans cette boucle, une seule page serait lue et le reste
-    // manquerait sans que rien ne le signale.
-    const notices: unknown[] = [...noticesOf(firstPage.payload)];
-    let token: string | null = firstPage.payload?.iterationNextToken ?? null;
-    let pages = 1;
-    while (token && notices.length < MAX_RECORDS && pages < MAX_PAGES) {
-      const next = await fetchPage(token);
-      if (next.status < 200 || next.status >= 300) break;
-      const batch = noticesOf(next.payload);
-      if (!batch.length) break;
-      notices.push(...batch);
-      token = next.payload?.iterationNextToken ?? null;
-      pages++;
-    }
+    // Le parcours des pages vit dans `_shared/ted.ts` : c'est la partie qui se
+    // teste, et celle où une erreur avalée coûte le plus cher.
+    const walk = await walkTedPages({
+      fetchPage: (token) => fetchPage(token).then((p) => ({ status: p.status, payload: p.payload })),
+      maxRecords: MAX_RECORDS,
+      maxPages: MAX_PAGES,
+    });
+    const notices = walk.notices;
 
     if (notices.length === 0) {
       console.log(`[${VERSION}] aucune notice`, JSON.stringify({ since, countries }));
@@ -260,13 +249,13 @@ serve(async (req) => {
       since,
       countries,
       notices_received: notices.length,
-      pages_read: pages,
+      pages_read: walk.pages,
       kept,
       excluded,
       unmatched,
       failed,
       duplicates_linked: linked ?? 0,
-      truncated: notices.length > MAX_RECORDS,
+      truncated: walk.truncated,
       parse_errors: parseErrors.slice(0, 20),
     };
     console.log(`[${VERSION}]`, JSON.stringify(summary));
@@ -274,6 +263,18 @@ serve(async (req) => {
     // Une synchronisation qui n'écrit rien alors que le TED a répondu est un
     // échec déguisé : sans ce 500, le cron se dirait réussi tous les matins
     // pendant que rien n'entre.
+    // Un parcours interrompu au milieu laisse des avis non lus. Le dire en 502
+    // plutôt qu'en succès : sinon le cron se déclare vert tous les matins
+    // pendant qu'il manque la moitié du flux, et Sentry ne voit rien.
+    if (walk.error) {
+      return createErrorResponse(
+        `Parcours TED incomplet (${walk.error}) : ${kept} avis enregistrés sur ` +
+          `${notices.length} lus, le reste n'a pas été parcouru.`,
+        502,
+        { fn: "ted-sync" },
+      );
+    }
+
     if (failed > 0 && kept === 0) {
       return createErrorResponse(
         `Synchronisation sans effet : ${failed} avis en échec, aucun enregistré. ` +

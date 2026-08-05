@@ -4,7 +4,9 @@ import {
   buildTedSearchBody,
   firstText,
   mapTedNotice,
+  noticesOf,
   tedNoticeUrl,
+  walkTedPages,
 } from "./ted.ts";
 
 /**
@@ -173,5 +175,117 @@ describe("tedNoticeUrl", () => {
       "https://ted.europa.eu/en/notice/-/detail/00123456-2026",
     );
     expect(tedNoticeUrl("  ")).toBeNull();
+  });
+});
+
+describe("walkTedPages", () => {
+  /** Fabrique un faux TED : une page par entrée, le jeton enchaîne les pages. */
+  function fakeTed(pages: Array<{ status?: number; notices?: unknown[]; next?: string | null }>) {
+    const calls: Array<string | null> = [];
+    let index = 0;
+    return {
+      calls,
+      fetchPage: (token: string | null) => {
+        calls.push(token);
+        const page = pages[index++] ?? { notices: [] };
+        return Promise.resolve({
+          status: page.status ?? 200,
+          payload: { notices: page.notices ?? [], iterationNextToken: page.next ?? null },
+        });
+      },
+    };
+  }
+
+  it("enchaîne les pages jusqu'à épuisement du jeton", async () => {
+    const ted = fakeTed([
+      { notices: [{ id: 1 }, { id: 2 }], next: "t1" },
+      { notices: [{ id: 3 }], next: "t2" },
+      { notices: [{ id: 4 }], next: null },
+    ]);
+    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
+    expect(r.notices).toHaveLength(4);
+    expect(r.pages).toBe(3);
+    expect(r.truncated).toBe(false);
+    expect(r.error).toBeNull();
+    // Premier appel sans jeton, puis les jetons rendus par l'API.
+    expect(ted.calls).toEqual([null, "t1", "t2"]);
+  });
+
+  it("s'arrête à la première page quand il n'y a pas de jeton", async () => {
+    const ted = fakeTed([{ notices: [{ id: 1 }], next: null }]);
+    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
+    expect(r.pages).toBe(1);
+    expect(ted.calls).toEqual([null]);
+  });
+
+  // Le défaut le plus coûteux d'un connecteur est celui qui ne se voit pas :
+  // une page en échec au milieu du parcours laissait passer une
+  // synchronisation « réussie » à laquelle il manquait la moitié du flux.
+  it("remonte une page en échec au lieu de la taire", async () => {
+    const ted = fakeTed([
+      { notices: [{ id: 1 }], next: "t1" },
+      { status: 503 },
+    ]);
+    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
+    expect(r.notices).toHaveLength(1);
+    expect(r.error).toContain("503");
+    expect(r.truncated).toBe(true);
+  });
+
+  it("remonte un échec dès la première page", async () => {
+    const ted = fakeTed([{ status: 400 }]);
+    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
+    expect(r.notices).toEqual([]);
+    expect(r.error).toContain("400");
+  });
+
+  it("s'arrête au plafond d'avis et le signale", async () => {
+    const ted = fakeTed([
+      { notices: [{ id: 1 }, { id: 2 }], next: "t1" },
+      { notices: [{ id: 3 }], next: "t2" },
+    ]);
+    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 2, maxPages: 10 });
+    expect(r.notices).toHaveLength(2);
+    expect(r.truncated).toBe(true);
+    expect(r.error).toBeNull();
+  });
+
+  // Un jeton qui ne s'épuise jamais boucle à l'infini : le plafond de pages
+  // est ce qui empêche la fonction de tourner jusqu'au timeout.
+  it("s'arrête au plafond de pages sur un jeton qui ne s'épuise pas", async () => {
+    let n = 0;
+    const r = await walkTedPages({
+      fetchPage: () => {
+        n++;
+        return Promise.resolve({
+          status: 200,
+          payload: { notices: [{ id: n }], iterationNextToken: "toujours" },
+        });
+      },
+      maxRecords: 1000,
+      maxPages: 3,
+    });
+    expect(r.pages).toBe(3);
+    expect(r.truncated).toBe(true);
+    expect(n).toBe(3);
+  });
+
+  it("s'arrête sur une page vide sans crier à l'erreur", async () => {
+    const ted = fakeTed([{ notices: [{ id: 1 }], next: "t1" }, { notices: [], next: "t2" }]);
+    const r = await walkTedPages({ fetchPage: ted.fetchPage, maxRecords: 100, maxPages: 10 });
+    expect(r.notices).toHaveLength(1);
+    expect(r.error).toBeNull();
+    expect(r.truncated).toBe(false);
+  });
+});
+
+describe("noticesOf", () => {
+  it("accepte les enveloppes plausibles et le tableau nu", () => {
+    expect(noticesOf({ notices: [1] })).toEqual([1]);
+    expect(noticesOf({ results: [2] })).toEqual([2]);
+    expect(noticesOf({ content: [3] })).toEqual([3]);
+    expect(noticesOf([4])).toEqual([4]);
+    expect(noticesOf(null)).toEqual([]);
+    expect(noticesOf({ autre: "chose" })).toEqual([]);
   });
 });
