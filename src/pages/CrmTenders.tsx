@@ -29,10 +29,30 @@ import { TenderGoDialog, TenderNoGoDialog } from "@/components/crm/TenderDecisio
 import type { TenderWithContext } from "@/types/tenders";
 import type { ServiceType } from "@/types/crm";
 
+/**
+ * Sources filtrables. « autre » regroupe tout ce qui n'est pas nommé ici, pour
+ * qu'un avis d'une source ajoutée demain ne disparaisse pas de la liste.
+ */
+const SOURCE_FILTERS = [
+  { key: "boamp", label: "BOAMP", icon: Landmark },
+  { key: "ted", label: "TED", icon: Globe2 },
+  { key: "aws", label: "AWS", icon: Mail },
+  { key: "place", label: "PLACE", icon: Building2 },
+  { key: "autre", label: "Autre", icon: HelpCircle },
+] as const;
+
+const NAMED_SOURCES = SOURCE_FILTERS.filter((s) => s.key !== "autre").map((s) => s.key as string);
+
+function sourceBucket(source: string): string {
+  const s = (source ?? "").toLowerCase();
+  return NAMED_SOURCES.includes(s) ? s : "autre";
+}
+
 export default function CrmTenders() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [tab, setTab] = useState<"open" | "decided">("open");
+  const [sources, setSources] = useState<string[]>([]);
   const [goTarget, setGoTarget] = useState<TenderWithContext | null>(null);
   const [noGoTarget, setNoGoTarget] = useState<TenderWithContext | null>(null);
   // L'id et non l'objet : produire la synthèse rafraîchit la liste, et une
