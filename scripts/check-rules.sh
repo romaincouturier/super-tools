@@ -95,8 +95,8 @@ check "003" "getFileType/resolveContentType non dupliqué" \
 check "004" "Pas d'usage direct de file.type (utiliser resolveContentType)" \
   "search_files 'file\.type' | grep -v 'file-utils.ts' | grep -v 'file-utils.test.ts' | grep -v '// safe:' | grep -vi 'resolveContentType\|resolvedContentType' | grep -v '\.d\.ts'"
 
-check "006" "Pas de refetchOnWindowFocus: true dans le code" \
-  "search_files 'refetchOnWindowFocus:\s*true'"
+check "006" "Pas de refetchOnWindowFocus: true dans le code (hors // safe: justifié)" \
+  "search_files 'refetchOnWindowFocus:\s*true' | grep -v '// safe:'"
 
 check "007" "DialogContent/SheetContent avec w-full pour le mobile" \
   "search_files 'DialogContent\|AlertDialogContent\|SheetContent' | grep 'max-w-' | grep -v 'w-full' | grep -v 'sm:max-w-md'"
