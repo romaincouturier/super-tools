@@ -64,26 +64,33 @@ serve(async (req) => {
     const targetId: string | undefined = body?.id;
 
 
+    const columns = "id, message_id, subject, from_email, text_body, html_body";
     let query = supabase
       .from("inbound_emails")
-      .select("id, message_id, text_body, html_body")
+      .select(columns)
       .order("received_at", { ascending: false })
       .limit(50);
 
     if (targetId) query = supabase
       .from("inbound_emails")
-      .select("id, message_id, text_body, html_body")
+      .select(columns)
       .eq("id", targetId);
 
     const { data: emails, error } = await query;
     if (error) throw error;
 
-    const results: { id: string; updated: boolean; reason?: string }[] = [];
+    const results: {
+      id: string;
+      updated: boolean;
+      reason?: string;
+      // deno-lint-ignore no-explicit-any
+      tenders?: any;
+    }[] = [];
 
     for (const email of emails || []) {
       if (email.text_body || email.html_body) {
-        await syncTenderBody(supabase, email.id, email.text_body, email.html_body);
-        results.push({ id: email.id, updated: false, reason: "déjà rempli" });
+        const tenders = await syncTenderBody(supabase, email, email.text_body, email.html_body);
+        results.push({ id: email.id, updated: false, reason: "déjà rempli", tenders });
         continue;
       }
       const content = await inbound.fetchReceivedEmailContent(email.message_id);
@@ -104,11 +111,13 @@ serve(async (req) => {
           attachments: content.attachments,
         })
         .eq("id", email.id);
+      let tenders = null;
       if (!updateError) {
-        await syncTenderBody(supabase, email.id, content.text, content.html);
+        tenders = await syncTenderBody(supabase, email, content.text, content.html);
       }
-      results.push({ id: email.id, updated: !updateError, reason: updateError?.message });
+      results.push({ id: email.id, updated: !updateError, reason: updateError?.message, tenders });
     }
+
 
     return new Response(JSON.stringify({ success: true, results }), {
       status: 200,
