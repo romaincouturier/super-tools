@@ -101,7 +101,29 @@ export default function InboundEmails() {
     enabled: !!user,
   });
 
+  // Sync: récupère le contenu manquant des emails puis rafraîchit la liste
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("refetch-inbound-emails", { body: {} });
+      if (error) throw error;
+      const results = (data as { results?: { updated: boolean }[] } | null)?.results || [];
+      return results.filter((r) => r.updated).length;
+    },
+    onSuccess: async (updated) => {
+      await refetch();
+      toast({
+        title: "Liste actualisée",
+        description: updated > 0 ? `${updated} email(s) complété(s)` : "Aucun contenu manquant",
+      });
+    },
+    onError: async (err: Error) => {
+      await refetch();
+      toast({ title: "Actualisation partielle", description: err.message, variant: "destructive" });
+    },
+  });
+
   // Update status mutation
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
