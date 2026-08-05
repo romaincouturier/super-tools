@@ -484,8 +484,8 @@ END:VCALENDAR`;
                 <MIcon icon="calendar_today" className="text-2xl mt-0.5" style={{ color: c.primary }} />
                 <div>
                   <h2 className="font-black text-xl leading-tight" style={{ color: c.onSurface }}>
-                    {formatDateLong(training.start_date)}
-                    {training.end_date && ` - ${formatDateLong(training.end_date)}`}
+                    {training.start_date ? formatDateLong(training.start_date) : "Dates à confirmer"}
+                    {training.start_date && training.end_date && ` - ${formatDateLong(training.end_date)}`}
                   </h2>
                 </div>
               </div>
