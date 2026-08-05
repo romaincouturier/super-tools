@@ -19,6 +19,7 @@
 
 import { parseEmailAddress } from "./email-address.ts";
 import { dedupKey, loadTenderFilterConfig, matchTender } from "./tender-tools.ts";
+import { ingestTenderEmailNotices } from "./tender-email-notices.ts";
 
 export interface InboundAddresses {
   /** Destinataires d'enveloppe, puis en-tête To en repli. */
@@ -141,5 +142,27 @@ export async function routeTenderEmail(
   if (error) {
     return { routed: true, source, created: false, reason: error.message };
   }
+
+  // Corps disponible dès la réception : une alerte AWS porte une dizaine
+  // d'avis, on les éclate et on les filtre immédiatement plutôt que d'attendre
+  // un rattrapage manuel.
+  if (email.body) {
+    const ingest = await ingestTenderEmailNotices(supabase, {
+      id: email.id,
+      messageId: email.messageId,
+      subject: email.subject,
+      from: email.from,
+      body: email.body,
+    });
+    if (ingest.notices >= 2) {
+      return {
+        routed: true,
+        source,
+        created: ingest.created > 0,
+        reason: `${ingest.created} avis retenus sur ${ingest.notices}`,
+      };
+    }
+  }
+
   return { routed: true, source, created: true, reason: null };
 }

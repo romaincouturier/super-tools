@@ -9,35 +9,33 @@ import {
 } from "../_shared/cors.ts";
 import { getSupabaseClient, verifyAuth } from "../_shared/supabase-client.ts";
 import * as inbound from "../_shared/resend-inbound-content.ts";
+import { ingestTenderEmailNotices } from "../_shared/tender-email-notices.ts";
 
 const corsHeaders = extendCorsHeaders({});
 
+/**
+ * Le corps du mail rend enfin les avis lisibles : on rejoue le filtrage sur
+ * son contenu. Une alerte AWS contient une dizaine d'avis, la fiche créée à
+ * l'arrivée n'en portait que le sujet.
+ */
 async function syncTenderBody(
   supabase: ReturnType<typeof getSupabaseClient>,
-  emailId: string,
+  email: { id: string; message_id: string | null; subject?: string | null; from_email?: string | null },
   text: string | null,
   html: string | null,
 ) {
   const body = text || html;
-  if (!body) return;
+  if (!body) return null;
 
-  const { data: tenders, error } = await supabase
-    .from("tender_opportunities")
-    .select("id, raw")
-    .eq("source_email_id", emailId);
-  if (error) throw error;
-
-  for (const tender of tenders || []) {
-    const raw = tender.raw && typeof tender.raw === "object" && !Array.isArray(tender.raw)
-      ? tender.raw
-      : {};
-    const { error: updateError } = await supabase
-      .from("tender_opportunities")
-      .update({ raw: { ...raw, body } })
-      .eq("id", tender.id);
-    if (updateError) throw updateError;
-  }
+  return await ingestTenderEmailNotices(supabase, {
+    id: email.id,
+    messageId: email.message_id,
+    subject: email.subject ?? null,
+    from: email.from_email ?? null,
+    body,
+  });
 }
+
 
 serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -66,26 +64,33 @@ serve(async (req) => {
     const targetId: string | undefined = body?.id;
 
 
+    const columns = "id, message_id, subject, from_email, text_body, html_body";
     let query = supabase
       .from("inbound_emails")
-      .select("id, message_id, text_body, html_body")
+      .select(columns)
       .order("received_at", { ascending: false })
       .limit(50);
 
     if (targetId) query = supabase
       .from("inbound_emails")
-      .select("id, message_id, text_body, html_body")
+      .select(columns)
       .eq("id", targetId);
 
     const { data: emails, error } = await query;
     if (error) throw error;
 
-    const results: { id: string; updated: boolean; reason?: string }[] = [];
+    const results: {
+      id: string;
+      updated: boolean;
+      reason?: string;
+      // deno-lint-ignore no-explicit-any
+      tenders?: any;
+    }[] = [];
 
     for (const email of emails || []) {
       if (email.text_body || email.html_body) {
-        await syncTenderBody(supabase, email.id, email.text_body, email.html_body);
-        results.push({ id: email.id, updated: false, reason: "déjà rempli" });
+        const tenders = await syncTenderBody(supabase, email, email.text_body, email.html_body);
+        results.push({ id: email.id, updated: false, reason: "déjà rempli", tenders });
         continue;
       }
       const content = await inbound.fetchReceivedEmailContent(email.message_id);
@@ -106,11 +111,13 @@ serve(async (req) => {
           attachments: content.attachments,
         })
         .eq("id", email.id);
+      let tenders = null;
       if (!updateError) {
-        await syncTenderBody(supabase, email.id, content.text, content.html);
+        tenders = await syncTenderBody(supabase, email, content.text, content.html);
       }
-      results.push({ id: email.id, updated: !updateError, reason: updateError?.message });
+      results.push({ id: email.id, updated: !updateError, reason: updateError?.message, tenders });
     }
+
 
     return new Response(JSON.stringify({ success: true, results }), {
       status: 200,
